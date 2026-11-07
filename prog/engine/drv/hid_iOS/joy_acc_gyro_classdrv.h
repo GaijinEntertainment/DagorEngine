@@ -12,11 +12,13 @@
 
 @interface iOSJoystickController : NSObject <iOSInputDeviceUpdate>
 
-- (id)initWith:(GCExtendedGamepad *)extendedGamepad vendorName:(const char *)name;
-- (void)clearGamepad;
+- (id)initWith:(GCController *)gc vendorName:(const char *)name;
+- (void)clearGamepad:(GCController *)gc;
+- (bool)isController:(GCController *)gc;
 - (void)dealloc;
 - (void)update;
 - (HumanInput::IGenJoystick *)getJoystick;
+- (iOSGamepadEx *)getGamepad;
 @end
 
 @interface iOSInputDevices : NSObject <iOSInputDeviceUpdate>
@@ -24,6 +26,7 @@
 - (id)init;
 - (void)controllerDidDisconnect:(NSNotification *)notification;
 - (void)controllerDidConnect:(NSNotification *)notification;
+- (void)controllerDidBecomeCurrent:(NSNotification *)notification;
 - (void)reconnectDevices;
 - (void)update;
 - (int)count;
@@ -82,6 +85,8 @@ public:
 
   int getVendorId() const override;
 
+  GCController *getActiveController() const;
+
   void enableGyroscope(bool enable, bool main_dev) override;
 
   bool isStickDeadZoneSetupSupported() const override { return true; }
@@ -108,15 +113,14 @@ public:
 
 private:
   void autoSetDefaultJoystick();
-
-  int vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
+  void updateGyroSource();
 
   bool enableAutoDefault = true;
+  bool deviceGyroEnabled = false;
+  bool padGyroEnabled = false;
+  bool deviceMotionRunning = false;
 
   iOSInputDevices *devices = nullptr;
   HumanInput::IGenJoystick *defJoystick = nullptr;
   HumanInput::IGenJoystickClient *client = nullptr;
-  bool shouldClearClient = true;
-
-  bool isEnabled = false;
 };

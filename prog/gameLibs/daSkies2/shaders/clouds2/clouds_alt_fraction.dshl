@@ -8,6 +8,13 @@ float strata_clouds_altitude = 10;
 float strata_clouds_effect = 1;
 float global_clouds_sigma = -0.12;
 
+//height-dependent shape/density alter (Haggstrom 2018, "Real-time rendering of volumetric clouds", B.2/B.3):
+//rounds the shape at base and top, thins the density at base and top, and flares cumulonimbus into an anvil.
+//off restores the pre-alter shape everywhere, so it lives here where both cloudsDensity and gen_clouds_lut see it
+int clouds_height_alter = 0;
+interval clouds_height_alter: off < 1, on;
+assume_if_not_assumed clouds_height_alter = off;
+
 macro INIT_CLOUD_APPLY_DIST(code)
   (code) {
     clouds_min_apply_dist@f1 = max(clouds_min_apply_dist, clouds_start_altitude2 * 1000 - world_view_pos.y);

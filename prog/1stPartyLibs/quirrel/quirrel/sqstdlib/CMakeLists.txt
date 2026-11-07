@@ -17,7 +17,6 @@ add_library(squirrel::sqstdlib ALIAS sqstdlib)
 
 target_include_directories(sqstdlib PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
   PRIVATE
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/internal>"
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/squirrel>"

@@ -191,6 +191,8 @@ struct int4
   int4(int32_t r) : r(r), g(r), b(r), a(r) {}
   int4(const float4 &f4) : r(f4.r), g(f4.g), b(f4.b), a(f4.a) {}
 
+  int4 operator-() const { return int4(-r, -g, -b, -a); }
+
   operator float4() const { return float4(r, g, b, a); }
 
   template <detail::Mask MASK>

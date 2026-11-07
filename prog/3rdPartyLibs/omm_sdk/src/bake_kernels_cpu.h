@@ -112,129 +112,55 @@ private:
     };
 #endif
 
-    struct Edge
-    {
-        Edge(const float2& p0, const float2& p1)
-            : _p0(p0)
-            , _p1(p1)
-            , _length(length(p1 - p0))
-        {
-
-        }
-
-        bool IsPointOnEdge(const float2& p) const {
-            const float l = length(p - _p0) + length(p - _p1) - _length;
-            return IsZero(l, 1e-5f);
-        }
-    private:
-        const float2 _p0;
-        const float2 _p1;
-        const float _length;
-    };
-     
     inline static bool IsZero(float value, float kEpsilon = 1e-6f) {
         return value < kEpsilon && value > -kEpsilon;
     };
 
-    inline static bool IsPointInsideUnitSquare(const float2& p)
+    // Gaijin: the edge as p0 + t * e and the alpha as a quadratic in t, in place of the slope form, its roots and
+    // the point-on-edge test: no square root, no special cases, and no absolute epsilon that rejects real
+    // crossings in float32. Same math as TestEdgeHyperbolaIntersection in omm_resample_common.hlsli.
+    // One axis of the cell [0,1]: narrows [t0, t1] to the part of p + t * e inside it.
+    inline static void ClipToCellAxis(float p, float e, float& t0, float& t1)
     {
-        return p.x >= 0.f && p.x <= 1.f && p.y >= 0.f && p.y <= 1.f;
+        if (e != 0.f)
+        {
+            const float ta = -p / e;
+            const float tb = (1.f - p) / e;
+            t0 = std::max(t0, std::min(ta, tb));
+            t1 = std::min(t1, std::max(ta, tb));
+        }
+        else if (p < 0.f || p > 1.f)
+        {
+            t0 = 2.f;
+            t1 = -1.f;
+        }
     }
 
-    inline static bool TestEdgeHyperbolaIntersection(
-        float2& p0, float2& p1,                     // 'Edge'       - Defined by the end points (in any order)
-        const float4& h                             // 'Hyperbola'  - Hyperbolic curve on the form x * h.x + y * h.y + x * y + h.z + h.w = 0
-    )
+    // True when the level line h.x + h.y*x + h.z*y + h.w*x*y = 0 crosses the edge p0-p1 inside the cell [0,1]^2.
+    inline static bool TestEdgeHyperbolaIntersection(const float2& p0, const float2& p1, const float4& h)
     {
-        if (p0.x > p1.x)
-            std::swap(p0, p1);
+        const float2 e = p1 - p0;
+        float t0 = 0.f;
+        float t1 = 1.f;
+        ClipToCellAxis(p0.x, e.x, t0, t1);
+        ClipToCellAxis(p0.y, e.y, t0, t1);
+        if (t0 > t1)
+            return false;
 
-        const Edge edge(p0, p1);
+        const float A = h.w * e.x * e.y;
+        const float B = h.y * e.x + h.z * e.y + h.w * (p0.x * e.y + p0.y * e.x);
+        const float C = h.x + h.y * p0.x + h.z * p0.y + h.w * p0.x * p0.y;
+        const float g0 = (A * t0 + B) * t0 + C;
+        const float g1 = (A * t1 + B) * t1 + C;
+        if (g0 * g1 <= 0.f)
+            return true;
 
-        const float a = h.x;
-        const float b = h.y;
-        const float c = h.z;
-        const float d = h.w;
-
-        const float k_denum = (p1.x - p0.x);
-
-        if (IsZero(k_denum))
-        {
-            const float x = p0.x;
-            const float n = x;
-            
-            const float c0 = d * n + c;
-            const float c1 = a + b * n;
-
-            if (IsZero(c0))
-            {
-                // (edge is identical to hyperbola asymptote => no intersection)
-                return false;
-            }
-            else
-            {
-                const float y = -c1 / c0;
-
-                return IsPointInsideUnitSquare(float2(x, y)) && edge.IsPointOnEdge(float2(x, y));
-            }
-        }
-        else // k_denum != 0
-        { 
-            const float k_enum  = (p1.y - p0.y);
-            const float k       = k_enum / k_denum; 
-            const float m       = p1.y - p1.x * k;
-
-            const float c0      = d * k;
-            const float c1      = c * k + d * m + b;
-            const float c2      = a + c * m;
-
-            if (IsZero(c0))  // Hyperbola is not a hyperbola. It's a straight line.
-            {
-                if (IsZero(c1))
-                {
-                    // Lines are parallel -> no solution
-                    return false;
-                }
-                else
-                {
-                    // Intersection point of non-parallel straight lines
-                    const float x = -c2 / c1;
-                    const float y = k * x + m;
-
-                    return IsPointInsideUnitSquare(float2(x, y)) && edge.IsPointOnEdge(float2(x, y));
-                }
-            }
-            else  // c0 != 0
-            {
-                // Hyperbola - straight line intersection.
-
-                const float innerRoot   = c1 * c1 - 4 * c0 * c2;
-                const bool isRealValued = innerRoot > 0.f;
-
-                if (isRealValued)
-                {
-                    const float root = sqrt(innerRoot); // NOTE: check that it's > 0!
-                    const float x0 = 0.5f * (-c1 + root) / c0;
-                    const float x1 = 0.5f * (-c1 - root) / c0;
-
-                    const float2 pX0 = float2(x0, k * x0 + m);
-                    const float2 pX1 = float2(x1, k * x1 + m);
-
-                    const bool pX0Intersects = IsPointInsideUnitSquare(pX0) && edge.IsPointOnEdge(pX0);
-                    const bool pX1Intersects = IsPointInsideUnitSquare(pX1) && edge.IsPointOnEdge(pX1);
-                    // At least a single intersection point inside the triangle
-                    return pX0Intersects || pX1Intersects; 
-                }
-                else
-                {
-                    // No real valued roots -> no intersection point.
-                    return false;
-                }
-            }
-        }
-
-        OMM_ASSERT(false);
-        return false;
+        // Same sign at both ends: only the vertex of the parabola can cross.
+        if (A == 0.f)
+            return false;
+        const float tv = -B / (2.f * A);
+        const float gv = (A * tv + B) * tv + C;
+        return tv > t0 && tv < t1 && g0 * gv <= 0.f;
     }
 public:
 

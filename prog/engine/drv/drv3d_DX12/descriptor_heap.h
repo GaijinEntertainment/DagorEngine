@@ -130,7 +130,7 @@ public:
         return;
       }
     }
-    G_ASSERT("DX12: DescriptorHeap::free unable to find heap for descriptor");
+    G_ASSERT_FAIL("DX12: DescriptorHeap::free unable to find heap for descriptor");
   }
 
   void freeAll()
@@ -492,12 +492,6 @@ struct DescriptorHeapRange
   }
 };
 
-enum class DescriptorReservationResult
-{
-  CurrentHeap,
-  NewHeap,
-};
-
 class ShaderResourceViewDescriptorHeapManager
 {
   struct Heap : public ManagedDescriptorHeapBase
@@ -573,6 +567,8 @@ class ShaderResourceViewDescriptorHeapManager
   dag::Vector<Heap> heaps;
   uint32_t activeHeapIndex = 0;
   uint32_t entrySize = 0;
+  uint32_t submittedHeapCount = 0;
+  uint64_t lastSubmitProgress = 0;
 
   void nextHeap(D3DDevice *device)
   {
@@ -602,6 +598,7 @@ public:
   void clearScratchSegments()
   {
     activeHeapIndex = 0;
+    submittedHeapCount = 0;
 
     for (auto &heap : heaps)
     {
@@ -610,6 +607,27 @@ public:
   }
 
   void onFlush() {}
+
+  // Sub-heaps [0, activeHeapIndex] stay in use by the GPU until progress is reached.
+  void onSubmit(uint64_t progress)
+  {
+    submittedHeapCount = activeHeapIndex + 1;
+    lastSubmitProgress = progress;
+  }
+
+  bool hasStaleSubmittedBindlessSegment(uint32_t rev) const
+  {
+    for (uint32_t i = 0; i < submittedHeapCount; ++i)
+    {
+      if (heaps[i].bindlessRev != rev)
+        return true;
+    }
+    return false;
+  }
+
+  uint64_t getLastSubmitProgress() const { return lastSubmitProgress; }
+
+  void onSubmittedWorkCompleted() { submittedHeapCount = 0; }
 
   ID3D12DescriptorHeap *getActiveHandle() { return heaps[activeHeapIndex].getHandle(); }
 
@@ -679,6 +697,7 @@ public:
 
     // Only heaps [0, activeHeapIndex] can be bound this frame. Higher leftover sub-heaps are
     // refreshed lazily when they become active again (their stale revision forces a copy).
+    G_ASSERTF(!hasStaleSubmittedBindlessSegment(rev), "DX12: Bindless segment rewritten while submitted work may still read it");
     for (uint32_t i = 0; i <= activeHeapIndex; ++i)
     {
       heaps[i].updateBindlessSegment(device, base_ptr, size, rev);
@@ -695,15 +714,10 @@ public:
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].allocateDescriptors(count), activeHeapIndex);
   }
 
-  DescriptorReservationResult reserveSpace(D3DDevice *device, uint32_t slot_count)
+  void reserveSpace(D3DDevice *device, uint32_t slot_count)
   {
-    if (heaps[activeHeapIndex].reserveSpace(slot_count))
-    {
-      return DescriptorReservationResult::CurrentHeap;
-    }
-
-    nextHeap(device);
-    return DescriptorReservationResult::NewHeap;
+    if (!heaps[activeHeapIndex].reserveSpace(slot_count))
+      nextHeap(device);
   }
 };
 

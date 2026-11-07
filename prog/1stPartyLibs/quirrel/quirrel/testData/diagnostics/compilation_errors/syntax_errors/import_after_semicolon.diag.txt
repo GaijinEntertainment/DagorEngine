@@ -1,0 +1,8 @@
+ERROR: import statements must be at the top of the file, after directives
+testData/diagnostics/compilation_errors/syntax_errors/import_after_semicolon.nut:3:0
+
+;
+from "math" import PI
+^---
+
+

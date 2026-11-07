@@ -90,7 +90,6 @@ def create_new_rendinst_asset()
       if imgui::Button("save asset")
         let assetPath = get_dlg_save_file("", "", "rendinst.blk")
         if !empty(assetPath)
-          get_base_name_without_ext(assetPath)
           importedRI = true
           import_rendinst(assetPath, activeRI__lodDistances, activeRI__lodFiles)
       imgui::NewLine()
@@ -101,6 +100,9 @@ def create_new_rendinst_asset()
 
 
 def composit_tree(asset__manager : DagorAssetMgr; var entities : EidList; node : DataBlock; transform : float3x4)
+  // A disabled node and its subtree are not used, the same as in CompositEntityPool::loadAssetData().
+  if datablock_getBlockName(node) == "node" && datablock_getBool(node, "disabled", false)
+    return
 
   let nodeName = datablock_getStr(node, "name", "")
   let localTransform = datablock_getTm(node, "tm", IDENT_TM)

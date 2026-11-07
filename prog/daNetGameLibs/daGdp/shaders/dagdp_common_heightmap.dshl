@@ -36,10 +36,16 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isStage1)
   USE_WATER_HEIGHTMAP(cs)
   INIT_DEFORM_HMAP(cs)
   USE_DEFORM_HMAP(cs)
-  INIT_HEIGHTMAP_OFS(cs)
+  INIT_HEIGHTMAP_OFS_WITH_GRASS(cs)
   USE_HEIGHTMAP_OFS(cs)
 
   hlsl(cs) {
+    // a shader whose dispatch covers several viewports defines DAGDP_VIEWPORT_FRUSTUM_PLANES
+    // to the planes of the current tile, otherwise the currently bound frustum globals are used.
+    #ifndef DAGDP_VIEWPORT_FRUSTUM_PLANES
+      #define DAGDP_VIEWPORT_FRUSTUM_PLANES frustumPlanes
+    #endif
+
     struct PlacementDetails
     {
       float3 position;
@@ -198,7 +204,8 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isStage1)
       }
 
       const bool isViewportDistanceOk = distance(pd.position, viewport_pos) - max_placeable_bounding_radius < viewport_max_distance;
-      const bool isFrustumOk = testSphereB(pd.position, max_placeable_bounding_radius + debug_frustum_culling_bias);
+      const bool isFrustumOk =
+        baseTestSphereB(pd.position, max_placeable_bounding_radius + debug_frustum_culling_bias, DAGDP_VIEWPORT_FRUSTUM_PLANES);
       const bool isHeightmapOk = isInsideHeightmap(pd.position.xz);
       const bool isHolesOk = !checkHeightmapHoles(pd.position);
 
@@ -208,8 +215,7 @@ macro USE_DAGDP_COMMON_HEIGHTMAP(isStage1)
     }
 
     void finishPlacement(uint tId, int2 stablePos, const PlacementDetails pd, uint placeableIndex,
-      const PlaceableGpuData placeable, const VariantGpuData variant, float scaleFactor = 1,
-      float3 extra = float3(0, 0, 0))
+      const PlaceableGpuData placeable, const VariantGpuData variant, float scaleFactor, float3 extra)
     {
       const float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale)) * scaleFactor;
       uint renderableIndex = getRenderableIndex(variant, placeableIndex, pd.position, viewport_pos, randScale);

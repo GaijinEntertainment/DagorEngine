@@ -4,6 +4,7 @@
 // global driver configuration accumulated for quick access
 
 #include <util/dag_stdint.h>
+#include <EASTL/string.h>
 #include "vulkan_api.h"
 #include "bindless_common.h"
 
@@ -67,6 +68,8 @@ struct DriverConfig
   // this means there is too much pipes or we trashed cache by something like caching all variants of various configs
   // or we must allow system to handle bigger file sizes
   uint32_t pipelineCacheMaxSizeMb;
+  // pipeline cache file path
+  eastl::string pipelineCacheFileName;
   // controls default stage of weak defined signal waits
   // can be usefull on ARM to overlap hidden tiling work
   VkPipelineStageFlags signalWaitStage;
@@ -127,6 +130,8 @@ struct DriverConfig
     bool compileCachedGrPipelinesUsingSyncCompile : 1;
     // compile seen graphics pipelines using sync compile regardless of async allowance
     bool compileSeenGrPipelinesUsingSyncCompile : 1;
+    // allow pipeline cache file load/store
+    bool allowPipelineCacheFile : 1;
     // allow latency wait using shared wait on fence
     bool allowSharedFenceLatencyWait : 1;
     // allow predicted latency wait in app code, compensating for worker-app latency

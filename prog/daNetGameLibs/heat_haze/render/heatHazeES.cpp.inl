@@ -228,6 +228,9 @@ int get_haze_divisor()
     }
   }
 
+  if (renderer_has_feature(FeatureRenderFlags::CAMERA_IN_CAMERA))
+    hazeDivisor = min(hazeDivisor, 2);
+
   return hazeDivisor;
 }
 
@@ -253,7 +256,8 @@ static void init_heat_haze_es(
     return;
 
   if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>();
-      changedFeatures && !changedFeatures->isFeatureChanged(FeatureRenderFlags::HAZE))
+      changedFeatures && !changedFeatures->isFeatureChanged(FeatureRenderFlags::HAZE) &&
+      !changedFeatures->isFeatureChanged(FeatureRenderFlags::CAMERA_IN_CAMERA))
     return;
 
   if (auto *resEvt = evt.cast<SetResolutionEvent>(); resEvt && resEvt->type == SetResolutionEvent::Type::DYNAMIC_RESOLUTION)

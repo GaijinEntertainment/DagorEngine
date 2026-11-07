@@ -44,6 +44,7 @@
 #include <perfMon/dag_perfTimer.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
+#include <debug/dag_streamingLog.h>
 #include <ioSys/dag_dataBlock.h>
 
 #if _TARGET_APPLE
@@ -520,7 +521,8 @@ public:
           {
             unsigned idx = bq_tid.index();
             auto &tex_desc = RMGR.texDesc[idx];
-            if (tex_desc.packRecIdx[TQL_base].pack == tex_desc.packRecIdx[TQL_thumb].pack &&
+            if (tex_desc.packRecIdx[TQL_thumb].pack < 0x7E00 &&
+                tex_desc.packRecIdx[TQL_base].pack == tex_desc.packRecIdx[TQL_thumb].pack &&
                 tex_desc.packRecIdx[TQL_base].rec == tex_desc.packRecIdx[TQL_thumb].rec)
             {
               if (texHdr[i].w && texHdr[i].h)
@@ -1177,6 +1179,7 @@ BaseTexture *DDSxTexturePack2::Factory::createTexture(TEXTUREID tid)
   }
   RMGR.pairedBaseTexId[idx] = bt_tid;
   t->setTID(tid);
+  STREAMING_LOG("tex create %s %dx%dx%d,L%d qLev=%d", name, hdr.w, hdr.h, hdr.depth, hdr.levels, RMGR.resQS[idx].getQLev());
 
   if (RMGR.resQS[idx].getMaxReqLev() > 1)
     RMGR.scheduleReading(idx, this);
@@ -1241,6 +1244,7 @@ void DDSxTexturePack2::Factory::releaseTexture(BaseTexture *texture, TEXTUREID i
       critSec.unlock();
       return;
     }
+    STREAMING_LOG("tex release %s ld=%d", name, RMGR.resQS[idx].getLdLev());
     RMGR.setD3dRes(idx, nullptr);
     if (RMGR.resQS[idx].isReading())
       RMGR.cancelReading(idx);
@@ -2339,6 +2343,14 @@ void ddsx::add_texname_to_mq_tex_list(TEXTUREID texId)
   if (texId != BAD_TEXTUREID)
     forcedMqTexList.add(texId);
 }
+int ddsx::get_tex_quality(TEXTUREID texId) { return get_texq(texId, ::dgs_tex_quality); }
+int ddsx::get_explicit_tex_list(TEXTUREID texId)
+{
+  OSSpinlockScopedLock autolock(forceQTexListSL);
+  return forcedLqTexList.has(texId)   ? EXPLICIT_TEX_LIST_LQ
+         : forcedMqTexList.has(texId) ? EXPLICIT_TEX_LIST_MQ
+                                      : EXPLICIT_TEX_LIST_NONE;
+}
 
 #if DAGOR_DBGLEVEL > 0
 #define FATALERR DAG_FATAL
@@ -3247,11 +3259,21 @@ unsigned reload_managed_array_textures_for_changed_slice(const char *slice_tex_n
 static void reload_active_array_textures()
 {
   int i = -1;
-  for (auto &r : make_span_const(arr_tex_factory.rec))
+  for (auto &r : make_span(arr_tex_factory.rec))
   {
     ++i;
+    const TEXTUREID tid = r.tid;
     if (r.tid == BAD_TEXTUREID || get_managed_texture_refcount(r.tid) <= 0)
       continue;
+    const int texq = get_texq(r.tid, ::dgs_tex_quality);
+    {
+      OSSpinlockScopedLock autolock(r.spinlock);
+      if (r.tid == tid && r.hdr.label && r.quality != texq)
+      {
+        r.quality = texq;
+        RMGR.setupQLev(r.tid.index(), texq, r.hdr);
+      }
+    }
     debug("reloading array tex: %s", get_managed_texture_name(r.tid));
     if (!arr_tex_factory.loadArrTexData(i, acquire_managed_tex(r.tid)))
       logerr("failed to reload array tex: <%s>(0x%x)", get_managed_texture_name(r.tid), r.tid);

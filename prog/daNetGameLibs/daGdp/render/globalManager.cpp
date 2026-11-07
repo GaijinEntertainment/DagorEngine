@@ -3,6 +3,7 @@
 #include <EASTL/shared_ptr.h>
 #include <generic/dag_enumerate.h>
 #include <debug/dag_log.h>
+#include <util/dag_convar.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <math/dag_hlsl_floatx.h>
 #include <shaders/dag_shaderResUnitedData.h>
@@ -50,6 +51,11 @@ struct ViewPersistentData
 };
 
 float GlobalManager::globalDensityMul = 1;
+
+CONSOLE_FLOAT_VAL_MINMAX("dagdp", lod_range_mul, 1.0f, 0.1f, 1.0f);
+
+float GlobalManager::lodRangeMul() { return lod_range_mul.get(); }
+void GlobalManager::setLodRangeMul(float mul) { lod_range_mul.set(mul); }
 
 // Caps for grow_limit, so that content with excessive demands cannot grow the
 // GPU buffers without bound. Each cap must stay above the template default of
@@ -201,6 +207,9 @@ void GlobalManager::invalidateViews()
 
 void GlobalManager::update(ecs::EntityManager &manager)
 {
+  if (lod_range_mul.pullValueChange())
+    invalidateRules();
+
   applyRequiredLimits();
 
   if (!viewsAreCreated)

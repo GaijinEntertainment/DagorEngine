@@ -17,7 +17,6 @@ void term_dabuild_cache();
 
 struct DaBuildProgress
 {
-  int phase = 0; // 0 = none, 1 = tex packs, 2 = grp packs
   int packDone = 0;
   int packTotal = 0;
   int assetDone = 0;

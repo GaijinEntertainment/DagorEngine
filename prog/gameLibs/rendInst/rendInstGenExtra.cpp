@@ -378,6 +378,14 @@ void rendinst::RiExtraPool::setupDestrPhysResLodMask(const char *res_nm)
   }
   destrPhysResLodMask = mask; // single store, render threads read it without the ccExtra lock
 }
+void rendinst::RiExtraPool::updateDestrModelReqLod(unsigned ri_lod) const
+{
+  if (unsigned destr_lod = ri_lod < 2 ? (destrPhysResLodMask >> (ri_lod * 4)) & 0xF : 0)
+    updateModelReqLod(destroyedPhysRes, destr_lod - 1);
+  for (int pool : destrLodPools)
+    if (auto *destrPoolRes = riExtra[pool].res)
+      destrPoolRes->updateReqLod(eastl::min<unsigned>(ri_lod, destrPoolRes->lods.size() - 1));
+}
 void rendinst::RiExtraPool::updateModelReqLod(DynamicPhysObjectData *physRes, unsigned lod)
 {
   for (auto &m : physRes->models)
@@ -555,11 +563,14 @@ void rendinst::requestRiExResources(const char *ri_res_name, dag::FunctionRef<vo
       }
     }
 
-    if (const char *physRes = b->getStr("physRes", nullptr); physRes && *physRes)
-      res_cb(physRes, PhysObjGameResClassId);
+    if (RendInstGenData::renderResRequired || b->getBool("destrNetPhys", false))
+    {
+      if (const char *physRes = b->getStr("physRes", nullptr); physRes && *physRes)
+        res_cb(physRes, PhysObjGameResClassId);
 
-    if (const char *physRes = b->getStr("destroyedModelName", nullptr); physRes && *physRes)
-      res_cb(physRes, PhysObjGameResClassId);
+      if (const char *physRes = b->getStr("destroyedModelName", nullptr); physRes && *physRes)
+        res_cb(physRes, PhysObjGameResClassId);
+    }
   }
 }
 
@@ -624,6 +635,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   const DataBlock &paramsBlock = getRiParamsBlockByName(ri_res_name);
   bool indestructibleByNuke = false;
   bool underwaterOnly = false;
+  const bool paramsRead = !immortal;
 
   if (!immortal)
   {
@@ -658,7 +670,9 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
       riExtra[id].riPoolRefLayer = ri_pool_ref_layer;
       debug("updated riPoolRef=%d (@%d) for %s", ri_pool_ref, ri_pool_ref_layer, ri_res_name);
     }
-    riExtra[id].rendinstHeight = combinedRendinstHeight;
+    // An Immortal re-add skips the params read, keep the configured height then
+    if (paramsRead)
+      riExtra[id].rendinstHeight = combinedRendinstHeight;
     riExtra[id].underwaterOnly = underwaterOnly;
     return id;
   }
@@ -723,8 +737,17 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   // todo: make it project dependent and data driven
   riExtra[id].isWalls = strstr(ri_res_name, "walls") != 0 || strstr(ri_res_name, "house") != 0 || strstr(ri_res_name, "building") != 0;
   riExtra[id].useVsm = paramsBlock.getBool("useVsm", false);
+  riExtra[id].startHidden = paramsBlock.getBool("startHidden", false);
 
+  riExtra[id].isDestroyedPhysNetSynced = paramsBlock.getBool("destrNetPhys", false);
   riExtra[id].isDynamicRendinst = bool(ri_flags & AddRIFlag::Dynamic);
+  bool destroyedPhysResExist = false;
+  const auto loadDestroyedPhysRes = [&](const char *res_name) {
+    if (RendInstGenData::renderResRequired || riExtra[id].isDestroyedPhysNetSynced)
+      riExtra[id].destroyedPhysRes = (DynamicPhysObjectData *)get_gameres_cb(res_name, PhysObjGameResClassId);
+    else
+      destroyedPhysResExist = get_resource_type_id(res_name) == PhysObjGameResClassId;
+  };
 
   riExtra[id].riPoolRef = ri_pool_ref;
   riExtra[id].riPoolRefLayer = ri_pool_ref_layer;
@@ -770,7 +793,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
 
     next_res = b->getStr("physRes", nullptr);
     if (next_res && *next_res)
-      riExtra[id].destroyedPhysRes = (DynamicPhysObjectData *)get_gameres_cb(next_res, PhysObjGameResClassId);
+      loadDestroyedPhysRes(next_res);
     else if (next_res)
       logerr("empty physRes for riExtra=%s", ri_res_name);
   }
@@ -795,7 +818,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
           }
           const char *destroyedModelName = blk->getStr("destroyedModelName", nullptr);
           if (destroyedModelName && *destroyedModelName)
-            riExtra[id].destroyedPhysRes = (DynamicPhysObjectData *)get_gameres_cb(destroyedModelName, PhysObjGameResClassId);
+            loadDestroyedPhysRes(destroyedModelName);
           float regenTime = blk->getReal("hpFullRegenTime", 180);
           riExtra[id].regenHpRate = (riExtra[id].initialHP > 0 && regenTime > 0) ? riExtra[id].initialHP / regenTime : 0;
           riExtra[id].damageThreshold = riExtra[id].initialHP / 1000;
@@ -830,7 +853,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     }
   }
 
-  riExtra[id].isDestroyedPhysResExist = riExtra[id].destroyedPhysRes != nullptr;
+  riExtra[id].isDestroyedPhysResExist = riExtra[id].destroyedPhysRes != nullptr || destroyedPhysResExist;
   update_ri_extra_game_resources(ri_res_name, id, riRes, paramsBlock, get_gameres_cb);
 
   return id;
@@ -898,14 +921,9 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
   riExtra[id].usedInLandmaskHeight = 0;
   riExtra[id].hideMask = rendinst::getResHideMask(ri_res_name, &riRes->bbox);
 
-  if (RendInstGenData::renderResRequired)
-  {
-    const Point3 &sphereCenter = riRes->bsphCenter;
-    riExtra[id].sphereRadius = riRes->bsphRad + sqrtf(sphereCenter.x * sphereCenter.x + sphereCenter.z * sphereCenter.z);
-    riExtra[id].sphCenterY = sphereCenter.y;
-  }
-  else
-    riExtra[id].sphereRadius = riExtra[id].sphCenterY = 0;
+  const Point3 &sphereCenter = riRes->bsphCenter;
+  riExtra[id].sphereRadius = riRes->bsphRad + sqrtf(sphereCenter.x * sphereCenter.x + sphereCenter.z * sphereCenter.z);
+  riExtra[id].sphCenterY = sphereCenter.y;
 
   const DataBlock *ri_ovr = rendinst::ri_lod_ranges_ovr.getBlockByName(ri_res_name);
   int lod_cnt = riRes->lods.size();
@@ -991,6 +1009,10 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
 
           if ((elems[elemNo].mat->get_flags() & SHFLG_2SIDED) && !(elems[elemNo].mat->get_flags() & SHFLG_REAL2SIDED))
             cmask |= 1 << elemNo;
+#if DAGOR_DBGLEVEL > 0
+          if (rendinst::shader_material_validation_cb)
+            rendinst::shader_material_validation_cb(elems[elemNo].mat, ri_res_name);
+#endif
           riExtra[id].usingClipmap |= (strstr(className, "rendinst_layered_hmap_vertex_blend") != nullptr);
 
           bool hasDynamicDisplacement = strstr(className, "rendinst_flag_colored") != nullptr ||
@@ -1219,7 +1241,16 @@ int rendinst::cloneRIGenExtraResIdx(const char *source_res_name, const char *dst
     G_ASSERT(newId == riExtra.size());
     riExtra.interlocked_insert(newId);
     riExtra[newId] = riExtra[sourceId];
-    riExtra[newId].clonedFromIdx = sourceId;
+    RiExtraPool &clone = riExtra[newId];
+    // The clone is a new empty pool, it must not alias the source instances
+    clone.riTm.clear();
+    clone.riXYZR.clear();
+    clone.uuIdx.clear();
+    clone.riHP.clear();
+    clone.riUniqueData.clear();
+    clone.tsNodeIdx.clear();
+    v_bbox3_init_empty(clone.fullWabb);
+    clone.clonedFromIdx = sourceId;
     riExtra[sourceId].res->setRiExtraId(-1); // Note: not unique anymore, have to search
     hasClonedRiExtras = true;
   }
@@ -1264,6 +1295,14 @@ void rendinst::addRiGenExtraDebris(uint32_t res_idx, int layer)
   rtData->addDebrisForRiExtraRange(*riConfig, res_idx, 1);
   if (riExtra[res_idx].destroyedRiIdx >= 0)
     addRiGenExtraDebris(riExtra[res_idx].destroyedRiIdx, layer);
+}
+
+void rendinst::addRIGenExtraDestrLodPool(uint32_t res_idx, uint32_t destr_res_idx)
+{
+  G_ASSERT_RETURN(riExtra.isValid(res_idx), );
+  auto &destrPools = riExtra[res_idx].destrLodPools;
+  if (find_value_idx(destrPools, uint16_t(destr_res_idx)) == -1)
+    destrPools.push_back(uint16_t(destr_res_idx));
 }
 
 int rendinst::getRIGenExtraResIdx(const char *ri_res_name) { return riExtraMap.getNameId(ri_res_name); }
@@ -1511,7 +1550,7 @@ bool rendinst::riGenMostCountCell(const char *name, int &out_totalCount, int &ou
 
       for (int i = 0; i < rgl->cells.size(); i++)
       {
-        if (rgl->cells[i].cellRtData->pools.size() <= idx)
+        if (!rgl->cells[i].cellRtData || rgl->cells[i].cellRtData->pools.size() <= idx)
           continue;
 
         auto &pool = rgl->cells[i].cellRtData->pools[idx];
@@ -1801,7 +1840,7 @@ static bool moveRIGenExtra43NoLock(riex_handle_t id, mat43f_cref tm, bool moved,
       riExtraGrid.update(id, oldWbsph, pool.riXYZR[idx], newWbb);
     else
     {
-      riExtraGrid.erase(id, pool.riXYZR[idx]);
+      riExtraGrid.erase(id, oldWbsph);
       pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_or(pool.riXYZR[idx], V_CI_SIGN_MASK));
     }
     update_max_ri_extra_height(static_cast<int>(v_extract_y(newWbb.bmax) - v_extract_y(newWbb.bmin)) + 1);
@@ -1841,6 +1880,35 @@ bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bo
 }
 
 static int ri_extra_bulk_update_depth = 0;
+
+// The grid has one deferral flag, so the bulk update and the grid-only scope share this count.
+static int ri_extra_grid_defer_depth DAG_TS_GUARDED_BY(rendinst::ccExtra) = 0;
+
+static void begin_grid_defer_rebuild() DAG_TS_REQUIRES(rendinst::ccExtra)
+{
+  if (ri_extra_grid_defer_depth++ == 0)
+    riExtraGrid.beginDeferRebuild();
+}
+
+static void end_grid_defer_rebuild() DAG_TS_REQUIRES(rendinst::ccExtra)
+{
+  G_ASSERT_RETURN(ri_extra_grid_defer_depth > 0, );
+  if (--ri_extra_grid_defer_depth == 0)
+    riExtraGrid.endDeferRebuild();
+}
+
+void rendinst::beginRIExtraGridDeferRebuild()
+{
+  ScopedRIExtraWriteLock wr;
+  begin_grid_defer_rebuild();
+}
+
+void rendinst::endRIExtraGridDeferRebuild()
+{
+  ScopedRIExtraWriteLock wr;
+  end_grid_defer_rebuild();
+}
+
 bool rendinst::isRIExtraBulkUpdateInProgress() { return ri_extra_bulk_update_depth > 0; }
 void rendinst::setRIExtraDeferGridUpdate(bool defer) { ri_extra_defer_grid_update = defer; }
 bool rendinst::getRIExtraDeferGridUpdate() { return ri_extra_defer_grid_update; }
@@ -1883,7 +1951,7 @@ void rendinst::beginRIExtraBulkUpdate()
   if (ri_extra_bulk_update_depth++ == 0)
   {
     ScopedRIExtraWriteLock wr;
-    riExtraGrid.beginDeferRebuild();
+    begin_grid_defer_rebuild();
     for (auto &s : riExTiledScenes.scenes())
       s.beginBulkTransformUpdate();
   }
@@ -1895,7 +1963,7 @@ void rendinst::endRIExtraBulkUpdate()
   {
     {
       ScopedRIExtraWriteLock wr;
-      riExtraGrid.endDeferRebuild();
+      end_grid_defer_rebuild();
     }
     // Flush the tiled-scene transforms deferred during the bulk move once here, instead of once per
     // instance (showRiExtraInstance skips its per-instance flush while a bulk update is in progress).

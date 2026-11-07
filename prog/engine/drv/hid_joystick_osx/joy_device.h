@@ -77,7 +77,8 @@ protected:
   struct AxisData
   {
     IOHIDElementRef elem;
-    int maxLogVal, signedVal;
+    int minVal, maxVal, signedVal;
+    uint32_t rawMask;
     float v0, dv;
     int *valStorage;
     SimpleString name;

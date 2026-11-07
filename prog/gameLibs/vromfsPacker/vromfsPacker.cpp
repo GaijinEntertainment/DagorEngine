@@ -70,12 +70,23 @@ static Tab<RegExpPtr> reIncludeBlk(tmpmem), reExcludeBlk(tmpmem);
 static Tab<RegExpPtr> reIncludeKeepLines(tmpmem);
 static Tab<RegExpPtr> reStripCppComments(tmpmem);
 static bool blkCheckOnly = false;
+static bool check_fname_case = false;
+static bool has_fname_case_errors = false;
 static size_t z1_blk_sz = 1 << 20;
 static bool force_legacy_format = true;
 static unsigned write_version = 0;
 static const char *version_legacy_fn = "version";
 OAHashNameMap<true> preproc_defines;
 static const char *export_data_for_dict_dir = nullptr;
+
+static void validate_fname_case(const char *fname)
+{
+  if (check_fname_case && !dd_is_fname_case_valid(fname))
+  {
+    printf("ERR: invalid file case: %s\n", fname);
+    has_fname_case_errors = true;
+  }
+}
 
 static unsigned get_target_code(const char *targetStr)
 {
@@ -368,6 +379,7 @@ void gatherFilesList(const DataBlock &blk, FastNameMapEx &files, Tab<String> &ds
     {
       String fpath(260, "%s/%s", root_path, blk.getStr(i));
       char *sname = simplify_name(fpath);
+      validate_fname_case(sname);
       int id = files.addNameId(sname);
       if (dst_files.size() <= id)
         dst_files.resize(id + 1);
@@ -626,6 +638,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       if ((int)cachedStreams.size() <= id)
         cachedStreams.resize(id + 1, nullptr);
       DynamicMemGeneralSaveCB *stream = cachedStreams[id];
+      validate_fname_case(fname);
       if (!stream)
       {
         if (!dd_file_exists(fname))
@@ -1041,9 +1054,9 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
   zstd_destroy_cdict(zstd_cdict);
   zstd_cdict = nullptr;
 
-  if (blk_err)
+  if (blk_err || has_fname_case_errors)
   {
-    printf("ERR: some BLK were unreadable\n");
+    printf("ERR: some BLK were unreadable or had a wrong file name case\n");
     remove(fname);
     return false;
   }
@@ -1273,6 +1286,7 @@ bool unpackVromfs(const char *fname, const char *dest_folder, bool txt_blk, int 
       printf("ERR: memalloc(%d, tmpmem); returned null", hdr.fullSz + FS_OFFS);
       return false;
     }
+    new (fs, _NEW_INPLACE) VirtualRomFsData();
     base = (char *)fs + FS_OFFS;
     if (hdr.packedSz() && hdr.zstdPacked())
     {
@@ -1711,6 +1725,7 @@ static void print_usage()
     "  -blkSharedNamemapLocation:<dir>   override blkSharedNamemapLocation:t option of build.blk\n"
     "  -shrinkBlkSharedNamemap           remove unused strings, but saving order of other strings\n"
     "  -makeDict:<dest_file>:<data_dir>  build compr. dict. from data files instead of building vromfs\n"
+    "  -checkFnameCase                   on Windows, fail on a wrong case of a file:t= or a parsed BLK include\n"
     "additional options for -B case:\n"
     "  -dest_path:<path>       set dest root path for files in vrom (-dest_path:* uses name of src_folder)\n"
     "  -include:<wildcard>     use wildcard to include files (if none specified, *.* is used)\n"
@@ -1975,7 +1990,10 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
     clear_and_shrink(reIncludeBlk);
     clear_and_shrink(reExcludeBlk);
     clear_and_shrink(reIncludeKeepLines);
+    clear_and_shrink(reStripCppComments);
     preproc_defines.clear();
+    check_fname_case = false;
+    has_fname_case_errors = false;
 
     const char *cmd_target_str = NULL;
     for (int i = 2; i < argc; i++)
@@ -2097,7 +2115,7 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
           parse_ext.addNameId(blk->getStr(j));
       if (!loadPatterns(*blk->getBlockByNameEx("keepLines"), "include", reIncludeKeepLines))
         return 13;
-      if (!loadPatterns(*blk->getBlockByNameEx("stripCppComments"), "include", reIncludeKeepLines))
+      if (!loadPatterns(*blk->getBlockByNameEx("stripCppComments"), "include", reStripCppComments))
         return 13;
     }
     blk = inp.getBlockByName("defines");
@@ -2172,6 +2190,8 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
         export_data_for_dict_dir = argv[i] + 19;
       else if (stricmp("-quiet", argv[i]) == 0)
         ; // skip
+      else if (stricmp("-checkFnameCase", argv[i]) == 0)
+        check_fname_case = true;
       else if (strnicmp("-blkSharedNamemapLocation:", argv[i], 26) == 0)
         inp.setStr("blkSharedNamemapLocation", argv[i] + 26);
       else if (stricmp("-shrinkBlkSharedNamemap", argv[i]) == 0)

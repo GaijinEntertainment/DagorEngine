@@ -37,6 +37,7 @@ Sources =
 if $(Platform) in windows {
   Sources +=
     winapi_helpers.cpp
+    flipStallNudge.cpp
   ;
 }
 
@@ -54,7 +55,7 @@ if $(Platform) in macOS iOS tvOS {
 }
 
 include $(Root)/$(Location)/nvapi.jam ;
-if -DHAS_NVAPI in $(CPPopt) { Sources += nvLowLatency.cpp ; } else { Sources += nvLowLatencyStub.cpp ; }
+if $(UseStreamline) = yes { Sources += nvLowLatency.cpp ; } else { Sources += nvLowLatencyStub.cpp ; }
 
 if $(Platform) in windows &&
   $(PlatformArch) in x86_64 &&
@@ -72,6 +73,7 @@ if $(UseStreamline) = yes {
   ;
   CPPopt += -DHAS_STREAMLINE ;
   Sources += streamline_adapter.cpp ;
+  Target = $(Target:S=~sl$(StreamlineVer).lib) ;
 } else {
   Sources += streamline_adapter_stub.cpp ;
 }
@@ -124,6 +126,7 @@ if $(Platform) in ps4 ps5 {
   Sources +=
     sony/base_texture.cpp
     sony/base_buffer.cpp
+    sony/globals_common.cpp
     sony/base_shader_state.cpp
     sony/d3d_frontend_common.cpp
     sony/bindless.cpp

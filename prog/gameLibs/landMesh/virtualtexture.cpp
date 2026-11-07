@@ -5,6 +5,7 @@
 #include <landMesh/riLandClass.h>
 #include <landMesh/heightmapQuery.h>
 #include <math/dag_Point4.h>
+#include <math/dag_bits.h>
 #include <math/dag_Point2.h>
 #include <math/dag_adjpow2.h>
 #include <math/dag_hlsl_floatx.h>
@@ -27,7 +28,6 @@
 #include <workCycle/dag_workCycle.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <EASTL/vector_set.h>
-#include <EASTL/vector_map.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/string.h>
 #include <EASTL/span.h>
@@ -347,17 +347,6 @@ struct TexTileInfoOrder : TexTileInfo
   bool operator!=(const TexTileInfoOrder &other) const { return !(*this == other); }
 };
 
-struct CacheCoords
-{
-  uint8_t x = 0, y = 0;
-
-  CacheCoords() = default;
-  CacheCoords(int X, int Y) : x(X), y(Y) {}
-
-  // for error stats
-  bool operator==(const CacheCoords &other) const { return x == other.x && y == other.y; }
-};
-
 // for error stats
 template <>
 struct eastl::hash<CacheCoords>
@@ -370,14 +359,16 @@ struct TexLRU
   TexTilePos tilePos;
   CacheCoords cacheCoords;
   uint8_t flags = 0;
+  unsigned int externalTag = 0;
 
   enum
   {
     NEED_UPDATE = (1 << 0),
-    IS_USED = (1 << 1),    // According to latest feedback, tile is visible.
-    IS_INVALID = (1 << 2), // Has different (previous) tile in atlas. This atlas cache can not be registered, since it has old data in
-                           // atlas but refers to new position already. However as long as we do not update a tile with "IS_INVALID",
-                           // indirection texture is valid.
+    ENQUEUED_FOR_UPDATE = (1 << 1),
+    IS_USED = (1 << 2),  // According to latest feedback, tile is visible.
+    IS_DIRTY = (1 << 3), // Has different (previous) tile in atlas. This atlas cache can not be registered, since it has old data in
+                         // atlas but refers to new position already. However as long as we do not update a tile with "IS_DIRTY",
+                         // indirection texture is valid.
   };
 
   TexLRU() = default;
@@ -389,18 +380,43 @@ struct TexLRU
     flags = flag;
     return *this;
   }
+
+  TexLRU &setExternalTag(unsigned int tag)
+  {
+    externalTag = tag;
+    return *this;
+  }
 };
 
 typedef Tab<TexLRU> TexLRUList;
 
+static const uint4 INDIRECTION_BITS =
+  uint4(CACHECOORDS_PACKED_X_BITS, CACHECOORDS_PACKED_Y_BITS, CACHECOORDS_PACKED_MIP_BITS, CACHECOORDS_TAG_BITS);
+static const uint4 INDIRECTION_SHIFT =
+  uint4(0, INDIRECTION_BITS.x, INDIRECTION_BITS.x + INDIRECTION_BITS.y, INDIRECTION_BITS.x + INDIRECTION_BITS.y + INDIRECTION_BITS.z);
+static const uint4 INDIRECTION_MASK =
+  uint4((1 << INDIRECTION_BITS.x) - 1, (1 << INDIRECTION_BITS.y) - 1, (1 << INDIRECTION_BITS.z) - 1, (1 << INDIRECTION_BITS.w) - 1);
+G_STATIC_ASSERT(CACHECOORDS_PACKED_X_BITS + CACHECOORDS_PACKED_Y_BITS + CACHECOORDS_PACKED_MIP_BITS + CACHECOORDS_TAG_BITS == 32);
+
+static uint32_t stored_tag_limit(uint32_t storage_bits)
+{
+  const uint32_t storageMask = ~0u >> (32 - storage_bits);
+  return ((INDIRECTION_MASK.w << INDIRECTION_SHIFT.w) & storageMask) >> INDIRECTION_SHIFT.w;
+}
+
 struct TexTileIndirection
 {
-  CacheCoords cacheCoords;
-  uint8_t mip = 0;
-  uint8_t tag = 0;
+  uint32_t tilePacked = -1;
 
   TexTileIndirection() = default;
-  TexTileIndirection(CacheCoords CACHECOORDS, int MIP, int TAG) : cacheCoords(CACHECOORDS), mip(MIP), tag(TAG) {}
+  TexTileIndirection(CacheCoords cacheCoords, int mip, uint32_t tag)
+  {
+    G_FAST_ASSERT(tag <= INDIRECTION_MASK.w);
+    tilePacked = (uint32_t(cacheCoords.x) & INDIRECTION_MASK.x);
+    tilePacked |= (uint32_t(cacheCoords.y) & INDIRECTION_MASK.y) << INDIRECTION_SHIFT.y;
+    tilePacked |= (uint32_t(mip) & INDIRECTION_MASK.z) << INDIRECTION_SHIFT.z;
+    tilePacked |= (tag & INDIRECTION_MASK.w) << INDIRECTION_SHIFT.w;
+  }
 };
 
 struct RiIndices : public eastl::array<int, MAX_RI_VTEX_CNT>
@@ -467,6 +483,7 @@ struct MipContext
   int oldestCaptureTargetCounter = 0;
 
   Tab<uint16_t> updateLRUIndices;
+  Tab<CacheCoords> discardedTilesCacheCoords;
   bool invalidateIndirection = false;
 
   PostFxRenderer *feedbackTexFilterRenderer = nullptr;
@@ -499,7 +516,7 @@ struct MipContext
 
   void init(bool use_uav_feedback, IPoint2 feedback_size, int feedback_oversampling, uint32_t max_tiles_feedback,
     bool useFeedbackTexFilter);
-  void initIndirection(int max_tex_mips);
+  void initIndirection(int max_tex_mips, bool enable_18bit_tags);
   void closeIndirection();
   void closeHWFeedback();
   void initHWFeedback();
@@ -525,6 +542,17 @@ struct MipContext
     const bool isValid() const { return pagesDim > 0; }
   } fallback;
   bool allocateFallback(int dim, int tex_tile_size); // return true if changed indirection
+
+#if DAGOR_DBGLEVEL > 0
+  class
+  {
+    ska::flat_hash_set<uint16_t> set;
+
+  public:
+    bool tryAdd(const CacheCoords &cc) { return set.emplace(cc.pack()).second; }
+    bool tryRemove(const CacheCoords &cc) { return (bool)set.erase(cc.pack()); }
+  } discardTilesCrosscheck;
+#endif
 };
 
 static constexpr int calc_squared_area_around(int tile_width) { return sqr(tile_width * 2 + 1); }
@@ -677,6 +705,8 @@ struct HistBuffer
     size = clipmap_hist_total_elements;
     G_STATIC_ASSERT(sizeof(vec4i) <= 16);
     p = reinterpret_cast<uint16_t *>(defaultmem->alloc(size * sizeof(uint16_t)));
+    mem_set_0(dag::Span{p, static_cast<intptr_t>(size)});
+    touched.assign((size >> (BLOCK_BITS + 5)) + 1, 0u);
   }
 
   void close()
@@ -686,14 +716,13 @@ struct HistBuffer
     defaultmem->free(p);
     p = nullptr;
     size = 0;
+    touched.clear();
   }
 
-  void clear()
-  {
-    if (!p)
-      return;
-    mem_set_0(dag::Span{p, static_cast<intptr_t>(size)});
-  }
+  // one bit per block of 8 bins (a vec4i of counts): the feedback touches a few thousand bins of a
+  // 180K (2.9M with ri vtex) table, so the scan visits and zeroes the touched blocks only
+  static constexpr int BLOCK_BITS = 3;
+  dag::Vector<uint32_t> touched;
 };
 
 class ClipmapImpl
@@ -735,7 +764,7 @@ public:
   constexpr uint32_t getMaxTileCaptureInfoElementCount() { return MAX_TILE_INFO_BUF_CAPTURE_ELEMENENTS; }
 
   void initVirtualTexture(int cacheDimX, int cacheDimY, int tex_tile_size, int virtual_texture_mip_cnt, int virtual_texture_anisotropy,
-    float maxEffectiveTargetResolution);
+    float maxEffectiveTargetResolution, bool enable_18bit_tags);
   void closeVirtualTexture();
 
   dafg::NodeHandle createPrepareRenderNode(ClipmapPrepareRenderCb prepare_render_cb);
@@ -747,6 +776,7 @@ public:
   void initFallbackPage(int pages_dim, float fallback_texel_size);
 
   void update(ClipmapRenderer &renderer, bool turn_off_decals_on_fallback);
+  void discardCache(ClipmapRenderer &renderer);
   void updateCache(ClipmapRenderer &renderer);
 
   void resetSecondaryFeedbackCenter() { nextSecondaryFeedbackCenter.reset(); }
@@ -769,6 +799,7 @@ public:
   }
   void setMaxTileUpdateCount(int count) { maxTileUpdateCount = count; }
   __forceinline int getZoom() const { return currentContext->bindedPos.getZoom(); }
+  __forceinline int getZoomShift() const { return currentContext->bindedPos.tileZoomShift; }
   __forceinline float getPixelRatio() const { return getZoom() * pixelRatio; }
 
   __forceinline TexTileIndirection &atTile(SmallTab<TexTileIndirection, MidmemAlloc> *tiles, int mip, int addr)
@@ -881,6 +912,7 @@ public:
   void setCacheBufferCount(int cache_count, int buffer_count);
   void setDynamicDDScale(const DynamicDDScaleParams &params);
   bool setAnisotropy(int anisotropy);
+  float getTileEffectiveRegionCoeff();
   void beforeReset();
   void afterReset();
 
@@ -913,8 +945,8 @@ public:
 
 private:
   void beginUpdateTiles(ClipmapRenderer &renderer);
-  void updateTileBlock(ClipmapRenderer &renderer, const CacheCoords &cacheCoords, const TexTilePos &tilePos);
-  void updateTileBlockRaw(ClipmapRenderer &renderer, const CacheCoords &cacheCoords, const BBox2 &region);
+  uint32_t updateTileBlock(ClipmapRenderer &renderer, const CacheCoords &cacheCoords, const TexTilePos &tilePos);
+  uint32_t updateTileBlockRaw(ClipmapRenderer &renderer, const CacheCoords &cacheCoords, const BBox2 &region, int totalMipLevel);
   void endUpdateTiles(ClipmapRenderer &renderer);
   void setDDScale();
   void setAnisotropyImpl(int anisotropy);
@@ -946,8 +978,8 @@ private:
 
   void checkConsistency();
 
-  void GPUrestoreIndirectionFromLRUFull();
-  void GPUrestoreIndirectionFromLRU();
+  void GPUrestoreIndirectionFromLRUFull(uint32_t tag_clear_value);
+  void GPUrestoreIndirectionFromLRU(uint32_t tag_clear_value);
 
   BBox2 currentLRUBox;
   uint32_t feedbackType;
@@ -1015,6 +1047,10 @@ private:
 
   void processTileFeedback(const CaptureMetadata &capture_metadata, const TMatrix4 &globtm, const TMatrix4 *mirror_globtm_opt);
 
+  // for callback crosschecking
+  void checkCallbacksConsistencyRenderTile(CacheCoords cacheCoords);
+  void checkCallbacksConsistencyDiscardTile(CacheCoords cacheCoords);
+
 private:
   HistBuffer hist;
   UniqueTex feedbackDepthTex;
@@ -1028,6 +1064,7 @@ private:
   RiMipPosArray riPos;
 
   eastl::optional<RiLandclassDataManager> riLandclassDataManager = eastl::nullopt;
+  LandclassQueryData landclassQueryData;
 
   eastl::unique_ptr<ComputeShaderElement> clearHistogramCs;
   eastl::unique_ptr<ComputeShaderElement> processFeedbackCs;
@@ -1041,6 +1078,7 @@ private:
   int failLockCount = 0;
 
   int cacheWidth = 0, cacheHeight = 0, cacheDimX = 0, cacheDimY = 0;
+  bool enable18bitTags = false;
 
   int tileInfoSize = 0; // used elements of tileInfo array.
 
@@ -1111,10 +1149,10 @@ const IPoint2 Clipmap::FEEDBACK_DEFAULT_SIZE = IPoint2(FEEDBACK_DEFAULT_WIDTH, F
 const int Clipmap::MAX_TEX_MIP_CNT = TEX_MIPS;
 
 void Clipmap::initVirtualTexture(int cacheDimX, int cacheDimY, int tex_tile_size, int virtual_texture_mip_cnt,
-  int virtual_texture_anisotropy, float maxEffectiveTargetResolution)
+  int virtual_texture_anisotropy, float maxEffectiveTargetResolution, bool enable_18bit_tags)
 {
   clipmapImpl->initVirtualTexture(cacheDimX, cacheDimY, tex_tile_size, virtual_texture_mip_cnt, virtual_texture_anisotropy,
-    maxEffectiveTargetResolution);
+    maxEffectiveTargetResolution, enable_18bit_tags);
 }
 void Clipmap::closeVirtualTexture() { clipmapImpl->closeVirtualTexture(); }
 
@@ -1137,6 +1175,7 @@ void Clipmap::initFallbackPage(int pages_dim, float fallback_texel_size)
 int Clipmap::getMaxTexMips() const { return clipmapImpl->getMaxTexMips(); }
 void Clipmap::setMaxTileUpdateCount(int count) { clipmapImpl->setMaxTileUpdateCount(count); }
 int Clipmap::getZoom() const { return clipmapImpl->getZoom(); }
+int Clipmap::getZoomShift() const { return clipmapImpl->getZoomShift(); }
 float Clipmap::getPixelRatio() const { return clipmapImpl->getPixelRatio(); }
 
 void Clipmap::setMaxTexMips(int tex_mips) { clipmapImpl->setMaxTexMips(tex_mips); }
@@ -1208,6 +1247,7 @@ int Clipmap::getCacheBufferMips() { return clipmapImpl->getCacheBufferMips(); }
 void Clipmap::setCacheBufferCount(int cache_count, int buffer_count) { clipmapImpl->setCacheBufferCount(cache_count, buffer_count); }
 void Clipmap::setDynamicDDScale(const DynamicDDScaleParams &params) { clipmapImpl->setDynamicDDScale(params); }
 bool Clipmap::setAnisotropy(int anisotropy) { return clipmapImpl->setAnisotropy(anisotropy); }
+float Clipmap::getTileEffectiveRegionCoeff() { return clipmapImpl->getTileEffectiveRegionCoeff(); }
 void Clipmap::beforeReset() { clipmapImpl->beforeReset(); }
 void Clipmap::afterReset() { clipmapImpl->afterReset(); }
 int Clipmap::getLastUpdatedTileCount() const { return clipmapImpl->getLastUpdatedTileCount(); }
@@ -1261,10 +1301,6 @@ template <typename T, size_t N>
 using TempSet =
   eastl::vector_set<T, eastl::less<T>, framemem_allocator, eastl::fixed_vector<T, N, /*overflow*/ true, framemem_allocator>>;
 
-template <typename K, typename T, size_t N>
-using TempMap = eastl::vector_map<K, T, eastl::less<K>, framemem_allocator,
-  eastl::fixed_vector<eastl::pair<K, T>, N, /*overflow*/ true, framemem_allocator>>;
-
 #define CHECK_MEMGUARD 0
 
 #define MAX_ZOOM_TO_ALLOW_FAKE_AROUND_CAMERA 64 // all tiles!
@@ -1272,12 +1308,11 @@ using TempMap = eastl::vector_map<K, T, eastl::less<K>, framemem_allocator,
 #define RESTORE_IN_INDIRECTION_ONLY_USED_LRU \
   0 // change this to 1, if we need only used LRU tiles in indirection. However, on SLI/Crossfire we always restore only used
 
-static const uint4 TILE_PACKED_BITS = uint4(TILE_PACKED_X_BITS, TILE_PACKED_Y_BITS, TILE_PACKED_MIP_BITS, TILE_PACKED_COUNT_BITS);
-static const uint4 TILE_PACKED_SHIFT =
-  uint4(0, TILE_PACKED_BITS.x, TILE_PACKED_BITS.x + TILE_PACKED_BITS.y, TILE_PACKED_BITS.x + TILE_PACKED_BITS.y + TILE_PACKED_BITS.z);
-static const uint4 TILE_PACKED_MASK =
-  uint4((1 << TILE_PACKED_BITS.x) - 1, (1 << TILE_PACKED_BITS.y) - 1, (1 << TILE_PACKED_BITS.z) - 1, (1 << TILE_PACKED_BITS.w) - 1);
-static const uint16_t MAX_GPU_FEEDBACK_COUNT = TILE_PACKED_MASK.w;
+// plain constexpr tables: uint4 has no constexpr constructor, so the per-tile decode loaded these from memory
+static constexpr uint32_t TILE_PACKED_SHIFT[4] = {
+  0, TILE_PACKED_X_BITS, TILE_PACKED_X_BITS + TILE_PACKED_Y_BITS, TILE_PACKED_X_BITS + TILE_PACKED_Y_BITS + TILE_PACKED_MIP_BITS};
+static constexpr uint32_t TILE_PACKED_MASK[4] = {(1u << TILE_PACKED_X_BITS) - 1, (1u << TILE_PACKED_Y_BITS) - 1,
+  (1u << TILE_PACKED_MIP_BITS) - 1, (1u << TILE_PACKED_COUNT_BITS) - 1};
 
 
 // this scales feedback view and so WASTES cache a lot
@@ -1367,10 +1402,14 @@ void MipContext::reset(int cacheDimX, int cacheDimY, bool force_redraw, int tex_
   fallback.originXZ = IPoint2(-100000, 100000);
   if (force_redraw)
   {
-    int lruDimX = cacheDimX / tex_tile_size;
-    int lruDimY = cacheDimY / tex_tile_size;
+    for (const TexLRU &ti : LRU)
+      if (ti.tilePos.mip < TEX_MIPS && !(ti.flags & TexLRU::ENQUEUED_FOR_UPDATE))
+        discardedTilesCacheCoords.emplace_back(ti.cacheCoords);
     LRU.clear();
     updateLRUIndices.clear();
+
+    int lruDimX = cacheDimX / tex_tile_size;
+    int lruDimY = cacheDimY / tex_tile_size;
     LRU.reserve(lruDimY * lruDimX);
     for (int y = 0; y < lruDimY; ++y)
       for (int x = (y < fallback.pagesDim ? fallback.pagesDim : 0); x < lruDimX; ++x)
@@ -1380,7 +1419,7 @@ void MipContext::reset(int cacheDimX, int cacheDimY, bool force_redraw, int tex_
   else
   {
     for (int i = 0; i < LRU.size(); ++i)
-      if (LRU[i].tilePos.mip != 0xFF) // && (LRU[i].flags & LRU[i].IS_USED))
+      if (LRU[i].tilePos.mip < TEX_MIPS)
         LRU[i].flags |= LRU[i].NEED_UPDATE;
   }
 }
@@ -1549,11 +1588,17 @@ __forceinline bool is_2d_frustum_visible(vec4f pos, vec4f width, vec4f height, c
 
 
 template <typename T>
-static void sort_tile_info_list(const eastl::span<T> tileInfo0)
+static void sort_tile_info_list(const eastl::span<T> tileInfo0, int sorted_prefix = -1)
 {
   for (T &tile : tileInfo0)
     tile.updateOrder();
-  stlsort::sort(tileInfo0.begin(), tileInfo0.end(), T::sortByOrder);
+  if (sorted_prefix >= 0 && sorted_prefix < (int)tileInfo0.size())
+  {
+    eastl::nth_element(tileInfo0.begin(), tileInfo0.begin() + sorted_prefix, tileInfo0.end(), T::sortByOrder);
+    stlsort::sort(tileInfo0.begin(), tileInfo0.begin() + sorted_prefix, T::sortByOrder);
+  }
+  else
+    stlsort::sort(tileInfo0.begin(), tileInfo0.end(), T::sortByOrder);
 }
 
 static bool compare_tile_info_results(const eastl::span<TexTileInfoOrder> tileInfo0, const eastl::span<TexTileInfoOrder> tileInfo1,
@@ -1712,12 +1757,12 @@ void ClipmapImpl::prepareTileFeedbackFromTextureFeedback()
   preparedTilesFeedback.resize(getMaxTileCaptureInfoElementCount());
   int tilesSize = 0;
 
-  hist.clear();
-
+  // the table is all zero between calls: the scan below zeroes every block it touched
   auto appendHist = [this](const TexTilePos &tilePos) {
-    int hist_ofs = tilePos.getTileTag();
+    const uint32_t hist_ofs = tilePos.getTileTag();
     G_ASSERTF(hist_ofs < hist.size, "%d, %d, %d, %d", tilePos.x, tilePos.y, tilePos.mip, tilePos.ri_offset);
     hist.p[hist_ofs]++;
+    hist.touched[hist_ofs >> (HistBuffer::BLOCK_BITS + 5)] |= 1u << ((hist_ofs >> HistBuffer::BLOCK_BITS) & 31);
   };
 
   int texMips = currentContext->lockedCaptureMetadata.texMipCnt;
@@ -1733,48 +1778,35 @@ void ClipmapImpl::prepareTileFeedbackFromTextureFeedback()
   {
     TIME_PROFILE_DEV(clipmap_processHist);
     // According to C++17 specs, TexTileInfo are constructed in-place.
+    // only the blocks the feedback touched, in tag order (the order the full scan had), each zeroed after reading
     uint16_t *__restrict pHist = static_cast<uint16_t *>(hist.p);
     G_ASSERT(!(((intptr_t)pHist) & 0xF));
-    G_STATIC_ASSERT(!(TILE_WIDTH & 7));
-    vec4f *__restrict pHistVec = (vec4f *)pHist;
-    for (uint32_t mip = 0; mip < texMips && tilesSize + 8 < preparedTilesFeedback.size(); mip++)
-      for (uint32_t ri_offset = 0; ri_offset < max_ri_offset; ri_offset++) // -V1008
+    G_STATIC_ASSERT(!(TILE_WIDTH & 7) && (1 << HistBuffer::BLOCK_BITS) * sizeof(uint16_t) == sizeof(vec4i));
+    static constexpr int X_MASK = (1 << TILE_WIDTH_BITS) - 1;
+    const int maxTiles = preparedTilesFeedback.size();
+    for (uint32_t w = 0; w < hist.touched.size(); ++w)
+    {
+      uint32_t bits = hist.touched[w];
+      if (!bits)
+        continue;
+      hist.touched[w] = 0;
+      for (; bits; bits &= bits - 1)
       {
-        static constexpr int X_MASK = (1 << TILE_WIDTH_BITS) - 1;
-        for (uint32_t i = 0; i < (TILE_WIDTH * TILE_WIDTH) && tilesSize + 8 < preparedTilesFeedback.size(); i += 8, pHistVec++)
+        const uint32_t tag = ((w << 5) + __bsf_unsafe(bits)) << HistBuffer::BLOCK_BITS;
+        uint16_t *counts = pHist + tag;
+        if (tilesSize + 8 < maxTiles) // a full list still zeroes what is left
         {
-          if (v_test_all_bits_zeros(*pHistVec))
-            continue;
-          int y = ((i >> TILE_WIDTH_BITS) & X_MASK) - HALF_TILE_WIDTH;
-          int x = (i & X_MASK) - HALF_TILE_WIDTH;
-          uint32_t *chist = ((uint32_t *)pHistVec);
-          uint32_t count2;
-
-          count2 = chist[0];
-          if (uint32_t count = (count2 & 0xffff))
-            preparedTilesFeedback[tilesSize++] = TexTileInfo(x, y, mip, ri_offset, count);
-          if (uint32_t count = (count2 >> 16))
-            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 1, y, mip, ri_offset, count);
-
-          count2 = chist[1];
-          if (uint32_t count = (count2 & 0xffff))
-            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 2, y, mip, ri_offset, count);
-          if (uint32_t count = (count2 >> 16))
-            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 3, y, mip, ri_offset, count);
-
-          count2 = chist[2];
-          if (uint32_t count = (count2 & 0xffff))
-            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 4, y, mip, ri_offset, count);
-          if (uint32_t count = (count2 >> 16))
-            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 5, y, mip, ri_offset, count);
-
-          count2 = chist[3];
-          if (uint32_t count = (count2 & 0xffff))
-            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 6, y, mip, ri_offset, count);
-          if (uint32_t count = (count2 >> 16))
-            preparedTilesFeedback[tilesSize++] = TexTileInfo(x + 7, y, mip, ri_offset, count);
+          const int x = (int)(tag & X_MASK) - HALF_TILE_WIDTH;
+          const int y = (int)((tag >> TILE_WIDTH_BITS) & X_MASK) - HALF_TILE_WIDTH;
+          const uint32_t ri_offset = (tag >> (2 * TILE_WIDTH_BITS)) & ((1u << ri_offset_bits) - 1);
+          const uint32_t mip = tag >> (2 * TILE_WIDTH_BITS + ri_offset_bits);
+          for (int k = 0; k < (1 << HistBuffer::BLOCK_BITS); ++k)
+            if (const uint32_t count = counts[k])
+              preparedTilesFeedback[tilesSize++] = TexTileInfo(x + k, y, mip, ri_offset, count);
         }
+        memset(counts, 0, sizeof(vec4i));
       }
+    }
   }
 
   preparedTilesFeedback.resize(tilesSize);
@@ -1785,15 +1817,20 @@ void ClipmapImpl::processTileFeedback(const CaptureMetadata &capture_metadata, c
 {
   TIME_PROFILE_DEV(clipmap_processTileFeedback);
 
-  TempMap<uint32_t, TexTileInfo, MAX_FAKE_TILE_CNT> aroundCameraTileIndexMap;
+  // the fake tiles by tag, sorted once: a sorted map insert moved its tail for each of up to MAX_FAKE_TILE_CNT tiles
+  eastl::fixed_vector<eastl::pair<uint32_t, TexTileInfo>, MAX_FAKE_TILE_CNT, true, framemem_allocator> aroundCameraTiles;
   if (!disable_fake_tiles && currentContext->LRUPos.getZoom() <= MAX_ZOOM_TO_ALLOW_FAKE_AROUND_CAMERA)
   {
-    auto funct = [&aroundCameraTileIndexMap, moreThanFeedback = this->moreThanFeedback](const TexTilePos &tilePos) {
-      aroundCameraTileIndexMap.insert(eastl::pair(tilePos.getTileTag(), TexTileInfo(tilePos, moreThanFeedback)));
-      if (aroundCameraTileIndexMap.size() > MAX_FAKE_TILE_CNT) // TempMap can overflow
-        logerr("clipmap: Max fake tiles count exceeded: %d > %d", aroundCameraTileIndexMap.size(), MAX_FAKE_TILE_CNT);
+    auto funct = [&aroundCameraTiles, moreThanFeedback = this->moreThanFeedback](const TexTilePos &tilePos) {
+      aroundCameraTiles.emplace_back(tilePos.getTileTag(), TexTileInfo(tilePos, moreThanFeedback));
     };
     prepareFakeTiles(globtm, mirror_globtm_opt, funct);
+    stlsort::sort(aroundCameraTiles.begin(), aroundCameraTiles.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
+    aroundCameraTiles.erase(eastl::unique(aroundCameraTiles.begin(), aroundCameraTiles.end(),
+                              [](const auto &a, const auto &b) { return a.first == b.first; }),
+      aroundCameraTiles.end());
+    if (aroundCameraTiles.size() > MAX_FAKE_TILE_CNT) // the inline storage overflowed
+      logerr("clipmap: Max fake tiles count exceeded: %d > %d", aroundCameraTiles.size(), MAX_FAKE_TILE_CNT);
   }
 
   G_ASSERT(preparedTilesFeedback.size() <= getMaxTileCaptureInfoElementCount());
@@ -1817,8 +1854,9 @@ void ClipmapImpl::processTileFeedback(const CaptureMetadata &capture_metadata, c
       continue; // We cannot migrate the feedback to current LRUPos.
 
     uint32_t tag = tile.getTileTag();
-    auto it = aroundCameraTileIndexMap.find(tag);
-    if (it != aroundCameraTileIndexMap.end())
+    auto it = eastl::lower_bound(aroundCameraTiles.begin(), aroundCameraTiles.end(), tag,
+      [](const auto &p, uint32_t t) { return p.first < t; });
+    if (it != aroundCameraTiles.end() && it->first == tag)
     {
       TexTileInfo &taggedTileRef = it->second;
       taggedTileRef.count = min(tile.count, moreThanFeedbackInv) + moreThanFeedback;
@@ -1829,8 +1867,36 @@ void ClipmapImpl::processTileFeedback(const CaptureMetadata &capture_metadata, c
     }
   }
 
-  for (const auto &pair : aroundCameraTileIndexMap)
+  for (const auto &pair : aroundCameraTiles)
     tileInfo[tileInfoSize++] = TexTileInfoOrder(pair.second);
+}
+
+#if DAGOR_DBGLEVEL > 0
+void ClipmapImpl::checkCallbacksConsistencyRenderTile(CacheCoords cacheCoords)
+{
+  G_ASSERTF(currentContext->discardTilesCrosscheck.tryAdd(cacheCoords),
+    "clipmap: Tile at %i, %i didn't make a discard callback before rendering again.", cacheCoords.x, cacheCoords.y);
+}
+
+void ClipmapImpl::checkCallbacksConsistencyDiscardTile(CacheCoords cacheCoords)
+{
+  G_ASSERTF(currentContext->discardTilesCrosscheck.tryRemove(cacheCoords),
+    "clipmap: Tile at %i, %i wasn't rendered before discarded or discarded twice.", cacheCoords.x, cacheCoords.y);
+}
+#else
+void ClipmapImpl::checkCallbacksConsistencyRenderTile(CacheCoords cacheCoords) {}
+void ClipmapImpl::checkCallbacksConsistencyDiscardTile(CacheCoords cacheCoords) {}
+#endif
+
+void ClipmapImpl::discardCache(ClipmapRenderer &renderer)
+{
+  for (const auto &cacheCoords : currentContext->discardedTilesCacheCoords)
+  {
+    checkCallbacksConsistencyDiscardTile(cacheCoords);
+
+    renderer.discardTile(cacheCoords);
+  }
+  currentContext->discardedTilesCacheCoords.clear();
 }
 
 void ClipmapImpl::updateCache(ClipmapRenderer &renderer)
@@ -1842,17 +1908,27 @@ void ClipmapImpl::updateCache(ClipmapRenderer &renderer)
   TIME_D3D_PROFILE(updateCache);
   SCOPE_RENDER_TARGET;
 
+  G_ASSERT(currentContext->discardedTilesCacheCoords.empty());
   beginUpdateTiles(renderer);
   updatedTilesCnt = currentContext->updateLRUIndices.size();
+
+  const uint32_t tagMask = stored_tag_limit(enable18bitTags ? 32 : 16);
   for (size_t idx : currentContext->updateLRUIndices)
   {
     TexLRU &ti = currentContext->LRU[idx];
-    G_ASSERT(ti.flags & TexLRU::NEED_UPDATE);
+    G_ASSERT(ti.flags & TexLRU::ENQUEUED_FOR_UPDATE);
 
-    updateTileBlock(renderer, ti.cacheCoords, ti.tilePos);
+    checkCallbacksConsistencyRenderTile(ti.cacheCoords);
+
+    uint32_t externalTag = updateTileBlock(renderer, ti.cacheCoords, ti.tilePos);
+    G_ASSERT(externalTag <= tagMask);
+    externalTag &= tagMask; // prevent bad tag poisoning everything.
+
     currentContext->inCacheBitmap[ti.tilePos.getTileTag()] = true;
-    currentContext->invalidateIndirection |= (ti.flags & TexLRU::IS_INVALID) != 0;
-    ti.flags &= ~(TexLRU::NEED_UPDATE | TexLRU::IS_INVALID);
+    currentContext->invalidateIndirection |= (ti.flags & TexLRU::IS_DIRTY) != 0 || ti.externalTag != externalTag;
+
+    ti.flags &= ~(TexLRU::NEED_UPDATE | TexLRU::ENQUEUED_FOR_UPDATE | TexLRU::IS_DIRTY);
+    ti.externalTag = externalTag;
   }
   currentContext->updateLRUIndices.clear();
 
@@ -1873,7 +1949,11 @@ void ClipmapImpl::sortFeedback()
   TIME_PROFILE_DEV(sortFeedback);
 
   if (feedbackType != SOFTWARE_FEEDBACK) // no reasonable count
-    sort_tile_info_list(eastl::span(tileInfo.begin(), tileInfoSize));
+  {
+    // applyFeedback reads the first LRU.size() tiles only; past them the order does not matter
+    const int readTiles = min<int>(tileInfoSize, currentContext->LRU.size());
+    sort_tile_info_list(eastl::span(tileInfo.begin(), tileInfoSize), readTiles);
+  }
 
 #if DAGOR_DBGLEVEL > 0
   const int LRUsize = currentContext->LRU.size();
@@ -2007,7 +2087,7 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
   }
 
   eastl::fixed_vector<TexLRU, MAX_CACHE_TILES, false> superfluousLRU;
-  eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 32, true> needUpdateInLRUIndicesCount;
+  eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, MAX_CACHE_TILES, false> needUpdateInLRUIndicesCount;
   {
     eastl::fixed_vector<TexLRU, MAX_CACHE_TILES, false> usedLRU;
     for (TexLRU &ti : LRU)
@@ -2022,8 +2102,7 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
       {
         ti.flags |= ti.IS_USED;
         usedLRU.emplace_back(ti);
-        if (
-          (ti.flags & ti.NEED_UPDATE) && (needUpdateInLRUIndicesCount.size() < needUpdateInLRUIndicesCount.max_size() || force_update))
+        if (ti.flags & ti.NEED_UPDATE) // all of them: the sort below picks the most requested, not the first in LRU order
         {
           auto count = tileToCount->second;
           if (ti.tilePos.ri_offset >= RI_VTEX_SECONDARY_OFFSET_START)
@@ -2047,7 +2126,9 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
     {
       uint32_t addr = ti.tilePos.getTileBitIndex();
       G_ASSERT(currentContext->inCacheBitmap[addr]);
+      G_ASSERT(!(ti.flags & TexLRU::ENQUEUED_FOR_UPDATE));
       currentContext->inCacheBitmap[addr] = false;
+      currentContext->discardedTilesCacheCoords.emplace_back(ti.cacheCoords);
     }
     TexLRU nullLRU{ti.cacheCoords};
     superfluousLRU.pop_back();
@@ -2056,7 +2137,7 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
 
   auto setLRU = [](TexLRU &LRU, const TexTilePos &tile_pos, bool is_used) -> void {
     LRU.tilePos = tile_pos;
-    LRU.flags = TexLRU::NEED_UPDATE | TexLRU::IS_INVALID | (is_used ? TexLRU::IS_USED : 0);
+    LRU.flags = TexLRU::ENQUEUED_FOR_UPDATE | TexLRU::IS_DIRTY | (is_used ? TexLRU::IS_USED : 0);
   };
 
   int totalHeadroom = !force_update ? maxTileUpdateCount : MAX_CACHE_TILES;
@@ -2088,7 +2169,11 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
     G_ASSERT(totalHeadroom);
     totalHeadroom--;
 
-    G_ASSERT(LRU[needUpdateInLRUIndicesCount[i].first].flags & TexLRU::NEED_UPDATE);
+    TexLRU &LRUref = LRU[needUpdateInLRUIndicesCount[i].first];
+    G_ASSERT(LRUref.flags & TexLRU::NEED_UPDATE);
+    G_ASSERT(!(LRUref.flags & TexLRU::ENQUEUED_FOR_UPDATE));
+    LRUref.flags |= TexLRU::ENQUEUED_FOR_UPDATE;
+    currentContext->discardedTilesCacheCoords.emplace_back(LRUref.cacheCoords);
     updateLRUIndices.emplace_back(needUpdateInLRUIndicesCount[i].first);
   }
   for (int i = 0; remainHeadroom > 0 && i < invisibleFakeTilesNotInLRU.size(); i++, remainHeadroom--)
@@ -2302,16 +2387,16 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
         clipmapDebugStats.tilesUnassigned++;
         continue;
       }
-      const bool isInvalid = (ti.flags & TexLRU::IS_INVALID) == TexLRU::IS_INVALID;
+      const bool isDirty = (ti.flags & TexLRU::IS_DIRTY) == TexLRU::IS_DIRTY;
       const bool needUpdate = (ti.flags & TexLRU::NEED_UPDATE) == TexLRU::NEED_UPDATE;
       const bool isUsed = (ti.flags & TexLRU::IS_USED) == TexLRU::IS_USED;
-      if (isInvalid)
-        clipmapDebugStats.tilesInvalid[ti.tilePos.mip]++;
+      if (isDirty)
+        clipmapDebugStats.tilesDirty[ti.tilePos.mip]++;
       if (needUpdate)
         clipmapDebugStats.tilesNeedUpdate[ti.tilePos.mip]++;
       if (isUsed)
         clipmapDebugStats.tilesUsed[ti.tilePos.mip]++;
-      if (!isInvalid && !needUpdate && !isUsed)
+      if (!isDirty && !needUpdate && !isUsed)
         clipmapDebugStats.tilesUnused[ti.tilePos.mip]++;
     }
   }
@@ -2469,7 +2554,7 @@ void ClipmapImpl::setMaxTexMips(int tex_mips)
     finalizeFeedback();
 
     currentContext->closeIndirection();
-    currentContext->initIndirection(maxTexMipCnt);
+    currentContext->initIndirection(maxTexMipCnt, enable18bitTags);
     bindIndirectionVars();
 
     if (feedbackType == CPU_HW_FEEDBACK)
@@ -2510,7 +2595,7 @@ static int get_platform_adjusted_mip_cnt(int mipCnt, int anisotropy)
 }
 
 void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, int tex_tile_size, int virtual_texture_mip_cnt,
-  int virtual_texture_anisotropy, float argMaxEffectiveTargetResolution)
+  int virtual_texture_anisotropy, float argMaxEffectiveTargetResolution, bool enable_18bit_tags)
 {
   init_shader_vars();
   for (int ci = bufferCnt; ci < bufferTexVarId.size(); ++ci)
@@ -2525,7 +2610,8 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, int tex
   virtual_texture_mip_cnt = get_platform_adjusted_mip_cnt(virtual_texture_mip_cnt, virtual_texture_anisotropy);
 
   if (cacheDimX == argCacheDimX && cacheDimY == argCacheDimY && texTileSize == tex_tile_size && mipCnt == virtual_texture_mip_cnt &&
-      cacheAnisotropy == virtual_texture_anisotropy && !feedbackPendingChanges) // already inited
+      cacheAnisotropy == virtual_texture_anisotropy && !feedbackPendingChanges && enable18bitTags == enable_18bit_tags) // already
+                                                                                                                        // inited
     return;
   closeVirtualTexture();
   feedbackPendingChanges = false;
@@ -2539,11 +2625,16 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, int tex
   cacheDimX = argCacheDimX;
   cacheDimY = argCacheDimY;
   tileInfoSize = 0;
-  debug("clipmap: cacheDim: %d x %d", cacheDimX, cacheDimY);
+  enable18bitTags = enable_18bit_tags;
+  debug("clipmap: cacheDim: %d x %d, tags bits = %i", cacheDimX, cacheDimY, enable18bitTags ? 18 : 2);
 
+  IPoint2 tilesPerAxis = IPoint2(1 << CACHECOORDS_PACKED_X_BITS, 1 << CACHECOORDS_PACKED_Y_BITS);
   G_ASSERTF(((cacheDimX % texTileSize) == 0), "Cache X size must be evenly divisible by TileSize");
+  G_ASSERTF(((cacheDimX / texTileSize) <= tilesPerAxis.x), "Cache X size must have at most %i tiles per axis", tilesPerAxis.x);
   G_ASSERTF(((cacheDimY % texTileSize) == 0), "Cache Y size must be evenly divisible by TileSize");
+  G_ASSERTF(((cacheDimY / texTileSize) <= tilesPerAxis.y), "Cache Y size must have at most %i tiles per axis", tilesPerAxis.y);
   G_ASSERT(cacheDimX * cacheDimY / (texTileSize * texTileSize) <= MAX_CACHE_TILES);
+  G_UNREFERENCED(tilesPerAxis); // prevent warnings in release builds.
 
   // context
 
@@ -2568,7 +2659,7 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, int tex
   currentContext = MipContext();
   currentContext->init(use_uav_feedback, feedbackSize, feedbackOversampling, getMaxTileCaptureInfoElementCount(),
     useFeedbackTexFilter);
-  currentContext->initIndirection(maxTexMipCnt);
+  currentContext->initIndirection(maxTexMipCnt, enable18bitTags);
   currentContext->reset(cacheDimX, cacheDimY, true, texTileSize, feedbackType);
 
   if (feedbackType == CPU_HW_FEEDBACK)
@@ -2578,12 +2669,12 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, int tex
   bindIndirectionVars();
 }
 
-void MipContext::initIndirection(int max_tex_mips)
+void MipContext::initIndirection(int max_tex_mips, bool enable_18bit_tags)
 {
   currentTexMipCnt = max_tex_mips;
 
   String ind_tex(30, "ind_tex_%p", this);
-  unsigned indFlags = TEXFMT_A8R8G8B8 | TEXCF_RTARGET;
+  unsigned indFlags = (enable_18bit_tags ? TEXFMT_R32UI : TEXFMT_R16UI) | TEXCF_RTARGET;
 
   // TODO: we only need half of MAX_VTEX_CNT (with ri vtex),
   // but need to rebuild it after primary/secondary switch,
@@ -2652,10 +2743,11 @@ public:
 void ClipmapImpl::update(ClipmapRenderer &renderer, bool turn_off_decals_on_fallback)
 {
   changeFallback(renderer, viewerPosition, turn_off_decals_on_fallback);
+  discardCache(renderer);
   updateCache(renderer);
   checkConsistency();
   if (currentContext->invalidateIndirection)
-    GPUrestoreIndirectionFromLRU();
+    GPUrestoreIndirectionFromLRU(renderer.getTagClearValue());
 }
 
 void ClipmapImpl::closeVirtualTexture()
@@ -2696,8 +2788,9 @@ bool ClipmapImpl::migrateLRU(const MipPosition &old_mipPos, const MipPosition &n
   for (int i = 0; i < LRU.size(); ++i)
   {
     TexLRU &ti = LRU[i];
+    const bool isValid = ti.tilePos.mip < TEX_MIPS;
     bool discard = true;
-    if (ti.tilePos.mip < TEX_MIPS)
+    if (isValid)
     {
       if (ti.tilePos.ri_offset != TERRAIN_RI_OFFSET)
       {
@@ -2710,11 +2803,18 @@ bool ClipmapImpl::migrateLRU(const MipPosition &old_mipPos, const MipPosition &n
       {
         discard = false;
         currentContext->inCacheBitmap[newTexTilePos->getTileBitIndex()] = true;
-        newLRU[newLRUUsed++] = TexLRU(ti.cacheCoords, *newTexTilePos).setFlags(ti.flags);
+        newLRU[newLRUUsed++] = TexLRU(ti.cacheCoords, *newTexTilePos).setFlags(ti.flags).setExternalTag(ti.externalTag);
       }
     }
     if (discard)
+    {
+      if (isValid)
+      {
+        G_ASSERT(!(ti.flags & TexLRU::ENQUEUED_FOR_UPDATE));
+        currentContext->discardedTilesCacheCoords.emplace_back(ti.cacheCoords);
+      }
       newLRU[newLRUUsed++] = TexLRU(ti.cacheCoords);
+    }
   }
   G_ASSERT(newLRUUsed == LRU.size());
   LRU.resize(newLRUUsed);
@@ -2732,8 +2832,9 @@ bool MipContext::allocateFallback(int ndim, int tex_tile_size)
   fallback.texTileSize = tex_tile_size;
   if (ndim < oDim)
   {
-    for (int y = ndim; y < oDim; ++y)
-      for (int x = ndim; x < oDim; ++x)
+    // reset() reserves the full [0, oDim)^2 square, so the two L strips come back with the corner
+    for (int y = 0; y < oDim; ++y)
+      for (int x = (y < ndim ? ndim : 0); x < oDim; ++x)
         LRU.push_back(TexLRU({x, y}));
     return false;
   }
@@ -2753,6 +2854,8 @@ bool MipContext::allocateFallback(int ndim, int tex_tile_size)
     {
       uint32_t addr = it->tilePos.getTileBitIndex();
       inCacheBitmap[addr] = false;
+      if (!(it->flags & TexLRU::ENQUEUED_FOR_UPDATE))
+        discardedTilesCacheCoords.emplace_back(it->cacheCoords);
       changed = true;
 
       int dist = eastl::distance(LRU.begin(), destrIt);
@@ -2821,7 +2924,7 @@ void ClipmapImpl::changeFallback(ClipmapRenderer &renderer, const Point3 &viewer
       for (int x = 0; x < fallbackPages; ++x)
       {
         Point2 pageLt = alignedOrigin - Point2(fallBackSize / 2.f, fallBackSize / 2.f) + Point2(x, y) * pageMeters;
-        updateTileBlockRaw(renderer, {x, y}, BBox2(pageLt, pageLt + Point2(pageMeters, pageMeters)));
+        updateTileBlockRaw(renderer, {x, y}, BBox2(pageLt, pageLt + Point2(pageMeters, pageMeters)), -1);
       }
     finalizeCompressionQueue();
     endUpdateTiles(renderer);
@@ -2841,10 +2944,10 @@ typedef TwoInt16 int16_tx2;
 struct ConstantVert
 {
   int16_tx2 pos_wh;
-  TexTileIndirection tti; // instead of tag, use target mip
+  TexTileIndirection tti;
 };
 
-void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
+void ClipmapImpl::GPUrestoreIndirectionFromLRUFull(uint32_t tag_clear_value)
 {
   const TexLRUList &LRU = currentContext->LRU;
   carray<carray<uint16_t, MAX_CACHE_TILES>, TEX_MIPS> mippedLRU;
@@ -2855,7 +2958,7 @@ void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
   for (int i = 0; i < LRU.size(); ++i)
   {
     const TexLRU &ti = LRU[i];
-    if (ti.tilePos.mip >= maxTexMipCnt || (ti.flags & ti.IS_INVALID))
+    if (ti.tilePos.mip >= maxTexMipCnt || (ti.flags & ti.IS_DIRTY))
       continue;
     mippedLRU[ti.tilePos.mip][mippedLRUCount[ti.tilePos.mip]++] = i;
 
@@ -2883,7 +2986,7 @@ void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
   const IBBox2 indirectionArea{IPoint2(-HALF_TILE_WIDTH, -HALF_TILE_WIDTH), IPoint2(HALF_TILE_WIDTH, HALF_TILE_WIDTH) - IPoint2::ONE};
 
   const ConstantVert *basequad = quad;
-  TexTileIndirection tti({0xff, 0xff}, 0xff, 0xff);
+  TexTileIndirection tti({0xff, 0xff}, 0xff, tag_clear_value);
   quad[0].pos_wh = int16_tx2(0, 0);
   quad[0].tti = tti;
   quad[1].pos_wh = int16_tx2(TILE_WIDTH * TEX_MIPS, 0);
@@ -2899,7 +3002,7 @@ void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
     {
       const TexLRU &ti = LRU[mippedLRU[mipI][i]];
       G_ASSERT(ti.tilePos.mip == mipI);
-      TexTileIndirection tti(ti.cacheCoords, ti.tilePos.mip, 0xFF);
+      TexTileIndirection tti(ti.cacheCoords, ti.tilePos.mip, ti.externalTag);
       for (int targI = 0; targI <= mipI; ++targI)
       {
         const IBBox2 tiProj = ti.tilePos.projectOnLowerMip(getMipPosition(ti.tilePos.ri_offset), targI);
@@ -2914,7 +3017,6 @@ void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
         tiArea.lim[0] += offset;
         tiArea.lim[1] += offset;
 
-        tti.tag = targI;
         quad[0].pos_wh = int16_tx2(tiArea.leftTop() + IPoint2(0, 0));
         quad[0].tti = tti;
         quad[1].pos_wh = int16_tx2(tiArea.rightTop() + IPoint2(1, 0));
@@ -2947,12 +3049,12 @@ void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
     d3d::setwire(true);
 }
 
-void ClipmapImpl::GPUrestoreIndirectionFromLRU()
+void ClipmapImpl::GPUrestoreIndirectionFromLRU(uint32_t tag_clear_value)
 {
   if (!currentContext->invalidateIndirection)
     return;
   TIME_D3D_PROFILE(GPUrestoreIndirectionFromLRU);
-  GPUrestoreIndirectionFromLRUFull();
+  GPUrestoreIndirectionFromLRUFull(tag_clear_value);
 
   checkConsistency();
 }
@@ -2980,7 +3082,7 @@ void ClipmapImpl::dump()
     for (int i = 0; i < LRU.size(); ++i)
     {
       const TexLRU &ti = LRU[i];
-      if (ti.tilePos.mip == 0xFF)
+      if (ti.tilePos.mip >= TEX_MIPS)
       {
         debug("tile = %d", i);
         continue;
@@ -2995,7 +3097,7 @@ void ClipmapImpl::dump()
         ti.cacheCoords.y, ti.tilePos.mip, ti.flags, ti.tilePos.x, ti.tilePos.y, P2D(lruBox[0]), P2D(lruBox[1]));
       // todo: make different priority BETTER_UPDATE and UPDATE_LATER (for not in frustum) and update only if previous priority has
       // been already updated
-      if (recordTilesError && ti.tilePos.mip < TEX_MIPS && !(ti.flags & (ti.NEED_UPDATE | ti.IS_INVALID)))
+      if (recordTilesError && !(ti.flags & (ti.NEED_UPDATE | ti.IS_DIRTY)))
       {
         auto stats = tilesError[ti.cacheCoords];
         for (int ci = 0; ci < cacheCnt; ++ci)
@@ -3560,7 +3662,8 @@ void ClipmapImpl::addCompressionQueue(const CacheCoords &cacheCoords)
   compressionQueue.push_back(cacheCoords);
 }
 
-void ClipmapImpl::updateTileBlockRaw(ClipmapRenderer &renderer, const CacheCoords &cacheCoords, const BBox2 &region)
+uint32_t ClipmapImpl::updateTileBlockRaw(ClipmapRenderer &renderer, const CacheCoords &cacheCoords, const BBox2 &region,
+  int totalMipLevel)
 {
   addCompressionQueue(cacheCoords);
   const bool groupCompress = COMPRESS_QUEUE_SIZE != 1;
@@ -3582,17 +3685,18 @@ void ClipmapImpl::updateTileBlockRaw(ClipmapRenderer &renderer, const CacheCoord
   if (COMPRESS_QUEUE_SIZE != 1)
     d3d::setview((compressionQueue.size() - 1) * texTileSize, 0, texTileSize, texTileSize, 0, 1);
 
-  {
-    TIME_D3D_PROFILE(renderTile);
-    DA_PROFILE_TAG(renderTile, "bbox = {%f, %f}, {%f, %f}", region.lim[0].x, region.lim[0].y, region.lim[1].x, region.lim[1].y);
-    renderer.renderTile(region);
-  }
+  TIME_D3D_PROFILE(renderTile);
+  DA_PROFILE_TAG(renderTile, "bbox = {%f, %f}, {%f, %f}", region.lim[0].x, region.lim[0].y, region.lim[1].x, region.lim[1].y);
+  uint32_t tag = renderer.renderClipmapTile(region, cacheCoords, totalMipLevel);
+  return tag;
 }
 
-void ClipmapImpl::updateTileBlock(ClipmapRenderer &renderer, const CacheCoords &cacheCoords, const TexTilePos &tilePos)
+uint32_t ClipmapImpl::updateTileBlock(ClipmapRenderer &renderer, const CacheCoords &cacheCoords, const TexTilePos &tilePos)
 {
+  MipPosition mippos = getMipPosition(tilePos.ri_offset);
+
   Point4 uv2landscape = getUV2landacape(tilePos.ri_offset);
-  IBBox2 tileBox = tilePos.projectOnLowerMip(getMipPosition(tilePos.ri_offset), 0);
+  IBBox2 tileBox = tilePos.projectOnLowerMip(mippos, 0);
 
   float brd = float(texTileBorder << tilePos.mip) / float(texTileInnerSize);
   Point2 t0 = (Point2(tileBox.lim[0]) - Point2(brd, brd)) / TILE_WIDTH_F;
@@ -3602,7 +3706,8 @@ void ClipmapImpl::updateTileBlock(ClipmapRenderer &renderer, const CacheCoords &
   region[0].y = t0.y * uv2landscape.y + uv2landscape.w;
   region[1].x = t1.x * uv2landscape.x + uv2landscape.z;
   region[1].y = t1.y * uv2landscape.y + uv2landscape.w;
-  updateTileBlockRaw(renderer, cacheCoords, region);
+  uint32_t tag = updateTileBlockRaw(renderer, cacheCoords, region, mippos.tileZoomShift + tilePos.mip);
+  return tag;
 }
 
 ////////////// END OF VIRTUAL TEXTURE /////////////
@@ -4164,7 +4269,7 @@ void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix4 &globtm, 
           int strideInBytes;
           uint8_t *lockedPixelsPtr;
           if (currentContext->captureTexRt[captureTargetReadbackIdx]->lockimg(reinterpret_cast<void **>(&lockedPixelsPtr),
-                strideInBytes, 0, TEXLOCK_READ | TEXLOCK_RAWDATA))
+                strideInBytes, 0, TEXLOCK_READ))
           {
             currentContext->lockedPixelsBytesStride = strideInBytes;
             G_ASSERT(currentContext->lockedPixelsBytesStride >= feedbackSize.x * sizeof(TexTileFeedback));
@@ -4339,7 +4444,7 @@ void ClipmapImpl::copyAndAdvanceCaptureTarget(int captureTargetIdx)
     {
       TIME_D3D_PROFILE(copyImg);
 
-      request_readback_nosyslock<TEXLOCK_RAWDATA>(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0);
+      request_readback_nosyslock(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0);
     }
     else
     {
@@ -4648,6 +4753,8 @@ void ClipmapImpl::updateRendinstLandclassParams()
         uint32_t addr = ti.tilePos.getTileBitIndex();
         G_ASSERT(currentContext->inCacheBitmap[addr]);
         currentContext->inCacheBitmap[addr] = false;
+        G_ASSERT(!(ti.flags & TexLRU::ENQUEUED_FOR_UPDATE));
+        currentContext->discardedTilesCacheCoords.emplace_back(ti.cacheCoords);
         removedLRUs.emplace_back(ti.cacheCoords);
         return true;
       }
@@ -4837,7 +4944,7 @@ BcCompressor *ClipmapImpl::createCacheCompressor(int cache_id, uint32_t format, 
   }();
 
   return new BcCompressor(compressionType, mipCnt, compress_buf_width, compress_buf_height, COMPRESS_QUEUE_SIZE, compressionShader,
-    useOwnBuffers);
+    useOwnBuffers, String(64, "cache%d_compressor_sqError", cache_id));
 }
 
 String ClipmapImpl::getCacheBufferName(int idx) { return String(30, "cache_buffer_tex_%d", idx); }
@@ -4983,6 +5090,8 @@ void ClipmapImpl::setAnisotropyImpl(int anisotropy)
   ShaderGlobal::set_int(::get_shader_variable_id("cache_anisotropy"), cacheAnisotropy);
 }
 
+float ClipmapImpl::getTileEffectiveRegionCoeff() { return (float)texTileInnerSize / (float)texTileSize; }
+
 bool ClipmapImpl::setAnisotropy(int anisotropy)
 {
   if (anisotropy == cacheAnisotropy)
@@ -5051,12 +5160,12 @@ void ClipmapImpl::updateLandclassData()
   if (!riLandclassDataManager)
     return;
 
-  dag::Vector<int> localRiIndices;
-  getRiLandclassIndices(localRiIndices);
-
-  LandclassQueryData queryData;
-  queryData.indices = localRiIndices;
-  for (int ri_index = 0; ri_index < localRiIndices.size(); ++ri_index)
+  LandclassQueryData &queryData = landclassQueryData;
+  queryData.clear();
+  getRiLandclassIndices(queryData.indices);
+  queryData.landclass_gravs.reserve(queryData.indices.size());
+  queryData.pos_radiusSqr.reserve(queryData.indices.size());
+  for (int ri_index = 0; ri_index < queryData.indices.size(); ++ri_index)
   {
     float distToGround;
     int riOffset = ri_index + 1;

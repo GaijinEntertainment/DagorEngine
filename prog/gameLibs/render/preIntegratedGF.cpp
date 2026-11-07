@@ -5,6 +5,7 @@
 #include <drv/3d/dag_decl.h>
 #include <render/preIntegratedGF.h>
 #include <shaders/dag_postFxRenderer.h>
+#include <shaders/dag_shaderBlock.h>
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_lock.h>
@@ -65,6 +66,7 @@ void render_preintegrated_fresnel_GGX(Texture *preIntegratedGF, PostFxRenderer *
 {
   d3d::GpuAutoLock gpuLock;
   SCOPE_RENDER_TARGET;
+  SCOPE_RESET_SHADER_BLOCKS;
 
   d3d::set_render_target({}, DepthAccess::RW, {{preIntegratedGF, 0, 0}});
   ShaderGlobal::set_int(preintegrated_envi_frameVarId, frames <= 1 ? -1 : int(frame));

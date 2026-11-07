@@ -35,35 +35,29 @@ struct GpuDesc
    * \brief Internal representation of the currently used GPU's microarchitecture, aka family.
    */
   decltype(DeviceAttributes::family) family = DeviceAttributes::UNKNOWN;
+
+  constexpr bool is_exact_same_vendor(const DeviceAttributes &deviceAttributes) const
+  {
+    return GpuVendor::UNKNOWN != vendor && vendor == deviceAttributes.vendor;
+  }
 };
 
-constexpr bool operator==(const DeviceAttributes &l, const GpuDesc &r)
-{
-  if (l.vendor == GpuVendor::UNKNOWN || r.vendor == GpuVendor::UNKNOWN || l.vendor != r.vendor)
-  {
-    return false;
-  }
-
-  return l.family == r.family;
-}
+constexpr bool operator==(const DeviceAttributes &l, const GpuDesc &r) { return r.is_exact_same_vendor(l) && l.family == r.family; }
 
 constexpr bool operator!=(const DeviceAttributes &l, const GpuDesc &r) { return !(l == r); }
 
 constexpr bool operator>=(const DeviceAttributes &l, const GpuDesc &r)
 {
-  if (l.vendor == GpuVendor::UNKNOWN || r.vendor == GpuVendor::UNKNOWN || l.vendor != r.vendor)
-  {
-    return false;
-  }
+  constexpr auto tegraBasedMask = 0xE0000000;
 
-  if (l.vendor == GpuVendor::NVIDIA)
-  {
-    constexpr auto tegraBasedMask = 0xE0000000;
-    if ((l.family & tegraBasedMask) != (r.family & tegraBasedMask))
-    {
-      return false;
-    }
-  }
+  return r.is_exact_same_vendor(l) && (l.vendor != GpuVendor::NVIDIA || (l.family & tegraBasedMask) == (r.family & tegraBasedMask)) &&
+         l.family >= r.family;
+}
 
-  return l.family >= r.family;
+constexpr bool operator<(const DeviceAttributes &l, const GpuDesc &r)
+{
+  constexpr auto tegraBasedMask = 0xE0000000;
+
+  return r.is_exact_same_vendor(l) && (l.vendor != GpuVendor::NVIDIA || (l.family & tegraBasedMask) == (r.family & tegraBasedMask)) &&
+         l.family < r.family;
 }

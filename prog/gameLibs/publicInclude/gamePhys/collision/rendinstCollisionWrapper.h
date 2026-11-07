@@ -15,6 +15,8 @@ struct WrapperRendInstCollisionImplCB : public rendinst::RendInstCollisionCB
 {
   WrapperRendinstContactResultCB &resultCallback;
   CollisionObject objA;
+  const PhysCollision *shapeA = nullptr; // the probe is a free shape at shapeTmA when objA is empty
+  TMatrix shapeTmA;
   bool shouldProvideCollisionInfo;
   float atTime;
   bool restoreImpulse = false;
@@ -27,6 +29,17 @@ struct WrapperRendInstCollisionImplCB : public rendinst::RendInstCollisionCB
     atTime(at_time),
     restoreImpulse(restore_imp)
   {}
+  WrapperRendInstCollisionImplCB(const PhysCollision &shape, const TMatrix &tm, WrapperRendinstContactResultCB &result_callback,
+    bool provide_coll_info, float at_time, bool restore_imp = false) :
+    resultCallback(result_callback),
+    shapeA(&shape),
+    shapeTmA(tm),
+    shouldProvideCollisionInfo(provide_coll_info),
+    atTime(at_time),
+    restoreImpulse(restore_imp)
+  {}
+
+  void contactTestPair(PhysWorld *phys_world, const PhysBody *body_b);
 
   virtual CollisionObject processCollisionInstance(const rendinst::CollisionInfo &coll_info, CollisionObject &alternative_obj,
     TMatrix &normalized_tm);
@@ -44,6 +57,10 @@ struct WrapperRendInstCollisionCB : WrapperRendInstCollisionImplCB
   WrapperRendInstCollisionCB(const CollisionObject &obj, ContactCallbackType &callback, bool provide_coll_info, float at_time,
     bool restore_imp = false) :
     WrapperRendInstCollisionImplCB(obj, callback, provide_coll_info, at_time, restore_imp), contactCallback(callback)
+  {}
+  WrapperRendInstCollisionCB(const PhysCollision &shape, const TMatrix &tm, ContactCallbackType &callback, bool provide_coll_info,
+    float at_time, bool restore_imp = false) :
+    WrapperRendInstCollisionImplCB(shape, tm, callback, provide_coll_info, at_time, restore_imp), contactCallback(callback)
   {}
 
   CollisionObject processCollisionInstance(const rendinst::CollisionInfo &coll_info, CollisionObject &alternative_obj,

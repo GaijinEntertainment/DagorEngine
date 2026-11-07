@@ -109,7 +109,7 @@ static void warn_dropped(const Tab<DelayedRecord> &list, const char *list_name)
 {
   char name[192];
   for (const DelayedRecord &rec : list)
-    if (rec.isValid()) // constraint: exit() can run inside a pass
+    if (rec.isValid()) // exit() can run inside a pass
       logwarn("delayed %s <%s> in %s list dropped, never performed", rec.action ? "action" : "callback",
         one_line_name(rec.debugName, name, sizeof(name)), list_name);
 }

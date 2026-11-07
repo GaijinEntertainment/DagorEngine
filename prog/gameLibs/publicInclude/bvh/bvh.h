@@ -443,6 +443,19 @@ struct FlagInfo
   FlagData data;
 };
 
+enum class EmissionMode : uint8_t
+{
+  Albedo,
+  Legacy
+};
+
+enum class EmissionMask : uint8_t
+{
+  None,
+  DiffuseAlpha,
+  ExtraTexture
+};
+
 struct MeshInfo
 {
   static constexpr uint32_t invalidOffset = ~0U;
@@ -508,6 +521,17 @@ struct MeshInfo
   bool isHeliRotor = false;
   bool isGunBarrel = false;
   bool isEmissive = false;
+
+  EmissionMode emissionMode = EmissionMode::Albedo;
+  EmissionMask emissionMask = EmissionMask::None;
+  Point3 emissionColor = Point3(0, 0, 0);
+  float emissionPart = 0;
+  float emissionAlbedoMult = 1;
+  float emissionFadeStart = -1;
+  float emissionFadeEnd = 0;
+  bool emissionInvertMask = false;
+  bool emissionSrgbMask = false;
+  bool emissionOnlyAtNight = false;
 
   bool isRiLandclass = false;
   Point4 landclassMapping = Point4(1.0, 1.0, 0, 0);
@@ -657,7 +681,6 @@ bool is_available();
 enum class BvhAvailabilityCode
 {
   AVAILABLE = 0,
-  VR_ENABLED = 1,
   NOT_SUPPORTED = 2,
   NOT_ENOUGH_MEMORY = 3,
   BLACKLISTED_GPU = 4,
@@ -732,11 +755,18 @@ bool is_global_object_tessellation_enabled();
 void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
   const Point3 &light_direction, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
   dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
-  dag::Vector<DynamicRenderableSceneInstance *> &&og_instances, threadpool::JobPriority prio);
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
-  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
-  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
-  threadpool::JobPriority prio);
+  dag::ConstSpan<DynamicRenderableSceneInstance *> og_instances, threadpool::JobPriority prio);
+// These three calls do update_instances above in steps, so the RI instance jobs can start early in the frame.
+// Call them in this order. A frame uses one form, not both.
+void update_ri_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
+  const Point3 &light_direction, const Frustum &bvh_frustum, const Frustum &view_frustum, threadpool::JobPriority prio);
+// Any thread, but it must return before update_dyn_instances. Instances in view_frustum of ri_gen_visibilities[1] are discarded.
+void start_ri_gen_instances_update(ContextId bvh_context_id, dag::ConstSpan<RiGenVisibility *> ri_gen_visibilities,
+  const Point3 &view_position, const Point3 &light_direction, const Frustum &view_frustum, threadpool::JobPriority prio);
+void update_dyn_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
+  const TMatrix4 &projTm, dynrend::BVHIterateCallback dynrend_iterate);
+// For a frame that skips update_dyn_instances and build. Main thread, after start_ri_gen_instances_update returned.
+void wait_ri_instances_jobs(ContextId bvh_context_id);
 
 void wait_dynamic_instances_jobs();
 
@@ -759,6 +789,7 @@ enum class BuildBudget
 void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, const Point3 &camera_pos, const Point3 &light_direction);
 
 void set_rigen_cpu_budget(int budget_us);
+// Applied at the next update_ri_instances.
 void set_tree_anim_max_distance(float distance);
 
 void process_meshes(ContextId context_id, BuildBudget budget = BuildBudget::High);
@@ -815,8 +846,9 @@ void generate_gpu_grass_instances(ContextId context_id, bool has_grass);
 void tell_active_dynamic_resources(ContextId context_id,
   const eastl::vector_set<const DynamicRenderableSceneLodsResource *> &resources);
 
-void gather_splinegen_instances(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &meshes,
-  uint32_t instance_vertex_count, uint32_t &bvh_id);
+void gather_splinegen_instances(ContextId context_id, Sbuffer *vertex_buffer, const MeshInfo &mesh,
+  dag::ConstSpan<uint32_t> used_instance_ids, dag::ConstSpan<uint32_t> inactive_instance_ids, uint32_t &bvh_id);
+void remove_spline_gen_pending_object_add(ContextId context_id, uint32_t bvh_id);
 void remove_spline_gen_instances(ContextId context_id);
 
 using smoke_tracers_connect_callback = void (*)(BVHConnection *);

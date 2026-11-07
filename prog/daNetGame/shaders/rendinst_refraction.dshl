@@ -30,12 +30,10 @@ shader rendinst_refraction
     z_write = false;
   }
 
-  INIT_GLASS_USE_DYNAMIC_LIGHTS()
-
   if (gi_quality != off)
   {
     USE_IN_FRUSTUM_GI(ps)
-    hlsl {
+    hlsl(ps) {
       #define GLASS_USE_GI 1
     }
   }
@@ -135,6 +133,7 @@ shader rendinst_refraction
   }
   else
   {
+    INIT_GLASS_USE_DYNAMIC_LIGHTS()
     GLASS_PS()
   }
 }

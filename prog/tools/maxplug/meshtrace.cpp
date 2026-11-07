@@ -31,12 +31,19 @@ public:
   static real a2, a4;
   struct RTface
   {
-    Matrix33 bcm;
+    Point3 v0, bary1, bary2;
     Point3 sc;
     real sr2;
     Point3 n, en[3];
     real d, ed[3];
     int id;
+
+    Point3 barycentric(const Point3 &pt) const
+    {
+      const Point3 rel = pt - v0;
+      const real b1 = DotProd(rel, bary1), b2 = DotProd(rel, bary2);
+      return Point3(1 - b1 - b2, b1, b2);
+    }
   };
   struct Node
   {
@@ -127,7 +134,7 @@ bool StaticMeshRTracer::LNode::traceray(const Point3 &p, const Point3 &dir, real
         break;
     if (j < 3)
       continue;
-    Point3 bc = f.bcm * pt;
+    Point3 bc = f.barycentric(pt);
     mint = t;
     fid = f.id;
     bary = bc;
@@ -216,7 +223,7 @@ bool StaticMeshRTracer::LNode::traceray_back(const Point3 &p, const Point3 &dir,
         break;
     if (j < 3)
       continue;
-    Point3 bc = f.bcm * pt;
+    Point3 bc = f.barycentric(pt);
     mint = t;
     fid = f.id;
     bary = bc;
@@ -316,7 +323,7 @@ StaticMeshRTracer::Node *StaticMeshRTracer::build_node(Mesh &m, int *fc, int num
       int f = fc[i];
       fgrp2[f] = ((m.verts[m.faces[f].v[0]][md] + m.verts[m.faces[f].v[1]][md] + m.verts[m.faces[f].v[2]][md]));
     }
-    const float *key = fgrp2.Addr(0);
+    const float *key = fgrp2.data();
     std::sort(fc, fc + numf, [key](int a, int b) { return key[a] < key[b]; });
     int df = numf >> 1;
     n->sub0 = build_node(m, fc, df);
@@ -345,8 +352,12 @@ void StaticMeshRTracer::LNode::build(Mesh &m, int *fc, int numf)
     r = lengthSq(tm.getcol(2) - f.sc);
     if (r > f.sr2)
       f.sr2 = r;
-    f.bcm = inverse(tm);
-    f.n = CrossProd((tm.getcol(2) - tm.getcol(0)), (tm.getcol(1) - tm.getcol(0)));
+    const Point3 e1 = tm.getcol(1) - tm.getcol(0), e2 = tm.getcol(2) - tm.getcol(0);
+    f.n = CrossProd(e2, e1);
+    const real n2 = lengthSq(f.n);
+    f.v0 = tm.getcol(0);
+    f.bary1 = n2 > 0 ? CrossProd(f.n, e2) / n2 : Point3(0, 0, 0);
+    f.bary2 = n2 > 0 ? CrossProd(e1, f.n) / n2 : Point3(0, 0, 0);
     f.d = -DotProd(tm.getcol(0), f.n);
     for (int j = 0; j < 3; ++j)
     {
@@ -368,7 +379,7 @@ void StaticMeshRTracer::build(Mesh &m)
   fgrp2.SetCount(m.numFaces);
   for (int i = 0; i < fc.Count(); ++i)
     fc[i] = i;
-  root = build_node(m, fc.Addr(0), fc.Count());
+  root = build_node(m, fc.data(), fc.Count());
 }
 
 StaticMeshRayTracer *create_staticmeshraytracer(Mesh &m)

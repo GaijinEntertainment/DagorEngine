@@ -34,7 +34,17 @@ def anim_replay_restore_animchars(evt : Event; anim_replay__hiddenAnimchars : Ei
   for hiddenAnimcharEid in anim_replay__hiddenAnimchars
     iterate_animchars_recursively(hiddenAnimcharEid, false)
 
-[es(no_order)]
+[es(on_appear)]
+def anim_replay_inherit_parent_death_time(evt : Event; var anim_replay__animchars : Array)
+  iterate_replay_animchars(anim_replay__animchars) <| $(animchar_data, _animchar_eid)
+    let parentIdx = get_int(animchar_data, "parentAnimcharIdx") ?? -1
+    if parentIdx < 0
+      return
+    let parentDeathTime = get_float(*get_ecs_object(anim_replay__animchars[parentIdx]), "deathTime") ?? FLT_MAX
+    if parentDeathTime < (get_float(animchar_data, "deathTime") ?? FLT_MAX)
+      set(animchar_data, "deathTime", parentDeathTime)
+
+[es(before=anim_replay_update_attachment_slots)]
 def anim_replay_hide_dead_animchars(evt : UpdateStageInfoAct;
                                     anim_replay__animchars : Array;
                                     anim_replay__currentTime : float)

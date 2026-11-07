@@ -53,9 +53,15 @@ public:
   virtual void onDetach(darg::Element *, DetachMode) override;
   virtual int update(UpdateStage, darg::Element *elem, float /*dt*/) override final;
 
-  virtual int pointingEvent(
-    darg::ElementTree *, darg::Element *, darg::InputDevice, darg::InputEvent, int pointer_id, int btn_id, Point2 pos, int accum_res)
-    override;
+  virtual int pointingEvent(darg::ElementTree *,
+    darg::Element *,
+    darg::InputDevice,
+    darg::TouchSource,
+    darg::InputEvent,
+    int pointer_id,
+    int btn_id,
+    Point2 pos,
+    int accum_res) override;
 
 protected:
   bool updateAction(TouchStickState *stickState, darg::Element *elem, const CachedStrings *strings);

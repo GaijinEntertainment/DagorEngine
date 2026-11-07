@@ -96,6 +96,10 @@ public:
   // Scales the emitted place count of every placer at view build time; change requires invalidateViews().
   static float clampedGlobalDensityMul() { return clamp(globalDensityMul, MIN_GLOBAL_DENSITY_MUL, 1.0f); }
 
+  // scales LOD switch distances to cut GPU cost, but does not scale the draw range
+  static float lodRangeMul();
+  static void setLodRangeMul(float mul);
+
   GlobalManager()
   {
     globalDensityMul = 1;

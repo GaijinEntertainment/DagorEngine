@@ -89,7 +89,7 @@ struct RingBuffer
     }
     else if (dataEnd > dataStart) // not wrapped
     {
-      // constraint: dataEnd can equal buffer.size() here, so no operator[] on it
+      // dataEnd can equal buffer.size() here, so no operator[] on it
       size_t bytesToTail = buffer.size() - dataEnd;
       if (data_size(data) <= bytesToTail)
       {
@@ -189,7 +189,7 @@ public:
   void endUpload();
 
   CURL *getCurlHandle() { return easy; }
-  // constraint: CURLINFO_ACTIVESOCKET is unset during a FORBID_REUSE transfer, so the socket comes from the sockopt callback
+  // CURLINFO_ACTIVESOCKET is unset during a FORBID_REUSE transfer, so the socket comes from the sockopt callback
   curl_socket_t getSocket() const { return socketFd; }
 
   struct WebsocketInput
@@ -670,7 +670,7 @@ WebSocketCurlConnection::WebSocketCurlConnection(const eastl::string &uri, const
   curl_easy_setopt(easy, CURLOPT_SOCKOPTDATA, this);
   curl_easy_setopt(easy, CURLOPT_SOCKOPTFUNCTION, record_socket);
   curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, 1L);
-  // constraint: the multi is shared, so its pool must neither give nor keep this upgraded connection
+  // the multi is shared, so its pool must neither give nor keep this upgraded connection
   curl_easy_setopt(easy, CURLOPT_FRESH_CONNECT, 1L);
   curl_easy_setopt(easy, CURLOPT_FORBID_REUSE, 1L);
   set_common_curl_options(easy, errorBuffer, verify_peer, verify_host, connect_timeout_ms);
@@ -879,7 +879,7 @@ void CompatConnection::reportReceived()
 
 curl_socket_t CompatConnection::getWaitSocket(short &events) const
 {
-  // constraint: with the upload paused, curl stops watching the socket after its receive side ended
+  // with the upload paused, curl stops watching the socket after its receive side ended
   if (httpActive || peerClosed)
     return CURL_SOCKET_BAD;
   events = CURL_WAIT_POLLIN;

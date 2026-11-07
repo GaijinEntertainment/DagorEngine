@@ -48,6 +48,41 @@ struct MD5Buffer
   char md5[33] = {};
 };
 
+struct PackCompletionProgress
+{
+  int done = 0;
+  int total = 0;
+
+  void begin(int total_)
+  {
+    done = 0;
+    total = total_;
+
+    if (dabuild_progress_shm)
+      dabuild_progress_shm->writePack(done, total);
+  }
+
+  void complete(AssetPack &pack)
+  {
+    if (!pack.exported || pack.completionCounted)
+      return;
+
+    pack.completionCounted = true;
+    ++done;
+
+    if (dabuild_progress_shm)
+      dabuild_progress_shm->writePack(done, total);
+  }
+};
+
+struct FinishPackOnExit
+{
+  PackCompletionProgress &progress;
+  AssetPack &pack;
+
+  ~FinishPackOnExit() { progress.complete(pack); }
+};
+
 static int cmp_res_pack_name(AssetPack *const *a, AssetPack *const *b) { return strcmp(a[0]->packName, b[0]->packName); }
 static int cmp_tex_pack_name(AssetPack *const *a, AssetPack *const *b)
 {
@@ -296,13 +331,16 @@ static inline size_t get_job_idx(DabuildJobPool::Ctx *ctx)
   return ctx - ((DabuildJobSharedMem *)AssetExportCache::getJobSharedMem())->jobCtx;
 }
 
-static void process_result(DabuildJobPool::Ctx *ctx, dag::ConstSpan<AssetPack *> tex_pack, dag::ConstSpan<AssetPack *> grp_pack)
+static void process_result(DabuildJobPool::Ctx *ctx, dag::ConstSpan<AssetPack *> tex_pack, dag::ConstSpan<AssetPack *> grp_pack,
+  PackCompletionProgress &packProgress)
 {
   if (ctx->cmd == 2)
   {
     debug("  job j%02d: finished texpack %s(%d) res=%d  (%d/%d)", get_job_idx(ctx), ctx->data, ctx->pkgId, ctx->result, ctx->donePk,
       ctx->totalPk);
     tex_pack[ctx->packId]->buildRes = ctx->result;
+    packProgress.complete(*tex_pack[ctx->packId]);
+
     stat_tex_sz_diff += ctx->szDiff;
     stat_changed_tex_total_sz += ctx->szChangedTotal;
   }
@@ -311,6 +349,8 @@ static void process_result(DabuildJobPool::Ctx *ctx, dag::ConstSpan<AssetPack *>
     debug("  job j%02d: finished respack %s(%d) res=%d  (%d/%d)", get_job_idx(ctx), ctx->data, ctx->pkgId, ctx->result, ctx->donePk,
       ctx->totalPk);
     grp_pack[ctx->packId]->buildRes = ctx->result;
+    packProgress.complete(*grp_pack[ctx->packId]);
+
     stat_grp_sz_diff += ctx->szDiff;
     stat_changed_grp_total_sz += ctx->szChangedTotal;
   }
@@ -484,6 +524,9 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
   dag::ConstSpan<const char *> packs_to_build, dag::ConstSpan<const char *> packs_re_src, dag::ConstSpan<bool> exp_types_mask,
   const DataBlock &appblk, IGenericProgressIndicator &pbar, ILogWriter &log, bool export_tex, bool export_res)
 {
+  if (dabuild_progress_shm)
+    dabuild_progress_shm->beginPackProgress();
+
   clear_and_shrink(dabuild_progress_prefix_text);
 
   const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
@@ -670,6 +713,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
   bool success = true;
   Tab<DagorAsset *> asset_list(tmpmem);
   Tab<DagorAsset *> ctex(tmpmem);
+  PackCompletionProgress packProgress;
   const DataBlock &pkgBlk = *expblk.getBlockByNameEx("packages");
 
   for (int ti = 0; ti < 1; ti++) //-V1008
@@ -704,6 +748,8 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
     for (int i = 0; i < grp_pack.size(); i++)
       if (grp_pack[i]->exported)
         total_rpacks++;
+
+    packProgress.begin(total_tpacks + total_rpacks);
 
     // distributed textures build
     if (jobMem)
@@ -897,7 +943,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
           if (ctx)
           {
             if (ctx->state == 3)
-              process_result(ctx, tex_pack, grp_pack);
+              process_result(ctx, tex_pack, grp_pack, packProgress);
             ctx->setup(targetCode, profile);
             ctx->pkgId = pkid;
             ctx->packId = i;
@@ -910,8 +956,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
             ctx->donePk = ++done_tpacks;
             ctx->totalPk = total_tpacks;
             ctx->patchBuild = pkg_patch_build[pkid + 1];
-            if (dabuild_progress_shm)
-              dabuild_progress_shm->writePack(1, done_tpacks, total_tpacks);
+
             jp.startJob(ctx, 2);
             tp_cnt++;
           }
@@ -950,7 +995,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
           if (ctx)
           {
             if (ctx->state == 3)
-              process_result(ctx, tex_pack, grp_pack);
+              process_result(ctx, tex_pack, grp_pack, packProgress);
             ctx->setup(targetCode, profile);
             ctx->pkgId = pkid;
             ctx->packId = i;
@@ -963,8 +1008,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
             ctx->donePk = ++done_rpacks;
             ctx->totalPk = total_rpacks;
             ctx->patchBuild = pkg_patch_build[pkid + 1];
-            if (dabuild_progress_shm)
-              dabuild_progress_shm->writePack(2, done_rpacks, total_rpacks);
+
             jp.startJob(ctx, 3);
             rp_cnt++;
           }
@@ -972,7 +1016,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
       }
       while (!jp.waitAllJobsDone(10000, &ctx))
         if (ctx)
-          process_result(ctx, tex_pack, grp_pack);
+          process_result(ctx, tex_pack, grp_pack, packProgress);
 
       log.addMessage(IMPORTANT_NOTE, "  Processed %d texpacks and %d respacks for %.3f sec", tp_cnt, rp_cnt,
         (get_time_msec() - t0) / 1000.0f);
@@ -1033,6 +1077,9 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
     {
       if (!tex_pack[i]->exported || tex_pack[i]->packageId != pkid)
         continue;
+
+      FinishPackOnExit finishOnExit{packProgress, *tex_pack[i]};
+
       done_tpacks++;
       if (!get_exported_assets(asset_list, tex_pack[i]->assets, target_str, profile))
         continue;
@@ -1060,11 +1107,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
       valid_base = false;
       int build_res = tex_pack[i]->buildRes;
       if (build_res == -1)
-      {
         dabuild_progress_prefix_text.printf(0, "[%d/%d] ", done_tpacks, total_tpacks);
-        if (dabuild_progress_shm)
-          dabuild_progress_shm->writePack(1, done_tpacks, total_tpacks);
-      }
       else
         done_tpacks--;
       if (build_res != -1)
@@ -1150,6 +1193,9 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
     {
       if (!grp_pack[i]->exported || grp_pack[i]->packageId != pkid)
         continue;
+
+      FinishPackOnExit finishOnExit{packProgress, *grp_pack[i]};
+
       done_rpacks++;
       if (!get_exported_assets(asset_list, grp_pack[i]->assets, target_str, profile))
         continue;
@@ -1172,8 +1218,6 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
       if (build_res == -1)
       {
         dabuild_progress_prefix_text.printf(0, "[%d/%d] ", done_rpacks, total_rpacks);
-        if (dabuild_progress_shm)
-          dabuild_progress_shm->writePack(2, done_rpacks, total_rpacks);
       }
       else
         done_rpacks--;

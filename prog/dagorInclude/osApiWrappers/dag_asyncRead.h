@@ -42,8 +42,8 @@ extern "C"
   // the error code in it is platform specific
   KRNLIMP bool dfa_check_complete(int asyncdata_handle, int *read_len);
   // wait for request's completion
-#if _TARGET_C1 | _TARGET_C2
-
+#if _TARGET_C1 | _TARGET_C2 | _TARGET_PC_WIN | _TARGET_XBOX
+  KRNLIMP void dfa_wait_until_complete(int adh, int *readed_len);
 #else
 inline void dfa_wait_until_complete(int adh, int *readed_len)
 {

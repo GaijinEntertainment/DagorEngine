@@ -4,9 +4,12 @@
 #include <osApiWrappers/dag_asyncRead.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_fileIoErr.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <osApiWrappers/dag_vromfs.h>
+#include <osApiWrappers/basePath.h>
 #include <util/dag_globDef.h>
+#include <debug/dag_logSys.h>
 // #include <osApiWrappers/dag_dbgStr.h>
 
 #if _TARGET_PC_WIN | _TARGET_XBOX
@@ -139,7 +142,7 @@ int FastSeqReader::tryRead(void *ptr, int size)
   {
     if (cBuf && file.pos >= cBuf->ea)
     {
-      LOGMESSAGE_CTX(_MAKE4C('nEvt'), "reset cBuf due to file.pos %d cBuf->sa=%d cBuf->ea=%d i=%d", file.pos, cBuf->sa, cBuf->ea,
+      LOGMESSAGE_CTX(LOGTAG_NET_EVENT, "reset cBuf due to file.pos %d cBuf->sa=%d cBuf->ea=%d i=%d", file.pos, cBuf->sa, cBuf->ea,
         cBuf - buf);
       cBuf = nullptr;
     }
@@ -163,7 +166,7 @@ int FastSeqReader::tryRead(void *ptr, int size)
       int sz = cBuf->ea - file.pos;
       if (!(file.pos >= cBuf->sa && sz <= size && file.pos + sz <= cBuf->ea && cBuf->ea - cBuf->sa <= BUF_SZ))
       {
-        LOGMESSAGE_CTX(_MAKE4C('nEvt'),
+        LOGMESSAGE_CTX(LOGTAG_NET_EVENT,
           "file.pos=%d sz=%d size=%d cBuf->sa=%d cBuf->ea=%d BUF_SZ=%d i=%d doneMask=0x%x pendMask=0x%x %s", file.pos, sz, size,
           cBuf->sa, cBuf->ea, BUF_SZ, cBuf - buf, doneMask, pendMask, targetFilename);
         return p - (char *)ptr;
@@ -174,7 +177,7 @@ int FastSeqReader::tryRead(void *ptr, int size)
 #endif
               ))
       {
-        LOGMESSAGE_CTX(_MAKE4C('nEvt'), "cBuf=%p [%d] cBuf->data=%p file.pos=%d sz=%d doneMask=0x%x pendMask=0x%x %s", cBuf,
+        LOGMESSAGE_CTX(LOGTAG_NET_EVENT, "cBuf=%p [%d] cBuf->data=%p file.pos=%d sz=%d doneMask=0x%x pendMask=0x%x %s", cBuf,
           cBuf - buf, cBuf ? cBuf->data : nullptr, file.pos, sz, doneMask, pendMask, targetFilename);
         return p - (char *)ptr;
       }
@@ -198,7 +201,7 @@ int FastSeqReader::tryRead(void *ptr, int size)
           if ((doneMask & bit) && file.pos >= buf[i].sa && file.pos < buf[i].ea)
             cBuf = buf + i;
           else if (buf[i].ea > buf[i].sa) // report only non-empty blocks (and just ignore empty ones)
-            LOGMESSAGE_CTX(_MAKE4C('nEvt'), "wait done mismatch: file.pos=%d file.size=%d buf[%d].sa=%d buf[%d].ea=%d %s", file.pos,
+            LOGMESSAGE_CTX(LOGTAG_NET_EVENT, "wait done mismatch: file.pos=%d file.size=%d buf[%d].sa=%d buf[%d].ea=%d %s", file.pos,
               file.size, i, buf[i].sa, i, buf[i].ea, targetFilename);
           break;
         }
@@ -236,7 +239,9 @@ void FastSeqReader::placeRequests()
       if ((pendMask & bit) && dfa_check_complete(buf[i].handle, &sz))
         readCompleted(i, bit, sz);
 
-  if (maxBackSeek && doneMask && file.pos >= maxBackSeek && file.pos >= lastSweepPos + BUF_SZ - 1)
+  // with every buffer taken nothing can be requested, so the sweep must not wait for the usual BUF_SZ of progress
+  const bool noFreeBuf = ((doneMask | pendMask) & BUF_ALL_MASK) == BUF_ALL_MASK;
+  if (maxBackSeek && doneMask && file.pos >= maxBackSeek && (noFreeBuf || file.pos >= lastSweepPos + BUF_SZ - 1))
   {
     lastSweepPos = file.pos;
     for (int i = 0, bit = 1; i < BUF_CNT; i++, bit <<= 1)
@@ -304,7 +309,7 @@ void FastSeqReader::placeRequests()
         // out_debug_str_fmt("place req %d: %d-%d\n", i, buf[i].sa, buf[i].ea);
         if (cBuf == buf + i)
         {
-          LOGMESSAGE_CTX(_MAKE4C('nEvt'), "reset cBuf==buf[%d]", i);
+          LOGMESSAGE_CTX(LOGTAG_NET_EVENT, "reset cBuf==buf[%d]", i);
           cBuf = nullptr;
         }
         pendMask |= bit;
@@ -354,7 +359,7 @@ void FastSeqReader::checkThreadSanity()
   }
   else if (curThreadId != cur_thread)
   {
-    LOGMESSAGE_CTX(_MAKE4C('nEvt'), "checkThreadSanity failed (%d and %d) for %s, file.pos=%d", curThreadId, cur_thread,
+    LOGMESSAGE_CTX(LOGTAG_NET_EVENT, "checkThreadSanity failed (%d and %d) for %s, file.pos=%d", curThreadId, cur_thread,
       targetFilename, file.pos);
   }
 
@@ -377,6 +382,10 @@ const char *FastSeqReader::resolve_real_name(const char *fname, unsigned &out_ba
     out_non_cached = (out_base_ofs & 0xFFF) == 0 && (out_size & 0xFFF) == 0;
     fname = static_cast<VirtualRomFsPack *>(vrom)->getFilePath();
   }
+#if !_TARGET_C3
+  if (fname && is_path_abs(fname)) // fast path for abs filename to avoid check_file_exists() call
+    return dag_on_file_pre_open && !dag_on_file_pre_open(fname) ? nullptr : fname;
+#endif
   return df_get_real_name(fname);
 }
 

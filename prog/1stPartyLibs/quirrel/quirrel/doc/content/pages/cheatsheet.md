@@ -69,7 +69,8 @@ function sum(...) { return vargv.len() }
 function [pure] sq(x) { return x * x }
 ```
 
-Types are optional, checked at compile time where inferable, else at run time:
+Types are optional, checked at compile time where inferable, else at run time
+(see [builds without checks](page:language/annotations#builds-without-checks)):
 
 ```nut
 function scale(v: number, by = 1.0): float {
@@ -159,7 +160,8 @@ let m = require("math")      // run time
 let p = require_optional("p.nut")
 ```
 
-Every `import` comes before any other statement. A module returns its exports:
+A file starts with its `#` directives, then every `import`, then the other
+statements. A module returns its exports:
 `return freeze({ a, b })`.
 
 ## Traps

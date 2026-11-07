@@ -37,7 +37,7 @@ struct RiGenExtraVisibility
   SmallTab<float> approxInvDensities[rendinst::RiExtraPool::MAX_LODS];
   float invDensityToMinSqAllowedDistance = 0.f;
   SmallTab<unsigned int> vbOffsets[rendinst::RiExtraPool::MAX_LODS];
-  SmallTab<unsigned short> vbCounts[rendinst::RiExtraPool::MAX_LODS];
+  SmallTab<uint32_t> vbCounts[rendinst::RiExtraPool::MAX_LODS];
   SmallTab<unsigned short> riexPoolOrder;
 
   rendinst::render::VbExtraCtx *vbexctx = nullptr;
@@ -59,11 +59,14 @@ struct RiGenExtraVisibility
   static constexpr uint32_t maxHideMarkedMaterialForInstances = 512;
   struct HideMarkedMaterialForInstance
   {
+    uint32_t instanceIdx = -1; // index inside riexData[lod][poolId]
     uint16_t poolId = -1;
-    uint16_t instanceIdx = -1;
+    uint8_t lod = 0;
 
     bool operator<(const HideMarkedMaterialForInstance &rhs) const
     {
+      if (lod != rhs.lod)
+        return lod < rhs.lod;
       return poolId < rhs.poolId || (poolId == rhs.poolId && instanceIdx < rhs.instanceIdx);
     }
   };

@@ -8,6 +8,9 @@ import:t="%danetlibs/render_debug/templates/debug_visualization.template.blk"
 import:t="%danetlibs/frame_graph_renderer/templates/frame_graph_nodes.template.blk"
 import:t="%danetlibs/blurred_ui/templates/blurred_ui.template.blk"
 import:t="%danetlibs/composite_entity/templates/composite_entity.templates.blk"
+import:t="%danetlibs/phys_kind/templates/phys_kind.template.blk"
+import:t="%danetlibs/phys_kind_jolt_vehicle/templates/phys_kind_jolt_vehicle.template.blk"
+import:t="%danetlibs/package_motorbike/templates/motorbike.template.blk"
 import_optional:t="composite_entities/*.entities.blk"
 import:t="game_logic.blk"
 import:t="checkpoints_fx.blk"
@@ -180,6 +183,12 @@ shooter_cam {
   shooter_cam__lastDir:p3=1,0,0
   shooter_cam__tauInc:r=0.2
 }
+// the TPS camera raised over a ground vehicle, so the road ahead shows over the bike on a climb
+motorbike_tps_cam {
+  _use:t="shooter_tps_cam"
+  shooter_cam__blk:t="gamedata/cameras/motorbike_tps_cam.blk"
+}
+
 shooter_tps_cam {
   _use:t="shooter_cam"
   shooter_cam__blk:t="gamedata/cameras/shootertpscam.blk"
@@ -336,6 +345,14 @@ base_hero_components {
 }
 phys_obj_hero_components_local {
   _use:t=base_hero_components
+}
+
+// the possessed phys_kind unit is the motorbike here, so its input comes with the possession
+phys_kind_hero_components_local {
+  "hero:tag"{}
+  _use:t=motorbike_input
+  "motorbike_test__aGetUp:u16"{ _tags:t="input"; value:i=0xFFFF; }
+  "motorbike_test__holdSpeed:r"{ _tags:t="input"; value:r=0.5; } // m/s forward, below it the stopped bike holds its brakes
 }
 
 phys_gravity_controller{
@@ -553,6 +570,48 @@ combat_space_unit{
   force_shield:p4=3.0, 0.0, 1.0, 1000.0 // outer rad, min force (at outer rad), field width, max force (at inner rad = outer rad - width)
 
   transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+
+// the motorbike test bed: package_motorbike on the phys_kind_jolt_vehicle kind, with the possession and a TPS camera
+motorbike_unit{
+  _use:t=animchar
+  _use:t=motorbike_base
+
+  "possessedByPlr:eid"{ _replicate:b=yes; }
+
+  "camNames:array"{
+    camNames:t="motorbike_tps_cam"
+  }
+  _group{
+    _tags:t="render"
+    animchar_camera_target__node_name:t="body"
+    animchar_camera_target__nodeIndex:i=-1
+  }
+  "camera__look_at:dp3"{ _tags:t="render" }
+  isTpsView:b=yes
+  "activeCamIdx:i" {_tags:t="gameClient"; value:i=0;}
+  "bindedCamera:eid" {_tags:t="gameClient"; value:i=0;}
+  // read by the TPS camera; es/input/motorbike_camera.das sets the base to the bike heading, the mouse turns the view
+  spaceship__rotateView_rad:p2=0,0
+  spaceship__rotateView_base_quat:p4=0,0,0,1
+  _group{
+    _hide:b=yes
+    "motorbike_camera__aLook:u16"{ value:i=0xFFFF; }
+    "motorbike_camera__lookIdleTime:r"{ value:r=0; }
+    "motorbike_camera__restPitch:r"{ value:r=-0.15; } // radians, < 0 looks down
+  }
+
+  animchar__res:t="motorbike_a_animchar"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  jolt_vehicle__bikeDesc:t="gamedata/units/motorbike_a.blk"
+  motorbike_test__getUpAfter_sec:r=1 // a fallen bike gets up by itself once it lies still this long; Motorbike.GetUp does it at once
+  "motorbike_test__fallenTime:r"{ _tags:t="server"; value:r=0; }
+  "motorbike__placeOnGround:b"{ _tags:t="server"; value:b=yes; }
+}
+
+// a scene entity of this template makes the players spawn as player_unit__template
+player_unit_override{
+  player_unit__template:t="combat_space_unit"
 }
 
 humans_grid{

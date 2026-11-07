@@ -21,9 +21,10 @@ passed, at least 3 required)` when `value` is missing; both `key` and `value`
 are required.
 
 On a class locked by [lock](sym:types.Class.lock), or one already instantiated
-or inherited from, adding a non-static member throws `trying to modify a class
-that has already been instantiated, inherited or is locked manually`. On a
-frozen reference it throws `trying to modify immutable 'class'`.
+or inherited from, adding or replacing any member, static or not, throws
+`trying to modify a class that has already been instantiated, inherited or is
+locked manually`.
+On a frozen reference it throws `trying to modify immutable 'class'`.
 
 ## Notes
 
@@ -31,10 +32,6 @@ A third, boolean argument requests a static member: one value shared by every
 instance rather than a per-instance default. The VM cannot report that
 parameter, because this method is bound with a type mask, so it is absorbed
 into the trailing `...` of the signature above.
-
-A locked class still accepts a **static** member. Locking stops new per-instance
-state, not new shared state, so `newmember(key, value, true)` succeeds where
-`newmember(key, value)` throws.
 
 Quirrel classes have no per-member attribute storage, so there is no
 `attributes` argument, whatever older Squirrel-family references show.

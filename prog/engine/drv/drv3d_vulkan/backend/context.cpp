@@ -33,6 +33,13 @@ namespace
 {
 typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::QFOT> QFOTPipelineBarrier;
 
+bool overlappedBufferUploadsUseMultiQueue()
+{
+  if (!Globals::cfg.bits.allowMultiQueue)
+    return false;
+  return Globals::VK::queue[DeviceQueueType::TRANSFER_UPLOAD].getHandle() != Globals::VK::queue[DeviceQueueType::GRAPHICS].getHandle();
+}
+
 struct ReorderedGPUProfileRange
 {
   BEContext &ctx;
@@ -476,6 +483,12 @@ void BEContext::processBindlessUpdates()
       if (i.variant.res.img && anyUpdated)
       {
         ImageViewState ivs = i.variant.res.viewState;
+        if (i.variant.res.img->isEmptyAfterDeviceReset())
+        {
+          logwarn("vulkan: maybe reading garbage via bindless from image %p:%s, verify with validator", i.variant.res.img,
+            i.variant.res.img->getDebugName());
+          continue;
+        }
         trackBindlessRead(i.variant.res.img, {ivs.getMipBase(), ivs.getMipCount(), ivs.getArrayBase(), ivs.getArrayCount()});
       }
     }
@@ -781,6 +794,49 @@ void BEContext::transferOwnershipForOverlappedBufferUploads(DeviceQueueType src,
   ++actionIdx;
 }
 
+// optimize following reads by ro seal
+void BEContext::roSealUploadedBuffers(bool overlapped, const dag::Vector<BufferCopyInfo> &uploads,
+  const dag::Vector<VkBufferCopy> &copies)
+{
+  const bool ovMultiQueue = overlappedBufferUploadsUseMultiQueue();
+  if (!overlapped || !ovMultiQueue)
+  {
+    // single queue: sync before seal
+    bool anyAssumedRead = false;
+    for (auto &&upload : uploads)
+    {
+      if (upload.dst->isFrameMem() != overlapped || upload.dst->isGpuWritable())
+        continue;
+      for (auto iter = begin(copies) + upload.copyIndex, ed = begin(copies) + upload.copyIndex + upload.copyCount; iter != ed; ++iter)
+        Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_MEMORY_READ_BIT}, upload.dst,
+          {iter->dstOffset, iter->size});
+      anyAssumedRead = true;
+    }
+    if (anyAssumedRead)
+      Backend::sync.completeNeeded();
+
+    for (auto &&upload : uploads)
+    {
+      if (upload.dst->isFrameMem() != overlapped || upload.dst->isGpuWritable())
+        continue;
+      upload.dst->optionallyActivateRoSeal(data->id);
+    }
+  }
+
+  // in non overlapped pass for overlapped buffers processed on separate queue
+  // we must simply activate RO seal as there is no tracking for them after queue switch
+  if (!overlapped && ovMultiQueue)
+  {
+    for (auto &&upload : uploads)
+    {
+      if (upload.dst->isFrameMem() == overlapped || upload.dst->isGpuWritable())
+        continue;
+
+      upload.dst->optionallyActivateRoSeal(data->id);
+    }
+  }
+}
+
 void BEContext::flushOrderedBufferUploads(bool overlapped)
 {
   if (data->orderedBufferUploads.empty())
@@ -814,6 +870,8 @@ void BEContext::flushOrderedBufferUploads(bool overlapped)
       data->orderedBufferUploadCopies.data() + upload.copyIndex));
     writeExceptionChekpointNonCommandStream(MARKER_NCMD_BUFFER_UPLOAD_ORDERED);
   }
+
+  roSealUploadedBuffers(overlapped, data->orderedBufferUploads, data->orderedBufferUploadCopies);
 
   popEventRaw();
 
@@ -864,6 +922,8 @@ void BEContext::flushBufferUploads(bool overlapped)
       data->bufferUploadCopies.data() + upload.copyIndex));
     writeExceptionChekpointNonCommandStream(MARKER_NCMD_BUFFER_UPLOAD);
   }
+
+  roSealUploadedBuffers(overlapped, data->bufferUploads, data->bufferUploadCopies);
 
   popEventRaw();
 
@@ -1757,11 +1817,7 @@ void BEContext::trackIndirectArgAccesses(BufferRef buffer, uint32_t offset, uint
 
 void BEContext::trackBindlessRead(Image *img, ImageArea area)
 {
-  VkImageLayout srvLayout = img->getUsage() & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-                              ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
-                              : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-  Backend::sync.addImageAccess(LogicAddress::forImageBindlessRead(), img, srvLayout, area);
+  Backend::sync.addImageAccess(LogicAddress::forImageBindlessRead(), img, BindlessManagerBackend::getImageRoLayout(img), area);
 }
 
 template <typename ResType>

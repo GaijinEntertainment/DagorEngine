@@ -13,7 +13,9 @@ when execution comes to a new source line. A call or a return also starts a
 new line, even if the line number stays the same.
 
 This hook is enough to build a stepping debugger. `sq_stackinfos` gives one
-frame of the call stack, and a stack trace is made from these frames.
+frame of the call stack, and a stack trace is made from these frames. Code that
+the compiler runs to evaluate a constant has no frame for the code that uses
+the constant; `sq_getconstevalpos` gives that position.
 
 Line information has a cost and can be turned off.
 

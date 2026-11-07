@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <float.h>
 #include <math/dag_Point3.h>
+#include <math/dag_bounds3.h>
 #include <vecmath/dag_vecMath.h>
 #include <generic/dag_span.h>
 #include <util/dag_compilerDefs.h>
@@ -163,11 +164,15 @@ static constexpr uint32_t BUNDLE_HITS_PER_SEGMENT = 256;
 // keeps its slot with an empty range; it and a segment that dropped a hit keep unknown endpoints. certify_endpoints costs
 // a box and two point tests per ray and visited instance, so a caller that does not read it does not pay. Safe from worker threads.
 int trace_bundle_all_hits(dag::ConstSpan<BundleSegment> segments, int flags, int ray_mat_id, dag::Span<BundleHit> out_hits,
-  dag::Span<BundleRange> out_ranges, uint32_t hits_per_segment = BUNDLE_HITS_PER_SEGMENT, bool certify_endpoints = false);
+  dag::Span<BundleRange> out_ranges, uint32_t hits_per_segment = BUNDLE_HITS_PER_SEGMENT, bool certify_endpoints = false,
+  float ground_depth = FLT_MAX);
 
 // Whether a face lies between the ends, over the geometry trace_bundle_all_hits walks and no other: rayhit reads the box,
 // sphere and capsule nodes the walk drops. A segment inside one solid crosses nothing and answers false, except one at
-// least a micrometre long under the ground, where one height read settles it. Safe from worker threads.
-bool bundle_segment_any_hit(const Point3 &from, const Point3 &to, int flags, int ray_mat_id);
+// least a micrometre long inside the ground layer, where one height read settles it. Safe from worker threads.
+bool bundle_segment_any_hit(const Point3 &from, const Point3 &to, int flags, int ray_mat_id, float ground_depth = FLT_MAX);
+
+// True: box is open air under the ground, on the map, out of holes, no ETF_RI instance up to its bottom. Safe from worker threads.
+bool bundle_box_under_ground(const BBox3 &box, int flags, float ground_depth);
 
 } // namespace dacoll

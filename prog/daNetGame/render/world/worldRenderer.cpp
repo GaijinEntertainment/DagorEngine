@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "render/world/antiAliasingMode.h"
+#include <debug/dag_logSys.h>
 #define INSIDE_RENDERER 1 // fixme: move to jam
 
 #include "render/renderEvent.h"
@@ -53,6 +54,7 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <render/dag_cur_view.h>
 #include <workCycle/dag_workCycle.h> // dagor_work_cycle_is_need_to_draw
@@ -248,7 +250,7 @@ namespace var
 ShaderVariableInfo sky_polarization_filter_term("sky_polarization_filter_term", true);
 }
 
-SQ_DEF_AUTO_BINDING_MODULE_EX(bind_render_events, "renderEvents", sq::VM_UI_ALL)
+SQ_DEF_AUTO_BINDING_MODULE_EX(bind_render_events, "renderEvents", sq::VM_UI)
 {
   Sqrat::Table tbl = ecs::sq::EventsBind<EventAfterDeviceReset>::bindall(vm);
 
@@ -517,6 +519,14 @@ public:
     shaders::overrides::reset();
   }
 
+  virtual uint32_t renderClipmapTile(const BBox2 &region, const CacheCoords &cachecoords, int totalMipLevel)
+  {
+    G_UNUSED(cachecoords);
+    G_UNUSED(totalMipLevel);
+    renderTile(region);
+    return 0;
+  }
+
   virtual void renderTile(const BBox2 &region)
   {
     TMatrix4 proj;
@@ -538,15 +548,6 @@ public:
     d3d_get_view_proj(viewProj);
     g_entity_mgr->broadcastEventImmediate(OnClipmapTileRender((Frustum(TMatrix4(viewProj.getViewTm()) * viewProj.getProjTm()))));
   }
-  virtual void renderFeedback(const TMatrix4 & /*globtm*/) { G_ASSERT(0); }
-};
-
-class FeedbackRenderer : public ClipmapRenderer
-{
-public:
-  virtual void startRenderTiles(const Point2 &) { G_ASSERT(0); }
-  virtual void endRenderTiles() { G_ASSERT(0); }
-  virtual void renderTile(const BBox2 &) {}
   virtual void renderFeedback(const TMatrix4 & /*globtm*/) { G_ASSERT(0); }
 };
 
@@ -889,6 +890,7 @@ void WorldRenderer::generatePaintingTexture()
 }
 void WorldRenderer::onLevelLoaded(const DataBlock &level_blk)
 {
+  restoreLandmesh();
 #if DAGOR_DBGLEVEL > 0
   settings_validator::ensure_no_duplicates(dgs_get_settings()->getBlockByName("graphics"), "", false);
   settings_validator::ensure_no_duplicates(dgs_get_settings()->getBlockByName("video"), "", true);
@@ -910,11 +912,11 @@ void WorldRenderer::onLevelLoaded(const DataBlock &level_blk)
 
   requestFgRecreation("onLevelLoaded");
 
-  for (const char *nodeTemplate : {"dng_camera_nodes", "dng_ao_camera_nodes", "dng_ssr_camera_nodes"})
+  for (const char *singletonTemplate : {"dng_camera_nodes", "dng_ao_camera_nodes", "dng_ssr_camera_nodes", "camera_indoor"})
   {
-    G_ASSERT_LOG_ONCE(g_entity_mgr->getTemplateDB().getTemplateByName(nodeTemplate),
-      "%s template missing (renderer danetlib not linked or vromfs out of date)", nodeTemplate);
-    g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH_SLOW(nodeTemplate));
+    G_ASSERT_LOG_ONCE(g_entity_mgr->getTemplateDB().getTemplateByName(singletonTemplate),
+      "%s template missing (renderer danetlib not linked or vromfs out of date)", singletonTemplate);
+    g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH_SLOW(singletonTemplate));
   }
 
   createFinalOpaqueControlNodes();
@@ -1479,6 +1481,10 @@ void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool ap
   if (changed_fields.getNameId("graphics/rendinstDistMul") >= 0)
     rendinst::updateSettingsDistMul();
 
+  if (changed_fields.getNameId("graphics/impostorsFarDistAdditionalMul") >= 0)
+    rendinst::setImpostorsFarDistAddMul(
+      ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("impostorsFarDistAdditionalMul", 1.f));
+
   if (changed_fields.getNameId("graphics/riExtraMulScale") >= 0)
     rendinst::updateRIExtraMulScale();
 
@@ -1658,17 +1664,12 @@ void WorldRenderer::afterDeviceReset(bool full_reset)
       ERROR_MSG = "Video driver hung and was restarted.";
     }
 
-    logmessage(DAGOR_DBGLEVEL > 0 ? _MAKE4C('D3DW') : _MAKE4C('D3DE'), ERROR_MSG);
+    logmessage(DAGOR_DBGLEVEL > 0 ? LOGLEVEL_WARN : LOGTAG_D3D_ERROR, ERROR_MSG);
     visuallog::logmsg(ERROR_MSG);
 
     ddsx::reload_active_textures(0);
 
-    if (lmeshMgr)
-    {
-      lmeshMgr->afterDeviceReset(lmeshRenderer, full_reset);
-      if (lmeshMgr->getHmapHandler())
-        lmeshMgr->getHmapHandler()->fillHmapTextures();
-    }
+    restoreLandmesh();
     if (clipmap)
       clipmap->afterReset();
     dirToSunFlush();
@@ -1817,6 +1818,8 @@ void WorldRenderer::resetSSAOImpl()
     creationFlags |= SSAO_USE_CONTACT_SHADOWS_SIMPLIFIED;
   if (isThinGBuffer())
     creationFlags |= SSAO_IMMEDIATE;
+  else
+    creationFlags |= SSAO_USE_SPATIAL_TEMPORAL_FILTER;
 
   bool useGTAO = aoQuality != AoQuality::LOW;
   g_entity_mgr->broadcastEventImmediate(ResetAoNodes(useGTAO, aoW, aoH, creationFlags));
@@ -2692,33 +2695,43 @@ void WorldRenderer::ctorCommon()
 
   init_draw_cached_debug_twocolored_shader();
 
-  auto satelliteParamsGetterCb = [this]() -> SatelliteRenderer::CallbackParams {
-    SatelliteRenderer::CallbackParams satelliteCb;
-    satelliteCb.renderWater = [this](Texture *color_target, const CameraParams &camera, Texture *depth) -> void {
-      d3d::set_render_target({depth, 0}, DepthAccess::SampledRO, {{color_target, 0}});
-      renderWater(camera, WorldRenderer::DistantWater::No, false);
-    };
-    satelliteCb.renderLandmesh = [this](mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum,
-                                   const Point3 &view_pos) -> void {
-      if (lmeshRenderer && clipmap)
-      {
-        LandMeshRenderDesc desc;
-        desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
-        clipmap->startUAVFeedback();
-        // terrain LOD follows the satellite view (view-local), so the mapped area is detailed
-        lmeshRenderer->render(globtm, proj, frustum, *lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, desc, view_pos,
-          HmapOrigin(view_pos));
-        clipmap->endUAVFeedback();
-      }
-    };
-    satelliteCb.clipmapGetLastUpdatedTileCount = [this]() -> int { return clipmap ? clipmap->getLastUpdatedTileCount() : 0; };
-    satelliteCb.texStreamingGetPendingCount = []() -> int { return get_managed_textures_streaming_pending_count(); };
-    satelliteCb.landmeshHeightGetter = [this](const Point2 &pos2d, float &height) -> bool {
-      return lmeshMgr->getHeight(pos2d, height, NULL);
-    };
-    return satelliteCb;
+  SatelliteRenderer::CallbackParams satelliteCb;
+  satelliteCb.renderWater = [this](Texture *color_target, const CameraParams &camera, Texture *depth) -> void {
+    d3d::set_render_target({depth, 0}, DepthAccess::SampledRO, {{color_target, 0}});
+    renderWater(camera, WorldRenderer::DistantWater::No, false);
   };
-  satelliteRenderer.initParamsGetter(satelliteParamsGetterCb);
+  satelliteCb.renderLandmesh = [this](mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum,
+                                 const Point3 &view_pos) -> void {
+    if (lmeshRenderer && clipmap)
+    {
+      LandMeshRenderDesc desc;
+      desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
+      clipmap->startUAVFeedback();
+      // terrain LOD follows the satellite view (view-local), so the mapped area is detailed
+      lmeshRenderer->render(globtm, proj, frustum, *lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, desc, view_pos,
+        HmapOrigin(view_pos));
+      clipmap->endUAVFeedback();
+    }
+  };
+  satelliteCb.clipmapGetLastUpdatedTileCount = [this]() -> int { return clipmap ? clipmap->getLastUpdatedTileCount() : 0; };
+  satelliteCb.texStreamingGetPendingCount = []() -> int { return get_managed_textures_streaming_pending_count(); };
+  satelliteCb.landmeshHeightGetter = [this](const Point2 &pos2d, float &height) -> bool {
+    return lmeshMgr->getHeight(pos2d, height, NULL);
+  };
+  satelliteCb.saveTile = [](const ManagedTex &tex, const char *filename) { screencap::make_screenshot(tex, filename); };
+  satelliteCb.setSceneCameraPos = [](const Point3 &pos) {
+    TMatrix citm = get_cam_itm();
+    citm.col[3] = pos;
+    set_cam_itm(citm);
+  };
+  satelliteCb.onScanDone = [](bool completed) {
+    if (completed)
+      exit_game("satellite map scan done");
+  };
+  SatelliteRenderer::TargetParams satelliteTarget;
+  satelliteTarget.resolveShaderName = "satellite_render_resolve";
+  satelliteTarget.gbufFormats = {TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, TEXFMT_A2B10G10R10, TEXFMT_A8R8G8B8};
+  satelliteRenderer.init(satelliteTarget, satelliteCb);
 
   setWater(nullptr);
 }
@@ -3301,6 +3314,8 @@ void WorldRenderer::close()
   giWindows.reset();
   hzbUploadStagingTex.close();
   render::antialiasing::close();
+  destroy_neural_rendering_passthrough_node();
+  set_add_lod_bias_cb(nullptr);
 }
 
 void WorldRenderer::initOverrideStates()
@@ -3448,6 +3463,8 @@ void update_world_renderer(float dt, float rdt, const TMatrix &itm, bool scene_l
   TIME_PROFILE(update_world_renderer);
   if (auto wr = !scene_loading ? static_cast<WorldRenderer *>(get_world_renderer()) : nullptr)
     wr->update(dt, rdt, itm);
+  else
+    threadpool::wake_up_all_delayed(threadpool::PRIO_HIGH);
   if (!dagor_work_cycle_is_need_to_draw()) // Note: we still have to update frp for it's side effects
     uirender::update_all_gui_scenes_mainthread(dt);
 }
@@ -3657,7 +3674,7 @@ void WorldRenderer::resetConvergenceMarkers()
 auto WorldRenderer::logStaticShadowsConvergence() -> StaticShadowsConvergenceState
 {
   StaticShadowsConvergenceState state = {
-    .completelyValidFrames = shadowsManager.getStaticShadows()->getMinCompletelyValidFramesAcrossAllCascades(),
+    .completelyValidFrames = shadowsManager.getStaticShadowsConvergedFrames(),
     .completelyValidFramesNeed = (uint32_t)dgs_get_settings()->getBlockByNameEx("debug")->getInt("staticShadowsConvergenceFrames", 30),
   };
   const bool converged = state.completelyValidFrames >= state.completelyValidFramesNeed;
@@ -3706,6 +3723,9 @@ void WorldRenderer::beforeRender(float scaled_dt,
 {
   if (sceneload::is_scene_switch_in_progress())
     return;
+
+  if (restoreLandmesh())
+    invalidateClipmap(true);
 
   ShaderGlobal::set_float(var::sky_polarization_filter_term, get_sky_polarization_filter_term());
 
@@ -3831,6 +3851,14 @@ void WorldRenderer::beforeRender(float scaled_dt,
   // wants the physical height
   bool highEnergy = camera_specific_energy(cameraHeight, cameraSpeed) > switch_ri_gen_mode_threshold.get();
   rendinst::render::setRIGenRenderMode(!canChangeAltitudeUnexpectedly || !highEnergy ? -1 : 0);
+
+  // before the additional game job (PUFD) and the jobs that read the riExtra state, to avoid data races and lock order inversions
+  rendinst::applyTiledScenesUpdateForRIGenExtra(2000, 1000);
+  rendinst::before_culling();
+
+  // after the riGen render mode is set: its jobs read it
+  bvh_start_ri_jobs(currentFrameCamera.viewItm.getcol(3), currentFrameCamera.noJitterFrustum, real_dt);
+
   if (DngSkies *dngSkies = get_daskies())
     dngSkies->updateCloudsFullresProximity(cameraActualHeight, cameraSpeed);
 
@@ -3884,7 +3912,6 @@ void WorldRenderer::beforeRender(float scaled_dt,
   if (ssr_quality.pullValueChange() || ssr_fullres.pullValueChange() || ssr_enable.pullValueChange() || ssr_denoiser.pullValueChange())
     updateSettingsSSR(-1, -1);
 
-  rendinst::before_culling();
   rendinst::before_render();
 
   if (prepass.pullValueChange())
@@ -3897,19 +3924,14 @@ enum
   AGT_ADDITIONAL = 1,
   AGT_UI = 2,
   AGT_DAFX = 4,
-  AGT_ALL = 7
+  AGT_UI_BEFORE_RENDER = 8,
+  AGT_ALL = 15
 };
 extern void start_async_game_tasks(uint32_t frame_id, int agt = AGT_ALL, bool wake = true);
 
 template <typename F>
-#if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 101400
-// workaround for 'error: aligned deallocation function of type 'void (void *, std::align_val_t) noexcept'
-// is only available on macOS 10.14 or newer'
-struct AnimcharRenderShadowsJob final : public cpujobs::IJob
-#else
 // align on 2 cache lines to avoid false sharing on setting 'done' within threadpool
 struct alignas(EA_CACHE_LINE_SIZE * 2) AnimcharRenderShadowsJob final : public cpujobs::IJob
-#endif
 {
   const F &cb;
   int i;
@@ -3934,11 +3956,12 @@ const char *fmt_csm_render_pass_name(int cascade, char tmps[], int csm_task_id =
   return tmps;
 }
 
-// Last cascade is the heaviest one, so split it finer (0th one is rendered in main thread)
+// Last cascade is the heaviest, so split it finer; the 0th renders in main thread, so a split only adds merge work
 static inline int csm_cascade_jobs_count(int cascade, int num_cascades)
 {
-  return (cascade && cascade == num_cascades - 1) ? AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX
-                                                  : AnimcharRenderAsyncFilter::ARF_IDX_COUNT;
+  if (cascade == 0)
+    return 1;
+  return cascade == num_cascades - 1 ? AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX : AnimcharRenderAsyncFilter::ARF_IDX_COUNT;
 }
 
 void WorldRenderer::updateTransformations(const DPoint3 &move,
@@ -3999,15 +4022,14 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
 #endif
 
   debugRecreateNodes();
+  // createNodes reads the GI settings, so they must be current before the FG is recreated
+  giUpdateSettings();
   processPendingFgRecreation();
   updateWaterRenderMode();
 
   ShaderGlobal::set_int(var::packed_gbuf_normals, hasFeature(GBUFFER_PACKED_NORMALS));
-  auto callBeforePUFD = []() { // `PUFD` is abbr ParallelUpdateFrameDelayed
-    rendinst::applyTiledScenesUpdateForRIGenExtra(2000, 1000);
-  };
-  callBeforePUFD(); // Must be called before additional job (aka PUFD) to avoid data races & lock order inversions
-  start_async_game_tasks(frame_id, AGT_ADDITIONAL, /*wake*/ true); // Note: long job - start as early as possible
+  // Note: long job - start as early as possible, startVisibility() below wakes the pool for it
+  start_async_game_tasks(frame_id, AGT_ADDITIONAL, /*wake*/ false);
 
   const TMatrix &itm = currentFrameCamera.viewItm;
   const Point3_vec4 viewPos = itm.getcol(3);
@@ -4081,6 +4103,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   g_entity_mgr->broadcastEventImmediate(BeforeStartVisibility());
 
   startVisibility();
+  threadpool::wake_up_all_delayed(threadpool::PRIO_HIGH); // Wake threadpool for the visibility jobs and PUFD
   // debug("parallel for %d", get_time_usec(reft));
   // parallel jobs done
 
@@ -4113,7 +4136,6 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
 
   prepareDeformHmap();
 
-  shoreRenderer.updateShore(water, water_quality.get(), currentFrameCamera.cameraWorldPos);
   if (water)
     waterLevel = fft_water::get_level(water); // TODO: can we remove this?
   renderWaterHeightmapLowres();
@@ -4123,6 +4145,8 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
     fft_water::setAnisotropy(water, waterAnisotropy.get());
     fft_water::before_render(water, realDt);
   }
+  // after before_render: the shore SDF build reads the wind and water level shader globals it sets
+  shoreRenderer.updateShore(water, water_quality.get(), currentFrameCamera.cameraWorldPos);
 
   beforeDrawPostFx();
   {
@@ -4244,8 +4268,6 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   if (rendinst::render::notRenderedStaticShadowsBBox(riBox))
     shadowsInvalidate(riBox);
 
-  shadowsManager.shadowsInvalidateGatheredBBoxes();
-
   satelliteRenderer.renderScripted(currentFrameCamera);
 
   // TODO: move portal rendering to a node scheduled after vtex_clipmap_prepare_render.
@@ -4324,10 +4346,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
       ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Depth));
       dynrend::ContextId ctxIds[AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX][CascadeShadows::MAX_CASCADES];
       Frustum frustums[CascadeShadows::MAX_CASCADES];
-      struct
-      {
-        volatile int left, notStarted;
-      } jobsCnt[CascadeShadows::MAX_CASCADES];
+      volatile int jobsLeft[CascadeShadows::MAX_CASCADES];
       for (int i = 0; i < numCascades; ++i)
       {
         const TMatrix4 &csmViewTm = csm->getRenderViewMatrix(i);
@@ -4343,8 +4362,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
           dynrend::set_context_view_proj(ctxIds[j][i], csmViewTmRel, csmProjTm, csmViewTmRel, csmProjTm);
         }
         frustums[i] = csm->getFrustum(i);
-        interlocked_relaxed_store(jobsCnt[i].left, jobsCount);
-        interlocked_relaxed_store(jobsCnt[i].notStarted, jobsCount);
+        interlocked_relaxed_store(jobsLeft[i], jobsCount);
       }
       GlobalVariableStates globalVarsState(framemem_ptr());
       copy_current_global_variables_states(globalVarsState);
@@ -4352,10 +4370,10 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
       // Job index is `cascade * ARF_IDX_COUNT + filter`, only last cascade might have more than ARF_IDX_COUNT jobs
       auto render_shadow_cb = [&](int i) {
         int cascade = min(i / (int)AnimcharRenderAsyncFilter::ARF_IDX_COUNT, numCascades - 1);
-        interlocked_decrement(jobsCnt[cascade].notStarted);
-        auto eidFilter = AnimcharRenderAsyncFilter(i - cascade * AnimcharRenderAsyncFilter::ARF_IDX_COUNT);
+        const int jobNo = i - cascade * AnimcharRenderAsyncFilter::ARF_IDX_COUNT;
         const int jobsCount = csm_cascade_jobs_count(cascade, numCascades);
-        dynrend::ContextId ctx = ctxIds[eidFilter][cascade];
+        auto eidFilter = jobsCount > 1 ? AnimcharRenderAsyncFilter(jobNo) : AnimcharRenderAsyncFilter::ARF_ANY_IDX;
+        dynrend::ContextId ctx = ctxIds[jobNo][cascade];
         // todo: interlocked_or uint8_t
         const animchar_visbits_t add_vis_bits = VISFLG_CSM_SHADOW_RENDERED; //(VISFLG_MAIN_VISIBLE | VISFLG_MAIN_CAMERA_RENDERED)
         const animchar_visbits_t require_any_vis_bits =
@@ -4366,12 +4384,18 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
           NULL,              //&occlusion
           frustums[cascade], // : Frustum(currentFrameCamera.noJitterGlobtm),
           add_vis_bits, require_any_vis_bits, reject_if_any_vis_bits, filterMask, false /*hasMotionVectors*/, eidFilter,
-          TexStreamingContext(0), jobsCount - 1));
-        if (interlocked_decrement(jobsCnt[cascade].left) == 0) // Last one finalizes and prepares for render
+          TexStreamingContext(0), jobsCount));
+        dynrend::presort_packed(ctx);                      // still parallel here, so the merge below only merges sorted runs
+        if (interlocked_decrement(jobsLeft[cascade]) == 0) // Last one finalizes and prepares for render
         {
           TIME_PROFILE_DEV(finalize_render_csm);
-          for (int j = 1; j < jobsCount; j++)
-            dynrend::merge_context(ctxIds[0][cascade], ctxIds[j][cascade]);
+          if (jobsCount > 1)
+          {
+            dynrend::ContextId srcCtxIds[AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX - 1];
+            for (int j = 1; j < jobsCount; j++)
+              srcCtxIds[j - 1] = ctxIds[j][cascade];
+            dynrend::merge_multiple_contexts(ctxIds[0][cascade], make_span_const(srcCtxIds, jobsCount - 1));
+          }
           dynrend::prepare_render_finalize(ctxIds[0][cascade]);
         }
       };
@@ -4379,6 +4403,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
       constexpr int MAX_JOBS = CascadeShadows::MAX_CASCADES * AnimcharRenderAsyncFilter::ARF_IDX_COUNT +
                                AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX - AnimcharRenderAsyncFilter::ARF_IDX_COUNT;
       alignas(JobType) char jobs_storage[sizeof(JobType) * MAX_JOBS];
+      uint32_t queuePos = 0, stealUpToPos = 0;
       auto addCascadeJobs = [&](int ci) {
         for (int i = 0, n = csm_cascade_jobs_count(ci, numCascades); i < n; ++i)
         {
@@ -4390,15 +4415,21 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
             animchar_csm_desc[ci]
 #endif
           );
-          threadpool::add(job, threadpool::PRIO_HIGH, /*wake*/ false);
+          threadpool::add(job, threadpool::PRIO_HIGH, queuePos, threadpool::AddFlags::None);
         }
       };
       for (int ci = 1; ci < numCascades; ++ci)
+      {
+        stealUpToPos = queuePos; // Ends as the last job of the cascade before the last one
         addCascadeJobs(ci);
+      }
+      const bool canSteal = numCascades > 2; // Help with the earlier cascades only, never the last and longest one, then park
+      if (should_delay_pufd_until_bvh_jobs_done())
+        start_async_game_tasks(frame_id, AGT_DAFX, /*wake*/ false);
       threadpool::wake_up_all();
 
       // Usually 0th cascade is quickest to render, so do it in main thread
-      for (int i = 0; i < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; ++i)
+      for (int i = 0, n = csm_cascade_jobs_count(0, numCascades); i < n; ++i)
       {
         auto j = new (jobs_storage + sizeof(JobType) * i, _NEW_INPLACE) JobType(render_shadow_cb, i);
         DA_PROFILE_EVENT_DESC(animchar_csm_desc[0]);
@@ -4410,52 +4441,47 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
       csm->renderShadowsCascadesCb([&](int num_cascades_to_render, bool clear_per_view) {
         G_ASSERT(numCascades <= num_cascades_to_render);
         G_UNUSED(num_cascades_to_render);
+        auto cascadeJob = [&](unsigned i, unsigned j) {
+          return reinterpret_cast<JobType *>(jobs_storage + (i * AnimcharRenderAsyncFilter::ARF_IDX_COUNT + j) * sizeof(JobType));
+        };
         unsigned cascadesNotRenderedMask = (1 << numCascades) - 1;
-        intptr_t spinsLeftBeforeWait = SPINS_BEFORE_SLEEP / 2; // ~0.25ms on prevgen
-        do
+        for (;;)
         {
-          for (unsigned i = 0, bit = 1, joffs = 0; i < numCascades;
-               ++i, bit <<= 1, joffs += sizeof(JobType) * AnimcharRenderAsyncFilter::ARF_IDX_COUNT)
+          int firstUndone = -1;
+          for (unsigned i = 0, bit = 1; i < numCascades; ++i, bit <<= 1)
             if (bit & cascadesNotRenderedMask)
             {
               const unsigned jobsCount = csm_cascade_jobs_count(i, numCascades);
-              bool haveUndoneJobs = interlocked_acquire_load(jobsCnt[i].left) != 0;
-              if (!haveUndoneJobs)
-                for (unsigned j = 0; j < jobsCount; j++)
-                {
-                  auto job = reinterpret_cast<JobType *>(jobs_storage + joffs + j * sizeof(JobType));
-                  if (!interlocked_acquire_load(job->done))
-                  {
-                    haveUndoneJobs = true;
-                    break;
-                  }
-                }
+              bool haveUndoneJobs = interlocked_acquire_load(jobsLeft[i]) != 0;
+              for (unsigned j = 0; j < jobsCount && !haveUndoneJobs; j++)
+                haveUndoneJobs = !interlocked_acquire_load(cascadeJob(i, j)->done);
               if (haveUndoneJobs)
               {
-                // Note: Last cascade is added last and usually quite big so try to avoid active wait until
-                // all of it's jobs are started
-                if (spinsLeftBeforeWait > 0 && interlocked_acquire_load(jobsCnt[numCascades - 1].notStarted))
-                  continue;
-                TIME_PROFILE_DEV(wait_cascade);
-                for (unsigned j = 0; j < jobsCount; j++)
-                {
-                  auto job = reinterpret_cast<JobType *>(jobs_storage + joffs + j * sizeof(JobType));
-                  threadpool::wait(job, 0, threadpool::PRIO_HIGH);
-                }
+                if (firstUndone < 0)
+                  firstUndone = i;
+                continue;
               }
               cascadesNotRenderedMask &= ~bit;
+              if (!cascadesNotRenderedMask) // Before render of last (usually largest one) cascade
+                start_async_game_tasks(frame_id, AGT_DAFX | AGT_UI_BEFORE_RENDER,
+                  /*wake*/ false); // Workers are busy with cascade or other jobs anyway
               csm->renderShadowCascadeDepth((int)i, clear_per_view);
-              if (__popcount(cascadesNotRenderedMask) == 1) // Before render of last (usually largest one) cascade
-                start_async_game_tasks(frame_id, AGT_DAFX);
             }
-          if (!cascadesNotRenderedMask)
-            break;
-          else
+          if (firstUndone < 0)
           {
-            cpu_yield();
-            --spinsLeftBeforeWait;
+            G_FAST_ASSERT(!cascadesNotRenderedMask);
+            break;
           }
-        } while (1);
+          TIME_PROFILE_DEV(wait_cascade);
+          for (unsigned j = 0, n = csm_cascade_jobs_count(firstUndone, numCascades); j < n; j++)
+          {
+            auto job = cascadeJob(firstUndone, j);
+            if (canSteal)
+              threadpool::barrier_active_wait_for_job(job, threadpool::PRIO_HIGH, stealUpToPos);
+            else
+              threadpool::wait(job);
+          }
+        }
       });
     }
     else
@@ -4475,9 +4501,8 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   startGroundVisibility();           // we have to call it after all other ground renders are complete
   startGroundReflectionVisibility(); // we have to call it after all other ground renders are complete
   startLightsCullingJob();
-  bvh_update_instances(viewPos, get_daskies() ? -get_daskies()->getPrimarySunDir() : Point3(0, -1, 0), itm,
-    currentFrameCamera.viewRotTm, reinterpret_cast<const TMatrix4 &>(proj), prevFrameCamera.viewRotTm, prevFrameCamera.noJitterProjTm,
-    currentFrameCamera.noJitterFrustum);
+  bvh_update_dyn_instances(viewPos, get_daskies() ? -get_daskies()->getPrimarySunDir() : Point3(0, -1, 0), itm,
+    currentFrameCamera.viewRotTm, reinterpret_cast<const TMatrix4 &>(proj), prevFrameCamera.viewRotTm, prevFrameCamera.noJitterProjTm);
   start_async_game_tasks(frame_id, AGT_ALL, /*wake*/ false); // Start the rest of tasks in case it wasnt started earlier
   bool tpEarlyWakeUp = hasGpuObjs || rendinst::render::pendingRebuild() || enviProbeState != EnviProbeState::Ready;
   if (tpEarlyWakeUp)
@@ -4508,11 +4533,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
 
   bool tpLateWakeUp = !tpEarlyWakeUp;
   if (hasFeature(FeatureRenderFlags::STATIC_SHADOWS))
-  {
-    FRAME_LAYER_GUARD(globalFrameBlockId);
-    bool updateOnlyLastCascade = !requiresGroundDetails && !is_free_camera_enabled();
-    tpLateWakeUp |= shadowsManager.updateStaticShadowAround(itm.getcol(3), updateOnlyLastCascade);
-  }
+    tpLateWakeUp |= shadowsManager.updateStaticShadowAround(itm.getcol(3));
   shadowsManager.prepareVSM(viewPos);
   shadowsManager.prepareVoxelShadows(viewPos);
   tpLateWakeUp |= prepareDelayedRender(itm);
@@ -4729,13 +4750,6 @@ void WorldRenderer::setDirToSun()
             rendinst::render::renderRIGenGlobalShadowsToTextures(-dir_to_sun.curr, false, useCompression(), !isTimeDynamic())))
         dir_to_sun.sunDirectionUpdateStage++;
       break;
-    case DirToSun::STATIC_SHADOW:
-    {
-      auto staticShadows = shadowsManager.getStaticShadows();
-      if (!staticShadows || !staticShadows->isAnyCascadeInTransition())
-        dir_to_sun.sunDirectionUpdateStage++;
-      break;
-    }
     case DirToSun::RELOAD_CUBE:
       dir_to_sun.sunDirectionUpdateStage++;
       scheduleEnviProbeReRender();
@@ -4841,6 +4855,17 @@ void WorldRenderer::closeGround()
   ShaderGlobal::reset_from_vars(lightmapTexId);
   release_managed_tex(lightmapTexId);
   lightmapTexId = BAD_TEXTUREID;
+}
+
+bool WorldRenderer::restoreLandmesh()
+{
+  if (!lmeshMgr || !lmeshMgr->pendingDeviceReset() || d3d::device_lost(nullptr))
+    return false;
+  d3d::GpuAutoLock gpuLock;
+  lmeshMgr->afterDeviceReset(lmeshRenderer, true);
+  if (lmeshMgr->getHmapHandler())
+    lmeshMgr->getHmapHandler()->fillHmapTextures();
+  return true;
 }
 
 bool WorldRenderer::useClipmapFeedbackOversampling() { return Clipmap::is_uav_supported(); }
@@ -4979,7 +5004,7 @@ void WorldRenderer::initClipmap()
   ShaderGlobal::set_int(get_shader_variable_id("cache_buffer_tex0_srgb_mode", true), (int)useCompatBufFormats);
 
   const float maxEffectiveTargetResolution = 2 * 1920 * 1080;
-  clipmap->initVirtualTexture(cw, ch, 256, 1, clipmapAnisotropic, maxEffectiveTargetResolution);
+  clipmap->initVirtualTexture(cw, ch, 256, 1, clipmapAnisotropic, maxEffectiveTargetResolution, false);
 
   clipmap->createCaches(cacheFormats, cacheFormatsFallback, cachesCount, useCompatBufFormats ? buf_formats_compat : buf_formats, 3);
   clipmap->setMaxTileUpdateCount(clipBlk->getInt("updateTileCount", defaultUpdateCount));
@@ -5556,7 +5581,7 @@ void WorldRenderer::renderStaticSceneOpaque(int cascade,
       renderRITreePrepass(view_itm);
       if (vehicle_cockpit_in_depth_prepass.get())
       {
-        g_entity_mgr->broadcastEventImmediate(VehicleCockpitPrepass(currentFrameCamera.viewTm, currentTexCtx));
+        g_entity_mgr->broadcastEventImmediate(VehicleCockpitPrepass(&currentFrameCamera, &prevFrameCamera, currentTexCtx));
       }
     }
   }
@@ -5610,8 +5635,12 @@ void WorldRenderer::renderStaticSceneOpaque(int cascade,
   g_entity_mgr->broadcastEventImmediate(RenderStaticSceneEvent(culling_frustum, camera_pos, cascade));
 }
 
-void WorldRenderer::renderDynamicOpaque(
-  int cascade, const TMatrix &view_itm, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Point3 &cam_pos)
+void WorldRenderer::renderDynamicOpaque(int cascade,
+  const TMatrix &view_itm,
+  const TMatrix &view_tm,
+  const TMatrix4 &proj_tm,
+  const Point3 &cam_pos,
+  dynrend::ContextId prefilled_animchar_ctx)
 {
   ShaderGlobal::set_int(dyn_model_render_passVarId, is_gbuffer_cascade(cascade) ? eastl::to_underlying(dynmodel::RenderPass::Color)
                                                                                 : eastl::to_underlying(dynmodel::RenderPass::Depth));
@@ -5648,23 +5677,23 @@ void WorldRenderer::renderDynamicOpaque(
   }
 
   Occlusion *occl = cascade == RENDER_MAIN ? getMainCameraOcclusion() : nullptr;
-  dynrend::ContextId asyncAnimcharCtx = dynrend::ContextId::Invalid;
+  dynrend::ContextId prefilledAnimcharCtx = cascade == RENDER_DYNAMIC_SHADOW ? prefilled_animchar_ctx : dynrend::ContextId::Invalid;
   char tmps[] = "csm#000";
   if (async_animchars_shadows.get() && cascade >= RENDER_SHADOWS_CSM && cascade - RENDER_SHADOWS_CSM < csm->getNumCascadesToRender())
   {
-    asyncAnimcharCtx = dynrend::find_context(fmt_csm_render_pass_name(cascade, tmps));
+    prefilledAnimcharCtx = dynrend::find_context(fmt_csm_render_pass_name(cascade, tmps));
   }
   else if (async_animchars_main.get())
     if (cascade == RENDER_MAIN)
     {
       mainCameraVisibilityMgr.waitAsyncAnimcharMainRender();
-      asyncAnimcharCtx = mainCameraVisibilityMgr.getAsyncAnimcharMainRenderCtx();
+      prefilledAnimcharCtx = mainCameraVisibilityMgr.getAsyncAnimcharMainRenderCtx();
     }
 
   {
     TIME_D3D_PROFILE(ecs_render);
     g_entity_mgr->broadcastEventImmediate(UpdateStageInfoRender(hints, frustum, view_itm, view_tm, proj_tm, cam_pos,
-      currentFrameCamera.negRoundedCamPos, currentFrameCamera.negRemainderCamPos, occl, cascade, asyncAnimcharCtx, texCtx));
+      currentFrameCamera.negRoundedCamPos, currentFrameCamera.negRemainderCamPos, occl, cascade, prefilledAnimcharCtx, texCtx));
   }
 
   ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
@@ -5788,6 +5817,10 @@ bool WorldRenderer::prepareDelayedRender(const TMatrix &itm)
       TMatrix4_vec4 glotm = cube->getGlobTmForFace(face_number, position);
       prepareLightProbeRIVisibilityAsync(reinterpret_cast<mat44f_cref>(glotm), position);
       tpJobsAdded = true;
+      const bool newCapture =
+        position != delayedRenderCtx.lightProbeData.position || face_number < delayedRenderCtx.lightProbeData.faceNumber;
+      if (newCapture)
+        delayedRenderCtx.lightProbeData.waitFrames = 0;
       delayedRenderCtx.lightProbeData.texPtr = tex_ptr;
       delayedRenderCtx.lightProbeData.position = position;
       delayedRenderCtx.lightProbeData.faceNumber = face_number;
@@ -5811,8 +5844,21 @@ void WorldRenderer::renderDelayedCube()
 {
   FRAME_LAYER_GUARD(globalFrameBlockId);
   auto &data = delayedRenderCtx.lightProbeData;
-  if (eastl::exchange(data.render, false))
-    cube->update(data.texPtr, data.position, data.faceNumber, RenderDynamicCube::RenderMode::WHOLE_SCENE);
+  if (!eastl::exchange(data.render, false))
+    return;
+  mainCameraVisibilityMgr.waitLightProbeVisibility();
+  const bool lodLoaded = rendinst::isRiGenVisibilityForcedLodLoaded(rendinst_cube_visibility);
+  const bool shadowsValid = !hasFeature(FeatureRenderFlags::STATIC_SHADOWS) ||
+                            shadowsManager.validStaticShadows(data.position, 2 * RenderDynamicCube::RI_FAR_PLANE);
+  constexpr int MAX_WAIT_FRAMES = 300;
+  if (!(lodLoaded && shadowsValid) && ++data.waitFrames < MAX_WAIT_FRAMES)
+  {
+    if (!lodLoaded)
+      rendinst::riGenVisibilityScheduleForcedLodLoading(rendinst_cube_visibility);
+    specularCubesContainer->retryCubeFace();
+    return;
+  }
+  cube->update(data.texPtr, data.position, data.faceNumber, RenderDynamicCube::RenderMode::WHOLE_SCENE);
 }
 
 void WorldRenderer::renderDelayedDepthAbove()
@@ -7197,7 +7243,8 @@ shadercache::WarmupParams get_shader_warmup_params()
   const bool supportIrradGridUnorderedLoad =
     (d3d::get_texformat_usage(TEXFMT_A8R8G8B8 | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD) &&
     (d3d::get_texformat_usage(TEXFMT_A16B16G16R16F | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD);
-  const bool supportLitSceneUnorderedLoad = supportsR8UavLoad && supportsR11G11B10FUavLoad;
+  const bool supportGbuf1UnorderedLoad =
+    d3d::get_texformat_usage(FULL_GBUFFER_FORMATS[1] | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD;
 
   shadercache::WarmupParams params{};
   params.invalidVars = {{"use_hw_rt_gi", supportsRT ? 0 : 1},  //
@@ -7212,6 +7259,9 @@ shadercache::WarmupParams get_shader_warmup_params()
     params.invalidVars.push_back({"water_rt_enabled", 1});
     params.invalidVars.push_back({"water_refraction_tex", 0});
   }
+
+  if (!supportGbuf1UnorderedLoad)
+    params.invalidVars.push_back({"packed_gbuf_normals", 1}); // 1 = yes, disabled
 
   if ((get_water_quality() >= 2) && dgs_get_settings()->getBlockByNameEx("graphics")->getBool("useFoamFx", false))
     params.invalidVars.push_back({"wfx_effects_tex_enabled", 0}); // will always have wfx_effects_tex under this condition
@@ -7228,9 +7278,6 @@ shadercache::WarmupParams get_shader_warmup_params()
 
   if (!supportsR11G11B10FUavLoad)
     params.shadersToSkip.push_back("dagi_radiance_grid_calc_temporal_cs");
-
-  if (!supportLitSceneUnorderedLoad)
-    params.shadersToSkip.push_back("dagi_voxel_lit_scene_from_gbuf_cs");
 
   return params;
 }

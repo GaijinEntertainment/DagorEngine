@@ -5,14 +5,12 @@ include "shaders_dx11.blk"
 {
   file:t = "depth_hierarchy.dshl"
   file:t = "testgi_bvh_debug.dshl"
-  file:t = "testgi_rtsm.dshl"
   file:t = "testgi_rtss_trace.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_lru_collision_normals.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_ahs_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_tree_vertices.dshl"
-  file:t = "../../../../prog/gameLibs/render/denoiser/shaders/denoiser_prepare.dshl"
 }
 
 "@override:outDumpName":t="../../game/compiledShaders/gameDX12"
@@ -25,10 +23,6 @@ include "shaders_dx11.blk"
     "@delete:dagi_warp64_irradiance":i=0
     "@delete:swrt_use_hw_rt":i = 0
      gi_voxelize_use_multidraw:i=1
-     // the sample never denoises with NRD checkerboard depth; pinning the
-     // interval skips compiling that variant (broken upstream in the RTR
-     // half-res motion store), which the sample build would otherwise hit
-     rtr_depth_mode:i=0
   }
 }
 
@@ -36,6 +30,4 @@ incDir:t="../../../../prog/gameLibs/bvh/shaders"
 incDir:t="../../../../prog/gameLibs/render/shaders/NRD"
 incDir:t="../../../../prog/gameLibs/render/indoorProbes/shaders"
 incDir:t="../../../../prog/daNetGame/shaders"
-incDir:t="../../../../prog/gameLibs/render/denoiser/shaders"
 incDir:t="../../../../prog/gameLibs/render/shaders/vegetation"
-incDir:t="../../../../prog/3rdPartyLibs/NRD"

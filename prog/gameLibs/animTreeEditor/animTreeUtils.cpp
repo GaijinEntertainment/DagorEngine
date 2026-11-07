@@ -34,6 +34,14 @@ AnimParamData *find_param_by_name(dag::Vector<AnimParamData> &params, const char
   return eastl::find_if(params.begin(), params.end(), [name](const AnimParamData &value) { return value.name == name; });
 }
 
+int get_last_ctrl_field_pid(dag::ConstSpan<AnimParamData> params)
+{
+  int lastPid = PID_CTRLS_PARAMS_FIELD;
+  for (const AnimParamData &param : params)
+    lastPid = max(lastPid, param.pid);
+  return lastPid;
+}
+
 bool add_edit_box_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
   const char *name, const char *default_value)
 {
@@ -205,7 +213,7 @@ void add_target_node(dag::Vector<AnimParamData> &params, PropPanel::ContainerPro
   if (type == ctrl_type_twistCtrl)
     targetNodeParam = "twistNode"; // Replace param name for twistCtrl with same logic
   PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
-  int freePid = params.back().pid + 1;
+  int freePid = get_last_ctrl_field_pid(params) + 1;
   int targetNodeCount = 0;
   AnimParamData *lastNodeForMove = nullptr;
   for (AnimParamData &param : params)
@@ -222,8 +230,8 @@ void add_target_node(dag::Vector<AnimParamData> &params, PropPanel::ContainerPro
   }
 
   group->createEditBox(freePid, targetNodeParam);
-  params.emplace_back(AnimParamData{String(targetNodeParam), freePid, DataBlock::TYPE_STRING});
   group->moveById(freePid, lastNodeForMove->pid, /*after*/ true);
+  params.emplace_back(AnimParamData{String(targetNodeParam), freePid, DataBlock::TYPE_STRING});
 
   if (type != ctrl_type_lookat && type != ctrl_type_twistCtrl)
   {
@@ -243,23 +251,24 @@ void add_params_target_node_wt(dag::Vector<AnimParamData> &params, PropPanel::Co
   int targetNodeWtIdx = 1;
   int lastTargetNodeWtPid = 0;
   float targetNodeWtValue = get_float_param_by_name_optional(params, panel, "targetNodeWt", defaultTargetNodeWt);
-  for (const AnimParamData &param : params)
+  for (int i = 0; i < params.size(); ++i)
   {
-    if (param.name == "targetNode")
+    if (params[i].name == "targetNode")
     {
+      const int targetNodePid = params[i].pid;
       if (lastTargetNodeWtPid)
-        panel->moveById(param.pid, lastTargetNodeWtPid, /*after*/ true);
+        panel->moveById(targetNodePid, lastTargetNodeWtPid, /*after*/ true);
       const int targetNodeWtFieldIdx = pid;
       String targetNodeWtN = String(0, "targetNodeWt%d", targetNodeWtIdx);
       if (add_edit_float_if_not_exists(params, panel, pid, targetNodeWtN, targetNodeWtValue))
       {
-        panel->moveById(targetNodeWtFieldIdx, param.pid, /*after*/ true);
+        panel->moveById(targetNodeWtFieldIdx, targetNodePid, /*after*/ true);
         lastTargetNodeWtPid = targetNodeWtFieldIdx;
       }
       else
       {
         auto paramTargetNodeWtN = find_param_by_name(params, targetNodeWtN);
-        panel->moveById(paramTargetNodeWtN->pid, param.pid, /*after*/ true);
+        panel->moveById(paramTargetNodeWtN->pid, targetNodePid, /*after*/ true);
         lastTargetNodeWtPid = paramTargetNodeWtN->pid;
       }
       ++targetNodeWtIdx;
@@ -343,6 +352,27 @@ void set_varname_dependent_defaults(dag::Vector<AnimParamData> &params, PropPane
 {
   const String defaultVarname = get_default_varname_from_name(params, panel);
   set_str_param_by_name_if_default(params, panel, "varname", defaultVarname);
+}
+
+void set_key_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
+{
+  const SimpleString nameValue = get_str_param_by_name_optional(params, panel, "name");
+  set_str_param_by_name_if_default(params, panel, "key", nameValue.c_str());
+  const SimpleString keyValue = get_str_param_by_name_optional(params, panel, "key", nameValue.c_str());
+  set_str_param_by_name_if_default(params, panel, "key_start", String(0, "%s_start", keyValue.c_str()));
+  set_str_param_by_name_if_default(params, panel, "key_end", String(0, "%s_end", keyValue.c_str()));
+}
+
+SimpleString remove_key_params_if_default(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
+{
+  const SimpleString nameValue = get_str_param_by_name_optional(params, panel, "name");
+  const SimpleString keyValue = get_str_param_by_name_optional(params, panel, "key", nameValue.c_str());
+  const String defaultKeyStart(0, "%s_start", keyValue.c_str());
+  const SimpleString keyStartValue = get_str_param_by_name_optional(params, panel, "key_start", defaultKeyStart.c_str());
+  remove_param_if_default_str(params, panel, "key", nameValue.c_str());
+  remove_param_if_default_str(params, panel, "key_start", defaultKeyStart.c_str());
+  remove_param_if_default_str(params, panel, "key_end", String(0, "%s_end", keyValue.c_str()));
+  return keyStartValue;
 }
 
 void update_varname_dependent_fields(AnimParamData &param, dag::Vector<AnimParamData> &params,
@@ -484,15 +514,10 @@ void remove_params_if_default_target_node_wt(dag::Vector<AnimParamData> &params,
   const float defaultTargetNodeWt = 1.f;
   const float targetNodeWtValue = get_float_param_by_name_optional(params, panel, "targetNodeWt", defaultTargetNodeWt);
 
-  int targetNodeWtIdx = 1;
-  for (const AnimParamData &param : params)
-  {
-    if (param.name == "targetNode")
-    {
-      remove_param_if_default_float(params, panel, String(0, "targetNodeWt%d", targetNodeWtIdx), targetNodeWtValue);
-      ++targetNodeWtIdx;
-    }
-  }
+  const int targetNodeCount =
+    eastl::count_if(params.begin(), params.end(), [](const AnimParamData &param) { return param.name == "targetNode"; });
+  for (int i = 1; i <= targetNodeCount; ++i)
+    remove_param_if_default_float(params, panel, String(0, "targetNodeWt%d", i), targetNodeWtValue);
 }
 
 void remove_fields(PropPanel::ContainerPropertyControl *panel, int field_start, int field_end, bool break_if_not_found)
@@ -640,7 +665,8 @@ DataBlock *find_block_by_name(DataBlock *props, const String &name, bool should_
       return settings;
   }
 
-  G_ASSERTF(!should_exist, "Can't find block with name <%s>", name);
+  if (should_exist)
+    logerr("Can't find block with name <%s> in blk with path:<%s>", name, props->resolveFilename());
   return nullptr;
 }
 
@@ -874,7 +900,7 @@ DataBlock get_props_from_include_state_data(dag::ConstSpan<String> paths, dag::C
     includeLeaf = ctrls_tree->getRootLeaf();
   else
   {
-    const AnimCtrlData *ctrlData = eastl::find_if(ctrls.begin(), ctrls.end(), [ctrls_tree, state_data](const AnimCtrlData &data) {
+    const AnimCtrlData *ctrlData = eastl::find_if(ctrls.begin(), ctrls.end(), [ctrls_tree, &state_data](const AnimCtrlData &data) {
       return data.type == ctrl_type_include && state_data.fileName == ctrls_tree->getCaption(data.handle);
     });
 
@@ -900,23 +926,90 @@ static bool is_inner_include(dag::ConstSpan<AnimCtrlData> ctrls, PropPanel::TLea
   return false;
 }
 
-DataBlock *get_props_from_include_leaf_ctrl_node(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props,
-  PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle include_leaf)
+template <typename Finder>
+static DataBlock *find_in_ctrl_blocks(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props, PropPanel::ContainerPropertyControl *tree,
+  PropPanel::TLeafHandle include_leaf, const Finder &find_in_block)
 {
-  DataBlock *ctrlsBlk;
-  if (props.getNameId("AnimBlendCtrl") != -1)
-    ctrlsBlk = props.getBlockByName("AnimBlendCtrl");
-  else if (include_leaf != tree->getRootLeaf() && is_inner_include(ctrls, include_leaf))
-    ctrlsBlk = &props;
-  else
-    ctrlsBlk = props.addBlock("AnimBlendCtrl");
+  const int ctrlNid = props.getNameId("AnimBlendCtrl");
+  bool hasCtrlBlocks = false;
+  for (int i = 0; i < props.blockCount(); ++i)
+    if (props.getBlock(i)->getBlockNameId() == ctrlNid)
+    {
+      hasCtrlBlocks = true;
+      if (DataBlock *result = find_in_block(*props.getBlock(i)))
+        return result;
+    }
 
-  if (!ctrlsBlk)
-  {
-    logerr("Can't find blocks with controllers in <%s> blk", tree->getCaption(include_leaf));
+  if (!hasCtrlBlocks && include_leaf != tree->getRootLeaf() && is_inner_include(ctrls, include_leaf))
+    return find_in_block(props);
+  return nullptr;
+}
+
+void get_ctrl_blocks(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props, PropPanel::ContainerPropertyControl *tree,
+  PropPanel::TLeafHandle include_leaf, dag::Vector<DataBlock *> &out_blocks)
+{
+  find_in_ctrl_blocks(ctrls, props, tree, include_leaf, [&out_blocks](DataBlock &blk) -> DataBlock * {
+    out_blocks.push_back(&blk);
     return nullptr;
-  }
-  return ctrlsBlk;
+  });
+}
+
+DataBlock *find_ctrl_settings(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props, PropPanel::ContainerPropertyControl *tree,
+  PropPanel::TLeafHandle include_leaf, const String &name, bool should_exist)
+{
+  DataBlock *settings = find_in_ctrl_blocks(ctrls, props, tree, include_leaf,
+    [&name](DataBlock &blk) { return find_block_by_name(&blk, name, /*should_exist*/ false); });
+  G_ASSERTF(settings || !should_exist, "Can't find controller with name <%s>", name);
+  return settings;
+}
+
+DataBlock *find_ctrl_animate_and_proc_block(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props,
+  PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle include_leaf, const String &name)
+{
+  return find_in_ctrl_blocks(ctrls, props, tree, include_leaf,
+    [&name](DataBlock &blk) { return find_animate_and_proc_block(&blk, name); });
+}
+
+DataBlock *find_ctrl_owner_block(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props, PropPanel::ContainerPropertyControl *tree,
+  PropPanel::TLeafHandle include_leaf, const String &name)
+{
+  return find_in_ctrl_blocks(ctrls, props, tree, include_leaf, [&name](DataBlock &blk) -> DataBlock * {
+    if (find_block_by_name(&blk, name, /*should_exist*/ false) || find_animate_and_proc_block(&blk, name))
+      return &blk;
+    return nullptr;
+  });
+}
+
+DataBlock *get_ctrl_block_to_add(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props, PropPanel::ContainerPropertyControl *tree,
+  PropPanel::TLeafHandle include_leaf)
+{
+  // The tree adds a new leaf after all others, so only the last block keeps the leafs in the file order
+  DataBlock *lastBlock = nullptr;
+  find_in_ctrl_blocks(ctrls, props, tree, include_leaf, [&lastBlock](DataBlock &blk) -> DataBlock * {
+    lastBlock = &blk;
+    return nullptr;
+  });
+  return lastBlock ? lastBlock : props.addNewBlock("AnimBlendCtrl");
+}
+
+DataBlock *get_inner_include_block(dag::ConstSpan<AnimCtrlData> ctrls, dag::ConstSpan<String> paths, DataBlock &props,
+  PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle include_leaf, const String &name)
+{
+  const String *path = eastl::find_if(paths.begin(), paths.end(), [&name](const String &value) {
+    char fileNameBuf[DAGOR_MAX_PATH];
+    return name == dd_get_fname_without_path_and_ext(fileNameBuf, sizeof(fileNameBuf), value.c_str());
+  });
+  if (path != paths.end())
+    if (DataBlock *owner = find_in_ctrl_blocks(ctrls, props, tree, include_leaf, [path](DataBlock &blk) -> DataBlock * {
+          const int includeNid = blk.getNameId("@include");
+          for (int i = 0; i < blk.paramCount(); ++i)
+            if (includeNid == blk.getParamNameId(i) && *path == blk.getStr(i))
+              return &blk;
+          return nullptr;
+        }))
+      return owner;
+
+  return get_ctrl_block_to_add(ctrls, props, tree, include_leaf);
 }
 
 eastl::string_view name_without_node_mask_suffix(eastl::string_view str)
@@ -928,6 +1021,22 @@ eastl::string_view name_without_node_mask_suffix(eastl::string_view str)
     return str;
 }
 
+static CtrlChildSearchResult make_ctrl_child_result(PropPanel::ContainerPropertyControl *ctrls_tree,
+  PropPanel::TLeafHandle parent_handle, const AnimCtrlData &child)
+{
+  if (child.handle == parent_handle)
+  {
+    logerr("Controller <%s> can't use self as child", ctrls_tree->getCaption(parent_handle));
+    return {AnimCtrlData::CHILD_AS_SELF, nullptr, BlendNodeType::UNSET, child.type};
+  }
+  return {child.id, get_ctrl_icon_name(child.type), BlendNodeType::UNSET, child.type};
+}
+
+static CtrlChildSearchResult make_blend_node_child_result(const BlendNodeData &child)
+{
+  return {child.id, get_blend_node_icon_name(child.type), child.type, ctrl_type_not_found};
+}
+
 CtrlChildSearchResult find_child_idx_and_icon_by_name(PropPanel::ContainerPropertyControl *ctrls_tree,
   PropPanel::ContainerPropertyControl *nodes_tree, PropPanel::TLeafHandle parent_handle, dag::ConstSpan<AnimCtrlData> controllers,
   dag::ConstSpan<BlendNodeData> blend_nodes, const char *name)
@@ -936,30 +1045,14 @@ CtrlChildSearchResult find_child_idx_and_icon_by_name(PropPanel::ContainerProper
     return name_without_node_mask_suffix(ctrls_tree->getCaption(data.handle).c_str()) == name_without_node_mask_suffix(name);
   });
   if (childCtrl != controllers.end())
-  {
-    const AnimCtrlData *parentData = find_data_by_handle(controllers, parent_handle);
-    if (parentData != controllers.end())
-    {
-      const int childIdx = eastl::distance(controllers.begin(), childCtrl);
-      const int parentIdx = eastl::distance(controllers.begin(), parentData);
-      if (childIdx == parentIdx)
-      {
-        logerr("Controller <%s> can't use self as child", ctrls_tree->getCaption(parent_handle));
-        return {AnimCtrlData::CHILD_AS_SELF, nullptr, BlendNodeType::UNSET, childCtrl->type};
-      }
-    }
+    return make_ctrl_child_result(ctrls_tree, parent_handle, *childCtrl);
 
-    return {childCtrl->id, get_ctrl_icon_name(childCtrl->type), BlendNodeType::UNSET, childCtrl->type};
-  }
-  else
-  {
-    const BlendNodeData *childNode =
-      eastl::find_if(blend_nodes.begin(), blend_nodes.end(), [name, nodes_tree](const BlendNodeData &data) {
-        return name_without_node_mask_suffix(nodes_tree->getCaption(data.handle).c_str()) == name_without_node_mask_suffix(name);
-      });
-    if (childNode != blend_nodes.end())
-      return {childNode->id, get_blend_node_icon_name(childNode->type), childNode->type, ctrl_type_not_found};
-  }
+  const BlendNodeData *childNode =
+    eastl::find_if(blend_nodes.begin(), blend_nodes.end(), [name, nodes_tree](const BlendNodeData &data) {
+      return name_without_node_mask_suffix(nodes_tree->getCaption(data.handle).c_str()) == name_without_node_mask_suffix(name);
+    });
+  if (childNode != blend_nodes.end())
+    return make_blend_node_child_result(*childNode);
 
   return {AnimCtrlData::NOT_FOUND_CHILD, nullptr, BlendNodeType::UNSET, ctrl_type_not_found};
 }
@@ -972,6 +1065,62 @@ CtrlChildSearchResult find_child_idx_and_icon_by_name(PropPanel::ContainerProper
   return find_child_idx_and_icon_by_name(ctrlsTree, nodesTree, parent_handle, controllers, blend_nodes, name);
 }
 
+ChildNameIndex::ChildNameIndex(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<AnimCtrlData> controllers,
+  dag::ConstSpan<BlendNodeData> blend_nodes) :
+  ctrlsTree(panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer()), ctrls(controllers), blendNodes(blend_nodes)
+{
+  PropPanel::ContainerPropertyControl *nodesTree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  // No reallocation after this reserve, so the key views stay valid.
+  captions.reserve(controllers.size() + blend_nodes.size());
+  ctrlIdxByName.reserve(controllers.size());
+  for (int i = 0; i < controllers.size(); ++i)
+  {
+    captions.push_back(ctrlsTree->getCaption(controllers[i].handle));
+    ctrlIdxByName.emplace(name_without_node_mask_suffix(captions.back().c_str()), i);
+  }
+  nodeIdxByName.reserve(blend_nodes.size());
+  for (int i = 0; i < blend_nodes.size(); ++i)
+  {
+    captions.push_back(nodesTree->getCaption(blend_nodes[i].handle));
+    nodeIdxByName.emplace(name_without_node_mask_suffix(captions.back().c_str()), i);
+  }
+}
+
+CtrlChildSearchResult ChildNameIndex::find(PropPanel::TLeafHandle parent_handle, const char *name) const
+{
+  const eastl::string_view key = name_without_node_mask_suffix(name);
+  NameToIdx::const_iterator ctrlIt = ctrlIdxByName.find(key);
+  if (ctrlIt != ctrlIdxByName.end())
+    return make_ctrl_child_result(ctrlsTree, parent_handle, ctrls[ctrlIt->second]);
+
+  NameToIdx::const_iterator nodeIt = nodeIdxByName.find(key);
+  if (nodeIt != nodeIdxByName.end())
+    return make_blend_node_child_result(blendNodes[nodeIt->second]);
+
+  return {AnimCtrlData::NOT_FOUND_CHILD, nullptr, BlendNodeType::UNSET, ctrl_type_not_found};
+}
+
+// State and fifo3 children have special names; find_by_name resolves the rest.
+template <typename FindByName>
+static int find_state_child_idx(const char *name, FindByName find_by_name)
+{
+  if (!strcmp(name, ""))
+    return AnimStatesData::EMPTY_CHILD_TYPE;
+  else if (!strcmp(name, "*"))
+    return AnimStatesData::LEAVE_CUR_CHILD_TYPE;
+  else
+    return find_by_name();
+}
+
+template <typename FindByName>
+static int find_init_fifo3_child_idx(const char *name, FindByName find_by_name)
+{
+  if (!strcmp(name, "default"))
+    return AnimStatesData::DEFAULT_INIT_FIFO3;
+  else
+    return find_by_name();
+}
+
 int find_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel::TLeafHandle parent_handle,
   dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name)
 {
@@ -981,27 +1130,34 @@ int find_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel
 int find_state_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel::TLeafHandle parent_handle,
   dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name)
 {
-  if (!strcmp(name, ""))
-    return AnimStatesData::EMPTY_CHILD_TYPE;
-  else if (!strcmp(name, "*"))
-    return AnimStatesData::LEAVE_CUR_CHILD_TYPE;
-  else
-    return find_child_idx_by_name(panel, parent_handle, controllers, blend_nodes, name);
+  return find_state_child_idx(name, [&]() { return find_child_idx_by_name(panel, parent_handle, controllers, blend_nodes, name); });
 }
 
 int find_init_fifo3_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel::TLeafHandle parent_handle,
   dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name)
 {
-  if (!strcmp(name, "default"))
-    return AnimStatesData::DEFAULT_INIT_FIFO3;
-  else
-    return find_child_idx_by_name(panel, parent_handle, controllers, blend_nodes, name);
+  return find_init_fifo3_child_idx(name,
+    [&]() { return find_child_idx_by_name(panel, parent_handle, controllers, blend_nodes, name); });
 }
 
-int add_ctrl_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data,
-  dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name)
+int find_child_idx_by_name(const ChildNameIndex &child_index, PropPanel::TLeafHandle parent_handle, const char *name)
 {
-  return data.childs.emplace_back(find_child_idx_by_name(panel, data.handle, controllers, blend_nodes, name));
+  return child_index.find(parent_handle, name).id;
+}
+
+int find_state_child_idx_by_name(const ChildNameIndex &child_index, PropPanel::TLeafHandle parent_handle, const char *name)
+{
+  return find_state_child_idx(name, [&]() { return find_child_idx_by_name(child_index, parent_handle, name); });
+}
+
+int find_init_fifo3_child_idx_by_name(const ChildNameIndex &child_index, PropPanel::TLeafHandle parent_handle, const char *name)
+{
+  return find_init_fifo3_child_idx(name, [&]() { return find_child_idx_by_name(child_index, parent_handle, name); });
+}
+
+int add_ctrl_child_idx_by_name(const ChildNameIndex &child_index, AnimCtrlData &data, const char *name)
+{
+  return data.childs.emplace_back(find_child_idx_by_name(child_index, data.handle, name));
 }
 
 void check_ctrl_child_idx(int idx, const char *ctrl_name, const char *child_name, bool is_optional)
@@ -1030,14 +1186,15 @@ void check_fifo3_ctrl_child_idx(int idx, const char *fifo3_name)
 
 float get_default_anim_time(const char *a2d_name, const DagorAssetMgr &mgr)
 {
-  if (!strcmp(a2d_name, "") || mgr.getAssetNameId(DagorAsset::fpath2asset(a2d_name)) == -1)
+  const String assetName = DagorAsset::fpath2asset(a2d_name);
+  if (!strcmp(a2d_name, "") || mgr.getAssetNameId(assetName) == -1)
     return 1.0f;
 
-  AnimV20::AnimData *animData =
-    (AnimV20::AnimData *)::get_game_resource_ex(DagorAsset::fpath2asset(a2d_name), Anim2DataGameResClassId);
+  AnimV20::AnimData *animData = (AnimV20::AnimData *)::get_game_resource_ex(assetName, Anim2DataGameResClassId);
   int a2dTicks = 0;
   if (animData)
     a2dTicks = getAnimMaxTime(animData->anim);
+  ::release_game_resource_ex(animData, Anim2DataGameResClassId);
   return a2dTicks > 0 ? a2dTicks / (float)AnimV20::TIME_TicksPerSec : 1.0f;
 }
 
@@ -1097,7 +1254,7 @@ bool get_updated_child_name(const char *new_name, const String &old_name, const 
     write_name = String(view.data(), view.length());
     return true;
   }
-  else if (eastl::string_view view = name_without_node_mask_suffix(child_name); old_name == String(view.data(), view.length()))
+  else if (eastl::string_view view = name_without_node_mask_suffix(child_name); view == old_name.c_str())
   {
     write_name = String(0, "%s%s", new_name, get_node_mask_suffix_from_name(child_name));
     return true;
@@ -1281,21 +1438,16 @@ CtrlType get_selected_ctrl_type(PropPanel::ContainerPropertyControl *panel, bool
 }
 
 Tab<String> collect_random_switch_names(PropPanel::ContainerPropertyControl *prop_panel, dag::ConstSpan<AnimCtrlData> controllers,
-  const DataBlock *settings, const char *current_selection)
+  dag::ConstSpan<String> used_names, const char *current_selection)
 {
   PropPanel::ContainerPropertyControl *ctrlsTree = prop_panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
-  Tab<String> usedNames;
-  if (const DataBlock *resetBlock = settings->getBlockByName("resetRandomSwitchersOnAnimationEnd"))
-    for (int i = 0; i < resetBlock->blockCount(); ++i)
-      usedNames.emplace_back(resetBlock->getBlock(i)->getBlockName());
-
   Tab<String> names;
   names.emplace_back("##");
   for (const AnimCtrlData &data : controllers)
     if (data.type == ctrl_type_randomSwitch)
     {
       const String ctrlName = ctrlsTree->getCaption(data.handle);
-      bool isUsed = eastl::find(usedNames.begin(), usedNames.end(), ctrlName) != usedNames.end();
+      bool isUsed = eastl::find(used_names.begin(), used_names.end(), ctrlName) != used_names.end();
       if (!isUsed || (current_selection && ctrlName == current_selection))
         names.emplace_back(ctrlName);
     }

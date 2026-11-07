@@ -8,6 +8,11 @@ texture aa_benchmark_temporal_age_hist;
 texture aa_benchmark_temporal_tex;
 texture aa_benchmark_motion_tex;
 float4 aa_benchmark_jitter = (0, 0, 0, 0);
+float4 aa_benchmark_display_res = (1, 1, 0, 0);
+float aa_benchmark_gaussian_sigma = 0.47; // display pixels
+int aa_benchmark_filter = 0;
+interval aa_benchmark_filter : gaussian < 1, lanczos;
+int aa_benchmark_taps = 3; // per axis
 float4 aa_benchmark_temporal_params = (128, 0, 0, 0);
 buffer aa_benchmark_mse_partials;
 buffer aa_benchmark_mse_result;
@@ -22,25 +27,56 @@ buffer aa_benchmark_freq_result;
 int aa_benchmark_freq_partials_count = 0;
 int aa_benchmark_freq_band = 0;
 
-// Accumulates one jittered subsample into the AA benchmark ground truth.
-// Runs once per subsample with additive blending (rgb = sum of weighted colors,
-// a = sum of weights); the reader must normalize rgb by a.
+texture aa_benchmark_dump_depth_src;
+texture aa_benchmark_dump_depth_dst;
+
+// The ground truth filters in luma-tonemapped YCoCg, so HDR outliers cannot dominate a
+// pixel: rgb = weighted sum in that space, a = sum of the weights.
+macro AA_BENCHMARK_TONEMAPPED_YCOCG(code)
+  hlsl(code)
+  {
+    #include <pixelPacking/yCoCgSpace.hlsl>
+
+    float3 to_tonemapped_ycocg(float3 rgb)
+    {
+      const float3 c = PackToYCoCg((half3)rgb);
+      return c * rcp(abs(c.x) + 1);
+    }
+
+    float3 ground_truth_rgb(float4 ref)
+    {
+      const float3 c = ref.rgb / max(ref.a, 1e-6);
+      // Lanczos ringing can push the luma past the tonemap's [0, 1) range, the floor keeps the inverse finite
+      return UnpackFromYCoCg((half3)(c * rcp(max(1e-3, 1 - abs(c.x)))));
+    }
+  }
+endmacro
+
+// Accumulates one jittered subsample into the AA benchmark ground truth with a
+// gaussian or Lanczos-3, both in display pixels, over the aa_benchmark_taps nearest
+// input texels per axis. Runs once per subsample with additive blending; the reader
+// decodes the sum with ground_truth_rgb.
 shader aa_benchmark_accumulate
 {
   cull_mode = none;
   z_write = false;
   z_test = false;
   POSTFX_VS_TEXCOORD(1, texcoord)
+  AA_BENCHMARK_TONEMAPPED_YCOCG(ps)
 
   (ps)
   {
     // xy = subsample jitter in input pixels, zw = input resolution
     jitter_and_res@f4 = aa_benchmark_jitter;
+    upsampling_ratio@f2 = (aa_benchmark_display_res.x / aa_benchmark_jitter.z, aa_benchmark_display_res.y / aa_benchmark_jitter.w, 0, 0);
+    sigma_inv@f1 = 1.0 / aa_benchmark_gaussian_sigma;
+    taps@i1 = aa_benchmark_taps;
     frame_tex@tex2d = aa_benchmark_frame_tex;
   }
 
   hlsl(ps)
   {
+##if aa_benchmark_filter == lanczos
     #define LANCZOS_RADIUS 3
 
     float lanczos3(float x)
@@ -54,22 +90,31 @@ shader aa_benchmark_accumulate
       return LANCZOS_RADIUS * sin(pix) * sin(pix / LANCZOS_RADIUS) / (pix * pix);
     }
 
+    float filter_weight(float2 d) { return lanczos3(d.x) * lanczos3(d.y); }
+##else
+    float filter_weight(float2 d)
+    {
+      d *= sigma_inv;
+      return exp(-0.5 * dot(d, d));
+    }
+##endif
+
     float4 aa_benchmark_accumulate_ps(VsOutput input) : SV_Target
     {
       const float2 jitter = jitter_and_res.xy;
       const float2 inputRes = jitter_and_res.zw;
-      const float2 outputPos = input.texcoord * inputRes;
-      const int2 baseTexel = int2(floor(outputPos + jitter - 0.5));
+      const float2 samplePos = input.texcoord * inputRes + jitter;
+      // the taps texels per axis whose centers are nearest to the sample
+      const int2 firstTexel = int2(floor(samplePos + 0.5 - 0.5 * taps));
       float4 result = 0;
-      UNROLL for (int j = -LANCZOS_RADIUS; j <= LANCZOS_RADIUS; ++j)
+      LOOP for (int j = 0; j < taps; ++j)
       {
-        UNROLL for (int i = -LANCZOS_RADIUS; i <= LANCZOS_RADIUS; ++i)
+        LOOP for (int i = 0; i < taps; ++i)
         {
-          const int2 texel = baseTexel + int2(i, j);
-          const float2 d = float2(texel) + 0.5 - jitter - outputPos;
-          const float w = lanczos3(d.x) * lanczos3(d.y);
+          const int2 texel = firstTexel + int2(i, j);
+          const float w = filter_weight((float2(texel) + 0.5 - samplePos) * upsampling_ratio);
           const int2 clamped = clamp(texel, int2(0, 0), int2(inputRes) - 1);
-          result += float4(w * frame_tex[clamped].rgb, w);
+          result += float4(w * to_tonemapped_ycocg(frame_tex[clamped].rgb), w);
         }
       }
       return result;
@@ -87,6 +132,8 @@ shader aa_benchmark_accumulate
 // sum of squares and finish the variance in the reduce pass.
 shader aa_benchmark_mse_partial
 {
+  AA_BENCHMARK_TONEMAPPED_YCOCG(cs)
+
   (cs)
   {
     frame_tex@tex2d = aa_benchmark_frame_tex;
@@ -120,8 +167,7 @@ shader aa_benchmark_mse_partial
     float2 ref_aa_luma(int2 p, int2 dim)
     {
       p = clamp(p, int2(0, 0), dim - 1);
-      const float4 ref = ref_tex[p];
-      return float2(luma(reinhard(ref.rgb / max(ref.a, 1e-6))), luma(reinhard(frame_tex[p].rgb)));
+      return float2(luma(reinhard(ground_truth_rgb(ref_tex[p]))), luma(reinhard(frame_tex[p].rgb)));
     }
 
     // Prewitt gradient magnitude of the ground truth (.x) and AA output (.y) luma,
@@ -160,9 +206,7 @@ shader aa_benchmark_mse_partial
       float gms = 0;
       if (all(dtid.xy < dim))
       {
-        const float4 ref = ref_tex[dtid.xy];
-        // ground truth alpha holds the accumulated Lanczos weight sum
-        const float3 refColor = reinhard(ref.rgb / max(ref.a, 1e-6));
+        const float3 refColor = reinhard(ground_truth_rgb(ref_tex[dtid.xy]));
         const float3 aaColor = reinhard(frame_tex[dtid.xy].rgb);
         const float3 d = aaColor - refColor;
         mse = dot(d, d) / 3;
@@ -243,6 +287,7 @@ shader aa_benchmark_temporal
   z_write = false;
   z_test = false;
   POSTFX_VS_TEXCOORD(1, texcoord)
+  AA_BENCHMARK_TONEMAPPED_YCOCG(ps)
 
   (ps)
   {
@@ -291,9 +336,8 @@ shader aa_benchmark_temporal
     {
       const int2 pos = int2(GET_SCREEN_POS(input.pos).xy);
       const float2 uv = input.texcoord;
-      const float4 ref = ref_tex[pos];
       // per-frame signed error between AA output and normalized ground truth
-      const float3 err = reinhard(frame_tex[pos].rgb) - reinhard(ref.rgb / max(ref.a, 1e-6));
+      const float3 err = reinhard(frame_tex[pos].rgb) - reinhard(ground_truth_rgb(ref_tex[pos]));
 
       // resolved motion vectors are unjittered uv-space current->previous
       const float2 prevUv = uv + motion_tex[int2(uv * motion_dim)].xy;
@@ -343,6 +387,7 @@ shader aa_benchmark_debug_view
   blend_src = sa;
   blend_dst = isa;
   POSTFX_VS_TEXCOORD(1, texcoord)
+  AA_BENCHMARK_TONEMAPPED_YCOCG(ps)
 
   (ps)
   {
@@ -381,8 +426,7 @@ shader aa_benchmark_debug_view
     float4 aa_benchmark_debug_view_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
       const int2 pos = int2(GET_SCREEN_POS(input.pos).xy);
-      const float4 ref = ref_tex[pos];
-      const float3 refColor = reinhard(ref.rgb / max(ref.a, 1e-6));
+      const float3 refColor = reinhard(ground_truth_rgb(ref_tex[pos]));
       const float3 aaColor = reinhard(frame_tex[pos].rgb);
       const int mode = int(view_params.z + 0.5);
       BRANCH
@@ -415,6 +459,8 @@ shader aa_benchmark_debug_view
 // count cancels), so raw sums are stored.
 shader aa_benchmark_freq_luma
 {
+  AA_BENCHMARK_TONEMAPPED_YCOCG(cs)
+
   (cs)
   {
     frame_tex@tex2d = aa_benchmark_frame_tex;
@@ -434,8 +480,7 @@ shader aa_benchmark_freq_luma
       const uint2 dim = frame_dim;
       if (any(dtid.xy >= dim))
         return;
-      const float4 ref = ref_tex[dtid.xy];
-      const float gt = luma(reinhard(ref.rgb / max(ref.a, 1e-6)));
+      const float gt = luma(reinhard(ground_truth_rgb(ref_tex[dtid.xy])));
       const float aa = luma(reinhard(frame_tex[dtid.xy].rgb));
       dstTex[dtid.xy] = float2(gt, aa);
     }
@@ -556,4 +601,28 @@ shader aa_benchmark_freq_reduce
     }
   }
   compile("target_cs", "aa_benchmark_freq_reduce_cs");
+}
+
+// The dataset dump reads the depth back through this color copy: DX12 locks no depth-stencil
+// format and copies depth only as a whole.
+shader aa_benchmark_dump_depth
+{
+  (cs)
+  {
+    src_tex@tex2d = aa_benchmark_dump_depth_src;
+    dst_dim@u2 = get_dimensions(aa_benchmark_dump_depth_dst, 0);
+    dstTex@uav = aa_benchmark_dump_depth_dst hlsl { RWTexture2D<float> dstTex@uav; };
+  }
+
+  hlsl(cs)
+  {
+    [numthreads(8, 8, 1)]
+    void aa_benchmark_dump_depth_cs(uint3 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid.xy >= dst_dim))
+        return;
+      dstTex[dtid.xy] = src_tex[dtid.xy].r;
+    }
+  }
+  compile("target_cs", "aa_benchmark_dump_depth_cs");
 }

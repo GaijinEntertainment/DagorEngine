@@ -7,6 +7,7 @@
 #include <de3_lightService.h>
 #include <de3_baseInterfaces.h>
 #include <de3_animCtrl.h>
+#include <de3_dynModel.h>
 #include <de3_lodController.h>
 #include <de3_dynRenderService.h>
 #include <de3_objEntity.h>
@@ -15,6 +16,7 @@
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
 #include <assets/assetRefs.h>
+#include <dag/dag_vector.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_input.h>
 #include <animChar/dag_animCharacter2.h>
@@ -40,6 +42,9 @@
 #include "common.h"
 #include "virtualAnimCharEntityBase.h"
 #include <libTools/util/appDirRelativePath.h>
+
+#include <EASTL/algorithm.h>
+#include <EASTL/unique_ptr.h>
 
 struct AttachmentStor
 {
@@ -606,7 +611,8 @@ class AnimCharEntityManagementService : public IEditorService,
                                         public IDagorAssetChangeNotify,
                                         public ILightingChangeClient,
                                         public ILevelResListBuilder,
-                                        public IBinaryDataBuilder
+                                        public IBinaryDataBuilder,
+                                        public IDynModelIsolatedRender
 {
 public:
   AnimCharEntityManagementService()
@@ -649,6 +655,7 @@ public:
     RETURN_INTERFACE(huid, ILightingChangeClient);
     RETURN_INTERFACE(huid, IBinaryDataBuilder);
     RETURN_INTERFACE(huid, ILevelResListBuilder);
+    RETURN_INTERFACE(huid, IDynModelIsolatedRender);
     return NULL;
   }
 
@@ -702,6 +709,54 @@ public:
       default: break;
     }
   }
+
+  // IDynModelIsolatedRender interface
+  bool getIsolatedRenderData(const DagorAsset &asset, BBox3 &local_box, TextureIdSet &tex_ids) override
+  {
+    VirtualAnimCharEntity *ent = findOrAddIsolatedEntity(asset);
+    if (!ent)
+      return false;
+
+    bool hasGeometry = false;
+    for_each_char(*ent, [&](AnimV20::IAnimCharacter2 &ac) {
+      const DynamicRenderableSceneResource *res = ac.getSceneInstance()->getCurSceneResource();
+      if (!res || (res->getRigidsConst().empty() && res->getSkinsCount() == 0))
+        return;
+
+      res->gatherUsedTex(tex_ids);
+      hasGeometry = true;
+    });
+    if (!hasGeometry)
+      return false;
+
+    local_box = ent->getBbox();
+    return true;
+  }
+
+  void renderIsolatedOpaque(const DagorAsset &asset, const TMatrix &tm, int per_instance_seed) override
+  {
+    IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+    if (!rs)
+      return;
+
+    VirtualAnimCharEntity *ent = findOrAddIsolatedEntity(asset);
+    if (!ent)
+      return;
+
+    // A zero time step moves the pose and the attachments to tm, and keeps the animation time.
+    ent->ac->setTm(tm);
+    ent->update(0.f);
+
+    // Unlike renderGeometry(), this passes the seed. Without it some aircraft and vehicles drew gray.
+    for_each_char(*ent, [rs, &per_instance_seed](AnimV20::IAnimCharacter2 &ac) {
+      ac.rendComp().setNodes(ac.getSceneInstance(), ac.rendComp().getNodeMap(), ac.getFinalWtm());
+      rs->renderOneDynModelInstance(ac.getSceneInstance(), STG_RENDER_DYNAMIC_OPAQUE, &per_instance_seed);
+    });
+  }
+
+  void releaseIsolatedEntity(int asset_name_id) override { eraseIsolatedEntity(asset_name_id); }
+
+  void releaseIsolatedRenderData() override { isolatedEntities.clear(); }
 
   // IObjEntityMgr interface
   bool canSupportEntityClass(int entity_class) const override
@@ -762,6 +817,7 @@ public:
     for (int i = 0; i < ent.size(); i++)
       if (ent[i] && ent[i]->getAssetNameId() == asset_name_id)
         ent[i]->clear();
+    eraseIsolatedEntity(asset_name_id);
     EDITORCORE->invalidateViewportCache();
   }
   void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
@@ -773,6 +829,7 @@ public:
         ent[i]->clear();
         ent[i]->setup(asset);
       }
+    eraseIsolatedEntity(asset_name_id);
     EDITORCORE->invalidateViewportCache();
   }
 
@@ -857,8 +914,94 @@ public:
   }
 
 protected:
+  // Calls f for the animChar of the entity and for each of its attachments.
+  template <typename F>
+  static void for_each_char(VirtualAnimCharEntity &ent, F f)
+  {
+    f(*ent.ac);
+    for (AttachmentStor &att : ent.attStor)
+      if (att.ac)
+        f(*att.ac);
+  }
+
+  // Gives the entity the pose that the viewport shows after a restart, at the origin, and LOD 0.
+  static void setup_isolated_entity(VirtualAnimCharEntity &ent, const DagorAsset &asset)
+  {
+    if (!ent.ac)
+      return;
+
+    // update() loads the ref_attachment_dynamic animChars, so it needs the same guard as setup().
+    bool failed = false;
+    DAEDITOR3.setFatalHandler(false);
+    try
+    {
+      // setup() applies the reference state only to a non-virtual entity.
+      ent.init_ref_default_state(&ent.ac->baseComp(), asset.props);
+      ent.ac->setTm(TMatrix::IDENT);
+      for (int i = 0; i < 30; i++)
+      {
+        // Otherwise the animation is not calculated when the viewport camera is far from the origin.
+        for_each_char(ent, [](AnimV20::IAnimCharacter2 &ac) { ac.setAlwaysUpdateAnimMode(true); });
+
+        ent.update(0.03f);
+      }
+    }
+    catch (...)
+    {
+      logerr("exception while building asset: %s", asset.getName());
+      ent.clear();
+      failed = true;
+    }
+    DAEDITOR3.popFatalHandler();
+
+    if (failed)
+      return;
+
+    BBox3 box;
+    for_each_char(ent, [&box](AnimV20::IAnimCharacter2 &ac) {
+      bbox3f charBox;
+      ac.rendComp().calcWorldBox(charBox, ac.getFinalWtm(), false);
+      box += BBox3(as_point3(&charBox.bmin), as_point3(&charBox.bmax));
+      ac.getSceneInstance()->setLod(0);
+    });
+    ent.bbox = box;
+    ent.bsph = box;
+  }
+
+  // Returns null when the asset is not an animChar or cannot be loaded.
+  VirtualAnimCharEntity *findOrAddIsolatedEntity(const DagorAsset &asset)
+  {
+    if (asset.getType() != animCharEntityClassId)
+      return nullptr;
+
+    auto it = eastl::find_if(isolatedEntities.begin(), isolatedEntities.end(),
+      [&asset](const eastl::unique_ptr<VirtualAnimCharEntity> &e) { return e->getAssetNameId() == asset.getNameId(); });
+    VirtualAnimCharEntity *ent = it == isolatedEntities.end() ? nullptr : it->get();
+    if (!ent)
+    {
+      // Not in objPool, so the viewport, the export and the level resource list skip it.
+      ent = static_cast<VirtualAnimCharEntity *>(createEntity(asset, true));
+      isolatedEntities.emplace_back(ent);
+      setup_isolated_entity(*ent, asset);
+    }
+
+    return ent->ac ? ent : nullptr;
+  }
+
+  void eraseIsolatedEntity(int asset_name_id)
+  {
+    isolatedEntities.erase(
+      eastl::remove_if(isolatedEntities.begin(), isolatedEntities.end(),
+        [asset_name_id](const eastl::unique_ptr<VirtualAnimCharEntity> &e) { return e->getAssetNameId() == asset_name_id; }),
+      isolatedEntities.end());
+  }
+
   PoolType objPool;
   bool visible;
+
+  // The animChars of these entities keep their textures referenced, so the textures load while a thumbnail is being
+  // generated.
+  dag::Vector<eastl::unique_ptr<VirtualAnimCharEntity>> isolatedEntities;
 };
 
 

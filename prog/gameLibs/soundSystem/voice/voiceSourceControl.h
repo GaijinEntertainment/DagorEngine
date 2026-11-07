@@ -62,7 +62,6 @@ private:
   IVoiceSource &source;
   SpeexResamplerState *resampler = nullptr;
   FMOD::DSP *playbackDSP = nullptr;
-  FMOD::ChannelGroup *voiceChannelGroup = nullptr;
   FMOD::Channel *playbackChannel = nullptr;
   eastl::vector<int16_t> frameBuf;
   eastl::vector<int16_t> resampledBuf;

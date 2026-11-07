@@ -395,8 +395,27 @@ static ResourceBarrier map_stage_flags(eastl::span<StageMapEntry const> map, Sta
 
 static ResourceBarrier map_stage_flags_dest(Stage stage) { return map_stage_flags(USAGE_STAGE_TO_BARRIER_DEST_STAGE, stage); }
 
+static constexpr StageMapEntry USAGE_STAGE_TO_BARRIER_SOURCE_STAGE[]{
+  {Stage::UNKNOWN, RB_NONE},
+  {Stage::PRE_RASTER, RB_SOURCE_STAGE_VERTEX},
+  {Stage::POST_RASTER, RB_SOURCE_STAGE_PIXEL},
+  {Stage::COMPUTE, RB_SOURCE_STAGE_COMPUTE},
+  {Stage::TRANSFER, RB_NONE},
+  {Stage::RAYTRACE, RB_SOURCE_STAGE_RAYTRACE},
+};
+
+static ResourceBarrier map_stage_flags_source(Stage stage) { return map_stage_flags(USAGE_STAGE_TO_BARRIER_SOURCE_STAGE, stage); }
+
+static bool is_uav_write(intermediate::ResourceUsage usage)
+{
+  return usage.access == Access::READ_WRITE && (usage.type & Usage::SHADER_RESOURCE) != Usage::UNKNOWN;
+}
+
 ResourceBarrier barrier_for_transition(intermediate::ResourceUsage usage_before, intermediate::ResourceUsage usage_after)
 {
+  if (is_uav_write(usage_before) && is_uav_write(usage_after))
+    return RB_FLUSH_UAV | map_stage_flags_source(usage_before.stage) | map_stage_flags_dest(usage_after.stage);
+
   if (usage_before.access == usage_after.access &&
       usage_before.type == usage_after.type
       // NOTE: if we require less stages than previous usage,

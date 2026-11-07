@@ -48,7 +48,11 @@ namespace proto
     DDS_E3DCOLOR  = 4,
   };
 
-  static void test_sizeof_types()
+  static constexpr int MAX_BLOCK_DEPTH = 500;
+  static constexpr int MAX_BLOCK_COUNT = 65535;
+  static constexpr int MAX_PARAM_COUNT = 65535;
+
+  constexpr void test_sizeof_types()
   {
     G_STATIC_ASSERT(sizeof(Point2) == DDS_Point2);
     G_STATIC_ASSERT(sizeof(Point3) >= DDS_Point3);
@@ -163,7 +167,7 @@ namespace proto
     }
   }
 
-  void serialize(proto::io::OutputCodeStream & stream, proto::io::TNumber number, const DataBlock & blk)
+  inline void serialize(proto::io::OutputCodeStream & stream, proto::io::TNumber number, const DataBlock & blk)
   {
     if (blk.isEmpty())
     {
@@ -177,8 +181,11 @@ namespace proto
     }
   }
 
-  bool readParam(proto::io::InputCodeStream & stream, proto::io::StreamTag tag, DataBlock & blk)
+  inline bool readParam(proto::io::InputCodeStream & stream, proto::io::StreamTag tag, DataBlock & blk)
   {
+    if (blk.paramCount() >= MAX_PARAM_COUNT)
+      PROTO_ERROR("parameters count exceeds maximum value");
+
     proto::string paramName;
     PROTO_VALIDATE(proto::io::readString(stream, tag, paramName));
 
@@ -231,39 +238,39 @@ namespace proto
       case DBT_PARAM_TYPE_IPOINT2:
         {
           IPoint2 value;
-          PROTO_VALIDATE(stream.readVarInt(value.x));
+          PROTO_VALIDATE(stream.readVarInt(tag, value.x));
           PROTO_VALIDATE(stream.readTag(tag));
           PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT2);
-          PROTO_VALIDATE(stream.readVarInt(value.y));
+          PROTO_VALIDATE(stream.readVarInt(tag, value.y));
           blk.addIPoint2(paramName.c_str(), value);
         }
         break;
       case DBT_PARAM_TYPE_IPOINT3:
         {
           IPoint3 value;
-          PROTO_VALIDATE(stream.readVarInt(value.x));
+          PROTO_VALIDATE(stream.readVarInt(tag, value.x));
           PROTO_VALIDATE(stream.readTag(tag));
           PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT3);
-          PROTO_VALIDATE(stream.readVarInt(value.y));
+          PROTO_VALIDATE(stream.readVarInt(tag, value.y));
           PROTO_VALIDATE(stream.readTag(tag));
           PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT3);
-          PROTO_VALIDATE(stream.readVarInt(value.z));
+          PROTO_VALIDATE(stream.readVarInt(tag, value.z));
           blk.addIPoint3(paramName.c_str(), value);
         }
         break;
       case DBT_PARAM_TYPE_IPOINT4:
         {
           IPoint4 value;
-          PROTO_VALIDATE(stream.readVarInt(value.x));
+          PROTO_VALIDATE(stream.readVarInt(tag, value.x));
           PROTO_VALIDATE(stream.readTag(tag));
           PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT4);
-          PROTO_VALIDATE(stream.readVarInt(value.y));
+          PROTO_VALIDATE(stream.readVarInt(tag, value.y));
           PROTO_VALIDATE(stream.readTag(tag));
           PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT4);
-          PROTO_VALIDATE(stream.readVarInt(value.z));
+          PROTO_VALIDATE(stream.readVarInt(tag, value.z));
           PROTO_VALIDATE(stream.readTag(tag));
           PROTO_VALIDATE(tag.number == DBT_PARAM_TYPE_IPOINT4);
-          PROTO_VALIDATE(stream.readVarInt(value.w));
+          PROTO_VALIDATE(stream.readVarInt(tag, value.w));
           blk.addIPoint4(paramName.c_str(), value);
         }
         break;
@@ -302,7 +309,7 @@ namespace proto
     return true;
   }
 
-  static bool readBlock(proto::io::InputCodeStream & stream, DataBlock & blk)
+  static bool readBlock(proto::io::InputCodeStream & stream, DataBlock & blk, int depth)
   {
     proto::string tmpString;
     proto::io::StreamTag tag;
@@ -313,8 +320,12 @@ namespace proto
       switch (tag.number)
       {
         case DBT_BEGIN_DATABLOCK:
+          if (depth >= MAX_BLOCK_DEPTH)
+            PROTO_ERROR("blocks nesting depth exceeds maximum value");
+          if (blk.blockCount() >= MAX_BLOCK_COUNT)
+            PROTO_ERROR("blocks count exceeds maximum value");
           PROTO_VALIDATE(proto::io::readString(stream, tag, tmpString));
-          PROTO_VALIDATE(readBlock(stream, *blk.addNewBlock(tmpString.c_str())));
+          PROTO_VALIDATE(readBlock(stream, *blk.addNewBlock(tmpString.c_str()), depth + 1));
           break;
         case DBT_PARAM:
           PROTO_VALIDATE(readParam(stream, tag, blk));
@@ -330,7 +341,7 @@ namespace proto
     return true;
   }
 
-  bool serialize(proto::io::InputCodeStream & stream, proto::io::StreamTag tag, DataBlock & blk)
+  inline bool serialize(proto::io::InputCodeStream & stream, proto::io::StreamTag tag, DataBlock & blk)
   {
     blk.reset();
     if (tag.type == proto::io::StreamTag::EMPTY)
@@ -339,21 +350,15 @@ namespace proto
     }
     else if (tag.type == proto::io::StreamTag::BLOCK_BEGIN)
     {
-      PROTO_VALIDATE(readBlock(stream, blk));
+      PROTO_VALIDATE(readBlock(stream, blk, 0));
       return true;
     }
 
-    // backward compatibility remove it later
-    proto::io::ConstBuffer buffer;
-    PROTO_VALIDATE(stream.readString(tag, buffer));
-
-    InPlaceMemLoadCB crd(buffer.begin(), buffer.size());
-    PROTO_VALIDATE(dblk::load_from_stream(blk, crd, dblk::ReadFlag::ROBUST|dblk::ReadFlag::BINARY_ONLY));
-    return true;
+    PROTO_ERROR("Unexpected tag");
   }
 
 
-  void load(const JsonReader & ser, const char * name, DataBlock & value)
+  inline void load(const JsonReader & ser, const char * name, DataBlock & value)
   {
     value.reset();
     const Json::Value &jv = ser.getJson().get(name, Json::Value());
@@ -366,7 +371,7 @@ namespace proto
     dblk::load_from_stream(value, crd, dblk::ReadFlag::ROBUST);
   }
 
-  void save(const JsonWriter & ser, const char * name, const DataBlock & value)
+  inline void save(const JsonWriter & ser, const char * name, const DataBlock & value)
   {
     DynamicMemGeneralSaveCB cwr(tmpmem);
     value.saveToTextStream(cwr);

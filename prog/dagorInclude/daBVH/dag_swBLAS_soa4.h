@@ -32,7 +32,7 @@
 // The buffer layout is [tree][pad to 8][vert21 verts], same as stackless; the vert
 // region is byte-identical, so vertex-index attribution (per-node vert21 streams etc.) is layout-neutral.
 //
-// Why: the SIMD slab test wants child boxes in SoA in one cache line. The stackless path reads N
+// The SIMD slab test wants child boxes in SoA in one cache line. The stackless path reads N
 // scattered 16B nodes and transposes at runtime; SoA4 removes both. A leaf child needs no pointer
 // chase: its W0 is the child word and the body sits behind the words. Any-hit tests leaf children
 // on the spot; closest-hit defers them distance-ordered via self-describing LeafRef entries.

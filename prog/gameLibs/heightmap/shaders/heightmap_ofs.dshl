@@ -48,10 +48,6 @@ macro INIT_HEIGHTMAP_OFS(stage)
     world_to_hmap_tex_ofs@f4 = (world_to_hmap_tex_ofs.x, world_to_hmap_tex_ofs.y, hmap_displacement_up-hmap_displacement_down, hmap_displacement_down);
     world_to_hmap_patches_ofs@f4 = world_to_hmap_patches_ofs;
     world_to_hmap_patches_tex_ofs@f2 = (world_to_hmap_patches_tex_ofs.x, world_to_hmap_patches_tex_ofs.y, 0, 0);
-
-    grass_mask_tex@smp2d = grass_mask_tex;
-    world_to_grass@f4 = world_to_grass;
-    world_to_grass_ofs@f4 = world_to_grass_ofs;
   }
 endmacro
 
@@ -69,30 +65,6 @@ macro USE_HEIGHTMAP_OFS(stage)
         height = tex2Dlod(hmap_ofs_tex, float4(tc - world_to_hmap_tex_ofs.xy, 0, lod)).x;
     ##endif
       return height;
-    }
-
-    float get_hmap_ofs(float2 worldPosXZ, float lod, out float displacementEffect)
-    {
-      float vignetteEffect;
-      float height = get_hmap_ofs_height_vignette(worldPosXZ, lod, vignetteEffect);
-
-      displacementEffect = vignetteEffect;
-      ##if grass_mask_tex != NULL
-        float2 grassTcOfs = worldPosXZ*world_to_grass_ofs.x + world_to_grass_ofs.zw;
-        float2 grassVignette = saturate( abs(grassTcOfs*2-1) * 10 - 9 );
-        displacementEffect = saturate( 1.0 - dot( grassVignette, grassVignette ) );
-        if (vignetteEffect<1 && displacementEffect>0)
-        {
-          float2 grass_mask_tc = worldPosXZ*world_to_grass.x + world_to_grass.zw;
-          float4 grassMaskColor = tex2Dlod(grass_mask_tex, float4(grass_mask_tc,0,0));
-          float grassHeight = grassMaskColor.z;//*world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w
-          height = lerp(grassHeight, height, vignetteEffect);
-          //height = grassHeight;
-        }
-      ##endif
-      //we should actually have additional vignette for grass heightmap as well. However, it is so far away, we currently don't care if it is wrapping
-
-      return (height*world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w)*displacementEffect;
     }
 
     void apply_height_patches(float2 worldPosXZ, inout float height)
@@ -127,6 +99,44 @@ macro USE_HEIGHTMAP_OFS(stage)
       float height = get_hmap_ofs_height_vignette(worldPosXZ, 0, vignetteEffect);
 
       return (height * world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w) * vignetteEffect;
+    }
+  }
+endmacro
+
+macro INIT_HEIGHTMAP_OFS_WITH_GRASS(stage)
+  INIT_HEIGHTMAP_OFS(stage)
+  (stage) {
+    grass_mask_tex@smp2d = grass_mask_tex;
+    world_to_grass@f4 = world_to_grass;
+    world_to_grass_ofs@f4 = world_to_grass_ofs;
+  }
+endmacro
+
+macro USE_HEIGHTMAP_OFS_WITH_GRASS(stage)
+  USE_HEIGHTMAP_OFS(stage)
+  hlsl(stage) {
+    float get_hmap_ofs(float2 worldPosXZ, float lod, out float displacementEffect)
+    {
+      float vignetteEffect;
+      float height = get_hmap_ofs_height_vignette(worldPosXZ, lod, vignetteEffect);
+
+      displacementEffect = vignetteEffect;
+      ##if grass_mask_tex != NULL
+        float2 grassTcOfs = worldPosXZ*world_to_grass_ofs.x + world_to_grass_ofs.zw;
+        float2 grassVignette = saturate( abs(grassTcOfs*2-1) * 10 - 9 );
+        displacementEffect = saturate( 1.0 - dot( grassVignette, grassVignette ) );
+        if (vignetteEffect<1 && displacementEffect>0)
+        {
+          float2 grass_mask_tc = worldPosXZ*world_to_grass.x + world_to_grass.zw;
+          float4 grassMaskColor = tex2Dlod(grass_mask_tex, float4(grass_mask_tc,0,0));
+          float grassHeight = grassMaskColor.z;//*world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w
+          height = lerp(grassHeight, height, vignetteEffect);
+          //height = grassHeight;
+        }
+      ##endif
+      //we should actually have additional vignette for grass heightmap as well. However, it is so far away, we currently don't care if it is wrapping
+
+      return (height*world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w)*displacementEffect;
     }
 
     float get_hmap_ofs_no_grass_vignette(float2 worldPosXZ)

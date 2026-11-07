@@ -122,6 +122,9 @@ public:
   dag::ConstSpan<RtssSlot> slotTable() const { return slotTab; }         // after commit()
   bool slotTableChanged() const { return slotTabChanged; }               // by the last commit()
   bool isReady(const BBox3 &box, uint32_t level_mask = ~0u) const;
+  bool isIdle() const { return idle; }
+  float casterReach() const;                    // after commit()
+  float fullWeightDistance() const;             // after plan()
   void getStats(RtssSchedulerStats &out) const; // the jobs of the last plan(), the slots as they are now
 
 private:
@@ -257,6 +260,7 @@ private:
 
   void invalidateLevel(Level &l);
   void updateSweep(int level);
+  void restartLevel(int level);
   void startSweep(Level &l, const Point3 &dir_end, double t0, double duration, double h_over_e, bool fast);
   void updateWindow(int level);
   void updatePretrace(int level, int axis);
@@ -281,7 +285,7 @@ private:
   BBox3 worldBox;
   bool hasWorldBox = false;
   DPoint3 camera = DPoint3(0, 0, 0);
-  Point3 cameraVel = Point3(0, 0, 0), rtssOrigin = Point3(0, 0, 0); // constraint: x87 may skip the float rounding of point3()
+  Point3 cameraVel = Point3(0, 0, 0), rtssOrigin = Point3(0, 0, 0); // x87 may skip the float rounding of point3()
   double now = 0, frameDt = 0;
   uint32_t frame = 0;
   double burstLeft = 0, updateLeft = 0, updateBalance = 0;

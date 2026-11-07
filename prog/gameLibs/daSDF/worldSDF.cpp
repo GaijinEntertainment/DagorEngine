@@ -433,16 +433,18 @@ struct WorldSDFImpl final : public WorldSDF
       return false;
 
     // debug("clip %d: %@->%@ count=%d, totalvoxels=%d", clip, oldWorldBox, newWorldBox, cnt, voxels);
-    ShaderGlobal::set_int(world_sdf_cull_grid_boxes_countVarId, cnt);
-    IBBox3 maxBox = rets[0];
+    const int slots = countof(world_sdf_cull_grid_ltVarId);
+    ShaderGlobal::set_int(world_sdf_cull_grid_boxes_countVarId, min(cnt, slots));
+    IBBox3 maxBox = rets[0], box;
     for (int bi = 0; bi < cnt; ++bi)
     {
       maxBox[0] = min(maxBox[0], rets[bi][0]);
       maxBox[1] = max(maxBox[1], rets[bi][1]);
-      Point3 lt = point3(rets[bi][0]) * voxelSize, // full size, from top-left corner, hence no +0.5
-        rb = point3(rets[bi][1]) * voxelSize;      // to bottom-right corner
-      ShaderGlobal::set_float4(world_sdf_cull_grid_ltVarId[bi], lt.x, lt.z, lt.y, voxelSize);
-      ShaderGlobal::set_float4(world_sdf_cull_grid_rbVarId[bi], rb.x, rb.z, rb.y, 1. / voxelSize);
+      box = bi < slots ? rets[bi] : IBBox3(min(box[0], rets[bi][0]), max(box[1], rets[bi][1]));
+      Point3 lt = point3(box[0]) * voxelSize, // full size, from top-left corner, hence no +0.5
+        rb = point3(box[1]) * voxelSize;      // to bottom-right corner
+      ShaderGlobal::set_float4(world_sdf_cull_grid_ltVarId[min(bi, slots - 1)], lt.x, lt.z, lt.y, voxelSize);
+      ShaderGlobal::set_float4(world_sdf_cull_grid_rbVarId[min(bi, slots - 1)], rb.x, rb.z, rb.y, 1. / voxelSize);
     }
 
     {
@@ -563,8 +565,6 @@ struct WorldSDFImpl final : public WorldSDF
     {
       // clear all rasterized buffer, extended by rasterizationVoxelAround
       // may be just clear all buffer instead?
-      ShaderGlobal::set_int4(world_sdf_update_lt_coordVarId, maxBox[0].x, maxBox[0].y, maxBox[0].z, 0);                // remove me
-      ShaderGlobal::set_int4(world_sdf_update_sz_coordVarId, maxBox.width().x, maxBox.width().y, maxBox.width().z, 0); // remove me
       world_sdf_clear_cs->dispatchThreads(rasterizeWidth.x * rasterizeWidth.y * rasterizeWidth.z, 1, 1);
     }
 
@@ -848,6 +848,7 @@ struct WorldSDFImpl final : public WorldSDF
   {
     world_sdf_params_bound = {};
     world_sdf_coord_lt_bound = {};
+    markedFrame = removeFrame = 0;
     initHistory(clipmap.size(), invalidate_current);
     d3d::clear_rwtexf(world_sdf_clipmap.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
   }

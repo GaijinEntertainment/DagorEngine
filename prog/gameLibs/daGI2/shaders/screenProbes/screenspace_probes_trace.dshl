@@ -14,7 +14,7 @@ buffer screenspace_tile_classificator;
 
 macro NOISE(code)
   (code) {
-    sp_rand_decode@f4 = (1./(dagi_screenspace_probe_trace_res.x*65535.), -(0.5+0.5/dagi_screenspace_probe_trace_res.x)/dagi_screenspace_probe_trace_res.x, 1./dagi_screenspace_probe_trace_res.x, 0.5/dagi_screenspace_probe_trace_res.x);
+    sp_rand_decode@f2 = (1./dagi_screenspace_probe_trace_res.x, -0.5/dagi_screenspace_probe_trace_res.x, 0, 0);
   }
   DAGI_BLUE_NOISE(code)
   hlsl(code) {
@@ -24,7 +24,7 @@ macro NOISE(code)
       // a probe's oct texels form a contiguous blue-noise tile, so the SH reduction and the
       // probe upsample both consume spatially blue error; frame advances the R2 rotation
       uint2 pixel = v.xy*dagi_screenspace_probe_trace_res.x + oct_coord + v.z*uint2(59, 37);
-      return dagi_blue_noise2(pixel, frame)*sp_rand_decode.z + sp_rand_decode.y;
+      return dagi_blue_noise2(pixel, frame)*sp_rand_decode.x + sp_rand_decode.y;
     }
   }
 endmacro
@@ -55,7 +55,8 @@ float dagi_screenprobes_user_trace_dist = 1.;
 int dagi_screenprobes_trace_quality = 2;
 interval dagi_screenprobes_trace_quality: screen_only < 1, screen_and_sdf_no_dist < 2, screen_and_sdf;// < 3, sdf_only;
 
-shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
+// patch_screenspace_radiance_cs traces again the texels the trace missed, once the relight lit their cells
+shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs, patch_screenspace_radiance_cs
 {
   hlsl(cs) {
     #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
@@ -63,6 +64,17 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
   SCREENSPACE_PROBES_POSITIONS(cs)
   NOISE(cs)
   READ_WORLD_SDF(cs)
+  if (shader == patch_screenspace_radiance_cs)
+  {
+    DAGI_SURFACE_CACHE_REQUESTS_UAV(cs)
+    hlsl(cs) {
+      #define SP_PATCH_MISSES 1
+    }
+  }
+  else
+  {
+    DAGI_SURFACE_CACHE_REQUESTS(cs)
+  }
   PROJECT_GET_WORLD_RADIANCE_AT(cs)
   WORLD_SDF_STEP_OUT(cs)
   SP_JITTER_POS(cs)
@@ -244,6 +256,7 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
         float3 probeNormal = decodeProbeNormal(encodedProbeNormalColor.x);
         //this is only for world tracing. for screen tracing we don't need this bias to depend on sdfVoxelSize, it should only depend on probe.normalizedW
         float3 radiance = 0; float occluder_distance = 0;
+        bool knownRadiance = true;
 
         #if (SCREENPROBES_HQ || USE_TRACE_TO_INF)
         {
@@ -291,11 +304,11 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
                   uint hitClip = world_sdf_find_clip(hitWorldPos);
                   float hitVoxelSize = hitClip < MAX_WORLD_SDF_CLIPS ? world_sdf_voxel_size(hitClip) : 0;
                   #if DAGI_PROJECT_TRACE_HAS_ALBEDO
-                  radiance = dagi_get_radiance_at_with_albedo(hitWorldPos, hit.hitNormal, hit.hitAlbedo, float4(-rayDir, hit.hitAt));
+                  knownRadiance = dagi_get_radiance_at_known(hitWorldPos, hit.hitNormal, hit.hitAlbedo, true, radiance, float4(-rayDir, hit.hitAt));
                   #else
                   // the trace albedo is not meaningful (e.g. a collision only
                   // bvh returns white); the albedo scene decides at the hit
-                  radiance = dagi_get_radiance_at(hitWorldPos, hit.hitNormal, float4(-rayDir, hit.hitAt));
+                  knownRadiance = dagi_get_radiance_at_known(hitWorldPos, hit.hitNormal, 0, false, radiance, float4(-rayDir, hit.hitAt));
                   #endif
                 }
                 occluder_distance = hit.hitAt;
@@ -363,7 +376,7 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
                     if (dot(worldNormal, rayDir) > 0)
                       worldNormal = -rayDir;
                     //radiance = dagi_get_radiance_at(worldPosAt - rayDir*min(t, world_sdf_voxel_size(sdfClip)*0.5), worldNormal);
-                    radiance = dagi_get_radiance_at(worldPosAt, worldNormal, float4(-rayDir, t + distAtRayStart));
+                    knownRadiance = dagi_get_radiance_at_known(worldPosAt, worldNormal, 0, false, radiance, float4(-rayDir, t + distAtRayStart));
                   }
                   occluder_distance = t;
                   result = SCREEN_RAY_CAST_SURE_HIT;
@@ -384,6 +397,10 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
 
           final_radiance = radiance;
           final_occluder_distance = occluder_distance;
+          #if DAGI_SURFACE_CACHE_HAS_REQUESTS
+            if (!knownRadiance)
+              dagi_surface_cache_screen_missed(atlasProbeIndex*sp_getTraceRadianceArea() + octCoord.y*sp_getTraceRadianceRes() + octCoord.x);
+          #endif
         }
         #else // #if not (SCREENPROBES_HQ || USE_TRACE_TO_INF)
           #if SP_SCREENSPACE_TRACE && HAS_PREV_FRAME_RADIANCE
@@ -441,21 +458,36 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
       texture2DAt(radiance_sp, atlasProbeCoord*sp_getTraceRadianceRes() + octCoord) = float4(final_radiance, final_distance);//increase precision
     }
 
+    // texel: the probe's index in the atlas, then the oct texel in it
+    void calc_screenspace_radiance_texel(uint texel)
+    {
+      uint2 octCoord = uint2(texel%sp_getTraceRadianceRes(), (texel/sp_getTraceRadianceRes())%sp_getTraceRadianceRes());
+      calc_screenspace_radiance(texel/uint(sp_getTraceRadianceArea()), octCoord);
+    }
+
   ##if !dagi_project_use_raygen
     [numthreads(SP_TRACE_GROUP_SIZE, 1, 1)]
     void calc_screenspace_radiance_cs(uint dtId : SV_DispatchThreadID)
     {
-      uint2 octCoord = uint2(dtId%sp_getTraceRadianceRes(), (dtId/sp_getTraceRadianceRes())%sp_getTraceRadianceRes());
-      uint atlasProbeIndex = dtId/uint(sp_getTraceRadianceArea());
-      calc_screenspace_radiance(atlasProbeIndex, octCoord);
+      #if SP_PATCH_MISSES
+        if (dtId < dagi_surface_cache_screen_misses())
+          calc_screenspace_radiance_texel(dagi_surface_cache_screen_miss(dtId));
+      #else
+        calc_screenspace_radiance_texel(dtId);
+      #endif
     }
   ##else
     [shader("raygeneration")]
     void calc_screenspace_radiance_raygen()
     {
-      uint atlasProbeIndex = DispatchRaysIndex().y + DispatchRaysIndex().z * dagi_screenspace_probe_trace_res.z;
-      uint2 octCoord = uint2(DispatchRaysIndex().x%sp_getTraceRadianceRes(), (DispatchRaysIndex().x/sp_getTraceRadianceRes())%sp_getTraceRadianceRes());
-      calc_screenspace_radiance(atlasProbeIndex, octCoord);
+      #if SP_PATCH_MISSES
+        if (DispatchRaysIndex().x < dagi_surface_cache_screen_misses())
+          calc_screenspace_radiance_texel(dagi_surface_cache_screen_miss(DispatchRaysIndex().x));
+      #else
+        uint atlasProbeIndex = DispatchRaysIndex().y + DispatchRaysIndex().z * dagi_screenspace_probe_trace_res.z;
+        uint2 octCoord = uint2(DispatchRaysIndex().x%sp_getTraceRadianceRes(), (DispatchRaysIndex().x/sp_getTraceRadianceRes())%sp_getTraceRadianceRes());
+        calc_screenspace_radiance(atlasProbeIndex, octCoord);
+      #endif
     }
   ##endif
   }

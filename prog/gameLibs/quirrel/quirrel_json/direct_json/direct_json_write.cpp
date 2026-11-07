@@ -2,6 +2,7 @@
 
 #include "direct_json.h"
 #include <debug/dag_debug.h>
+#include <math/dag_check_nan.h>
 
 #define assert G_ASSERT //-V1059
 
@@ -138,7 +139,7 @@ struct DirectJsonWriter
   template <typename T>
   void writeReal(T val)
   {
-    if (!isfinite(val)) // act like JSON writer in browsers
+    if (!check_finite(val)) // act like JSON writer in browsers
     {
       writeNull();
       return;

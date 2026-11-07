@@ -26,11 +26,6 @@ namespace dafx_ex
 
 enum
 {
-  HUID_ACES_RESET = 0xA781BF24u
-}; //
-
-enum
-{
   RGROUP_HIGHRES = 0,
   RGROUP_LOWRES = 1,
   RGROUP_UNDERWATER = 2,
@@ -375,7 +370,7 @@ struct DafxSparks : BaseParticleEffect
         {
           iid = dafx::create_instance(g_dafx_ctx, sid);
           G_ASSERT_RETURN(iid, );
-          dafx::set_instance_status(g_dafx_ctx, iid, false);
+          dafx::set_instance_status(g_dafx_ctx, iid, {.enabled = false});
         }
         break;
       }
@@ -385,9 +380,9 @@ struct DafxSparks : BaseParticleEffect
           iid = dafx::create_instance(g_dafx_ctx, sid);
         if (iid)
         {
-          G_ASSERT(value);
-          BaseEffectEnabled *dafxe = static_cast<BaseEffectEnabled *>(value);
-          dafx::set_instance_status(g_dafx_ctx, iid, dafxe->enabled, dafxe->distanceToCam);
+          G_ASSERT_BREAK(value);
+          const BaseEffectEnabled &dafxe = *static_cast<BaseEffectEnabled *>(value);
+          dafx::set_instance_status(g_dafx_ctx, iid, dafxe);
         }
         break;
       }
@@ -395,7 +390,6 @@ struct DafxSparks : BaseParticleEffect
       case HUID_TM: setTm((TMatrix *)value); break;
       case HUID_EMITTER_TM: setEmitterTm((TMatrix *)value); break;
       case HUID_SPAWN_RATE: setSpawnRate((float *)value); break;
-      case HUID_ACES_RESET: reset(); break;
       case HUID_VELOCITY: setVelocity((Point3 *)value); break;
       case _MAKE4C('PFXO'): sortOrder = *(int *)value; break;
       case _MAKE4C('PFXP'):
@@ -463,26 +457,10 @@ struct DafxSparks : BaseParticleEffect
       G_ASSERT(ctx == g_dafx_ctx);
       v->iid = dafx::create_instance(g_dafx_ctx, sid);
       G_ASSERT(v->iid);
-      dafx::set_instance_status(g_dafx_ctx, v->iid, false);
+      dafx::set_instance_status(g_dafx_ctx, v->iid, {.enabled = false});
     }
 
     return v;
-  }
-
-  void reset()
-  {
-    if (!iid)
-      return;
-
-    dafx::reset_instance(g_dafx_ctx, iid);
-
-    setTm(&TMatrix::IDENT);
-    setEmitterTm(&TMatrix::IDENT);
-    Point3 vel(0, 0, 0);
-    setVelocity(&vel);
-
-    float spawnRate = 1.f;
-    setSpawnRate(&spawnRate);
   }
 
   void setTransform(const TMatrix &value, dafx_ex::TransformType tr_type)

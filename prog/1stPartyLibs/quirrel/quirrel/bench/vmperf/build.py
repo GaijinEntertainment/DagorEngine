@@ -1,7 +1,8 @@
 # DEP_DOMAIN prog/tools
 """csq.exe builds of a revision, out of the source tree, in several code layouts.
 
-The build replays the commands of the jam rel build of prog/tools/consoleSq. It
+The build replays the commands of the jam rel build of prog/tools/consoleSq, with the
+code generation options of games (JAM). It
 compiles only the objects that include the Quirrel headers, from a copy of the
 Quirrel sources of the revision; all other code links from the output of jam.
 A build of the sources that jam built has the same .text as jam's csq.exe.
@@ -23,6 +24,7 @@ import tarfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, *[".."] * 6))
 CONSOLE_SQ = os.path.join(REPO, "prog", "tools", "consoleSq")
+JAM = "jam -sConfig=rel -sGameCodegen=yes"
 WORK = os.environ.get("VMPERF_WORK") or os.path.join(REPO, "_output", "quirrel-vmperf")
 QUIRREL = "prog/1stPartyLibs/quirrel/quirrel"
 SRC_DIRS = [QUIRREL, "prog/gameLibs/quirrel/quirrelHost"]
@@ -36,7 +38,7 @@ WORKTREE = "wt"
 def jam_commands():
     """The commands of the jam rel build of consoleSq: compiles {obj: argv}, libs {lib: [obj]},
     the csq.exe link argv and the jam output root."""
-    proc = subprocess.run("jam -sConfig=rel -n -a -dx", cwd=CONSOLE_SQ, shell=True, capture_output=True,
+    proc = subprocess.run(JAM + " -n -a -dx", cwd=CONSOLE_SQ, shell=True, capture_output=True,
                           text=True, errors="replace")
     if proc.returncode:
         raise SystemExit(f"jam failed in {CONSOLE_SQ}:\n{proc.stdout[-3000:]}\n{proc.stderr}")
@@ -133,7 +135,7 @@ def jam_inputs_stamp(jam):
         try:
             st = os.stat(os.path.join(CONSOLE_SQ, f))
         except FileNotFoundError:
-            raise SystemExit(f"{f} is missing; run jam -sConfig=rel in {CONSOLE_SQ}") from None
+            raise SystemExit(f"{f} is missing; run {JAM} in {CONSOLE_SQ}") from None
         digest.update(f"{f} {st.st_size} {st.st_mtime_ns}\n".encode())
     return digest.hexdigest()
 

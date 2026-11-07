@@ -205,11 +205,7 @@ void BhvTextArea::onRecalcLayout(Element *elem)
     return;
 
   const ScreenCoord &sc = elem->screenCoord;
-  ElemAlign halign = elem->layout.hAlign;
-  const int lowLineCount = elem->props.getInt(elem->csk->lowLineCount, 0);
-  const ElemAlign lowLineCountAlign = elem->props.getInt<ElemAlign>(elem->csk->lowLineCountAlign, PLACE_DEFAULT);
-  if (int(fmtText->lines.size()) <= lowLineCount && lowLineCountAlign != PLACE_DEFAULT)
-    halign = lowLineCountAlign;
+  const ElemAlign halign = elem->layout.hAlign;
 
   eastl::vector_set<Element *, eastl::less<Element *>, framemem_allocator> processedChildren;
 

@@ -1,0 +1,34 @@
+each 0 params: ok 5
+each 1: ok 5,3,9,1,7
+each 2: ok 5,4,11,4,11
+each 3: ok 10,8,14,6,12
+each table: ok x1,y2
+each throws: error: e
+findindex hit: ok 2
+findindex miss: ok null
+findindex 2: ok 3
+findindex table: ok y
+findindex throws: error: fi
+findvalue hit: ok 9
+findvalue miss: ok null
+findvalue default: ok none
+findvalue table: ok 2
+findvalue too many args: error: Too many arguments for findvalue()
+each sees an appended element: ok 4
+findindex sees an appended element: ok 2
+findvalue sees an appended element: ok 9
+each stops at a new end: ok 1
+findvalue gives the value it passed: ok 1
+each passes the object of a weakref: ok table
+findvalue of a weakref: ok 1
+findindex of a weakref: ok 1
+findindex of a weakref whose object the callback drops: ok 1
+each of a frozen array: ok true,true
+each index of a frozen array: ok true,true
+each index of an array that is not frozen: ok false,false,false,false,false
+findindex result of a frozen array: ok true
+findindex of a frozen array: ok 1
+findvalue of a frozen array: ok true
+findvalue of an array that is not frozen: ok false
+findvalue holds the value during a collection: ok 1
+each holds the value during a collection: ok 1

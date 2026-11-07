@@ -30,9 +30,10 @@ public:
   ~DynamicPhysObjectClass();
 
   static DynamicPhysObjectClass *create(const DynamicPhysObjectData *data, PhysWorld *world, const TMatrix &tm, uint16_t fgroup = 0,
-    uint16_t fmask = 0);
+    uint16_t fmask = 0, bool add_to_world = true);
 
-  void init(const DynamicPhysObjectData *data, PhysWorld *world, const TMatrix &tm, uint16_t fgroup = 0, uint16_t fmask = 0);
+  void init(const DynamicPhysObjectData *data, PhysWorld *world, const TMatrix &tm, uint16_t fgroup = 0, uint16_t fmask = 0,
+    bool add_to_world = true);
 
   void resetTm(const TMatrix &tm);
 

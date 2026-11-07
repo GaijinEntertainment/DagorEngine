@@ -110,7 +110,7 @@ TEST_CASE("first transform is the construction of spec 6.1, orthonormal and fixe
     worstDir = eastl::max(worstDir, length(dpoint3(x.d) - d));
     worstRows = eastl::max({worstRows, length(dpoint3(x.ex) - ex), length(dpoint3(x.ey) - d % ex)});
     originFixed &= x.c == DPoint3(0, 0, 0);
-    cameraDepth &= fabs(x.z0 - d * camera) <= 1e-6 * length(camera); // constraint: the first transform anchors at c = 0
+    cameraDepth &= fabs(x.z0 - d * camera) <= 1e-6 * length(camera); // the first transform anchors at c = 0
     rightHanded &= right_handed(x);
   }
   INFO("orthonormality error " << worstOrtho << ", direction error " << worstDir << ", row error " << worstRows);

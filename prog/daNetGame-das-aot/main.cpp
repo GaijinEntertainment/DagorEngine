@@ -47,14 +47,15 @@ void os_debug_break()
 #endif
 }
 
-static int log_callback(
-  int lev_tag, const char * /*fmt*/, const void * /*arg*/, int /*anum*/, const char * /*ctx_file*/, int /*ctx_line*/)
+static void log_callback(void *, LogMessage &msg)
 {
+  const int lev_tag = msg.levTag;
   if (lev_tag == LOGLEVEL_ERR || lev_tag == LOGLEVEL_FATAL)
     strictExit = 1;
   if (lev_tag == LOGLEVEL_ERR || lev_tag == LOGLEVEL_FATAL || lev_tag == LOGLEVEL_WARN)
-    return 1;
-  return verboseLogs ? 1 : 0;
+    return;
+  if (!verboseLogs)
+    msg.flags |= LOGMSG_SKIP_FILE;
 }
 
 int DagorWinMain(bool debugmode)
@@ -67,7 +68,7 @@ int DagorWinMain(bool debugmode)
   set_debug_console_handle((intptr_t)stdout);
 #endif
   dgs_report_fatal_error = stderr_report_fatal_error;
-  debug_set_log_callback(&log_callback);
+  debug_add_log_handler(&log_callback, nullptr, {.levelMask = LOGMASK_ALL, .order = LOGORDER_FILTER});
 
   String dasRoot;
 

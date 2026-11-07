@@ -1,35 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/ptgi.h>
-#include <render/denoiser.h>
+#include <render/ptgi/ptgi_api.h>
 #include <3d/dag_resPtr.h>
-#include <drv/3d/dag_bindless.h>
-#include <drv/3d/dag_shaderConstants.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <bvh/bvh.h>
 #include <perfMon/dag_statDrv.h>
-#include <image/dag_texPixel.h>
-#include <math/dag_frustum.h>
 #include <math/integer/dag_IPoint2.h>
-#include <ioSys/dag_dataBlock.h>
-#include <EASTL/algorithm.h>
-#include <EASTL/optional.h>
+#include <EASTL/shared_ptr.h>
 #include <imgui/imgui.h>
 #include <gui/dag_imgui.h>
 #include <gui/dag_imguiUtil.h>
-#include <render/daFrameGraph/daFG.h>
 
 namespace ptgi
 {
 
-namespace TextureNames
-{
-static const char *decoded_denoised_gi = "decoded_denoised_gi";
-}; // namespace TextureNames
-
 static ComputeShaderElement *trace = nullptr;
-static ComputeShaderElement *decode = nullptr;
 
 #if DAGOR_DBGLEVEL > 0
 static constexpr float ray_length_min = 0.01f;
@@ -42,25 +28,25 @@ static constexpr float roughness_factor_min = -50.0;
 static constexpr float roughness_factor_max = 0;
 static bool mul_debug_by_albedo = true;
 static bool decode_tonemap = true;
+static bool show_validation = false;
+static ComputeShaderElement *decode = nullptr;
+static PostFxRenderer *validation_renderer = nullptr;
+static denoiser::DebugImage decoded_image;
+static denoiser::DebugImage validation_image;
 #endif
 
 static int inv_proj_tmVarId = -1;
-static int ptgi_targetVarId = -1;
 static int ptgi_resolutionIVarId = -1;
-static int ptgi_uv_maxVarId = -1;
-static int ptgi_uv_scaleVarId = -1;
 static int ptgi_res_mulVarId = -1;
 static int ptgi_hit_dist_paramsVarId = -1;
-static int rt_nrVarId = -1;
 static int ptgi_max_bouncesVarId = -1;
 static int ptgi_checkerboardVarId = -1;
-static int ptgi_bindless_slotVarId = -1;
 static int ptgi_boostVarId = -1;
 static int ptgi_boost_rangeVarId = -1;
 static int ptgi_use_rrVarId = -1;
 static int rt_half_rateVarId = -1;
 static int ptgi_validation_textureVarId = -1;
-static int downsampled_close_depth_texVarId = -1;
+static int ptgi_validation_uv_scaleVarId = -1;
 
 static float ray_length = 100;
 static float distance_factor = 1;
@@ -68,43 +54,12 @@ static float scatter_factor = 20.0;
 static float roughness_factor = -25.0;
 static float boost = 0;
 static float boost_range = 0;
-static int max_stabilized_frame_num = denoiser::GIDenoiser::MAX_HISTORY_FRAME_NUM;
+static int max_stabilized_frame_num = denoiser::GIParams::MAX_HISTORY_FRAME_NUM;
 static bool anti_firefly = true;
-static bool show_validation = false;
+static bool second_chance_history = false;
+static bool second_chance_debug = false;
 
-BaseTexture *denoised_gi_for_debug = nullptr;
-BaseTexture *decoded_denoised_gi_for_debug = nullptr;
-static BaseTexture *validation_texture_ptr = nullptr;
-static PostFxRenderer *validation_renderer = nullptr;
-
-void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &persistent_textures)
-{
-  denoiser::get_required_persistent_texture_descriptors_for_gi(persistent_textures);
-
-#if DAGOR_DBGLEVEL > 0
-  if (!denoiser::is_ptgi_ray_reconstruction_enabled())
-  {
-    auto denoised_gi = persistent_textures.find(denoiser::GIDenoiser::TextureNames::denoised_gi);
-    if (denoised_gi == persistent_textures.end())
-    {
-      logerr("denoised_gi was not found in requested ptgi textures!");
-      return;
-    }
-    TextureInfo sourceTi = denoised_gi->second;
-    auto &ti = persistent_textures[TextureNames::decoded_denoised_gi];
-    ti.w = denoiser::resolution_config.ptgi.isHalfRes ? sourceTi.w / 2 : sourceTi.w;
-    ti.h = denoiser::resolution_config.ptgi.isHalfRes ? sourceTi.h / 2 : sourceTi.h;
-    ti.mipLevels = 1;
-    ti.type = D3DResourceType::TEX;
-    ti.cflg = TEXCF_UNORDERED | TEXFMT_A16B16G16R16F;
-  }
-#endif
-}
-
-void get_required_transient_texture_descriptors(denoiser::TexInfoMap &transient_textures)
-{
-  denoiser::get_required_transient_texture_descriptors_for_gi(transient_textures);
-}
+using SharedNodeParams = eastl::shared_ptr<const NodeParams>;
 
 void initialize(bool half_res)
 {
@@ -112,26 +67,17 @@ void initialize(bool half_res)
     return;
 
   inv_proj_tmVarId = get_shader_variable_id("inv_proj_tm");
-  ptgi_targetVarId = get_shader_variable_id("ptgi_target");
   ptgi_resolutionIVarId = get_shader_variable_id("ptgi_resolutionI");
-  ptgi_uv_maxVarId = get_shader_variable_id("ptgi_uv_max");
-  ptgi_uv_scaleVarId = get_shader_variable_id("ptgi_uv_scale");
   ptgi_res_mulVarId = get_shader_variable_id("ptgi_res_mul");
   ptgi_hit_dist_paramsVarId = get_shader_variable_id("ptgi_hit_dist_params");
-  downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
-  rt_nrVarId = get_shader_variable_id("rt_nr");
   ptgi_max_bouncesVarId = get_shader_variable_id("ptgi_max_bounces");
   ptgi_checkerboardVarId = get_shader_variable_id("ptgi_checkerboard");
-  ptgi_bindless_slotVarId = get_shader_variable_id("ptgi_bindless_slot");
   ptgi_boostVarId = get_shader_variable_id("ptgi_boost");
   ptgi_boost_rangeVarId = get_shader_variable_id("ptgi_boost_range");
   ptgi_use_rrVarId = get_shader_variable_id("ptgi_use_rr");
   rt_half_rateVarId = get_shader_variable_id("rt_half_rate", true);
   ptgi_validation_textureVarId = get_shader_variable_id("ptgi_validation_texture");
-
-  // The game recreates the persistent textures around initialize.
-  validation_texture_ptr = nullptr;
-  denoised_gi_for_debug = decoded_denoised_gi_for_debug = nullptr;
+  ptgi_validation_uv_scaleVarId = get_shader_variable_id("ptgi_validation_uv_scale");
 
   denoiser::resolution_config.initPTGI(half_res);
   ShaderGlobal::set_int(ptgi_res_mulVarId, half_res ? 2 : 1);
@@ -154,113 +100,50 @@ void teardown()
 {
   denoiser::resolution_config.closePTGI();
   safe_delete(trace);
+#if DAGOR_DBGLEVEL > 0
   safe_delete(decode);
   safe_delete(validation_renderer);
-  turn_off();
+  decoded_image.close();
+  validation_image.close();
+#endif
 }
 
-void turn_off()
+void set_second_chance_history(bool second_chance_history_) { second_chance_history = second_chance_history_; }
+
+denoiser::ParamsHandle<FrameParams> create_frame_params(dafg::Registry registry)
 {
-  ShaderGlobal::set_int(ptgi_bindless_slotVarId, -1);
-  // The texture is owned by the game; drop the reference until the next render.
-  validation_texture_ptr = nullptr;
-  denoised_gi_for_debug = decoded_denoised_gi_for_debug = nullptr;
+  return registry.createBlob<FrameParams>("ptgi_frame_params").handle();
 }
 
 inline int divide_up(int x, int y) { return (x + y - 1) / y; }
 
-void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, bool in_cockpit, const denoiser::TexMap &textures,
-  Quality quality, bool checkerboard, bool half_rate)
+static Point4 hit_dist_params() { return Point4(ray_length, distance_factor, scatter_factor, roughness_factor); }
+
+static void do_trace(const FrameParams &params, bool checkerboard, const IPoint2 &resolution)
 {
-  TIME_D3D_PROFILE(ptgi::render);
-
-  G_ASSERT_RETURN(!denoiser::is_ptgi_ray_reconstruction_enabled() || !checkerboard, );
-
-  auto denoised_gi = textures.find(denoiser::GIDenoiser::TextureNames::denoised_gi);
-  auto gi_value = textures.find(denoiser::GIDenoiser::TextureNames::ptgi_tex_unfiltered);
-  auto decoded_denoised_gi = textures.find(TextureNames::decoded_denoised_gi);
-  auto validation = textures.find(denoiser::GIDenoiser::TextureNames::gi_validation);
-  auto normal_roughness =
-    textures.find(denoiser::resolution_config.ptgi.isHalfRes ? denoiser::TextureNames::denoiser_half_normal_roughness
-                                                             : denoiser::TextureNames::denoiser_normal_roughness);
-
-  G_ASSERT_RETURN(!denoiser::resolution_config.ptgi.isHalfRes || normal_roughness != textures.end(), );
-  G_ASSERT_RETURN(gi_value != textures.end(), );
-
-  auto basetex_or_null = [&](auto name) -> BaseTexture * { return name != textures.end() ? name->second : nullptr; };
-
-  if (!denoiser::is_ptgi_ray_reconstruction_enabled())
-  {
-    denoised_gi_for_debug = basetex_or_null(denoised_gi);
-    decoded_denoised_gi_for_debug = basetex_or_null(decoded_denoised_gi);
-    validation_texture_ptr = basetex_or_null(validation);
-  }
-  else
-  {
-    // Just display the noisy texture as-is
-    denoised_gi_for_debug = decoded_denoised_gi_for_debug = basetex_or_null(gi_value);
-    validation_texture_ptr = nullptr;
-  }
-
-  Point4 hitDistParams = Point4(ray_length, distance_factor, scatter_factor, roughness_factor);
-
-  denoiser::GIDenoiser params;
-  params.hitDistParams = hitDistParams;
-  params.textures = textures;
-  params.checkerboard = checkerboard;
-  params.halfResolution = denoiser::resolution_config.ptgi.isHalfRes;
-  params.maxStabilizedFrameNum = max_stabilized_frame_num;
-  params.antiFirefly = anti_firefly;
-
-  IPoint2 resolution =
-    denoiser::resolution_config.ptgi.isHalfRes ? denoiser::resolution_config.dynRes.halfRes : denoiser::resolution_config.dynRes.res;
-
-  bvh::bind_resources(context_id, resolution.x);
-
-  ShaderGlobal::set_texture(ptgi_targetVarId, gi_value->second);
-  ShaderGlobal::set_texture(rt_nrVarId, denoiser::resolution_config.ptgi.isHalfRes ? normal_roughness->second : nullptr);
+  bvh::bind_resources(params.ctxId, resolution.x);
 
   ShaderGlobal::set_int4(ptgi_resolutionIVarId, resolution.x, resolution.y, 0, 0);
-  Point2 uvMax = Point2(1, 1);
-  Point2 uvScale = Point2(1, 1);
-  if (denoiser::resolution_config.dynRes.usingViewport)
-  {
-    uvMax = Point2::ONE;
-    uvScale = Point2::ONE;
-  }
-  else
-  {
-    if (denoiser::resolution_config.ptgi.width != resolution.x || denoiser::resolution_config.ptgi.height != resolution.y)
-    {
-      // Avoid samples outside the valid area
-      uvMax.x = (resolution.x - 0.6f) / denoiser::resolution_config.ptgi.width;
-      uvMax.y = (resolution.y - 0.6f) / denoiser::resolution_config.ptgi.height;
-      uvScale.x = float(resolution.x) / denoiser::resolution_config.ptgi.width;
-      uvScale.y = float(resolution.y) / denoiser::resolution_config.ptgi.height;
-    }
-  }
-  ShaderGlobal::set_float4(ptgi_uv_maxVarId, uvMax);
-  ShaderGlobal::set_float4(ptgi_uv_scaleVarId, uvScale);
 
-  ShaderGlobal::set_texture(downsampled_close_depth_texVarId, depth);
-  ShaderGlobal::set_float4x4(inv_proj_tmVarId, inverse44(proj_tm));
+  ShaderGlobal::set_float4x4(inv_proj_tmVarId, inverse44(params.projTm));
 
-  ShaderGlobal::set_int(ptgi_max_bouncesVarId, quality == Quality::Low ? 3 : quality == Quality::Medium ? 4 : 5);
+  ShaderGlobal::set_int(ptgi_max_bouncesVarId, params.quality == Quality::Low ? 3 : params.quality == Quality::Medium ? 4 : 5);
 
+  const bool useRR = denoiser::is_ptgi_ray_reconstruction_enabled();
   ShaderGlobal::set_int(ptgi_checkerboardVarId, checkerboard ? 1 : 0);
-  ShaderGlobal::set_int(ptgi_use_rrVarId, ::denoiser::is_ptgi_ray_reconstruction_enabled() ? 1 : 0);
+  ShaderGlobal::set_int(ptgi_use_rrVarId, useRR ? 1 : 0);
 
-  const bool halfRate = half_rate && ::denoiser::is_ptgi_ray_reconstruction_enabled();
+  const bool halfRate = params.halfRate && useRR;
   ShaderGlobal::set_int(rt_half_rateVarId, halfRate ? 1 : 0);
 
-  ShaderGlobal::set_float4(ptgi_hit_dist_paramsVarId, hitDistParams);
+  ShaderGlobal::set_float4(ptgi_hit_dist_paramsVarId, hit_dist_params());
 
   if (boost_range > 0)
   {
     ShaderGlobal::set_float(ptgi_boostVarId, boost);
     ShaderGlobal::set_float(ptgi_boost_rangeVarId, boost_range);
   }
-  else if (in_cockpit)
+  else if (params.inCockpit)
   {
     ShaderGlobal::set_float(ptgi_boostVarId, 0.5);
     ShaderGlobal::set_float(ptgi_boost_rangeVarId, 5);
@@ -273,64 +156,154 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, 
 
   {
     TIME_D3D_PROFILE(ptgi::render_noisy)
-    trace->dispatchThreads(divide_up(resolution.x, (checkerboard || halfRate) ? 2 : 1), resolution.y, 1);
+    const int threadsX = divide_up(resolution.x, (checkerboard || halfRate) ? 2 : 1);
+    // Half rate uses two threads for each 2x2 quad, so the quad row on an odd bottom edge needs both
+    const int threadsY = halfRate ? divide_up(resolution.y, 2) * 2 : resolution.y;
+    trace->dispatchThreads(threadsX, threadsY, 1);
   }
 
   bvh::unbind_resources();
+}
 
-  d3d::resource_barrier(ResourceBarrierDesc(gi_value->second, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
-
-  denoiser::denoise_gi(params);
-
-  ShaderGlobal::set_texture(ptgi_targetVarId, nullptr);
-  ShaderGlobal::set_texture(rt_nrVarId, nullptr);
-  ShaderGlobal::set_texture(downsampled_close_depth_texVarId, nullptr);
+static dafg::NodeHandle make_trace_node(const SharedNodeParams &params)
+{
+  return dafg::root().registerNode("ptgi_trace", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
+    if (params->declareInputs)
+      params->declareInputs(registry);
+    denoiser::order_after_prepare(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>("ptgi_frame_params").handle();
+    auto denoiserParamsHndl = denoiser::create_gi_params(registry);
+    auto outputHndl = denoiser::create_gi_trace_output(registry, "ptgi_target");
+    // a half res trace takes the normal and the roughness from the denoiser prepare, a full res one from the gbuffer
+    if (denoiser::resolution_config.ptgiHalfRes && !denoiser::is_ptgi_ray_reconstruction_enabled())
+      denoiser::read_normal_roughness(registry, "rt_nr", denoiser::Inputs::Half);
+    return [params, frameParamsHndl, denoiserParamsHndl, outputHndl]() {
+      const FrameParams &fp = frameParamsHndl.ref();
+      denoiser::GIParams &dp = denoiserParamsHndl.ref();
+      dp.render = fp.render && fp.ctxId && trace && outputHndl;
+      if (!dp.render)
+        return;
+      const bool checkerboard = !denoiser::is_ptgi_ray_reconstruction_enabled();
+      dp.hitDistParams = hit_dist_params();
+      dp.checkerboard = checkerboard;
+      dp.maxStabilizedFrameNum = max_stabilized_frame_num;
+      dp.antiFirefly = anti_firefly;
+      dp.secondChanceDebug = second_chance_debug;
+      if (params->setShaderState)
+        params->setShaderState();
+      do_trace(fp, checkerboard, denoiser::texture_size(outputHndl->get()));
+      if (params->resetShaderState)
+        params->resetShaderState();
+    };
+  });
+}
 
 #if DAGOR_DBGLEVEL > 0
-  if (!denoiser::is_ptgi_ray_reconstruction_enabled())
-  {
-    if (!decode)
-      decode = new_compute_shader("rt_gi_decode");
+static void decode_for_debug(BaseTexture *src)
+{
+  if (!src)
+    return;
+  if (!decode)
+    decode = new_compute_shader("rt_gi_decode");
 
-    static int ptgi_decode_srcVarId = get_shader_variable_id("ptgi_decode_src");
-    static int ptgi_decode_dstVarId = get_shader_variable_id("ptgi_decode_dst");
-    static int ptgi_decode_albedo_mulVarId = get_shader_variable_id("ptgi_decode_albedo_mul");
-    static int ptgi_decode_tonemapVarId = get_shader_variable_id("ptgi_decode_tonemap");
+  // the decode takes every res_mul-th texel of the input
+  const int resMul = denoiser::resolution_config.ptgiHalfRes ? 2 : 1;
+  const IPoint2 valid = denoiser::texture_size(src);
+  const IPoint2 size = valid / resMul;
+  Texture *dst = denoiser::fit_debug_image(decoded_image, size, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, "ptgi_decoded_debug");
+  if (!dst)
+    return;
 
-    ShaderGlobal::set_texture(ptgi_decode_srcVarId, denoised_gi_for_debug);
-    ShaderGlobal::set_texture(ptgi_decode_dstVarId, decoded_denoised_gi_for_debug);
-    ShaderGlobal::set_int(ptgi_decode_albedo_mulVarId, mul_debug_by_albedo ? 1 : 0);
-    ShaderGlobal::set_int(ptgi_decode_tonemapVarId, decode_tonemap ? 1 : 0);
+  static int ptgi_decode_srcVarId = get_shader_variable_id("ptgi_decode_src");
+  static int ptgi_decode_dstVarId = get_shader_variable_id("ptgi_decode_dst");
+  static int ptgi_decode_albedo_mulVarId = get_shader_variable_id("ptgi_decode_albedo_mul");
+  static int ptgi_decode_tonemapVarId = get_shader_variable_id("ptgi_decode_tonemap");
 
-    decode->dispatchThreads(resolution.x, resolution.y, 1);
+  ShaderGlobal::set_texture(ptgi_decode_srcVarId, src);
+  ShaderGlobal::set_texture(ptgi_decode_dstVarId, dst);
+  ShaderGlobal::set_int(ptgi_decode_albedo_mulVarId, mul_debug_by_albedo ? 1 : 0);
+  ShaderGlobal::set_int(ptgi_decode_tonemapVarId, decode_tonemap ? 1 : 0);
+  static int ptgi_decode_sizeVarId = get_shader_variable_id("ptgi_decode_size", true);
+  ShaderGlobal::set_int4(ptgi_decode_sizeVarId, valid.x, valid.y, 0, 0); // the shader takes the size from here
 
-    ShaderGlobal::set_texture(ptgi_decode_srcVarId, nullptr);
-    ShaderGlobal::set_texture(ptgi_decode_dstVarId, nullptr);
-  }
+  decode->dispatchThreads(size.x, size.y, 1);
+
+  ShaderGlobal::set_texture(ptgi_decode_srcVarId, nullptr);
+  ShaderGlobal::set_texture(ptgi_decode_dstVarId, nullptr);
+}
+
+static dafg::NodeHandle make_debug_node(const SharedNodeParams &params, bool validation)
+{
+  return dafg::root().registerNode("ptgi_debug", DAFG_PP_NODE_SRC, [params, validation](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    if (params->declareDebugInputs)
+      params->declareDebugInputs(registry);
+    auto outputHndl = denoiser::read_gi_output(registry);
+    auto validationOutputHndl = validation ? denoiser::read_gi_validation(registry) : denoiser::OutputHandle{};
+    auto frameParamsHndl = registry.readBlob<FrameParams>("ptgi_frame_params").handle();
+    return [outputHndl, validationOutputHndl, frameParamsHndl]() {
+      decoded_image.nodeRan();
+      if (!frameParamsHndl.ref().render) // a frame without a trace leaves the outputs unwritten, the window keeps its last copies
+        return;
+      if (validationOutputHndl)
+        denoiser::copy_for_debug(validationOutputHndl->get(), validation_image, "ptgi_validation_debug");
+      if (outputHndl && imgui_window_is_visible("Render", "PTGI"))
+        decode_for_debug(outputHndl->get());
+    };
+  });
+}
+#endif
+
+void register_nodes(const NodeParams &params, dag::Vector<dafg::NodeHandle> &nodes)
+{
+  SharedNodeParams shared = eastl::make_shared<NodeParams>(params);
+  nodes.emplace_back(make_trace_node(shared));
+  denoiser::GINodeParams denoiseParams;
+  denoiseParams.motionVectorsName = params.motionVectorsName;
+  denoiseParams.halfMotionVectorsName = params.halfMotionVectorsName;
+#if DAGOR_DBGLEVEL > 0
+  denoiseParams.validation = is_validation_layer_enabled();
+#endif
+  denoiseParams.secondChanceHistory = is_second_chance_history_enabled();
+  nodes.emplace_back(denoiser::make_gi_node(denoiseParams));
+  nodes.emplace_back(denoiser::make_gi_view_z_node());
+#if DAGOR_DBGLEVEL > 0
+  nodes.emplace_back(make_debug_node(shared, denoiseParams.validation));
 #endif
 }
 
-bool is_validation_layer_enabled() { return show_validation; }
+bool is_validation_layer_enabled()
+{
+#if DAGOR_DBGLEVEL > 0
+  return show_validation && !denoiser::is_ptgi_ray_reconstruction_enabled();
+#else
+  return false;
+#endif
+}
+
+bool is_second_chance_history_enabled() { return second_chance_history && !denoiser::is_ptgi_ray_reconstruction_enabled(); }
 
 void render_validation_layer()
 {
-  if (!show_validation || !validation_texture_ptr)
+#if DAGOR_DBGLEVEL > 0
+  if (!is_validation_layer_enabled() || !validation_image.texture())
     return;
 
   if (!validation_renderer)
     validation_renderer = new PostFxRenderer("ptgi_validation_renderer");
 
-  ShaderGlobal::set_texture(ptgi_validation_textureVarId, validation_texture_ptr);
+  ShaderGlobal::set_texture(ptgi_validation_textureVarId, validation_image.texture());
+  ShaderGlobal::set_float4(ptgi_validation_uv_scaleVarId, validation_image.uvMax());
   validation_renderer->render();
   ShaderGlobal::set_texture(ptgi_validation_textureVarId, nullptr);
+#endif
 }
 
 #if DAGOR_DBGLEVEL > 0
 static void imguiWindow()
 {
-  if (!denoised_gi_for_debug)
+  if (!decoded_image.inGraph())
     return;
-
   if (!denoiser::is_ptgi_ray_reconstruction_enabled())
   {
     ImGui::Checkbox("Multiply by albedo", &mul_debug_by_albedo);
@@ -344,14 +317,18 @@ static void imguiWindow()
     ImGui::SliderFloat("Distance factor", &distance_factor, distance_factor_min, distance_factor_max);
     ImGui::SliderFloat("Scatter factor", &scatter_factor, scatter_factor_min, scatter_factor_max);
     ImGui::SliderFloat("Roughness factor", &roughness_factor, roughness_factor_min, roughness_factor_max);
-    ImGui::SliderInt("Max stabilized frames", &max_stabilized_frame_num, 0, denoiser::GIDenoiser::MAX_HISTORY_FRAME_NUM);
+    ImGui::SliderInt("Max stabilized frames", &max_stabilized_frame_num, 0, denoiser::GIParams::MAX_HISTORY_FRAME_NUM);
     ImGui::Checkbox("Anti firefly", &anti_firefly);
+    ImGui::Checkbox("Second chance history", &second_chance_history);
+    if (second_chance_history)
+      ImGui::Checkbox("Show second chance", &second_chance_debug);
     ImGui::Checkbox("Show validation layer", &show_validation);
   }
 
-  if (decoded_denoised_gi_for_debug)
+  if (Texture *tex = decoded_image.texture())
   {
-    ImGuiDagor::Image(decoded_denoised_gi_for_debug);
+    const Point2 uv = decoded_image.uvMax();
+    ImGuiDagor::Image(tex, decoded_image.aspect(), ImVec2(0, 0), ImVec2(uv.x, uv.y));
   }
 }
 

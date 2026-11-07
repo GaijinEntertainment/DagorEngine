@@ -159,7 +159,7 @@ void CarEngineModel::calcForces()
   // produced.
   // NOTE: The output power then is 2*PI*rps*outputTorque
   // (rps=rpm/60; rotations per second). Nothing but a statistic now.
-  tEngine = (maxTorque - minTorque) * throttle + minTorque;
+  tEngine = isStalled() ? minTorque : (maxTorque - minTorque) * throttle + minTorque;
 
   // Add nitro factor
   tEngine *= (1.0f + curNitroPower);
@@ -193,10 +193,11 @@ void CarEngineModel::integrate(float dt)
   rotV += rotA * dt;
 
   float curRpm = getRPM();
+  const float minRPM = isStalled() ? 0.f : idleRPM;
   if (curRpm > maxRPM)
     setRPM(maxRPM);
-  else if (curRpm < idleRPM)
-    setRPM(idleRPM);
+  else if (curRpm < minRPM)
+    setRPM(minRPM);
 
   float dNitro = targetNitroPower - curNitroPower;
   float maxDNitro = nitroChangeSpeed * dt;

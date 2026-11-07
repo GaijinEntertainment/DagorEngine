@@ -26,7 +26,7 @@ static dafg::NodeHandle makeRiExtraLodsByDistanceNode()
 {
   return dafg::root().registerNode("ri_extra_lods_by_distance_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
-    // constraint: ri_opaque_rendered_token comes from a camera-in-camera multiplexed node, daFG rejects less multiplexed readers
+    // ri_opaque_rendered_token comes from a camera-in-camera multiplexed node, daFG rejects less multiplexed readers
     registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
     // Dependency is purely for optimization, the job can run at any time
     registry.readBlob<OrderingToken>("bvh_ready_token").optional();

@@ -14,6 +14,7 @@ hlsl {
 
 macro GET_PROBE_COLOR(code)
   SCREENSPACE_PROBES_POSITIONS_COMMON(code)
+  SP_PREV_VIEW_VEC_OPTIMIZED(code)
   PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code, false)
   SP_INIT_PREV_ZNZFAR_STAGE(code)
   SP_REPROJECT_MATH(code)
@@ -33,7 +34,7 @@ macro GET_PROBE_COLOR(code)
       if (isMoving)
       {
         uint sdfClip = world_sdf_find_clip(worldPos);//to reduce divirgence between threads
-        if (sdfClip >= dagi_lit_scene_voxels_clip_count() + dagi_lit_scene_voxels_first_sdf_clip())
+        if (sdfClip >= dagi_surface_cache_levels())
           return 0;
         float3 sdfAtlasTC = world_sdf_clip_tc_to_atlas_tc(sdfClip, world_pos_to_world_sdf_tc(sdfClip, worldPos));
         if (sample_world_sdf_value_atlas_tc(sdfAtlasTC) > 0.5 + 0.25/MAX_WORLD_SDF_VOXELS_BAND)

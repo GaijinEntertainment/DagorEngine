@@ -59,7 +59,7 @@ bool isConstDepthStencilTarget(Image *img, ImageViewState view)
       return false;
 
     const ValueRange<uint32_t> mipRange(view.getMipBase(), view.getMipBase() + view.getMipCount());
-    const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getMipCount());
+    const ValueRange<uint32_t> arrayRange(view.getArrayBase(), view.getArrayBase() + view.getArrayCount());
 
     auto mipIndex = dsai.view.getMipBase();
     auto arrayIndex = dsai.view.getArrayBase();

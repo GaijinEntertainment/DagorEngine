@@ -5,6 +5,7 @@ include "bvh.dshl"
 include "rt_pipeline.dshl"
 include "rt/rt_lighting.dshl"
 include "rt/rt_prev_frame_sample.dshl"
+include "rt_path_tracing.dshl"
 include "use_prefiltered_gf.dshl"
 include "postfx_inc.dshl"
 include "wetness_inc.dshl"
@@ -17,6 +18,7 @@ float4x4 inv_proj_tm;
 texture ptgi_target;
 texture rt_nr;
 texture ptgi_validation_texture;
+float4 ptgi_validation_uv_scale = (1, 1, 0, 0);
 
 float4 ptgi_hit_dist_params;
 
@@ -37,7 +39,6 @@ int blue_noise_frame_index;
 
 float ptgi_boost = 0;
 float ptgi_boost_range = 0;
-float4 ptgi_uv_scale;
 
 int ptgi_use_prev_frame_sample = 1;
 
@@ -149,6 +150,8 @@ shader rt_gi
 
   INIT_RT_LIGHTING(cs, false, true, false, true)
   USE_RT_LIGHTING(cs, 0, true)
+  INIT_DAGI_IN_RT(cs)
+  USE_DAGI_IN_RT(cs)
 
   if (ptgi_pipeline_mode == inline)
   {
@@ -157,6 +160,8 @@ shader rt_gi
 
   INIT_BVH_WATER_FADE_BASE(cs)
   USE_BVH_WATER_FADE_BASE(cs)
+  INIT_RT_WATER_MEDIUM(cs)
+  USE_RT_WATER_MEDIUM(cs)
 
   if (ptgi_use_fx == yes)
   {
@@ -171,46 +176,17 @@ shader rt_gi
     {
       #include <ml.hlsli>
     }
+  }
 
-    float EstimateDiffuseProbability(SurfaceParams surface)
+  USE_RT_PATH_TRACING(cs)
+
+  hlsl(cs)
+  {
+    float load_trace_depth(uint2 index)
     {
-      const float maxFireflyRelativeIntensity = 20;
-      const float evilTwinLobeTolerance       = 0.005;
-
-      float3 surfaceSpecularColor = decodeSpecularColor(surface.reflectance, surface.metalness, surface.albedo);
-      float lumSpec = ml::Color::Luminance(surfaceSpecularColor);
-      float lumDiff = ml::Color::Luminance(surface.albedo);
-
-      float diffProb = lumDiff / max(lumDiff + lumSpec, 1e-6);
-      float diffProbClamped = clamp(diffProb, 1.0 / maxFireflyRelativeIntensity, 1.0 - 1.0 / maxFireflyRelativeIntensity);
-
-      [flatten]
-      if (diffProb < evilTwinLobeTolerance)
-        return 0.0;
-      else if (diffProb > 1.0 - evilTwinLobeTolerance)
-        return 1.0;
-      else
-        return diffProbClamped;
-    }
-
-    float3 calc_throughput_mod(SurfaceParams surface, bool isDiffuse, float3 sampleDir, uint bounce)
-    {
-      float3 H = normalize(surface.surfaceToCamera + sampleDir);
-      float VoH = abs(dot(surface.surfaceToCamera, H));
-      float NoL = saturate(dot(surface.normal, sampleDir));
-      float NoV = abs(dot(surface.normal, surface.surfaceToCamera));
-
-      // For the first bounce, the surface.albedo is not OK, as it is half resolution. It will be multiplied
-      // in deferred shadow. It is not correct entirely, but close enough.
-      float3 albedo = bounce == 0 ? 1 : surface.albedo;
-
-      if (isDiffuse)
-        return saturate(albedo * ml::Math::Pi(1.0) * ml::BRDF::DiffuseTerm_Burley(1 - surface.smoothness, NoL, NoV, VoH));
-      else
-      {
-        float3 surfaceSpecularColor = decodeSpecularColor(surface.reflectance, surface.metalness, albedo);
-        return ml::BRDF::FresnelTerm_Schlick(surfaceSpecularColor, VoH) * ml::BRDF::GeometryTerm_Smith(1 - surface.smoothness, NoL);
-      }
+      if (ptgi_res_mul == 1)
+        return loadGbufferDepth(index);
+      return texture2DAt(half_res_depth_tex, index).r;
     }
 
     void write_output(uint2 output_index, float3 color, float d, float w, float roughness)
@@ -235,8 +211,15 @@ shader rt_gi
       uint2 outputIndex = rayIndex;
 
       bool halfRate = ptgi_use_rr && rt_half_rate;
+
       if (halfRate)
-        rayIndex.x *= 2;
+      {
+        uint2 skipIndex;
+        rt_half_rate_quad_pair(dtid, uint(frame_index), rayIndex, skipIndex);
+        if (all(skipIndex < resolution))
+          write_output(skipIndex, 0, NRD_FP16_MAX, NRD_FP16_MAX, 0);
+        outputIndex = rayIndex;
+      }
 
       if (ptgi_checkerboard)
       {
@@ -245,48 +228,27 @@ shader rt_gi
         bool evenFrame = (frame_index & 1) == 0;
         bool evenLine  = (rayIndex.y & 1) == 0;
 
-        if (evenFrame == evenLine)
+        if (evenFrame == evenLine && rayIndex.x + 1 < resolution.x) // an odd width keeps its last pixel traced
           ++rayIndex.x;
       }
 
       if (any(rayIndex >= resolution))
         return;
 
-      if (halfRate)
-      {
-        uint2 blackIndex = uint2(rayIndex.x + 1, rayIndex.y);
-        if (blackIndex.x < resolution.x)
-        {
-          uint offset = rt_half_rate_offset(dtid, uint(frame_index));
-          rayIndex.x += offset;
-          blackIndex.x -= offset;
-          texture2DAt(output, blackIndex) = float4(0, 0, 0, 1);
-        }
-        outputIndex = rayIndex;
-      }
-
-      float rawDepth;
-      if (ptgi_res_mul == 1)
-      {
-        rawDepth = loadGbufferDepth(rayIndex);
-      }
-      else
-      {
-        rawDepth = texture2DAt(half_res_depth_tex, rayIndex).r;
-      }
+      float rawDepth = load_trace_depth(rayIndex);
+      bool noSurface = rawDepth <= 0 || !bvhMainValid;
 
       BRANCH
-      if (rawDepth <= 0 || !bvhMainValid)
+      if (noSurface)
       {
         write_output(outputIndex, 0, NRD_FP16_MAX, NRD_FP16_MAX, 0);
         return;
       }
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
-      float underwaterFade = calc_underwater_fade(w, rayIndex, inv_aligned_resolution, world_view_pos);
-
       PackedGbuffer packedGbuffer = loadPackedGbuffer(rayIndex * ptgi_res_mul);
       UnpackedGbuffer unpackedGbuffer = unpackGbuffer(packedGbuffer);
+      float underwaterFade = calc_underwater_fade(w, rayIndex, inv_aligned_resolution, world_view_pos, unpackedGbuffer.dynamic);
       ProcessedGbuffer processedGbuffer = processGbuffer(unpackedGbuffer);
 
       bool isCamoNet = processedGbuffer.isCamoNet;
@@ -375,41 +337,18 @@ shader rt_gi
       [loop]
       for (uint bounce = 0; bounce < max_bounces && any(throughput > throughputTreshold); ++bounce)
       {
+        if (bounce > 0 && !rt_pt_survive(throughput))
+          break;
+
+        bool isDiffuse = true;
         if (bounce > 0)
-        {
-          // Cut dim paths and scale up the survivors
-          float survivalProbability = saturate(max3(throughput));
-          if (ml::Rng::Hash::GetFloat() >= survivalProbability)
-            break;
-          throughput /= survivalProbability;
-        }
+          isDiffuse = rt_pt_choose_diffuse_lobe(surface, throughput);
+        float3 sampleDir = rt_pt_sample_lobe(surface, isDiffuse);
 
-        float diffuseProbability = EstimateDiffuseProbability(surface);
-
-        float rnd = ml::Rng::Hash::GetFloat();
-
-        bool isDiffuse = rnd < diffuseProbability;
-
-        throughput /= abs(float(!isDiffuse) - diffuseProbability);
-
-        float3x3 localBasis = ml::Geometry::GetBasis(surface.normal);
-        float2 rayRnd = ml::Rng::Hash::GetFloat2();
-        float3 sampleDir;
-        if (isDiffuse)
-        {
-          sampleDir = ml::ImportanceSampling::Cosine::GetRay(rayRnd);
-        }
-        else
-        {
-          const float specLobeEnergy = 0.95;
-          float3 Vlocal = ml::Geometry::RotateVector(localBasis, surface.surfaceToCamera);
-          float3 Hlocal = ml::ImportanceSampling::VNDF::GetRay(rayRnd, 1 - surface.smoothness, Vlocal, specLobeEnergy);
-          sampleDir = reflect(-Vlocal, Hlocal);
-        }
-
-        sampleDir = ml::Geometry::RotateVectorInverse(localBasis, sampleDir);
-
-        throughput *= calc_throughput_mod(surface, isDiffuse, sampleDir, bounce);
+        // For the first bounce, the surface.albedo is not OK, as it is half resolution. It will be multiplied
+        // in deferred shadow. It is not correct entirely, but close enough.
+        float3 albedo = bounce == 0 ? 1 : surface.albedo;
+        throughput *= calc_throughput_mod(surface, isDiffuse, sampleDir, albedo);
 
         if (boost_range > 0)
         {
@@ -434,20 +373,22 @@ shader rt_gi
         if (bounce > 0 && !isFoliageShader(processedGbuffer.material))
           traceFlags |= RAY_FLAG_FORCE_OPAQUE;
         float minT = surface.isFoliage ? bvh_foliage_bias : 0;
+        float traceEnd = rt_water_trace_end(surface.position, sampleDir, giDistance);
 
         SurfaceParams hitSurface;
         float hitDistance;
+        const bool markThisBounce = bounce < mark_voxel_activity_bounces;
 
         ##if ptgi_pipeline_mode == inline
           HitInfo hitInfo;
-          bool isHit = trace_ray_with_screen_sample<PTGIScreenSample>(bvhMain, surface.position, sampleDir, minT, giDistance, rayLength, groupMask, hitInfo, traceFlags);
-          if (isHit && bounce < mark_voxel_activity_bounces)
+          bool isHit = trace_ray_with_screen_sample<PTGIScreenSample>(bvhMain, surface.position, sampleDir, minT, traceEnd, rayLength, groupMask, hitInfo, traceFlags);
+          if (isHit && markThisBounce)
             bvh_voxel_activity_mark(hitInfo.position);
           if (isHit)
           {
             hitDistance = hitInfo.t;
             if (!hitInfo.isScreenHit)
-              hitSurface = calc_surface_params(hitInfo, -sampleDir, -TRACING_LOD); // Use fix texture LOD
+              hitSurface = calc_surface_params(hitInfo, -sampleDir, -TRACING_LOD, rayLength); // Use fix texture LOD
           }
         ##else
           RayPayload payload = (RayPayload)0;
@@ -457,7 +398,7 @@ shader rt_gi
           ray.Origin = surface.position;
           ray.Direction = sampleDir;
           ray.TMin = minT;
-          ray.TMax = giDistance;
+          ray.TMax = traceEnd;
 
           uint flags = RAY_FLAG_CULL_BACK_FACING_TRIANGLES | traceFlags;
 
@@ -465,7 +406,7 @@ shader rt_gi
 
           bool isHit = pl_get_distance(payload) < giDistance;
           hitDistance = pl_get_distance(payload);
-          if (isHit && bounce < mark_voxel_activity_bounces)
+          if (isHit && markThisBounce)
             bvh_voxel_activity_mark(ray.Origin + ray.Direction * hitDistance);
           if (isHit)
           {
@@ -476,8 +417,7 @@ shader rt_gi
             hitSurface.smoothness = pl_get_smoothness(payload);
             hitSurface.metalness = pl_get_metalness(payload);
             hitSurface.reflectance = pl_get_reflectance(payload);
-            hitSurface.emission = 0;      // Implement it once we have emissive support in the BVH
-            hitSurface.emissionPart = 0;  // Implement it once we have emissive support in the BVH
+            hitSurface.emission = 0;      // The ray payload has no emission channel
             hitSurface.isWater = pl_get_is_water(payload);
             hitSurface.isImpostor = pl_get_is_impostor(payload);
             hitSurface.isFoliage = pl_get_is_foliage(payload);
@@ -496,24 +436,30 @@ shader rt_gi
             firstRayMax = bounce == 0 ? hitDistance : firstRayMax;
           ##endif
 
+          float3 waterTransmittance, waterInscatter;
+          rt_water_segment(surface.position, sampleDir, true, hitDistance, waterTransmittance, waterInscatter);
+
           ##if ptgi_pipeline_mode == inline
             if (hitInfo.isScreenHit)
             {
               // The previous frame is already lit with GI, we can stop here
-              giColor += hitInfo.screenRadiance * throughput;
+              giColor += (hitInfo.screenRadiance * waterTransmittance + waterInscatter) * throughput;
               break;
             }
           ##endif
 
-          half3 diffuseLighting = light_hit_surface(hitSurface, -sampleDir, rayLength, hitDistance, 10000, RAY_FLAG_FORCE_OPAQUE);
+          half3 diffuseLighting = light_hit_surface(hitSurface, -sampleDir, rayLength, hitDistance, 10000, 0, markThisBounce, RAY_FLAG_FORCE_OPAQUE);
           half3 combinedLighting = diffuseLighting;
 
-          giColor += combinedLighting * throughput;
+          giColor += (combinedLighting * waterTransmittance + waterInscatter) * throughput;
+          throughput *= waterTransmittance;
           surface = hitSurface;
         }
         else
         {
-          giColor += sample_envi_probe(half4(sampleDir, PTGI_SKY_MIP)).rgb * throughput;
+          float3 waterTransmittance, waterInscatter;
+          rt_water_segment(surface.position, sampleDir, false, 0, waterTransmittance, waterInscatter);
+          giColor += (sample_envi_probe(half4(sampleDir, PTGI_SKY_MIP)).rgb * waterTransmittance + waterInscatter) * throughput;
           firstDistance = bounce == 0 ? NRD_FP16_MAX : firstDistance;
           bounce = max_bounces;
         }
@@ -565,7 +511,7 @@ shader rt_gi
                                              WorldToObject3x4(),
                                              HitKind() == HIT_KIND_TRIANGLE_FRONT_FACE,
                                              InstanceIndex());
-        SurfaceParams hitSurface = calc_surface_params(hitInfo, -WorldRayDirection(), -TRACING_LOD); // Use fix texture LOD
+        SurfaceParams hitSurface = calc_surface_params(hitInfo, -WorldRayDirection(), -TRACING_LOD, 0); // Use fix texture LOD
         pl_set_albedo(payload, hitSurface.albedo);
         pl_set_reflectance(payload, hitSurface.reflectance);
         pl_set_metalness(payload, hitSurface.metalness);
@@ -596,6 +542,7 @@ shader rt_gi
 
 texture ptgi_decode_src;
 texture ptgi_decode_dst;
+int4 ptgi_decode_size;
 
 int ptgi_decode_albedo_mul;
 int ptgi_decode_tonemap;
@@ -610,10 +557,9 @@ shader rt_gi_decode
     output@uav = ptgi_decode_dst hlsl {
       RWTexture2D<float4> output@uav;
     };
-    resolution@f2 = get_dimensions(ptgi_decode_dst, 0).xy;
+    input_resolution@i4 = ptgi_decode_size; // the node sets it, a dimensions binding is a float under bytecode stcode
     ptgi_res_mul@i1 = ptgi_res_mul;
     ptgi_use_rr@u1 = ptgi_use_rr;
-    ptgi_inv_uv_scale@f2 = (1.0 / ptgi_uv_scale.xy);
     ptgi_decode_albedo_mul@u1 = ptgi_decode_albedo_mul;
     ptgi_decode_tonemap@u1 = ptgi_decode_tonemap;
   }
@@ -636,6 +582,8 @@ shader rt_gi_decode
     [numthreads(8, 8, 1)]
     void rt_gi_decode_cs(uint2 dtid : SV_DispatchThreadID)
     {
+      // every res_mul-th texel of the input, the output only grows with the dynamic resolution
+      uint2 resolution = uint2(input_resolution.xy) / uint(ptgi_res_mul);
       BRANCH
       if (any(dtid >= resolution))
         return;
@@ -647,7 +595,7 @@ shader rt_gi_decode
         value = texture2DAt(input, dtid * ptgi_res_mul).rgb;
 
       if (ptgi_decode_albedo_mul)
-        value *= readPackedGbuffer((dtid + 0.5f) / resolution * ptgi_inv_uv_scale).albedo_ao.rgb;
+        value *= readPackedGbuffer((dtid + 0.5f) / resolution).albedo_ao.rgb;
 
       if (ptgi_decode_tonemap)
         value = performLUTTonemap(value);
@@ -671,12 +619,14 @@ shader ptgi_validation_renderer
 
   (ps) {
     ptgi_validation_texture@smp2d = ptgi_validation_texture;
+    ptgi_validation_uv_scale@f2 = ptgi_validation_uv_scale;
   }
 
   hlsl(ps) {
     float4 ptgi_validation_renderer_ps(VsOutput i) : SV_Target
     {
-      return tex2D(ptgi_validation_texture, i.uv);
+      // the frame fills the top left of the debug copy
+      return tex2D(ptgi_validation_texture, i.uv * ptgi_validation_uv_scale);
     }
   }
 

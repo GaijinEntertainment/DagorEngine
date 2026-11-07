@@ -1,0 +1,11 @@
+const field call: ERROR: 'M' can mean this function or the constant/enum/import with the same name; rename one of them
+const field read: ERROR: 'M' can mean this function or the constant/enum/import with the same name; rename one of them
+const typed let: ERROR: 'M' can mean this function or the constant/enum/import with the same name; rename one of them
+const initializer: ERROR: 'M' can mean this function or the constant/enum/import with the same name; rename one of them
+import call: ERROR: 'abs' can mean this function or the constant/enum/import with the same name; rename one of them
+outer call: ERROR: 'f' can mean this function or the outer variable with the same name; rename one of them
+outer typed let: ERROR: 'M' can mean this function or the outer variable with the same name; rename one of them
+outer assign: ERROR: 'f' can mean this function or the outer variable with the same name; rename one of them
+outer of an enclosing function: ERROR: 'upd' can mean this function or the outer variable with the same name; rename one of them
+recursion: 120
+method recursion: 3

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <daECS/core/event.h>
+#include <util/dag_hash.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <vecmath/dag_vecMathDecl.h>
@@ -28,6 +29,10 @@
 struct RiGenVisibility;
 struct CameraParams;
 class Occlusion;
+namespace StdGuiRender
+{
+class GuiContext;
+}
 // all render events are called with broadcastImmediate. It is just generalized update stage.
 
 class CameraNodesRegistratorStorage
@@ -346,11 +351,12 @@ struct RenderHmapDeform : public ecs::Event
 
 struct VehicleCockpitPrepass : public ecs::Event
 {
-  TMatrix viewTm;
+  const CameraParams *camera;
+  const CameraParams *prevCamera;
   TexStreamingContext texCtx;
   ECS_BROADCAST_EVENT_DECL(VehicleCockpitPrepass)
-  VehicleCockpitPrepass(const TMatrix &view_tm, const TexStreamingContext &tex_ctx) :
-    ECS_EVENT_CONSTRUCTOR(VehicleCockpitPrepass), viewTm(view_tm), texCtx(tex_ctx)
+  VehicleCockpitPrepass(const CameraParams *camera_, const CameraParams *prev_camera, const TexStreamingContext &tex_ctx) :
+    ECS_EVENT_CONSTRUCTOR(VehicleCockpitPrepass), camera(camera_), prevCamera(prev_camera), texCtx(tex_ctx)
   {}
 };
 
@@ -373,11 +379,15 @@ enum AnimcharRenderAsyncFilter : int8_t
   ARF_ONLY_IDX2,
   ARF_ONLY_IDX3,
   ARF_IDX_COUNT,
-  ARF_IDX_MASK = ARF_IDX_COUNT - 1,
-  ARF_IDX_COUNT_MAX = ARF_IDX_COUNT * 2, // Finer split for heaviest workloads (e.g. last csm cascade)
+  ARF_IDX_COUNT_MAX = 6, // one job per console worker, so the last cascade fits in a single round
 };
-static_assert(is_pow2(AnimcharRenderAsyncFilter::ARF_IDX_COUNT));
-static_assert(is_pow2(AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX));
+static_assert(AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX >= AnimcharRenderAsyncFilter::ARF_IDX_COUNT);
+
+// Picks one of `count` jobs for an eid, no division so count is not limited to a power of two
+inline int animchar_async_job_of(ecs::EntityId eid, uint32_t count)
+{
+  return int((uint64_t(hash_int(ecs::entity_id_t(eid))) * count) >> 32);
+}
 
 struct AnimcharRenderAsyncEvent : public ecs::Event
 {
@@ -389,7 +399,7 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
   const uint8_t filterMask;
   const bool needPrevious;
   const AnimcharRenderAsyncFilter eidFilter;
-  const uint8_t eidFilterMask;
+  const uint8_t eidFilterCount;
   TexStreamingContext texCtx;
   ECS_INSIDE_EVENT_DECL(AnimcharRenderAsyncEvent, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE)
   AnimcharRenderAsyncEvent(dynrend::ContextId ctx_,
@@ -403,7 +413,7 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
     bool needPrevious_,
     AnimcharRenderAsyncFilter eid_filter,
     TexStreamingContext tex_context = TexStreamingContext(0),
-    uint8_t eid_filter_mask = AnimcharRenderAsyncFilter::ARF_IDX_MASK) :
+    uint8_t eid_filter_count = AnimcharRenderAsyncFilter::ARF_IDX_COUNT) :
     ECS_EVENT_CONSTRUCTOR(AnimcharRenderAsyncEvent),
     ctx(ctx_),
     globVarsState(gvars_state),
@@ -415,7 +425,7 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
     filterMask(filter_mask),
     needPrevious(needPrevious_),
     eidFilter(eid_filter),
-    eidFilterMask(eid_filter_mask),
+    eidFilterCount(eid_filter_count),
     texCtx(tex_context)
   {}
 };
@@ -555,7 +565,7 @@ struct RenderDecalsOnDynamic : public ecs::Event
 
 #define DEF_RENDER_PROFILE_EVENTS                                                                        \
   DEF_RENDER_PROF_EVENT(RenderEventUI, TMatrix /* viewTm */, TMatrix /* viewItm */, mat44f /* globtm */, \
-    Driver3dPerspective /* persp */)                                                                     \
+    Driver3dPerspective /* persp */, StdGuiRender::GuiContext * /* ctx */)                               \
   DEF_RENDER_PROF_EVENT(RenderXray, TMatrix /* viewTm */, TMatrix /* viewItm */, mat44f /* globtm */,    \
     Driver3dPerspective /* persp */)                                                                     \
   DEF_RENDER_PROF_EVENT(RenderDebugWithJitter)                                                           \
@@ -592,7 +602,6 @@ ECS_BROADCAST_EVENT_TYPE(BeforeStartVisibility);
 ECS_BROADCAST_EVENT_TYPE(RendinstLodRangeIncreasedEvent, bool /*impostor*/, bool /*rendinst*/);
 ECS_BROADCAST_EVENT_TYPE(AdaptationSettingsChanged);
 
-class TextureIDPair;
 ECS_UNICAST_EVENT_TYPE(CustomEnviProbeRender, const ManagedTex *, int)
 ECS_BROADCAST_EVENT_TYPE(CustomEnviProbeGetSphericalHarmonics, eastl::vector<Color4>)
 ECS_BROADCAST_EVENT_TYPE(CustomEnviProbeLogSphericalHarmonics, const Color4 *)

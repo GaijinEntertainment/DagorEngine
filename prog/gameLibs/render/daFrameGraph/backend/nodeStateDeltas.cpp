@@ -7,6 +7,7 @@
 #include <dag/dag_vectorMap.h>
 #include <util/dag_globDef.h>
 #include <drv/3d/dag_renderPass.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <generic/dag_enumerate.h>
 #include <generic/dag_pairwiseView.h>
 #include <memory/dag_framemem.h>
@@ -122,17 +123,16 @@ IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> DeltaCalculator:
             BarrierScheduler::barrier_kind(ev) == BarrierScheduler::Event::BarrierKind::FirstUse)
           firstActivationPosition[ev.resource] = eastl::min(firstActivationPosition[ev.resource], pos);
 
-    if (nodeState.pass.has_value() && !nodeState.pass->isLegacyPass)
+    if (const auto *pass = eastl::get_if<intermediate::RenderPass>(&nodeState.pass); pass && !pass->isLegacyPass)
     {
-      for (const auto &maybeAtt : nodeState.pass->colorAttachments)
+      for (const auto &maybeAtt : pass->colorAttachments)
         if (maybeAtt)
           firstAccessPosition[maybeAtt->resource] = eastl::min(firstAccessPosition[maybeAtt->resource], pos);
-      if (nodeState.pass->depthAttachment)
-        firstAccessPosition[nodeState.pass->depthAttachment->resource] =
-          eastl::min(firstAccessPosition[nodeState.pass->depthAttachment->resource], pos);
-      if (nodeState.pass->vrsRateAttachment)
-        firstAccessPosition[nodeState.pass->vrsRateAttachment->resource] =
-          eastl::min(firstAccessPosition[nodeState.pass->vrsRateAttachment->resource], pos);
+      if (pass->depthAttachment)
+        firstAccessPosition[pass->depthAttachment->resource] = eastl::min(firstAccessPosition[pass->depthAttachment->resource], pos);
+      if (pass->vrsRateAttachment)
+        firstAccessPosition[pass->vrsRateAttachment->resource] =
+          eastl::min(firstAccessPosition[pass->vrsRateAttachment->resource], pos);
     }
 
     ++pos;
@@ -154,22 +154,25 @@ shaders::UniqueOverrideStateId DeltaCalculator::delta(const eastl::optional<shad
   return current.has_value() ? shaders::overrides::create(*current) : shaders::OverrideStateId{};
 }
 
-RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::RenderPass> &current,
-  const eastl::optional<intermediate::RenderPass> &previous, uint16_t schedule_position)
+RenderPassDelta DeltaCalculator::delta(const intermediate::NodePass &current, const intermediate::NodePass &previous,
+  uint16_t schedule_position)
 {
+  const auto *currentPass = eastl::get_if<intermediate::RenderPass>(&current);
+  const auto *previousPass = eastl::get_if<intermediate::RenderPass>(&previous);
+
   PassChange result;
 
-  if (previous.has_value())
+  if (previousPass)
   {
-    if (previous->isLegacyPass)
+    if (previousPass->isLegacyPass)
       result.endAction = LegacyBackbufferPass{};
     else
       result.endAction = FinishRenderPass{};
   }
 
-  if (current.has_value())
+  if (currentPass)
   {
-    if (current->isLegacyPass)
+    if (currentPass->isLegacyPass)
     {
       result.beginAction = LegacyBackbufferPass{};
     }
@@ -178,7 +181,7 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
       auto &start = result.beginAction.emplace<BeginRenderPass>();
 
       // +1 here is for the depth/stencil attachment
-      const auto approxTotalAttachments = current->colorAttachments.size() + current->resolves.size() + 1;
+      const auto approxTotalAttachments = currentPass->colorAttachments.size() + currentPass->resolves.size() + 1;
 
       RPsDescKey rpDescKey{};
 
@@ -198,7 +201,7 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
           usedAutoResTypes.insert(r.asScheduled().resolutionType->id);
       };
 
-      const auto processAttachment = [&targets, &binds, &start, &current, &localAccessedThisNode, &collectAutoResType,
+      const auto processAttachment = [&targets, &binds, &start, currentPass, &localAccessedThisNode, &collectAutoResType,
                                        schedule_position, this](int32_t slot, RenderPassTargetAction main_action,
                                        RenderPassTargetAction final_action, const intermediate::SubresourceRef &subres) {
         const bool cleared = firstAccessPosition[subres.resource] < schedule_position || localAccessedThisNode.count(subres.resource);
@@ -269,8 +272,15 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
 
         start.attachments.push_back({subres.resource, subres.mipLevel, subres.layer, clearValue});
 
-        if (auto it = current->resolves.find(subres.resource); it != current->resolves.end())
+        if (auto it = currentPass->resolves.find(subres.resource); it != currentPass->resolves.end())
         {
+          if (slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL && !d3d::get_driver_desc().caps.hasRenderPassDepthResolve)
+          {
+            LOGERR_ONCE("daFG: node '%s' requested an MSAA depth resolve, but the driver does not support it! Skipping the resolve.",
+              nodeName);
+            return;
+          }
+
           const auto resolveTgtResIdx = it->second;
           {
             const auto resolveAttIdx = static_cast<int32_t>(targets.size());
@@ -297,20 +307,20 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
 
       // TODO: we should optimize out unnecessary loads/stores in the future.
 
-      for (int32_t i = 0; i < current->colorAttachments.size(); ++i)
-        if (auto maybeAtt = current->colorAttachments[i])
+      for (int32_t i = 0; i < currentPass->colorAttachments.size(); ++i)
+        if (auto maybeAtt = currentPass->colorAttachments[i])
           processAttachment(i, RP_TA_SUBPASS_WRITE, RP_TA_STORE_WRITE, *maybeAtt);
 
-      if (auto maybeAtt = current->depthAttachment)
+      if (auto maybeAtt = currentPass->depthAttachment)
       {
-        const auto mainDepthAction = current->depthReadOnly ? RP_TA_SUBPASS_READ : RP_TA_SUBPASS_WRITE;
-        const auto finalDepthAction = current->depthReadOnly ? RP_TA_STORE_NONE : RP_TA_STORE_WRITE;
+        const auto mainDepthAction = currentPass->depthReadOnly ? RP_TA_SUBPASS_READ : RP_TA_SUBPASS_WRITE;
+        const auto finalDepthAction = currentPass->depthReadOnly ? RP_TA_STORE_NONE : RP_TA_STORE_WRITE;
         constexpr auto DS = RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL;
         processAttachment(DS, mainDepthAction, finalDepthAction, *maybeAtt);
       }
 
       start.useVrs = false;
-      if (auto maybeAtt = current->vrsRateAttachment)
+      if (auto maybeAtt = currentPass->vrsRateAttachment)
       {
         constexpr auto VRSslot = RenderPassExtraIndexes::RP_SLOT_VRS_TEXTURE;
         processAttachment(VRSslot, RP_TA_SUBPASS_VRS_READ, RP_TA_STORE_NONE, *maybeAtt);

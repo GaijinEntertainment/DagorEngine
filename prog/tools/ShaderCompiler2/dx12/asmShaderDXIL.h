@@ -121,6 +121,15 @@ CombinedShaderStorage combinePhaseOneVertexProgram(const ShaderStageData &vs, co
 CombinedShaderStorage combinePhaseOnePixelShader(const ShaderStageData &ps, const RootSignatureStore &signature, unsigned id,
   bool has_gs, bool has_ts, CompilationOptions options);
 
+struct VertexProgramStageDebugInfoSuffixes
+{
+  const char *hs;
+  const char *ds;
+  const char *gs;
+};
+
+VertexProgramStageDebugInfoSuffixes getVertexProgramStageDebugInfoSuffixes(dag::ConstSpan<uint8_t> source);
+
 eastl::optional<CombinedShaderStorage> recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir,
   wchar_t *pdb_name, DebugLevel debug_level, DebugParts debug_parts);
 

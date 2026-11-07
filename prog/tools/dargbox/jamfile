@@ -28,6 +28,7 @@ if $(Platform) in windows linux { UseD3DMulti ?= yes ; }
 
 if $(Platform) in windows {
   VRDeviceSupport ?= yes ;
+  UseD3DMultiList ?= D3D_ALL_WITH_STUB ; # test.py runs on the stub driver
 }
 
 

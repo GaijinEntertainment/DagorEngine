@@ -71,7 +71,7 @@ hlsl(ps){
     float3 biasedWorldPos = world_pos + normal;
     float depthAbove = get_depth_above_fast(biasedWorldPos, depthVignette);
 
-    float depthInfl = 1 - saturate(depthAbove - biasedWorldPos.y);
+    float depthInfl = lerp(1 - saturate(depthAbove - biasedWorldPos.y), 1, depthVignette);
 
     return depthInfl < 0.0001;
   }

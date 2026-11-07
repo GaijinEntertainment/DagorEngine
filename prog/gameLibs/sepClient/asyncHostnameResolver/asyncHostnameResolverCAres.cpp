@@ -16,7 +16,7 @@
 #include <poll.h>
 #endif
 
-#include <algorithm>
+#include <EASTL/algorithm.h>
 #include <cstring>
 
 
@@ -210,7 +210,7 @@ private:
     {
       for (int i = 0; host->h_addr_list[i] != nullptr; ++i)
       {
-        constexpr size_t formatted_ip_max_len = std::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN);
+        constexpr size_t formatted_ip_max_len = eastl::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN);
         char ipbuf[formatted_ip_max_len];
         const char *formattedIp = inet_ntop(host->h_addrtype, host->h_addr_list[i], ipbuf, sizeof(ipbuf));
         if (formattedIp != nullptr)

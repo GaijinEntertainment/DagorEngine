@@ -3,7 +3,9 @@
 #include "texgen_dshl_assemble.h"
 
 #include <ioSys/dag_dataBlock.h>
+#include <textureGen/textureGenerator.h>
 #include <util/dag_globDef.h>
+#include <util/dag_hash.h>
 #include <util/dag_string.h>
 #include <hash/crc32.h>
 #include <EASTL/string.h>
@@ -99,6 +101,41 @@ eastl::string assemble_body(const DataBlock &source, const DataBlock &node_param
   return body;
 }
 
+void append_key_field(eastl::string &key, const char *field)
+{
+  key.append_sprintf("%u:", static_cast<unsigned>(strlen(field)));
+  key.append(field);
+}
+
+// Appends what assemble_body reads from a node's params: its shader_postcode and substitutions overrides.
+void append_node_overrides(eastl::string &key, const DataBlock &node_params)
+{
+  if (const char *postCode = node_params.getStr("shader_postcode", nullptr))
+  {
+    key.push_back('P');
+    append_key_field(key, postCode);
+  }
+  key.push_back('S');
+  if (const DataBlock *subst = node_params.getBlockByName("substitutions"))
+  {
+    for (int i = 0; i < subst->paramCount(); ++i)
+    {
+      if (subst->getParamType(i) == DataBlock::TYPE_STRING)
+      {
+        append_key_field(key, subst->getParamName(i));
+        append_key_field(key, subst->getStr(i));
+      }
+    }
+  }
+}
+
+// Identifies everything assemble_body reads from a node: its shader source block and its overrides.
+void make_body_key(eastl::string &key, const DataBlock &source, const DataBlock &node_params)
+{
+  key.sprintf("%p", static_cast<const void *>(&source));
+  append_node_overrides(key, node_params);
+}
+
 // A shader is a particle CONSUMER when its source declares particle interpolant fields
 // (particle_fields_with_semantics in substitutions) -- it draws instanced particle quads and reads
 // per-particle attributes, so it must be compiled with the instanced particles VS (which reads the
@@ -164,6 +201,20 @@ bool assemble_texgen_dshl(const DataBlock &main_graph_blk, const DataBlock &shad
     return variantName;
   };
 
+  // Most nodes of a shader have no overrides and share one body, so each distinct body key is assembled once.
+  eastl::hash_map<eastl::string, eastl::string> variantOfBodyKey;
+  eastl::string bodyKey;
+  auto getVariant = [&](const DataBlock &source, const DataBlock &node_params) -> eastl::string {
+    make_body_key(bodyKey, source, node_params);
+    if (auto it = variantOfBodyKey.find(bodyKey); it != variantOfBodyKey.end())
+    {
+      return it->second;
+    }
+    eastl::string variantName = getOrCreateVariant(assemble_body(source, node_params, skeleton), source_consumes_particles(source));
+    variantOfBodyKey.emplace(bodyKey, variantName);
+    return variantName;
+  };
+
   // 1) Per main-graph node: a variant baked with that node's params/substitutions. shader:t is later
   //    rewritten to this variant name (applyDshlShaderRewrite).
   for (int i = 0; i < main_graph_blk.blockCount(); ++i)
@@ -189,10 +240,7 @@ bool assemble_texgen_dshl(const DataBlock &main_graph_blk, const DataBlock &shad
       continue;
     }
 
-    const bool isParticles = source_consumes_particles(*source);
-
-    const eastl::string body = assemble_body(*source, *node->getBlockByNameEx("params"), skeleton);
-    const eastl::string v = getOrCreateVariant(body, isParticles);
+    const eastl::string v = getVariant(*source, *node->getBlockByNameEx("params"));
     out_result.nodeToVariant.emplace(eastl::string(node->getBlockName()), v);
     out_result.variantToSource.emplace(v, eastl::string(shaderName));
   }
@@ -214,7 +262,7 @@ bool assemble_texgen_dshl(const DataBlock &main_graph_blk, const DataBlock &shad
     {
       continue;
     }
-    const eastl::string v = getOrCreateVariant(assemble_body(*src, emptyParams, skeleton), source_consumes_particles(*src));
+    const eastl::string v = getVariant(*src, emptyParams);
     out_result.sourceToVariant.emplace(eastl::string(name), v);
     out_result.variantToSource.emplace(v, eastl::string(name)); // no-op if v already mapped
   }
@@ -222,4 +270,24 @@ bool assemble_texgen_dshl(const DataBlock &main_graph_blk, const DataBlock &shad
   out_result.dshlText = eastl::move(dshl);
   out_result.bodyHash = combinedHash;
   return true;
+}
+
+uint64_t texgen_dshl_input_hash(const DataBlock &main_graph_blk, const DataBlock &shader_sources, const TexgenDshlSkeleton &skeleton)
+{
+  uint64_t hash = texgen_hash_block_content(shader_sources);
+  for (const eastl::string *part : {&skeleton.vprog, &skeleton.particlesVprog, &skeleton.premain, &skeleton.postmain})
+  {
+    hash = mem_hash_fnv1<64>(part->c_str(), part->size() + 1, hash);
+  }
+  eastl::string nodeKey;
+  for (int i = 0; i < main_graph_blk.blockCount(); ++i)
+  {
+    const DataBlock &node = *main_graph_blk.getBlock(i);
+    nodeKey.clear();
+    append_key_field(nodeKey, node.getBlockName());
+    append_key_field(nodeKey, node.getStr("shader", ""));
+    append_node_overrides(nodeKey, *node.getBlockByNameEx("params"));
+    hash = mem_hash_fnv1<64>(nodeKey.c_str(), nodeKey.size() + 1, hash);
+  }
+  return hash;
 }

@@ -72,6 +72,7 @@ int get_target_slot(Id id, const char *name);
 bool is_target_multisampled(Id id, int i);
 dag::ConstSpan<ResolvePair> get_resolves(Id id);
 int get_subpass_count(Id id);
+const char *get_subpass_name(Id id, int subpass);
 SubpassInfo get_subpass_info(Id id, int subpass);
 
 struct TargetFormatInfo

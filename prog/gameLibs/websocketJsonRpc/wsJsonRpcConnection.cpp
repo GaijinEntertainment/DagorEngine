@@ -102,14 +102,14 @@ void WsJsonRpcConnection::setIncomingRequestCallback(IncomingRequestCallback &&c
 
 void WsJsonRpcConnection::addEvent(Event &&event)
 {
-  std::lock_guard<std::mutex> lock(protectIncomingEvents);
+  dag::lock_guard lock(protectIncomingEvents);
   incomingEvents.emplace_back(eastl::move(event));
 }
 
 
 bool WsJsonRpcConnection::extractEvent(Event &event)
 {
-  std::lock_guard<std::mutex> lock(protectIncomingEvents);
+  dag::lock_guard lock(protectIncomingEvents);
   if (incomingEvents.empty())
   {
     return false;
@@ -286,7 +286,7 @@ void WsJsonRpcConnection::onStateInitial()
   clientConfig.connectTimeoutMs = config.connectTimeoutMs;
   clientConfig.maxMessageSize = config.maxReceivedMessageSize;
 
-  // constraint: runs on the worker thread; config, logPrefix and the event queue outlive it because the destructor
+  // runs on the worker thread; config, logPrefix and the event queue outlive it because the destructor
   // resets wsClient first, which waits for it. A lock() here could drop the last reference inside the callback.
   clientConfig.onMessageAsync = [this, weakSelf](websocket::WebSocketClient *, websocket::PayloadView payload, bool is_text) {
     if (weakSelf.expired())

@@ -17,11 +17,11 @@
 
 namespace HumanInput
 {
-namespace sonypad
+namespace dspad
 {
 
 // sysfs shows the ids without node access
-bool enumerate_hid_devices(Tab<HidDeviceInfo> &out)
+bool enumerate_hid_devices(HidDeviceList &out)
 {
   out.clear();
   DIR *dir = opendir("/sys/class/hidraw");
@@ -33,7 +33,7 @@ bool enumerate_hid_devices(Tab<HidDeviceInfo> &out)
       continue;
     char uevent[320];
     snprintf(uevent, sizeof(uevent), "/sys/class/hidraw/%s/device/uevent", e->d_name);
-    file_ptr_t f = df_open(uevent, DF_READ | DF_IGNORE_MISSING);
+    file_ptr_t f = df_open(uevent, DF_READ | DF_IGNORE_MISSING | DF_REALFILE_ONLY);
     if (!f)
       continue;
     unsigned bus = 0, vid = 0, pid = 0;
@@ -58,7 +58,7 @@ bool HidDevice::open(const HidDeviceInfo &dev_info)
   info = dev_info;
   fd = ::open(info.path, O_RDWR | O_NONBLOCK | O_CLOEXEC);
   if (fd < 0)
-    debug("[HID][SONY] open(%s) failed: %s (add the Valve 60-steam-input.rules udev file for hidraw access)", info.path,
+    debug("[HID][DSPAD] open(%s) failed: %s (add the Valve 60-steam-input.rules udev file for hidraw access)", info.path,
       strerror(errno));
   return fd >= 0;
 }
@@ -95,7 +95,7 @@ int HidDevice::getFeature(uint8_t report_id, uint8_t *buf, int cap)
 HidWaitSet::HidWaitSet()
 {
   if (pipe2(wakeFd, O_NONBLOCK | O_CLOEXEC) != 0)
-    debug("[HID][SONY] wake pipe failed: %s", strerror(errno));
+    debug("[HID][DSPAD] wake pipe failed: %s", strerror(errno));
 }
 
 HidWaitSet::~HidWaitSet()
@@ -132,5 +132,5 @@ void HidWaitSet::wait(HidDevice *const *devices, int count, int timeout_ms)
   }
 }
 
-} // namespace sonypad
+} // namespace dspad
 } // namespace HumanInput

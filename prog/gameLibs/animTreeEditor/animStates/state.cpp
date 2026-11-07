@@ -57,9 +57,9 @@ static Tab<String> fill_free_channels_combo(PropPanel::ContainerPropertyControl 
   for (const AnimStatesData &data : states_data)
     if (data.type == AnimStatesType::CHAN)
     {
-      const String channelName = tree->getCaption(data.handle);
+      String channelName = tree->getCaption(data.handle);
       if (eastl::find(names.begin(), names.end(), channelName) == names.end())
-        freeChannelsCombo.emplace_back(channelName);
+        freeChannelsCombo.emplace_back(eastl::move(channelName));
     }
 
   return freeChannelsCombo;
@@ -239,10 +239,12 @@ void AnimTreeEditor::stateSaveBlockSettings(PropPanel::ContainerPropertyControl 
 
   if (!selectedBlock)
     selectedBlock = settings.addNewBlock(panel->getText(PID_STATES_STATE_NODE_CHANNEL));
-  if (fieldName != selectedBlock->getStr("name", ""))
-    data.childs[selectedIdx] = find_state_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, fieldName);
-
-  check_state_child_idx(data.childs[selectedIdx], settings.getStr("name"), fieldName);
+  if (unsigned(selectedIdx) < data.childs.size())
+  {
+    if (fieldName != selectedBlock->getStr("name", ""))
+      data.childs[selectedIdx] = find_state_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, fieldName);
+    check_state_child_idx(data.childs[selectedIdx], settings.getStr("name"), fieldName);
+  }
 
   for (int i = selectedBlock->paramCount() - 1; i >= 0; --i)
     selectedBlock->removeParam(i);
@@ -281,8 +283,6 @@ void state_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, Dat
   }
 }
 
-const char *state_get_child_name_by_idx(const DataBlock &settings, int idx) { return settings.getBlock(idx)->getStr("name"); }
-
 void state_update_child_name(DataBlock &settings, const char *name, const String &old_name)
 {
   for (int i = 0; i < settings.blockCount(); ++i)
@@ -298,8 +298,8 @@ void state_update_child_name(DataBlock &settings, const char *name, const String
 class StateReorderHandler : public BaseAnimStatesReorderHandler
 {
 public:
-  StateReorderHandler(AnimTreeEditor &editor, dag::ConstSpan<AnimStatesData> states, PropPanel::ContainerPropertyControl *panel) :
-    BaseAnimStatesReorderHandler(editor, states, panel)
+  StateReorderHandler(AnimTreeEditor &editor, dag::Vector<AnimStatesData> &states, PropPanel::ContainerPropertyControl *panel) :
+    BaseAnimStatesReorderHandler(editor, states, panel), statesData(states)
   {}
 
 protected:
@@ -308,13 +308,30 @@ protected:
   void handleSpecificReorder(DataBlock &props, int from, int to) override
   {
     PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
-    DataBlock *stateDesc = props.addBlock("stateDesc");
-    DataBlock *settings = find_block_by_name(stateDesc, tree->getCaption(tree->getSelLeaf()));
-    move_block_blk(*settings, from, to);
+    DataBlock *stateDesc = props.getBlockByName("stateDesc");
+    if (!stateDesc)
+    {
+      logerr("Can't find stateDesc block in blk with path:<%s>", props.resolveFilename());
+      return;
+    }
+    TLeafHandle leaf = tree->getSelLeaf();
+    DataBlock *settings = find_block_by_name(stateDesc, tree->getCaption(leaf));
+    if (!settings)
+      return;
+    const int fromBlockIdx = get_child_block_idx_by_list_idx(settings, from);
+    const int toBlockIdx = get_child_block_idx_by_list_idx(settings, to);
+    if (fromBlockIdx < 0 || toBlockIdx < 0)
+      return;
+    move_block_blk(*settings, fromBlockIdx, toBlockIdx);
+    AnimStatesData *data = find_data_by_handle(statesData, leaf);
+    if (data != statesData.end())
+      move_childs(data->childs, from, to);
   }
+
+  dag::Vector<AnimStatesData> &statesData;
 };
 
-IListReorderHandler *state_get_reorder_handler(AnimTreeEditor &editor, dag::ConstSpan<AnimStatesData> states,
+IListReorderHandler *state_get_reorder_handler(AnimTreeEditor &editor, dag::Vector<AnimStatesData> &states,
   PropPanel::ContainerPropertyControl *panel)
 {
   return new StateReorderHandler(editor, states, panel);

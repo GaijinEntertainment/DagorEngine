@@ -1,0 +1,5 @@
+local R = prog/daNetGameLibs/phys_kind ;
+Sources +=
+  $(R)/dasModules/physKind.cpp
+  $(R)/_aot/stub_physkind.cpp
+;

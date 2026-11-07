@@ -109,11 +109,11 @@ private:
   void countGain(double power_in, dag::ConstSpan<int16_t> out);
   void applyTuningChange();
 
-  // constraint: AEC3 needs linear audio, AGC2 denoised
+  // AEC3 needs linear audio, AGC2 denoised
   webrtc::scoped_refptr<webrtc::AudioProcessing> echoAP;
   webrtc::scoped_refptr<webrtc::AudioProcessing> gainAP;
   DenoiseState *denoiseSt = nullptr;
-  // constraint: before tuning, speechGate and speechDetector, which the constructor builds from the loaded values
+  // 0 means before tuning; the constructor builds speechGate and speechDetector from the loaded values
   int tuningGeneration = 0;
   CaptureTuning tuning;
   SpeechGate speechGate;

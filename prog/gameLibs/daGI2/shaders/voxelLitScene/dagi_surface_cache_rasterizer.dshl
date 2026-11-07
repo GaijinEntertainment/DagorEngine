@@ -1,0 +1,82 @@
+include "dagi_surface_cache_common.dshl"
+include "dagi_albedo_scene_common.dshl"
+include "project_light_point.dshl"
+
+define_macro_if_not_defined PROJECT_LIGHT_POINT_VOXELIZE(code) // when voxelizing radiance scene
+  hlsl(code) {
+   float3 project_get_lit_color_at_voxelize(float3 worldPos, float3 worldNormal, float3 albedo){return albedo*0.1;}
+  }
+endmacro
+
+define_macro_if_not_defined PROJECT_LIGHT_POINT_VOXELIZE_OFF_SCREEN_VOXEL_LIT_SCENE(code) // when voxelizing radiance scene
+  PROJECT_LIGHT_POINT_VOXELIZE(code)
+endmacro
+
+define_macro_if_not_defined PROJECT_WORLD_SDF_RASTERIZE(code)
+  DAGI_ALBEDO_SAMPLE(code)
+  PROJECT_LIGHT_POINT_VOXELIZE_OFF_SCREEN_VOXEL_LIT_SCENE(code)
+  DAGI_SURFACE_CACHE_WRITE(code)
+
+  hlsl(code) {
+    // not while the radiance update is off (static shadows can be invalid); uniform in a draw
+    bool seeds_surface_cache_clip()
+    {
+      return dagi_surface_cache_center.w > 0 && uint(world_sdf_update_mip) < dagi_surface_cache_levels();
+    }
+    // once: by the clip of the level that stores the point
+    bool seeds_surface_cache(float3 worldPos)
+    {
+      int3 unwrappedCoordI = floor(worldPos.xzy*world_sdf_raster_inv_voxel_size());
+      return seeds_surface_cache_clip() && dagi_surface_cache_level(worldPos) == uint(world_sdf_update_mip) &&
+             all(uint3(unwrappedCoordI - world_sdf_get_update_lt()) < world_sdf_get_update_sz());
+    }
+    // the face normal keys the cell, as at trace hits
+    void seed_surface_cache_albedo(float3 worldPos, float3 geomNormal, float3 normal, float3 albedo, bool is_two_sided)
+    {
+      uint key, backKey = 0, backSlot = ~0u, slot = dagi_surface_cache_seed_slot(worldPos, geomNormal, world_sdf_update_mip, key);
+      // an if: both sides of ?: run
+      if (is_two_sided)
+        backSlot = dagi_surface_cache_seed_slot(worldPos, -geomNormal, world_sdf_update_mip, backKey);
+      // live cells skip the albedo lookup
+      if (albedo.x < 0 && (slot != ~0u || backSlot != ~0u))
+      {
+        albedo = DAGI_MISSED_ALBEDO;
+        dagi_sample_albedo_best(worldPos, albedo);
+      }
+      if (slot != ~0u)
+        dagi_surface_cache_seed(slot, key, project_get_lit_color_at_voxelize(worldPos, normal, albedo));
+      if (backSlot != ~0u)
+        dagi_surface_cache_seed(backSlot, backKey, project_get_lit_color_at_voxelize(worldPos, -normal, albedo));
+    }
+
+    void project_world_sdf_rasterize_normal_albedo(float3 worldPos, float3 geomNormal, float3 pointNormal, float3 albedo, bool is_two_sided) {
+      if (seeds_surface_cache(worldPos))
+        seed_surface_cache_albedo(worldPos, geomNormal, pointNormal, albedo, is_two_sided);
+    }
+    void project_world_sdf_rasterize_normal(float3 worldPos, float3 worldNormal, bool twoSided) {project_world_sdf_rasterize_normal_albedo(worldPos, worldNormal, worldNormal, -1, twoSided);}
+
+    void project_world_sdf_rasterize_albedo(WorldSDFInterpolant sdfI, float3 pointNormal, bool usePointNormal, float3 albedo) {
+      #if !RASTERIZE_PRIMS
+      float3 geomNormal = normalize(cross(ddx(sdfI.worldPos), ddy(sdfI.worldPos)));
+      geomNormal = sdfI.isBackFace ? -geomNormal : geomNormal;
+      #endif
+      if (!seeds_surface_cache(sdfI.worldPos))
+        return;
+      #if RASTERIZE_PRIMS
+        float3 geomNormal = normalize(cross(sdfI.vc - sdfI.va, sdfI.vb - sdfI.va));
+      #endif
+      seed_surface_cache_albedo(sdfI.worldPos, geomNormal, usePointNormal ? pointNormal : geomNormal, albedo, sdfI.isTwoSided);
+    }
+    void project_world_sdf_rasterize(WorldSDFInterpolant sdfI) {project_world_sdf_rasterize_albedo(sdfI, float3(0,0,0), false, -1);}
+  }
+endmacro
+
+define_macro_if_not_defined PROJECT_WORLD_SDF_CLEAR(code)
+  DAGI_SURFACE_CACHE_WRITE(code)
+  hlsl(code) {
+    void project_world_sdf_clear(int3 world_sdf_coord, int sdf_clip, float3 radiance = 0, float alpha = 0)
+    {
+      dagi_surface_cache_clear_voxel(world_sdf_coord, sdf_clip, world_sdf_raster_voxel_size(), radiance, alpha);
+    }
+  }
+endmacro

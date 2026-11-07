@@ -126,3 +126,11 @@ Windows is a registered trademark of Microsoft Corporation in the US and other j
 ## Upstream
 
 Vendored from https://github.com/GPUOpen-LibrariesAndSDKs/AntiLag2-SDK, version v2.0.0a.
+
+## Local modifications
+
+- `ffx_antilag2_dx11.h`: DirectX 11 `Update()` sends no control string
+  (`sControlStr = nullptr`). amdxx64.dll copies the Anti-Lag 2 control
+  string with an out-of-bounds read, which can crash the game. The
+  driver overlay may then stop showing the Anti-Lag 2 state. The
+  DirectX 12 path already sends none.

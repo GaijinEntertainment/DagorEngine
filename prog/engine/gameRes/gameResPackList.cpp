@@ -7,12 +7,18 @@
 #include <ioSys/dag_fileIo.h>
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/basePath.h>
 #include <util/dag_fileMd5Validate.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
 #include <stdio.h>
 #include "grpData.h"
 #include <perfMon/dag_perfTimer.h>
+#if _TARGET_PC_WIN
+#include <direct.h>
+#elif _TARGET_PC
+#include <unistd.h>
+#endif
 
 #define debug(...) logmessage(_MAKE4C('GRSS'), __VA_ARGS__)
 
@@ -28,6 +34,19 @@ void registerOptionalGameResPack(const char *filename);
 void registerOptionalDdsxTexPack(const char *filename);
 void dumpOptionalMappigs(const char *pkg_name);
 } // namespace gameresprivate
+
+// the hook can find a missing pack elsewhere; then fn takes that name
+static bool is_pack_missing(char (&fn)[DAGOR_MAX_PATH])
+{
+  if (dd_file_exists(fn))
+    return false;
+  String resolved;
+  if (!gamereshooks::on_missing_pack_resolve || !gamereshooks::on_missing_pack_resolve(fn, resolved))
+    return true;
+  strncpy(fn, resolved, DAGOR_MAX_PATH - 1);
+  fn[DAGOR_MAX_PATH - 1] = 0;
+  return false;
+}
 
 void load_res_packs_from_list(const char *pack_list_blk_fname, bool load_grp, bool load_tex, const char *res_base_dir)
 {
@@ -76,7 +95,9 @@ void load_res_packs_from_list_blk(const DataBlock &blk, const char *pack_list_bl
       if (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(tempBuf, true))
         continue;
       bool tq_pack = i == 0 && strstr(b->getStr(i), "__tq_pack.dxp");
-      if (opt_tex_per_file && !tq_pack && !dd_file_exists(tempBuf)) // texture packs may be optional except for TQ pack
+      // texture packs may be optional except for TQ pack
+      const bool may_be_optional = opt_tex_per_file && !tq_pack;
+      if ((may_be_optional || gamereshooks::on_missing_pack_resolve) && is_pack_missing(tempBuf) && may_be_optional)
       {
         strcat(tempBuf, "cache.bin");
         gameresprivate::registerOptionalDdsxTexPack(tempBuf);
@@ -100,10 +121,13 @@ void load_res_packs_from_list_blk(const DataBlock &blk, const char *pack_list_bl
       if (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(tempBuf, false))
         continue;
 
+      // checked before the scan, which registers the pack by this name (from its header in cache.bin when the file is missing)
+      const bool optional =
+        (opt_res_per_file || gamereshooks::on_missing_pack_resolve) && is_pack_missing(tempBuf) && opt_res_per_file;
       gameresprivate::scanGameResPack(tempBuf);
       num_grp++;
 
-      if (opt_res_per_file && !dd_file_exists(tempBuf))
+      if (optional)
       {
         strcat(tempBuf, "cache.bin");
         gameresprivate::registerOptionalGameResPack(tempBuf);
@@ -123,6 +147,28 @@ void load_res_packs_from_list_blk(const DataBlock &blk, const char *pack_list_bl
   gameresprivate::gameResPatchInProgress = prev_patchMode;
   if (opt_res_per_file || opt_tex_per_file)
     gameresprivate::dumpOptionalMappigs(res_base_dir);
+}
+
+String resolve_res_base_dir(const char *dir)
+{
+  if (is_path_abs(dir))
+    return String::mk_str_cat(dir, "/");
+  String path;
+  int idx = 0;
+  while (const char *base = df_next_base_path(&idx))
+  {
+    path.setStrCat(base, dir);
+#if _TARGET_PC
+    char cwd[DAGOR_MAX_PATH];
+    if (!is_path_abs(path) && getcwd(cwd, sizeof(cwd)))
+      path.setStrCat4(cwd, "/", base, dir);
+#endif
+    simplify_fname(path);
+    path += "/";
+    if (is_path_abs(path) && dd_file_exists(path + "grp_hdr.vromfs.bin"))
+      return path;
+  }
+  return String::mk_str_cat(dir, "/");
 }
 
 bool load_res_packs_patch(const char *patch_pack_list_blk_fn, const char *base_grp_vromfs_fn, bool load_grp, bool load_tex)

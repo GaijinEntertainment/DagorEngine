@@ -131,7 +131,7 @@ static dafg::NodeHandle makeDynamicHairRenderNode(const char *view_ns, bool is_m
     return [texCtxHndl, hasDynLightsHndl, is_main_view]() {
       camera_in_camera::ApplyMasterState camcam{is_main_view};
       const auto &lights = WRDispatcher::getClusteredLights();
-      if (lights.hasClusteredLights() && hasDynLightsHndl.ref())
+      if (hasDynLightsHndl.ref())
         lights.setInsideOfFrustumLightsToShader();
 
       render_hair_ecs_query(*g_entity_mgr, g_entity_mgr->getSingletonEntity(ECS_HASH("dynamic_hair_renderer")),

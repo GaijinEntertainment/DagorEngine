@@ -13,14 +13,7 @@ static inline bool is_address_readable(const void *addr)
   return false;
 }
 
-#if DAGOR_ADDRESS_SANITIZER
-#if defined(_MSC_VER) && !defined(__clang__)
-__declspec(no_sanitize_address)
-#else
-__attribute__((no_sanitize("address")))
-#endif
-#endif
-bool is_address_natively_allocated(const void *addr)
+DAGMEM_NO_ASAN bool is_address_natively_allocated(const void *addr)
 {
   if (!addr)
     return true; // treat nullptr as native pointer

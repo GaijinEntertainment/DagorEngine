@@ -263,6 +263,14 @@ dagdp_has_target_mesh_lod {
   }
 }
 
+dagdp_has_discard_below_heightmap {
+  _track:b=yes
+  "dagdp__discard_below_heightmap:b"{
+    value:b=no
+    _info { desc:t="Discard objects placed on meshes below the heightmap." }
+  }
+}
+
 dagdp_placer_on_meshes {
   _use:t="dagdp_placer"
   _use:t="dagdp_has_density"
@@ -278,6 +286,7 @@ dagdp_placer_volume {
   _use:t="dagdp_placer_on_meshes"
   "dagdp_placer_volume:tag"{}
   _use:t="dagdp_has_sample_range"
+  _use:t="dagdp_has_discard_below_heightmap"
   _info { desc:t="Will place objects on geometry inside volumes that reference this placer." }
 }
 
@@ -351,6 +360,7 @@ dagdp_placer_around_ri {
   _use:t="dagdp_placer_on_meshes"
   _use:t="dagdp_has_resource_names"
   _use:t="dagdp_has_sample_range"
+  _use:t="dagdp_has_discard_below_heightmap"
   "dagdp_placer_around_ri:tag"{}
   "dagdp__volume_box_eids:list<eid>"{
     _hide:b=yes

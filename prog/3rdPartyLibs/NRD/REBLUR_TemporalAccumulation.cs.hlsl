@@ -863,6 +863,45 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 
     // Diffuse
     #if( NRD_DIFF )
+        // Gaijin change
+        #ifdef REBLUR_SECOND_CHANCE_HISTORY
+            float4 behindOcclusionWeights = 0.0;
+            bool useBehind = false;
+
+            [branch]
+            if( gHasBehindHistory != 0 && fbits == 0.0 && length( Xprev - X ) < 2.0 * pixelSize )
+            {
+                float2 behindGatherUv = ( smbBilinearFilter.origin + 1.0 ) * gResourceSizeInvPrev;
+                float4 behindViewZ = UnpackViewZ( gBehind_ViewZ.GatherRed( gNearestClamp, behindGatherUv ).wzxy );
+                uint4 behindInternalData = gBehind_InternalData.GatherRed( gNearestClamp, behindGatherUv ).wzxy;
+                float3 behindData00 = UnpackInternalData( behindInternalData.x );
+                float3 behindData10 = UnpackInternalData( behindInternalData.y );
+                float3 behindData01 = UnpackInternalData( behindInternalData.z );
+                float3 behindData11 = UnpackInternalData( behindInternalData.w );
+
+                float4 behindThreshold = GetDisocclusionThreshold( disocclusionThreshold, frustumSize, NoV );
+                behindThreshold *= IsInScreenBilinear( smbBilinearFilter.origin, gRectSizePrev );
+                behindThreshold -= NRD_EPS;
+
+                float4 behindOcclusion = step( abs( behindViewZ - Xvprev.z ), behindThreshold ) * float4( IsInDenoisingRange( behindViewZ ) );
+                behindOcclusion *= float4(
+                    CompareMaterials( materialID, behindData00.z, gDiffMinMaterial ),
+                    CompareMaterials( materialID, behindData10.z, gDiffMinMaterial ),
+                    CompareMaterials( materialID, behindData01.z, gDiffMinMaterial ),
+                    CompareMaterials( materialID, behindData11.z, gDiffMinMaterial ) );
+
+                behindOcclusionWeights = Filtering::GetBilinearCustomWeights( smbBilinearFilter, behindOcclusion );
+                useBehind = dot( behindOcclusionWeights, 1.0 ) > 0.0001;
+                if( useBehind )
+                {
+                    diffAccumSpeed = Filtering::ApplyBilinearCustomWeights( behindData00.x, behindData10.x, behindData01.x, behindData11.x, behindOcclusionWeights );
+                    smbFootprintQuality = Math::Sqrt01( Filtering::ApplyBilinearFilter( behindOcclusion.x, behindOcclusion.y, behindOcclusion.z, behindOcclusion.w, smbBilinearFilter ) );
+                    smbFootprintQuality *= sizeQuality;
+                }
+            }
+        #endif
+        // ~Gaijin change
+
         // Accumulation speed
         float diffHistoryConfidence = smbFootprintQuality;
         if( gHasHistoryConfidence && NRD_SUPPORTS_HISTORY_CONFIDENCE )
@@ -900,6 +939,20 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         REBLUR_FAST_TYPE diffFastHistory;
         REBLUR_SH_TYPE diffShHistory;
         {
+            // Gaijin change
+            #ifdef REBLUR_SECOND_CHANCE_HISTORY
+            if( useBehind )
+            {
+                BicubicFilterNoCornersWithFallbackToBilinearFilterWithCustomWeights(
+                    saturate( smbPixelUv ) * gRectSizePrev, gResourceSizeInvPrev,
+                    behindOcclusionWeights, false,
+                    gBehind_Diff, diffHistory,
+                    gBehind_DiffFast, diffFastHistory
+                );
+            }
+            else
+            #endif
+            // ~Gaijin change
             BicubicFilterNoCornersWithFallbackToBilinearFilterWithCustomWeights(
                 saturate( smbPixelUv ) * gRectSizePrev, gResourceSizeInvPrev,
                 smbOcclusionWeights, smbAllowCatRom,
@@ -947,6 +1000,13 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             float diffHitDistMaxRelativeIntensity = 1.2 + 1.0 / ( diffAccumSpeed + 1.0 );
             diffResult.w = lerp( diffResult.w, min( diffResult.w, diffHistory.w * diffHitDistMaxRelativeIntensity ), diffAntifireflyFactor );
         #endif
+
+        // Gaijin change
+        #ifdef REBLUR_SECOND_CHANCE_HISTORY
+            if( gSecondChanceDebug != 0 && fbits == 0.0 )
+                diffResult.xyz = _NRD_LinearToYCoCg( ( useBehind ? float3( 0.0, 1.0, 0.0 ) : float3( 1.0, 0.0, 0.0 ) ) * max( diffResult.x, 0.5 ) );
+        #endif
+        // ~Gaijin change
 
         // Output
         gOut_Diff[ pixelPos ] = diffResult;

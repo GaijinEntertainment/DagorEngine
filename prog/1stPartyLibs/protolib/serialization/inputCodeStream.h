@@ -170,7 +170,7 @@ namespace proto
       else
       {
         PROTO_VALIDATE_INTERNAL(tag.type == proto::io::StreamTag::VAR_LENGTH);
-        readVarInt(sizeToRead);
+        PROTO_VALIDATE_INTERNAL(readVarInt(sizeToRead));
       }
 
       PROTO_VALIDATE_INTERNAL(size == sizeToRead);
@@ -211,7 +211,7 @@ namespace proto
         value = 0.0f;
         break;
       case StreamTag::RAW32:
-        stream.read(&value, 4);
+        PROTO_VALIDATE_INTERNAL(stream.read(&value, 4));
         break;
       default:
         PROTO_ERROR_INTERNAL("Unexpected tag");

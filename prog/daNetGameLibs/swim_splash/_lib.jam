@@ -1,4 +1,4 @@
 if $(HaveRenderer) = yes {
-  gamePulls += framework_swim_splash_pull ;
+  gamePulls += daNetGameLibs_swim_splash_DAS_pull_AOT ;
   UseProgLibs += daNetGameLibs/swim_splash ;
 }

@@ -28,8 +28,7 @@ class LightsPartition;
 class OmniLightsManager final : public LightsManager<OmniLight, RenderOmniLight, OmniLightMaskType, MAX_SCENE_OMNI_LIGHTS>
 {
 public:
-  OmniLightsManager();
-  OmniLightsManager(const char *name);
+  explicit OmniLightsManager(LightsManagerSharedStorage *shared_storage);
 
   void drawDebugInfo();
   void renderDebugBboxes();

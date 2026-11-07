@@ -19,6 +19,7 @@ buffer dagdp_heightmap__biomes;
 buffer dagdp_heightmap__variants;
 buffer dagdp_heightmap__indirect_args;
 buffer dagdp_heightmap__visible_tile_positions;
+buffer dagdp_heightmap__viewport_data;
 buffer dagdp_heightmap__density_mask_channel_weights;
 
 texture dagdp_heightmap__density_mask;
@@ -55,11 +56,9 @@ int dagdp_heightmap__use_decals;
 int dagdp_heightmap__discard_on_grass_erasure;
 
 float4 dagdp_heightmap__base_tile_pos_xz;
-int4 dagdp_heightmap__base_tile_int_pos_xz;
 float4 dagdp_heightmap__viewport_pos;
 float dagdp_heightmap__viewport_max_distance;
 int dagdp_heightmap__viewport_index;
-int dagdp_heightmap__visible_tiles_start_offset;
 
 shader dagdp_heightmap_cull_tiles
 {
@@ -87,7 +86,6 @@ shader dagdp_heightmap_cull_tiles
     viewport_pos@f3 = dagdp_heightmap__viewport_pos;
     viewport_max_distance@f1 = dagdp_heightmap__viewport_max_distance;
     viewport_index@i1 = dagdp_heightmap__viewport_index;
-    visible_tiles_start_offset@u1 = dagdp_heightmap__visible_tiles_start_offset;
   }
 
   hlsl(cs)
@@ -100,8 +98,8 @@ shader dagdp_heightmap_cull_tiles
       BRANCH
       if (dtId == 0)
       {
-        storeBuffer(indirect_args, viewport_index * DISPATCH_INDIRECT_BYTE_SIZE + 4, 1);
-        storeBuffer(indirect_args, viewport_index * DISPATCH_INDIRECT_BYTE_SIZE + 8, 1);
+        storeBuffer(indirect_args, 4, 1);
+        storeBuffer(indirect_args, 8, 1);
       }
 
       BRANCH
@@ -118,8 +116,8 @@ shader dagdp_heightmap_cull_tiles
         if (testBoxB(tilePos - max_placeable_bounding_radius, tilePos + tileSize + 2.0 * max_placeable_bounding_radius))
         {
           uint tileIdx;
-          indirect_args.InterlockedAdd(viewport_index * DISPATCH_INDIRECT_BYTE_SIZE, 1, tileIdx);
-          storeBuffer2(visible_tile_positions, visible_tiles_start_offset + tileIdx * TILE_POSITION_BYTE_SIZE, tileIntPos);
+          indirect_args.InterlockedAdd(0, 1, tileIdx);
+          storeBuffer4(visible_tile_positions, tileIdx * TILE_POSITION_BYTE_SIZE, uint4(asuint(tileIntPos), viewport_index, 0));
         }
       }
     }
@@ -173,6 +171,15 @@ shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
       ByteAddressBuffer visible_tile_positions@buf;
     }
 
+    viewport_data@cbuf = dagdp_heightmap__viewport_data hlsl {
+      #include "dagdp_heightmap.hlsli"
+      #include "dagdp_constants.hlsli"
+      cbuffer viewport_data@cbuf
+      {
+        DagdpViewportGpuData viewport_data[DAGDP_MAX_VIEWPORTS];
+      };
+    }
+
     density_mask_channel_weights@buf = dagdp_heightmap__density_mask_channel_weights hlsl {
       StructuredBuffer<float4> density_mask_channel_weights@buf;
     }
@@ -210,13 +217,6 @@ shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
     use_decals@i1 = dagdp_heightmap__use_decals;
     discard_on_grass_erasure@i1 = dagdp_heightmap__discard_on_grass_erasure
 
-    base_tile_pos_xz@f2 = dagdp_heightmap__base_tile_pos_xz;
-    base_tile_int_pos_xz@i2 = dagdp_heightmap__base_tile_int_pos_xz;
-    viewport_pos@f3 = dagdp_heightmap__viewport_pos;
-    viewport_max_distance@f1 = dagdp_heightmap__viewport_max_distance;
-    viewport_index@i1 = dagdp_heightmap__viewport_index;
-    visible_tiles_start_offset@u1 = dagdp_heightmap__visible_tiles_start_offset;
-
     grass_color_tex@smp2d = grass_color_tex;
     perlin_noise3d@tex3d = perlin_noise3d;
     blue_noise_tex@tex2d = blue_noise_tex;
@@ -227,6 +227,13 @@ shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
   }
   hlsl(cs) {
     #define blue_noise_tex_samplerstate global_linear_wrap_sampler
+
+    // static is needed to assign to them, DXC makes non-static globals const.
+    static float3 viewport_pos;
+    static float viewport_max_distance;
+    static uint viewport_index;
+    static float4 viewport_frustum_planes[6];
+    #define DAGDP_VIEWPORT_FRUSTUM_PLANES viewport_frustum_planes
   }
 
   INIT_GLOBAL_LINEAR_WRAP_SAMPLER(cs)
@@ -274,8 +281,18 @@ shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
       // XZ position inside the tile.
       const uint2 instanceIntPos = uint2(dtId.y / TILE_INSTANCE_COUNT_1D, dtId.y % TILE_INSTANCE_COUNT_1D);
 
-      // XZ position of the tile itself.
-      const int2 tileIntPos = loadBuffer2(visible_tile_positions, visible_tiles_start_offset + dtId.x * TILE_POSITION_BYTE_SIZE);
+      // XZ position of the tile itself, and its viewport.
+      const int4 tileEntry = asint(loadBuffer4(visible_tile_positions, dtId.x * TILE_POSITION_BYTE_SIZE));
+      const int2 tileIntPos = tileEntry.xy;
+
+      const DagdpViewportGpuData viewportData = viewport_data[uint(tileEntry.z)];
+      const int2 base_tile_int_pos_xz = viewportData.baseTileIntPosXZ;
+      viewport_pos = viewportData.worldPos;
+      viewport_max_distance = viewportData.maxDistance;
+      viewport_index = uint(tileEntry.z);
+      UNROLL
+      for (uint planeIndex = 0; planeIndex < 6; planeIndex++)
+        viewport_frustum_planes[planeIndex] = viewportData.frustumPlanes[planeIndex];
 
       const int2 stablePos = (base_tile_int_pos_xz + tileIntPos) * TILE_INSTANCE_COUNT_1D + int2(instanceIntPos);
       float2 randPosJitter = 0.5 + grid_jitter * (float2(stableRand(stablePos, prng_seed_jitter_x), stableRand(stablePos, prng_seed_jitter_z)) - 0.5);
@@ -357,7 +374,8 @@ shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
       if (!threadGroupAnyTrue(placeableIndex != ~0u, tId.y)) // Whole tile is culled, can safely exit.
         return;
 
-      finishPlacement(tId.y, stablePos, pd, placeableIndex, placeable, variant);
+      finishPlacement(tId.y, stablePos, pd, placeableIndex, placeable, variant, 1,
+        getInstanceExtraIfPlaceable(placeableIndex, pd.position));
     }
   }
   compile("target_cs", "main");

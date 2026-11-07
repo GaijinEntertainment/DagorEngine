@@ -93,7 +93,7 @@ protected:
       faceIndicesPtr = nullptr;
     }
   };
-  Dump dump; // constraint: the only member, load() hands out the loaded dump as the tracer
+  Dump dump; // the only member, load() hands out the loaded dump as the tracer
 
   ~StaticSceneRayTracerT() = default; // Call `destroy` if you need to delete new'd/loaded instance
 };

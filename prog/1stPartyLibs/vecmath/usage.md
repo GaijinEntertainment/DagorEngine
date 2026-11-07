@@ -148,11 +148,13 @@ usually favors SSE and loses on NEON.
   target has it (`__FMA__`, or AVX2 on MSVC). So the SSE4.1 PC build gets mul + add on every CPU.
   FMA rounds once, so a test like `a*b + c*d != 0` can differ between fused and unfused builds,
   and so between platforms.
-- Libs that need cross-ISA consistency (physJolt, gamePhys/collision, landMesh, rendInst) define
-  `VECMATH_NO_FMA` and build with x86 `-mno-fma`, `-fno-unsafe-math-optimizations` and
-  `-ffp-contract=off`. The define unfuses the explicit FMA of `v_madd` and its siblings on NEON
-  and x86; the flags stop compiler contraction (`-ffp-contract=off` alone is not enough under
-  fast math).
+- Libs that need cross-ISA consistency (physJolt, gamePhys/collision, landMesh, rendInst, daCSG
+  and daSurf through daCSG's `fp-options.jam`) define `VECMATH_NO_FMA` and, with GCC or Clang
+  (clang-cl through `/clang:`), build with `-fno-unsafe-math-optimizations`, `-ffp-contract=off`
+  and on x86 `-mno-fma`. MSVC has none of these flags: the other four keep the default `-fp:fast`;
+  daCSG and daSurf build with `-fp:precise` on Windows and Xbox, with either compiler.
+  The define unfuses the explicit FMA of `v_madd` and its siblings on NEON and x86;
+  the flags stop compiler contraction (`-ffp-contract=off` alone is not enough under fast math).
 - A difference of two products is where contraction bites: fuse one product, and `a*b - b*a`
   returns the rounding error of the other instead of 0. `v_cross3` prevents contraction on every
   build with multiplies that no compiler can fuse (`fmulx` on NEON; on FMA x86, muls that feed

@@ -13,8 +13,8 @@ class BhvInspectPicker : public darg::Behavior
 public:
   BhvInspectPicker();
 
-  virtual int pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/,
-    int /*button_id*/, Point2 pos, int /*accum_res*/) override;
+  virtual int pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+    int /*pointer_id*/, int /*button_id*/, Point2 pos, int /*accum_res*/) override;
 };
 
 

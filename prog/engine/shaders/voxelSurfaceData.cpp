@@ -6,9 +6,11 @@
 #include <ioSys/dag_zstdIo.h>
 #include <osApiWrappers/dag_mutex.h>
 
-
-static PtrTab<VoxelSurfaceData> all_data(midmem_ptr());
-static dag::mutex data_mutex;
+static struct
+{
+  dag::mutex data_mutex;
+  PtrTab<VoxelSurfaceData> all_data DAG_TS_GUARDED_BY(data_mutex) = {midmem_ptr()};
+} g_voxel_surface;
 
 namespace vars
 {
@@ -49,9 +51,9 @@ void VoxelSurfaceData::onAfterD3dReset()
   voxeldata::rgbaAtlasManager.onAfterD3dReset();
   voxeldata::normAtlasManager.onAfterD3dReset();
 
-  dag::lock_guard guard(::data_mutex);
+  dag::lock_guard guard(::g_voxel_surface.data_mutex);
   bool failed = false;
-  for (auto &p : ::all_data)
+  for (auto &p : ::g_voxel_surface.all_data)
     if (p)
     {
       p->loadedToTex = false;
@@ -67,9 +69,9 @@ VoxelSurfaceData::VoxelSurfaceData() {}
 
 VoxelSurfaceData::~VoxelSurfaceData()
 {
-  dag::lock_guard guard(::data_mutex);
-  if (id < ::all_data.size())
-    ::all_data[id] = nullptr;
+  dag::lock_guard guard(::g_voxel_surface.data_mutex);
+  if (id < ::g_voxel_surface.all_data.size())
+    ::g_voxel_surface.all_data[id] = nullptr;
   compressed = {};
 }
 
@@ -83,17 +85,17 @@ VoxelSurfaceData *VoxelSurfaceData::load(IGenLoad &crd, int size)
   crd.read(res->dumpStartPtr(), size);
   res->compressed = make_span((char *)res->dataStartPtr(), size - ((uint8_t *)res->dataStartPtr() - (uint8_t *)res->dumpStartPtr()));
 
-  dag::lock_guard guard(::data_mutex);
-  for (uint32_t i = 0, n = ::all_data.size(); i < n; i++)
-    if (!::all_data[i])
+  dag::lock_guard guard(::g_voxel_surface.data_mutex);
+  for (uint32_t i = 0, n = ::g_voxel_surface.all_data.size(); i < n; i++)
+    if (!::g_voxel_surface.all_data[i])
     {
-      ::all_data[i] = res;
+      ::g_voxel_surface.all_data[i] = res;
       res->id = i;
       return res;
     }
 
-  res->id = ::all_data.size();
-  ::all_data.push_back(res);
+  res->id = ::g_voxel_surface.all_data.size();
+  ::g_voxel_surface.all_data.push_back(res);
   return res;
 }
 
@@ -101,9 +103,9 @@ VoxelSurfaceData *VoxelSurfaceData::getById(uint32_t id)
 {
   if (id == INVALID_ID)
     return nullptr;
-  dag::lock_guard guard(::data_mutex);
-  if (id < ::all_data.size())
-    return ::all_data[id].get();
+  dag::lock_guard guard(::g_voxel_surface.data_mutex);
+  if (id < ::g_voxel_surface.all_data.size())
+    return ::g_voxel_surface.all_data[id].get();
   return nullptr;
 }
 

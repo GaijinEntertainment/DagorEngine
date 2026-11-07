@@ -6,16 +6,16 @@
 #include <osApiWrappers/dag_critSec.h>
 #include <util/dag_parallelForInline.h>
 
-static bool has_swrt_instance(const LevelCollision &level, uint32_t r)
+static bool has_swrt_instance(const LevelCollision &level, uint32_t r, float min_radius)
 {
   for (uint32_t i = level.firstInstance(r), ie = level.firstInstance(r + 1); i < ie; ++i)
-    if (v_extract_w(level.sphere(i)) >= LEVEL_SWRT_MIN_RADIUS)
+    if (v_extract_w(level.sphere(i)) >= min_radius)
       return true;
   return false;
 }
 
 int build_level_swrt_models(RenderSWRT &swrt, const LevelCollision &level, dag::Vector<int> &model_of,
-  const CollisionGeometryFeeder::PhysMatFilter &face_filter, LevelSwrtLeafUser leaf_user)
+  const CollisionGeometryFeeder::PhysMatFilter &face_filter, LevelSwrtLeafUser leaf_user, float min_radius)
 {
   model_of.assign(level.resourceCount(), -1);
   WinCritSec addLock;
@@ -25,13 +25,14 @@ int build_level_swrt_models(RenderSWRT &swrt, const LevelCollision &level, dag::
     [&](uint32_t tbegin, uint32_t tend, uint32_t) {
       for (uint32_t r = tbegin; r < tend; ++r)
       {
-        if (!has_swrt_instance(level, r))
+        if (!has_swrt_instance(level, r, min_radius))
           continue;
         CollisionGeometryFeeder::PhysMatLeafUser leaf;
         if (leaf_user)
           leaf = [&leaf_user, r](int16_t phys_mat_id) { return leaf_user(r, phys_mat_id); };
         daSWRT::BuiltBLAS built;
-        if (!CollisionGeometryFeeder::buildSwrtBLAS(*level.resource(r), face_filter, 2.f, 16.f, leaf, swrt.tlasBoxUser, built))
+        if (!CollisionGeometryFeeder::buildSwrtBLAS(*level.resource(r), face_filter, 2.f, 16.f, leaf, swrt.tlasBoxUser, swrt.blasMode,
+              built))
           continue;
         const bool tree = !built.isBox();
         WinAutoLock lk(addLock);

@@ -2,4 +2,4 @@ min(3, 1, 2) = 1
 min(-1.5, 2) = -1.5
 type(min(5, 2.0)) = float
 type(min(2, 5.0)) = integer
-min(1) throws: wrong number of parameters passed to native closure 'min' (2 passed, at least 3 required)
+min(x) throws: wrong number of parameters passed to native closure 'min' (2 passed, at least 3 required)

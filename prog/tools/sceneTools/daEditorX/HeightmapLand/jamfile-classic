@@ -62,7 +62,6 @@ Sources =
   landClassSlotsMgr.cpp
   entityCopyDlg.cpp
   materialMgr.cpp
-  buildRoad.cpp
   roadsSnapshot.cpp
   importLandMesh.cpp
   waterSurfGen.cpp

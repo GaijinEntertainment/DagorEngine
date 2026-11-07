@@ -55,7 +55,7 @@ static eastl::optional<AntialiasingMethod> get_method_from_string(const char *an
     default: debug("auto_resolution: method '%s' is not used for auto resolution", antialiasing_method); return {};
   }
 
-  auto availableMethods = render::antialiasing::get_available_methods(false, false);
+  auto availableMethods = render::antialiasing::get_available_methods(false, true);
   if (strcmp(availableMethods, "off") == 0)
   {
     logerr("auto_resolution: render::antialiasing must be initialized first");

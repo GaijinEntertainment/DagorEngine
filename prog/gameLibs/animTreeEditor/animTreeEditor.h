@@ -27,6 +27,7 @@
 using PropPanel::TLeafHandle;
 
 class DagorAsset;
+class ChildNameIndex;
 
 struct ParentLeafs;
 
@@ -63,7 +64,13 @@ public:
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   // Creates all animTree panel controls, the dynModel button caption comes from the host animPlayer.
+  // A host with no animPlayer passes nullptr and gets no dynModel button.
   void fillMainPanel(PropPanel::ContainerPropertyControl &panel, const char *dyn_model_caption);
+
+  // Selects the controller or blend node with this name and shows its settings. Returns false if no node has the name.
+  bool focusNodeByName(const char *name);
+  bool hasNodeMask(const char *name);
+  bool hasController(const char *name);
 
 protected:
   IAnimTreeEditorHost &host;
@@ -134,8 +141,8 @@ protected:
   void fillAnimStatesTreeNode(PropPanel::ContainerPropertyControl *panel, const DataBlock &node, const char *include_name);
   void fillEnumTree(const DataBlock *settings, PropPanel::ContainerPropertyControl *panel, TLeafHandle tree_root,
     const char *include_name);
-  void fillStatesChilds(PropPanel::ContainerPropertyControl *panel);
-  void fillInitAnimStateChilds(PropPanel::ContainerPropertyControl *panel);
+  void fillStatesChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index);
+  void fillInitAnimStateChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index);
   void fillTreePanels(PropPanel::ContainerPropertyControl *panel);
 
   void addBlendNodeToTree(PropPanel::ContainerPropertyControl *tree, const DataBlock *node, int idx, TLeafHandle parent);
@@ -201,8 +208,8 @@ protected:
   void paramSwitchAddMorphTime(PropPanel::ContainerPropertyControl *panel);
   void paramSwitchRemoveMorphTime(PropPanel::ContainerPropertyControl *panel);
   void paramSwitchRefreshMorphTimesCombo(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings = nullptr);
-  void paramSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings,
-    bool find_enum_gen_parent = true);
+  void paramSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index, AnimCtrlData &data,
+    const DataBlock &settings, bool find_enum_gen_parent = true);
 
   void changeMultiChainFABRIKBlockType(PropPanel::ContainerPropertyControl *panel);
   void changeParamsCtrlBlockType(PropPanel::ContainerPropertyControl *panel);
@@ -211,15 +218,17 @@ protected:
   void paramsCtrlInitBlockSettings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings);
   void initIfMathFields(PropPanel::ContainerPropertyControl *panel, const DataBlock &settings);
 
-  void hubFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
-  void linearPolyFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
-  void randomSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
-  void aliasFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
-  void animateNodeFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
+  void hubFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings);
+  void linearPolyFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings);
+  void randomSwitchFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings);
+  void aliasFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings);
+  void animateNodeFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings);
 
-  void fillCtrlsChilds(PropPanel::ContainerPropertyControl *panel);
-  void findCtrlsChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
-  void fillCtrlsChildsBody(PropPanel::ContainerPropertyControl *panel, TLeafHandle handle, CtrlType type);
+  void fillCtrlsChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index);
+  void findCtrlsChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index, AnimCtrlData &data,
+    const DataBlock &settings);
+  void fillCtrlsChildsBody(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index, TLeafHandle handle,
+    CtrlType type);
   void fillCtrlsSettings(PropPanel::ContainerPropertyControl *panel);
   void fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl *panel, CtrlType type, const DataBlock *settings,
     AnimCtrlData *ctrl_data);

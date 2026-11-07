@@ -21,7 +21,8 @@ struct UpdateActionsEvent
 def update_phys_es(info : UpdateStageInfoAct)
   broadcastEventImmediate(UpdatePhysEvent(curTime = info.curTime, dt = info.dt, curTimeD = double(info.curTime)))
 
-[es(after=before_animchar_update_sync, before=after_animchar_update_sync)]
+// the animchar poses the units as this frame's physics left them
+[es(after=(after_net_phys_sync, before_animchar_update_sync), before=after_animchar_update_sync)]
 def animchar_es(info : UpdateStageInfoAct) // same name for save order of es
   broadcastEventImmediate(UpdateAnimcharEvent(curTime = info.curTime, dt = info.dt))
 

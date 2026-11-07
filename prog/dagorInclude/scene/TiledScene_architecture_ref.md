@@ -274,7 +274,7 @@ Same tile iteration strategy but tests AABB intersection instead of frustum plan
 1. Sphere AABB vs cull box (`v_bbox3_test_box_intersect`) -- broad reject
 2. If not fully inside: `v_bbox3_test_sph_intersect(cullBox, sphere, radiusSq)` -- tighter sphere-vs-box test
 3. If `use_pools`: transform pool AABB by node matrix, test vs cull box (`v_bbox3_test_box_intersect`)
-Callback is `(node_index, mat44f_cref)` -- no distance parameter. No occlusion support.
+Callback is `(node_index, mat44f_cref)` -- no distance parameter. No occlusion support. A callback that returns `bool` stops the cull when it returns true (also in the box overload `nodesInRange<use_flags, use_pools>` and in `SimpleScene::boxCull`); a `void` callback visits every node.
 
 ### Range Query: `nodesInRange<use_flags, use_pools>(box, ..., start_index, end_index)`
 Box cull with tile-index range limiting. `start_index`/`end_index` select a subset of tiles to process, enabling multi-frame spreading of expensive queries (e.g., LOD-by-distance). Falls back to `SimpleScene::boxCull` if <= 1 tile.

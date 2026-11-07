@@ -24,7 +24,9 @@ Sources =
   directoryService.cpp
   directoryUtils.cpp
   getRealFname.cpp
+  fnameCase.cpp
   wndProcComponent.cpp
+  hinge.cpp
   miscApi.cpp
   progGlobals.cpp
   setThreadName.cpp

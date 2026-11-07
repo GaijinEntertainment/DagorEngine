@@ -21,7 +21,8 @@ enum BufferMemoryFlags
   IN_PLACED_HEAP = 0x4,
   FRAMEMEM = 0x8,
   NOT_EVICTABLE = 0x10,
-  EVICTION_SYSCOPY = 0x20
+  EVICTION_SYSCOPY = 0x20,
+  GPU_WRITABLE = 0x40
 };
 
 struct BufferDescription
@@ -230,6 +231,7 @@ public:
 #endif
   }
   bool isFrameMem() const { return (desc.memFlags & BufferMemoryFlags::FRAMEMEM) > 0; }
+  bool isGpuWritable() const { return (desc.memFlags & BufferMemoryFlags::GPU_WRITABLE) > 0; }
   inline uint32_t getDiscardBlocks() const { return desc.discardBlocks; }
   inline VulkanBufferViewHandle getViewOfDiscardIndex(uint32_t i) const { return views[i]; }
   inline bool hasView() const { return nullptr != views; }

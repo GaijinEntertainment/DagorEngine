@@ -73,6 +73,14 @@ actionSets {
     SpaceShip.ChangeStabHt { type:t="steerwheel"; group_tag:t="Spaceship"; }
     SpaceShip.FwdMoveStab { type:t="digital_button"; group_tag:t="Spaceship"; }
   }
+
+  // package_motorbike reads Move and Reverse; in outerSpace Look turns the camera and GetUp stands a fallen bike up
+  Motorbike {
+    Motorbike.Move { type:t="joystick_move"; group_tag:t="Motorbike"; }
+    Motorbike.Reverse { type:t="digital_button"; group_tag:t="Motorbike"; }
+    Motorbike.Look { type:t="absolute_mouse"; gpadAxisScale:r=3000; group_tag:t="Motorbike"; }
+    Motorbike.GetUp { type:t="digital_button"; group_tag:t="Motorbike"; }
+  }
 }
 
 actionSetsOrder {
@@ -87,6 +95,7 @@ actionSetsOrder {
   HUDBase {}
 
   SpaceShip {}
+  Motorbike {}
 }
 
 activateActionSetsOnInit {

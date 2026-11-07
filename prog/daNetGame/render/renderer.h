@@ -25,7 +25,6 @@ class Point4;
 class BBox3;
 class TMatrix;
 class IPoint2;
-class TextureIDPair;
 struct SpotLight;
 struct OmniLight;
 typedef uint32_t light_id;
@@ -127,7 +126,6 @@ public:
   virtual DynamicShadowRenderExtender::Handle registerShadowRenderExtension(DynamicShadowRenderExtender::Extension &&extension) = 0;
 
   virtual void shadowsInvalidate(const BBox3 &box) = 0;
-  virtual void shadowsAddInvalidBBox(const BBox3 &box) = 0;
   virtual void invalidateGI(const BBox3 &world_box) = 0;
 
   virtual void setWorldBBox(const BBox3 &) = 0;

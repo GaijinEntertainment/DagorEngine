@@ -410,31 +410,21 @@ bool search_suboptions(const eastl::string &search, int wspaceLocation, const co
 
   clear_and_shrink(cached_commands);
 
-  eastl::vector<const char *> options;
-  int lastSpaceFound = wspaceLocation;
-  bool allSpaceFound = true;
-
-  while (allSpaceFound) // Extracting each option from search string
-  {
-    if (int currSpaceFound = search.find(' ', (eastl_size_t)lastSpaceFound + 1); currSpaceFound <= search.length())
-    {
-      options.push_back(search.substr(lastSpaceFound + 1, currSpaceFound - lastSpaceFound - 1).c_str());
-      lastSpaceFound = currSpaceFound;
-    }
-    else
-      allSpaceFound = false;
-  }
+  const eastl_size_t optionStart = (eastl_size_t)wspaceLocation + 1;
+  const eastl_size_t optionEnd = search.find(' ', optionStart);
+  const bool hasOption = optionEnd != eastl::string::npos;
+  const eastl::string_view firstOption(search.data() + optionStart, hasOption ? optionEnd - optionStart : 0);
 
   for (const CommandOptions &opt : command.commandOptions)
   {
-    if (options.empty())
+    if (!hasOption)
     {
       CommandStruct cpyCommand = command;
       cpyCommand.command = String(0, "%s %s", cpyCommand.command.c_str(), opt.name.c_str());
       cpyCommand.maxArgs -= opt.subOptions.empty() ? 2 : 1;
       validate_and_add_cached_command(cpyCommand, search.c_str());
     }
-    else if (opt.name == options[0])
+    else if (firstOption == opt.name.c_str())
     {
       CommandStruct cpyCommand = command;
       cpyCommand.command = String(0, "%s %s", cpyCommand.command.c_str(), opt.name.c_str());
@@ -502,7 +492,7 @@ void get_filtered_command_list(console::CommandList &out_commands, const String 
       // insert a dummy command entry "<group>." so we can autocomplete only on the group
       eastl::string group(list[i].command.c_str(), dotPosWithUnderscore + 1);
       auto it = eastl::find_if(cached_commands.begin(), cached_commands.begin() + numGroups,
-        [&group](CommandStruct c) { return group == c.command.c_str(); });
+        [&group](const CommandStruct &c) { return group == c.command.c_str(); });
       if (it >= cached_commands.begin() + numGroups)
         insert_item_at(cached_commands, numGroups++, CommandStruct(group.c_str(), 0, 0));
     }

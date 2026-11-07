@@ -1,0 +1,4 @@
+after set: x=7 y=0
+get: 7
+after add: x=9 y=0
+OK

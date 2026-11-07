@@ -43,6 +43,10 @@ trying to modify immutable 'table'
 trying to modify immutable 'table'
 trying to modify immutable 'table'
 trying to modify immutable 'table'
+copy false, t true, a true, w table true, key true
+copy false, t true, a true, w table true, key true
+mutable source: t false
+mutable source: t false
 table: x=1 y=2 
 table: lead=0 x=1 y=2 
 table: shorthand=0 x=1 y=2 

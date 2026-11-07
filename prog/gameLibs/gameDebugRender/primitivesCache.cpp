@@ -4,16 +4,16 @@
 
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN
 
-#include <osApiWrappers/dag_critSec.h>
+#include "primitivesRenderCs.h"
 
-static WinCritSec render_data_render_cs;
+WinCritSec game_dbg::primitives_render_cs;
 
 template <typename T>
 static auto &safe_push_back_primitive(T &vec)
 {
   if (DAGOR_UNLIKELY(vec.size() == vec.capacity()))
   {
-    WinAutoLock lock(render_data_render_cs);
+    WinAutoLock lock(game_dbg::primitives_render_cs);
     return vec.push_back();
   }
   return vec.push_back();
@@ -32,7 +32,7 @@ void game_dbg::PrimitivesCache::addText(int64_t holder_id, const char *text, con
 
 void game_dbg::PrimitivesCache::clear()
 {
-  WinAutoLock lock(render_data_render_cs);
+  WinAutoLock lock(game_dbg::primitives_render_cs);
   holders.clear();
 }
 
@@ -117,7 +117,7 @@ game_dbg::PrimitivesCache::HolderData &game_dbg::PrimitivesCache::getOrAddHolder
     if (holder.id == holder_id)
       return holder;
 
-  HolderData &holder = holders.push_back();
+  HolderData &holder = safe_push_back_primitive(holders);
   holder.id = holder_id;
   return holder;
 }

@@ -17,6 +17,7 @@ render_settings {
   render_settings__grassQuality:t="high" // "minimum", "low", "high"
   render_settings__grassRendInstRangeMul:r=1
   render_settings__dagdpDensityMul:r=1
+  render_settings__dagdpLodRangeMul:r=1
 
   render_settings__fftWaterQuality:t="high" // low, medium, high, ultra
   render_settings__waterQuality:t="low" // low, medium, high

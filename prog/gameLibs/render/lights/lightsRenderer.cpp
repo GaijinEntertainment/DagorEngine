@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/lights/lightsRenderer.h>
+#include <render/lights/lightsRenderer.hlsli>
 
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
@@ -94,27 +95,17 @@ void LightsRenderer::initConeSphere()
   indices[0] = v_count + 3;
   indices[1] = v_count + 2;
   indices[2] = v_count + 4;
+}
 
-  DrawIndexedIndirectArgs omniArgsClustered{f_count * 3, 0, 0, 0, 0};
-  DrawIndexedIndirectArgs omniArgsFar{f_count * 3, 0, 0, 0, 0};
-
-  DrawIndexedIndirectArgs spotArgsClustered{6 * 3, 0, f_count * 3, 0, 0};
-  DrawIndexedIndirectArgs spotArgsFar{6 * 3, 0, f_count * 3, 0, 0};
-
-  const eastl::array<DrawIndexedIndirectArgs, IndirectIndices::COUNT> args = {
-    omniArgsClustered, omniArgsFar, spotArgsClustered, spotArgsFar};
-
-  indirectArgsBuf = dag::buffers::create_indirect(dag::buffers::Indirect::DrawIndexed, IndirectIndices::COUNT,
-    getResName("lights_renderer_indirect_draw_args"));
-  d3d_err((bool)indirectArgsBuf);
-  indirectArgsBuf->updateData(0, data_size(args), &args, VBLOCK_WRITEONLY);
+LightsRenderer::IndexRanges LightsRenderer::getIndexRanges() const
+{
+  return {.omniIndexCount = f_count * 3, .omniStartIndex = 0, .spotIndexCount = 6 * 3, .spotStartIndex = f_count * 3};
 }
 
 void LightsRenderer::closeConeSphere()
 {
   coneSphereVb.close();
   coneSphereIb.close();
-  indirectArgsBuf.close();
 }
 
 void LightsRenderer::initOmni()
@@ -179,58 +170,54 @@ void LightsRenderer::closeDebugSpot()
   del_it(spotLightsDebugMat);
 }
 
-void LightsRenderer::renderPrims(ShaderElement *elem, int buffer_var_id, D3DRESID lights_cb_id, IndirectIndices argsIndex)
+void LightsRenderer::renderPrims(ShaderElement *elem, int buffer_var_id, D3DRESID lights_cb_id, Sbuffer *indirect_args,
+  uint32_t args_byte_offset)
 {
   d3d::setind(coneSphereIb.getBuf());
   d3d::setvsrc(0, coneSphereVb.getBuf(), sizeof(Point3));
   D3DRESID old_buffer = ShaderGlobal::get_buf(buffer_var_id);
   ShaderGlobal::set_buffer(buffer_var_id, lights_cb_id);
   elem->setStates(0, true);
-  d3d::draw_indexed_indirect(PRIM_TRILIST, indirectArgsBuf.getBuf(), argsIndex * sizeof(DrawIndexedIndirectArgs));
+  d3d::draw_indexed_indirect(PRIM_TRILIST, indirect_args, args_byte_offset);
   ShaderGlobal::set_buffer(buffer_var_id, old_buffer);
 }
-void LightsRenderer::copyInstanceCountsToIndirectArgs(const OmniLightsCBs &omni_lights_cb, const SpotLightsCBs &spot_lights_cb)
-{
-  d3d::resource_barrier({indirectArgsBuf.getBuf(), RB_RW_COPY_DEST});
 
-  omni_lights_cb.clustered->copyIndirectInstanceCount<DrawIndexedIndirectArgs>(indirectArgsBuf.getBuf(), 0);
-  omni_lights_cb.far->copyIndirectInstanceCount<DrawIndexedIndirectArgs>(indirectArgsBuf.getBuf(), 1);
-  spot_lights_cb.clustered->copyIndirectInstanceCount<DrawIndexedIndirectArgs>(indirectArgsBuf.getBuf(), 2);
-  spot_lights_cb.far->copyIndirectInstanceCount<DrawIndexedIndirectArgs>(indirectArgsBuf.getBuf(), 3);
-
-  d3d::resource_barrier({indirectArgsBuf.getBuf(), RB_RO_INDIRECT_BUFFER});
-}
-
-void LightsRenderer::renderFarOmniLights(const OmniLightsCB &far_omni_lights_cb)
+void LightsRenderer::renderFarOmniLights(const OmniLightsCB &far_omni_lights_cb, Sbuffer *indirect_args)
 {
   if (!pointLightsElem)
     return;
   TIME_D3D_PROFILE(renderFarOmniLights);
-  renderPrims(pointLightsElem, omniLightsVarId, far_omni_lights_cb.getId(), IndirectIndices::OMNI_FAR);
+  renderPrims(pointLightsElem, omniLightsVarId, far_omni_lights_cb.getId(), indirect_args,
+    LIGHTS_RENDERER_INDIRECT_ARGS_FAR_OMNI_DRAW_OFFSET);
 }
 
-void LightsRenderer::renderFarSpotLights(const SpotLightsCB &far_spot_lights_cb)
+void LightsRenderer::renderFarSpotLights(const SpotLightsCB &far_spot_lights_cb, Sbuffer *indirect_args)
 {
   if (!spotLightsElem)
     return;
   TIME_D3D_PROFILE(renderFarSpotLights);
-  renderPrims(spotLightsElem, spotLightsVarId, far_spot_lights_cb.getId(), IndirectIndices::SPOT_FAR);
+  renderPrims(spotLightsElem, spotLightsVarId, far_spot_lights_cb.getId(), indirect_args,
+    LIGHTS_RENDERER_INDIRECT_ARGS_FAR_SPOT_DRAW_OFFSET);
 }
 
-void LightsRenderer::renderDebugOmniLights(const OmniLightsCBs &omni_lights_cb)
+void LightsRenderer::renderDebugOmniLights(const OmniLightsCBs &omni_lights_cb, Sbuffer *indirect_args)
 {
   if (!pointLightsDebugElem)
     return;
   TIME_D3D_PROFILE(renderDebugOmniLights);
-  renderPrims(pointLightsDebugElem, omniLightsVarId, omni_lights_cb.clustered->getId(), IndirectIndices::OMNI_CLUSTERED);
-  renderPrims(pointLightsDebugElem, omniLightsVarId, omni_lights_cb.far->getId(), IndirectIndices::OMNI_FAR);
+  renderPrims(pointLightsDebugElem, omniLightsVarId, omni_lights_cb.clustered->getId(), indirect_args,
+    LIGHTS_RENDERER_INDIRECT_ARGS_CLUSTERED_OMNI_DRAW_OFFSET);
+  renderPrims(pointLightsDebugElem, omniLightsVarId, omni_lights_cb.far->getId(), indirect_args,
+    LIGHTS_RENDERER_INDIRECT_ARGS_FAR_OMNI_DRAW_OFFSET);
 }
 
-void LightsRenderer::renderDebugSpotLights(const SpotLightsCBs &spot_lights_cb)
+void LightsRenderer::renderDebugSpotLights(const SpotLightsCBs &spot_lights_cb, Sbuffer *indirect_args)
 {
   if (!spotLightsDebugElem)
     return;
   TIME_D3D_PROFILE(renderDebugSpotLights);
-  renderPrims(spotLightsDebugElem, spotLightsVarId, spot_lights_cb.clustered->getId(), IndirectIndices::SPOT_CLUSTERED);
-  renderPrims(spotLightsDebugElem, spotLightsVarId, spot_lights_cb.far->getId(), IndirectIndices::SPOT_FAR);
+  renderPrims(spotLightsDebugElem, spotLightsVarId, spot_lights_cb.clustered->getId(), indirect_args,
+    LIGHTS_RENDERER_INDIRECT_ARGS_CLUSTERED_SPOT_DRAW_OFFSET);
+  renderPrims(spotLightsDebugElem, spotLightsVarId, spot_lights_cb.far->getId(), indirect_args,
+    LIGHTS_RENDERER_INDIRECT_ARGS_FAR_SPOT_DRAW_OFFSET);
 }

@@ -20,7 +20,7 @@
 static void init_platform_specific(const DataBlock &) {}
 #else
 extern void init_platform_specific(const DataBlock &);
-static int suppress_log_cb(int, const char *, const void *, int, const char *, int) { return 0; }
+static void suppress_log_cb(void *, LogMessage &msg) { msg.flags |= LOGMSG_SKIP_FILE | LOGMSG_STOP_HANDLERS; }
 #endif
 
 extern void default_crt_init_kernel_lib();
@@ -97,8 +97,7 @@ bool __cdecl start_internal_server(const DataBlock &inp, void(__cdecl *handler)(
   debug(dagor_get_build_stamp_str(sbuf, sizeof(sbuf), "\n\n"));
   measure_cpu_freq();
 #endif
-  // Default HIS log mirror arms later in DagorWinMain (after visual_err_log_setup) so it
-  // sits above visuallog. Forwarder may already be stored from the host.
+  // Default HIS log mirror arms later in DagorWinMain. Forwarder may already be stored from the host.
 
   if (auto *tbl = (const GameResProxyTable *)(void *)inp.getInt64("gameResProxyTablePtr", 0))
   {
@@ -140,7 +139,8 @@ bool __cdecl start_internal_server(const DataBlock &inp, void(__cdecl *handler)(
   argv_storage.clear();
   flush_debug_file();
 #if !_TARGET_PC
-  debug_set_log_callback(&suppress_log_cb);
+  debug_remove_all_log_handlers();
+  debug_add_log_handler(&suppress_log_cb, nullptr, {.levelMask = LOGMASK_ALL, .order = LOGORDER_FILTER});
 #endif
   return retcode == 0;
 }

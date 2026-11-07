@@ -10,6 +10,14 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 NRD_CONSTANTS_START( REBLUR_TemporalAccumulationConstants )
     REBLUR_SHARED_CONSTANTS
+    // Gaijin change
+    #ifdef REBLUR_SECOND_CHANCE_HISTORY
+        NRD_CONSTANT( uint, gHasDiffuse )
+        NRD_CONSTANT( uint, gHasSpecular )
+        NRD_CONSTANT( uint, gHasBehindHistory )
+        NRD_CONSTANT( uint, gSecondChanceDebug )
+    #endif
+    // ~Gaijin change
 NRD_CONSTANTS_END
 
 NRD_SAMPLERS_START
@@ -54,6 +62,14 @@ NRD_INPUTS_START
             NRD_INPUT( Texture2D, REBLUR_SH_TYPE, gIn_DiffSh, t, 12 )
             NRD_INPUT( Texture2D, REBLUR_SH_TYPE, gHistory_DiffSh, t, 13 )
         #endif
+        // Gaijin change
+        #ifdef REBLUR_SECOND_CHANCE_HISTORY
+            NRD_INPUT( Texture2D, float, gBehind_ViewZ, t, 14 )
+            NRD_INPUT( Texture2D, uint, gBehind_InternalData, t, 15 )
+            NRD_INPUT( Texture2D, REBLUR_TYPE, gBehind_Diff, t, 16 )
+            NRD_INPUT( Texture2D, REBLUR_FAST_TYPE, gBehind_DiffFast, t, 17 )
+        #endif
+        // ~Gaijin change
     #else
         NRD_INPUT( Texture2D, float, gIn_SpecConfidence, t, 8 )
         NRD_INPUT( Texture2D, REBLUR_TYPE, gIn_Spec, t, 9 )

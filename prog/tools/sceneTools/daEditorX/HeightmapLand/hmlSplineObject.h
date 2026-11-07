@@ -3,6 +3,7 @@
 
 #include <math/dag_bezier.h>
 #include <de3_splineGenSrv.h>
+#include <de3_geomTagUiState.h>
 
 #include <EditorCore/ec_rendEdObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
@@ -203,7 +204,6 @@ public:
   }
 
   void updateSpline(int stage);
-  void updateChangedSegmentsRoadGeom();
   void updateChangedSegmentsLoftGeom();
 
   static bool pointInsidePoly(const Point2 &p, dag::ConstSpan<Point3> points);
@@ -319,6 +319,7 @@ public:
 
 private:
   void removeFilletPoints();
+  void fillLoftDebugProps(PropPanel::ContainerPropertyControl &op, dag::ConstSpan<RenderableEditableObject *> objects);
 
 public:
   void setEditLayerIdx(int idx);
@@ -345,6 +346,8 @@ public:
   bool splineChanged;
   bool modifChanged;
   bool forceDebugDrawWhenHidden = false;
+  Tab<GeomTagUiState> debugViewTags;   // loft tagged geometry view, session-only and never saved
+  Tab<SimpleString> propPanelLoftTags; // tag of each tag control row, filled by fillProps
   shaders::OverrideStateId zFuncLessStateId;
 
 public:
@@ -394,8 +397,6 @@ protected:
 
   void createMaterialControls(PropPanel::ContainerPropertyControl &op);
 
-  void generateRoadSegments(int start_idx, int end_idx, const splineclass::RoadData *asset_prev, splineclass::RoadData *asset,
-    const splineclass::RoadData *asset_next);
   void generateLoftSegments(int start_idx, int end_idx);
 
   HmapLandObjectEditor &getObjEd() const { return *(HmapLandObjectEditor *)getObjEditor(); }

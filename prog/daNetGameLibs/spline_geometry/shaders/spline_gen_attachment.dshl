@@ -11,6 +11,7 @@ shader dynamic_spline_attachment
   }
 
   USING_ATEST_HALF()
+  USE_INDIRECT_DRAW()
 
   DYNAMIC_SPLINE_GEN_VS_COMMON()
 

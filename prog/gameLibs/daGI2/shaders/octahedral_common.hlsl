@@ -48,9 +48,9 @@ float dagi_octahedral_solid_angle(float2 uv, float inv_res)
 #endif
 
 // maps octahedral map for correct hardware bilinear filtering (adds one pixel border)
-uint2 octahedral_map_border_to_octhedral(uint2 coord_with_border, uint resolution_with_border, uint border=1)
+int2 octahedral_map_border_to_octhedral(int2 coord_with_border, int resolution_with_border, int border=1)
 {
-  uint sourceResolution = resolution_with_border - border;
+  int sourceResolution = resolution_with_border - border;
   if (coord_with_border.x < border)
   {
     coord_with_border.x = border + border - 1 - coord_with_border.x;

@@ -336,6 +336,51 @@ bool ImguiHelper::inputTextWithEnterWorkaround(const char *label, const char *hi
   return ImGuiDagor::InputTextWithHint(label, hint, str, flags, callback, user_data);
 }
 
+// Based on ImGui::TextLink(). Taken from imgui_widgets.cpp.
+bool ImguiHelper::textLinkWithoutUnderline(const char *label, const char *label_end)
+{
+  ImGuiContext &g = *GImGui;
+  ImGuiWindow *window = ImGui::GetCurrentWindow();
+  if (window->SkipItems)
+    return false;
+
+  const ImGuiID id = window->GetID(label);
+  if (!label_end)
+    label_end = ImGui::FindRenderedTextEnd(label);
+
+  const ImVec2 pos(window->DC.CursorPos.x, window->DC.CursorPos.y + window->DC.CurrLineTextBaseOffset);
+  const ImVec2 size = ImGui::CalcTextSize(label, label_end);
+  const ImRect bb(pos, pos + size);
+  ImGui::ItemSize(size, 0.0f);
+  if (!ImGui::ItemAdd(bb, id))
+    return false;
+
+  bool hovered, held;
+  const bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+  ImGui::RenderNavCursor(bb, id);
+
+  if (hovered)
+    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+  ImVec4 textColor = g.Style.Colors[ImGuiCol_TextLink];
+  if (held || hovered)
+  {
+    float h, s, v;
+    ImGui::ColorConvertRGBtoHSV(textColor.x, textColor.y, textColor.z, h, s, v);
+    v = ImSaturate(v + (held ? 0.4f : 0.3f));
+    h = ImFmod(h + 0.02f, 1.0f);
+    ImGui::ColorConvertHSVtoRGB(h, s, v, textColor.x, textColor.y, textColor.z);
+  }
+
+  const float clipPosX = min(bb.Max.x, window->ClipRect.Max.x);
+  ImGui::PushStyleColor(ImGuiCol_Text, textColor);
+  ImGui::RenderTextEllipsis(window->DrawList, bb.Min, ImVec2(clipPosX, bb.Max.y), clipPosX, label, label_end, &size);
+  ImGui::PopStyleColor();
+
+  IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags);
+  return pressed;
+}
+
 // Based on ImGui::LabelText.
 bool ImguiHelper::labelOnly(const char *label, const char *label_end, bool use_text_width)
 {
@@ -831,7 +876,7 @@ void ImguiHelper::treeNodeWithSpecialHoverBehaviorRender(TreeNodeWithSpecialHove
     TablePopBackgroundChannel();
 }
 
-void ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialHoverBehaviorEndData &end_data,
+void ImguiHelper::treeNodeWithSpecialHoverBehaviorRenderLabel(const TreeNodeWithSpecialHoverBehaviorEndData &end_data,
   const float *label_clip_max_x)
 {
   G_ASSERT(end_data.draw);
@@ -843,6 +888,15 @@ void ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialH
   ImGui::RenderTextEllipsis(g.CurrentWindow->DrawList, posMin, posMax, posMax.x, end_data.label, end_data.labelEnd,
     &end_data.labelSize);
 
+  if (end_data.labelSize.x > (posMax.x - posMin.x))
+    set_previous_imgui_control_tooltip(end_data.id, end_data.label, end_data.labelEnd);
+}
+
+void ImguiHelper::treeNodeWithSpecialHoverBehaviorTreePush(const TreeNodeWithSpecialHoverBehaviorEndData &end_data)
+{
+  G_ASSERT(end_data.draw);
+
+  ImGuiContext &g = *GImGui;
   if (end_data.storeTreeNodeStackData && end_data.isOpen)
     TreeNodeStoreStackData(end_data.flags); // Call before TreePushOverrideID()
   if (end_data.isOpen && !(end_data.flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
@@ -852,9 +906,13 @@ void ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialH
   const bool is_open = end_data.isOpen;
   IMGUI_TEST_ENGINE_ITEM_INFO(end_data.id, end_data.label,
     g.LastItemData.StatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
+}
 
-  if (end_data.labelSize.x > (posMax.x - posMin.x))
-    set_previous_imgui_control_tooltip(ImGui::GetItemID(), end_data.label, end_data.labelEnd);
+void ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialHoverBehaviorEndData &end_data,
+  const float *label_clip_max_x)
+{
+  treeNodeWithSpecialHoverBehaviorRenderLabel(end_data, label_clip_max_x);
+  treeNodeWithSpecialHoverBehaviorTreePush(end_data);
 }
 
 float ImguiHelper::treeNodeWithSpecialHoverBehaviorGetLabelClipMaxX()

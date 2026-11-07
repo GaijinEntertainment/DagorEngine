@@ -55,6 +55,10 @@ shader object_motion_blur_tile_max
 
   hlsl(cs)
   {
+    #if WAVE_INTRINSICS
+      #define OMB_USE_WAVES 1
+    #endif
+
     float2 cartesianToPolar(float2 vel)
     {
       float velLen = length(vel);
@@ -70,6 +74,9 @@ shader object_motion_blur_tile_max
       return vel * velLen;
     }
 
+#if OMB_USE_WAVES
+    groupshared half2 waveMaxPolar[(TILE_SIZE * TILE_SIZE) / MIN_POSSIBLE_WARP_SIZE];
+#else
     groupshared half2 maxPolarVelocityForTile[TILE_SIZE * TILE_SIZE];
 
     void reduceStep(uint groupIndex, uint groupSize)
@@ -83,6 +90,7 @@ shader object_motion_blur_tile_max
       }
       GroupMemoryBarrierWithGroupSync();
     }
+#endif
 
     float processVelocityLength(float velLength)
     {
@@ -120,7 +128,8 @@ shader object_motion_blur_tile_max
       float sampleRawDepth = readGbufferDepth(tc);
 
       half2 vel = fetch_motion_vector_unjittered(tc, sampleRawDepth).xy;
-      if(vel.x > 10.0)   // invalid motion vector (x=y=65k means invalid, but we want linear filtering. values are in uv space)
+      // invalid motion vector: x=y=65k, or (-3,-3) at the camera-in-camera lens rim. Values are in uv space
+      if (any(abs(vel) > 2.0))
         vel = half2(0,0);
 
       half2 originalVel = vel * velocityMul;
@@ -138,6 +147,27 @@ shader object_motion_blur_tile_max
       if (all(samplePos < velocityRes.xy))
         storeFlattenedVelocity(samplePos, vel, sampleRawDepth);
 
+#if OMB_USE_WAVES
+      // one wave reduction + one group barrier instead of a nine-step tree
+      ##if hardware.ps4 // TODO: Broken WaveGetLaneCount macro
+      const uint waveSize = wave::GetLaneCount();
+      ##else
+      const uint waveSize = WaveGetLaneCount();
+      ##endif
+      const float waveMaxLen = WaveAllMax_F32((float)vel.x);
+      if ((float)vel.x == waveMaxLen)
+        waveMaxPolar[groupIndex / waveSize] = vel;
+      GroupMemoryBarrierWithGroupSync();
+      const uint waveCount = (TILE_SIZE * TILE_SIZE) / waveSize;
+      float groupMaxLen = 0.0f;
+      for (uint i = 0; i < max(1u, waveCount / waveSize); i++)
+      {
+        const uint readIdx = min(WaveGetLaneIndex() + i * waveSize, waveCount - 1);
+        groupMaxLen = max(groupMaxLen, WaveAllMax_F32(waveMaxPolar[readIdx].x));
+      }
+      if (all(groupId < tile_max_tex_size.xy) && (float)vel.x == groupMaxLen)
+        texture2DAt(tile_max_tex, groupId) = polarToCartesian(vel);
+#else
       maxPolarVelocityForTile[groupIndex] = vel;
       GroupMemoryBarrierWithGroupSync();
 
@@ -173,6 +203,7 @@ shader object_motion_blur_tile_max
         vel = maxPolarVelocityForTile[groupIndex].xy;
         texture2DAt(tile_max_tex, groupId) = polarToCartesian(vel);
       }
+#endif
     }
   }
 
@@ -239,6 +270,7 @@ shader object_motion_blur
   (cs)
   {
     velocityRes@f4 = (get_dimensions(object_motion_blur_in_tex, 0).xy, 1.0 / get_dimensions(object_motion_blur_in_tex, 0).xy);
+    flattenedVelRes@f4 = (get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy, 1.0 / get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy);
     minVel@f1 = object_motion_blur_min_vel_px;
     object_motion_blur_max_vel_px@f1 = object_motion_blur_max_vel_px;
 
@@ -262,6 +294,10 @@ shader object_motion_blur
 
   hlsl(cs)
   {
+    #if WAVE_INTRINSICS
+      #define OMB_USE_WAVES 1
+    #endif
+
     #include <interleavedGradientNoise.hlsl>
 
     #define TILE_SIZE 16
@@ -382,7 +418,11 @@ shader object_motion_blur
         return weight;
     }
 
+    #if OMB_USE_WAVES
+    groupshared uint waveMaxSampleCount[(TILE_SIZE * TILE_SIZE) / MIN_POSSIBLE_WARP_SIZE];
+#else
     groupshared uint sharedSampleCount;
+#endif
 
     [numthreads( 16, 16, 1 )]
     void object_motion_blur_cs(uint2 dtid : SV_DispatchThreadID, uint groupIndex : SV_GroupIndex)
@@ -393,7 +433,7 @@ shader object_motion_blur
 
       float2 random = float2 ( getRandom ( centerUV * velocityRes.xy) , getRandom ( (centerUV + float2 ( 0.52354 , 0.62321 )) * velocityRes.xy ) ) ;
 
-      int2 tileIdx = dtid;
+      int2 tileIdx = int2(centerUV * flattenedVelRes.xy);
       int2 tileJitterOffset = int2((random * 0.5 - 0.25) * TILE_SIZE); //[-0.25, 0.25] * TILE_SIZE
       tileIdx += tileJitterOffset;
       tileIdx /= TILE_SIZE;
@@ -401,29 +441,6 @@ shader object_motion_blur
       float2 maxNeighborVel = texelFetch(neighbor_max_tex, tileIdx, 0);
       float3 maxNeighborVel_Norm_Len = normalizeSafe(maxNeighborVel);
       float maxNeighborVelLength = maxNeighborVel_Norm_Len.z;
-      maxNeighborVelLength = max(maxNeighborVelLength, minVel);
-
-      float2 centerVel;
-      float centerDepth;
-      float centerVelLength;
-      bool centerIsSky;
-      loadFlattenedVelocityAndDepth(centerUV, centerVel, centerVelLength, centerDepth, centerIsSky);
-      float2 centerVelNorm = normalizeSafe(centerVel, centerVelLength);
-      centerVelLength = max(centerVelLength, minVel);
-
-      float rawTranslucentDepth = 0;
-      if(glass_depth_tex_exists)
-      {
-        rawTranslucentDepth = tex2Dlod(glass_depth_tex, float4(centerUV, 0, 0)).x;
-      }
-
-      // A vector perpendicular to maxNeighborVel.
-      float2 perpVel = maxNeighborVel_Norm_Len.yx * float2(-1, 1);
-      if (dot(perpVel, centerVel) < 0.0)
-        perpVel = -perpVel;
-
-      // Secondary sampling direction.
-      float2 secondaryVel = rnMix(perpVel, centerVelNorm, (centerVelLength - 0.5) / 1.5);
 
       const uint sampleCountFactor = 4;
       float desiredSampleCount = lerp((maxNeighborVelLength / object_motion_blur_max_vel_px) * sampleCountMax, sampleCountMax, object_motion_blur_use_all_samples);
@@ -432,6 +449,28 @@ shader object_motion_blur
       float desiredSampleCountFactor = ceil(desiredSampleCount / sampleCountFactor);
       uint actualSampleCount = clamp(desiredSampleCountFactor * sampleCountFactor, sampleCountFactor, sampleCountMax);
 
+#if OMB_USE_WAVES
+      // group max sample count: one wave reduction + one group barrier, no atomics
+      {
+        ##if hardware.ps4 // TODO: Broken WaveGetLaneCount macro
+        const uint waveSize = wave::GetLaneCount();
+        ##else
+        const uint waveSize = WaveGetLaneCount();
+        ##endif
+        const uint waveMaxCount = WaveAllMax_U32(actualSampleCount);
+        if (WaveIsFirstLane())
+          waveMaxSampleCount[groupIndex / waveSize] = waveMaxCount;
+        GroupMemoryBarrierWithGroupSync();
+        const uint waveCount = (TILE_SIZE * TILE_SIZE) / waveSize;
+        uint maxCount = 0;
+        for (uint i = 0; i < max(1u, waveCount / waveSize); i++)
+        {
+          const uint readIdx = min(WaveGetLaneIndex() + i * waveSize, waveCount - 1);
+          maxCount = max(maxCount, WaveAllMax_U32(waveMaxSampleCount[readIdx]));
+        }
+        actualSampleCount = maxCount;
+      }
+#else
       {
         BRANCH
         if (groupIndex == 0)
@@ -445,18 +484,42 @@ shader object_motion_blur
         GroupMemoryBarrierWithGroupSync();
         actualSampleCount = sharedSampleCount;
       }
+#endif
 
       if (any(dtid >= velocityRes.xy))
         return;
 
+      float2 centerVel;
+      float centerDepth;
+      float centerVelLength;
+      bool centerIsSky;
+      loadFlattenedVelocityAndDepth(centerUV, centerVel, centerVelLength, centerDepth, centerIsSky);
+
+      // Center velocity decides (sub-pixel is negligible); neighbor bound catches static pixels inside fast-moving tiles.
       BRANCH
-      if(maxNeighborVelLength < 0.5)
-      { // no motion blur
+      if(centerVelLength < minVel && maxNeighborVelLength < minVel && object_motion_blur_use_all_samples < 0.5)
+      {
         texture2DAt(output_tex, dtid) = inputColor;
         return;
       }
 
+      float2 centerVelNorm = normalizeSafe(centerVel, centerVelLength);
+      centerVelLength = max(centerVelLength, minVel);
+
+      float rawTranslucentDepth = 0;
+      if(glass_depth_tex_exists)
+      {
+        rawTranslucentDepth = tex2Dlod(glass_depth_tex, float4(centerUV, 0, 0)).x;
+      }
       float linearTranslucentDepth = linearize_z(rawTranslucentDepth, zn_zfar.zw);
+
+      // A vector perpendicular to maxNeighborVel.
+      float2 perpVel = maxNeighborVel_Norm_Len.yx * float2(-1, 1);
+      if (dot(perpVel, centerVel) < 0.0)
+        perpVel = -perpVel;
+
+      // Secondary sampling direction.
+      float2 secondaryVel = rnMix(perpVel, centerVelNorm, (centerVelLength - 0.5) / 1.5);
 
       // The center sample.
       uint loopCount = actualSampleCount / 2;
@@ -470,7 +533,7 @@ shader object_motion_blur
       int i = 0 ;
       float2 sampleJitter = float2(random.x - 0.5, 0.5 - random.x); // [-0.5, 0.5]
       float step = 0;
-      float2 stepSizeUV = centerVel * velocityRes.zw / loopCount;
+      float2 stepSizeUV = centerVel * flattenedVelRes.zw / loopCount;
 
       // when StepIndex == LoopCount, this should be equal to centerVelLength
       float stepIndexToPixel = centerVelLength / loopCount;
@@ -501,7 +564,7 @@ shader object_motion_blur
       // Step increases by 2 every loop, for this loop we use the odd numbers.
       // This way if the neighbor vel and the center vel are similar, we don't sample the same pixels twice.
       step = 1;
-      stepSizeUV = maxNeighborVel * velocityRes.zw / loopCount;
+      stepSizeUV = maxNeighborVel * flattenedVelRes.zw / loopCount;
 
       // when StepIndex == LoopCount, this should be equal to maxNeighborVelLength
       stepIndexToPixel = maxNeighborVelLength / loopCount;

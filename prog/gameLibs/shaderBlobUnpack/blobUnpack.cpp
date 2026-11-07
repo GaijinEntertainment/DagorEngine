@@ -143,7 +143,8 @@ static bool unpack_dx11(dag::ConstSpan<uint8_t> metadata, dag::ConstSpan<uint8_t
   if (!dx11::decode_metadata(metadata, decoded))
     return set_error(out_error, "malformed dx11 shader metadata");
 
-  out.dx11Header = {decoded.totalBytecodeSize, decoded.maxConstantRegUsed, decoded.maxRtvUsed};
+  out.dx11Header = {
+    decoded.totalBytecodeSize, decoded.maxConstantRegUsed, int8_t(decoded.maxRtvUsed), decoded.uavReadMask, decoded.uavWriteMask, 0};
 
   const eastl::pair<Stage, dx11::StageBytecodeRange> ranges[] = {
     {decoded.combined ? Stage::VS : main_stage, decoded.vs},

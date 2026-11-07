@@ -42,14 +42,12 @@ void GraphHierarchicalMarksParser::GraphMarker::markNode(intermediate::NodeIndex
   if (!useNamespaces_)
     return;
 
-  for (uint16_t i = 0; i < parser_.nodeMarks_[node_id].popNum; ++i)
+  const NodeMark &mark = parser_.nodeMarks_[node_id];
+  for (uint16_t i = 0; i < mark.popNum; ++i)
     parser_.eventStack_.pop();
 
-  for (const auto &eventName : parser_.nodeMarks_[node_id].newGPUEvents)
-  {
-    const char *name = eventName.c_str();
+  for (const char *name : mark.newGPUEvents)
     parser_.eventStack_.emplace(da_profiler::get_tls_description(nullptr, 0, 0, name), name);
-  }
 #else
   G_UNUSED(node_id);
 #endif
@@ -58,7 +56,7 @@ void GraphHierarchicalMarksParser::GraphMarker::markNode(intermediate::NodeIndex
 const char *GraphHierarchicalMarksParser::GraphMarker::getNodeDisplayName(intermediate::NodeIndex node_id) const
 {
   const NodeMark &mark = parser_.nodeMarks_[node_id];
-  return (useNamespaces_ ? mark.shortDisplayName : mark.fullDisplayName).c_str();
+  return useNamespaces_ ? mark.shortDisplayName : mark.fullDisplayName;
 }
 
 void GraphHierarchicalMarksParser::parseGraphMarks(const InternalRegistry &registry, const intermediate::Graph &graph)
@@ -144,6 +142,13 @@ void GraphHierarchicalMarksParser::generateNodeMarks(const InternalRegistry &reg
     nodeMarks_.emplaceAt(i, generateMark(i, registry));
 }
 
+static const char *find_squished_namespaces_name(const InternalRegistry &registry, NameSpaceNameId outermost,
+  NameSpaceNameId innermost)
+{
+  const ptrdiff_t outermostShortNameOffset = registry.knownNames.getShortName(outermost) - registry.knownNames.getName(outermost);
+  return registry.knownNames.getName(innermost) + outermostShortNameOffset;
+}
+
 GraphHierarchicalMarksParser::NodeMark GraphHierarchicalMarksParser::generateMark(intermediate::NodeIndex node_id,
   const InternalRegistry &registry) const
 {
@@ -176,19 +181,16 @@ GraphHierarchicalMarksParser::NodeMark GraphHierarchicalMarksParser::generateMar
 
     ++nodeDepth;
 
-    FixedString eventName = registry.knownNames.getShortName(pushedNamespaces[i].ns);
-    eventName += '/';
+    const NameSpaceNameId outermost = pushedNamespaces[i].ns;
 
     // skip squished namespaces
     while (i + 1 < pushedNamespaces.size() && pushedNamespaces[i].id == pushedNamespaces[i + 1].id)
     {
       ++nodeDepth;
-
-      eventName += registry.knownNames.getShortName(pushedNamespaces[++i].ns);
-      eventName += '/';
+      ++i;
     }
 
-    mark.newGPUEvents.emplace_back(eastl::move(eventName));
+    mark.newGPUEvents.push_back(find_squished_namespaces_name(registry, outermost, pushedNamespaces[i].ns));
   }
 
   const char *nodeName = registry.knownNames.getName(data.nodeNameId);

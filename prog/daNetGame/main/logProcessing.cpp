@@ -6,29 +6,21 @@
 
 #include <debug/dag_logSys.h>
 
-static debug_log_callback_t orig_debug_log = nullptr;
+static LogHandlerId assert_on_logerr_handler_id = LogHandlerId::Invalid;
 static eastl::string logerr_mask;
 
-static int raise_assert_on_logerr(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void raise_assert_on_logerr(void *, LogMessage &msg)
 {
-  int retValue = 1;
-  if (orig_debug_log)
-    retValue = orig_debug_log(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
+  if (!logerr_mask.empty() && strstr(msg.fmt, logerr_mask.c_str()) == nullptr)
+    return;
 
-  if (!logerr_mask.empty() && strstr(fmt, logerr_mask.c_str()) == nullptr)
-    return retValue;
-
-  static const int D3DE_TAG = _MAKE4C('D3DE');
-  if (lev_tag == LOGLEVEL_ERR || lev_tag == D3DE_TAG)
-  {
-    G_ASSERTF(false, fmt, arg);
-  }
-  return retValue;
+  G_ASSERTF(false, msg.fmt, msg.arg);
 }
 
 void enable_assert_on_logerrs(const char *mask)
 {
-  G_ASSERTF(orig_debug_log == nullptr, "Don't call this function twice!");
-  orig_debug_log = debug_set_log_callback(raise_assert_on_logerr);
+  G_ASSERTF(assert_on_logerr_handler_id == LogHandlerId::Invalid, "Don't call this function twice!");
   logerr_mask = mask;
+  assert_on_logerr_handler_id =
+    debug_add_log_handler(&raise_assert_on_logerr, nullptr, {.levelMask = LOGMASK_ERR, .tags = {LOGTAG_D3D_ERROR}});
 }

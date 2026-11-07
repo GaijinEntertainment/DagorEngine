@@ -193,7 +193,6 @@ inline bool finalize_navmesh_tiled_tile(rcContext &ctx, const rcConfig &cfg, Off
     }
     params.walkableHeight = walkable_height;
     params.walkableRadius = walkable_radius;
-    // Why:
     // jl are culled based on detailed navmesh
     // It is elevated by cellHeight for some reason: verts[j*3+1] += orig[1] + chf.ch;
     // But later in the game jl will likely connect to crude navmesh

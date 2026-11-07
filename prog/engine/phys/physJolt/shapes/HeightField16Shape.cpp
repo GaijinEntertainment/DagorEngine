@@ -127,13 +127,13 @@ void HeightField16Shape::CalculateActiveEdges(const HeightField16ShapeSettings &
         if (!IsNoCollision(x, y + 1))
         {
           Vec3 x1y2 = GetPosition(x, y + 1);
-          normals[offset] = (x2y2 - x1y2).Cross(x1y1 - x1y2).Normalized();
+          normals[offset] = sCellTriangleNormal(0, x1y1, x1y2, x2y2).Normalized();
         }
 
         if (!IsNoCollision(x + 1, y))
         {
           Vec3 x2y1 = GetPosition(x + 1, y);
-          normals[offset + 1] = (x1y1 - x2y1).Cross(x2y2 - x2y1).Normalized();
+          normals[offset + 1] = sCellTriangleNormal(1, x1y1, x2y2, x2y1).Normalized();
         }
       }
   };
@@ -416,24 +416,9 @@ Vec3 HeightField16Shape::GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Ar
   uint x, y, triangle;
   DecodeSubShapeID(inSubShapeID, x, y, triangle);
 
-  // Fetch vertices that both triangles share
-  Vec3 x1y1 = GetPosition(x, y);
-  Vec3 x2y2 = GetPosition(x + 1, y + 1);
-
-  // Get normal depending on which triangle was selected
-  Vec3 normal;
-  if (triangle == 0)
-  {
-    Vec3 x1y2 = GetPosition(x, y + 1);
-    normal = (x2y2 - x1y2).Cross(x1y1 - x1y2);
-  }
-  else
-  {
-    Vec3 x2y1 = GetPosition(x + 1, y);
-    normal = (x1y1 - x2y1).Cross(x2y2 - x2y1);
-  }
-
-  return normal.Normalized();
+  Vec3 v0, v1, v2;
+  GetCellTriangle(x, y, triangle, v0, v1, v2);
+  return sCellTriangleNormal(triangle, v0, v1, v2).Normalized();
 }
 
 void HeightField16Shape::GetSupportingFace(const SubShapeID &inSubShapeID, Vec3Arg inDirection, Vec3Arg inScale,
@@ -445,18 +430,7 @@ void HeightField16Shape::GetSupportingFace(const SubShapeID &inSubShapeID, Vec3A
 
   // Fetch the triangle
   outVertices.resize(3);
-  outVertices[0] = GetPosition(x, y);
-  Vec3 v2 = GetPosition(x + 1, y + 1);
-  if (triangle == 0)
-  {
-    outVertices[1] = GetPosition(x, y + 1);
-    outVertices[2] = v2;
-  }
-  else
-  {
-    outVertices[1] = v2;
-    outVertices[2] = GetPosition(x + 1, y);
-  }
+  GetCellTriangle(x, y, triangle, outVertices[0], outVertices[1], outVertices[2]);
 
   // Flip triangle if scaled inside out
   if (ScaleHelpers::IsInsideOut(inScale))
@@ -491,6 +465,32 @@ inline uint8 HeightField16Shape::GetEdgeFlags(uint inX, uint inY, uint inTriangl
     uint8 edge2 = inY == 0 || (GetEdgeFlags(inX, inY - 1, 0) & 0b010) != 0 ? 0b100 : 0;                // Horizontal edge
     return edge0 | edge1 | edge2;
   }
+}
+
+/// The (x, y) offsets of the vertices of each triangle of a cell; both share the diagonal (0, 0)-(1, 1)
+static constexpr uint cTrianglesPerCell = 2;
+static constexpr uint cCellTriangleCorners[cTrianglesPerCell][3][2] = {{{0, 0}, {0, 1}, {1, 1}}, {{0, 0}, {1, 1}, {1, 0}}};
+
+inline void HeightField16Shape::GetCellTriangle(uint inX, uint inY, uint inTriangle, Vec3 &outV0, Vec3 &outV1, Vec3 &outV2,
+  bool *outSolid) const
+{
+  Vec3 *v[3] = {&outV0, &outV1, &outV2};
+  if (outSolid)
+    *outSolid = true;
+  for (uint k = 0; k < 3; ++k)
+  {
+    bool no_collision = false;
+    *v[k] = GetPosition(inX + cCellTriangleCorners[inTriangle][k][0], inY + cCellTriangleCorners[inTriangle][k][1],
+      outSolid ? &no_collision : nullptr);
+    if (outSolid && no_collision)
+      *outSolid = false;
+  }
+}
+
+inline Vec3 HeightField16Shape::sCellTriangleNormal(uint inTriangle, Vec3Arg inV0, Vec3Arg inV1, Vec3Arg inV2)
+{
+  // Taken at the vertex off the diagonal
+  return inTriangle == 0 ? (inV2 - inV1).Cross(inV0 - inV1) : (inV0 - inV2).Cross(inV1 - inV2);
 }
 
 AABox HeightField16Shape::GetLocalBounds() const
@@ -534,53 +534,32 @@ void HeightField16Shape::Draw(DebugRenderer *inRenderer, RMat44Arg inCenterOfMas
       {
         // Create vertices for a block
         Array<DebugRenderer::Triangle> triangles;
-        triangles.resize(block_size * block_size * 2);
+        triangles.resize(block_size * block_size * cTrianglesPerCell);
         DebugRenderer::Triangle *out_tri = &triangles[0];
         for (uint32 y = by, max_y = min(by + block_size, mSampleCount - 1); y < max_y; ++y)
           for (uint32 x = bx, max_x = min(bx + block_size, mSampleCount - 1); x < max_x; ++x)
-            if (!IsNoCollision(x, y) && !IsNoCollision(x + 1, y + 1))
+            for (uint t = 0; t < cTrianglesPerCell; ++t)
             {
-              Vec3 x1y1 = GetPosition(x, y);
-              Vec3 x2y2 = GetPosition(x + 1, y + 1);
+              Vec3 v0, v1, v2;
+              bool solid;
+              GetCellTriangle(x, y, t, v0, v1, v2, &solid);
+              if (!solid)
+                continue;
+
+              v0.StoreFloat3(&out_tri->mV[0].mPosition);
+              v1.StoreFloat3(&out_tri->mV[1].mPosition);
+              v2.StoreFloat3(&out_tri->mV[2].mPosition);
+
               Color color = inUseMaterialColors ? GetMaterial(x, y)->GetDebugColor() : Color::sWhite;
-
-              if (!IsNoCollision(x, y + 1))
+              Vec3 normal = sCellTriangleNormal(t, v0, v1, v2).Normalized();
+              for (DebugRenderer::Vertex &v : out_tri->mV)
               {
-                Vec3 x1y2 = GetPosition(x, y + 1);
-
-                x1y1.StoreFloat3(&out_tri->mV[0].mPosition);
-                x1y2.StoreFloat3(&out_tri->mV[1].mPosition);
-                x2y2.StoreFloat3(&out_tri->mV[2].mPosition);
-
-                Vec3 normal = (x2y2 - x1y2).Cross(x1y1 - x1y2).Normalized();
-                for (DebugRenderer::Vertex &v : out_tri->mV)
-                {
-                  v.mColor = color;
-                  v.mUV = Float2(0, 0);
-                  normal.StoreFloat3(&v.mNormal);
-                }
-
-                ++out_tri;
+                v.mColor = color;
+                v.mUV = Float2(0, 0);
+                normal.StoreFloat3(&v.mNormal);
               }
 
-              if (!IsNoCollision(x + 1, y))
-              {
-                Vec3 x2y1 = GetPosition(x + 1, y);
-
-                x1y1.StoreFloat3(&out_tri->mV[0].mPosition);
-                x2y2.StoreFloat3(&out_tri->mV[1].mPosition);
-                x2y1.StoreFloat3(&out_tri->mV[2].mPosition);
-
-                Vec3 normal = (x1y1 - x2y1).Cross(x2y2 - x2y1).Normalized();
-                for (DebugRenderer::Vertex &v : out_tri->mV)
-                {
-                  v.mColor = color;
-                  v.mUV = Float2(0, 0);
-                  normal.StoreFloat3(&v.mNormal);
-                }
-
-                ++out_tri;
-              }
+              ++out_tri;
             }
 
         // Resize triangles array to actual amount of triangles written
@@ -768,69 +747,64 @@ public:
             transposed_max.GetColumn4(0), transposed_max.GetColumn4(1), transposed_max.GetColumn4(2), colliding_blocks, mTop);
 
         // Loop through the results backwards (closest first)
-        int result = num_results - 1;
+        JPH_ASSERT(mResume.mResult < num_results);
+        int result = mResume.mResult >= 0 ? mResume.mResult : num_results - 1;
         while (result >= 0)
         {
           const Range &range = ranges[colliding_blocks[result]];
           uint32 stride = range.mMaxX - range.mMinX + 1;
+          uint32 v_x = range.mMinX, v_y = range.mMinY;
+          uint t = 0;
+          if (mResume.mResult >= 0)
+          {
+            v_x = mResume.mX;
+            v_y = mResume.mY;
+            t = mResume.mTriangle;
+            mResume.mResult = -1;
+          }
+          const uint32 first_y = v_y;
 
-          // Decompress the samples of this quarter, its far row and column included
           Vec3 *dst_vertex = vertices;
           bool *dst_no_collision = no_collision;
-          for (uint32 v_y = range.mMinY; v_y <= range.mMaxY; ++v_y)
-            for (uint32 v_x = range.mMinX; v_x <= range.mMaxX; ++v_x)
-              *dst_vertex++ = mShape->GetPosition(v_x, v_y, dst_no_collision++);
+          for (uint32 s_y = first_y; s_y <= range.mMaxY; ++s_y)
+            for (uint32 s_x = range.mMinX; s_x <= range.mMaxX; ++s_x)
+              *dst_vertex++ = mShape->GetPosition(s_x, s_y, dst_no_collision++);
 
           // Loop triangles
-          for (uint32 v_y = range.mMinY; v_y < range.mMaxY; ++v_y)
-            for (uint32 v_x = range.mMinX; v_x < range.mMaxX; ++v_x)
+          for (; v_y < range.mMaxY; ++v_y, v_x = range.mMinX)
+            for (; v_x < range.mMaxX; ++v_x, t = 0)
             {
               // Get first vertex
-              const int offset = (v_y - range.mMinY) * stride + (v_x - range.mMinX);
+              const int offset = (v_y - first_y) * stride + (v_x - range.mMinX);
               const Vec3 *start_vertex = vertices + offset;
               const bool *start_no_collision = no_collision + offset;
 
-              // Check if vertices shared by both triangles have collision
-              if (!start_no_collision[0] && !start_no_collision[stride + 1])
+              for (; t < cTrianglesPerCell; ++t)
               {
-                // Loop 2 triangles
-                for (uint t = 0; t < 2; ++t)
+                // Determine triangle vertices, skip it when one has no collision
+                Vec3 v[3];
+                bool solid = true;
+                for (uint k = 0; k < 3; ++k)
                 {
-                  // Determine triangle vertices
-                  Vec3 v0, v1, v2;
-                  if (t == 0)
-                  {
-                    // Check third vertex
-                    if (start_no_collision[stride])
-                      continue;
-
-                    // Get vertices for triangle
-                    v0 = start_vertex[0];
-                    v1 = start_vertex[stride];
-                    v2 = start_vertex[stride + 1];
-                  }
-                  else
-                  {
-                    // Check third vertex
-                    if (start_no_collision[1])
-                      continue;
-
-                    // Get vertices for triangle
-                    v0 = start_vertex[0];
-                    v1 = start_vertex[stride + 1];
-                    v2 = start_vertex[1];
-                  }
+                  const uint corner = cCellTriangleCorners[t][k][1] * stride + cCellTriangleCorners[t][k][0];
+                  solid = solid && !start_no_collision[corner];
+                  v[k] = start_vertex[corner];
+                }
+                if (!solid)
+                  continue;
 
 #ifdef JPH_DEBUG_HEIGHT_FIELD
-                  DebugRenderer::sInstance->DrawWireTriangle(RVec3(v0), RVec3(v1), RVec3(v2), Color::sWhite);
+                DebugRenderer::sInstance->DrawWireTriangle(RVec3(v[0]), RVec3(v[1]), RVec3(v[2]), Color::sWhite);
 #endif
 
-                  // Call visitor
-                  ioVisitor.VisitTriangle(v_x, v_y, t, v0, v1, v2);
+                // Call visitor
+                ioVisitor.VisitTriangle(v_x, v_y, t, v[0], v[1], v[2]);
 
-                  // Check if we're done
-                  if (ioVisitor.ShouldAbort())
-                    return;
+                // Check if we're done
+                if (ioVisitor.ShouldAbort())
+                {
+                  mResume = {result, v_x, v_y, t};
+                  return;
                 }
               }
             }
@@ -888,15 +862,11 @@ public:
         mTop += num_results;
       }
 
-      // Check if we're done
-      if (ioVisitor.ShouldAbort())
-        return;
-
       // Fetch next node until we find one that the visitor wants to see
       do
         --mTop;
       while (mTop >= 0 && !ioVisitor.ShouldVisitRangeBlock(mTop));
-    } while (mTop >= 0);
+    } while (mTop >= 0 && !ioVisitor.ShouldAbort());
   }
 
   // This can be used to have the visitor early out (ioVisitor.ShouldAbort() returns true) and later continue again (call
@@ -920,8 +890,16 @@ private:
       }
   }
 
+  struct LeafCursor
+  {
+    int mResult = -1;
+    uint32 mX = 0, mY = 0;
+    uint mTriangle = 0;
+  };
+
   const HeightField16Shape *mShape;
   int mTop = 0;
+  LeafCursor mResume;
   uint32 mPropertiesStack[cStackSize];
 };
 

@@ -3,7 +3,6 @@
 #include "and_sensor.h"
 #include "joy_helper_android.h"
 
-#include <drv/hid/dag_hiGlobals.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <startup/dag_globalSettings.h>
@@ -315,6 +314,7 @@ void AndroidSensor::registerSensor()
       android_resources.gravityEventQueue ? 1 : 0, android_resources.gravitySensor ? 1 : 0, android_resources.looper ? 1 : 0,
       deviceName.c_str());
     logdbg("android:sensors: failed to initialize gyroscope or gravity sensor");
+    cleanupAndroidResources();
     failState = true;
   }
   else
@@ -329,16 +329,10 @@ void AndroidSensor::disableGyroscope()
   sensorsPollingData.pendingGyro.store({ZERO<Point3>(), false}, std::memory_order_release);
   sensorsPollingData.pendingGravity.store({ZERO<Point3>(), false}, std::memory_order_release);
 
-  raw_state_joy.rx = 0;
-  raw_state_joy.ry = 0;
-  raw_state_joy.rz = 0;
   gyro[0] = 0;
   gyro[1] = 0;
   gyro[2] = 0;
 
-  raw_state_joy.x = 0;
-  raw_state_joy.y = 0;
-  raw_state_joy.z = 0;
   gravity[0] = 0;
   gravity[1] = 0;
   gravity[2] = 0;
@@ -404,24 +398,15 @@ bool AndroidSensor::updateState()
   if (!(sensorState & SENSOR_GYRO_ENABLED_FLAG))
     return false;
 
+  // sensor values stay on the sensor axes: a gamepad binding of the stick axes must not read the phone tilt
+  const int prevGyro[3] = {gyro[0], gyro[1], gyro[2]};
+  const int prevGravity[3] = {gravity[0], gravity[1], gravity[2]};
   if (!pollSensorsData())
     return false;
 
-  bool changed = (state.rx != gyro[0] || state.ry != gyro[1] || state.rz != gyro[2]) ||
-                 (state.x != gravity[0] || state.y != gravity[1] || state.z != gravity[2]);
-  if (changed)
-  {
-    raw_state_joy.rx = state.rx = gyro[0];
-    raw_state_joy.ry = state.ry = gyro[1];
-    raw_state_joy.rz = state.rz = gyro[2];
-
-    raw_state_joy.x = state.x = gravity[0];
-    raw_state_joy.y = state.y = gravity[1];
-    raw_state_joy.z = state.z = gravity[2];
-
-    if (client)
-      client->stateChanged(this, 0);
-  }
+  const bool changed = memcmp(prevGyro, gyro, sizeof(prevGyro)) != 0 || memcmp(prevGravity, gravity, sizeof(prevGravity)) != 0;
+  if (changed && client)
+    client->stateChanged(this, 0);
 
   return changed;
 }

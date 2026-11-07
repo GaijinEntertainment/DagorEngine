@@ -1,0 +1,10 @@
+new method: rejected false
+replaced method: rejected foo
+function on a field: rejected 10
+metamethod: rejected null
+static: rejected false
+rawset function: rejected false
+__update function: rejected false
+base after inherit: rejected base base
+_lock hook: from _lock
+type class: rejected false

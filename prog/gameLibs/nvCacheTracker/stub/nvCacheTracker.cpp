@@ -2,4 +2,4 @@
 
 #include <nvCacheTracker/nvCacheTracker.h>
 
-void init_nv_cache_tracker() {}
+void init_nv_cache_tracker(const char *) {}

@@ -529,11 +529,6 @@ enum ResourceBarrier : uint64_t
   // NOTE: This barrier does also a implicit RB_RW_RENDER_TARGET or RB_RW_UAV depending on the
   //       resource usage flags and the gpu pipeline where this barrier is issued.
   RB_ALIAS_TO_AND_DISCARD = RB_ALIAS_TO | RB_FLAG_DONT_PRESERVE_CONTENT,
-  // Flushes everything to allow aliasing of any aliasing resource combination.
-  // May or may not has a performance penalty compared to targeted alias barriers, may be useful
-  // when multiple resources need a aliasing barrier at once, or other scenarios where alias from /
-  // to are difficult to know.
-  RB_ALIAS_ALL = RB_ALIAS_FROM | RB_ALIAS_TO,
 
   RB_SOURCE_STAGE_ALL_GRAPHICS = RB_SOURCE_STAGE_VERTEX | RB_SOURCE_STAGE_PIXEL,
   RB_SOURCE_STAGE_ALL_SHADERS = RB_SOURCE_STAGE_VERTEX | RB_SOURCE_STAGE_PIXEL | RB_SOURCE_STAGE_COMPUTE | RB_SOURCE_STAGE_RAYTRACE,

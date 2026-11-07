@@ -21,7 +21,7 @@ public:
     HAVE_SHADOWS = 1 << 3,
     VISIBLE_0 = 1 << 4,
     VISUAL_COLLISION = 1 << 5,
-    IS_WALLS = 1 << 6,
+    HAS_OCCLUSION_FOR_SW_RASTER = 1 << 6,
     VISIBLE_2 = 1 << 7,
     IS_RENDINST_CLIPMAP = 1 << 8,
     VISIBLE_IN_SHADOWS = 1 << 9,

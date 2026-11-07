@@ -414,7 +414,7 @@ void DynamicRenderableSceneLodsResSrc::addMeshNode(int lod_no, Lod &lod, Node *n
         if (shmat[i])
           has_any_mat = true;
         if (log && shmat[i])
-          AlphaTestValidation::validate(mesh, i, *subMat, *shmat[i], lod.fileName, n.name, *log);
+          AlphaTestValidation::validate(atestValidationCtx, mesh, i, *subMat, *shmat[i], lod.fileName, n.name, *log);
       }
       if (!has_any_mat || !mesh.getVert().size() || !mesh.getFace().size()) // no renderable geometry
         goto add_children;
@@ -655,7 +655,7 @@ void DynamicRenderableSceneLodsResSrc::addSkinNode(int lod_no, Lod &lod, Node *n
           meshData.face.size(), i, subMat->matName, subMat->className, subMat->matScript);
         shmat[i] = m;
         if (log && shmat[i])
-          AlphaTestValidation::validate(mesh, i, *subMat, *shmat[i], lod.fileName, n.name, *log);
+          AlphaTestValidation::validate(atestValidationCtx, mesh, i, *subMat, *shmat[i], lod.fileName, n.name, *log);
       }
 
       int sideChannelId = meshData.add_extra_channel(MeshData::CHT_FLOAT1, SCUSAGE_EXTRA, 55);

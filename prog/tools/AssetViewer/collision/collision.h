@@ -3,8 +3,8 @@
 
 #include "../av_plugin.h"
 #include "nodesProcessing.h"
-#include "physMatLegend.h"
 #include <EditorCore/ec_interface.h>
+#include <libTools/collision/physMatLegend.h>
 
 #include <propPanel/c_control_event_handler.h>
 #include <propPanel/control/menu.h>

@@ -18,6 +18,7 @@ VkResult drv3d_vulkan::get_last_error() { return tlsLastErrorCode; }
 #define VULKAN_RESULT_CODE_LIST                        \
   VULKAN_OK_CODE(VK_SUCCESS)                           \
   VULKAN_OK_CODE(VK_NOT_READY)                         \
+  VULKAN_OK_CODE(VK_SUBOPTIMAL_KHR)                    \
   VULKAN_OK_CODE(VK_TIMEOUT)                           \
   VULKAN_OK_CODE(VK_EVENT_SET)                         \
   VULKAN_OK_CODE(VK_EVENT_RESET)                       \

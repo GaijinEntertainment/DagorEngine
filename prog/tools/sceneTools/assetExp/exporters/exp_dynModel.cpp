@@ -129,6 +129,7 @@ public:
       a.props.getBool("allowProxyMat", false) ? &a.getMgr() : nullptr, &log);
     DynamicRenderableSceneLodsResSrc *resSrc = new DynamicRenderableSceneLodsResSrc(&pm);
     resSrc->log = &log;
+    resSrc->atestValidationCtx = atest_validation_ctx;
     const DataBlock *dm_blk = appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("dynModel");
 
     ::generate_extra_in_prepare_billboard_mesh = dm_blk->getBool("useExtraPrepareBillboardMesh", false);

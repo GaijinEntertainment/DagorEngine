@@ -4,6 +4,76 @@
 #include "collimatorMoaWatchCockpitES.cpp.inl"
 ECS_DEF_PULL_VAR(collimatorMoaWatchCockpit);
 #include <daECS/core/internal/performQuery.h>
+static constexpr ecs::ComponentDesc collimator_moa_cache_lens_axes_es_comps[] =
+{
+//start of 2 rw components at [0]
+  {ECS_HASH("gunmod__collimator_moa_local_forward"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("gunmod__collimator_moa_local_right"), ecs::ComponentTypeInfo<Point3>()},
+//start of 4 ro components at [2]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
+  {ECS_HASH("gunmod__lensNode"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("gunmod__camNode"), ecs::ComponentTypeInfo<ecs::string>()},
+//start of 1 no components at [6]
+  {ECS_HASH("collimatorMoaUseLensOrientation"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static void collimator_moa_cache_lens_axes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    collimator_moa_cache_lens_axes_es(evt
+        , components.manager()
+    , ECS_RO_COMP(collimator_moa_cache_lens_axes_es_comps, "eid", ecs::EntityId)
+    , ECS_RO_COMP(collimator_moa_cache_lens_axes_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
+    , ECS_RO_COMP(collimator_moa_cache_lens_axes_es_comps, "gunmod__lensNode", ecs::string)
+    , ECS_RO_COMP(collimator_moa_cache_lens_axes_es_comps, "gunmod__camNode", ecs::string)
+    , ECS_RW_COMP(collimator_moa_cache_lens_axes_es_comps, "gunmod__collimator_moa_local_forward", Point3)
+    , ECS_RW_COMP(collimator_moa_cache_lens_axes_es_comps, "gunmod__collimator_moa_local_right", Point3)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc collimator_moa_cache_lens_axes_es_es_desc
+(
+  "collimator_moa_cache_lens_axes_es",
+  "prog/gameLibs/render/collimatorMoaCore/render/collimatorMoaWatchCockpitES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, collimator_moa_cache_lens_axes_es_all_events),
+  make_span(collimator_moa_cache_lens_axes_es_comps+0, 2)/*rw*/,
+  make_span(collimator_moa_cache_lens_axes_es_comps+2, 4)/*ro*/,
+  empty_span(),
+  make_span(collimator_moa_cache_lens_axes_es_comps+6, 1)/*no*/,
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,"render");
+static constexpr ecs::ComponentDesc collimator_moa_cache_lens_axes_legacy_es_comps[] =
+{
+//start of 2 rw components at [0]
+  {ECS_HASH("gunmod__collimator_moa_local_forward"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("gunmod__collimator_moa_local_right"), ecs::ComponentTypeInfo<Point3>()},
+//start of 1 rq components at [2]
+  {ECS_HASH("collimatorMoaUseLensOrientation"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static void collimator_moa_cache_lens_axes_legacy_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    collimator_moa_cache_lens_axes_legacy_es(evt
+        , ECS_RW_COMP(collimator_moa_cache_lens_axes_legacy_es_comps, "gunmod__collimator_moa_local_forward", Point3)
+    , ECS_RW_COMP(collimator_moa_cache_lens_axes_legacy_es_comps, "gunmod__collimator_moa_local_right", Point3)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc collimator_moa_cache_lens_axes_legacy_es_es_desc
+(
+  "collimator_moa_cache_lens_axes_legacy_es",
+  "prog/gameLibs/render/collimatorMoaCore/render/collimatorMoaWatchCockpitES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, collimator_moa_cache_lens_axes_legacy_es_all_events),
+  make_span(collimator_moa_cache_lens_axes_legacy_es_comps+0, 2)/*rw*/,
+  empty_span(),
+  make_span(collimator_moa_cache_lens_axes_legacy_es_comps+2, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc collimator_moa_update_lens_eids_es_comps[] =
 {
 //start of 3 rw components at [0]
@@ -40,18 +110,19 @@ static ecs::EntitySystemDesc collimator_moa_update_lens_eids_es_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc gather_collimator_moa_lens_info_ecs_query_comps[] =
 {
-//start of 2 ro components at [0]
+//start of 3 ro components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar__res"), ecs::ComponentTypeInfo<ecs::string>()},
-//start of 1 rq components at [2]
+  {ECS_HASH("gunmod__lensNode"), ecs::ComponentTypeInfo<ecs::string>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [3]
   {ECS_HASH("gunScope"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc gather_collimator_moa_lens_info_ecs_query_desc
 (
   "gather_collimator_moa_lens_info_ecs_query",
   empty_span(),
-  make_span(gather_collimator_moa_lens_info_ecs_query_comps+0, 2)/*ro*/,
-  make_span(gather_collimator_moa_lens_info_ecs_query_comps+2, 1)/*rq*/,
+  make_span(gather_collimator_moa_lens_info_ecs_query_comps+0, 3)/*ro*/,
+  make_span(gather_collimator_moa_lens_info_ecs_query_comps+3, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void gather_collimator_moa_lens_info_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
@@ -64,6 +135,7 @@ inline void gather_collimator_moa_lens_info_ecs_query(ecs::EntityManager &manage
           function(
               ECS_RO_COMP(gather_collimator_moa_lens_info_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
             , ECS_RO_COMP(gather_collimator_moa_lens_info_ecs_query_comps, "animchar__res", ecs::string)
+            , ECS_RO_COMP_PTR(gather_collimator_moa_lens_info_ecs_query_comps, "gunmod__lensNode", ecs::string)
             );
 
         }

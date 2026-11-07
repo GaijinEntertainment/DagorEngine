@@ -16,6 +16,8 @@ public:
       "bind_dascript::get_ui_view_tm");
     das::addExtern<DAS_BIND_FUN(get_ui_view_itm)>(*this, lib, "get_ui_view_itm", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::get_ui_view_itm");
+    das::addExtern<DAS_BIND_FUN(uiinput::is_mouse_used_by_ui)>(*this, lib, "is_mouse_used_by_ui", das::SideEffects::accessExternal,
+      "uiinput::is_mouse_used_by_ui");
 
     verifyAotReady();
   }

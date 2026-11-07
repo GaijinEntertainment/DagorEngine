@@ -1,0 +1,79 @@
+// Use after USE_RT_LIGHTING and after <ml.hlsli> is included in the ml namespace.
+macro USE_RT_PATH_TRACING(stage)
+  hlsl(stage)
+  {
+    #define RT_PT_SPEC_LOBE_ENERGY 0.95
+
+    float EstimateDiffuseProbability(SurfaceParams surface)
+    {
+      const float maxFireflyRelativeIntensity = 20;
+      const float evilTwinLobeTolerance       = 0.005;
+
+      float3 surfaceSpecularColor = decodeSpecularColor(surface.reflectance, surface.metalness, surface.albedo);
+      float lumSpec = ml::Color::Luminance(surfaceSpecularColor);
+      float lumDiff = ml::Color::Luminance(surface.albedo);
+
+      float diffProb = lumDiff / max(lumDiff + lumSpec, 1e-6);
+      float diffProbClamped = clamp(diffProb, 1.0 / maxFireflyRelativeIntensity, 1.0 - 1.0 / maxFireflyRelativeIntensity);
+
+      [flatten]
+      if (diffProb < evilTwinLobeTolerance)
+        return 0.0;
+      else if (diffProb > 1.0 - evilTwinLobeTolerance)
+        return 1.0;
+      else
+        return diffProbClamped;
+    }
+
+    // Cuts dim paths and scales up the survivors, false ends the path
+    bool rt_pt_survive(inout float3 throughput)
+    {
+      float survivalProbability = saturate(max3(throughput));
+      if (ml::Rng::Hash::GetFloat() >= survivalProbability)
+        return false;
+      throughput /= survivalProbability;
+      return true;
+    }
+
+    // Picks the diffuse or the specular lobe and divides the throughput by its probability
+    bool rt_pt_choose_diffuse_lobe(SurfaceParams surface, inout float3 throughput)
+    {
+      float diffuseProbability = EstimateDiffuseProbability(surface);
+      bool isDiffuse = ml::Rng::Hash::GetFloat() < diffuseProbability;
+      throughput /= abs(float(!isDiffuse) - diffuseProbability);
+      return isDiffuse;
+    }
+
+    float3 rt_pt_sample_lobe(SurfaceParams surface, bool is_diffuse)
+    {
+      float3x3 localBasis = ml::Geometry::GetBasis(surface.normal);
+      float2 rayRnd = ml::Rng::Hash::GetFloat2();
+      float3 sampleDir;
+      if (is_diffuse)
+        sampleDir = ml::ImportanceSampling::Cosine::GetRay(rayRnd);
+      else
+      {
+        float3 Vlocal = ml::Geometry::RotateVector(localBasis, surface.surfaceToCamera);
+        float3 Hlocal = ml::ImportanceSampling::VNDF::GetRay(rayRnd, 1 - surface.smoothness, Vlocal, RT_PT_SPEC_LOBE_ENERGY);
+        sampleDir = reflect(-Vlocal, Hlocal);
+      }
+      return ml::Geometry::RotateVectorInverse(localBasis, sampleDir);
+    }
+
+    float3 calc_throughput_mod(SurfaceParams surface, bool isDiffuse, float3 sampleDir, float3 albedo)
+    {
+      float3 H = normalize(surface.surfaceToCamera + sampleDir);
+      float VoH = abs(dot(surface.surfaceToCamera, H));
+      float NoL = saturate(dot(surface.normal, sampleDir));
+      float NoV = abs(dot(surface.normal, surface.surfaceToCamera));
+
+      if (isDiffuse)
+        return saturate(albedo * ml::Math::Pi(1.0) * ml::BRDF::DiffuseTerm_Burley(1 - surface.smoothness, NoL, NoV, VoH));
+      else
+      {
+        float3 surfaceSpecularColor = decodeSpecularColor(surface.reflectance, surface.metalness, albedo);
+        return ml::BRDF::FresnelTerm_Schlick(surfaceSpecularColor, VoH) * ml::BRDF::GeometryTerm_Smith(1 - surface.smoothness, NoL);
+      }
+    }
+  }
+endmacro

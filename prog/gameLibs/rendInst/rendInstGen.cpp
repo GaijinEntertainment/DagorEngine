@@ -590,7 +590,7 @@ void RendInstGenData::prepareRtData(int layer_idx)
         append_items(rtData->riColPair, 2, &landCls[i].asset->riColPair[j * 2]);
         rtData->riResName.push_back(landCls[i].asset->riResName[j]);
         if (landCls[i].asset->riPaletteRotation[j] && !landCls[i].asset->riPosInst[j])
-          logerr("Currently only pos_inst instances support palette rotations <%s>", pregenEnt[i].riName);
+          logerr("Currently only pos_inst instances support palette rotations <%s>", landCls[i].asset->riResName[j]);
       }
       else
       {
@@ -863,6 +863,7 @@ void RendInstGenData::prepareRtData(int layer_idx)
     mem_set_0(rtData->riResHideMask);
 
   clear_and_resize(rtData->riResBb, rtData->riRes.size());
+  clear_and_resize(rtData->riResSplitBb, rtData->riRes.size());
   clear_and_resize(rtData->riCollResBb, rtData->riRes.size());
   for (int i = 0, ie = rtData->riResBb.size(); i < ie; i++)
   {
@@ -892,6 +893,22 @@ void RendInstGenData::prepareRtData(int layer_idx)
     if (!rtData->riCollRes[i].collRes && RendInstGenData::renderResRequired && rtData->riRes[i])
       rtData->riCollResBb[i] = rtData->riResBb[i];
 
+    const DataBlock *riDesc =
+      RendInstGenData::renderResRequired && rtData->riRes[i] ? gameres_find_ri_desc_block(rtData->riResName[i]) : nullptr;
+    auto riDescBox = [](const DataBlock &desc, const char *min_key, const char *max_key) {
+      return BBox3(desc.getPoint3(min_key, Point3(0, 0, 0)), desc.getPoint3(max_key, Point3(0, 0, 0)));
+    };
+    if (riDesc && riDesc->paramExists("split1Bbox0") && riDescBox(*riDesc, "bbox0", "bbox1") == rtData->riRes[i]->bbox)
+    {
+      rtData->riResSplitBb[i][0] = v_ldu_bbox3(riDescBox(*riDesc, "split0Bbox0", "split0Bbox1"));
+      rtData->riResSplitBb[i][1] = v_ldu_bbox3(riDescBox(*riDesc, "split1Bbox0", "split1Bbox1"));
+    }
+    else
+    {
+      rtData->riResSplitBb[i][0] = rtData->riResBb[i];
+      v_bbox3_init_empty(rtData->riResSplitBb[i][1]);
+    }
+
 #if RI_VERBOSE_OUTPUT
     if (!rendinst::is_ri_verbose_dump_expected())
       continue;
@@ -907,6 +924,13 @@ void RendInstGenData::prepareRtData(int layer_idx)
     append_lod_masks(riStr, " cm=", em, &RendInstGenData::ElemMask::cullN);
     if (rtData->riResHideMask[i])
       riStr.aprintf(0, " hm=%02X", rtData->riResHideMask[i]);
+    if (!v_bbox3_is_empty(rtData->riResSplitBb[i][1]))
+    {
+      BBox3 splitBb[2];
+      v_stu_bbox3(splitBb[0], rtData->riResSplitBb[i][0]);
+      v_stu_bbox3(splitBb[1], rtData->riResSplitBb[i][1]);
+      riStr.aprintf(0, " split=%@ %@", splitBb[0], splitBb[1]);
+    }
     debug(riStr);
 #endif
   }
@@ -1469,9 +1493,8 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
         buf_w16.clear();
         if (pool.avail < 0)
         {
-          if (pregenUnpData.size() < cnt * stride)
-            clear_and_resize(pregenUnpData, cnt * stride);
           ptr = (uint8_t *)pregenData;
+          pregenData += cnt * stride; // the stream is cell-wide, consume this entry like the other branches
           riex_idx = -pool.avail - 1;
           G_ASSERTF_CONTINUE(!pos_inst, "riex_idx=%d {%s}", riex_idx, rendinst::getRIGenExtraName(riex_idx));
         }
@@ -1827,8 +1850,9 @@ void RendInstGenData::generateRiExFromPregenData(rendinst::gen::RiGenCellCtx &ct
       cur_ri_extra_ord += 16;
       for (eff_riex_idx = riPool.destroyedRiIdx; eff_riex_idx >= 0; eff_riex_idx = rendinst::riExtra[eff_riex_idx].destroyedRiIdx)
       {
-        poolExtraData = extraDestrData.getPool(eff_riex_idx);
-        if (!poolExtraData || !poolExtraData->isInRange(cur_ri_extra_ord))
+        // Keep poolExtraData: it is the record of riex_idx for the next instances
+        const rendinst::DestroyedPoolData *chainData = extraDestrData.getPool(eff_riex_idx);
+        if (!chainData || !chainData->isInRange(cur_ri_extra_ord))
           break;
         cur_ri_extra_ord += 16;
       }
@@ -2881,8 +2905,10 @@ void rendinst::prepareRIGen(bool init_sec_ri_extra_here, const DataBlock *level_
   if (RendInstGenData::renderResRequired)
     RendInstGenData::initPaletteVb();
 
-  float impostorsFarDistAddMul = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("rendinstImpostorsFarDistAddMul", 1.0);
-  impostorsDistAddMul = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("rendinstImpostorsDistAddMul", 1.0);
+  float impostorsFarDistAddMul = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("impostorsFarDistAdditionalMul", 1.0);
+  if (level_blk)
+    impostorsFarDistAddMul = level_blk->getReal("impostorsFarDistAdditionalMul", impostorsFarDistAddMul);
+  impostorsDistAddMul = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("impostorsDistAdditionalMul", 1.0);
   riAllowGenJobsQueueReorder = ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("riAllowGenJobsQueueReorder", false);
 
   rendinst::setImpostorsDistAddMul(impostorsDistAddMul);

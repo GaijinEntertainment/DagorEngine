@@ -85,6 +85,23 @@ static void format_element_line(eastl::string &out, const Element *elem, int ind
     out += robj_name;
   }
 
+  // Script key, when it is a string or an integer
+  if (!elem->props.uniqueKey.IsNull())
+  {
+    HSQOBJECT key = elem->props.uniqueKey.GetObject();
+    if (sq_isstring(key))
+    {
+      out += " key=\"";
+      out += sq_objtostring(&key);
+      out += '"';
+    }
+    else if (sq_isinteger(key))
+    {
+      snprintf(buf, sizeof(buf), " key=%lld", (long long)sq_objtointeger(&key));
+      out += buf;
+    }
+  }
+
   // Text content
   if (!elem->props.text.empty())
   {

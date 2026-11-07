@@ -1,3 +1,4 @@
+int ptgi_rendered = 0;
 int ptgi_bindless_slot = -1;
 int ptgi_bindless_sampler_slot = -1;
 
@@ -6,25 +7,18 @@ int ptgi_depth_bindless_sampler_slot = -1;
 
 int ptgi_res_mul = 1;
 int ptgi_use_rr = 1;
-float4 ptgi_uv_max;
-float4 ptgi_uv_scale;
 
 macro CHECKING_PTGI(stage)
   if (use_hw_raytracing)
   {
     (stage) {
-      ptgi_bindless_slot@i1 = ptgi_bindless_slot;
-      ptgi_bindless_sampler_slot@u1 = ptgi_bindless_sampler_slot;
-      ptgi_depth_bindless_slot@i1 = ptgi_depth_bindless_slot;
-      ptgi_depth_bindless_sampler_slot@u1 = ptgi_depth_bindless_sampler_slot;
-      ptgi_res_mul@u1 = ptgi_res_mul;
-      ptgi_use_rr@u1 = ptgi_use_rr;
+      ptgi_rendered@i1 = ptgi_rendered;
     }
 
     hlsl (stage) {
       bool isPTGIEnabled()
       {
-        return ptgi_bindless_slot >= 0;
+        return ptgi_rendered != 0;
       }
     }
   }
@@ -40,23 +34,30 @@ macro CHECKING_PTGI(stage)
 endmacro
 
 macro USING_PTGI(stage)
-  CHECKING_PTGI(stage)
-
   if (use_hw_raytracing)
   {
-    (stage)
-    {
-      ptgi_uv_max@f2 = ptgi_uv_max;
-      ptgi_uv_scale@f2 = ptgi_uv_scale;
+    (stage) {
+      ptgi_rendered@i1 = ptgi_rendered;
+      ptgi_bindless_slot@i1 = ptgi_bindless_slot;
+      ptgi_bindless_sampler_slot@u1 = ptgi_bindless_sampler_slot;
+      ptgi_depth_bindless_slot@i1 = ptgi_depth_bindless_slot;
+      ptgi_depth_bindless_sampler_slot@u1 = ptgi_depth_bindless_sampler_slot;
+      ptgi_res_mul@u1 = ptgi_res_mul;
+      ptgi_use_rr@u1 = ptgi_use_rr;
     }
+
     hlsl (stage) {
       #define HAS_PTGI 1
 
       #include <rt_texture_outputs.inc.hlsli>
 
+      bool isPTGIEnabled()
+      {
+        return ptgi_rendered != 0 && ptgi_bindless_slot >= 0;
+      }
+
       float3 getPTGI(float2 uv, float linearDepth)
       {
-        uv = min(ptgi_uv_max, uv * ptgi_uv_scale);
         float4 color = 0;
 
         if (ptgi_res_mul == 1)
@@ -110,6 +111,11 @@ macro USING_PTGI(stage)
   else
   {
     hlsl (stage) {
+      bool isPTGIEnabled()
+      {
+        return false;
+      }
+
       float3 getPTGI(float2 uv, float linearDepth)
       {
         return 1;

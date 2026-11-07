@@ -78,7 +78,7 @@ static MicLevel measure_level(dag::ConstSpan<int16_t> frame)
     sum += double(sample) * sample;
   }
   MicLevel level;
-  // constraint: the build assumes finite math, so log10 must not get 0
+  // the build assumes finite math, so log10 must not get 0
   if (peak > 0)
   {
     level.rmsDb = max(float(10 * log10(sum / frame.size() / (fullScale * fullScale))), mic_level_floor_db);

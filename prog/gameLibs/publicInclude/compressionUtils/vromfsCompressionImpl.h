@@ -8,6 +8,8 @@
 #include <osApiWrappers/dag_vromfs.h>
 #include <util/dag_simpleString.h>
 
+class IGenSave;
+
 class VromfsCompression : public Compression
 {
 public:
@@ -45,7 +47,13 @@ public:
   InputDataType getDataType(const char *data, int size, CheckType checkType) const;
   bool extractVersion(const char *data, int size, unsigned &version) const;
 
+  //! writes the bytes that compress() makes of a plain vrom dump into cwr, which must allow seekto();
+  //! returns false when the input is not a plain vrom dump or can not be packed
+  bool compressPlainVrom(const void *in, int in_len, IGenSave &cwr) const;
+
 private:
+  bool writePackedVrom(const char *in, int in_len, IGenSave &cwr, int max_size) const;
+
   signature_checker_factory_cb checkerFactoryCb;
   SimpleString fileName;
 };

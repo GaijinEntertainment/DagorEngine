@@ -8,7 +8,6 @@
 #include "blendNodes/blendNodeType.h"
 #include "animStates/animStatesType.h"
 
-#include "animStates/state.h"
 #include "controllers/hub.h"
 #include "controllers/randomSwitch.h"
 #include "controllers/paramSwitch.h"
@@ -31,18 +30,6 @@ enum
 {
   PID_CHILDS_TREE
 };
-
-namespace ContextMenu
-{
-enum
-{
-  EDIT = 0,
-  EDIT_IN_PARENT,
-  COLLAPSE_ALL,
-  EXPAND_ALL,
-  SET_AS_ROOT,
-};
-}
 
 ChildsDialog::ChildsDialog(dag::Vector<AnimCtrlData> &controllers, dag::Vector<BlendNodeData> &nodes,
   dag::Vector<AnimStatesData> &states, dag::Vector<String> &paths) :
@@ -194,12 +181,18 @@ void ChildsDialog::fillStateChilds(PropPanel::ContainerPropertyControl *tree, An
     get_props_from_include_state_data(paths, controllers, *asset, ctrlsTree, *stateDescData, fullPath, /*only_includes*/ true)});
   DataBlock *stateDesc = include.props.addBlock("stateDesc");
   DataBlock *settings = find_block_by_name(stateDesc, statesTree->getCaption(data.handle));
+  if (!settings)
+    return;
   PropPanel::TLeafHandle stateLeaf = tree->createTreeLeaf(nullptr, statesTree->getCaption(data.handle), STATE_LEAF_ICON);
   tree->setExpanded(stateLeaf, /*open*/ true);
   for (int i = 0; i < data.childs.size(); ++i)
   {
+    const int chanBlockIdx = get_child_block_idx_by_list_idx(settings, i);
+    if (chanBlockIdx < 0)
+      break;
     const int idx = data.childs[i];
-    const char *chanName = settings->getBlock(i)->getBlockName();
+    const DataBlock *chan = settings->getBlock(chanBlockIdx);
+    const char *chanName = chan->getBlockName();
     if (idx == AnimStatesData::EMPTY_CHILD_TYPE)
       tree->createTreeLeaf(stateLeaf, String(0, "[%s] (Empty child)", chanName), nullptr);
     else if (idx == AnimStatesData::LEAVE_CUR_CHILD_TYPE)
@@ -219,7 +212,7 @@ void ChildsDialog::fillStateChilds(PropPanel::ContainerPropertyControl *tree, An
             get_blend_node_icon_name(nodeChild->type));
         else
         {
-          const char *childName = state_get_child_name_by_idx(*settings, i);
+          const char *childName = chan->getStr("name", "");
           CtrlChildSearchResult result =
             find_child_idx_and_icon_by_name(ctrlsTree, nodesTree, stateLeaf, controllers, nodes, childName);
           if (result.id != AnimCtrlData::NOT_FOUND_CHILD)
@@ -393,8 +386,7 @@ void ChildsDialog::fillCtrlChilds(PropPanel::ContainerPropertyControl *tree, Pro
   if (is_contain_important_param(leaf_data.type))
   {
     CachedInclude *include = findIncludeProps(includes, includeLeaf);
-    DataBlock *ctrlProps = get_props_from_include_leaf_ctrl_node(controllers, include->props, ctrlsTree, includeLeaf);
-    settings = find_block_by_name(ctrlProps, ctrlsTree->getCaption(leaf_data.handle));
+    settings = find_ctrl_settings(controllers, include->props, ctrlsTree, includeLeaf, ctrlsTree->getCaption(leaf_data.handle));
   }
   if (!parent)
     tree->setExpanded(leaf, /*open*/ true);
@@ -427,8 +419,13 @@ void ChildsDialog::fillCtrlChilds(PropPanel::ContainerPropertyControl *tree, Pro
         if (!settings)
         {
           CachedInclude *include = findIncludeProps(includes, includeLeaf);
-          DataBlock *ctrlProps = get_props_from_include_leaf_ctrl_node(controllers, include->props, ctrlsTree, includeLeaf);
-          settings = find_block_by_name(ctrlProps, ctrlsTree->getCaption(leaf_data.handle));
+          settings = find_ctrl_settings(controllers, include->props, ctrlsTree, includeLeaf, ctrlsTree->getCaption(leaf_data.handle),
+            /*should_exist*/ false);
+        }
+        if (!settings)
+        {
+          tree->createTreeLeaf(leaf, String(0, "(not found) %s", prefixChildName), nullptr);
+          continue;
         }
         String childName = getChildNameFromSettings(*settings, leaf_data.type, i);
         CtrlChildSearchResult result =
@@ -518,19 +515,7 @@ void ChildsDialog::editSelectedNode()
     }
   }
 
-  AnimCtrlData *ctrlData = eastl::find_if(controllers.begin(), controllers.end(),
-    [ctrlsTree = ctrlsTree, name](const AnimCtrlData &data) { return ctrlsTree->getCaption(data.handle) == name; });
-  if (ctrlData != controllers.end())
-    focus_selected_node(eventHandler, pluginPanel, ctrlData->handle, PID_ANIM_BLEND_CTRLS_GROUP, PID_ANIM_BLEND_CTRLS_GROUP,
-      PID_ANIM_BLEND_CTRLS_TREE);
-  else
-  {
-    BlendNodeData *nodeData = eastl::find_if(nodes.begin(), nodes.end(),
-      [nodesTree = nodesTree, name](const BlendNodeData &data) { return nodesTree->getCaption(data.handle) == name; });
-    if (nodeData != nodes.end())
-      focus_selected_node(eventHandler, pluginPanel, nodeData->handle, PID_ANIM_BLEND_NODES_GROUP, PID_ANIM_BLEND_NODES_GROUP,
-        PID_ANIM_BLEND_NODES_TREE);
-  }
+  eventHandler->focusNodeByName(name);
 }
 
 void ChildsDialog::editInParentSelectedNode()

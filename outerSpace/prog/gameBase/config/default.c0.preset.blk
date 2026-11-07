@@ -54,6 +54,16 @@ SpaceShip.ChangeStabHt { dev:i=31;
 }
 SpaceShip.FwdMoveStab { dev:i=1; btn:i=0x1D; }
 
+Motorbike.Move { dev:i=31;
+  xMinBtn { dev:i=1; btn:i=30; }
+  xMaxBtn { dev:i=1; btn:i=32; }
+  yMinBtn { dev:i=1; btn:i=31; }
+  yMaxBtn { dev:i=1; btn:i=17; }
+}
+Motorbike.Reverse { dev:i=1; btn:i=0x1D; }
+Motorbike.GetUp { dev:i=1; btn:i=14; }
+Motorbike.Look { dev:i=2; xAxis:i=0; yAxis:i=1; dzone:r=0; axisSnapAngK:r=0; nonlin:r=0; maxVal:r=1; }
+
 HUD.GameMenu { dev:i=1; btn:i=1; }
 HUD.ChatInput{ dev:i=1; btn:i=28; }
 

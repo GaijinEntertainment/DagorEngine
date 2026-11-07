@@ -23,7 +23,7 @@ def sample_history_trajectory(sample_time : float;
     out_world_rot = length(historyRotations) > 0 ? quat(historyRotations[0]) : quat(currRotation)
     return
   if historyOffset < 0f
-    let interpK = 1f - sample_time / lastHistoryTime
+    let interpK = 1f + sample_time / lastHistoryTime
     out_world_pos = lerp(historyPositions[lastHistoryIdx], currPosition, float3(interpK))
     out_world_rot = slerp(quat(historyRotations[lastHistoryIdx]), quat(currRotation), interpK)
   else

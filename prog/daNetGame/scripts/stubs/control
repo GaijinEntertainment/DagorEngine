@@ -1,10 +1,27 @@
+// SensScale fields of all games, native defaults
+let sensScale = {
+  humanAiming = 0.65
+  humanTpsCam = 1.0
+  humanFpsCam = 0.65
+  vehicleCam = 1.0
+  helicopterCam = 1.0
+  planeCam = 1.0
+}
+
 return {
   save_config = @() {}
   reset_to_default = @() null
   reset_to_preset = @(_preset, _move_changes) null
   restore_saved_config = @() null
   set_touch_pad_always_mouse = @(_on) null
-  get_sens_scale = @() {}
+  set_touch_pad_ballistics = @(_on) null
+  set_touch_pad_cursor_speed = @(_speed) null
+  is_dspad_remapped_by_steam_input = @() false
+  set_gyro_gravity_vector = @(_on) null
+  calibrate_gyro = @() null
+  get_gyro_calibration_rest = @() -1.0
+  GYRO_CALIBRATE_SEC = 3.0
+  get_sens_scale = @() sensScale
   set_rumble_scale = @(_scale) null
   rumble = @(_freq, _duration_msec) null
 }

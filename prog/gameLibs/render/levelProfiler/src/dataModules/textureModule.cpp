@@ -1,10 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <EASTL/sort.h>
-#include <EASTL/algorithm.h>
 #include <3d/dag_texIdSet.h>
+#include <3d/dag_resMgr.h>
+#include <3d/dag_buildOnDemandTexFactory.h>
 #include <3d/dag_texPackMgr2.h>
 #include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_tex3d.h>
 #include <drv/3d/dag_texture.h>
 #include <shaders/dag_shaderResUnitedData.h>
 #include <gui/dag_imguiUtil.h>
@@ -57,11 +58,33 @@ void TextureModule::clear() { clearImpl(); }
 void TextureModule::clearImpl()
 {
   textures.clear();
-  filteredTextures.clear();
-  selectedTextureName.clear();
 
-  totalCount = filteredCount = 0;
-  totalMemorySize = filteredMemorySize = 0;
+  dataGeneration++;
+}
+
+// The memory of the mips [first_mip, info.mipLevels) of a texture in the format of info.cflg.
+static uint64_t calc_mips_memory(const TextureInfo &info, int first_mip)
+{
+  const TextureFormatDesc &format = get_tex_format_desc(info.cflg);
+  const bool isVolume = info.type == D3DResourceType::VOLTEX;
+  uint64_t total = 0;
+  for (int mip = first_mip; mip < info.mipLevels; ++mip)
+  {
+    const uint64_t columns = (max(info.w >> mip, 1) + format.elementWidth - 1) / format.elementWidth;
+    const uint64_t rows = (max(info.h >> mip, 1) + format.elementHeight - 1) / format.elementHeight;
+    total += columns * rows * format.bytesPerElement * (isVolume ? max(info.d >> mip, 1) : 1);
+  }
+  return total * (isVolume ? 1 : max<int>(info.a, 1));
+}
+
+// The state of a streamed texture when its top mip is the texture manager level (as get_managed_res_loaded_lev). Level 1 of a
+// texture with more levels is the stub texture (downgrade_managed_tex_to_lev): it has no texture data.
+static TextureStateSize calc_state_at_level(const TextureInfo &full, int full_level, unsigned level)
+{
+  const int skip = max(full_level - int(level), 0);
+  if ((level <= 1 && full_level >= 2) || skip >= full.mipLevels)
+    return {};
+  return {max(full.w >> skip, 1), max(full.h >> skip, 1), full.mipLevels - skip, calc_mips_memory(full, skip)};
 }
 
 void TextureModule::collect()
@@ -77,121 +100,64 @@ void TextureModule::collect()
     TextureData textureData;
     textureData.name = get_managed_texture_name(tid);
 
-    ProfilerString textureName = TextureMetaData::decodeFileName(textureData.name.c_str());
-    ddsx::DDSxDataPublicHdr desc;
-    int texSize = ddsx::read_ddsx_header(textureName.c_str(), desc, true);
-
-    if (texSize < 0)
-    {
-      TextureInfo ti;
-      tex->getinfo(ti, 0);
-
-      desc.w = ti.w;
-      desc.h = ti.h;
-      desc.depth = max<int>(ti.d, ti.a);
-      desc.levels = ti.mipLevels;
-      if (ti.type == D3DResourceType::CUBETEX)
-        desc.flags |= desc.FLG_CUBTEX;
-      else if (ti.type == D3DResourceType::VOLTEX)
-        desc.flags |= desc.FLG_VOLTEX;
-      texSize = tex->getSize();
-    }
-
     TextureInfo ti;
     tex->getinfo(ti, 0);
 
-    ti.w = desc.w;
-    ti.h = desc.h;
-    ti.mipLevels = desc.levels;
+    // The manager entry holds the full size and level of the texture, with its HQ or UHQ part, for any texture it streams.
+    ManagedTexEntryDesc entry;
+    textureData.isStreamed = get_managed_tex_entry_desc(tid, entry) && entry.maxLev > 0 && entry.mipLevels > 0;
+    if (textureData.isStreamed)
+    {
+      ti.w = entry.width;
+      ti.h = entry.height;
+      ti.mipLevels = entry.mipLevels;
+      if (ti.type == D3DResourceType::VOLTEX)
+        ti.d = entry.depth;
+      else if (ti.type == D3DResourceType::ARRTEX)
+        ti.a = entry.depth;
 
-    if (desc.flags & desc.FLG_VOLTEX)
-      ti.d = desc.depth;
-    else if (desc.flags & desc.FLG_CUBTEX)
-      ti.a = 6;
-    else if (desc.depth > 1)
-      ti.a = desc.depth;
+      textureData.states[*TextureState::FULL] = {ti.w, ti.h, ti.mipLevels, calc_mips_memory(ti, 0)};
+      // Only the textures that the game holds are listed (refcount >= 1), so the manager has set their quality limit.
+      textureData.states[*TextureState::MAX] = calc_state_at_level(ti, entry.maxLev, get_managed_res_quality_limit_lev(tid));
+      textureData.states[*TextureState::RES] = calc_state_at_level(ti, entry.maxLev, entry.ldLev);
+      textureData.quality = {.selectedQuality = ddsx::get_tex_quality(tid),
+        .settings = ::dgs_tex_quality,
+        .explicitList = ddsx::get_explicit_tex_list(tid),
+        .maxTql = get_managed_res_max_tql(tid)};
+    }
+    else
+    {
+      const TextureStateSize resource = {ti.w, ti.h, ti.mipLevels, uint64_t(tex->getSize())};
+      for (TextureStateSize &state : textureData.states)
+        state = resource;
+    }
 
     textureData.info = ti;
-
-    if (get_managed_texture_refcount(tid) > 0)
-      textureData.sizeBytes = texSize;
-    else
-      textureData.sizeBytes = 0;
 
     release_managed_tex(tid);
 
     textures[textureData.name] = textureData;
   }
-
-  calculateFilterRanges();
-
-  filteredTextures.clear();
-  filteredTextures.reserve(textures.size());
-  for (const auto &[textureName, textureData] : textures)
-    filteredTextures.push_back(textureName);
-
-  recalculateStatistics();
-}
-
-void TextureModule::calculateFilterRanges()
-{
-  mipMinDefault = INT_MAX;
-  mipMaxDefault = INT_MIN;
-  sizeMinDefault = FLT_MAX;
-  sizeMaxDefault = 0.0f;
-
-  for (const auto &[textureName, textureData] : textures)
-  {
-    mipMinDefault = eastl::min(mipMinDefault, (int)textureData.info.mipLevels);
-    mipMaxDefault = eastl::max(mipMaxDefault, (int)textureData.info.mipLevels);
-
-    float currentSizeMB = getTextureMemorySize(textureData);
-    sizeMinDefault = eastl::min(sizeMinDefault, currentSizeMB);
-    sizeMaxDefault = eastl::max(sizeMaxDefault, currentSizeMB);
-  }
-
-  if (mipMinDefault > mipMaxDefault)
-    mipMinDefault = mipMaxDefault = 0;
-
-  if (sizeMinDefault > sizeMaxDefault)
-    sizeMinDefault = sizeMaxDefault = 0.0f;
 }
 
 void TextureModule::drawUI() {}
 
 const eastl::hash_map<ProfilerString, TextureData> &TextureModule::getTextures() const { return textures; }
 
-const eastl::vector<ProfilerString> &TextureModule::getFilteredTextures() const { return filteredTextures; }
-
 float TextureModule::getTextureMemorySize(const TextureData &texture_data) const
 {
-  if (texture_data.sizeBytes == 0)
-    return 0.0f;
-
-  // Convert from bytes to megabytes
-  return float(texture_data.sizeBytes) / BYTES_TO_MEGABYTES;
+  return float(texture_data.getState(TextureState::FULL).memBytes) / BYTES_TO_MEGABYTES;
 }
 
-void TextureModule::selectTexture(const char *texture_name)
+void TextureModule::drawTextureView(const ProfilerString &texture_name)
 {
-  selectedTextureName = texture_name ? texture_name : "";
-  selectedMipLevel = 0; // Reset to base mip level
-}
-
-void TextureModule::drawTextureView(const char *texture_name)
-{
-  // Use provided name or currently selected texture
-  ProfilerString currentTextureName = texture_name ? texture_name : selectedTextureName;
-  if (currentTextureName.empty())
-    return;
-
   // Look up texture info
-  auto iterator = textures.find(currentTextureName);
+  auto iterator = textures.find(texture_name);
   if (iterator == textures.end())
     return;
 
   // Get engine texture ID
-  TEXTUREID textureId = get_managed_texture_id(currentTextureName.c_str());
+  TEXTUREID textureId = get_managed_texture_id(texture_name.c_str());
   if (textureId == BAD_TEXTUREID)
     return;
 
@@ -295,8 +261,8 @@ void TextureModule::drawTextureView(const char *texture_name)
   if (ImGui::IsItemHovered())
   {
     float sizeMB = getTextureMemorySize(currentTextureData);
-    ImGui::SetTooltip("%s\n%s\n%dx%d\n%.2f MB", currentTextureName.c_str(), getFormatName(currentTextureInfo.cflg),
-      currentTextureInfo.w, currentTextureInfo.h, sizeMB);
+    ImGui::SetTooltip("%s\n%s\n%dx%d\n%.2f MB", texture_name.c_str(), getFormatName(currentTextureInfo.cflg), currentTextureInfo.w,
+      currentTextureInfo.h, sizeMB);
   }
 
   // Restore rendering state
@@ -332,203 +298,13 @@ void TextureModule::resetImagePreviewMode(const ImDrawList * /* draw_list */, co
   ShaderGlobal::set_int(imguiUseCustomSamplerVariableId, 0);             // Use default sampler
 }
 
-void TextureModule::rebuildFilteredList()
-{
-  totalCount = 0;
-  totalMemorySize = 0.0;
-
-  for (const auto &[textureName, textureData] : textures)
-  {
-    ++totalCount;
-    totalMemorySize += getTextureMemorySize(textureData);
-  }
-
-  filteredCount = 0;
-  filteredMemorySize = 0.0;
-
-  for (auto &name : filteredTextures)
-  {
-    ++filteredCount;
-    filteredMemorySize += getTextureMemorySize(textures[name]);
-  }
-}
-
-void TextureModule::recalculateStatistics()
-{
-  totalCount = 0;
-  totalMemorySize = 0.0;
-
-  for (const auto &[textureName, textureData] : textures)
-  {
-    ++totalCount;
-    totalMemorySize += getTextureMemorySize(textureData);
-  }
-
-  filteredCount = 0;
-  filteredMemorySize = 0.0;
-
-  for (auto &name : filteredTextures)
-  {
-    ++filteredCount;
-    filteredMemorySize += getTextureMemorySize(textures[name]);
-  }
-}
-
-int TextureModule::getFilteredTextureCount() const { return filteredCount; }
-
-float TextureModule::getFilteredTotalMemorySize() const { return filteredMemorySize; }
-
-int TextureModule::getTotalTextureCount() const { return totalCount; }
-
-float TextureModule::getTotalMemorySize() const { return totalMemorySize; }
-
-void TextureModule::sortFilteredTextures(ImGuiTableSortSpecs *sort_specs)
-{
-  if (!sort_specs || sort_specs->SpecsCount == 0)
-    return;
-
-  auto compareFunction = [this, sort_specs](const ProfilerString &textureNameA, const ProfilerString &textureNameB) -> bool {
-    const TextureData &dataA = textures[textureNameA];
-    const TextureData &dataB = textures[textureNameB];
-
-    // Check each sort spec in order
-    for (int i = 0; i < sort_specs->SpecsCount; i++)
-    {
-      const ImGuiTableColumnSortSpecs *currentSortSpec = &sort_specs->Specs[i];
-      int comparisonResult = 0;
-
-      // Compare based on column type
-      switch (currentSortSpec->ColumnUserID)
-      {
-        case *TextureColumn::NAME: comparisonResult = textureNameA.compare(textureNameB); break;
-        case *TextureColumn::FORMAT: comparisonResult = strcmp(getFormatName(dataA.info.cflg), getFormatName(dataB.info.cflg)); break;
-        case *TextureColumn::WIDTH: comparisonResult = dataA.info.w - dataB.info.w; break;
-        case *TextureColumn::HEIGHT: comparisonResult = dataA.info.h - dataB.info.h; break;
-        case *TextureColumn::MIPS: comparisonResult = dataA.info.mipLevels - dataB.info.mipLevels; break;
-        case *TextureColumn::MEM_SIZE:
-        {
-          float sizeDifference = getTextureMemorySize(dataA) - getTextureMemorySize(dataB);
-          comparisonResult = (sizeDifference < 0) ? -1 : (sizeDifference > 0 ? 1 : 0);
-          break;
-        }
-          // Texture Usage handled separately
-      }
-
-      // If values differ, apply sort direction
-      if (comparisonResult != 0)
-        return (currentSortSpec->SortDirection == ImGuiSortDirection_Ascending) ? (comparisonResult < 0) : (comparisonResult > 0);
-    }
-
-    // Equal
-    return false;
-  };
-
-  eastl::sort(filteredTextures.begin(), filteredTextures.end(), compareFunction);
-}
-
 const char *TextureModule::getFormatName(uint32_t format) { return get_tex_format_name(format); }
 
-eastl::vector<ProfilerString> TextureModule::getUniqueFormats()
+int TextureModule::getSizeFilterKey(int size)
 {
-  eastl::vector<ProfilerString> result;
-  eastl::hash_set<ProfilerString> uniqueFormats;
-
-  // Collect unique formats from this instance's data
-  for (const auto &[textureName, textureData] : textures)
-  {
-    ProfilerString formatName = getFormatName(textureData.info.cflg);
-    if (uniqueFormats.find(formatName) == uniqueFormats.end())
-    {
-      uniqueFormats.insert(formatName);
-      result.push_back(formatName);
-    }
-  }
-
-  return result;
-}
-
-eastl::vector<int> TextureModule::getUniqueWidths()
-{
-  eastl::vector<int> result;
-  eastl::hash_set<int> uniqueWidths;
-
-  // Collect unique widths from this instance's data
-  for (const auto &[textureName, textureData] : textures)
-  {
-    int width = textureData.info.w;
-    if (uniqueWidths.find(width) == uniqueWidths.end())
-    {
-      uniqueWidths.insert(width);
-      result.push_back(width);
-    }
-  }
-
-  // Sort in descending order (larger sizes first)
-  eastl::sort(result.begin(), result.end(), eastl::greater<int>());
-
-  // Special handling for power-of-2 and multiple of threshold
-  eastl::vector<int> filtered;
-  int otherCount = 0;
-
-  for (int width : result)
-  {
-    // Check if width is power-of-2 or multiple of threshold
-    bool isPowerOf2 = (width & (width - 1)) == 0;
-    bool isMultipleOfThreshold = (width % TEXTURE_SIZE_THRESHOLD) == 0;
-
-    if (isPowerOf2 || isMultipleOfThreshold)
-      filtered.push_back(width);
-    else
-      ++otherCount;
-  }
-
-  // Add "Other" category if needed (-1 represents "Other")
-  if (otherCount > 0)
-    filtered.push_back(-1);
-
-  return filtered;
-}
-
-eastl::vector<int> TextureModule::getUniqueHeights()
-{
-  eastl::vector<int> result;
-  eastl::hash_set<int> uniqueHeights;
-
-  // Collect unique heights from this instance's data
-  for (const auto &[textureName, textureData] : textures)
-  {
-    int height = textureData.info.h;
-    if (uniqueHeights.find(height) == uniqueHeights.end())
-    {
-      uniqueHeights.insert(height);
-      result.push_back(height);
-    }
-  }
-
-  // Sort in descending order (larger sizes first)
-  eastl::sort(result.begin(), result.end(), eastl::greater<int>());
-
-  // Special handling for power-of-2 and multiple of threshold
-  eastl::vector<int> filtered;
-  int otherCount = 0;
-
-  for (int height : result)
-  {
-    // Check if height is power-of-2 or multiple of threshold
-    bool isPowerOf2 = (height & (height - 1)) == 0;
-    bool isMultipleOfThreshold = (height % TEXTURE_SIZE_THRESHOLD) == 0;
-
-    if (isPowerOf2 || isMultipleOfThreshold)
-      filtered.push_back(height);
-    else
-      ++otherCount;
-  }
-
-  // Add "Other" category if needed (-1 represents "Other")
-  if (otherCount > 0)
-    filtered.push_back(-1);
-
-  return filtered;
+  bool isPowerOf2 = (size & (size - 1)) == 0;
+  bool isMultipleOfThreshold = (size % TEXTURE_SIZE_THRESHOLD) == 0;
+  return (isPowerOf2 || isMultipleOfThreshold) ? size : -1;
 }
 
 } // namespace levelprofiler

@@ -32,7 +32,8 @@ python dap_to_json.py <in.dap> [out.json]
     --top-scopes N      per-frame detail for the N costliest scopes (default 1024)
     --min-incl-ms X     per-frame detail only for scopes with total inclusive >= X ms
     --no-perframe       summary only (smallest output)
-    --scope SUBSTR      keep only scopes whose name contains SUBSTR (drill-down)
+    --scope SUBSTR      keep only scopes (and tags) whose name contains SUBSTR (drill-down)
+    --tags              add the string tags (DA_PROFILE_TAG), formatted, with their frame
     --compact           no pretty indentation (roughly 3x smaller)
 ```
 

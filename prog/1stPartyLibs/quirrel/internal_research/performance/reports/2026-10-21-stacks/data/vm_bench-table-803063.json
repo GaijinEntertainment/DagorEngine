@@ -1,0 +1,82 @@
+{
+ "info": {
+  "platform": "Windows-10-10.0.19045-SP0 (10)",
+  "arch": "AMD64",
+  "cpu": "AMD64 Family 23 Model 49 Stepping 0, AuthenticAMD",
+  "when": "2026-10-21"
+ },
+ "runs": 3,
+ "cpu": 2,
+ "results": {
+  "fib": {
+   "quirrel": 118.0,
+   "lua": 54.0,
+   "luau-O0": 55.074,
+   "luau-O1": 52.147,
+   "luau-O2": 51.943
+  },
+  "binarytrees": {
+   "quirrel": 31.0,
+   "lua": 46.0,
+   "luau-O0": 18.496,
+   "luau-O1": 14.422,
+   "luau-O2": 14.364
+  },
+  "life": {
+   "quirrel": 102.0,
+   "lua": 55.0,
+   "luau-O0": 50.347,
+   "luau-O1": 37.74,
+   "luau-O2": 37.754
+  },
+  "mandel": {
+   "quirrel": 85.0,
+   "lua": 30.0,
+   "luau-O0": 28.753,
+   "luau-O1": 26.535,
+   "luau-O2": 25.596
+  },
+  "strings": {
+   "quirrel": 88.0,
+   "lua": 95.0,
+   "luau-O0": 85.921,
+   "luau-O1": 81.693,
+   "luau-O2": 81.62
+  },
+  "desc_churn": {
+   "quirrel": 112.0,
+   "lua": 214.0,
+   "luau-O0": 81.522,
+   "luau-O1": 54.784,
+   "luau-O2": 54.344
+  },
+  "probe_storm": {
+   "quirrel": 105.0,
+   "lua": 92.0,
+   "luau-O0": 62.584,
+   "luau-O1": 62.401,
+   "luau-O2": 62.521
+  },
+  "nullable_probe": {
+   "quirrel": 87.0,
+   "lua": 42.0,
+   "luau-O0": 24.472,
+   "luau-O1": 24.501,
+   "luau-O2": 24.572
+  },
+  "closure_storm": {
+   "quirrel": 115.0,
+   "lua": 248.0,
+   "luau-O0": 67.709,
+   "luau-O1": 55.142,
+   "luau-O2": 37.168
+  },
+  "method_calls": {
+   "quirrel": 466.0,
+   "lua": 306.0,
+   "luau-O0": 238.593,
+   "luau-O1": 238.703,
+   "luau-O2": 238.667
+  }
+ }
+}

@@ -25,7 +25,10 @@ SplineGenGeometryIbPtr SplineGenGeometryRepository::getOrMakeIb(uint32_t slices,
   auto it = ibs.find(slices);
   if (it != ibs.end())
   {
-    it->second->resize(stripes);
+    if (it->second->resize(stripes))
+      for (auto &managerPair : managers)
+        if (managerPair.second->slices == slices)
+          managerPair.second->removePendingBVHObjectAdd();
     return it->second;
   }
 

@@ -25,7 +25,6 @@ hlsl(code) {
 
   //#define BVH_TLAS_BOXES 0
   //#define BVH_TLAS_BOXES_SHADOW 0
-  #define BVH_TLAS_BOXES_SHADOW_THRESHOLD 1 // if ray originated from more than 10*10 distance from instance, it will be treated as box
   #ifndef BVH_TLAS_BOX_DIST_MUL
   #define BVH_TLAS_BOX_DIST_MUL 1 // this shader's multiple of the model's box distance
   #endif
@@ -118,7 +117,7 @@ hlsl(code) {
         BRANCH
         if (!is_leaf_box(leaf) && length_sq(rayOriginTr) <= pow2(get_leaf_box_dist(leaf)))
       #elif defined(SWRT_LEAF_BOX_HALF_EXTENT)
-        // constraint: get_leaf_max_scale is the largest half extent of the instance in metres
+        // get_leaf_max_scale is the largest half extent of the instance in metres
         BRANCH
         if (!is_leaf_box(leaf) && get_leaf_max_scale(leaf) > SWRT_LEAF_BOX_HALF_EXTENT)
       #else
@@ -331,6 +330,23 @@ hlsl(code) {
     return found_hit;
   }
 
+  // along ray_dir_tr: a uniform dir stays scalar
+  float3 shadow_leaf_ray_origin(DecodedTLASLeaf leaf, float3 ray_origin_rel, float3 ray_dir_tr)
+  {
+    return transform(leaf.invTm, ray_origin_rel)*leaf.scale + ray_dir_tr*(SHADOW_OFFSET_ORIGIN_PART*get_leaf_max_scale(leaf));
+  }
+
+  bool shadow_leaf_as_box(DecodedTLASLeaf leaf, float3 ray_origin_tr)
+  {
+    // get_leaf_box_dist is in BLAS-encoded half-extent units (anisotropic, per-axis), the same space as ray_origin_tr;
+    // NOT metres, even though the source convar is authored in metres.
+    bool far = length_sq(ray_origin_tr) > pow2(get_leaf_box_dist(leaf));
+    #ifdef BVH_TLAS_BOX_OUTSIDE_ONLY
+    far = far && any(abs(ray_origin_tr) > 1); // a ray starting inside keeps the mesh
+    #endif
+    return is_leaf_box(leaf) || far;
+  }
+
   bool rayShadowTLASLeaf(ByteAddressBuffer tlas_data, ByteAddressBuffer blas_data, uint offset, float3 rayOrigin, float3 rayDir)
   {
     DecodedTLASLeaf leaf = decode_tlas_leaf(tlas_data, offset);
@@ -340,8 +356,8 @@ hlsl(code) {
     #endif
     rayOrigin -= leaf.origin;
 
-    float3 rayOriginTr = transform(leaf.invTm, rayOrigin + rayDir*SHADOW_OFFSET_ORIGIN_PART*get_leaf_max_scale(leaf))*leaf.scale;
     float3 rayDirTr = transform(leaf.invTm, rayDir).xyz*leaf.scale;
+    float3 rayOriginTr = shadow_leaf_ray_origin(leaf, rayOrigin, rayDirTr);
     float3 rayDirTrInv = select(abs(rayDirTr) < 1e-32f, select(rayDirTr < 0, -1e32f, 1e32f), rcp(rayDirTr));
 
     #if BVH_TLAS_BOXES_SHADOW
@@ -351,13 +367,7 @@ hlsl(code) {
       return false;
 
     BRANCH
-    #if BVH_TLAS_BOXES_SHADOW_THRESHOLD
-    // get_leaf_box_dist is in BLAS-encoded half-extent units (anisotropic, per-axis), the same
-    // space as rayOriginTr -- NOT metres, even though the source convar is authored in metres.
-    if (is_leaf_box(leaf) || length_sq(rayOriginTr) > pow2(get_leaf_box_dist(leaf)))
-    #else
-    if (is_leaf_box(leaf))
-    #endif
+    if (shadow_leaf_as_box(leaf, rayOriginTr))
       return true;
     uint2 blasStartSize = load_leaf_blas_start_size(tlas_data, leaf);
     return rayShadowBLAS(blas_data, rayOriginTr, rayDirTr, rayDirTrInv, blasStartSize.x, blasStartSize.y);
@@ -385,8 +395,8 @@ hlsl(code) {
     #endif
     rayOrigin -= leaf.origin;
 
-    float3 rayOriginTr = transform(leaf.invTm, rayOrigin + rayDir*SHADOW_OFFSET_ORIGIN_PART*get_leaf_max_scale(leaf))*leaf.scale;
     float3 rayDirTr = transform(leaf.invTm, rayDir).xyz*leaf.scale;
+    float3 rayOriginTr = shadow_leaf_ray_origin(leaf, rayOrigin, rayDirTr);
     float3 rayDirTrInv = select(abs(rayDirTr) < 1e-32f, select(rayDirTr < 0, -1e32f, 1e32f), rcp(rayDirTr));
     // origin and direction take the same transform and scale, so the ray
     // parameter survives into leaf space and rayMaxT needs no rescaling
@@ -397,11 +407,7 @@ hlsl(code) {
       return false;
 
     BRANCH
-    #if BVH_TLAS_BOXES_SHADOW_THRESHOLD
-    if (is_leaf_box(leaf) || length_sq(rayOriginTr) > pow2(get_leaf_box_dist(leaf)))
-    #else
-    if (is_leaf_box(leaf))
-    #endif
+    if (shadow_leaf_as_box(leaf, rayOriginTr))
       return true;
     uint2 blasStartSize = load_leaf_blas_start_size(tlas_data, leaf);
     return rayShadowBLAS(blas_data, rayOriginTr, rayDirTr, rayDirTrInv, blasStartSize.x, blasStartSize.y);
@@ -562,8 +568,7 @@ hlsl(code) {
 
   // Find the DFS-last leaf colliding with frustum via right-first stack-based DFS.
   // Handles N-ary trees (max_children_count > 2): iterates all direct children per node.
-  // first_leaf_ofs: offset of the already-known first visible leaf — subtrees entirely before it are skipped.
-  uint findLastLeafInFrustum(ByteAddressBuffer tlas_data, float4x4 frustum, float4 plane4, uint first_leaf_ofs, uint root_ofs = 0)
+  uint findLastLeafInFrustum(ByteAddressBuffer tlas_data, float4x4 frustum, float4 plane4, uint root_ofs = 0)
   {
     #define STACK_SIZE 16
     uint stack[STACK_SIZE];
@@ -600,8 +605,7 @@ hlsl(code) {
         decode_tlas_node(tlas_data, childOfs, childBmin, childBmax, childSkip, childIsLeaf);
 
         uint childEnd = childOfs + (childIsLeaf ? TLAS_NODE_ELEM_SIZE : childSkip);
-        // Subtree entirely before the first visible leaf — cannot contain the last leaf
-        if (childEnd > first_leaf_ofs && childSkip && testBoxExtentB(childBmin, childBmax, frustum, plane4))
+        if (childSkip && testBoxExtentB(childBmin, childBmax, frustum, plane4))
         {
           // Overflow drops the DFS-last (rightmost) children -- exactly the ones we look for --
           // yielding an endAt that is too small and per-tile light leaks. Bail conservatively:
@@ -753,6 +757,7 @@ hlsl(code) {
     leaf.blasStartSize = uint2(f, end - f);
   }
 
+  #if !BVH_BLAS_BOXES_ONLY
   // world_nrm/world_surf receive the winner's UNNORMALIZED world-space geometric normal and
   // the closest point on the winning surface when this leaf improves maxDist2 (triangle plane
   // normal + closest point, or the nearest box face + point for pure box leaves).
@@ -886,6 +891,7 @@ hlsl(code) {
   {
     return distTLAS(tlas_data, blas_data, worldPos, maxDist, distance, 0u, 0xFFFFFFFFu);
   }
+  #endif
 
   #ifdef HAS_TLAS_XZ_INF_CB
   bool tlas_xz_inf_cb(ByteAddressBuffer tlas_data, DecodedTLASLeaf leaf, float3 worldPos, inout TlasXzCbData cbData);

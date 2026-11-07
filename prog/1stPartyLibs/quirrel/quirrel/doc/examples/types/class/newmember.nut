@@ -7,9 +7,7 @@ class Bar {}
 Bar.newmember("shared", 42, true)
 println("Bar().shared =", Bar().shared)
 
-// locking stops new per-instance state, but not new shared state
+// a locked class rejects every new member, a static one too
 class Locked { x = 1 }
 Locked.lock()
-Locked.newmember("also_shared", 7, true)
-println("Locked.also_shared =", Locked.also_shared)
-try { Locked.newmember("nope", 1) } catch (e) { println("newmember(\"nope\", 1) error:", e) }
+try { Locked.newmember("nope", 1, true) } catch (e) { println("newmember(\"nope\", 1, true) error:", e) }

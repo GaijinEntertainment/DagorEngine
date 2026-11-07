@@ -1,5 +1,5 @@
 // EXPECTED: compile-time error - class() produces instance, assigned to string
-local MyClass = class {
+let MyClass = class {
     x = 0
     constructor() {}
 }

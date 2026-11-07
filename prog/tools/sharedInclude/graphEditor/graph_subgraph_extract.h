@@ -9,6 +9,7 @@
 #include <EASTL/vector.h>
 
 class DataBlock;
+class SubgraphCache;
 
 // One parent edge the instance takes over.
 struct ExtractCrossing
@@ -35,5 +36,6 @@ struct ExtractPlan
 // input edge and per crossing output pin, `out_plan` how the parent edges map onto the instance. False with out_plan.error.
 // `graphs_root_dir` holds the files of the instances that feed the set: their outputs declare every type,
 // so an input boundary takes the one their body produces. Of `parent` only nodes, edges and graphTexture* are read.
+// `cache` as for expand_subgraphs.
 bool extract_subgraph(const GraphData &parent, dag::ConstSpan<int> node_ids, const DataBlock &base_nodes_blk,
-  const char *graphs_root_dir, GraphData &out_child, ExtractPlan &out_plan);
+  const char *graphs_root_dir, GraphData &out_child, ExtractPlan &out_plan, SubgraphCache *cache = nullptr);

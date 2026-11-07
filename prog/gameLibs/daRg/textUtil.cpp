@@ -103,6 +103,14 @@ int wchar_to_symbol(wchar_t wc, char *buffer, int buffer_sz)
 }
 
 
+int font_mono_width_from_str(int font_id, int font_ht, const char *str, int len)
+{
+  StdGuiFontContext fctx;
+  StdGuiRender::get_font_context(fctx, font_id, 0, 0, font_ht);
+  return int(StdGuiRender::get_str_bbox(str, len, fctx).width().x);
+}
+
+
 int font_mono_width_from_sq(int font_id, int font_ht, const Sqrat::Object &obj)
 {
   if (obj.GetType() & SQOBJECT_NUMERIC)
@@ -111,9 +119,7 @@ int font_mono_width_from_sq(int font_id, int font_ht, const Sqrat::Object &obj)
   if (obj.GetType() == OT_STRING)
   {
     auto s = obj.GetVar<const char *>();
-    StdGuiFontContext fctx;
-    StdGuiRender::get_font_context(fctx, font_id, 0, 0, font_ht);
-    return int(StdGuiRender::get_str_bbox(s.value, (int)s.valueLen, fctx).width().x);
+    return font_mono_width_from_str(font_id, font_ht, s.value, (int)s.valueLen);
   }
 
   return 0;
@@ -181,7 +187,13 @@ void fill_textarea_format_params(const Element *elem, const Point2 &elem_size, t
   params.defFontId = props.getFontId();
   params.defFontHt = (int)floorf(props.getFontSize() + 0.5f);
   params.spacing = props.getFloat(elem->csk->spacing, 0);
-  params.monoWidth = font_mono_width_from_sq(params.defFontId, params.defFontHt, props.getObject(elem->csk->monoWidth));
+  Sqrat::Object monoWidthObj = props.getObject(elem->csk->monoWidth);
+  params.monoWidth = font_mono_width_from_sq(params.defFontId, params.defFontHt, monoWidthObj);
+  if (monoWidthObj.GetType() == OT_STRING)
+  {
+    auto s = monoWidthObj.GetVar<const char *>();
+    params.monoWidthStr.assign(s.value, s.valueLen);
+  }
   params.lineSpacing = props.getFloat(elem->csk->lineSpacing, 0.0);
   params.parSpacing = props.getFloat(elem->csk->parSpacing, 0);
   params.indent = props.getFloat(elem->csk->indent, 0);

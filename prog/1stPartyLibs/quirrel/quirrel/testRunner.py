@@ -280,6 +280,7 @@ def main():
     parser.add_argument('-wd', '--working-dir', action="store", type=str, default = tempfile.TemporaryDirectory().name, help = "Directory to store tests data like ast dumps, diganotics dumps and so on")
     parser.add_argument('-v', '--verbose', default = False, action="store_true", help = "Extra output like CLI commands")
     parser.add_argument('-ci', '--continious-integration', default = False, action="store_true", help = "Signals that script is being run under CI")
+    parser.add_argument('-rel', '--rel-build', default = False, action="store_true", help = "The compiler is a rel or irel build, which skips script type checks: run only the tests in testData/rel")
 
     args = parser.parse_args()
 
@@ -294,13 +295,16 @@ def main():
     checkCompiler(compiler)
 
     allTests = []
-    allTests += collectTests('exec', 'exec')
-    allTests += collectTests('diagnostics', 'diag')
-    allTests += collectTests('ast', 'ast')
-    allTests += collectTests('ast_json', 'astjson')
-    allTests += collectTests('static_analyzer', 'sa')
-    allTests += collectTests('types', 'types')
-    allTests += collectTests('examples', 'exec', root = 'doc')
+    if args.rel_build:
+        allTests += collectTests('rel', 'exec')
+    else:
+        allTests += collectTests('exec', 'exec')
+        allTests += collectTests('diagnostics', 'diag')
+        allTests += collectTests('ast', 'ast')
+        allTests += collectTests('ast_json', 'astjson')
+        allTests += collectTests('static_analyzer', 'sa')
+        allTests += collectTests('types', 'types')
+        allTests += collectTests('examples', 'exec', root = 'doc')
 
     with ThreadPoolExecutor(max_workers=THREADS) as pool:
         futures = [pool.submit(runTestForData, f, compiler, workingDir, mode)

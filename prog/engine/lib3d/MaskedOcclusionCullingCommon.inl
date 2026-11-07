@@ -2835,18 +2835,33 @@ public:
   FORCE_INLINE void mergeOcclusions(MaskedOcclusionCulling **_another_occl, uint32_t occl_count, uint32_t first_tile,
     uint32_t last_tile) MOC_OVERRIDE
   {
+#if QUICK_MASK != 0
     auto **another_occl = (MaskedOcclusionCullingPrivate **)_another_occl;
-    for (int i = first_tile; i < last_tile; ++i)
-      for (int j = 0; j < occl_count; ++j)
-        UpdateTileByAnotherTile(i, another_occl[j]->mMaskedHiZBuffer[i].mMask, another_occl[j]->mMaskedHiZBuffer[i].mZMin[0],
-          another_occl[j]->mMaskedHiZBuffer[i].mZMin[1]);
-  }
+    for (uint32_t i = first_tile; i < last_tile; ++i)
+      for (uint32_t j = 0; j < occl_count; ++j)
+      {
+        const ZTile &src = another_occl[j]->mMaskedHiZBuffer[i];
+        ZTile &dst = mMaskedHiZBuffer[i];
 
-  FORCE_INLINE void UpdateTileByAnotherTile(int tileIdx, const __mwi &mask, const __mw &zmin0, const __mw &zmin1)
-  {
-    // UpdateTileQuick(tileIdx, v_xori(mask, V_CI_MASK1111), zmin0);
-    UpdateTileQuick(tileIdx, _mmw_xor_epi32(mask, _mmw_set1_epi32(0xffffffff)), zmin0);
-    UpdateTileQuick(tileIdx, mask, zmin1);
+        // Test if src has full subtile by using its sign bit (with shift): -1 is no depth, anything else is some depth
+        __mwi srcHasFullLayer = _mmw_cmpeq_epi32(_mmw_srai_epi32(simd_cast<__mwi>(src.mZMin[0]), 31), SIMD_BITS_ZERO);
+        if (!_mmw_testz_epi32(srcHasFullLayer, srcHasFullLayer))
+        {
+          // Take closest depth for full subtile
+          dst.mZMin[0] = _mmw_max_ps(dst.mZMin[0], src.mZMin[0]);
+          // Throw away working (partial) tiles if they are behind completed subtile
+          __mwi behindFullLayer = _mmw_srai_epi32(simd_cast<__mwi>(_mmw_sub_ps(dst.mZMin[1], dst.mZMin[0])), 31);
+          dst.mMask = _mmw_andnot_epi32(behindFullLayer, dst.mMask);
+        }
+
+        // Any partially filled subtiles from worker is handed to master for usual processing (allows master to complete a subtile
+        // sourced from different workers)
+        if (!_mmw_testz_epi32(src.mMask, src.mMask))
+          UpdateTileQuick((int)i, src.mMask, src.mZMin[1]);
+      }
+#else
+    mergeOcclusionsZmin(_another_occl, occl_count, first_tile, last_tile);
+#endif
   }
 
   FORCE_INLINE

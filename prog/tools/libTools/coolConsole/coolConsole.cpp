@@ -91,14 +91,15 @@ static eastl::unique_ptr<AutocompletePopup> autocomplete_popup;
 static FormattedTextHandler formatted_text_handler;
 static bool destroyed = false;
 
-static void call_idle_cycle_seldom(bool important, bool allow_redraw)
+// Returns true if it drew a frame.
+static bool call_idle_cycle_seldom(bool important, bool allow_redraw, bool force)
 {
   if (destroyed || is_restoring_3d_device())
-    return;
+    return false;
   static int lastDagorIdleCall = 0;
 
   int msec = get_time_msec();
-  if (msec - lastDagorIdleCall > (important ? 50 : DAGOR_IDLE_CYCLE_CALL_TIMEOUT))
+  if (force || (msec - lastDagorIdleCall) > (important ? 50 : DAGOR_IDLE_CYCLE_CALL_TIMEOUT))
   {
     lastDagorIdleCall = msec;
     ::dagor_idle_cycle();
@@ -116,8 +117,10 @@ static void call_idle_cycle_seldom(bool important, bool allow_redraw)
       dagor_work_cycle_flush_pending_frame();
       dagor_draw_scene_and_gui(true, true);
       d3d::update_screen();
+      return true;
     }
   }
+  return false;
 }
 
 // strtok analog excluding token-delimited qouted strings from tokens search
@@ -414,6 +417,8 @@ void CoolConsole::destroyConsole()
 //==============================================================================
 void CoolConsole::showConsole(bool activate)
 {
+  if (!visible)
+    forceDoubleDrawOnShow = true;
   activateOnShow = activate;
   scrollToBottomOnShow = true;
   visible = true;
@@ -652,8 +657,22 @@ void CoolConsole::yield() { callIdleCycleSeldom(true); }
 
 void CoolConsole::callIdleCycleSeldom(bool important)
 {
-  const bool allowRedraw = visible && (!isRedrawAllowedCallback || isRedrawAllowedCallback(*this));
-  call_idle_cycle_seldom(important, allowRedraw);
+  auto isRedrawAllowed = [this] { return visible && (!isRedrawAllowedCallback || isRedrawAllowedCallback(*this)); };
+  const bool allowRedraw = isRedrawAllowed();
+  if (forceDoubleDrawOnShow && allowRedraw)
+  {
+    // ImGui does not show a new window in its first frame, so draw two frames to show the console instantly.
+    if (call_idle_cycle_seldom(important, allowRedraw, /*force = */ true))
+    {
+      forceDoubleDrawOnShow = false;
+      // The first frame can change what the redraw-allowed callback reads.
+      call_idle_cycle_seldom(important, isRedrawAllowed(), /*force = */ true);
+    }
+
+    return;
+  }
+
+  call_idle_cycle_seldom(important, allowRedraw, /*force = */ false);
 }
 
 void CoolConsole::fillAutocompletePopup(bool show_on_empty_input)
@@ -875,5 +894,8 @@ void CoolConsole::updateImgui()
   ImGui::Separator();
   renderCommandInputUI(logWindowRect);
 
+  // The first updateImgui() call after showConsole() can run in the hidden first frame of a new ImGui window, a later one is drawn.
+  if (!justMadeVisible)
+    forceDoubleDrawOnShow = false;
   justMadeVisible = false;
 }

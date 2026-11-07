@@ -4,21 +4,27 @@
 #import <GameController/GameController.h>
 
 #include <EASTL/array.h>
+#include <util/dag_simpleString.h>
 
 namespace HumanInput
 {
 static int constexpr IOS_SENSOR_ADDITIONAL_AXIS_NUM = 8;
 } // namespace HumanInput
 
-class iOSGamepadEx : public HumanInput::IGenJoystick
+class iOSGamepadEx final : public HumanInput::IGenJoystick
 {
 public:
-  iOSGamepadEx(GCExtendedGamepad *gpad, const char *name);
+  iOSGamepadEx(GCController *gc, const char *name);
+  ~iOSGamepadEx();
 
   void clearGamepad();
+  bool isController(GCController *gc) const { return controller == gc; }
+  GCController *getController() const { return gamepad ? controller : nil; }
+
+  bool setMotionActive(bool want);
 
   // general routines
-  const char *getName() const override { return fullName; };
+  const char *getName() const override { return fullName.str(); }
   const char *getDeviceID() const override { return "Gamepad"; }
   bool getDeviceDesc(DataBlock &out_desc) const override { return false; }
   unsigned short getUserId() const override { return 0; }
@@ -71,20 +77,24 @@ public:
 
 private:
   // read input from gamepad
-  void processDPad();
   void processButtons();
   void processLeftStick();
   void processRightStick();
+  void processTriggers();
   void processGamepadInput();
   void updatePressTime();
+  void setPressLatch(bool enable);
+  void latchButton(GCControllerButtonInput *input, int btn, bool enable);
 
   // gyroscope
   void updateGyroscopeParameters();
+  void readPadMotion(double &rate_x, double &rate_y, double &acc_x, double &acc_y, double &acc_z) const;
 
   void notifyClient();
 
-  const char *fullName;
-  GCExtendedGamepad *gamepad = nullptr;
+  SimpleString fullName;
+  GCController *controller = nil;
+  GCExtendedGamepad *gamepad = nil;
   HumanInput::JoystickRawState rawState{};
   HumanInput::IGenJoystickClient *client = nullptr;
 
@@ -93,11 +103,15 @@ private:
   struct iOSAxis
   {
     float val = 0;
-    float min = -1.f;
-    float max = 1.f;
+    float kMul = 1.f;
+    float kAdd = 0.f;
   };
   eastl::array<iOSAxis, AXES_NUM> axis{};
 
   float stickDeadZoneScale[2] = {1.f, 1.f};
   float stickDeadZoneBase[2] = {0.2f, 0.2f};
+
+  int prevUpdateTimeMsec = 0;
+  unsigned latchedPressMask = 0;
+  bool motionActive = false;
 };

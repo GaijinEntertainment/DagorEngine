@@ -4,8 +4,9 @@
 from "math" import abs
 
 local before = 111
+let str = "str" // not a constant, so the call is not folded
 try {
-  abs("str")
+  abs(str)
   println("NOT REACHED")
 } catch (e) {
   println($"caught: {e}")

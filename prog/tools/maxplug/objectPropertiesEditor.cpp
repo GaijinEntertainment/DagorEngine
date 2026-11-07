@@ -77,6 +77,9 @@ void ObjectPropertiesEditor::Init() { m_pInterface->RegisterRedrawViewsCallback(
 
 void ObjectPropertiesEditor::Destroy()
 {
+  if (IsChild(m_hPanel, GetFocus()))
+    SetFocus(m_hPanel);
+
   if (panel)
   {
     delete panel;

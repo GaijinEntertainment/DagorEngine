@@ -74,7 +74,7 @@ public:
   const ManagedTex *getManagedTex() { return light_probe::getManagedTex(rtCube.get()); }
   using CubeUpdater = eastl::function<void(const ManagedTex *, const Point3 &position, int face_number)>;
   void update(const CubeUpdater &cube_updater, const Point3 &origin);
+  void retryCubeFace();
   void addProbeToUpdate(LightProbe *probe);
   void invalidateProbe(LightProbe *probe);
-  bool isCubeUpdateRequired() const { return updateQueueBegin != updateQueueEnd && renderedCubeFaces < FACES_COUNT; }
 };

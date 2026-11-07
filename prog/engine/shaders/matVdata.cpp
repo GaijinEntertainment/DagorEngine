@@ -28,6 +28,8 @@ ShaderMatVdata::ShaderMatVdata(int tex_num, int mat_num, int vdata_num, int mvhd
 }
 ShaderMatVdata::~ShaderMatVdata()
 {
+  for (int i = 0; i < vdataFullCount; i++)
+    (vdata.data() + i)->releaseMeshlets();
   if (_resv != 'L')
     return;
   vdata.set(vdata.data(), vdataFullCount);
@@ -94,6 +96,8 @@ ShaderMatVdata *ShaderMatVdata::make_tmp_copy(ShaderMatVdata *src_smv, int apply
 }
 void ShaderMatVdata::update_vdata_from_tmp_copy(ShaderMatVdata *dest, ShaderMatVdata *src)
 {
+  for (int i = 0; i < dest->vdataFullCount; i++)
+    (dest->vdata.data() + i)->releaseMeshlets();
   dest->vdata.set(dest->vdata.data(), src->vdata.size());
   mem_copy_to(src->vdata, dest->vdata.data());
   mem_set_0(src->vdata);

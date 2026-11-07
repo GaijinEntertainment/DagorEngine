@@ -4,6 +4,7 @@ return {
   request_entry = @(_cache_name, _entry_key) null
   abort_requests = @(_cache_name) null
   del_entry = @(_cache_name, entry_key) entry_key
+  entry_key_for_url = @(url) url
   get_cache_entries = @(name) name
   ERR_UNKNOWN = -1
   ERR_OK = 0

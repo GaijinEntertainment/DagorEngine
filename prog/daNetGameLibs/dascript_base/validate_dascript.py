@@ -25,7 +25,7 @@ def validate_scripts(executable_path: str, argsList: list[list[str]]) -> bool:
 
     for args in argsList:
         print(f"Running: {args[0]}")
-        cmd = f'{executable} {" ".join(args)}'
+        cmd = f'{executable} {args[0]} -no-module-cache {" ".join(args[1:])}'
         if os.system(cmd) != 0:
             print(f"FAILED script {args[0]}")
             return False

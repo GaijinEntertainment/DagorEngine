@@ -14,7 +14,8 @@ struct GraphData;
 class GraphEditorPlg;
 
 // The node picker: type, press Enter, get that node wired to the pin it was raised from. Raised by a
-// link dropped on empty canvas, by Space over a pin or an edge, and by those two context menus.
+// link dropped on empty canvas, by Space over a pin or an edge, and by those two context menus; the
+// floating toolbar's Add node and Space over nothing raise it with no pin, and the node is added unconnected.
 class GraphAddNodePopup
 {
 public:
@@ -22,7 +23,7 @@ public:
   // is clamped into the canvas, so the ghost anchored on it cannot land off-screen. Mind the two
   // spaces: drop_canvas_pos is a graph point, canvas_min/canvas_max the widget rect in screen px.
   // splice_into_connections puts the node between the pin and what it feeds rather than alongside;
-  // anchor_edge narrows that to one wire, -1 takes the pin's lot.
+  // anchor_edge narrows that to one wire, -1 takes the pin's lot. A source_node of -1 offers every node.
   void openAt(const GraphData &gd, GraphEditorPlg &plugin, int source_node, int source_pin, const ImVec2 &drop_canvas_pos,
     const ImVec2 &canvas_min, const ImVec2 &canvas_max, bool splice_into_connections, int anchor_edge);
 

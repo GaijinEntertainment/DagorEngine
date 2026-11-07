@@ -1,7 +1,7 @@
 ERROR: Usage of 'delete' operator is forbidden. Use 'o.$rawdelete("key")' instead
 testData/diagnostics/delete_forbid_pragma.nut.txt:10:0
 
-delete t.a // FP 1
+delete t.b // EXPECTED
 ^-----
 
 

@@ -47,9 +47,9 @@ void resolve_contacts(const Quat &ori, DPoint3 &vel, DPoint3 &omega, Tab<gamephy
 void convert_contacts_to_solver_data(const DPoint3 &pos, const Quat &ori, dag::ConstSpan<gamephys::CollisionContactData> contacts,
   Tab<gamephys::SeqImpulseInfo> &collisions, double inv_mass, const DPoint3 &inv_moi, const ResolveContactParams &params);
 
-void apply_cached_contacts(const DPoint3 &pos, const Quat &ori, DPoint3 &vel, DPoint3 &omega,
-  dag::ConstSpan<gamephys::CachedContact> cached_contacts, Tab<gamephys::SeqImpulseInfo> &collisions, double inv_mass,
-  const DPoint3 &inv_moi, const daphys::ResolveContactParams &params);
+// Warm start: seeds the contacts of this tick in collisions with the cached impulses
+void apply_cached_contacts(DPoint3 &vel, DPoint3 &omega, dag::ConstSpan<gamephys::CachedContact> cached_contacts,
+  Tab<gamephys::SeqImpulseInfo> &collisions, double inv_mass, const DPoint3 &inv_moi, const daphys::ResolveContactParams &params);
 
 void cache_solved_contacts(dag::ConstSpan<gamephys::SeqImpulseInfo> collisions, Tab<gamephys::CachedContact> &cached_contacts,
   const size_t max_count);

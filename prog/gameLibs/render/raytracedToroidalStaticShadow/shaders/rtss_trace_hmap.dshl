@@ -7,7 +7,7 @@ macro RTSS_TRACE_HMAP(code)
     void rtss_trace_hmap(float3 origin, float3 dir, inout float t)
     {
       #if HAS_HEIGHTMAP_MAX_GRID_TRACE
-      // constraint: heightmap_max_grid_trace needs an origin inside the grid window, not on its edge
+      // heightmap_max_grid_trace needs an origin inside the grid window, not on its edge
       float cell = heightmap_max_grid_cell.x;
       float2 lo = (float2(heightmap_max_grid_lt.xy) + 0.01) * cell, hi = lo + (heightmap_max_grid_lt.z - 0.02) * cell;
       float2 invD = select(abs(dir.xz) < 1e-9, select(dir.xz >= 0, 1e30, -1e30), rcp(dir.xz)); // a ray just outside a slab misses it

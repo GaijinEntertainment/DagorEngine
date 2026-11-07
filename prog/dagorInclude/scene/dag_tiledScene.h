@@ -139,12 +139,13 @@ public:
   __forceinline void frustumCullOneTile(const scene::TiledSceneCullContext &ctx, mat44f_cref globtm, vec4f pos_distscale,
     const Occlusion *occlusion, int tile_idx, ExternalFilterFn external_filter, VisibleNodesF visible_nodes) const;
 
-  // VisibleNodesFunctor(scene::node_index, mat44f_cref)
+  // VisibleNodesFunctor(scene::node_index, mat44f_cref) returns void, or bool true to stop
   template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
   void nodesInRange(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes, int start_index,
     int end_index) const;
 
-  template <bool use_flags, bool use_pools, typename VisibleNodesFunctor> // VisibleNodesFunctor(scene::node_index, mat44f_cref)
+  // VisibleNodesFunctor(scene::node_index, mat44f_cref) returns void, or bool true to stop
+  template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
   void boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes) const;
 
   // default is min_nodes_count = 16, kdtree_rebuild_threshold = 1.
@@ -420,8 +421,9 @@ protected:
     mat44f_cref globtm, const vec4f &pos_distscale, uint32_t test_flags, uint32_t equal_flags, const Occlusion *occlusion,
     ExternalFilterFn external_filter, VisibleNodesF visible_nodes) const;
 
-  template <bool use_flags, bool use_pools, typename VisibleNodesFunctor> // VisibleNodesFunctor(scene::node_index, mat44f_cref)
-  __forceinline void internalBoxCull(bbox3f_cref bbox, const TileCullData &tile, bbox3f_cref cull_box, uint32_t test_flags,
+  // Returns true when the callback stops the cull
+  template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
+  __forceinline bool internalBoxCull(bbox3f_cref bbox, const TileCullData &tile, bbox3f_cref cull_box, uint32_t test_flags,
     uint32_t equal_flags, VisibleNodesFunctor visible_nodes) const;
   __forceinline void getBoxRegion(int *__restrict regions, vec4f bmin, vec4f bmax) const;
 
@@ -1117,19 +1119,19 @@ void scene::TiledScene::frustumCullOneTile(const scene::TiledSceneCullContext &c
 
 
 template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
-__forceinline void scene::TiledScene::internalBoxCull(bbox3f_cref bbox, const TileCullData &tile, bbox3f_cref cull_box,
+__forceinline bool scene::TiledScene::internalBoxCull(bbox3f_cref bbox, const TileCullData &tile, bbox3f_cref cull_box,
   uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes) const
 {
   const uint32_t flags_and_kdtreenodes_count = getKdTreeCountFlags(bbox);
   const bool isTileFlagsValid = !(tile.maintenanceFlags & TileData::MFLG_RECALC_FLAGS);
   if (use_flags && isTileFlagsValid && ((flags_and_kdtreenodes_count & equal_flags) != equal_flags))
-    return;
+    return false;
   G_FAST_ASSERT(!tile.isDead());
   G_UNUSED(equal_flags);
   G_UNUSED(test_flags); // because we can have no use_pools
   const bbox3f cullBox = cull_box;
   if (!v_bbox3_test_box_intersect(bbox, cullBox))
-    return;
+    return false;
 
 #if !KD_LEAVES_ONLY
 #error unsupport full kd trees
@@ -1253,7 +1255,8 @@ __forceinline void scene::TiledScene::internalBoxCull(bbox3f_cref bbox, const Ti
         G_UNUSED(poolFlags);
         if (use_flags && ((test_flags & poolFlags) != equal_flags))
           continue;
-        visible_nodes(ni, m);
+        if (invoke_visible_node(visible_nodes, ni, m))
+          return true;
       }
     }
     else
@@ -1300,10 +1303,12 @@ __forceinline void scene::TiledScene::internalBoxCull(bbox3f_cref bbox, const Ti
             }
           }
         }
-        visible_nodes(ni, m);
+        if (invoke_visible_node(visible_nodes, ni, m))
+          return true;
       }
     }
   }
+  return false;
 }
 
 inline int scene::TiledScene::getTileCountInBox(bbox3f_cref box) const
@@ -1320,14 +1325,12 @@ inline int scene::TiledScene::getTileCountInBox(bbox3f_cref box) const
   return eastl::min((int)tileCull.size(), tilesInGrid);
 }
 
-// VisibleNodesFunctor(scene::node_index, mat44f_cref)
 template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
 void scene::TiledScene::boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes) const
 {
   nodesInRange<use_flags, use_pools>(box, test_flags, equal_flags, visible_nodes, 0, tileCull.size());
 }
 
-// VisibleNodesFunctor(scene::node_index, mat44f_cref)
 template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
 void scene::TiledScene::nodesInRange(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes,
   int start_index, int end_index) const
@@ -1358,7 +1361,8 @@ void scene::TiledScene::nodesInRange(bbox3f_cref box, uint32_t test_flags, uint3
     {
       if (isEmptyTileMemory(tileBox.data()[i]))
         continue;
-      internalBoxCull<use_flags, use_pools>(tileBox.data()[i], tileCull.data()[i], box, test_flags, equal_flags, visible_nodes);
+      if (internalBoxCull<use_flags, use_pools>(tileBox.data()[i], tileCull.data()[i], box, test_flags, equal_flags, visible_nodes))
+        return;
     }
   }
   else
@@ -1382,8 +1386,9 @@ void scene::TiledScene::nodesInRange(bbox3f_cref box, uint32_t test_flags, uint3
         G_FAST_ASSERT(tileIndex < tileCull.size());
         G_FAST_ASSERT(!isEmptyTileMemory(tileBox.data()[tileIndex]));
 
-        internalBoxCull<use_flags, use_pools>(tileBox.data()[tileIndex], tileCull.data()[tileIndex], box, test_flags, equal_flags,
-          visible_nodes);
+        if (internalBoxCull<use_flags, use_pools>(tileBox.data()[tileIndex], tileCull.data()[tileIndex], box, test_flags, equal_flags,
+              visible_nodes))
+          return;
       }
     }
     if (!isEmptyTileMemory(tileBox.data()[OUTER_TILE_INDEX]))

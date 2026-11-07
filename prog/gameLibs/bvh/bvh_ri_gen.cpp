@@ -87,17 +87,7 @@ static bool handle_leaves(ContextId context_id, uint64_t object_id, int lod_ix, 
   eastl::optional<TMatrix4> &inv_world_tm, LeavesInfo &leavesInfo, MeshMetaAllocator::AllocId &metaAllocId, void *user_data)
 {
   if (!inv_world_tm.has_value())
-  {
-    inv_world_tm = TMatrix4::IDENT;
-
-    mat44f inv44;
-    v_mat44_inverse(inv44, tm);
-    v_mat44_transpose(inv44, inv44);
-    v_stu(&inv_world_tm.value().row[0], inv44.col0);
-    v_stu(&inv_world_tm.value().row[1], inv44.col1);
-    v_stu(&inv_world_tm.value().row[2], inv44.col2);
-    v_stu(&inv_world_tm.value().row[3], inv44.col3);
-  }
+    inv_world_tm = make_full_itm(tm);
 
   int dummy;
   auto data = mapper(context_id, object_id, handle, lod_ix, user_data, leavesInfo.recycled, dummy);
@@ -266,8 +256,10 @@ static struct RiGenBVHJob : public cpujobs::IJob
 
     G_ASSERT(lod_ix < 16);
 
-    bool hasTreeOrLeaves =
-      eastl::any_of(elems.begin(), elems.end(), [&](auto &e) { return is_tree(thiz->contextId, e) || is_leaves(thiz->contextId, e); });
+    bool hasTreeOrLeaves = eastl::any_of(elems.begin(), elems.end(), [&](auto &e) {
+      return is_ri_shader_class(thiz->contextId, e, "rendinst_tree") ||
+             is_ri_shader_class(thiz->contextId, e, "rendinst_facing_leaves");
+    });
 
     if (!hasTreeOrLeaves)
     {
@@ -311,7 +303,7 @@ static struct RiGenBVHJob : public cpujobs::IJob
 
         auto meshId = make_relem_mesh_id(bvh_id, lod_ix, elemIx);
 
-        if (is_tree(thiz->contextId, elem))
+        if (is_ri_shader_class(thiz->contextId, elem, "rendinst_tree"))
         {
           bool isPosInst = rendinst::isRIGenOnlyPosInst(layer_ix, pool_ix);
 
@@ -325,11 +317,11 @@ static struct RiGenBVHJob : public cpujobs::IJob
             continue;
           const bool forceEnableBackfaceCulling =
             thiz->globalObjectTessellationEnabled && riRes->isTessellated() && treeInfo.data.isTrunk;
-          add_riGen_instance(thiz->contextId, meshId, tm43, &treeInfo, isStationary, metaAllocId, thiz->threadIx,
-            forceEnableBackfaceCulling);
+          add_tree_instance(thiz->contextId, thiz->contextId->riGenInstances[thiz->threadIx], meshId, tm43, &treeInfo, isStationary,
+            metaAllocId, forceEnableBackfaceCulling);
           thiz->riGenCount++;
         }
-        else if (is_leaves(thiz->contextId, elem))
+        else if (is_ri_shader_class(thiz->contextId, elem, "rendinst_facing_leaves"))
         {
           LeavesInfo leavesInfo;
           MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
@@ -455,14 +447,13 @@ void wait_ri_gen_instances_update([[maybe_unused]] ContextId context_id)
     v_extract_z(treeArea.bmax));
 }
 
-void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities,
-  const Point3 &view_position, const Point3 &light_direction, const Frustum &view_frustum, threadpool::JobPriority prio)
+void update_ri_gen_instances(ContextId context_id, dag::ConstSpan<RiGenVisibility *> ri_gen_visibilities, const Point3 &view_position,
+  const Point3 &light_direction, const Frustum &view_frustum, threadpool::JobPriority prio)
 {
   if (ri_gen_visibilities.empty() || !context_id->hasAny(Features::AnyRI))
     return;
   G_ASSERT(ri_gen_visibilities.size() <= 2);
 
-  wait_ri_gen_instances_update(context_id);
   start_new_tree_mapping_debug_frame();
   voxel_activity::begin_ri_gen_placement(context_id);
 
@@ -512,43 +503,24 @@ void collect_riex_staged_blas_addresses(ContextId context_id, dag::Vector<uint64
 void collect_staged_blas_addresses(ContextId context_id, dag::Vector<uint64_t> &addresses)
 {
   for (auto &jobFlips : ri_gen_bvh_job)
-    for (int flip = 0; flip < 2; ++flip)
-      for (auto &lodRes : jobFlips[flip].newUniqueTreeBuffers)
-        for (auto &tree : lodRes)
-          for (auto &elem : tree.second.elems)
-            if (elem.second.blas)
-              addresses.push_back(elem.second.blas.getGPUAddress());
+    for (auto &job : jobFlips)
+      append_blas_addresses(job.newUniqueTreeBuffers, addresses);
 
   collect_riex_staged_blas_addresses(context_id, addresses);
 }
+
+void merge_new_unique_buffers(ContextId context_id,
+  eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance> (&new_buffers)[Context::maxUniqueLods],
+  eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance> (&unique_buffers)[Context::maxUniqueLods]);
 
 void tidy_up_rigen_trees(ContextId context_id)
 {
   TIME_PROFILE(tidy_up_rigen_trees);
 
   for (auto &jobFlips : ri_gen_bvh_job)
-  {
-    for (int flip = 0; flip < 2; ++flip)
-    {
-      auto &job = jobFlips[flip];
-      for (auto [lodIndex, lodRes] : enumerate(job.newUniqueTreeBuffers))
-      {
-        for (auto &tree : lodRes)
-        {
-          auto [it, inserted] = context_id->uniqueTreeBuffers[lodIndex].insert(std::move(tree));
-          if (!inserted)
-            for (auto &elem : tree.second.elems)
-              context_id->freeMetaRegion(elem.second.metaAllocId);
-        }
-        lodRes.clear();
-      }
-    }
-  }
-  TidyUpRendinstPointers pointers;
-  pointers.uniqueBuffers = make_span(context_id->uniqueTreeBuffers, Context::maxUniqueLods);
-  pointers.contextId = context_id;
-  pointers.freeUniqueBLASes = &context_id->freeUniqueTreeBLASes;
-  tidy_up_rendinsts_base<true>(context_id, pointers);
+    for (auto &job : jobFlips)
+      merge_new_unique_buffers(context_id, job.newUniqueTreeBuffers, context_id->uniqueTreeBuffers);
+  tidy_up_rendinsts_base<true>(context_id, context_id->uniqueTreeBuffers, context_id->freeUniqueTreeBLASes);
 }
 void tidy_up_riex_trees(ContextId context_id);
 void tidy_up_riex_flags(ContextId context_id);

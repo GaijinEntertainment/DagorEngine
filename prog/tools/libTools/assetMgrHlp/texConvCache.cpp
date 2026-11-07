@@ -694,6 +694,7 @@ static bool tex_pack_asset_changed(AssetExportCache &c4, DagorAsset &a, IDagorAs
 // Checks (and, unless out_dest is null, serves) an asset's DDSx bytes from an already-built .dxp.bin
 // respack. out_dest is null for a readiness-only check (see is_tex_built_and_actual() below). Returns
 // false (without touching *out_dest) on any miss.
+// Read TQ pack if the BQ has empty record for the texture
 static bool try_get_ddsx_from_respack(DagorAsset &a, unsigned target, const char *profile, ddsx::Buffer *out_dest)
 {
   if (texExportBlk.isEmpty())
@@ -742,11 +743,25 @@ static bool try_get_ddsx_from_respack(DagorAsset &a, unsigned target, const char
 
   BinDumpReader bcrd(&crd, target, dagor_target_code_be(target));
   DxpReadOnlyPack *pack = DxpReadOnlyPack::make(bcrd);
-  bool ok = pack && pack->getDDSx(key, dest);
+  if (!pack)
+    return false;
+  int id = pack->strippedNames.getNameId(key);
+  const char *suffix = strrchr(key, '$');
+  bool is_tq = suffix && strcmp(suffix, "$tq") == 0;
+  bool ok = id >= 0 && pack->rec[id].packedDataSize >= 0 && (!is_tq || (pack->hdr[id].levels && pack->rec[id].packedDataSize > 0));
+  bool use_tq = ok && !suffix && !pack->hdr[id].w && !pack->hdr[id].h;
+  if (ok && !use_tq)
+    ok = pack->getDDSx(key, dest);
   del_it(pack);
   crd.close();
   if (!ok)
     return false;
+
+  if (use_tq)
+  {
+    DagorAsset *tq_asset = a.getMgr().findAsset(String::mk_str_cat(a.getName(), "$tq"), a.getType());
+    return tq_asset && try_get_ddsx_from_respack(*tq_asset, target, profile, out_dest);
+  }
 
   // Persist a corrected mtime so a future process start skips rehashing this pack's files.
   // Re-fetch (cheap: mtime/size unchanged since the check above) rather than holding a reference

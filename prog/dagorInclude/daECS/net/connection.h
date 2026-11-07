@@ -164,6 +164,9 @@ public:
   void setUserPtr(void *ptr) override final { userPtr = ptr; }
   void *getUserPtr() const override final { return userPtr; }
 
+  SessionUrlKind getSessionUrlKind() const override final { return sessionUrlKind; }
+  void setSessionUrlKind(SessionUrlKind k) override final { sessionUrlKind = k; }
+
   ObjectReplica *getReplicaByEid(ecs::EntityId eid);
   const ObjectReplica *getReplicaByEid(ecs::EntityId eid) const;
   ObjectReplica *getReplicaByObj(const Object &obj);
@@ -261,6 +264,7 @@ private:
     numDirtyReplicas = 0; // num dirty replicas in 'replicas' array (<= numReplicas)
   uint32_t connFlags = CF_NONE;
   void *userPtr = NULL;
+  SessionUrlKind sessionUrlKind = SessionUrlKind::Unknown;
   EncryptionCtx *encryptionCtx = nullptr;
 
   scope_query_cb_t scopeQuery;

@@ -487,7 +487,7 @@ void GlobalVertexDataConnector::connectData(bool allow_32_bit, GlobalVertexDataC
             v1 = v;
           vd->iData[k] = v;
         }
-        G_ASSERTF(v1 < 0x10000, "v0=%d v1=%d sv=%d", v0, v1, re.sv);
+        G_ASSERTF(v1 < 0xFFFF, "v0=%d v1=%d sv=%d", v0, v1, re.sv);
       }
 
       if (v0 < 0)

@@ -104,6 +104,15 @@ shader rt_ao
       return REBLUR_FrontEnd_GetNormHitDist(t, view_z, hit_dist_params, roughness);
     }
 
+    float load_trace_depth(uint2 index)
+    {
+      ##if rtao_res_mul == on
+        return texture2DAt(half_res_depth_tex, index).r;
+      ##else
+        return loadGbufferDepth(index);
+      ##endif
+    }
+
     RT_GROUP_SIZE
     void rt_ao_cs(uint2 dtid : SV_DispatchThreadID)
     {
@@ -115,7 +124,7 @@ shader rt_ao
         bool evenFrame = ( frame_index & 1 ) == 0;
         bool evenLine  = ( rayIndex.y & 1 ) == 0;
 
-        if ( evenFrame == evenLine )
+        if ( evenFrame == evenLine && rayIndex.x + 1 < resolution.x ) // an odd width keeps its last pixel traced
           ++rayIndex.x;
       ##endif
 
@@ -134,22 +143,22 @@ shader rt_ao
 
       ##if rtao_res_mul == on
         UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex * gbufferTcScale));
-        float rawDepth = texture2DAt(half_res_depth_tex, rayIndex).r;
       ##else
         UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex));
-        float rawDepth = loadGbufferDepth(rayIndex);
       ##endif
+      float rawDepth = load_trace_depth(rayIndex);
       float roughness = linearSmoothnessToLinearRoughness(gbuffer.smoothness);
+      bool noSurface = rawDepth <= 0 || !bvhMainValid;
 
       BRANCH
-      if (rawDepth <= 0 || !bvhMainValid)
+      if (noSurface)
       {
         texture2DAt(output, outputIndex) = calc_output_value(NRD_FP16_MAX, NRD_FP16_MAX, 0);
         return;
       }
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
-      float underwaterFade = calc_underwater_fade(w, rayIndex, inv_aligned_resolution, world_view_pos);
+      float underwaterFade = calc_underwater_fade(w, rayIndex, inv_aligned_resolution, world_view_pos, gbuffer.dynamic);
 
       BRANCH
       if (underwaterFade == 0)

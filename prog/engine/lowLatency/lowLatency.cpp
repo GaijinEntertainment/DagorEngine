@@ -39,6 +39,12 @@ void lowlatency::start_frame(uint32_t frame_id)
     latency->startFrame(frame_id);
 }
 
+void lowlatency::set_marker(uint32_t frame_id, LatencyMarkerType marker_type)
+{
+  if (auto latency = GpuLatency::getInstance())
+    latency->setMarker(frame_id, marker_type);
+}
+
 lowlatency::LatencyMode lowlatency::get_latency_mode() { return latency_mode; }
 
 lowlatency::LatencyMode lowlatency::get_from_blk()

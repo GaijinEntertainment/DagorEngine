@@ -25,6 +25,7 @@ public:
   // use_16bit_fmt use r16g16. It is enough to use 16 bit format, but there will be subtle quantization artifacts
   // but if 16 bit is used, setMinMax should be called/ht_min_max shoild be accurate
   void init(int w_, int cascades_cnt, float dist0, float scale_, const Point2 &ht_min_max = Point2(0, 1), bool use_16bit_fmt = true);
+  bool hasTexture() const { return bool(heightmap_shadow); }
   void close();
   void setDist(float d);
   void setScale(float scale_);

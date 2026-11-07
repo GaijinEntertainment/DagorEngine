@@ -10,6 +10,7 @@ for parser in $(WHALE_EXE) $(DOLPHIN_EXE) {
   local jam = $(parser:S=)/jamfile ;
   nopdb on $(jam:G=JAM) = \  ;
   checkonly on $(jam:G=JAM) = \  ;
+  if $(OS) = MACOSX { jam_opt on $(jam:G=JAM) = -sPlatformArch=$(JAMUNAME[1]) ; }
 
   if ! [ GLOB $(parser:D) : $(parser:D=) ] { Depends $(parser) : $(jam:G=JAM) ; Always $(jam) ; }
   BuildJams += $(jam) ;

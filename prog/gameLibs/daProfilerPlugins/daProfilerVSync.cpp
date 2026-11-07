@@ -7,7 +7,7 @@
 #include <util/dag_finally.h>
 #include <supp/dag_comPtr.h>
 #include <dxgi.h>
-#include <eastl/deque.h>
+#include <EASTL/deque.h>
 #include <util/dag_globDef.h>
 
 namespace da_profiler

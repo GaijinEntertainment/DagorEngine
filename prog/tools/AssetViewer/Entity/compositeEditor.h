@@ -57,6 +57,7 @@ public:
 
   void createNode();
   void deleteSelectedNodes();
+  void setSelectedNodesDisabled(bool disable);
   void updateMultipleNodesTransforms(const dag::Vector<CompositeEditorTreeDataNode *> &nodes, const dag::Vector<TMatrix> &tms);
   // out_clones_by_selection_idx[i] is the clone of selectedTreeDataNodes[i], null if not cloneable.
   void cloneSelectedNodes(dag::Vector<CompositeEditorTreeDataNode *> &out_clones_by_selection_idx);
@@ -69,6 +70,11 @@ public:
   void pasteParamsToSelectedNode();
   void duplicateSelectedNodes();
 
+  // A disabled node, or a node under a disabled ancestor, is not visible, so it cannot be edited.
+  bool isTreeDataNodeReadOnly(const CompositeEditorTreeDataNode &treeDataNode) const;
+  bool isSelectionReadOnly() const;
+
+  bool canEnterSubCompositeEditing(const CompositeEditorTreeDataNode *treeDataNode) const;
   void enterSubCompositeEditing();
   void exitSubCompositeEditing();
   void saveSubCompositeEditing();

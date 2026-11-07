@@ -13,20 +13,13 @@
 #endif
 
 #include <supp/android/dagor_native_app_glue.h>
-#include <EASTL/array.h>
 
 namespace android
 {
 using OnInputCallback = void (*)(const AInputEvent *);
 
-constexpr int MAX_INPUT_CALLBACK_NUM = 1;
+constexpr int MAX_INPUT_CALLBACK_NUM = 2;
 extern OnInputCallback input_callbacks[MAX_INPUT_CALLBACK_NUM];
-
-struct JoystickEvent
-{
-  int deviceId;
-  eastl::array<float, 48> axisValues;
-};
 
 jobject get_activity_class(void *activity);
 JavaVM *get_java_vm(void *activity);

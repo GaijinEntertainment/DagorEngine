@@ -127,14 +127,14 @@ void linear_poly_remove_node_from_list(PropPanel::ContainerPropertyControl *pane
   }
 }
 
-void AnimTreeEditor::linearPolyFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings)
+void AnimTreeEditor::linearPolyFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings)
 {
   int childNid = settings.getNameId("child");
   for (int i = 0; i < settings.blockCount(); ++i)
     if (settings.getBlock(i)->getNameId() == childNid)
     {
       const char *childName = settings.getBlock(i)->getStr("name");
-      int idx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
+      int idx = add_ctrl_child_idx_by_name(child_index, data, childName);
       check_ctrl_child_idx(idx, settings.getStr("name"), childName);
     }
 }

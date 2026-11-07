@@ -1,9 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <stdint.h>
-
-class Sbuffer;
+#include "bvh_context.h"
 
 // Shared bvh_particle_data: fx slots [0, fxCapacity), smoke-tracer slots [fxCapacity,
 // fxCapacity + tracerCapacity). ensure_capacity must run once per frame before writers;
@@ -21,4 +19,16 @@ Sbuffer *get_data_buf();
 int get_fx_capacity();
 int get_smoke_tracer_capacity();
 int64_t get_size_bytes();
+
+struct BillboardVertex
+{
+  Point3 position;
+  Point2 texcoord;
+};
+
+UniqueBLAS create_billboard_blas(const BillboardVertex (&vertices)[8], UniqueBuf &vb, UniqueBuf &ib, const char *vb_name,
+  const char *ib_name);
+UniqueBLAS build_billboard_blas(Sbuffer *vb, Sbuffer *ib, uint32_t quad_count);
+// meta must be fresh from allocateMetaRegion
+void fill_billboard_meta(MeshMeta &meta, uint32_t material_type, uint32_t bindless_indices_index, uint32_t bindless_vertices_index);
 } // namespace bvh::particles

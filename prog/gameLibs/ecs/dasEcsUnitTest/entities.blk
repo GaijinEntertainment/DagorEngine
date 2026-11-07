@@ -177,3 +177,8 @@ testSafeListOps {
     "bool_list:list<b>"{ a:b=yes }
   }
 }
+
+testSingleton {
+  _singleton:b=yes
+  test_singleton_value:i=7
+}

@@ -44,7 +44,7 @@ shader raytraced_water_reflections
   INIT_BVH(cs, 0, true)
   USE_BVH_FOR_REFLECTION(cs)
   USE_BVH_FX_RENDER(cs, false)
-  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
   INIT_PACK_UNPACK_DYNSTCODE(cs)
   PACK_UNPACK_GBUFFER_BASE(cs)
   USE_ADAPTIVE_RAY_OFFSET(cs)
@@ -192,8 +192,8 @@ shader raytraced_water_reflections
       float3 reflectionColor;
       if (isHit)
       {
-        SurfaceParams hitSurface = calc_surface_params(hitInfo, -reflectionVec, worldDist);
-        reflectionColor = light_hit_surface(hitSurface, -reflectionVec, worldDist + hitInfo.t, hitInfo.t, hit_dist_params.x);
+        SurfaceParams hitSurface = calc_surface_params(hitInfo, -reflectionVec, worldDist, worldDist);
+        reflectionColor = light_hit_surface(hitSurface, -reflectionVec, worldDist + hitInfo.t, hitInfo.t, hit_dist_params.x, 1, true);
         if (above_water)
           calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
         else
@@ -315,7 +315,7 @@ shader raytraced_water_reflections
 
         rnd = ml::Rng::Hash::GetFloat2();
         float3 direction = get_sun_direction(rnd);
-        half currentShadow = is_obstructed(bvhMain, cameraToPoint, direction, 0, 100000, w, bvhGroupAll & ~bvhGroupGrass & ~bvhGroupWater) ? 0 : 1;
+        half currentShadow = is_obstructed(bvhMain, cameraToPoint, direction, 0, 100000, w, bvhGroupAll & ~bvhGroupGrass & ~bvhGroupWater, 0, true) ? 0 : 1;
 
         ##if water_rt_output_mode == regular
 

@@ -12,32 +12,17 @@
 
 class CollisionResource;
 
-#if ENABLE_APEX
-#define APEX_VIRTUAL  virtual
-#define APEX_OVERRIDE override
-#else
-#define APEX_VIRTUAL
-#define APEX_OVERRIDE
-#endif
-
 namespace dacoll
 {
-// Collision Instances Collision Object (probably need to rename whole thing to Rendinst Collision Instances)
-#if ENABLE_APEX
-typedef CollisionObject CICollisionObject;
-#else
-typedef CollisionObjectBullet CICollisionObject;
-#endif
-
 struct ScaledBulletInstance
 {
   float timeOfDeath;
-  CollisionObjectBullet obj;
+  CollisionObject obj;
   rendinst::RendInstDesc desc;
   Point3 scale;
   CollisionObjectUserData userData;
 
-  ScaledBulletInstance(CICollisionObject original_obj, vec3f scl, const rendinst::RendInstDesc &in_desc, float time_of_death);
+  ScaledBulletInstance(CollisionObject original_obj, vec3f scl, const rendinst::RendInstDesc &in_desc, float time_of_death);
 
 public:
   ScaledBulletInstance(const ScaledBulletInstance &) = delete;
@@ -46,23 +31,21 @@ public:
   void updateUserDataPtr();
 };
 
-// Note: this class is not ABI combatible across Apex/non-Apex library build.
-// Don't use it unless you know what are you doing
 class CollisionInstances
 {
 public:
-  CollisionInstances(const CICollisionObject &obj) : originalObj(obj) {}
+  CollisionInstances(const CollisionObject &obj) : originalObj(obj) {}
 
   CollisionInstances(const CollisionInstances &) = delete;
   CollisionInstances(CollisionInstances &&) = delete; // Relocatable
-  APEX_VIRTUAL ~CollisionInstances();
+  ~CollisionInstances();
 
   CollisionInstances &operator=(CollisionInstances &&) = delete; // This need to be implemented only if you need to erase from
                                                                  // container
   CollisionInstances &operator=(const CollisionInstances &) = delete;
 
   void clear();
-  APEX_VIRTUAL void clearInstances();
+  void clearInstances();
   void unlink() { prevNotEmpty = nextNotEmpty = NOT_IN_LIST; }
   bool hasPhysBodyInstances() const { return !bulletInstances.empty(); }
 
@@ -75,13 +58,7 @@ public:
   }
   CollisionObject updateTm(const rendinst::RendInstDesc &desc, const Point3 &vel, const Point3 &omega);
 
-  APEX_VIRTUAL physx::PxRigidActor *getPhysXCollisionObject(const Point3 &, const TMatrix &, const rendinst::RendInstDesc &, bool)
-  {
-    return NULL;
-  }
-  APEX_VIRTUAL bool deletePhysXCollisionObject(const rendinst::RendInstDesc &) { return false; }
-
-  APEX_VIRTUAL bool update(float cur_time); // Return false if empty
+  bool update(float cur_time); // Return false if empty
 
 private:
   ScaledBulletInstance *getScaledInstance(const rendinst::RendInstDesc &desc, vec3f scl, bool &out_created);
@@ -92,7 +69,7 @@ protected:
   int prevNotEmpty = NOT_IN_LIST, nextNotEmpty = NOT_IN_LIST;
 
   dag::Vector<ScaledBulletInstance> bulletInstances;
-  CICollisionObject originalObj;
+  CollisionObject originalObj;
 
   friend void *register_collision_cb(const CollisionResource *collRes, const char *debug_name);
   friend void unregister_collision_cb(void *&handle);
@@ -117,12 +94,7 @@ inline bool CollisionInstances::update(float cur_time)
   }
   return !bulletInstances.empty();
 }
-
-void remove_physx_collision_object(const rendinst::RendInstDesc &desc);
-CollisionInstances *create_apex_coll_instance(const CollisionObject &obj);
 } // namespace dacoll
 
 DAG_DECLARE_RELOCATABLE(dacoll::ScaledBulletInstance);
 DAG_DECLARE_RELOCATABLE(dacoll::CollisionInstances);
-
-#undef APEX_VIRTUAL

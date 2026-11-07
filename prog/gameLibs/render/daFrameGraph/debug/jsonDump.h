@@ -4,12 +4,22 @@
 #include <frontend/internalRegistry.h>
 #include <backend/intermediateRepresentation.h>
 #include <backend/nodeStateDeltas.h>
+#include <backend/resourceScheduling/barrierScheduler.h>
+#include <backend/resourceScheduling/heapLayout.h>
 
 
-namespace dafg
+namespace dafg::state_dump
 {
 
-void dump_state_to_json(const InternalRegistry &registry, const intermediate::Graph &ir_graph,
-  const sd::NodeStateDeltas &state_deltas);
+struct DumpSources
+{
+  const InternalRegistry &registry;
+  const intermediate::Graph &ir_graph;
+  const sd::NodeStateDeltas &state_deltas;
+  const BarrierScheduler::EventsCollection &events;
+  const Layout &layout;
+};
 
-} // namespace dafg
+void dump(const DumpSources &dump_src, const char *custom_filename = nullptr);
+
+} // namespace dafg::state_dump

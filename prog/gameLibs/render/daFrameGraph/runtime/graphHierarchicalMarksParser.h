@@ -7,8 +7,6 @@
 #include <dag/dag_vector.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <id/idSparseIndexedMapping.h>
-#include <EASTL/fixed_vector.h>
-#include <EASTL/fixed_string.h>
 #include <EASTL/stack.h>
 
 
@@ -42,10 +40,8 @@ public:
   GraphMarker createGraphMarker();
 
 private:
-  static constexpr int NODE_NAMESPACE_NAME_LEN = 128;
   static constexpr size_t NODE_NAMESPACES_NUMBER = 8;
 
-  using FixedString = eastl::fixed_string<char, NODE_NAMESPACE_NAME_LEN>;
   struct NamespaceData
   {
     NameSpaceNameId ns = NameSpaceNameId::Invalid;
@@ -55,11 +51,9 @@ private:
   struct NodeMark
   {
     uint16_t popNum = 0;
-    FixedString shortDisplayName;
-    FixedString fullDisplayName;
-
-    // dag::RelocatableFixedVector requires T to be relocatable, eastl::fixed_string is not
-    eastl::fixed_vector<FixedString, NODE_NAMESPACES_NUMBER> newGPUEvents;
+    dag::RelocatableFixedVector<const char *, NODE_NAMESPACES_NUMBER> newGPUEvents;
+    const char *shortDisplayName = "";
+    const char *fullDisplayName = "";
   };
   struct NodeParseData
   {

@@ -18,19 +18,10 @@ using TreeMapper = bvh::ReferencedTransformData &(*)(ContextId context_id, uint6
 
 inline void set_tree_anim_max_distance(float distance) { ri_tree_anim_max_distance_sq_v = v_splats(distance * distance); }
 
-inline bool is_tree(ContextId context_id, ShaderMesh::RElem &elem)
+template <size_t N>
+inline bool is_ri_shader_class(ContextId context_id, ShaderMesh::RElem &elem, const char (&class_prefix)[N])
 {
-  return context_id->hasAny(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_tree", 13) == 0;
-}
-
-inline bool is_leaves(ContextId context_id, ShaderMesh::RElem &elem)
-{
-  return context_id->hasAny(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_facing_leaves", 22) == 0;
-}
-
-inline bool is_flag(ContextId context_id, ShaderMesh::RElem &elem)
-{
-  return context_id->hasAny(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_flag", 13) == 0;
+  return context_id->hasAny(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), class_prefix, N - 1) == 0;
 }
 
 using map_rendinst_fn = ReferencedTransformData *(ContextId, uint64_t, uint64_t, int, void *, bool &, int &);
@@ -94,17 +85,8 @@ inline ReferencedTransformData *map_rendinst_base(uint64_t object_id, uint64_t i
 
   data.age = -1;
 
-  if (!data.buffer && !data.blas && ri_enable_caching)
-  {
-    if (auto iter = pointers.freeUniqueBLASes->find(object_id); iter != pointers.freeUniqueBLASes->end())
-    {
-      if (int index = iter->second.cursor.sub_fetch(1); index >= 0)
-      {
-        take_blas_from_pool(data, iter->second.blases[index]);
-        recycled = true;
-      }
-    }
-  }
+  if (ri_enable_caching)
+    recycled = take_blas_from_pool(data, *pointers.freeUniqueBLASes, object_id);
 
   return &data;
 }
@@ -239,19 +221,23 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
   return true;
 }
 
-struct TidyUpRendinstPointers
+inline bool free_process_buffer_region(ContextId context_id, ReferencedTransformData &elem)
 {
-  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance>> uniqueBuffers;
-  ContextId contextId = nullptr;
-  eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> *freeUniqueBLASes = nullptr;
-};
+  if (!elem.buffer)
+    return false;
+  WinAutoLock lock(context_id->processBufferAllocatorLock);
+  context_id->processBufferAllocator[elem.buffer.allocator].first.free(elem.buffer.allocId);
+  return true;
+}
 
 template <bool do_animation_index>
-inline int tidy_up_rendinsts_base(ContextId context_id, TidyUpRendinstPointers &pointers)
+inline int tidy_up_rendinsts_base(ContextId context_id,
+  eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance> (&unique_buffers)[Context::maxUniqueLods],
+  eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> &free_unique_blases)
 {
   // We make use of the fact that resize does not shrink the vector itself, only the elem count is changed
   if (ri_enable_caching)
-    for (auto &freeBlases : *pointers.freeUniqueBLASes)
+    for (auto &freeBlases : free_unique_blases)
     {
       if (freeBlases.second.cursor.load() < 0)
         freeBlases.second.cursor.store(0);
@@ -260,7 +246,7 @@ inline int tidy_up_rendinsts_base(ContextId context_id, TidyUpRendinstPointers &
 
   int dropCount = 0;
 
-  for (auto [index, lod] : enumerate(pointers.uniqueBuffers))
+  for (auto &lod : unique_buffers)
     for (auto iter = lod.begin(); iter != lod.end();)
     {
       auto &elems = iter->second.elems;
@@ -277,16 +263,11 @@ inline int tidy_up_rendinsts_base(ContextId context_id, TidyUpRendinstPointers &
 
         if (ri_enable_caching)
         {
-          give_blas_to_pool((*pointers.freeUniqueBLASes)[meshId].blases.push_back(), elem);
+          swap_blas_with_pool(elem, free_unique_blases[meshId].blases.push_back());
         }
 
         context_id->freeMetaRegion(elem.metaAllocId);
-
-        if (elem.buffer)
-        {
-          WinAutoLock lock(context_id->processBufferAllocatorLock);
-          context_id->processBufferAllocator[elem.buffer.allocator].first.free(elem.buffer.allocId);
-        }
+        free_process_buffer_region(context_id, elem);
 
         elemIter = elems.erase(elemIter);
       }
@@ -299,8 +280,8 @@ inline int tidy_up_rendinsts_base(ContextId context_id, TidyUpRendinstPointers &
 
       if constexpr (do_animation_index)
       {
-        OSSpinlockScopedLock lock(pointers.contextId->treeAnimIndexCountLock);
-        --pointers.contextId->treeAnimIndexCount[iter->second.animIndex];
+        OSSpinlockScopedLock lock(context_id->treeAnimIndexCountLock);
+        --context_id->treeAnimIndexCount[iter->second.animIndex];
       }
 
       dropCount++;
@@ -308,10 +289,21 @@ inline int tidy_up_rendinsts_base(ContextId context_id, TidyUpRendinstPointers &
     }
 
   if (ri_enable_caching)
-    for (auto &freeBlases : *pointers.freeUniqueBLASes)
+    for (auto &freeBlases : free_unique_blases)
       freeBlases.second.cursor.store(freeBlases.second.blases.size());
 
   return dropCount;
+}
+
+inline void append_blas_addresses(
+  const eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance> (&buffers)[Context::maxUniqueLods],
+  dag::Vector<uint64_t> &addresses)
+{
+  for (auto &lod : buffers)
+    for (auto &buffer : lod)
+      for (auto &elem : buffer.second.elems)
+        if (elem.second.blas)
+          addresses.push_back(elem.second.blas.getGPUAddress());
 }
 
 float get_ri_lod_dist_bias();

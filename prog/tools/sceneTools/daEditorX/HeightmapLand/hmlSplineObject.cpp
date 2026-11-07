@@ -20,6 +20,7 @@
 #include <de3_splineClassData.h>
 #include <de3_hmapService.h>
 #include <de3_csgEntity.h>
+#include <de3_prefabs.h>
 #include <libTools/dagFileRW/splineShape.h>
 
 #include "hmlSplineUndoRedo.h"
@@ -107,6 +108,11 @@ enum
   PID_NAVMESH_STRIPE_WIDTH,
 
   PID_PERINST_SEED,
+
+  PID_LOFT_TAG_HEADER,
+  PID_LOFT_TAG_BEGIN,
+  PID_LOFT_TAG_END = PID_LOFT_TAG_BEGIN + GEOM_TAG_MAX * GEOM_TAG_CONTROLS,
+
   PID_PER_MATERIAL_CONTROLS_BEGIN,
 };
 
@@ -120,6 +126,16 @@ enum
 
 #define DEF_USE_FOR_NAVMESH      false
 #define DEF_NAVMESH_STRIPE_WIDTH 20.0f
+
+static void gather_loft_debug_view_tags(SplineObject &s, OAHashNameMap<true> &tags)
+{
+  ISplineGenService *srv = HmapLandPlugin::splSrv;
+  if (auto *gen = s.getPolyGen())
+    srv->gatherGeomLayerTags(gen, tags, prefabs::LOFT_MASK_EXPORT);
+  for (SplinePointObject *p : s.points)
+    if (auto *gen = p->getSplineGen())
+      srv->gatherGeomLayerTags(gen, tags, prefabs::LOFT_MASK_EXPORT);
+}
 
 int SplineObject::splineSubtypeMask = -1;
 int SplineObject::tiledByPolygonSubTypeId = -1;
@@ -664,6 +680,63 @@ static String get_game_export_warning(dag::ConstSpan<RenderableEditableObject *>
   return String(128, "'%s' is exported, but has a single point, so it has no curve", lastBad->getName());
 }
 
+void SplineObject::fillLoftDebugProps(PropPanel::ContainerPropertyControl &op, dag::ConstSpan<RenderableEditableObject *> objects)
+{
+  OAHashNameMap<true> tags;
+  Tab<OAHashNameMap<true>> objTags(tmpmem);
+  objTags.resize(objects.size());
+  for (int i = 0; i < objects.size(); ++i)
+  {
+    SplineObject *o = RTTI_cast<SplineObject>(objects[i]);
+    if (!o)
+      continue;
+
+    gather_loft_debug_view_tags(*o, objTags[i]);
+    iterate_names(objTags[i], [&](int, const char *nm) { tags.addNameId(nm); });
+  }
+  if (!tags.nameCount())
+    return;
+
+  PropPanel::ContainerPropertyControl &tagHdr = *op.createGroup(PID_LOFT_TAG_HEADER, "Loft tagged geometry (debug)");
+  op.setTooltipId(PID_LOFT_TAG_HEADER, "Draws only with '(filter) Show loft tagged geometry'");
+
+  create_geom_tag_controls(tagHdr, PID_LOFT_TAG_BEGIN, tags, propPanelLoftTags);
+
+  const GeomTagUiState def;
+  for (int t = 0; t < propPanelLoftTags.size(); ++t)
+  {
+    const char *tag = propPanelLoftTags[t];
+    const GeomTagUiState *first = nullptr;
+    bool showMixed = false;
+    bool colorMixed = false;
+
+    for (int i = 0; i < objects.size(); ++i)
+    {
+      if (objTags[i].getNameId(tag) < 0)
+        continue;
+
+      const GeomTagUiState *state = find_geom_tag_ui_state(static_cast<const SplineObject *>(objects[i])->debugViewTags, tag);
+      if (!state)
+        state = &def;
+
+      if (!first)
+      {
+        first = state;
+        continue;
+      }
+
+      showMixed |= first->show != state->show;
+      colorMixed |= first->color != state->color;
+    }
+
+    set_geom_tag_controls(op, PID_LOFT_TAG_BEGIN, t, first);
+    if (showMixed)
+      op.resetById(geom_tag_pid(PID_LOFT_TAG_BEGIN, t, GEOM_TAG_CTRL_SHOW));
+    if (colorMixed)
+      op.resetById(geom_tag_pid(PID_LOFT_TAG_BEGIN, t, GEOM_TAG_CTRL_COLOR));
+  }
+}
+
 void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
   dag::ConstSpan<RenderableEditableObject *> objects)
 {
@@ -884,6 +957,8 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
     op.createEditFloat(PID_WIDTHGEN_VAR, "Max width variation", width_gen_var);
     op.createEditFloat(PID_WIDTHGEN_MIN, "Min width", width_gen_min);
     op.createButton(PID_WIDTHGEN_APPLY, "Generate width in points!");
+
+    fillLoftDebugProps(op, objects);
   }
 
   for (int i = 0; i < objects.size(); ++i)
@@ -1186,6 +1261,29 @@ void SplineObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerP
   else if (pid == PID_CORNER_TYPE)
   {
     CHANGE_VAL_FUNC(int, props.cornerType, getInt, invalidateSplineCurve())
+  }
+  else if (pid >= PID_LOFT_TAG_BEGIN && pid < PID_LOFT_TAG_END)
+  {
+    int tagIdx = 0;
+    int ctrlType = 0;
+    G_ASSERT_RETURN(decode_geom_tag_pid(pid, PID_LOFT_TAG_BEGIN, propPanelLoftTags.size(), tagIdx, ctrlType), );
+    const char *tag = propPanelLoftTags[tagIdx];
+
+    for (int i = 0; i < objects.size(); ++i)
+    {
+      SplineObject *o = RTTI_cast<SplineObject>(objects[i]);
+      if (!o)
+        continue;
+
+      OAHashNameMap<true> objTags;
+      gather_loft_debug_view_tags(*o, objTags);
+
+      if (objTags.getNameId(tag) < 0)
+        continue;
+
+      apply_geom_tag_change(panel, pid, ctrlType, find_or_add_geom_tag_ui_state(o->debugViewTags, tag));
+    }
+    DAGORED2->repaint();
   }
   else if (pid == PID_MODIF_WIDTH)
   {
@@ -2273,6 +2371,8 @@ bool SplineObject::onAssetChanged(landclass::AssetData *data)
   if (auto *lc = getLandClass(); lc && lc->data == data)
   {
     pointChanged(-1);
+    if (getObjEditor())
+      ((HmapLandObjectEditor *)getObjEditor())->assetPropsChanged = true;
     return !splineInactive;
   }
   return false;
@@ -2678,10 +2778,7 @@ void SplineObject::updateSpline(int stage)
 {
   switch (stage)
   {
-    case STAGE_START:
-      getSpline();
-      updateChangedSegmentsRoadGeom();
-      return;
+    case STAGE_START: getSpline(); return;
 
     case STAGE_GEN_POLY:
       if (poly)
@@ -2978,6 +3075,8 @@ void SplineObject::markAssetChanged(int i)
 {
   // debug("markAssetChanged: %d", i);
   prepareSplineClassInPoints();
+  if (getObjEditor())
+    ((HmapLandObjectEditor *)getObjEditor())->assetPropsChanged = true;
 
   pointChanged(i);
   if (!points[i]->isCross && i > 0)
@@ -2991,34 +3090,6 @@ void SplineObject::markAssetChanged(int i)
     if (points[i]->hasSplineClass() && points[i]->getSplineClass())
       break;
   }
-}
-
-void SplineObject::updateChangedSegmentsRoadGeom()
-{
-  splineclass::RoadData *asset_prev = NULL, *asset = NULL;
-  if (isClosed())
-    asset_prev = getRoad(points[points.size() - 2]);
-
-  int start_seg = 0;
-  asset = getRoad(points[0]);
-
-  // update all segments
-  for (int i = 1; i < (int)points.size() - 1; i++)
-  {
-    splineclass::RoadData *asset_next = getRoad(points[i]);
-    if (asset_next != asset)
-    {
-      generateRoadSegments(start_seg, i, asset_prev, asset, asset_next);
-      start_seg = i;
-      asset_prev = asset;
-      asset = asset_next;
-    }
-  }
-
-  generateRoadSegments(start_seg, points.size() - 1, asset_prev, asset, isClosed() ? getRoad(points[0]) : NULL);
-
-  if (!isClosed())
-    points.back()->removeRoadGeom();
 }
 
 void SplineObject::updateChangedSegmentsLoftGeom()

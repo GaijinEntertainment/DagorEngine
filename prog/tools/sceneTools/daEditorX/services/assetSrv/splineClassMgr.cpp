@@ -421,7 +421,8 @@ static void loadCablesAttachmentPoints(splineclass::SingleGenEntityGroup::GenEnt
   for (int i = 0, n = parent_node.blockCount(); i < n; ++i)
   {
     const DataBlock &b = *parent_node.getBlock(i);
-    if (b.getBlockNameId() != node_id)
+    // A disabled node and its subtree are not used, the same as in CompositEntityPool::loadAssetData().
+    if (b.getBlockNameId() != node_id || b.getBool("disabled", false))
       continue;
     const char *res = b.getStr("name", NULL);
     if (res && *res) // skip unnamed generation (it is used to skip object in generation step)

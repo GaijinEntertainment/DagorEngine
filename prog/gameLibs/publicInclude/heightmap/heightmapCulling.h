@@ -174,9 +174,9 @@ void cull_lod_grid(const LodGrid &lodGrid, int max_lod, float originPosX, float 
   bool fight_t_junctions = true, const HeightmapHeightCulling *handler = NULL, BBox2 *lodsRegion = nullptr,
   float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL, const Point3 *viewPos = nullptr,
   dag::FunctionRef<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB) const> cullCb = {},
-  void (*on_patch_cb)(const BBox3 &box) = nullptr);
+  void (*on_patch_cb)(const BBox3 &box) = nullptr, float patch_xz_margin_cells = 0.f);
 
 struct MetricsErrors;
 void cull_lod_grid3(const MetricsErrors &errors, LodGridCullData &cull_data, const Frustum &frustum, const Occlusion *use_occlusion,
-  float hMin, float hMax, const BBox2 &clip, float maxUpwardDisplacement, float maxDownwardDisplacement, bool mirror, vec3f vp,
+  float hMin, float hMax, const BBox2 &clip, float maxUpwardDisplacement, float maxDownwardDisplacement, vec4f mirroring, vec3f vp,
   const vec4f *bbox2, const HeightmapMetricsQuality &q);

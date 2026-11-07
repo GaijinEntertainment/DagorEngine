@@ -2,6 +2,8 @@ import { BLKArray } from './common.js';
 
 const { ref, reactive } = Vue;
 
+const UPDATE_INTERVAL_MS = 500;
+
 export class DMService {
   _allParts = [];
   _nodes = [];
@@ -15,8 +17,6 @@ export class DMService {
   _dmgNodes = [];
   _wreckedParts = [];
 
-  _debugDrawModes = {};
-
   _weaponList = [];
 
   _curWeaponName = '';
@@ -25,16 +25,19 @@ export class DMService {
 
   _drawDamagedParts = false;
   _drawKilledParts = false;
+  drawCollisionNames = ref(false);
 
-  eids = reactive([]);
-  _eids = [];
+  objects = reactive([]);
+  currentObject = ref(null);
 
-  _shouldShowAllEvents = false;
+  shownHitEvents = ref('all');
 
   events = reactive([]);
   _events = [];
   eventRendererElementsNames = [];
   eventRendererElementsMask = [];
+
+  _updateTimeout = null;
 
   constructor(coreService) {
     console.log('DMService::DMService');
@@ -63,7 +66,6 @@ export class DMService {
     this._collNodes = [];
     this._dmgNodes = [];
     this._wreckedParts = [];
-    this._debugDrawModes = {};
 
     this.parts.splice(0, this.parts.length);
     this.metaParts.splice(0, this.metaParts.length);
@@ -71,7 +73,13 @@ export class DMService {
     this.events.splice(0, this.events.length);
 
     this.coreService.sendCommand('getWeapons');
-    this.coreService.sendCommand('getEntities', { withComponent: 'dm_debug' });
+    this.coreService.sendCommand('dmViewer.open');
+    this.continueUpdate();
+  }
+
+  continueUpdate() {
+    clearTimeout(this._updateTimeout);
+    this._updateTimeout = setTimeout(() => { this.coreService.sendCommand('dmViewer.update'); }, UPDATE_INTERVAL_MS);
   }
 
   onMessage(data) {
@@ -79,29 +87,12 @@ export class DMService {
       this._allParts = data.allParts;
     if (data.nodes)
       this._nodes = data.nodes;
-    if (data.parts) {
-      this._parts = data.parts.filter(v => v.enabled);
-      this._drawKilledParts = false;
-      this._drawDamagedParts = false;
-
-      this.parts.splice(0, this.parts.length, ...this._parts);
-    }
-    if (data.metaParts) {
-      this._metaParts = data.metaParts;
-      this.metaParts.splice(0, this.metaParts.length, ...this._metaParts);
-    }
-    if (data.dmEffects) {
-      this._effects = data.dmEffects;
-      this.effects.splice(0, this.effects.length, ...this._effects);
-    }
     if (data.collNodes)
       this._collNodes = data.collNodes;
     if (data.dmgNodes)
       this._dmgNodes = data.dmgNodes;
     if (data.wreckedParts)
       this._wreckedParts = data.wreckedParts;
-    if (data.debugDrawModes)
-      this._debugDrawModes = data.debugDrawModes;
     if (data.weaponList) {
       this._weaponList = data.weaponList;
       if (!this._curWeaponName && this._weaponList[0]) {
@@ -110,12 +101,6 @@ export class DMService {
         this.coreService.cookieService.put('_currentSpeed', this._ammoSpeed.toString());
         this.coreService.cookieService.put('_currentFuse', this._fuseDelay.toString());
       }
-    }
-
-    if (data.entities_dm_debug) {
-      this._eids = data.entities_dm_debug;
-      console.log('DMService::onMessage', this._eids);
-      this.eids.splice(0, this.eids.length, ...this._eids);
     }
 
     if (data.exec) {
@@ -136,24 +121,46 @@ export class DMService {
         }
       }
     }
-    if (data.onPartHit) {
-      let part = this._parts.find(v => v.id == data.onPartHit.partId);
-      if (part) {
-        part.hp = data.onPartHit.hp;
-        part.hpRel = data.onPartHit.hpRel;
 
-        if (this._drawKilledParts && part.hpRel == 0.0) {
-          part.draw = true;
-          this.coreService.sendCommand('drawPart', { part: part.name, draw: part.draw });
-        }
-        else if (this._drawDamagedParts && part.hpRel != 1.0) {
-          part.draw = true;
-          this.coreService.sendCommand('drawPart', { part: part.name, draw: part.draw });
-        }
+    if (data.dmViewer)
+      this.onViewerMessage(data.dmViewer);
+  }
+
+  onViewerMessage(data) {
+    if (data._update)
+      this.continueUpdate();
+    if (data.parts) {
+      if (data._update)
+        this.updatePartsHp(data.parts);
+      else {
+        this._parts = data.parts.filter(v => v.enabled);
+        this._drawKilledParts = false;
+        this._drawDamagedParts = false;
+
+        this.parts.splice(0, this.parts.length, ...this._parts);
       }
     }
-    if (typeof data.shouldShowAllEvents !== 'undefined') {
-      this._shouldShowAllEvents = data.shouldShowAllEvents;
+    if (data.metaParts) {
+      this._metaParts = data.metaParts;
+      this.metaParts.splice(0, this.metaParts.length, ...this._metaParts);
+    }
+    if (data.dmEffects) {
+      this._effects = data.dmEffects;
+      this.effects.splice(0, this.effects.length, ...this._effects);
+    }
+    if (data.dmObjects) {
+      const toKey = v => `${v.type}:${v.nid}:${v.id}`;
+      const objects = data.dmObjects.map(v => ({ ...v, key: toKey(v), label: v.name ? `${v.name} #${v.id}` : `#${v.id}` }));
+      this.objects.splice(0, this.objects.length, ...objects);
+
+      const targetKey = data.dmTarget ? toKey(data.dmTarget) : null;
+      this.currentObject.value = objects.find(v => v.key === targetKey) || null;
+    }
+    if (typeof data.shownHitEvents !== 'undefined') {
+      this.shownHitEvents.value = data.shownHitEvents;
+    }
+    if (typeof data.drawCollisionNames !== 'undefined') {
+      this.drawCollisionNames.value = data.drawCollisionNames;
     }
     if (data.dmEvents && data.dmEvents.events) {
       console.log('DMService::onMessage', data.dmEvents.events);
@@ -165,6 +172,22 @@ export class DMService {
     }
     if (data.eventRendererElementsMask) {
       this.eventRendererElementsMask = data.eventRendererElementsMask;
+    }
+  }
+
+  updatePartsHp(parts) {
+    const updates = new Map(parts.map(v => [v.id, v]));
+    for (let part of this.parts) {
+      const update = updates.get(part.id);
+      if (!update || update.hpRel === part.hpRel)
+        continue;
+
+      part.hp = update.hp;
+      part.hpRel = update.hpRel;
+      if (!part.draw && ((this._drawKilledParts && part.hpRel == 0.0) || (this._drawDamagedParts && part.hpRel != 1.0))) {
+        part.draw = true;
+        this.coreService.sendCommand('dmViewer.drawPart', { part: part.name, draw: part.draw });
+      }
     }
   }
 
@@ -218,14 +241,23 @@ export class DMService {
     v._expanded = !v._expanded;
   }
 
-  onEidSelect($event) {
-    if ($event) {
-      this.coreService.sendCommand('setCurrentEid', { eid: { i: $event.eid } });
+  onShownHitEventsSelect(value) {
+    this.coreService.sendCommand('dmViewer.setShownHitEvents', { value: value });
+  }
+
+  toggleDrawCollisionNames() {
+    this.drawCollisionNames.value = !this.drawCollisionNames.value;
+    this.coreService.sendCommand('dmViewer.setDrawCollisionNames', { draw: this.drawCollisionNames.value });
+  }
+
+  onObjectSelect(object) {
+    if (object) {
+      this.coreService.sendCommand('dmViewer.setCurrentObject', { object: { type: { i: object.type }, nid: { i: object.nid }, id: { i: object.id } } });
     }
   }
 
   onChangeEventRendererElementsMask() {
-    this.coreService.sendCommand('setEventRendererElementsMask', new BLKArray(this.eventRendererElementsMask));
+    this.coreService.sendCommand('dmViewer.setEventRendererElementsMask', new BLKArray(this.eventRendererElementsMask));
   }
 
   get allParts() { return this._allParts; }
@@ -236,7 +268,6 @@ export class DMService {
   get collNodes() { return this._collNodes; }
   get dmgNodes() { return this._dmgNodes; }
   get wreckedParts() { return this._wreckedParts; }
-  get debugDrawModes() { return this._debugDrawModes; }
 
   get weaponList() { return this._weaponList; }
 
@@ -260,11 +291,5 @@ export class DMService {
 
   get weaponListPromise() {
     return this.coreService.pollData(() => this._weaponList, 'getWeapons');
-  }
-
-  get shouldShowAllEvents() { return this._shouldShowAllEvents; }
-  set shouldShowAllEvents(value) {
-    this._shouldShowAllEvents = value;
-    this.coreService.sendCommand('shouldShowAllEvents', { value: value });
   }
 }

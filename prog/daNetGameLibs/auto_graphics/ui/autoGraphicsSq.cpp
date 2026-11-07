@@ -34,7 +34,7 @@ static SQInteger getPresetForEachAvailableTargetFps(HSQUIRRELVM vm)
   return 1;
 }
 
-SQ_DEF_AUTO_BINDING_MODULE_EX(bind_auto_graphics, "autoGraphics", sq::VM_INTERNAL_UI)
+SQ_DEF_AUTO_BINDING_MODULE_EX(bind_auto_graphics, "autoGraphics", sq::VM_UI)
 {
   Sqrat::Table tbl(vm);
   tbl //

@@ -1,10 +1,15 @@
+let { CLIENT_ERROR_OFFLINE } = require("matching.errors")
+
+// the answer of the native module with no client
+let offline = @(...) { error = CLIENT_ERROR_OFFLINE }
+
 return {
   matching_listen_notify = @(...) null
   matching_listen_rpc = @(...) null
   matching_logout = @() null
   matching_login = @(...) null
-  matching_call = @(...) null
-  matching_call_fixed_event = @(...) null
+  matching_call = offline
+  matching_call_fixed_event = offline
   matching_notify = @(...) null
   matching_send_response = @(...) null
   get_mgates_count = @(...) 0

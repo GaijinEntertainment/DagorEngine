@@ -41,39 +41,37 @@ DAG_DLL_EXPORT const char *hosted_server_get_uid()
 
 // Same pattern as hosted_server_set_log_forwarder: Scope in HIS calls this host callback.
 DAG_DLL_EXPORT void hosted_server_set_work_status_callback(void *cb) { workstatus::set_callback((workstatus::Callback)cb); }
-static debug_log_callback_t prev_log_callback = nullptr;
+static LogHandlerId log_mirror_handler_id = LogHandlerId::Invalid;
 static std::atomic<bool> log_callback_armed{false};
 
 void *hosted_server_get_log_forwarder() { return log_forwarder.load(std::memory_order_acquire); }
 
-// Default HIS path: chain prev, then host forwarder (default signature, no Eden).
-static int hosted_server_log_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+// Default HIS path: host forwarder (default signature, no Eden).
+static void hosted_server_log_callback(void *, LogMessage &msg)
 {
-  const int r = prev_log_callback ? prev_log_callback(lev_tag, fmt, arg, anum, ctx_file, ctx_line) : 1;
-  if (r > 0)
-  {
-    // Logging can arrive from threads without framemem; strmem is always safe.
-    String buf(strmem);
-    format_hosted_log_message(buf, fmt, arg, anum);
-    if (HostedServerLogForwarder fwd = (HostedServerLogForwarder)log_forwarder.load(std::memory_order_acquire))
-      fwd(lev_tag, buf.c_str(), ctx_file, ctx_line);
-  }
-  return r;
+  if (msg.flags & LOGMSG_SKIP_FILE)
+    return;
+  // Logging can arrive from threads without framemem; strmem is always safe.
+  String buf(strmem);
+  format_hosted_log_message(buf, msg.fmt, msg.arg, msg.anum);
+  if (HostedServerLogForwarder fwd = (HostedServerLogForwarder)log_forwarder.load(std::memory_order_acquire))
+    fwd(msg.levTag, buf.c_str(), msg.ctxFile, msg.ctxLine);
 }
 
 static void arm_default_log_callback()
 {
   if (log_callback_armed.exchange(true, std::memory_order_acq_rel))
     return;
-  prev_log_callback = debug_set_log_callback(&hosted_server_log_callback);
+  log_mirror_handler_id =
+    debug_add_log_handler(&hosted_server_log_callback, nullptr, {.levelMask = LOGMASK_ALL, .order = LOGORDER_FILE_MIRROR});
 }
 
 static void disarm_log_callback()
 {
   if (!log_callback_armed.exchange(false, std::memory_order_acq_rel))
     return;
-  debug_set_log_callback(prev_log_callback);
-  prev_log_callback = nullptr;
+  debug_remove_log_handler(log_mirror_handler_id);
+  log_mirror_handler_id = LogHandlerId::Invalid;
 }
 
 void hosted_server_arm_log_mirror_callback()
@@ -89,7 +87,7 @@ void hosted_server_arm_log_mirror_callback()
 DAG_DLL_EXPORT void hosted_server_set_log_forwarder(void *cb, bool dll_side_override_expect_later)
 {
   // Host must clear (nullptr) before os_dll_close so the callback cannot outlive the DLL.
-  // Store only; default arm is hosted_server_arm_log_mirror_callback after visual_err_log_setup.
+  // Store only; default arm is hosted_server_arm_log_mirror_callback.
   if (cb)
   {
     expect_dll_override.store(dll_side_override_expect_later, std::memory_order_release);

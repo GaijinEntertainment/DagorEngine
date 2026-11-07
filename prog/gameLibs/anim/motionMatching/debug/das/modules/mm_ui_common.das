@@ -287,7 +287,7 @@ def motion_matching_imgui(eid : EntityId; imgui_state_eid : EntityId)
 
   query(eid) <| $ [es] (var motion_matching__controller : MotionMatchingController&;
                         motion_matching__dataBaseEid : EntityId)
-    var dataBase = motion_matching__controller.dataBase
+    let dataBase = motion_matching__controller.dataBase
     if dataBase == null
       imgui::Text("MM database is not loaded")
       return

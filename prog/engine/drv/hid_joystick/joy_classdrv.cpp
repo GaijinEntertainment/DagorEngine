@@ -19,12 +19,12 @@ using namespace HumanInput;
 
 static const int ENUMERATION_TIMEOUT_MS = 30000;
 
-Di8JoystickClassDriver::Di8JoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads) :
+Di8JoystickClassDriver::Di8JoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_dspads) :
   device(inimem),
   enabled(false),
   excludeXinputDev(exclude_xinput),
   remapAsX360(remap_360),
-  deviceEnumerator{ENUMERATION_TIMEOUT_MS, exclude_xinput, remap_360, exclude_sony_pads}
+  deviceEnumerator{ENUMERATION_TIMEOUT_MS, exclude_xinput, remap_360, exclude_dspads}
 {
   defJoy = NULL;
   enableAutoDef = true;
@@ -122,20 +122,21 @@ void Di8JoystickClassDriver::updateDevices()
 {
   TIME_PROFILE(HID_DI8_updateDevices);
 
-  // TODO: some better debounce might be necessary
-  if (maybeDeviceConfigChanged && !deviceEnumerator.isThreadRunnning())
-  {
-    deviceEnumerator.start();
-    maybeDeviceConfigChanged = false;
-  }
-
   if (!deviceEnumerator.isThreadRunnning())
-    deviceEnumerator.terminate(false);
-  if (deviceEnumerator.foundChanges())
   {
-    debug("[HID][DI8] found device changes");
-    maybeDeviceConfigChanged = false;
-    deviceConfigChanged = true;
+    // reap first: start() fails on a finished, not yet reaped thread
+    deviceEnumerator.terminate(false);
+    if (deviceEnumerator.foundChanges())
+    {
+      // a change that came during the enumeration starts a new one after refreshDeviceList() fetches this result
+      debug("[HID][DI8] found device changes");
+      deviceConfigChanged = true;
+    }
+    else if (maybeDeviceConfigChanged)
+    {
+      maybeDeviceConfigChanged = false;
+      deviceEnumerator.start();
+    }
   }
 
   if (!enabled)

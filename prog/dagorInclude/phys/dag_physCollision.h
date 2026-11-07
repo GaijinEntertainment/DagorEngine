@@ -123,6 +123,9 @@ public:
     G_ASSERTF(_height > 0, "_height=%g", _height);
     G_ASSERT(this->height >= 0);
   }
+  float getRadius() const { return radius; }
+  float getCylinderHeight() const { return height; }
+  int getDirIdx() const { return dirIdx; }
 
 protected:
   real radius;

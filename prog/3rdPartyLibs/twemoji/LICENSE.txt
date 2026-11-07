@@ -1,0 +1,9 @@
+This project incorporates graphics from the Twemoji open-source project.
+
+Project URL: https://github.com/twitter/twemoji
+Copyright: Copyright 2019 Twitter, Inc and other contributors
+License: CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+Per the CC-BY 4.0 requirements, you are free to share and adapt these
+materials for any purpose, even commercially, under the condition that
+appropriate credit is given to the original authors.

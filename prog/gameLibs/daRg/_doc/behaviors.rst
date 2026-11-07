@@ -43,17 +43,14 @@ kinetic scrolling on release, and overscroll feedback. Supports axis locking and
 **Properties**
 
 - ``panMouseButton`` – int. Mouse button to use for panning (-1 for any).
+- ``panTouches`` – int. Touch fingers that pan: 1 (default) or 2. With 2 the element pans by the move
+  of the center of two fingers, and a single finger is left to the content, for example to an inner scroll.
+- ``panTouchOnly`` – bool. Only touches pan, a VR fingertip on a panel too: a mouse, the gamepad
+  cursor or a VR aim ray does not (default: false). A pad touch pad gives touches only as two fingers,
+  so a list that scrolls by the wheel can take it this way.
 - ``onTouchBegin()`` – function. Called when touch begins.
 - ``kineticScrollOnTouchEnd(velocity)`` – function. Alternative to built-in kinetic scrolling.
 - ``kineticAxisLockAngle`` – float (degrees). Angle threshold for axis locking kinetic scroll.
-
-Pannable2Touch
---------------
-Two-finger simultaneous touch panning; requires both fingers to be active for movement.
-
-**Properties**
-
-(None)
 
 Slider
 ------
@@ -78,6 +75,8 @@ TextInput
 ---------
 Single-line text input with cursor positioning, keyboard editing, clipboard support,
 character masking, IME integration, and validation callbacks.
+On Xbox and PlayStation, the IME does not open after a key press on a physical keyboard,
+until the next gamepad, touch or VR input. Mouse input does not change this state.
 
 **Properties**
 
@@ -153,6 +152,7 @@ TextAreaEdit
 ------------
 Editable multi-line text area with cursor navigation, text selection, formatting support,
 and IME integration. Extends TextArea with editing capabilities.
+The IME follows the same Xbox and PlayStation rule as TextInput.
 
 **Properties**
 
@@ -193,6 +193,9 @@ Tracks sector selection and handles click events with sector information.
 - ``sectorsCount`` – int. Number of pie sectors.
 - ``curSector`` – observable. Current selected sector index.
 - ``curAngle`` – observable. Current angle selection.
+- ``curDistance`` – observable, optional. Distance of the pointer or stick from the center: 1.0 at the
+  element edge for the mouse (it can be more outside the element), the stick deflection for a gamepad.
+  It is set also inside the dead zone, where ``curSector`` is null. Quantized to 0.02.
 - ``onClick([sector])`` – function. Called on activation.
 - ``eventPassThrough`` – bool. Allows event propagation.
 
@@ -474,10 +477,8 @@ to press/release/move events with device information and modifier keys.
 
 ProcessGesture
 --------------
-Gesture recognition behavior with phase callbacks. On a touch screen it finds two-finger
-pinch, rotate and drag gestures, with configurable distance limits. It also gets the
-touch pad gestures of a gamepad (DualSense, DUALSHOCK 4) at the cursor, of the types in
-``touchPadGestures``.
+Gesture recognition behavior supporting pinch, rotate, and drag gestures with configurable
+distance limits and phase callbacks.
 
 **Properties**
 
@@ -487,59 +488,6 @@ touch pad gestures of a gamepad (DualSense, DUALSHOCK 4) at the cursor, of the t
 - ``gestureDragDistanceMax`` – float. Maximum distance for drag gestures.
 - ``gesturePinchDistanceMin`` – float. Minimum distance for pinch gestures.
 - ``gestureRotateDistanceMin`` – float. Minimum distance for rotation gestures.
-- ``touchPadGestures`` - int. A mask of ``GESTURE_DETECTOR_*`` types that the element
-  takes from the touch pad. Default 0: the element gets no touch pad gestures.
-
-**Event fields**
-
-- ``type`` - ``GESTURE_DETECTOR_PINCH``, ``_ROTATE``, ``_DRAG``; from the touch pad also
-  ``GESTURE_DETECTOR_TAP``, ``_DOUBLE_TAP``, ``_HOLD``.
-- ``devId`` - ``DEVID_TOUCH`` for the touch screen, ``DEVID_JOYSTICK`` for the touch pad.
-- ``x``, ``y`` - the center of the fingers; for the touch pad, the cursor position.
-- ``x0``, ``y0`` - the same at the gesture start. ``r0`` - the start distance between the
-  fingers (0 for the touch pad).
-- ``dx``, ``dy`` - the move since the last event. For the touch pad it is the move of the
-  finger (of the finger center for pinch and rotate), in screen pixels.
-- ``scale``, ``dscale`` - pinch only: the scale since the start and its change since the
-  last event.
-- ``rotate``, ``drotate`` - rotate only: the angle in radians since the start (clockwise
-  is positive) and its change since the last event.
-- ``drag`` - drag only: the move since the start, a ``Point2``.
-- ``hit`` - true when ``x``, ``y`` is in the element. ``accumRes`` - the result flags of
-  the behaviors before this one. ``target`` - the element. ``targetRect`` - the element
-  box ``l``, ``t``, ``r``, ``b``, as in click events.
-
-Return ``R_PROCESSED`` from ``onGestureBegin`` to take the gesture.
-
-**Touch pad gestures**
-
-The element under the cursor gets the gesture first, then its parents. The first element
-that takes it gets all of the gesture. If that element goes away during a DRAG, PINCH,
-ROTATE or HOLD, ``onGestureEnd`` is called. The scene config
-``touchPadWidthInScreenHeights`` sets the size of the moves: a move across all of the pad
-width is that number of screen heights (default 1).
-
-- ``DRAG``, ``PINCH``, ``ROTATE`` - ``onGestureBegin``, ``onGestureActive``, ``onGestureEnd``.
-- ``HOLD`` - ``onGestureBegin`` when the hold time is over, ``onGestureEnd`` on release.
-- ``TAP``, ``DOUBLE_TAP`` - ``onGestureEnd`` only. The element takes a ``TAP`` at its
-  start; a ``TAP`` comes only when no double tap follows it. A ``DOUBLE_TAP`` goes to the
-  first element whose ``onGestureEnd`` returns ``R_PROCESSED``.
-
-An element with no ``onGestureBegin`` takes each ``DRAG``, ``PINCH``, ``ROTATE`` and
-``HOLD`` of its ``touchPadGestures``.
-
-.. code-block:: quirrel
-
-  {
-    behavior = Behaviors.ProcessGesture
-    touchPadGestures = GESTURE_DETECTOR_DOUBLE_TAP | GESTURE_DETECTOR_HOLD
-    onGestureBegin = @(evt) evt.hit ? R_PROCESSED : 0 // HOLD
-    onGestureEnd = function(evt) {
-      if (evt.type == GESTURE_DETECTOR_DOUBLE_TAP)
-        putMark(evt.x, evt.y)
-      return R_PROCESSED
-    }
-  }
 
 FpsBar
 ------

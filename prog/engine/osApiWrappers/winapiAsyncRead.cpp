@@ -255,5 +255,11 @@ bool dfa_check_complete(int asyncdata_handle, int *read_len)
   return true;
 }
 
+void dfa_wait_until_complete(int adh, int *readed_len)
+{
+  while (!dfa_check_complete(adh, readed_len))
+    SleepEx(INFINITE, TRUE); // file_io_cr is an APC to the thread that placed the request, it ends the sleep
+}
+
 #define EXPORT_PULL dll_pull_osapiwrappers_asyncRead
 #include <supp/exportPull.h>

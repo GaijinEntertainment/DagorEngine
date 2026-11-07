@@ -570,8 +570,8 @@ void update(float dt, float current_time, const TMatrix4 &glob_tm)
 void shutdown()
 {
   rendinstdestr::set_on_ri_restored_cb(nullptr);
-  rendinstdestr::shutdown();
   destructables::clear();
+  rendinstdestr::shutdown();
   cur_ridestr_ver = cached_ridestr_ver = 0;
   cached_serialized_initial_ridestr.Clear();
   clear_and_shrink(unsynced_destr_data);

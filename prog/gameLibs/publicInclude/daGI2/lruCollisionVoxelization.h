@@ -16,7 +16,7 @@ struct LRUCollisionVoxelization
 
   ~LRUCollisionVoxelization();
 
-  void init();
+  void init(bool voxelize = true); // false: the render material alone
   void rasterize(LRURendinstCollision &lruColl, dag::ConstSpan<uint64_t> handles, VolTexture *world_sdf, VolTexture *world_sdf_alpha,
     ShaderElement *e, int instMul, bool prim);
   void rasterizeSDF(LRURendinstCollision &lruColl, dag::ConstSpan<uint64_t> handles, bool prim);

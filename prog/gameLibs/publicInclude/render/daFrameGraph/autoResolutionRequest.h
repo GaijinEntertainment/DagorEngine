@@ -55,8 +55,9 @@ using IPoint = typename detail::IPointImpl<D>::Value;
  * \brief This class represents a daFG-managed automatic resolution
  * type for a texture. If this resolution is specified for a texture,
  * the actual texture's resolution at runtime will be the dynamic
- * resolution scaled by the multiplier, but the consumed memory will
- * always be equal to the static resolution times the multiplier.
+ * resolution scaled by the multiplier and rounded down, unless roundingUp()
+ * is requested, and the consumed memory will always be equal to the static
+ * resolution scaled and rounded the same way.
  * See NameSpace::setResolution and NameSpace::setDynamicResolution.
  * Note that objects of this type MAY be captured into the execution
  * callback and used to access the actual resolution on a particular
@@ -88,10 +89,26 @@ public:
    */
   IPoint<D> get() const;
 
+  /**
+   * \brief Rounds the scaled resolution up instead of down, at the creation
+   * and at every dynamic resolution change. For a texture whose texel covers
+   * a block of pixels, such as a tile grid, so that the last partial block
+   * has a texel of its own. The flag is part of the request value: a texture
+   * created from one request and a get() on another agree only when both
+   * carry it.
+   */
+  AutoResolutionRequest roundingUp() const
+  {
+    AutoResolutionRequest result = *this;
+    result.roundUp = true;
+    return result;
+  }
+
   bool operator==(const AutoResolutionRequest<D> &) const = default;
 
 private:
   AutoResTypeNameId autoResTypeId;
+  bool roundUp = false; // in the padding of the id, a node callback that captures a request keeps its size
   float multiplier = 1.f;
   const ResourceProvider *provider;
 };

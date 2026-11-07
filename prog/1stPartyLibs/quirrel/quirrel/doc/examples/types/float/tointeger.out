@@ -1,4 +1,4 @@
 (3.9).tointeger() = 3
 (-3.9).tointeger() = -3
 type((3.9).tointeger()) = integer
-(3.9).tointeger(10) throws: wrong number of parameters passed to native closure 'tointeger' (2 passed, 1 required)
+f.tointeger(10) throws: wrong number of parameters passed to native closure 'tointeger' (2 passed, 1 required)

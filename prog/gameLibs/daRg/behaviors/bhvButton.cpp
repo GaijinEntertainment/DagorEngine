@@ -124,8 +124,8 @@ bool BhvButton::willHandleClick(Element *elem)
 }
 
 
-int BhvButton::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
-  Point2 pointer_pos, int accum_res)
+int BhvButton::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int pointer_id, int button_id, Point2 pointer_pos, int accum_res)
 {
   BhvButtonData *btnData = BhvButton::getData(elem);
   if (!btnData)
@@ -344,7 +344,7 @@ int BhvButton::simulateClick(ElementTree *etree, Element *elem, InputEvent event
     event == INP_EV_PRESS && elem != etree->screen->getInputStack().hitTest(mpos, Behavior::F_HANDLE_MOUSE, Element::F_STOP_POINTING))
     return 0;
 
-  return pointingEvent(etree, elem, dev_id, event, 0, btn_idx, mpos, accum_res);
+  return pointingEvent(etree, elem, dev_id, TouchSource::TS_none, event, 0, btn_idx, mpos, accum_res);
 }
 
 

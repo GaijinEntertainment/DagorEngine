@@ -134,6 +134,7 @@ public:
   DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
 
   G_STATIC_ASSERT(STAGE_MAX_EXT == 4);
+  static constexpr uint16_t ALL_STAGES_MODIFIED = (1u << STAGE_MAX_EXT) - 1;
   uint16_t modified : STAGE_MAX_EXT;
   uint16_t delayedCreate : 1;
   uint16_t read_stencil : 1;
@@ -177,14 +178,18 @@ public:
   int texmiplevel(int minlev, int maxlev);
   void setReadStencil(bool on) override
   {
-    read_stencil = on && is_stencil_format_flg(cflg);
+    const bool readStencil = on && is_stencil_format_flg(cflg);
+    if (read_stencil == readStencil)
+      return;
+    read_stencil = readStencil;
+    modified = ALL_STAGES_MODIFIED;
   } // for depth stencil textures, if on will read stencil, not depth. Currently either of two
 
   ID3D11View *getRtView(uint32_t face, uint32_t mip_level, uint32_t mip_count, bool srgb_write);
   // mip_level == 0, mip_count == 0 ==> use all resource (face ignored)
   ID3D11ShaderResourceView *getResView(uint32_t face, uint32_t mip_level, uint32_t mip_count);
-  ID3D11UnorderedAccessView *getExistingUaView(uint32_t face, uint32_t mip_level, bool as_uint);
   ID3D11UnorderedAccessView *getUaView(uint32_t face, uint32_t mip_level, bool as_uint);
+  void removeUavViewsFromStates(uint32_t first_mip = 0, uint32_t last_mip = MAX_MIPLEVELS - 1);
 
   bool updateTexResFormat(unsigned d3d_format) override;
   BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l) override;
@@ -231,6 +236,5 @@ private:
 
   typedef dag::FixedMoveOnlyFunction<8, int()> CreateTexCallback;
   int recreate_if_stub_used(CreateTexCallback &&create_placeholder_tex);
-  void removeUavViewsFromStates();
 };
 }; // namespace drv3d_dx11

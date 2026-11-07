@@ -1,0 +1,12 @@
+Root    ?= ../../../.. ;
+Module = localToneExposure ;
+Location = prog/gameLibs/render/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+local AllSrcFolder_CPP = . ;
+
+include $(Root)/prog/gameLibs/build_module.jam ;

@@ -45,7 +45,7 @@ SQRESULT sq_getfunctioninfo(HSQUIRRELVM v,SQInteger level,SQFunctionInfo *fi)
             SQClosure *c = _closure(ci._closure);
             SQFunctionProto *proto = c->_function;
             fi->funcid = proto;
-            fi->name = sq_type(proto->_name) == OT_STRING?_stringval(proto->_name):"unknown";
+            fi->name = _stringval(proto->GetName());
             fi->source = sq_type(proto->_sourcename) == OT_STRING?_stringval(proto->_sourcename):"unknown";
             fi->line = proto->_lineinfos->_first_line;
             return SQ_OK;
@@ -64,10 +64,8 @@ void sq_get_frame_info(const SQVM::CallInfo &ci, const SQInstruction *ip, SQFram
     switch (sq_type(ci._closure)) {
     case OT_CLOSURE:{
         SQFunctionProto *func = _closure(ci._closure)->_function;
-        if (sq_type(func->_name) == OT_STRING) {
-            out.funcname = _stringval(func->_name);
-            out.funcnameObj = func->_name;
-        }
+        out.funcnameObj = func->GetName();
+        out.funcname = _stringval(out.funcnameObj);
         if (sq_type(func->_sourcename) == OT_STRING) {
             out.source = _stringval(func->_sourcename);
             out.sourceObj = func->_sourcename;
@@ -126,7 +124,7 @@ static void summarizeLocal(SQVM *v, SQTable *r, const SQObjectPtr &val,
         break;
     case OT_CLOSURE: {
         SQFunctionProto *f = _closure(val)->_function;
-        if (sq_type(f->_name) == OT_STRING) r->NewSlot(funcKey, SQObjectPtr(f->_name));
+        r->NewSlot(funcKey, f->GetName());
         if (sq_type(f->_sourcename) == OT_STRING) r->NewSlot(srcKey, SQObjectPtr(f->_sourcename));
         r->NewSlot(lineKey, SQObjectPtr((SQInteger)f->_lineinfos->_first_line));
         break;
@@ -171,10 +169,10 @@ static SQArray *collectFrameLocals(SQVM *v, const SQVM::CallInfo &ci,
 
     int nouter = 0;
     for (SQInteger idx = 0; idx < func->_noutervalues; ++idx) {
-        SQOuter *o = _outer(c->_outervalues[idx]);
-        if (parked && o->_valptr != &o->_value)
+        const SQObjectPtr &slot = c->_outervalues[idx];
+        if (parked && sq_type(slot) == OT_OUTER && _outer(slot)->_valptr != &_outer(slot)->_value)
             continue;                              // open outer: unsafe to read on a parked frame
-        const SQObjectPtr &oname = func->_outervalues[idx]._name;
+        SQObjectPtr oname(func->_outervalues[idx]._name);
         if (isSecretLocalName(oname))
             continue;
         if (nouter >= SQ_LOCALS_MAX_OUTERS) { ++*moreOut; continue; }
@@ -182,32 +180,36 @@ static SQArray *collectFrameLocals(SQVM *v, const SQVM::CallInfo &ci,
         SQTable *r = SQTable::Create(_ss(v), 4);
         r->NewSlot(sch.name, oname);
         r->NewSlot(sch.captured, SQObjectPtr(true));
-        summarizeLocal(v, r, *o->_valptr, sch.type, sch.value, sch.count, sch.gstate, sch.func, sch.source, sch.line);
+        summarizeLocal(v, r, c->OuterValue(idx), sch.type, sch.value, sch.count, sch.gstate, sch.func, sch.source, sch.line);
         arr->Append(SQObjectPtr(r));
         ++nouter;
     }
 
-    SQUnsignedInteger nop = (SQUnsignedInteger)(ip - func->_instructions);
     int nloc = 0;
-    for (SQInteger i = 0; i < func->_nlocalvarinfos; ++i) {
-        const SQLocalVarInfo &lvi = func->_localvarinfos[i];
-        if (!(lvi._start_op <= nop && lvi._end_op >= nop))
-            continue;                              // not in scope at this ip (block scoping)
-        if ((SQUnsignedInteger)lvi._pos >= nslots)
-            continue;                              // bounds guard against a malformed _pos
-        if (isSecretLocalName(lvi._name))
-            continue;
-        if (nloc >= SQ_LOCALS_MAX_PER_FRAME) { ++*moreOut; continue; }
-        SQObjectPtr val = slots[lvi._pos];
-        if (parked && lvi._pos == 0)
+    auto addLocal = [&](const SQObjectPtr &name, SQUnsignedInteger pos) {
+        if (pos >= nslots)
+            return;                                // bounds guard against a malformed _pos
+        if (isSecretLocalName(name))
+            return;
+        if (nloc >= SQ_LOCALS_MAX_PER_FRAME) { ++*moreOut; return; }
+        SQObjectPtr val = slots[pos];
+        if (parked && pos == 0)
             val = _realval(val);                   // parked slot-0 self is weakref-wrapped
         if (!arr) arr = SQArray::Create(_ss(v), 0);
         SQTable *r = SQTable::Create(_ss(v), 4);
-        r->NewSlot(sch.name, lvi._name);
+        r->NewSlot(sch.name, name);
         summarizeLocal(v, r, val, sch.type, sch.value, sch.count, sch.gstate, sch.func, sch.source, sch.line);
         arr->Append(SQObjectPtr(r));
         ++nloc;
+    };
+    SQUnsignedInteger nop = (SQUnsignedInteger)(ip - func->_instructions);
+    for (SQInteger i = 0; i < func->_nlocalvarinfos; ++i) {
+        const SQFuncLocalVar &lv = func->_localvarinfos[i];
+        if (lv._start_op <= nop && lv._end_op >= nop) // block scoping by ip
+            addLocal(SQObjectPtr(lv._name), func->GetLocalVarSlots()[i]);
     }
+    for (SQInteger pos = func->_nparameters - 1; pos >= 0; --pos)
+        addLocal(func->_parameters[pos], pos);
     return arr;
 }
 
@@ -435,6 +437,15 @@ SQRESULT sq_stackinfos(HSQUIRRELVM v, SQInteger level, SQStackInfos *si)
         return SQ_OK;
     }
     return SQ_ERROR;
+}
+
+SQRESULT sq_getconstevalpos(HSQUIRRELVM v, SQStackInfos *si)
+{
+    const SQStackInfos *pos = _ss(v)->_constEvalPos;
+    if (!pos)
+        return SQ_ERROR;
+    *si = *pos;
+    return SQ_OK;
 }
 
 void SQVM::Raise_Error(const char *s, ...)

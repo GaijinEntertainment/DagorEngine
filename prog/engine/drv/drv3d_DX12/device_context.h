@@ -1323,9 +1323,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   WinCritSec defragGuard;
   struct WorkerThread : public DaThread
   {
-    WorkerThread(DeviceContext &c) :
-      DaThread("DX12 Worker", 256 << 10, cpujobs::DEFAULT_THREAD_PRIORITY + 1, WORKER_THREADS_AFFINITY_MASK), ctx(c)
-    {}
+    WorkerThread(DeviceContext &c) : DaThread("DX12 Worker", 256 << 10, MAIN_THREAD_PRIORITY, WORKER_THREADS_AFFINITY_MASK), ctx(c) {}
     // calls device.processCommandPipe() until termination is requested
     void execute() override;
     DeviceContext &ctx;
@@ -1639,7 +1637,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
       return checkDrawCallHasOutput(string_literal_span(sl));
     }
 
-    void checkCloseCommandListResult(HRESULT result, eastl::string_view debug_name, const debug::CommandListLogger &logger) const;
+    bool isSubmittableAfterClose(HRESULT close_result, eastl::string_view debug_name, const debug::CommandListLogger &logger) const;
 
     void makeSureCmdBufferHasCommands();
     void recordReadbackCommands(uint64_t progress);
@@ -1724,6 +1722,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void updateBuffer(HostDeviceSharedMemoryRegion update, BufferResourceReferenceAndOffset dest);
     void clearBufferFloat(BufferResourceReferenceAndClearView buffer, const float values[4]);
     void clearBufferUint(BufferResourceReferenceAndClearView buffer, const uint32_t values[4]);
+    void clearImageExecute(Image *image, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, MipMapIndex base_mip_index,
+      const eastl::optional<D3D12_RECT> &dst_rect, const eastl::optional<ClearColorValue> &color, const eastl::optional<float> &depth);
     void clearDepthStencilImage(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor,
       const ClearDepthStencilValue &value, D3D12_CLEAR_FLAGS depth_clear_flags, const eastl::optional<D3D12_RECT> &rect);
     void clearColorImage(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, const ClearColorValue &value,
@@ -1745,7 +1745,9 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void setGraphicsPipeline(GraphicsProgramID program);
     void setComputePipeline(ProgramID program);
     void drawIndirect(BufferResourceReferenceAndOffset buffer, uint32_t count, uint32_t stride);
-    void drawIndexedIndirect(BufferResourceReferenceAndOffset buffer, uint32_t count, uint32_t stride);
+    void drawIndexedIndirect(BufferResourceReferenceAndOffset buffer, uint32_t count, uint32_t stride, uint32_t offset_in_record);
+    void drawIndexedIndirectTessellationWorkaround(BufferResourceReferenceAndOffset buffer, uint32_t count, uint32_t stride,
+      const uint8_t *cpu_args);
     void draw(uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance, uint32_t num_prims_for_stats);
     void drawIndexed(uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance,
       uint32_t num_prims_for_stats);
@@ -1824,13 +1826,14 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void bufferBarrier(BufferResourceReference buffer, ResourceBarrier barrier, GpuPipeline queue);
     void textureBarrier(Image *tex, SubresourceRange sub_res_range, uint32_t tex_flags, ResourceBarrier barrier, GpuPipeline queue,
       bool force_barrier);
-    void enhancedTextureBarrier(const d3d::TextureBarrier &barrier, Image *image, uint32_t tex_flags);
+    void enhancedTextureBarrier(const d3d::TextureBarrier &barrier, Image *image);
     void enhancedBufferBarrier(const d3d::BufferBarrier &barrier, BufferResourceReference buffer);
     void discardTexture(Image *tex, uint32_t tex_flags);
 #if D3D_HAS_RAY_TRACING
     void asBarrier(RaytraceAccelerationStructure *as, GpuPipeline queue);
 #endif
     void terminateWorker() { self.worker->terminateIncoming = true; }
+    bool isDeviceInErrorState() const;
 
 #if _TARGET_XBOX
     void enterSuspendState();
@@ -1856,7 +1859,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 
 #if _TARGET_PC_WIN
     void onDeviceError(HRESULT remove_reason);
-    void commandFence(std::atomic_uint32_t &signal);
+    void commandFence(dag::AtomicInteger<uint32_t> &signal);
 #endif
 
 #if _TARGET_PC_WIN
@@ -1980,7 +1983,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 #if _TARGET_PC
     bool isGpuLatencyEnabled = true;
     OSSpinlock latencyWaitGuard;
-    alignas(std::hardware_constructive_interference_size) std::atomic_uint32_t waitForSwapchainCount = 0;
+    alignas(std::hardware_constructive_interference_size) dag::AtomicInteger<uint32_t> waitForSwapchainCount = 0;
 #endif
   };
   struct Backend
@@ -2011,7 +2014,9 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   CommandExecutionMode executionMode = CommandExecutionMode::IMMEDIATE;
   bool isImmediateFlushSuppressed = false;
 #endif
-  WIN_MEMBER std::atomic_bool isWaitForAsyncPresent = false;
+#if _TARGET_PC_WIN
+  dag::AtomicInteger<bool> isWaitForAsyncPresent = false;
+#endif
 #if ENABLE_GENERIC_RENDER_PASS_VALIDATION
   eastl::optional<RenderPassArea> activeRenderPassArea;
 #endif
@@ -2039,8 +2044,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   bool xboxMainThreadFramePacing = true;
 #endif
 
-  alignas(std::hardware_constructive_interference_size) std::atomic_uint32_t presentedFrameId = 0;
-  std::atomic_uint32_t lastPresentedFrameCount = 1;
+  alignas(std::hardware_constructive_interference_size) dag::AtomicInteger<uint32_t> presentedFrameId = 0;
+  dag::AtomicInteger<uint32_t> lastPresentedFrameCount = 1;
 
 #if DX12_FIXED_EXECUTION_MODE
   constexpr bool isImmediateMode() const { return false; }
@@ -2183,7 +2188,12 @@ public:
   void dispatch(uint32_t x, uint32_t y, uint32_t z);
   void dispatchIndirect(BufferResourceReferenceAndOffset buffer);
   void drawIndirect(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, BufferResourceReferenceAndOffset buffer, uint32_t stride);
-  void drawIndexedIndirect(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, BufferResourceReferenceAndOffset buffer, uint32_t stride);
+  void drawIndexedIndirect(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, BufferResourceReferenceAndOffset buffer, uint32_t stride,
+    uint32_t offset_in_record);
+  // cpu_args is the mapped memory of the args, written by the CPU before this call. It must stay unchanged until the GPU is done
+  // with the frame, as a discard of a dynamic buffer keeps the old memory for the frames in flight.
+  void drawIndexedIndirectTessellationWorkaround(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, BufferResourceReferenceAndOffset buffer,
+    uint32_t stride, const uint8_t *cpu_args);
   void draw(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t start, uint32_t count, uint32_t first_instance, uint32_t instance_count,
     uint32_t num_prims_for_stats);
   void drawIndexed(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t index_start, uint32_t count, int32_t vertex_base, uint32_t first_instance,
@@ -2348,7 +2358,7 @@ public:
   bool isFsrFGSuppressed() const { return fsrWrapper.isFrameGenerationSuppressed(); }
   void enableFsrFG(bool enable) { fsrWrapper.enableFrameGeneration(enable); }
   void suppressFsrFG(bool suppress) { fsrWrapper.suppressFrameGeneration(suppress); }
-  uint32_t getLastPresentedFrameCount() const { return lastPresentedFrameCount.load(std::memory_order_relaxed); }
+  uint32_t getLastPresentedFrameCount() const { return lastPresentedFrameCount.load(dag::memory_order_relaxed); }
 
   void shutdownInternalSwapchain();
   bool adoptUserSwapchain(DXGISwapChain *swapchain, SwapchainCreateInfo &&sci);

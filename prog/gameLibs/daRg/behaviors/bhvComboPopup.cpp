@@ -29,8 +29,8 @@ static void handle_click(ElementTree *etree, Element *elem)
 }
 
 
-int BhvComboPopup::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/,
-  int /*btn_id*/, Point2 pos, int accum_res)
+int BhvComboPopup::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int /*pointer_id*/, int /*btn_id*/, Point2 pos, int accum_res)
 {
   int result = 0;
 

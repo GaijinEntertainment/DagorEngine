@@ -13,16 +13,38 @@
 #include <math/dag_vecMathCompatibility.h>
 #include <memory/dag_framemem.h>
 #include <perfMon/dag_statDrv.h>
+#include <render/lights/lightsResources.h>
 #include <render/lights/renderLights.hlsli>
 #include <render/primitiveObjects.h>
-#include <render/spheres_consts.hlsli>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_overrideStates.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderVar.h>
+#include <shaders/dag_shaderVariableInfo.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <render/lights/tiledLights.h>
+#include <render/lights/tiledLights.hlsli>
 #include <render/lights/tiled_light_consts.hlsli>
+
+#define TILED_LIGHTS_GLOBAL_VARS_LIST \
+  VAR(z_binning_lookup)               \
+  VAR(z_binning_begins_ends_buf)      \
+  VAR(max_lights_distance)            \
+  VAR(zbinning_view_pos)              \
+  VAR(zbinning_view_dir)              \
+  VAR(spot_cones_vertex_slices)       \
+  VAR(spot_cones_vertex_stacks)       \
+  VAR(has_conservative_rasterization)
+
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
+TILED_LIGHTS_GLOBAL_VARS_LIST
+#undef VAR
+#undef TILED_LIGHTS_GLOBAL_VARS_LIST
+
+static_assert(TILED_LIGHTS_DISPATCH_ARGS_SIZE == DISPATCH_INDIRECT_BUFFER_SIZE);
+static_assert(TILED_LIGHTS_DRAW_ARGS_SIZE == DRAW_INDIRECT_BUFFER_SIZE);
 
 static bool hasConservativeRasterization = false;
 
@@ -46,10 +68,11 @@ void TiledLights::fillSpotLightIb()
 
 void TiledLights::createSpotLightIb()
 {
+  uint32_t spotsVertexCount = 0;
   calc_cylinder_vertex_face_count(spotsSlices, spotsStacks, spotsVertexCount, spotsFaceCount);
 
-  ShaderGlobal::set_int(::get_shader_variable_id("spot_cones_vertex_slices", true), spotsSlices);
-  ShaderGlobal::set_int(::get_shader_variable_id("spot_cones_vertex_stacks", true), spotsStacks + 1); // vertices are not merged
+  ShaderGlobal::set_int(spot_cones_vertex_slicesVarId, spotsSlices);
+  ShaderGlobal::set_int(spot_cones_vertex_stacksVarId, spotsStacks + 1); // vertices are not merged
 
   uint32_t ibSize = spotsFaceCount * sizeof(uint16_t) * 3;
 
@@ -58,7 +81,9 @@ void TiledLights::createSpotLightIb()
   fillSpotLightIb();
 }
 
-Sbuffer *TiledLights::getLUTBuffer() { return zbinningLUT.getBuf(); }
+D3DRESID TiledLights::getLUTBufId() const { return zbinningLUT.getBufId(); }
+
+D3DRESID TiledLights::getLightsListBufId() const { return lightsListBuf.getBufId(); }
 
 const Tab<uint32_t> &TiledLights::getZBinningData() const
 {
@@ -66,11 +91,11 @@ const Tab<uint32_t> &TiledLights::getZBinningData() const
   return zBinningData;
 }
 
-TiledLights::TiledLights(float max_lights_dist) : maxLightsDist(max_lights_dist), omniLightCount(0), spotLightCount(0)
+TiledLights::TiledLights(float max_lights_dist, const LightsResourcesManager *lights_res_mgr) :
+  lightsResMgr(lights_res_mgr), maxLightsDist(max_lights_dist)
 {
   useTilesRT = d3d::get_driver_desc().issues.hasBrokenUAVOnlyPasses;
-  maxDistanceVarId = ::get_shader_variable_id("max_lights_distance", true);
-  setMaxLightsDist(maxLightsDist);
+  resizeTilesRT = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("tiledLightsResizeTilesRT", true);
 
   spotLightsMat = new_shader_material_by_name("spot_lights_tiles");
   if (spotLightsMat)
@@ -89,7 +114,7 @@ TiledLights::TiledLights(float max_lights_dist) : maxLightsDist(max_lights_dist)
   }
 
   hasConservativeRasterization = d3d::get_driver_desc().caps.hasConservativeRassterization;
-  ShaderGlobal::set_int(::get_shader_variable_id("has_conservative_rasterization", true), hasConservativeRasterization ? 1 : 0);
+  ShaderGlobal::set_int(has_conservative_rasterizationVarId, hasConservativeRasterization ? 1 : 0);
 
   if (hasConservativeRasterization)
   {
@@ -105,12 +130,6 @@ void TiledLights::init(DynLightsFeatures requested_features)
 
   if (useGPUBinning)
   {
-    if (useTilesRT)
-    {
-      useGPUBinning = false;
-      logwarn("TiledLights: can not use GPU binning because of brokenUAVOnlyPasses in driver");
-    }
-
     if (d3d::get_driver_desc().shaderModel < 5.0_sm)
     {
       useGPUBinning = false;
@@ -120,18 +139,16 @@ void TiledLights::init(DynLightsFeatures requested_features)
 
   if (useGPUBinning)
   {
-    zBinningOmniElem = ComputeShader("tiled_lights_zbinning_omni_cs", true);
-    zBinningSpotElem = ComputeShader("tiled_lights_zbinning_spot_cs", true);
+    zBinningElem = ComputeShader("tiled_lights_zbinning_cs", true);
     zBinningPackElem = ComputeShader("tiled_lights_zbinning_pack_cs", true);
     zBinningClearElem = ComputeShader("tiled_lights_zbinning_clear_cs", true);
 
-    viewDirVarId = ::get_shader_variable_id("zbinning_view_dir", true);
-    viewPosVarId = ::get_shader_variable_id("zbinning_view_pos", true);
-
-    zbinningLUT = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), 2 * Z_BINS_COUNT, "z_binning_lookup", d3d::buffers::Init::No,
-      RESTAG_LIGHTS);
-    zBinBeginsEndsBuf = dag::buffers::create_ua_sr_structured(2 * sizeof(uint32_t), 2 * Z_BINS_COUNT, "z_binning_begins_ends_buf",
-      d3d::buffers::Init::No, RESTAG_LIGHTS);
+    zbinningLUT.close();
+    zBinBeginsEndsBuf.close();
+    zbinningLUT = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), 2 * Z_BINS_COUNT,
+      lightsResMgr->getResName("z_binning_lookup"), d3d::buffers::Init::No, RESTAG_LIGHTS);
+    zBinBeginsEndsBuf = dag::buffers::create_ua_sr_structured(2 * sizeof(uint32_t), 2 * Z_BINS_COUNT,
+      lightsResMgr->getResName("z_binning_begins_ends_buf"), d3d::buffers::Init::No, RESTAG_LIGHTS);
   }
 
   useGPUBinning = isGpu();
@@ -140,7 +157,8 @@ void TiledLights::init(DynLightsFeatures requested_features)
   {
     zBinBeginsEndsBuf.close();
     zbinningLUT.close();
-    zbinningLUT = dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), 2 * Z_BINS_COUNT, "z_binning_lookup", RESTAG_LIGHTS);
+    zbinningLUT = dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), 2 * Z_BINS_COUNT,
+      lightsResMgr->getResName("z_binning_lookup"), RESTAG_LIGHTS);
   }
 
   logdbg("TiledLights - use gpu binning: %d", useGPUBinning);
@@ -151,8 +169,8 @@ void TiledLights::init(DynLightsFeatures requested_features)
 
 DynLightsFeatures TiledLights::getRuntimeFeatures() const
 {
-  bool isGpuZBinning = static_cast<bool>(zBinningOmniElem) && static_cast<bool>(zBinningSpotElem) &&
-                       static_cast<bool>(zBinningPackElem) && static_cast<bool>(zBinningClearElem) && zbinningLUT && zBinBeginsEndsBuf;
+  bool isGpuZBinning = static_cast<bool>(zBinningElem) && static_cast<bool>(zBinningPackElem) &&
+                       static_cast<bool>(zBinningClearElem) && zbinningLUT && zBinBeginsEndsBuf;
 
   return isGpuZBinning ? DynLightsFeatures::GpuTiledLightsZBinning : DynLightsFeatures::CpuOnly;
 }
@@ -169,17 +187,17 @@ void TiledLights::setResolution(uint32_t width, uint32_t height)
   tilesRT.close();
   if (useTilesRT)
     tilesRT = dag::create_tex(nullptr, tilesGridSize.x, tilesGridSize.y, TEXFMT_R8 | TEXCF_RTARGET | TEXCF_TRANSIENT, 1,
-      "tiled_lights_rt", RESTAG_LIGHTS);
+      lightsResMgr->getResName("tiled_lights_rt"), RESTAG_LIGHTS);
 
   lightsListBuf.close();
   lightsListBuf = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), tilesGridSize.x * tilesGridSize.y * DWORDS_PER_TILE,
-    "lights_list", d3d::buffers::Init::No, RESTAG_LIGHTS);
+    lightsResMgr->getResName("lights_list"), d3d::buffers::Init::No, RESTAG_LIGHTS);
 }
 
 void TiledLights::changeResolution(uint32_t width, uint32_t height)
 {
   resizeTilesGrid(width, height);
-  if (useTilesRT)
+  if (useTilesRT && resizeTilesRT)
     tilesRT.resize(tilesGridSize.x, tilesGridSize.y);
 }
 
@@ -205,12 +223,9 @@ void TiledLights::prepare(const Tab<vec4f> &omni_ligth_bounds, const Tab<vec4f> 
     TIME_PROFILE(tiled_light_execute_cpu_z_binning);
     prepareZBinningLUT(omni_ligth_bounds, spot_light_bounds, cur_view_pos, cur_view_dir);
   }
-
-  omniLightCount = omni_ligth_bounds.size();
-  spotLightCount = spot_light_bounds.size();
 }
 
-void TiledLights::computeTiledLigths(const bool clear_lights)
+void TiledLights::computeTiledLigths(Sbuffer *indirect_args, uint32_t indirect_args_offset, const bool clear_lights)
 {
   if (clear_lights)
   {
@@ -223,29 +238,25 @@ void TiledLights::computeTiledLigths(const bool clear_lights)
     TIME_D3D_PROFILE(prepare_tile_lights);
     SCOPE_RENDER_TARGET;
     if (useTilesRT)
-    {
       d3d::set_render_target({}, DepthAccess::RW, {{tilesRT.getBaseTex(), 0, 0}});
-    }
     else
-    {
       d3d::set_render_target({nullptr, 0, 0}, {}, {{nullptr, 0, 0}});
-      d3d::setview(0, 0, tilesGridSize.x, tilesGridSize.y, 0.0f, 1.0f);
-    }
+    d3d::setview(0, 0, tilesGridSize.x, tilesGridSize.y, 0.0f, 1.0f);
 
     STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, 1, VALUE), lightsListBuf.getBuf());
     shaders::overrides::set(conservativeOverrideId);
 
-    if (omniLightCount && omniLightsElem)
+    if (omniLightsElem)
     {
       TIME_D3D_PROFILE(prepare_tile_omni_lights);
       omniLightsElem->setStates(0, true);
-      d3d::draw_instanced(PRIM_TRILIST, 0, SPHERES_INDICES_TO_DRAW, omniLightCount);
+      d3d::draw_indirect(PRIM_TRILIST, indirect_args, indirect_args_offset + TILED_LIGHTS_INDIRECT_ARGS_OMNI_DRAW_OFFSET);
     }
 
-    if (omniLightCount && omniLightsElem && spotLightCount && spotLightsElem)
+    if (omniLightsElem && spotLightsElem)
       d3d::resource_barrier({lightsListBuf.getBuf(), RB_NONE});
 
-    if (spotLightCount && spotLightsElem && spotsIndexBuf)
+    if (spotLightsElem && spotsIndexBuf)
     {
       if (!spotFilled)
         createSpotLightIb();
@@ -256,7 +267,8 @@ void TiledLights::computeTiledLigths(const bool clear_lights)
         d3d::setind(spotsIndexBuf);
         d3d::setvsrc_ex(0, NULL, 0, 0);
         spotLightsElem->setStates(0, true);
-        d3d::drawind_instanced(PRIM_TRILIST, 0, spotsFaceCount, 0, spotLightCount);
+        d3d::draw_indexed_indirect(PRIM_TRILIST, indirect_args, indirect_args_offset + TILED_LIGHTS_INDIRECT_ARGS_SPOT_DRAW_OFFSET);
+        d3d::setind(nullptr);
       }
     }
     d3d::resource_barrier({lightsListBuf.getBuf(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE});
@@ -300,7 +312,12 @@ void TiledLights::prepareZBinningLUT(const Tab<vec4f> &omni_ligth_bounds, const 
   fillzBins(MAX_CLUSTERED_SPOT_LIGHTS, Z_BINS_COUNT, spot_light_bounds, cur_view_pos, cur_view_dir);
 }
 
-void TiledLights::applyBinning()
+TiledLights::DrawCounts TiledLights::getDrawCounts() const
+{
+  return {.omniVertexCount = OMNI_TILES_CUBE_VERTICES, .spotIndexCount = 3 * spotsFaceCount};
+}
+
+void TiledLights::applyBinning(Sbuffer *indirect_args, uint32_t indirect_args_offset)
 {
   G_ASSERTF(is_main_thread(), "TiledLights::applyBinning must be called from the main thread");
 
@@ -314,39 +331,30 @@ void TiledLights::applyBinning()
     TIME_D3D_PROFILE(tiled_light_execute_gpu_z_binning);
 
     // set parameters for zBinning (omni_lights, spot_lights already set)
-    ShaderGlobal::set_float(maxDistanceVarId, maxLightsDist);
-    ShaderGlobal::set_float4(viewDirVarId, binningViewDir);
-    ShaderGlobal::set_float4(viewPosVarId, binningViewPos);
+    ShaderGlobal::set_float(max_lights_distanceVarId, maxLightsDist);
+    ShaderGlobal::set_float4(zbinning_view_dirVarId, binningViewDir);
+    ShaderGlobal::set_float4(zbinning_view_posVarId, binningViewPos);
 
     {
-      // init begin/ends
-      zBinningClearElem.dispatchGroups(dag::divide_align_up(2 * Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), 1, 1);
-      d3d::resource_barrier({zBinBeginsEndsBuf.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
-    }
+      STATE_GUARD_NULLPTR(z_binning_begins_ends_bufVarId.set_buffer(VALUE), zBinBeginsEndsBuf.getBuf());
+      STATE_GUARD(z_binning_lookupVarId.set_buffer(VALUE), zbinningLUT.getBufId(), z_binning_lookupVarId.get_buffer());
 
-    {
-      // calculate binning for omni lights
-      uint lightBlocksCount = dag::divide_align_up(omniLightCount, Z_BINNING_LIGHTS_BLOCK_SIZE);
-      if (lightBlocksCount > 0)
-        zBinningOmniElem.dispatchGroups(dag::divide_align_up(Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), lightBlocksCount, 1);
-    }
+      {
+        // init begin/ends
+        zBinningClearElem.dispatchGroups(dag::divide_align_up(2 * Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), 1, 1);
+        d3d::resource_barrier({zBinBeginsEndsBuf.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+      }
 
-    if (omniLightCount > 0 && spotLightCount > 0)
-    {
-      d3d::resource_barrier({zBinBeginsEndsBuf.getBuf(), RB_NONE});
-    }
+      {
+        // calculate binning for omni and spot lights in one dispatch
+        zBinningElem.dispatchIndirect(indirect_args, indirect_args_offset + TILED_LIGHTS_INDIRECT_ARGS_ZBINNING_DISPATCH_OFFSET);
+      }
 
-    {
-      // calculate binning for spot lights
-      uint lightBlocksCount = dag::divide_align_up(spotLightCount, Z_BINNING_LIGHTS_BLOCK_SIZE);
-      if (lightBlocksCount > 0)
-        zBinningSpotElem.dispatchGroups(dag::divide_align_up(Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), lightBlocksCount, 1);
-    }
-
-    {
-      // pack begin/ends to LUT
-      d3d::resource_barrier({zBinBeginsEndsBuf.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
-      zBinningPackElem.dispatchGroups(dag::divide_align_up(2 * Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), 1, 1);
+      {
+        // pack begin/ends to LUT
+        d3d::resource_barrier({zBinBeginsEndsBuf.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+        zBinningPackElem.dispatchGroups(dag::divide_align_up(2 * Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), 1, 1);
+      }
     }
 
     {
@@ -364,17 +372,17 @@ void TiledLights::clearZBinningLUT()
   if (!isGpu())
     return;
 
-  zBinningClearElem.dispatchGroups(dag::divide_align_up(2 * Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), 1, 1);
-  d3d::resource_barrier({zBinBeginsEndsBuf.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
-  zBinningPackElem.dispatchGroups(dag::divide_align_up(2 * Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), 1, 1);
+  {
+    STATE_GUARD_NULLPTR(z_binning_begins_ends_bufVarId.set_buffer(VALUE), zBinBeginsEndsBuf.getBuf());
+    STATE_GUARD(z_binning_lookupVarId.set_buffer(VALUE), zbinningLUT.getBufId(), z_binning_lookupVarId.get_buffer());
+    zBinningClearElem.dispatchGroups(dag::divide_align_up(2 * Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), 1, 1);
+    d3d::resource_barrier({zBinBeginsEndsBuf.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+    zBinningPackElem.dispatchGroups(dag::divide_align_up(2 * Z_BINS_COUNT, Z_BINNING_GROUP_SIZE), 1, 1);
+  }
   d3d::resource_barrier({zbinningLUT.getBuf(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE});
 }
 
-void TiledLights::setMaxLightsDist(const float max_lights_dist)
-{
-  maxLightsDist = max_lights_dist;
-  ShaderGlobal::set_float(maxDistanceVarId, maxLightsDist);
-}
+void TiledLights::setMaxLightsDist(const float max_lights_dist) { maxLightsDist = max_lights_dist; }
 
 void TiledLights::beforeResetDevice() { spotFilled = false; }
 

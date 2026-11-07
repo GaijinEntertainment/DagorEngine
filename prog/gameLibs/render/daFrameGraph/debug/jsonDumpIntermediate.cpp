@@ -30,7 +30,7 @@ void dump_ir_graph_to_json(const InternalRegistry &registry, const intermediate:
     w.Key("nodes");
     {
       OBJECT_SCOPED
-      for (const auto &[nodeIdx, node] : graph.nodes.enumerate())
+      for (const auto &[nodeIdx, node] : graph.nodes.all().enumerate())
       {
         w.Key(get_name(graph, nodeIdx));
         {
@@ -104,7 +104,7 @@ void dump_ir_graph_to_json(const InternalRegistry &registry, const intermediate:
     w.Key("nodeStates");
     {
       OBJECT_SCOPED
-      for (const auto &[nodeIdx, nodeState] : graph.nodeStates.enumerate())
+      for (const auto &[nodeIdx, nodeState] : graph.nodeStates.all().enumerate())
       {
         w.Key(get_name(graph, nodeIdx));
         {
@@ -125,12 +125,12 @@ void dump_ir_graph_to_json(const InternalRegistry &registry, const intermediate:
           w.Key("pass");
           {
             OBJECT_SCOPED
-            if (nodeState.pass)
+            if (const auto *pass = eastl::get_if<intermediate::RenderPass>(&nodeState.pass))
             {
               w.Key("colorAttachments");
               {
                 ARRAY_SCOPED
-                for (const auto &colorAtt : nodeState.pass->colorAttachments)
+                for (const auto &colorAtt : pass->colorAttachments)
                 {
                   OBJECT_SCOPED
                   if (colorAtt)
@@ -141,17 +141,17 @@ void dump_ir_graph_to_json(const InternalRegistry &registry, const intermediate:
               w.Key("depthAttachment");
               {
                 OBJECT_SCOPED
-                if (nodeState.pass->depthAttachment)
-                  print_subres_ref(*nodeState.pass->depthAttachment, graph);
+                if (pass->depthAttachment)
+                  print_subres_ref(*pass->depthAttachment, graph);
               }
 
               w.Key("depthReadOnly");
-              w.Bool(nodeState.pass->depthReadOnly);
+              w.Bool(pass->depthReadOnly);
 
               w.Key("resolves");
               {
                 OBJECT_SCOPED
-                for (const auto [fromResIdx, toResIdx] : nodeState.pass->resolves)
+                for (const auto [fromResIdx, toResIdx] : pass->resolves)
                 {
                   w.Key(get_name(graph, fromResIdx));
                   w.String(get_name(graph, toResIdx));
@@ -159,13 +159,13 @@ void dump_ir_graph_to_json(const InternalRegistry &registry, const intermediate:
               }
 
               w.Key("isLegacyPass");
-              w.Bool(nodeState.pass->isLegacyPass);
+              w.Bool(pass->isLegacyPass);
 
               w.Key("vrsRateAttachment");
               {
                 OBJECT_SCOPED
-                if (nodeState.pass->vrsRateAttachment)
-                  print_subres_ref(*nodeState.pass->vrsRateAttachment, graph);
+                if (pass->vrsRateAttachment)
+                  print_subres_ref(*pass->vrsRateAttachment, graph);
               }
             }
           }

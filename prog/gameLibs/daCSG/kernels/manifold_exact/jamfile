@@ -1,0 +1,22 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/daCSG/kernels/manifold_exact ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+include $(Root)/prog/gameLibs/daCSG/daCSG-options.jam ;
+
+# the registry of one kernel set; a client lists exactly one set
+TargetType  = lib ;
+Target      = gameLibs/daCSG/kernels/manifold_exact.lib ;
+
+Sources =
+  kernelRegistry.cpp
+;
+
+UseProgLibs +=
+  gameLibs/daCSG
+  gameLibs/daCSG/kernelManifold
+  gameLibs/daCSG/kernelExact
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -5,12 +5,20 @@
 #include <3d/dag_materialData.h>
 #include <shaders/dag_shaders.h>
 #include <daFracture/core/meshSlicing.h>
+#include <dag/dag_vector.h>
+#include <math/dag_Point3.h>
+#include <EASTL/bit.h>
 
 class DataBlock;
 namespace rendinst
 {
 struct RendInstDesc;
 }
+namespace destructables
+{
+struct DestrObjProps;
+struct DestrAnimData;
+} // namespace destructables
 
 namespace rendinstdestr
 {
@@ -38,32 +46,43 @@ struct FrxDestrProps
   void loadFromBlk(const DataBlock &blk);
 };
 
-struct DestrObjProps
-{
-  float timeToLive = 15.f;
-  float inactiveTimeBeforeSink = -1.f;
-  float timeToKinematic = -1.f;
-  float timeToSinkUnderground = -1.f;
-  float timeToStartDisintegration = -1.f;
-  float disintegrationDuration = 0.f;
-  float disintegrationScale = 1.f;
-  bool keepAlive = false;
-  bool interactiveDebris = false;
-
-  void loadFromBlk(const DataBlock &blk);
-};
-
 // per rendinst type by value: params{} block in presets, flat keys in the rendinst block
 struct RiDestrParams
 {
   void loadFromBlk(const DataBlock &blk);
 };
 
+struct RiNearbyGroupsProps
+{
+  struct Actions
+  {
+    uint32_t reveal : 1 = 0;
+    uint32_t frxInclude : 1 = 0;
+    uint32_t frxInvert : 1 = 0;
+    uint32_t unused : 29 = 0;
+
+    uint32_t mask() const { return eastl::bit_cast<uint32_t>(*this); }
+  };
+  static_assert(sizeof(Actions) == sizeof(uint32_t));
+  struct Group
+  {
+    Actions actions;
+    Point3 extent = Point3::ZERO;
+    uint32_t poolsBegin = 0, poolsEnd = 0;
+  };
+  dag::Vector<Group> groups;
+  dag::Vector<int> pools;
+
+  void loadFromBlk(const char *ri_name, const DataBlock &ri_blk);
+};
+
 struct RiDestrProps
 {
   RiDestrParams params;
   const FrxDestrProps *frxDestr = nullptr;
-  const DestrObjProps *destrObj = nullptr;
+  const destructables::DestrObjProps *destrObj = nullptr;
+  const destructables::DestrAnimData *destrAnim = nullptr;
+  const RiNearbyGroupsProps *nearbyGroups = nullptr;
 };
 
 void init_ri_destr_props();

@@ -268,10 +268,10 @@ void PolyBumpUtil::update_poly_dist_ui()
     if (node)
     {
       SendMessage(GetDlgItem(hPolyPanel, IDC_LOWPOLYNAME), WM_SETTEXT, 0, (LPARAM)node->GetName());
-      Object *ob = node->GetObjectRef();
+      Object *ob = node->EvalWorldState(ip->GetTime()).obj;
       if (ob)
       {
-        Matrix3 tm = node->GetObjectTM(ip->GetTime());
+        Matrix3 tm = node->GetObjTMAfterWSM(ip->GetTime());
         Box3 bbox;
         ob->GetDeformBBox(ip->GetTime(), bbox, &tm);
         real lg = Length(bbox.Width()) * 0.5f;
@@ -310,7 +310,7 @@ void PolyBumpUtil::update_poly_mapchannels()
     INode *node = ip->GetINodeByHandle(lowpolyid);
     if (!node)
       return;
-    Object *ob = node->GetObjectRef();
+    Object *ob = node->EvalWorldState(ip->GetTime()).obj;
     if (!ob)
       return;
     TriObject *lowtri = (TriObject *)ob->ConvertToType(ip->GetTime(), Class_ID(TRIOBJ_CLASS_ID, 0));
@@ -844,7 +844,7 @@ void PolyBumpUtil::build_normal_map()
     ip->DisplayTempPrompt(GetString(IDS_INVALID_LOWPOLYNODE));
     return;
   }
-  Object *lowo = lownode->GetObjectRef();
+  Object *lowo = lownode->EvalWorldState(time).obj;
   if (!lowo)
   {
     ip->DisplayTempPrompt(GetString(IDS_INVALID_LOWPOLYNODE));
@@ -864,7 +864,7 @@ void PolyBumpUtil::build_normal_map()
       lowtri->DeleteMe();
     return;
   }
-  Object *higho = highnode->GetObjectRef();
+  Object *higho = highnode->EvalWorldState(time).obj;
   if (!higho)
   {
     ip->DisplayTempPrompt(GetString(IDS_INVALID_HIGHPOLYNODE));
@@ -934,7 +934,7 @@ void PolyBumpUtil::build_normal_map()
 
   for (int v = 0; v < lowm.numVerts; ++v)
     lowvert[v] = ltm.PointTransform(lowm.verts[v]);
-  ComputeVertexNormals(&lowm, lowvnrm, lowfngr, lowvert.Addr(0));
+  ComputeVertexNormals(&lowm, lowvnrm, lowfngr, lowvert.data());
 
 
   Box3 bbox;
@@ -948,8 +948,8 @@ void PolyBumpUtil::build_normal_map()
   else
   {
     ip->ProgressStart(_T("Working..."), TRUE, dummyprogressfn, NULL);
-    build_normal_map(selected_faces ? &lowm.FaceSel() : NULL, lowm.faces, lowm.numFaces, lowvert.Addr(0), lowm.numVerts,
-      lowm.mapFaces(map_channel), lowm.mapVerts(map_channel), lowfngr.Addr(0), lowvnrm.Addr(0), Inverse(ltm), poly_width, poly_height,
+    build_normal_map(selected_faces ? &lowm.FaceSel() : NULL, lowm.faces, lowm.numFaces, lowvert.data(), lowm.numVerts,
+      lowm.mapFaces(map_channel), lowm.mapVerts(map_channel), lowfngr.data(), lowvnrm.data(), Inverse(ltm), poly_width, poly_height,
       pixels.data(), highm, highnode->GetObjTMAfterWSM(time), lg * forwdist_p / 100.0f, lg * backdist_p / 100.0f, !latest_hit,
       back_weight, expanddist, highnode);
     if (ip->GetCancel())
@@ -1099,10 +1099,11 @@ public:
   Mesh *mesh;
   int face;
   Box3 objbox;
-  Point3 bary, norm, normal, facenorm, view, orgview, pt, dpt, dpt_dx, dpt_dy, vp[3], bv[3], bo;
+  Point3 bary, norm, normal, facenorm, view, orgview, pt, dpt, dpt_dx, dpt_dy, vp[3], vpw[3], bv[3], bo;
   Point3 tv[MAX_MESHMAPS][3];
   float curve, face_sz, sz_ratio, facecurve;
   Tab<Point3> fnorm;
+  const Point3 *worldverts;
   Point3 *highvnrm;
   FaceNGr *facengr;
   bool hastv[MAX_MESHMAPS];
@@ -1115,19 +1116,23 @@ public:
     backFace = FALSE;
     node = NULL;
     mesh = NULL;
+    worldverts = NULL;
     face = -1;
     ambientLight = Color(0, 0, 0);
   }
   void setnode(INode *n) { node = n; }
-  void setmesh(Mesh &m, Point3 *vnr, FaceNGr *ngr)
+  void setmesh(Mesh &m, const Point3 *world_verts, Point3 *vnr, FaceNGr *ngr)
   {
     mesh = &m;
     objbox = m.getBoundingBox();
+    worldverts = world_verts;
     fnorm.SetCount(m.numFaces);
     int i;
     for (i = 0; i < m.numFaces; ++i)
-      fnorm[i] =
-        Normalize(CrossProd(m.verts[m.faces[i].v[1]] - m.verts[m.faces[i].v[0]], m.verts[m.faces[i].v[2]] - m.verts[m.faces[i].v[0]]));
+    {
+      const Point3 &v0 = world_verts[m.faces[i].v[0]];
+      fnorm[i] = Normalize(CrossProd(world_verts[m.faces[i].v[1]] - v0, world_verts[m.faces[i].v[2]] - v0));
+    }
     highvnrm = vnr;
     facengr = ngr;
   }
@@ -1157,7 +1162,10 @@ public:
     mtlNum = f.getMatID();
     int i;
     for (i = 0; i < 3; ++i)
+    {
       vp[i] = mesh->verts[f.v[i]];
+      vpw[i] = worldverts[f.v[i]];
+    }
     for (i = 0; i < MAX_MESHMAPS; ++i)
       hastv[i] = false;
     face_sz = fabsf(vp[1].x - vp[0].x);
@@ -1169,7 +1177,7 @@ public:
     face_sz /= 6;
     facenorm = fnorm[fi];
     Point3 vnorm[3] = {highvnrm[facengr[fi][0]], highvnrm[facengr[fi][1]], highvnrm[facengr[fi][2]]};
-    facecurve = ComputeFaceCurvature(vnorm, vp);
+    facecurve = ComputeFaceCurvature(vnorm, vpw);
     gettv(ch);
     compute_bump_vectors(tv[ch], vp, bv);
     bo = vp[0] - (bv[0] * tv[ch][0].x + bv[1] * tv[ch][0].y);
@@ -1288,7 +1296,7 @@ public:
   {
     gettv(ch);
     Point3 bvec[3];
-    ComputeBumpVectors(tv[ch], vp, bvec);
+    ComputeBumpVectors(tv[ch], vpw, bvec);
     for (int i = 0; i < 3; ++i)
       dP[i] = Normalize(bvec[i]);
   }
@@ -1360,7 +1368,7 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
   fm.SetCount(wd * ht);
   pofs.Resize(wd * ht);
   pofs.SetCount(wd * ht);
-  memset(&fm[0], 0xFF, (wd * ht) * sizeof(unsigned));
+  memset(fm.data(), 0xFF, (wd * ht) * sizeof(unsigned));
   Tab<Point3> pos;
   Tab<Point3> nrm;
   pos.Resize(wd * ht);
@@ -1379,8 +1387,6 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
     int i, f;
     for (f = 0; f < numf; ++f)
     {
-      if (facesel && !((*facesel)[f]))
-        continue;
       Point2 t0 = Point3to2(tv[tf[f].t[0]]);
       Point2 t1 = Point3to2(tv[tf[f].t[1]]);
       Point2 t2 = Point3to2(tv[tf[f].t[2]]);
@@ -1417,40 +1423,34 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
       else
         face_T[f][0].z = face_T[f][1].z = 0;
     }
-    Tab<Tab<int>> map;
-
-    map.SetCount(numv);
-    for (i = 0; i < numv; ++i)
-      map[i].Init();
+    std::vector<std::vector<int>> map(numv);
     for (f = 0; f < numf; ++f)
     {
-      map[face[f].v[0]].Append(1, &f, 8);
-      map[face[f].v[1]].Append(1, &f, 8);
-      map[face[f].v[2]].Append(1, &f, 8);
+      map[face[f].v[0]].push_back(f);
+      map[face[f].v[1]].push_back(f);
+      map[face[f].v[2]].push_back(f);
     }
 
     tg_face.SetCount(numf);
 
     for (i = 0; i < numv; ++i)
     {
-      for (int j = 0; j < map[i].Count(); ++j)
+      for (int f : map[i])
       {
-        int f = map[i][j];
         int vi, vi2;
         for (vi = 0; vi < 2; ++vi)
           if (face[f].v[vi] == i)
             break;
         Point3 S(0, 0, 0), T(0, 0, 0);
-        for (int j2 = 0; j2 < map[i].Count(); ++j2)
+        for (int f2 : map[i])
         {
-          int f2 = map[i][j2];
           for (vi2 = 0; vi2 < 2; ++vi2)
             if (face[f2].v[vi2] == i)
               break;
           if (tf[f].t[vi] == tf[f2].t[vi2] && facengr[f][vi] == facengr[f2][vi2])
           {
-            S += face_T[map[i][j2]][0];
-            T += face_T[map[i][j2]][1];
+            S += face_T[f2][0];
+            T += face_T[f2][1];
           }
         }
         S = Normalize(S);
@@ -1462,8 +1462,6 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
           tg_face[f][vi][2] = -tg_face[f][vi][2];
       }
     }
-    for (i = 0; i < numv; ++i)
-      map[i].~Tab();
   }
 
   real du = .5f / wd, dv = .5f / ht;
@@ -1646,8 +1644,8 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
   highvert.SetCount(hm.numVerts);
   for (int v = 0; v < trhm.numVerts; ++v)
     highvert[v] = htm.PointTransform(trhm.verts[v]);
-  ComputeVertexNormals(&trhm, highvnrm, highfngr, highvert.Addr(0));
-  memcpy(trhm.verts, highvert.Addr(0), trhm.numVerts * sizeof(Point3));
+  ComputeVertexNormals(&trhm, highvnrm, highfngr, highvert.data());
+  memcpy(trhm.verts, highvert.data(), trhm.numVerts * sizeof(Point3));
 
   Tab<Point3> releasenrm;
   releasenrm.SetCount(wd * ht);
@@ -1658,7 +1656,7 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
     backw = 0;
   BumpMapSC sc(ip->GetTime(), ip);
   sc.setnode(high);
-  sc.setmesh(hm, highvnrm.Addr(0), highfngr.Addr(0));
+  sc.setmesh(hm, highvert.data(), highvnrm.data(), highfngr.data());
   Mtl *mtl = high->GetMtl();
   TimeValue time = ip->GetTime();
   if (mtl)
@@ -1858,9 +1856,25 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
   }
   delete raytracer;
 
+  if (space == TANGENT_SPACE)
+  {
+    for (int i = 0; i < wd * ht; ++i)
+    {
+      if (fm[i] == 0xFFFFFFFF)
+        continue;
+      const auto &tg = tg_face[fm[i] & (~EFLG)];
+      const Point3 &bc = lowbc[i];
+      Point3 S = bc.x * tg[0][0] + bc.y * tg[1][0] + bc.z * tg[2][0];
+      Point3 T = bc.x * tg[0][1] + bc.y * tg[1][1] + bc.z * tg[2][1];
+      Point3 SxT = bc.x * tg[0][2] + bc.y * tg[1][2] + bc.z * tg[2][2];
+      Matrix3 m(S, T, SxT, Point3(0.0f, 0.0f, 0.0f));
+      releasenrm[i] = Normalize(Inverse(m).VectorTransform(releasenrm[i]));
+    }
+  }
+
   for (int ei = 0; ei < expands; ++ei)
   {
-    if (!expand(releasenrm.Addr(0), releasehit, wd, ht))
+    if (!expand(releasenrm.data(), releasehit, wd, ht))
       break;
   }
   int samples = antialias < 1 ? 1 : antialias;
@@ -1879,17 +1893,6 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
           Point3 n = releasenrm[i];
           if (n.x > 2)
             continue;
-          if (fm[i] != 0xFFFFFFFF && space == TANGENT_SPACE)
-          {
-            Point3 S = lowbc[i].x * tg_face[fm[i] & (~EFLG)][0][0] + lowbc[i].y * tg_face[fm[i] & (~EFLG)][1][0] +
-                       lowbc[i].z * tg_face[fm[i] & (~EFLG)][2][0];
-            Point3 T = lowbc[i].x * tg_face[fm[i] & (~EFLG)][0][1] + lowbc[i].y * tg_face[fm[i] & (~EFLG)][1][1] +
-                       lowbc[i].z * tg_face[fm[i] & (~EFLG)][2][1];
-            Point3 SxT = lowbc[i].x * tg_face[fm[i] & (~EFLG)][0][2] + lowbc[i].y * tg_face[fm[i] & (~EFLG)][1][2] +
-                         lowbc[i].z * tg_face[fm[i] & (~EFLG)][2][2];
-            Matrix3 m(S, T, SxT, Point3(0.0f, 0.0f, 0.0f));
-            n = Inverse(m).VectorTransform(n);
-          }
           if (fm[i] == 0xFFFFFFFF)
             ;
           else if (releasehit[i])

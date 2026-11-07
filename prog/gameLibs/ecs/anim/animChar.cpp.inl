@@ -281,39 +281,50 @@ static __forceinline void animchar_act_impl(float dt, float *accum_dt, const flo
     return;
   }
   animchar_set_tm(animchar, animchar__turnDir, transform);
-  auto animcharAct = [&](float anim_dt) {
+  auto animcharFullAct = [&](float anim_dt) {
     animchar.act(anim_dt, /*calc_anim*/ true);
     pnfullacts ? interlocked_increment(*pnfullacts) : 0;
   };
+  auto animcharRecalcWtm = [&]() {
+    animchar.recalcWtm();
+    pncalcwtms ? interlocked_increment(*pncalcwtms) : 0;
+  };
   G_FAST_ASSERT(!accum_dt == !dt_threshold);
   if (!accum_dt)
-    animcharAct(dt);
-  else if (*dt_threshold == 0.f)
+    animcharFullAct(dt);
+  else if (animchar_node_wtm || *dt_threshold == 0.f) // client: no eid phase, so FastPhys gets exact elapsed time
   {
-    animcharAct(dt);
-    *accum_dt = 0.f;
+    *accum_dt += dt;
+    if (*accum_dt >= *dt_threshold)
+    {
+      animcharFullAct(*accum_dt);
+      *accum_dt = 0.f;
+    }
+    else
+      animcharRecalcWtm();
   }
-  else
+  else // server: keep remainder as eid phase
   {
     *accum_dt += dt;
     float newAccumDt = *accum_dt - *dt_threshold;
-    if (newAccumDt < 0) // only recalc wtm
+    if (newAccumDt < 0)
+      animcharRecalcWtm();
+    else // act a multiple of dt_threshold, keep the remainder as eid phase
     {
-      animchar.recalcWtm();
-      pncalcwtms ? interlocked_increment(*pncalcwtms) : 0;
-    }
-    else // full act
-    {
-      animcharAct(*dt_threshold);
-      *accum_dt = (newAccumDt < *dt_threshold) ? newAccumDt : fmodf(*accum_dt, *dt_threshold);
+      float rem = (newAccumDt < *dt_threshold) ? newAccumDt : fmodf(*accum_dt, *dt_threshold);
+      animcharFullAct(*accum_dt - rem);
+      *accum_dt = rem;
     }
   }
   if (!animchar_node_wtm)
     return;
   animchar_copy_nodes(animchar, *animchar_node_wtm, *animchar_render__root_pos);
 #if DAECS_EXTENSIVE_CHECKS
-  for (auto &n : animchar_node_wtm->nwtm)
-    ANIMCHAR_VERIFY_NODE_POS(n.col3, eastl::distance(animchar_node_wtm->nwtm.data(), &n), animchar);
+  for (int i = 0; auto &n : animchar_node_wtm->nwtm)
+  {
+    ANIMCHAR_VERIFY_NODE_POS(n.col3, i, animchar);
+    i++;
+  }
 #endif
 }
 
@@ -331,6 +342,7 @@ void anim::animchar_act(float dt, float *accum_dt, const float *dt_threshold, An
 }
 
 ECS_REGISTER_EVENT(UpdateAnimcharEvent);
+ECS_REGISTER_EVENT(EventAnimcharReloaded);
 
 ECS_AFTER(before_animchar_update_sync)
 ECS_BEFORE(after_animchar_update_sync)

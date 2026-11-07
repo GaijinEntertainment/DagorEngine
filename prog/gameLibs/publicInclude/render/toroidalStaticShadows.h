@@ -23,8 +23,6 @@ class Point2;
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector.h>
 
-#define COLLECT_STATIC_SHADOWS_STATISTICS (DAGOR_DBGLEVEL > 0)
-
 struct ShadowDepthScroller;
 
 class ToroidalStaticShadowCascade
@@ -81,8 +79,6 @@ protected:
   void setMaxHtRange(float maxHtRange); //
   float getTexelSize() const { return texelSize; }
   uint32_t getTexSize() const { return helper.texSize; }
-  // Maximum 4 regions (in case the bbox is placed on a corner of the toroidal texture).
-  void getBoxViews(const BBox3 &box, ViewTransformData *out_views, int &out_cnt) const;
   void setWorldBox(const BBox3 &box);
   void setDistance(float distance);
   void beginFrameTransition();
@@ -96,6 +92,11 @@ protected:
   //! returns true, if whole cascade has no never rendered (empty) regions;
   //! regions processed in update, but not rendered yet, are counting too
   bool isValid() const { return notRenderedRegions.empty() && !isRenderingRegionFirstTime; }
+  //! returns true, if whole cascade is rendered for the current sun direction
+  bool isFullyRendered() const
+  {
+    return isValid() && invalidRegions.empty() && !inTransition && renderData.regionsToRender.empty() && !copyTransitionAfterRender;
+  }
   void updateSunBelowHorizon(const ManagedTex &tex);
   bool isSunBelowHorizon() const { return next.sunDir.y < 0.0f; }
   float constDepthBias = 0.f;
@@ -106,7 +107,6 @@ protected:
   ToroidalHelper helper;
   float distance = 0, configDistance = 0;
   float texelSize = 1;
-  float originRefHeight = 0;
   float scrolledDepthMin = 0;
   float scrolledDepthMax = 1;
   int static_shadow_matrixVarId[4] = {-1, -1, -1, -1};
@@ -180,18 +180,6 @@ protected:
     dag::RelocatableFixedVector<RegionToRender, MAX_REGIONS_TO_RENDER> regionsToRender;
   } renderData{};
 
-#if COLLECT_STATIC_SHADOWS_STATISTICS
-  struct StaticShadowsStatistics
-  {
-    uint32_t renderRegionFirstTimeFrames = 0;
-    uint32_t invalidateRegionFrames = 0;
-    uint32_t completelyValidFrames = 0;
-    uint32_t renderRegionFirstTimeCount = 0;
-    uint32_t invalidateRegionCount = 0;
-    uint32_t completelyValidFramesSinceLastUpdate = 0;
-  } staticShadowsStatistics;
-#endif
-
   int getRegionToRenderCount() const;
   void clearRegionToRender();
   TMatrix4 getRegionToRenderCullTm(int region) const;
@@ -243,9 +231,6 @@ public:
   float getSmallestTexelSize() const { return cascades.empty() ? -1 : cascades[0].texelSize; }
   float getBiggestTexelSize() const { return cascades.empty() ? -1 : cascades.back().texelSize; }
   uint32_t getTexSize() const { return cascades.empty() ? 0 : texSize; }
-  // Maximum 4 regions (in case the bbox is placed on a corner of the toroidal texture).
-  int getBoxViews(const BBox3 &box, ViewTransformData *out_views, int &out_cnt) const;
-  bool getCascadeWorldBoxViews(int cascade_id, ViewTransformData *out_views, int &out_cnt) const;
   void setWorldBox(const BBox3 &box); // causes unforced invalidation, if box is different
   BBox3 getWorldBox() const { return worldBox; }
   void setDistance(float distance); // causes forced invalidation, if is different
@@ -254,24 +239,19 @@ public:
   bool isCompletelyValid(const BBox3 &box) const; // returns true, if box has no never rendered (empty) or invalid (invalidated)
                                                   // regions
   bool isValid(const BBox3 &box) const;           // returns true, if box has no never rendered (empty) regions
-  void invalidateCascadeIfCameraTooFar(int cascade_no, const Point3 &pos, float max_distance_outside);
-  inline bool isOrthoShadow() const { return isOrtho; }
+  bool isFullyRendered() const;                   // returns true, if every cascade is rendered for the current sun direction
   bool setDepthBias(float f);
   bool setDepthBiasForCascade(int cascade, float f);
   void enableTextureSpaceAlignment(bool en);
   void clearTexture();
-  bool isAnyCascadeInTransition() const;
 
   TMatrix getLightViewProj(const int cascadeId) const;
 
   // isSunBelowHorizon: To allow things behind the far plane to be in shadow, when the texture is empty.
   //   If it was cleared to 1, z>1 would be clamped to 1, thus SampleCmp always returns 1.
   static float GetShadowClearValue(bool isSunBelowHorizon) { return isSunBelowHorizon ? float(0xFFFE) / float(0xFFFF) : 1.0; }
-  static bool isRegionInsideCascade(mat44f_cref cascade_inv_viewproj, const ViewTransformData &region_data);
 
   static constexpr float ORTHOGONAL_THRESHOLD = 0.1; // auto switch to ortho shadows
-  void printCascadesStatistics() const;
-  uint32_t getMinCompletelyValidFramesAcrossAllCascades() const;
 
 protected:
   bool isOrtho = false;

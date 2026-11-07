@@ -22,6 +22,7 @@ eastl::vector<String> getAvailableInt() { return {}; }
 eastl::vector<String> getAvailableFloat() { return {}; }
 eastl::vector<String> getAvailableFloat4() { return {}; }
 eastl::vector<String> getAvailableTextures() { return {}; }
+String getBoundNBSTextureNameMap(NodeBasedShaderType) { return String("{}"); }
 } // namespace nodebasedshaderutils
 
 eastl::string node_based_shader_get_resource_name(const char *) { return eastl::string(); }

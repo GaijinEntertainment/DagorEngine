@@ -112,6 +112,8 @@ struct D3dResManagerData
   static __forceinline uint8_t getResLoadedLev(D3DRESID id) { return isValidID(id, nullptr) ? resQS[id.index()].getLdLev() : 0; }
   //! returns maximum requested-level for D3DRESID resource (level is log2(tex.dimension), do not mix it with QL!)
   static __forceinline uint8_t getResMaxReqLev(D3DRESID id) { return isValidID(id, nullptr) ? resQS[id.index()].getMaxReqLev() : 0; }
+  //! returns quality-limited level for D3DRESID resource (level is log2(tex.dimension), do not mix it with QL!)
+  static __forceinline uint8_t getResQualityLimitLev(D3DRESID id) { return isValidID(id, nullptr) ? resQS[id.index()].getQLev() : 0; }
 
   //! returns generation of D3DRESID
   //! (generation is used to distinct 2 D3DRESIDs that share the same index; only one generation is valid for given index)
@@ -331,6 +333,14 @@ inline unsigned get_managed_res_maxreq_lev(D3DRESID id) { return D3dResManagerDa
 //! \param id the D3DRESID to get the loaded level for
 //! \returns the current loaded level for \p id or 0 if the resource is missing/unregistered
 inline unsigned get_managed_res_loaded_lev(D3DRESID id) { return D3dResManagerData::getResLoadedLev(id); }
+
+//! \brief Gets the quality-limited level for a managed ID, i.e. log2(tex.dimension). Do not confuse it with QL!
+//! \details The limit of the texture quality settings with the per-texture overrides (for example the forceTexMQ /
+//! forceTexLQ lists of a level), but not the dynamic max level (tex.setMaxLev). Valid for a streamed (DDSx) texture
+//! once it is created; before that it is usually the full level.
+//! \param id the D3DRESID to get the level for
+//! \returns the quality-limited level for \p id or 0 if the resource is missing/unregistered
+inline unsigned get_managed_res_quality_limit_lev(D3DRESID id) { return D3dResManagerData::getResQualityLimitLev(id); }
 
 //! \brief Enables or disables multithreading support for resource manager and preallocates internal structures
 //! to handle upto \p max_res_entry_count resource entries without reallocations.

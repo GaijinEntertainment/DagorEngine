@@ -66,6 +66,8 @@ public:
   ecs::EntityId createEntityDirect(ECSEntityCreateData *data);
   void destroyEntityDirect(ecs::EntityId eid);
 
+  static bool isSystemOwnedEntity(ecs::EntityId eid);
+
   void addEditableEntities();
   void refreshEids();
   ECSEntityObject *getParentSelectionHoveredObject() { return parentSelectionHoveredObject; }

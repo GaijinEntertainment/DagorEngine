@@ -86,7 +86,7 @@ bool dacoll::tracedown_water(const Point3 &p, real &t, Point3 *out_norm)
     /*force_cull*/ true);
 }
 
-// constraint: the handle's material map (collisionCache.cpp) holds the phys map with decals, and gives -1 off its grid
+// the handle's material map (collisionCache.cpp) holds the phys map with decals, and gives -1 off its grid
 static bool traceray_lmesh(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm, const TraceMeshFaces *handle)
 {
   if (!dacoll::get_lmesh())
@@ -614,7 +614,7 @@ struct EndpointBound
 };
 
 int dacoll::trace_bundle_all_hits(dag::ConstSpan<BundleSegment> segments, int flags, int ray_mat_id, dag::Span<BundleHit> out_hits,
-  dag::Span<BundleRange> out_ranges, uint32_t hits_per_segment, bool certify_endpoints)
+  dag::Span<BundleRange> out_ranges, uint32_t hits_per_segment, bool certify_endpoints, float ground_depth)
 {
   TIME_PROFILE(trace_bundle_all_hits);
   FRAMEMEM_REGION;
@@ -666,7 +666,7 @@ int dacoll::trace_bundle_all_hits(dag::ConstSpan<BundleSegment> segments, int fl
 
   dag::Vector<uint32_t, framemem_allocator> probeRequests;
   uint32_t written = 0, riCursor = 0;
-  { // constraint: a hole rewrite on the main thread waits on the holes lock, so it ends with this pass
+  { // a hole rewrite on the main thread waits on the holes lock, so it ends with this pass
     // The heightfield alone, never the landmesh ray tracer, so a game and the harness ask the same ground; a hole is no surface.
     const LandMeshManager *lmesh = (flags & ETF_HEIGHTMAP) ? get_lmesh() : nullptr;
     const HeightmapHandler *hmap = lmesh ? lmesh->getHmapHandler() : nullptr;
@@ -691,10 +691,12 @@ int dacoll::trace_bundle_all_hits(dag::ConstSpan<BundleSegment> segments, int fl
       const float len = trace.pos.outT;
       bool fromUnderGround = false;
       if (hmap && len > 0.f) // a degenerate segment measures nothing, so it opens with no synthetic enter either
-        fromUnderGround = trace_terrain_span(*hmap, trace.pos, trace.dir, len, heightAt, holeAt,
+        fromUnderGround = trace_terrain_span(
+          *hmap, trace.pos, trace.dir, len, heightAt, holeAt,
           [&](float at, int8_t facing, const Point2 &pos) DAGOR_FORCE_INLINE_LAMBDA {
             sink.add(at, sink.count < sink.capacity ? get_lmesh_mat_id_at_point(pos) : -1, BUNDLE_TERRAIN_OBJECT, facing);
-          });
+          },
+          ground_depth);
 
       BundleRange &range = out_ranges[i];
       range.start = written;
@@ -706,7 +708,7 @@ int dacoll::trace_bundle_all_hits(dag::ConstSpan<BundleSegment> segments, int fl
       if (!certify_endpoints || len <= 0.f || sink.dropped) // a lost hit can reverse an endpoint
         continue;
       uint32_t endpoints = BUNDLE_ENDPOINTS_KNOWN | (fromUnderGround ? BUNDLE_ENDPOINT_FROM_INSIDE : 0) |
-                           (hmap && terrain_point_inside(segments[i].to, heightAt) ? BUNDLE_ENDPOINT_TO_INSIDE : 0);
+                           (hmap && terrain_point_inside(segments[i].to, heightAt, ground_depth) ? BUNDLE_ENDPOINT_TO_INSIDE : 0);
       const dag::ConstSpan<BundleHit> segHits(sink.hits, sink.count);
       for (int b = firstBound[i]; b >= 0; b = bounds[b].next)
         // only a complete hit list says which bounds are still open, so the probe out of one is traced after this pass
@@ -754,13 +756,37 @@ int dacoll::trace_bundle_all_hits(dag::ConstSpan<BundleSegment> segments, int fl
   return int(written);
 }
 
-bool dacoll::bundle_segment_any_hit(const Point3 &from, const Point3 &to, int flags, int ray_mat_id)
+bool dacoll::bundle_segment_any_hit(const Point3 &from, const Point3 &to, int flags, int ray_mat_id, float ground_depth)
 {
   const BundleSegment seg = {from, to};
   BundleHit hit;
   BundleRange range;
   return trace_bundle_all_hits(dag::ConstSpan<BundleSegment>(&seg, 1), flags, ray_mat_id, dag::Span<BundleHit>(&hit, 1),
-           dag::Span<BundleRange>(&range, 1), 1, /*certify_endpoints*/ false) > 0;
+           dag::Span<BundleRange>(&range, 1), 1, /*certify_endpoints*/ false, ground_depth) > 0;
+}
+
+bool dacoll::bundle_box_under_ground(const BBox3 &box, int flags, float ground_depth)
+{
+  const LandMeshManager *lmesh = (flags & ETF_HEIGHTMAP) ? get_lmesh() : nullptr;
+  float bottomTop = 0.f;
+  if (!lmesh || !lmesh->getHmapHandler() || !terrain_bottom_over(*lmesh->getHmapHandler(), box, ground_depth, bottomTop))
+    return false;
+  if (const LandMeshHolesManager *holes = lmesh->getHolesManager()) // a hole has no layer
+  {
+    ScopedLockReadTemplate<OSReadWriteLock> holesGuard(&holes->rewriteLock());
+    if (holes->approximateCheckBBox(BBox2(Point2::xz(box[0]), Point2::xz(box[1]))))
+      return false;
+  }
+  if (!(flags & ETF_RI))
+    return true;
+  // the bundle walk never hits pos instances
+  struct AnyInstance final : public rendinst::ForeachCB
+  {
+    bool found = false;
+    void executeForTm(RendInstGenData *, const rendinst::RendInstDesc &, const TMatrix &) override { found = true; }
+  } any;
+  rendinst::foreachRIGenInBox(BBox3(box[0], Point3(box[1].x, bottomTop, box[1].z)), rendinst::GatherRiTypeFlag::RiGenTmAndExtra, any);
+  return !any.found;
 }
 
 bool dacoll::trace_sphere_cast_ex(const Point3 &from, const Point3 &to, float rad, int num_casts, dacoll::ShapeQueryOutput &out,

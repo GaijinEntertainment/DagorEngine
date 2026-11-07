@@ -1,0 +1,34 @@
+WARNING: w289 (param-pos) The function parameter 'x' seems to be in the wrong position.
+testData/static_analyzer/w289_ctor.nut:8:17
+
+let y = 2
+let _s = Spot(y, x)
+                 ^
+return Point(y, x)
+
+
+WARNING: w289 (param-pos) The function parameter 'y' seems to be in the wrong position.
+testData/static_analyzer/w289_ctor.nut:8:14
+
+let y = 2
+let _s = Spot(y, x)
+              ^
+return Point(y, x)
+
+
+WARNING: w289 (param-pos) The function parameter 'x' seems to be in the wrong position.
+testData/static_analyzer/w289_ctor.nut:9:16
+
+let _s = Spot(y, x)
+return Point(y, x)
+                ^
+
+
+WARNING: w289 (param-pos) The function parameter 'y' seems to be in the wrong position.
+testData/static_analyzer/w289_ctor.nut:9:13
+
+let _s = Spot(y, x)
+return Point(y, x)
+             ^
+
+

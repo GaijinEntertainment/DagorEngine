@@ -3,14 +3,21 @@
 #include "ast.h"
 #include "opcodes.h"
 #include "compilationcontext.h"
-
-struct SQFuncState;
+#include "sqfuncstate.h"
 
 namespace SQCompilation {
 
 struct SQScope {
     SQInteger outers;
     SQInteger stacksize;
+};
+
+struct NameBinding {
+    enum Kind { NONE, LOCAL, CALLEE, OUTER, CONST };
+    Kind kind = NONE;
+    SQInteger pos = -1;         // LOCAL: stack slot; OUTER: outer index, from bindName only
+    SQCompiletimeVarInfo info;  // LOCAL and OUTER
+    SQObjectPtr value;          // CONST
 };
 
 class CodeGenVisitor : public Visitor {
@@ -44,22 +51,27 @@ public:
 
     bool generate(RootBlock *root, SQObjectPtr &out);
 
-    // API for const building
+    // What `id` means at the current point of codegen. Changes no state.
+    // Throws a compile error when the own name of the function is also an outer variable or a constant.
+    NameBinding lookupName(const Id *id);
+
+    SQObjectPtr compileConstFunc(FunctionExpr *funcExpr);
+    Expr *deparen(Expr *e) const;
+
+private:
+    // As lookupName, and also captures an outer variable; call it only where the code for `id` is emitted
+    NameBinding bindName(const Id *id);
+    NameBinding resolveName(const Id *id, bool capture);
+    bool lookupConst(const Id *id, SQObjectPtr &value);
     bool IsConstant(const SQObject &name, SQObjectPtr &e);
     bool IsLocalConstant(const SQObject &name, SQObjectPtr &e);
     bool IsGlobalConstant(const SQObject &name, SQObjectPtr &e);
-    // Resolves `name` to its compile-time constant value, unless a local/outer
-    // of the same name shadows it. Returns true and sets `e` on success.
-    bool ResolveUnshadowedConst(const SQObjectPtr &name, SQObjectPtr &e);
-
-    SQObjectPtr compileConstFunc(FunctionExpr *funcExpr);
-
-private:
 
     void ThrowIfUsedBeforeDefinition(const Id *id, const SQCompiletimeVarInfo &varInfo);
     void ThrowForwardDeclarationWriteError(Expr *lvalue, const SQCompiletimeVarInfo &varInfo);
     void CheckForwardDeclarationsDefined();
 
+    void CheckFunctionNameConflict(SQFuncState *fs, Node *n, const SQObject &name, const char *desc);
     void CheckDuplicateLocalIdentifier(Node *n, SQObject name, const char *desc, bool ignore_global_consts);
     void CheckOuterLocalIdentifier(Node *n, SQObject name, const char *desc);
     bool CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj);
@@ -86,8 +98,12 @@ private:
     void emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs);
     void emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lvalue, Expr *rvalue);
     void emitInlineConst(Expr *const_initializer);
+    bool emitFoldedConst(Expr *expr);
 
     bool isConstEvaluable(Expr *expr);
+    // Like ConstGenVisitor, but gives false instead of an error; the own-name clash of lookupName still throws
+    bool resolveConstRef(Expr *expr, SQObjectPtr &value);
+    bool ResolveFastcallField(Expr *callee, SQInteger nargs, SQObjectPtr &table, SQObjectPtr &native);
 
     void emitNewSlot(Expr *lvalue, Expr *rvalue);
     void emitAssign(Expr *lvalue, Expr * rvalue);
@@ -125,9 +141,7 @@ private:
     };
     ResolvedCallee resolveCallee(Expr *callee);
 
-    Expr *deparen(Expr *e) const;
     bool isFreezeCall(Expr *node);
-    bool isPureFunctionCall(Expr *node);
 
     SQObjectPtr compileFunc(FunctionExpr *funcExpr, bool is_const, sqvector<SQObjectPtr> *out_defparam_values);
 

@@ -22,7 +22,6 @@ struct DeformHeightmapDesc
   float minTerrainHeight = 0.f;
   float maxTerrainHeight = 100.f;
   float fpsCamDist = 0.08f;
-  const char *paramsDataBlockName = "gamedata/deform_heightmap_params.blk";
 };
 
 class DeformHeightmap
@@ -78,7 +77,6 @@ private:
   bool needClearDepth;
   int prevRtIdx, currentRtIdx;
   int prevMaskIdx, currentMaskIdx;
-  int postFxSrcIdx, postFxDstIdx;
   Point2 currentCamPosXZ, prevCamPosXZ;
   Driver3dRenderTarget origRt;
   ViewProjMatrixContainer origViewProj;

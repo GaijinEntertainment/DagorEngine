@@ -4,3 +4,5 @@
   file:t = "water_foam_trail.dshl"
   file:t = "foam/foam.dshl"
   file:t = "ibl_cube.dshl"
+  include "../../../gameLibs/render/raytracedToroidalStaticShadow/_shaders.blk"
+  file:t = "render/raytracedToroidalStaticShadow/shaders/rtss_box_occlusion.dshl"

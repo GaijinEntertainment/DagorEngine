@@ -8,7 +8,7 @@
 
 namespace HumanInput
 {
-// constraint: byte for byte the layout of Sony's ScePadTriggerEffectParam (pad_trigger_effect.h, isteamdualsense.h)
+// byte for byte the layout of Sony's ScePadTriggerEffectParam (pad_trigger_effect.h, isteamdualsense.h)
 enum TriggerEffectMode : uint32_t
 {
   TRIGGER_EFFECT_MODE_OFF,
@@ -81,6 +81,26 @@ struct TriggerEffectParam
   uint8_t padding[7] = {};
   TriggerEffectCommand command[TRIGGER_EFFECT_TRIGGER_NUM];
 };
+
+enum TriggerEffectState : int32_t
+{
+  TRIGGER_EFFECT_STATE_OFF,
+  TRIGGER_EFFECT_STATE_FEEDBACK_STANDBY,
+  TRIGGER_EFFECT_STATE_FEEDBACK_ACTIVE,
+  TRIGGER_EFFECT_STATE_WEAPON_STANDBY, // before the start position
+  TRIGGER_EFFECT_STATE_WEAPON_PULLING, // in the resistance
+  TRIGGER_EFFECT_STATE_WEAPON_FIRED,   // past the end until back before start
+  TRIGGER_EFFECT_STATE_VIBRATION_STANDBY,
+  TRIGGER_EFFECT_STATE_VIBRATION_ACTIVE,
+  TRIGGER_EFFECT_STATE_INTERCEPTED = -1, // the system took the triggers
+};
+
+struct TriggerEffectStateInfo
+{
+  TriggerEffectState state[TRIGGER_EFFECT_TRIGGER_NUM] = {}; // TRIGGER_EFFECT_INDEX_L2, TRIGGER_EFFECT_INDEX_R2
+};
+
 static_assert(sizeof(TriggerEffectCommand) == 56);
 static_assert(sizeof(TriggerEffectParam) == 120);
+static_assert(sizeof(TriggerEffectStateInfo) == 8);
 } // namespace HumanInput

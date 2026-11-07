@@ -828,6 +828,7 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
     }
 
     class Module_DASBIND : public Module {
+        uint64_t cppHash = 0;
     public:
         Module_DASBIND() : Module("dasbind") {
             DAS_PROFILE_SECTION("Module_DASBIND");
@@ -843,6 +844,10 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             addExtern<DAS_BIND_FUN(dasbind_get_library)>(*this, lib, "__dasbind_get_library",
                 SideEffects::accessExternal, "dasbind_get_library")
                     ->args({"library"});
+            cppHash = Module::getOwnSemanticHash();
+        }
+        virtual uint64_t getOwnSemanticHash () const override {
+            return cppHash;
         }
         virtual ModuleAotType aotRequire ( TextWriter & tw ) const override {
             tw << "#include \"daScript/simulate/aot_builtin_dasbind.h\"\n";

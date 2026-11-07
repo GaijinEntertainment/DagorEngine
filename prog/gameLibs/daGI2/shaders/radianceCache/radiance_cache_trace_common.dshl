@@ -43,11 +43,6 @@ macro RADIANCE_CACHE_TRACE_PROBE(code)
   DAGI_RAD_GRID_SAMPLE(code)
   DAGI_MEDIA_SCENE_SAMPLE(code)
   hlsl(code) {
-    float3 Round_R11G11B10_FLOAT( float3 rgb )//use rounding when convert to r11g11b10. HW uses truncation, causing yellowish picture
-    {
-      return float3(f16tof32((f32tof16(rgb.xy) +  8) & 0x7FF0), f16tof32((f32tof16(rgb.z) + 16) & 0x7FE0));
-    }
-
     void traceProbe(int3 probeWorldCoordClip, uint radianceCacheClip, uint2 octCoord, uint frameId, out float3 radiance, out float occluder_distance, uint radiance_res = RADIANCE_CACHE_RADIANCE_RES)
     {
       float2 octTC = (octCoord + 0.5)/radiance_res;

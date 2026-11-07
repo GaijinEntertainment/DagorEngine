@@ -76,6 +76,7 @@
 #define RESTAG_ENVIRONMENT_ANALYZER "EnvironmentAnalyzer"
 #define RESTAG_EXPLOSION_PATCH      "explosionPatch"
 #define RESTAG_TRACK                "track"
+#define RESTAG_FOAM_TRAIL           "foamtrail"
 #define RESTAG_VAPOR                "vapor"
 #define RESTAG_WT                   "wt"
 #define RESTAG_SCREENSHOT           "screenshot"

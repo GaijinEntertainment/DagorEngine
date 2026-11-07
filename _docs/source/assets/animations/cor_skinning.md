@@ -91,12 +91,13 @@ a single bone.
    The Enlisted Oculus dump (`shaders_spirv_oculus.blk`) does not include
    `game_common_override.blk`, so it takes the line in its own file.
 
-   Three War Thunder game dumps do not include `common_assumes_wt.blk`: the
-   PS5 compatibility dump (`shaders_ps5_compatibility.blk`), the iOS
-   compatibility dump (`shaders_metal_ios_compatibility_wt.blk`) and the Xbox
+   Two War Thunder game dumps do not include `common_assumes_wt.blk`: the
+   PS5 compatibility dump (`shaders_ps5_compatibility.blk`) and the Xbox
    One dump (`shaders_xboxOne.blk`). They take their assumes from
    `common_assumes_compatibility.blk` or `common_assumes.blk`, which War
    Thunder Mobile or VR Tanks share, so each takes the line in its own file.
+   War Thunder does not ship on iOS, so its iOS compatibility dump
+   (`shaders_metal_ios_compatibility_wt.blk`) does not take the line.
    The VR Tanks Scarlett dump (`shaders_dx12xs_vrt.blk`) includes
    `shaders_xboxOne.blk`, so it removes the line again with
    `"@delete:cor_skinning_support":i=0` in its `common_assume_vars` override.

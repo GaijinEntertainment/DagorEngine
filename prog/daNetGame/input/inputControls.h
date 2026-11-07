@@ -43,6 +43,8 @@ void send_console_actions();
 void clear_console_actions();
 void check_system_keys();
 void bind_script_api(SqModules *moduleMgr);
+// the pad touch pad aims ("touchPadAlwaysMouse"); any thread
+bool touch_pad_aims();
 } // namespace controls
 
 void pull_input_das();

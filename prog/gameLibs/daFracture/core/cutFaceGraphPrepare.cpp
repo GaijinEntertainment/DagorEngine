@@ -591,7 +591,12 @@ DAGOR_NOINLINE void prepare_planar_graph(DestrContext &ctx, const PlaneBasis &ba
         const int newVert = graph.verts.size();
         graph.verts.push_back(P);
         if (!graph.vertsH.empty())
-          graph.vertsH.push_back(lerp(graph.vertsH[ie.v0], graph.vertsH[ie.v1], ti));
+        {
+          const float hI = lerp(graph.vertsH[ie.v0], graph.vertsH[ie.v1], clamp(ti, 0.f, 1.f));
+          const float hJ = lerp(graph.vertsH[je.v0], graph.vertsH[je.v1], clamp(tj, 0.f, 1.f));
+          const bool nearI = ti >= -0.1f && ti <= 1.1f, nearJ = tj >= -0.1f && tj <= 1.1f;
+          graph.vertsH.push_back(nearI == nearJ ? (hI + hJ) * 0.5f : nearI ? hI : hJ);
+        }
         vCanon.push_back(newVert);
         splitI.v = splitJ.v = newVert;
       }

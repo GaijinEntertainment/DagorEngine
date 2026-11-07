@@ -721,9 +721,9 @@ uint32_t get_texture_res_size(const BaseTex *bt, int skip = 0)
   };
   total *= bt->backbufferCount;
 
-  return ((type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX) ? bt->depth
-                                                                                   : (type == D3DResourceType::CUBETEX ? 6 : 1)) *
-         total;
+  const uint32_t faces = (type == D3DResourceType::CUBETEX || type == D3DResourceType::CUBEARRTEX) ? 6 : 1;
+  const uint32_t layers = (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX) ? bt->depth : 1;
+  return faces * layers * total;
 }
 
 static const char *stage_names[STAGE_MAX_EXT] = {"cs", "ps", "vs", "rt/csa"};
@@ -769,11 +769,11 @@ bool remove_texture_from_states(BaseTexture *tex, bool recreate, TextureFetchSta
       {
         found = true;
         stage.resources[i].setTex(NULL, stageI);
+        g_render_state.modified = true;
+        stage.modifiedMask |= 1 << i;
         if (recreate)
         {
           stage.resources[i].setTex(tex, stageI);
-          g_render_state.modified = true;
-          stage.modifiedMask |= 1 << i;
           debug("recreate tex=%p in %s[%d]  %s", tex, stage_names[stageI], i, ((BaseTex *)tex)->getName());
         }
       }
@@ -820,6 +820,13 @@ bool remove_texture_from_states(BaseTexture *tex, bool recreate = false)
       rs.currRtState.color[i].tex = NULL;
       G_ASSERT(!recreate);
     }
+  }
+
+  if (rs.currRtState.isDepthUsed() && rs.currRtState.depth.tex == tex)
+  {
+    found = true;
+    rs.currRtState.removeDepth();
+    G_ASSERT(!recreate);
   }
 
   return found;
@@ -1399,6 +1406,27 @@ static unsigned get_texformat_usage_impl(int cflg, D3DResourceType type, const c
 }
 
 unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type) { return get_texformat_usage_impl(cflg, type); }
+
+#if DAGOR_DBGLEVEL > 0
+static constexpr unsigned UAV_USAGE_BITS = d3d::USAGE_UNORDERED | d3d::USAGE_UNORDERED_LOAD;
+static uint16_t texformat_uav_usage[(TEXFMT_LAST_DEPTH >> 24) + 1] = {};
+
+void drv3d_dx11::init_texformat_uav_usage_cache()
+{
+  for (uint32_t i = 0; i < countof(texformat_uav_usage); ++i)
+  {
+    const uint32_t texFormat = i << 24;
+    texformat_uav_usage[i] =
+      texFormat == TEXFMT_A8B8G8R8 ? UAV_USAGE_BITS : get_texformat_usage_impl(texFormat, D3DResourceType::TEX) & UAV_USAGE_BITS;
+  }
+}
+
+unsigned drv3d_dx11::get_cached_texformat_uav_usage(uint32_t fmt)
+{
+  const uint32_t i = (fmt & TEXFMT_MASK) >> 24;
+  return i < countof(texformat_uav_usage) ? texformat_uav_usage[i] : UAV_USAGE_BITS;
+}
+#endif
 
 // TODO: move to drv3d_dx11, this is dx11-specific implementation detail
 // _MULTI_INTERFACE is used to make this overload visible within d3d::inline multi_dx11 namespace

@@ -55,7 +55,6 @@ public:
   bool isFrameGenerationSuppressed() const;
 
   void preRecover();
-  void recover();
 
 #if _TARGET_PC_WIN
   bool createFrameGenerationSwapchain(DXGIFactory *factory, ID3D12CommandQueue *queue,

@@ -6,10 +6,10 @@
 #include <driver.h>
 #include <pipeline.h>
 #include <resource_memory.h>
-#include <atomic>
 #include <cinttypes>
 
 #include <debug/dag_log.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <drv/3d/dag_heap.h>
 #include <EASTL/numeric.h>
 #include <EASTL/optional.h>
@@ -500,9 +500,14 @@ private:
   static constexpr uint64_t system_commit_level_min_avail[] = {uint64_t(1) << 30, uint64_t(2) << 30};
   static constexpr uint64_t system_commit_level_limit_divider[] = {64, 32};
   static constexpr uint64_t system_commit_level_leave_divider = 4;
-  std::atomic<BudgetPressureLevels> systemCommitLevel{BudgetPressureLevels::LOW};
+  static constexpr uint64_t system_commit_wait_reserve = uint64_t(128) << 20;
+  static constexpr int system_commit_wait_timeout_msec = 5000;
+  static constexpr int system_commit_wait_cooldown_msec = 60000;
+  static constexpr int system_commit_wait_poll_msec = 250;
+  dag::AtomicPod<BudgetPressureLevels> systemCommitLevel{BudgetPressureLevels::LOW};
   int64_t systemCommitQueryTicks = 0;
   int64_t systemCommitPanicTrimTicks = 0;
+  dag::AtomicInteger<int64_t> systemCommitWaitBlockedUntilTicks{0};
   struct BehaviorStatus
   {
     bool disableHostMemoryStatusQuery : 1 = false;
@@ -567,10 +572,12 @@ public:
 
   uint64_t getHostLocalPhysicalLimit() const { return getPhysicalLimit(host_local_memory_pool); }
 
+  void waitForSystemCommit(uint64_t size);
+
 protected:
   BudgetPressureLevels getHostLocalBudgetLevel() const { return poolBudgetLevelstatus[host_local_memory_pool]; }
 
-  BudgetPressureLevels getSystemCommitLevel() const { return systemCommitLevel.load(std::memory_order_relaxed); }
+  BudgetPressureLevels getSystemCommitLevel() const { return systemCommitLevel.load(dag::memory_order_relaxed); }
 
   uint64_t getHostLocalBudgetLimit(BudgetPressureLevels level) const
   {
@@ -692,6 +699,13 @@ protected:
 #include "resource_manager/heap_components_xbox.inl.h"
 #endif
 
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+// Above every band that calculateResidencyPriority gives out, so an over-budget demotion takes
+// every other heap first. MAXIMUM is not guaranteed to be available.
+static constexpr D3D12_RESIDENCY_PRIORITY PINNED_RESIDENCY_PRIORITY =
+  static_cast<D3D12_RESIDENCY_PRIORITY>(D3D12_RESIDENCY_PRIORITY_HIGH + 0x00800000ull);
+#endif
+
 class ResourceMemoryHeapBase : public MemoryBudgetObserver
 {
   using BaseType = MemoryBudgetObserver;
@@ -728,6 +742,9 @@ protected:
   {
     ValueRange<uint64_t> range;
     AnyResourceReference resource;
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+    bool isResidencyPinned = false;
+#endif
 
     HeapResourceInfo() = default;
     HeapResourceInfo(const HeapResourceInfo &) = default;
@@ -744,10 +761,15 @@ protected:
     uint64_t otherImageSize = 0;
     uint64_t aliasSize = 0;
     uint64_t otherSize = 0;
+    uint64_t pinnedSize = 0;
     eastl::optional<D3D12_RESIDENCY_PRIORITY> priorityToUpdate;
+    bool isPriorityUpdatePending = false;
 
     D3D12_RESIDENCY_PRIORITY calculateResidencyPriority() const
     {
+      if (pinnedSize > 0)
+        return PINNED_RESIDENCY_PRIORITY;
+
       const uint64_t totalTracked = bufferSize + rtvSize + uavSize + otherImageSize + aliasSize + otherSize;
       if (totalTracked == 0)
         return D3D12_RESIDENCY_PRIORITY_LOW;
@@ -826,13 +848,34 @@ protected:
   public:
 #if DX12_SET_HEAP_RESIDENCY_PRIORITY
     const eastl::optional<D3D12_RESIDENCY_PRIORITY> &getResidencyPriority() const { return priorityToUpdate; }
+
+    eastl::optional<D3D12_RESIDENCY_PRIORITY> takePendingResidencyPriority()
+    {
+      if (!isPriorityUpdatePending)
+        return eastl::nullopt;
+      isPriorityUpdatePending = false;
+      return priorityToUpdate;
+    }
+
+    void pinResidency(HeapResourceInfo &info)
+    {
+      if (info.isResidencyPinned)
+        return;
+      info.isResidencyPinned = true;
+      pinnedSize += info.range.size();
+      priorityToUpdate = calculateResidencyPriority();
+      isPriorityUpdatePending = true;
+    }
 #endif
 
-    void updateResourceTypesOnFree([[maybe_unused]] const AnyResourceReference &ref, [[maybe_unused]] uint64_t size)
+    void updateResourceTypesOnFree([[maybe_unused]] const HeapResourceInfo &info)
     {
 #if DX12_SET_HEAP_RESIDENCY_PRIORITY
-      onFree(ref, size);
+      if (info.isResidencyPinned)
+        pinnedSize -= info.range.size();
+      onFree(info.resource, info.range.size());
       priorityToUpdate = calculateResidencyPriority();
+      isPriorityUpdatePending = true;
 #endif
     }
 
@@ -843,6 +886,7 @@ protected:
       onFree(old_ref, size);
       onAlloc(new_ref, size);
       priorityToUpdate = calculateResidencyPriority();
+      isPriorityUpdatePending = true;
 #endif
     }
   };
@@ -910,7 +954,7 @@ protected:
       G_ASSERT(rangeRef != end(usedRanges) && rangeRef->range == range);
       if (rangeRef != end(usedRanges) && rangeRef->range == range)
       {
-        updateResourceTypesOnFree(rangeRef->resource, rangeRef->range.size());
+        updateResourceTypesOnFree(*rangeRef);
         usedRanges.erase(rangeRef);
       }
       free_list_insert_and_coalesce(freeRanges, range);
@@ -929,6 +973,16 @@ protected:
         rangeRef->resource = eastl::forward<T>(ref);
       }
     }
+
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+    void pinRangeResidency(ValueRange<uint64_t> range)
+    {
+      auto rangeRef = findUsedInfo(range);
+      G_ASSERT(rangeRef != end(usedRanges) && rangeRef->range == range);
+      if (rangeRef != end(usedRanges) && rangeRef->range == range)
+        pinResidency(*rangeRef);
+    }
+#endif
 
     template <typename T>
     FreeRangeSetType::iterator selectFirstRange(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, T ignore_locked_range)
@@ -1046,9 +1100,6 @@ protected:
     uint64_t freeMemorySize = 0;
     uint32_t generation = 0;
     uint32_t defragmentationGeneration = 0;
-#if DX12_SET_HEAP_RESIDENCY_PRIORITY
-    uint32_t updatePrioritiesGeneration = 0;
-#endif
 
     void reset()
     {
@@ -1089,19 +1140,6 @@ protected:
     auto &extraData = heapGroupExtraData[heap_group];
     extraData.defragmentationGeneration = extraData.generation;
   }
-
-#if DX12_SET_HEAP_RESIDENCY_PRIORITY
-  uint32_t getHeapGroupPrioritiesUpdateGeneration(uint32_t heap_group) const
-  {
-    return heapGroupExtraData[heap_group].updatePrioritiesGeneration;
-  }
-
-  void setHeapGroupPrioritiesUpdateGeneration(uint32_t heap_group)
-  {
-    auto &extraData = heapGroupExtraData[heap_group];
-    extraData.updatePrioritiesGeneration = extraData.generation;
-  }
-#endif
 
   // Helper to iterate over free and used range in order of offset into the heap
   // Usage: for(BasicResourceHeapRangesIterator it{heap}; it; ++it) {<do stuff with it>}
@@ -1568,6 +1606,18 @@ public:
     updateMemoryRangeUseNoLock(mem, eastl::forward<T>(ref));
   }
 
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+  void pinMemoryResidency(ResourceMemory mem)
+  {
+    auto heapID = mem.getHeapID();
+    if (heapID.isAlias)
+      return;
+
+    OSSpinlockScopedLock lock{heapGroupMutex};
+    groups[heapID.group][heapID.index].pinRangeResidency(mem.getRange());
+  }
+#endif
+
 protected:
   struct GPUHeapMemoryMappingConfig
   {
@@ -1615,11 +1665,9 @@ public:
     {
       if (!props.isOnDevice(getFeatureSet()))
         continue;
-      if (getHeapGroupGeneration(props.raw) == getHeapGroupPrioritiesUpdateGeneration(props.raw))
-        continue;
       for (auto &heap : groups[props.raw])
       {
-        if (const auto &priority = heap.getResidencyPriority())
+        if (const auto priority = heap.takePendingResidencyPriority())
         {
           prioritiesToSet.push_back(*priority);
           resourcesToSetPriorities.push_back(heap.heapPointer());

@@ -97,7 +97,9 @@ macro INIT_PER_INSTANCE_DATA(code)
         int instanceOffset = max(OFFSET_TO_INSTANCE_DATA, 0);
         float paramsCount = loadBuffer(INSTANCE_DATA_BUFFER, instanceOffset + 1).w;
         int paramIdx = (int)paramsCount - index;
-        return (paramIdx >= 0) ? loadBuffer(INSTANCE_DATA_BUFFER, instanceOffset + 2 + paramIdx) : float4(0,0,0,0);
+        if (paramIdx < 0)
+          return float4(0, 0, 0, 0);
+        return loadBuffer(INSTANCE_DATA_BUFFER, instanceOffset + 2 + paramIdx);
       }
       #define GET_PER_INSTANCE_DATA(index) _dynrend_get_per_instance_data(index)
 

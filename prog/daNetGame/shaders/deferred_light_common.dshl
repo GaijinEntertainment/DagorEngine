@@ -29,7 +29,7 @@ float4 depth_bounds = float4(0, 1, 0, 0);
 float4 hero_cockpit_camera_to_point = (0, 0, 0, 0);
 
 macro INIT_DAGI_IRRADIANCE_GRID(code)
-  hlsl {
+  hlsl(code) {
     #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
     // Applied lighting will be at least half of the SH1 constant term (ambient).
     #define DAGI_IRRADIANCE_SH1_MIN_THRESHOLD_AMBIENT_MUL 0.5
@@ -208,7 +208,7 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
             {
               BRANCH
               if (is_main_camera_view_postfx())
-                sample_bilinear_specular_irradiance_with_normal(roughR, enviLightingNormal, linearize_z(rawDepth, zn_zfar.zw), worldPos, gbuffer.normal, viewPixcoord.xy, giSpecular, ambient);
+                sample_bilinear_specular_irradiance_with_normal(roughR, enviLightingNormal, linearize_z(rawDepth, zn_zfar.zw), worldPos, gbuffer.normal, gbuffer.linearRoughness, viewPixcoord.xy, giSpecular, ambient);
             ##if use_camera_in_camera == yes
               else
                 HAS_SPECULAR = sample_dagi_irradiance_grid(dist, worldPos, enviLightingNormal, view,

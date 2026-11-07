@@ -26,6 +26,8 @@ struct PhysObjStateAnnotation : das::ManagedStructureAnnotation<PhysObjState, fa
     addField<DAS_BIND_MANAGED_FIELD(logCCD)>("logCCD");
     addField<DAS_BIND_MANAGED_FIELD(isSleep)>("isSleep");
     addField<DAS_BIND_MANAGED_FIELD(hadContact)>("hadContact");
+    addField<DAS_BIND_MANAGED_FIELD(sleepTimer)>("sleepTimer");
+    addField<DAS_BIND_MANAGED_FIELD(ignoreGameObjsUntilTime)>("ignoreGameObjsUntilTime");
   }
 };
 

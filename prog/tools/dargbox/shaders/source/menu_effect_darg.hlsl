@@ -180,5 +180,5 @@ float4 darg_ps(float2 uv)
     c += get_dust(uv, float2(2000.0, 2000.0), mg.y) * 0.3;
     #endif
 
-    return float4(c, darg_opacity);
+    return float4(c * darg_opacity, darg_opacity);
 }

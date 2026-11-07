@@ -229,9 +229,9 @@ void VoiceSourceControl::updatePlayback(FMOD::System *fmod_sys)
     return;
   }
 
-  FMOD_RESULT fmodRes = fmod_sys->playDSP(playbackDSP, voiceChannelGroup, true, &playbackChannel);
+  FMOD_RESULT fmodRes = fmod_sys->playDSP(playbackDSP, nullptr, true, &playbackChannel);
   CHECK_FMOD_RETURN(fmodRes, "failed to play voice");
-  // constraint: the room's max distance is where the server stops sending the voice, so a linear fade keeps it clear
+  // the room's max distance is where the server stops sending the voice, so a linear fade keeps it clear
   playbackChannel->setMode(source.isPositional() ? FMOD_3D | FMOD_3D_LINEARROLLOFF : FMOD_2D);
   applyVolume();
 
@@ -282,7 +282,7 @@ void VoiceSourceControl::update3dAttributes()
   const float distance = length(pos - Point3(listenerPos.x, listenerPos.y, listenerPos.z));
   const float level = pan_level_at(tuning, distance);
   playbackChannel->set3DLevel(level);
-  // constraint: FMOD scales its rolloff by the 3D level too, so the volume restores the linear fade to the max distance
+  // FMOD scales its rolloff by the 3D level too, so the volume restores the linear fade to the max distance
   const float minDistance = eastl::min(source.getMinDistance(), source.getMaxDistance()), maxDistance = source.getMaxDistance();
   float rolloff = 1.0f;
   if (distance > minDistance && rolloffScale > 0.0f)

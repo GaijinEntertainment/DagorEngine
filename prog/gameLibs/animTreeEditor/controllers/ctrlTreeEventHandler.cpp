@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "ctrlTreeEventHandler.h"
+#include "../animTreeEditorHost.h"
 #include "../animTreeUtils.h"
 #include "../animTreePanelPids.h"
 
@@ -10,21 +11,9 @@
 #include <osApiWrappers/dag_direct.h>
 #include <assets/assetUtils.h>
 
-namespace ContextMenu
-{
-enum
-{
-  DRAW_CHILDS_TREE = 0,
-  COPY_CONTROLLER_NAME,
-  COPY_FILEPATH,
-  COPY_FOLDER_PATH,
-  COPY_RESOLVED_FOLDER_PATH,
-  REVEAL_IN_EXPLORER,
-};
-}
-
-CtrlTreeEventHandler::CtrlTreeEventHandler(dag::Vector<AnimCtrlData> &controllers, dag::Vector<String> &paths, ChildsDialog &dialog) :
-  dialog(dialog), controllers(controllers), paths(paths)
+CtrlTreeEventHandler::CtrlTreeEventHandler(dag::Vector<AnimCtrlData> &controllers, dag::Vector<String> &paths, ChildsDialog &dialog,
+  IAnimTreeEditorHost &host) :
+  dialog(dialog), host(host), controllers(controllers), paths(paths)
 {}
 
 bool CtrlTreeEventHandler::onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id,
@@ -42,6 +31,8 @@ bool CtrlTreeEventHandler::onTreeContextMenu(PropPanel::ContainerPropertyControl
       {
         menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::COPY_CONTROLLER_NAME, "Copy controller name");
         menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::DRAW_CHILDS_TREE, "Draw childs tree");
+        if (host.canSelectInGraph())
+          menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::SELECT_IN_GRAPH, "Select in graph");
       }
       else
       {
@@ -82,6 +73,7 @@ int CtrlTreeEventHandler::onMenuItemClick(unsigned id)
       clipboard::set_clipboard_ansi_text(find_resolved_folder_path(paths, *asset, ctrlsTree, selLeaf));
       break;
     case ContextMenu::REVEAL_IN_EXPLORER: dag_reveal_in_explorer(find_full_path(paths, *asset, ctrlsTree, selLeaf)); break;
+    case ContextMenu::SELECT_IN_GRAPH: host.selectInGraph(ctrlsTree->getCaption(selLeaf)); break;
   }
   return 0;
 }

@@ -287,6 +287,12 @@ bool ECSEntityObject::isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) 
   return hasTransform() && is_box_selected_by_point_click(lbb, matrix, vp, x, y);
 }
 
+bool ECSEntityObject::mayDelete()
+{
+  return !isLocked() && !ECSObjectEditor::isSystemOwnedEntity(eid) &&
+         (!ecs::g_scenes || !ecs::g_scenes->getActiveScene().isSystemEntity(eid));
+}
+
 void ECSEntityObject::render()
 {
   updateObjectFlags();
@@ -433,6 +439,13 @@ void ECSEntityObject::onRemove(ObjectEditor *objEd)
 {
   if (!g_entity_mgr->doesEntityExist(eid))
     return;
+
+  if (ECSObjectEditor::isSystemOwnedEntity(eid) || (ecs::g_scenes && ecs::g_scenes->getActiveScene().isSystemEntity(eid)))
+  {
+    resetEid();
+    return;
+  }
+
   if (eid != ecs::INVALID_ENTITY_ID)
     removedEntityData.reset(new ECSEntityCreateData(eid));
   if (ecs::g_scenes.get())
@@ -455,7 +468,11 @@ void ECSEntityObject::onAdd(ObjectEditor *objEd)
       ecs::g_scenes->getActiveScene().setTargetSceneId(removedEntityData->scene);
     }
 
-    setupEid(static_cast<ECSObjectEditor *>(objEd)->createEntityDirect(removedEntityData.get()));
+    ecs::EntityId newEid = static_cast<ECSObjectEditor *>(objEd)->createEntityDirect(removedEntityData.get());
+
+    if (newEid != ecs::INVALID_ENTITY_ID)
+      setupEid(newEid);
+
     if (ecs::Scene::EntityRecord *pRec = ecs::g_scenes->getActiveScene().findEntityRecordForModify(eid))
       if (removedEntityComponents)
         pRec->clist = eastl::move(*removedEntityComponents);
@@ -482,17 +499,12 @@ ECSEntityObject *ECSEntityObject::cloneObject(const char *template_name)
     ECSEntityCreateData cd(eid, template_name);
     ecs::EntityId clone_eid = static_cast<ECSObjectEditor *>(getObjEditor())->createEntityDirect(&cd);
 
-    if (clone_eid != ecs::INVALID_ENTITY_ID)
-    {
-      ecs::g_scenes->getActiveScene().cloneEntityRecord(eid, clone_eid, template_name);
-    }
+    if (clone_eid == ecs::INVALID_ENTITY_ID)
+      return nullptr;
 
+    ecs::g_scenes->getActiveScene().cloneEntityRecord(eid, clone_eid, template_name);
     o = new ECSEntityObject(clone_eid);
-
-    if (clone_eid != ecs::INVALID_ENTITY_ID)
-    {
-      g_entity_mgr->sendEventImmediate(clone_eid, EditorOnInitClonedEntity());
-    }
+    g_entity_mgr->sendEventImmediate(clone_eid, EditorOnInitClonedEntity());
   }
   o->props = props;
   return o;
@@ -503,6 +515,8 @@ void ECSEntityObject::recreateObject(ObjectEditor *objEd)
   if (eid == ecs::INVALID_ENTITY_ID)
     return;
   if (!g_entity_mgr->doesEntityExist(eid))
+    return;
+  if (ECSObjectEditor::isSystemOwnedEntity(eid))
     return;
 
   eastl::unique_ptr<ECSEntityCreateData> newData(new ECSEntityCreateData(eid));

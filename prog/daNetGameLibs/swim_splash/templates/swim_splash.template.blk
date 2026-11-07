@@ -1,14 +1,16 @@
 human_swimsplash_fx
 {
-  swimsplash__maxDistanceFromCameraToUpdate:r=30
+  _tags:t="render"
+
+  swimsplash__maxDistanceFromCameraToUpdateSq:r=900
   swimsplash__offset:p3=0, 0.15, 0
   swimsplash__scaleMul:r=0.165
+  swimsplash__scaleFx:b=yes
   swimsplash__minTimeBetweenSplashes:r=0.033
   swimsplash__maxRenderingSpeed:r=30
-  swimsplash__fx:t="water_hit_swimming_cmps_fx"
+  swimsplash__fxTemplate:t="hit_water_splash_swimming_effect"
 
-  swimsplash
-  {
-    _tags:t="render"
-  }
+  "swimsplash__nodeIds:list<i>"{}
+  "swimsplash__prevPositions:list<p3>"{}
+  "swimsplash__timeSinceLastSplashes:list<r>"{}
 }

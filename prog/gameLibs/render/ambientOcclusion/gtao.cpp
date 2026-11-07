@@ -13,10 +13,13 @@
 #include <shaders/dag_shaders.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint4.h>
+#include <util/dag_globDef.h>
 
 #define GLOBAL_VARS_LIST          \
   VAR(gtao_temporal_directions)   \
   VAR(gtao_temporal_offset)       \
+  VAR(gtao_frame_no)              \
+  VAR(gtao_max_raw_value)         \
   VAR(gtao_half_hfov_tan)         \
   VAR(gtao_dispatch_grid_dim)     \
   VAR(raw_gtao_tex)               \
@@ -38,8 +41,12 @@ static constexpr const char *gtao_cs_name = "gtao_main_cs";
 static constexpr const char *spatial_filter_cs_name = "gtao_spatial_cs";
 static constexpr const char *temporal_filter_cs_name = "gtao_temporal_cs";
 
-static float TEMPORAL_ROTATIONS[] = {60, 300, 180, 240, 120, 0};
-static float TEMPORAL_OFFSETS[] = {0.0f, 0.5f, 0.25f, 0.75f};
+static constexpr int TEMPORAL_LATTICE_N_DIRS = 16 * 24; // 4x4 repetitive pattern times 24 frame loop.
+// The values below are just fit coefficients to produce a uniform sample lattice.
+static constexpr int TEMPORAL_LATTICE_DIR_SHUFFLE_COEFF = 325;
+static constexpr int TEMPORAL_LATTICE_JITTER_COEFF = 215;
+// Shuffle frames to get farther samples between neighboring frames.
+static constexpr int TEMPORAL_FRAME_ORDER[] = {0, 23, 14, 15, 5, 4, 19, 3, 18, 22, 7, 11, 10, 8, 6, 9, 12, 13, 2, 20, 21, 1, 16, 17};
 
 namespace gtao_pass
 {
@@ -108,10 +115,11 @@ void resolve(const RenderResources &res, ao_common::FrameState &frame_state, ao_
   // GTAO uses local_view_N, which is initialized by setting view_tm
   d3d::settm(TM_VIEW, view_tm);
 
-  const float temporalRotation = TEMPORAL_ROTATIONS[frame_state.frameNo % 6];
-  const float temporalOffset = TEMPORAL_OFFSETS[(frame_state.frameNo / 6) % 4];
-  ShaderGlobal::set_float(gtao_temporal_directionsVarId, temporalRotation / 360);
-  ShaderGlobal::set_float(gtao_temporal_offsetVarId, temporalOffset);
+  const int frameIdx = TEMPORAL_FRAME_ORDER[frame_state.frameNo % countof(TEMPORAL_FRAME_ORDER)];
+  const int latticeIdx = frameIdx * TEMPORAL_LATTICE_DIR_SHUFFLE_COEFF % TEMPORAL_LATTICE_N_DIRS;
+  const int jitterIdx = latticeIdx * TEMPORAL_LATTICE_JITTER_COEFF % TEMPORAL_LATTICE_N_DIRS;
+  ShaderGlobal::set_float(gtao_temporal_directionsVarId, float(latticeIdx) / TEMPORAL_LATTICE_N_DIRS);
+  ShaderGlobal::set_float(gtao_temporal_offsetVarId, (jitterIdx + 0.5f) / TEMPORAL_LATTICE_N_DIRS);
 
   if (is_main_view && (sub_sample == SubFrameSample::Single || sub_sample == SubFrameSample::Last))
     frame_state.frameNo++;
@@ -166,9 +174,11 @@ static void temporal_filter(const FilterResources &res, int width, int height)
 }
 
 void spatiotemporal_filter(const FilterResources &res, BaseTexture *raw_tex, BaseTexture *prev_tex, BaseTexture *spatial_tex,
-  int width, int height)
+  int width, int height, float max_raw_value)
 {
   SCOPE_RENDER_TARGET;
+  ShaderGlobal::set_float(gtao_frame_noVarId, float(dagor_frame_no() & 0xFF));
+  ShaderGlobal::set_float(gtao_max_raw_valueVarId, max_raw_value);
 
   if (res.spatialFilterRendererCS)
     d3d::set_rwtex(STAGE_CS, 0, spatial_tex, 0, 0);
@@ -283,7 +293,7 @@ void GTAORenderer::applyGTAOFilter(BaseTexture *ssao_tex, BaseTexture *prev_ssao
   BaseTexture *prevGtaoTex = prev_ssao_tex ? prev_ssao_tex : gtaoTex[historyIdx].getBaseTex();
   BaseTexture *spatialTex = tmp_tex ? tmp_tex : gtaoTex[spatialTargetIdx].getBaseTex();
 
-  gtao_pass::spatiotemporal_filter(resources.filter, rawTex, prevGtaoTex, spatialTex, aoWidth, aoHeight);
+  gtao_pass::spatiotemporal_filter(resources.filter, rawTex, prevGtaoTex, spatialTex, aoWidth, aoHeight, HALFPI);
 
   if (useOwnTextures)
   {

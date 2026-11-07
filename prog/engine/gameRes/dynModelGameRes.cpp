@@ -13,6 +13,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_delayedAction.h>
 #include <debug/dag_log.h>
+#include <debug/dag_streamingLog.h>
 #include <generic/dag_initOnDemand.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_mutex.h>
@@ -178,6 +179,12 @@ bool DynModelGameResFactory::freeUnusedResources(RRL rrl, bool forced_free_unref
       else
         FATAL_ON_UNLOADING_USED_RES(gameRes[i].resId, gameRes[i].sceneRes->getRefCount());
     }
+    if (is_streaming_log_enabled())
+    {
+      String name;
+      get_game_resource_name(gameRes[i].resId, name);
+      STREAMING_LOG("dynModel free %s res=%p", name, gameRes[i].sceneRes.get());
+    }
     if (dmUnitedVdataUsed)
       dmUnitedVdata.delRes(gameRes[i].sceneRes);
     erase_items(gameRes, i, 1);
@@ -261,6 +268,7 @@ void DynModelGameResFactory::loadGameResourceData(int res_id, IGenLoad &cb)
   Ptr<DynamicRenderableSceneLodsResource> srcRes =
     DynamicRenderableSceneLodsResource::loadResource(cb, flags, name, -1, gameres_dynmodel_desc.getBlockByName(name));
 
+  STREAMING_LOG("dynModel load %s res=%p", name, srcRes.get());
   if (srcRes && dmUnitedVdataUsed)
     dmUnitedVdata.addRes(srcRes);
   textag_mark_end();
@@ -418,7 +426,7 @@ void register_dynmodel_gameres_factory(bool use_united_vdata, bool allow_united_
   }
 
   dynmodel_factory.demandInit();
-  dynmodel_factory->makeBuffersBindable = ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableBVH", false);
+  dynmodel_factory->makeBuffersBindable = d3d::get_driver_desc().caps.hasRayQuery;
   ::add_factory(dynmodel_factory);
 }
 

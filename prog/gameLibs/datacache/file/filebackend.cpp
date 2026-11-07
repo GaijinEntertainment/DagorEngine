@@ -67,12 +67,12 @@ Backend *FileBackend::create(const FileBackendConfig &config)
     bck->roMountPath = bck->mountPath;
   bck->maxSize = config.maxSize;
   bck->manualEviction = config.manualEviction;
-  bck->aioJobId = config.aioJobId;
+  bck->aioJobId = config.syncPopulate ? -1 : config.aioJobId; // no job manager: the scan runs inline
 
   if (config.csMgr)
     bck->csMgr = config.csMgr;
 
-  if (bck->maxSize != 0) // not inifity storage, do populate for eviction
+  if (bck->maxSize != 0 || config.syncPopulate) // populate for eviction (not infinite storage), or for an up-front entry list
     bck->doPopulate();
 
   DOTRACE1("file cache mounted to '%s', maxSize = %dK", bck->mountPath, (int)bck->maxSize >> 10);
@@ -327,11 +327,9 @@ void FileBackend::doPopulate()
   G_ASSERT(populateStatus != POPULATION_IN_PROGRESS);
   populateStatus = POPULATION_IN_PROGRESS;
   FindFilesAsyncJob *job = new FindFilesAsyncJob(this);
+  ffJob = job;
   if (aioJobId >= 0)
-  {
-    ffJob = job;
     cpujobs::add_job(aioJobId, job);
-  }
   else
   {
     job->doJob();

@@ -51,7 +51,7 @@ struct SQVM : public CHAINABLE_OBJ
         SQInt32 _prevtop;
         SQInt32 _target;
         SQInt32 _ncalls;
-        SQBool _root;
+        bool _root;
     };
 
 typedef sqvector<CallInfo> CallInfoVec;
@@ -59,7 +59,8 @@ public:
     void DebugHookProxy(SQInteger type, const char * sourcename, SQInteger line, const char * funcname);
     static void _DebugHookProxy(HSQUIRRELVM v, SQInteger type, const char * sourcename, SQInteger line, const char * funcname);
     // _THROW variants: caller pre-loads `v->_lasterror`; resume jumps to exception_trap.
-    enum ExecutionType { ET_CALL, ET_RESUME_GENERATOR, ET_RESUME_GENERATOR_THROW, ET_RESUME_VM,ET_RESUME_THROW_VM };
+    // ET_TAILCALL: run the frame that sq_tailcall or SQPreparedCall set up.
+    enum ExecutionType { ET_CALL, ET_RESUME_GENERATOR, ET_RESUME_GENERATOR_THROW, ET_RESUME_VM,ET_RESUME_THROW_VM, ET_TAILCALL };
     SQVM(SQSharedState *ss);
     ~SQVM();
     bool Init(SQVM *friendvm, SQInteger stacksize);
@@ -126,11 +127,6 @@ public:
     bool BW_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,const SQObjectPtr &o2);
     bool NEG_OP(SQObjectPtr &trg,const SQObjectPtr &o1);
     bool CMP_OP(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2,SQObjectPtr &res);
-    bool CMP_OP_RES(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2,int &res);
-    bool CMP_OP_RESI(CmpOP op, const SQObjectPtr &o1,const SQInteger o2,int &res);
-    bool CMP_OP_RESF(CmpOP op, const SQObjectPtr &o1,const SQFloat o2,int &res);
-    bool ObjCmpI(const SQObjectPtr &o1, const SQInteger o2,SQInteger &res);
-    bool ObjCmpF(const SQObjectPtr &o1, const SQFloat o2,SQInteger &res);
     bool CLOSURE_OP(SQObjectPtr &target, SQFunctionProto *func);
     bool CLASS_OP(SQObjectPtr &target,SQInteger base);
     //return true if the loop is finished
@@ -163,15 +159,15 @@ public:
 
     static bool IsFalse(const SQObject &o);
 
-    void Pop();
-    void Pop(SQInteger n);
-    void Push(const SQObjectPtr &o);
-    void Push(SQObjectPtr &&o);
-    void PushNull();
-    SQObjectPtr &Top();
-    SQObjectPtr &PopGet();
-    SQObjectPtr &GetUp(SQInteger n);
-    SQObjectPtr &GetAt(SQInteger n);
+    void Pop() { ValidateThreadAccess(); _stack[--_top].Null(); }
+    void Pop(SQInteger n) { ValidateThreadAccess(); for (SQInteger i = 0; i < n; i++) _stack[--_top].Null(); }
+    void Push(const SQObjectPtr &o) { ValidateThreadAccess(); _stack[_top++] = o; }
+    void Push(SQObjectPtr &&o) { ValidateThreadAccess(); _stack[_top++] = std::move(o); }
+    void PushNull() { ValidateThreadAccess(); _stack[_top++].Null(); }
+    SQObjectPtr &Top() { return _stack[_top-1]; }
+    SQObjectPtr &PopGet() { ValidateThreadAccess(); return _stack[--_top]; }
+    SQObjectPtr &GetUp(SQInteger n) { ValidateThreadAccess(); return _stack[_top+n]; }
+    SQObjectPtr &GetAt(SQInteger n) { ValidateThreadAccess(); return _stack[n]; }
 
     #if SQ_CHECK_THREAD >= SQ_CHECK_THREAD_LEVEL_DEEP
     inline void ValidateThreadAccess() {
@@ -202,6 +198,7 @@ public:
     SQObjectPtr _errorhandler;
 
     bool _debughook;
+    bool _infastcall = false;
     SQDEBUGHOOK _debughook_native;
     SQObjectPtr _debughook_closure;
     SQInteger _current_thread;
@@ -238,6 +235,40 @@ struct AutoDec{
     AutoDec(SQInteger *n) { _n = n; }
     ~AutoDec() { (*_n)--; }
     SQInteger *_n;
+};
+
+// A call of one closure with a set number of arguments, prepared once and made many times.
+// The checks that depend only on the closure and that number run once, in the constructor.
+struct SQPreparedCall
+{
+    SQPreparedCall(SQVM *v, const SQObjectPtr &closure, SQInteger nargs, SQBool invoke_err_handler);
+
+    // the nargs argument slots of the next call, 'this' first; they lie above the stack top,
+    // with no push: the frame of EnterAndExecute starts there and LeaveFrame clears them
+    SQObjectPtr *Args() { return _v->_stack._vals + _v->_top; }
+
+    // calls with the arguments written to Args(), and clears them;
+    // outres must not be a stack slot, as the call can move the stack
+    bool Call(SQObjectPtr &outres)
+    {
+        // EnterAndExecute runs Execute<false>, which skips the call and line hooks
+        if (_plainClosure && !_v->_debughook)
+            return EnterAndExecute(outres);
+        return CallThroughVM(outres);
+    }
+
+private:
+    bool EnterAndExecute(SQObjectPtr &outres);
+    bool CallThroughVM(SQObjectPtr &outres);
+    // clears the arguments, so a refused call leaves no reference above the stack top
+    bool Refuse();
+
+    SQVM *_v;
+    SQObjectPtr _callee;
+    SQInteger _nargs;
+    SQBool _invoke_err_handler;
+    // takes the arguments as they are: no varargs, no defaults, no generator
+    SQClosure *_plainClosure;
 };
 
 // `ip` picks which instruction's line to report; the fault path

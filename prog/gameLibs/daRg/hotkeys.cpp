@@ -502,4 +502,21 @@ void Hotkeys::loadCombos(const StringKeys *csk, const Sqrat::Table &comp_desc, c
 }
 
 
+bool are_combos_equivalent(const dag::Vector<eastl::unique_ptr<HotkeyCombo>> &a, const dag::Vector<eastl::unique_ptr<HotkeyCombo>> &b)
+{
+  if (a.size() != b.size())
+    return false;
+  for (int i = 0, n = a.size(); i < n; ++i)
+  {
+    const HotkeyCombo &ca = *a[i], &cb = *b[i];
+    if (ca.buttons != cb.buttons || ca.eventName != cb.eventName || ca.ignoreConsumerCallback != cb.ignoreConsumerCallback)
+      return false;
+    SQObjectType descType = ca.description.GetType();
+    if (descType != cb.description.GetType() || (descType == OT_STRING && !ca.description.IsEqual(cb.description)))
+      return false;
+  }
+  return true;
+}
+
+
 } // namespace darg

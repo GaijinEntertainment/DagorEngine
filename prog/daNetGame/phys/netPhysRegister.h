@@ -34,7 +34,7 @@
       PNAME.cachedQuantInfo.update(PNAME.phys, eid, turret_control__gunEids);                                                        \
     if (physAlwaysSendSnapshot != nullptr)                                                                                           \
       flags |= PHYS_ALWAYS_SEND_SHANPSHOT;                                                                                           \
-    evt.get<0>()->addRecToSend({eid, flags, connControlledBy, (int8_t)(team ? *team : TEAM_UNASSIGNED), PNAME,                       \
+    evt.get<0>()->addRecToSend({eid, flags, connControlledBy, (int8_t)(team ? *team : TEAM_UNASSIGNED), 0, PNAME,                    \
                                  Point3::xyz(PNAME.phys.currentState.location.P), (uint16_t)PNAME.netPhysId, (uint16_t)physTick},    \
       PTYPE::staticPhysType, &send_snapshot_t<MSG>, static_cast<serialize_phys_snap_t>(&PTYPE::serializePhysSnapshot), netLodZones); \
   }

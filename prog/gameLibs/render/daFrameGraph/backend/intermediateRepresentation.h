@@ -390,6 +390,8 @@ struct RenderPass
   friend bool operator==(const RenderPass &first, const RenderPass &second) = default;
 };
 
+using NodePass = eastl::variant<eastl::monostate, RenderPass>;
+
 struct ShaderBlockBindings
 {
   int objectLayer = -1;
@@ -405,7 +407,7 @@ struct RequiredNodeState
   bool wire = false;
   VrsState vrs;
   // NOTE: we can be within a render pass even with no attachments bound
-  eastl::optional<RenderPass> pass;
+  NodePass pass;
   eastl::optional<shaders::OverrideState> shaderOverrides;
   eastl::array<eastl::optional<VertexSource>, MAX_VERTEX_STREAMS> vertexSources;
   eastl::optional<IndexSource> indexSource;
@@ -422,9 +424,9 @@ using DebugResourceName = eastl::fixed_string<char, 128>;
 struct Graph
 {
   IdSparseIndexedMapping<ResourceIndex, Resource> resources;
-  IdSparseIndexedMapping<NodeIndex, Node> nodes;
-  IdSparseIndexedMapping<NodeIndex, RequiredNodeState> nodeStates;
-  IdSparseIndexedMapping<NodeIndex, DebugNodeName> nodeNames;
+  IdHideableSparseIndexedMapping<NodeIndex, Node> nodes;
+  IdHideableSparseIndexedMapping<NodeIndex, RequiredNodeState> nodeStates;
+  IdHideableSparseIndexedMapping<NodeIndex, DebugNodeName> nodeNames;
   IdSparseIndexedMapping<ResourceIndex, DebugResourceName> resourceNames;
 
   void clear()
@@ -450,7 +452,7 @@ IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> apply_node_remap(Grap
   const IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> &source_to_desired,
   const IdIndexedMapping<NodeIndex, NodeIndex> &source_to_prev_dst,
   const IdIndexedFlags<NodeIndex, framemem_allocator> &source_nodes_changed,
-  IdIndexedFlags<NodeIndex, framemem_allocator> &out_nodes_changed);
+  IdIndexedFlags<NodeIndex, framemem_allocator> &out_nodes_changed, bool hide_no_effect_nodes = false);
 
 
 // These support structures can be used to determine which IR entity

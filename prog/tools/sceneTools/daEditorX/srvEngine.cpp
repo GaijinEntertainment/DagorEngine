@@ -2,6 +2,7 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
+#include <de3_assetThumbnail.h>
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <de3_entityFilter.h>
@@ -18,6 +19,7 @@
 #include <assets/texAssetBuilderTextureFactory.h>
 #include <assetsGui/av_selObjDlg.h>
 #include <assetsGui/av_tagManagement.h>
+#include <assetsGui/av_thumbnailRenderer.h>
 #include <assetsGui/av_view.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_outliner.h>
@@ -298,6 +300,9 @@ public:
     for (int i = 0; i < srvPlugins.size(); i++)
       if (strcmp(srvPlugins[i]->getInternalName(), internalName) == 0)
         return srvPlugins[i]->srv;
+    for (IEditorService *srv : services)
+      if (strcmp(srv->getServiceName(), internalName) == 0)
+        return srv;
     return nullptr;
   }
 
@@ -489,11 +494,13 @@ public:
         }
     }
 
-    const DataBlock *skipTypes = blk.getBlockByName("ignorePrebuiltAssetTypes");
-    if (!skipTypes)
-      skipTypes = blk.getBlockByNameEx("export")->getBlockByNameEx("types");
-    if (blk.getStr("gameRes", NULL) || blk.getStr("ddsxPacks", NULL))
+    if (!de3scannedResBlk.isEmpty())
+    {
+      const DataBlock *skipTypes = blk.getBlockByName("ignorePrebuiltAssetTypes");
+      if (!skipTypes)
+        skipTypes = src_assets_scan_allowed ? blk.getBlockByNameEx("export")->getBlockByNameEx("types") : &DataBlock::emptyBlock;
       assetMgr.mountBuiltGameResEx(de3scannedResBlk, *skipTypes);
+    }
 
     if (blk.getStr("fmodEvents", NULL))
       assetMgr.mountFmodEvents(blk.getStr("fmodEvents", NULL));
@@ -570,6 +577,7 @@ public:
       if (assetrefs::load_plugins(assetMgr, appblk, sgg::get_exe_path_full(), !minimize_dabuild_usage))
         conNote("asset refs plugins inited");
     }
+    assets_gui_set_thumbnail_renderer(&get_asset_thumbnail_renderer());
     const DataBlock &projDefBlk = *appblk.getBlockByNameEx("projectDefaults");
     if (bool zstd = projDefBlk.getBool("preferZSTD", false))
     {
@@ -870,6 +878,7 @@ public:
     static_geom_mat_subst.setMatProcessor(nullptr);
     AssetExportCache::saveSharedData();
     AssetExportCache::releaseSharedData();
+    assets_gui_set_thumbnail_renderer(nullptr);
 
     del_it(tagManager);
 
@@ -880,6 +889,8 @@ public:
       if (auto *srv = EDITORCORE->queryEditorInterface<IDynRenderService>())
         srv->term();
     }
+
+    term_asset_thumbnail_rendering();
 
     // This must be after IDynRenderService::term(), because with the daNetGame-based renderer, acesfx::shutdown() accesses game
     // resources. This must be before texconvcache::term_build_on_demand_tex_factory(), because game resources keep references to

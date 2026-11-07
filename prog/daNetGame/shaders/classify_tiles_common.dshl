@@ -51,10 +51,10 @@ macro CLASSIFY_TILES_COMMON(code)
       uint2 spotLightRange = uint2(nearZbinsSpot >> 16, farZbinsSpot & 0xFFFF);
       uint mergedSpotBinsBegin = WAVE_MIN(spotLightRange.x);
       uint mergedSpotBinsEnd = WAVE_MAX(spotLightRange.y);
-      uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + DWORDS_PER_TILE / 2;
-      uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
+      uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + OMNI_DWORDS_PER_TILE;
+      uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + OMNI_DWORDS_PER_TILE;
       uint spotMaskWidth = clamp((int)spotLightRange.y - (int)spotLightRange.x + 1, 0, 32);
-      uint spotWord = DWORDS_PER_TILE / 2;
+      uint spotWord = OMNI_DWORDS_PER_TILE;
 
 ##if (dynamic_lights_count != lights_spot_1 && dynamic_lights_count != lights_omnispot_1)
       for (spotWord = spotLightsBegin; spotWord <= spotLightsEnd; ++spotWord)

@@ -57,6 +57,27 @@ A detached method gets the `this` that the caller supplies.
 
 {{example:language/functions-this}}
 
+## Its own name
+
+In its body, a function can call itself by its own name:
+`function fact(n) { return n <= 1 ? 1 : n * fact(n - 1) }`. A lambda bound by
+`let` gets the name of the binding. A function nested in the body does not see
+the name.
+
+When a variable, a constant or an import outside the function has the same
+name, a use of that name in the body is a compile error, as it could mean
+either. Give the outer binding another name:
+
+```nut
+from "lobby.nut" import leaveQueue as leaveQueueImpl
+
+let Lobby = class {
+  function leaveQueue() {
+    leaveQueueImpl(this.id)
+  }
+}
+```
+
 ## Attributes
 
 A declaration can carry attributes in brackets. They tell the compiler what a

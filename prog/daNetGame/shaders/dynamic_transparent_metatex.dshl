@@ -24,7 +24,7 @@ shader dynamic_refraction_metatex
   if (render_to_icon != yes && gi_quality != off)
   {
     USE_IN_FRUSTUM_GI(ps)
-    hlsl {
+    hlsl(ps) {
       #define GLASS_USE_GI 1
     }
   }

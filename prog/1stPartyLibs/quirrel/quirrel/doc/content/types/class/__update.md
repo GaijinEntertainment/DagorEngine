@@ -22,7 +22,7 @@ a table, class, or instance. Takes at least one argument beyond the receiver;
 calling it with none throws `wrong number of parameters passed to native closure
 '__update' (1 passed, at least 2 required)`. Since it mutates the receiver in
 place, every rule for `newmember`/`rawset` on a class applies: a locked class
-rejects a new member, and a frozen reference rejects any change.
+and a frozen reference reject any change.
 
 ## Notes
 

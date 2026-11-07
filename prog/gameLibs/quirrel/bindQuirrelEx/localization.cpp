@@ -11,7 +11,7 @@
 #include "hypenation.h"
 
 
-static void handle_plural_form(String &string_to_handle, int64_t num, const char *const num_name)
+static void handle_plural_form(String &string_to_handle, int64_t num, const char *const num_name, const char *lang)
 {
   String tmpKey(framemem_ptr());
   tmpKey.printf(32, "{%s=", num_name);
@@ -27,7 +27,7 @@ static void handle_plural_form(String &string_to_handle, int64_t num, const char
 
     String pluralStr(framemem_ptr());
     pluralStr.setSubStr(tokenStart, tokenEnd);
-    int formId = get_plural_form_id(num);
+    int formId = lang ? get_plural_form_id_for_lang(lang, num) : get_plural_form_id(num);
 
     const char *wordStart = pluralStr.find("=") + 1;
     const char *wordEnd = pluralStr.find("}");
@@ -88,7 +88,7 @@ static void read_loc_params(HSQUIRRELVM v, int tbl_idx, Tab<LocParam> &out)
 }
 
 
-static void apply_loc_params(String &text, const Tab<LocParam> &params)
+static void apply_loc_params(String &text, const Tab<LocParam> &params, const char *lang)
 {
   String token(framemem_ptr());
   for (const LocParam &p : params)
@@ -98,7 +98,7 @@ static void apply_loc_params(String &text, const Tab<LocParam> &params)
   }
   for (const LocParam &p : params)
     if (p.isNum)
-      handle_plural_form(text, p.num, p.name);
+      handle_plural_form(text, p.num, p.name, lang);
 }
 
 
@@ -131,7 +131,7 @@ static SQRESULT parse_loc_args(HSQUIRRELVM v, int first_idx, const char *key, co
 }
 
 
-static SQInteger push_loc_text(HSQUIRRELVM v, const char *key, const char *text, int params_idx)
+static SQInteger push_loc_text(HSQUIRRELVM v, const char *key, const char *text, int params_idx, const char *lang = nullptr)
 {
   if (params_idx < 0 || (!text && !*key)) // scripts pass "" with params when there is no text to show
   {
@@ -147,7 +147,7 @@ static SQInteger push_loc_text(HSQUIRRELVM v, const char *key, const char *text,
   if (text)
   {
     s = text;
-    apply_loc_params(s, params);
+    apply_loc_params(s, params, lang);
   }
   else
   {
@@ -190,7 +190,7 @@ static SQInteger localize_for_lang(HSQUIRRELVM v)
     return SQ_ERROR;
 
   const char *res = get_localized_text_for_lang(key, lang);
-  return push_loc_text(v, key, res ? res : defVal, paramsIdx);
+  return push_loc_text(v, key, res ? res : defVal, paramsIdx, res ? lang : nullptr);
 }
 
 

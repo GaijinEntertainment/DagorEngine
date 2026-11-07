@@ -15,6 +15,8 @@ dafg::NodeHandle makeScopeTargetRenameNode();
 
 dafg::NodeHandle makeRenderOpticsPrepassNode();
 dafg::NodeHandle makeRenderLensFrameNode();
+dafg::NodeHandle makeScopeLensViewProjNode(bool align_gun);
+void makeScopeGunOpaqueNodes(dag::Vector<dafg::NodeHandle> &nodes);
 dafg::NodeHandle makeRenderLensOpticsNode();
 dafg::NodeHandle makeRenderCrosshairNode();
 dafg::NodeHandle makeRenderCrosshairGUINode();

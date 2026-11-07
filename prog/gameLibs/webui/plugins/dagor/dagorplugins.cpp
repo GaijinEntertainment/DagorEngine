@@ -593,13 +593,12 @@ void console_gen(RequestInfo *params)
 }
 
 #if _TARGET_PC || _TARGET_TVOS
-static int console_log_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line);
+static void console_log_callback(void *, LogMessage &msg);
 
 static struct ConsoleLogCapture
 {
   eastl::string text;
   int64_t threadId = -1;
-  debug_log_callback_t prevCallback = nullptr;
 } console_log_capture{};
 
 static void console_log(RequestInfo *params)
@@ -620,10 +619,11 @@ static void console_log(RequestInfo *params)
 
   console_log_capture.text.clear();
   console_log_capture.threadId = get_current_thread_id();
-  console_log_capture.prevCallback = debug_set_log_callback(console_log_callback);
-  console::command(command);
+  {
+    ScopedLogHandler captureLog(&console_log_callback, nullptr, {.levelMask = LOGMASK_ALL});
+    console::command(command);
+  }
   console_log_capture.threadId = -1;
-  debug_set_log_callback(console_log_capture.prevCallback);
   if (postContent)
     tmpmem->free(postContent);
 
@@ -632,13 +632,15 @@ static void console_log(RequestInfo *params)
   console_log_capture.text = {};
 }
 
-static int console_log_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void console_log_callback(void *, LogMessage &msg)
 {
-  debug_log_callback_t prevCallback = console_log_capture.prevCallback;
-  int ret = prevCallback ? prevCallback(lev_tag, fmt, arg, anum, ctx_file, ctx_line) : 1;
   if (console_log_capture.threadId != get_current_thread_id())
-    return ret;
+    return;
 
+  const int lev_tag = msg.levTag;
+  const char *fmt = msg.fmt;
+  const void *arg = msg.arg;
+  const int anum = msg.anum;
   eastl::string &text = console_log_capture.text;
   if ((uint32_t)lev_tag <= LOGLEVEL_REMARK && lev_tag != LOGLEVEL_DEBUG)
     text.append_sprintf("[%c] ", ("FEWDR")[lev_tag]);
@@ -657,7 +659,6 @@ static int console_log_callback(int lev_tag, const char *fmt, const void *arg, i
   text.resize(start + DagorSafeArg::mixed_print_fmt(text.data() + start, len + 1, fmt, arg, anum));
   if (text.empty() || text.back() != '\n')
     text.push_back('\n');
-  return ret;
 }
 #endif
 

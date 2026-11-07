@@ -12,19 +12,21 @@
 #include <math/dag_e3dColor.h>
 #include <de3_huid.h>
 #include <de3_splineGenSrv.h>
+#include <de3_geomTagUiState.h>
 #include <de3_assetService.h>
+#include <de3_prefabs.h>
 #include <propPanel/control/container.h>
-#include <libTools/staticGeom/geomObject.h>
-#include <libTools/staticGeom/staticGeometryContainer.h>
+#include <EditorCore/ec_ViewportWindow.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <math/dag_frustum.h>
 #include "../av_riGenArea.h"
 
 enum
 {
   PID_SPLINE_TYPE_GROUP = 5,
   PID_SPLINE_LEN,
-  PID_SPLINE_GEOMTAGS_GROUP,
-  PID_SPLINE_GEOMTAGS_0,
-  PID_SPLINE_GEOMTAGS_LAST = PID_SPLINE_GEOMTAGS_0 + 256,
+  PID_SPLINE_GEOMTAGS_BEGIN,
+  PID_SPLINE_GEOMTAGS_END = PID_SPLINE_GEOMTAGS_BEGIN + GEOM_TAG_MAX * GEOM_TAG_CONTROLS,
 };
 static int rendEntGeomMask = -1;
 static int collisionMask = -1;
@@ -69,9 +71,8 @@ public:
     if (spEditor)
       spEditor->destroyPanel();
     destroy_it(genObj);
-    del_it(taggedGeom);
     geomTags.clear();
-    showReqTagId = -1;
+    tagDrawParamsDirty = true;
     return true;
   }
   IGenEventHandler *getEventHandler() override { return NULL; }
@@ -124,16 +125,24 @@ public:
   }
   void renderGeometry(Stage stage) override
   {
-    if (taggedGeom)
-      switch (stage)
-      {
-        case STG_RENDER_STATIC_OPAQUE:
-        case STG_RENDER_SHADOWS: taggedGeom->render(); break;
+    if (stage != STG_RENDER_STATIC_OPAQUE || !splSrv || !genObj)
+      return;
 
-        case STG_RENDER_STATIC_TRANS: taggedGeom->renderTrans(); break;
+    if (tagDrawParamsDirty)
+    {
+      gather_shown_geom_tags(tagStates, tagDrawParams, [&](const char *tag) { return geomTags.getNameId(tag) >= 0; });
+      tagDrawParamsDirty = false;
+    }
 
-        default: break;
-      }
+    if (tagDrawParams.empty())
+      return;
+
+    TMatrix4 globtm;
+    if (ViewportWindow *vpw = static_cast<ViewportWindow *>(EDITORCORE->getRenderViewport()))
+      d3d::calcglobtm(vpw->getViewTm(), vpw->getProjTm(), globtm);
+    else
+      d3d::getglobtm(globtm);
+    splSrv->renderLoftMaskTags(Frustum(globtm), tagDrawParams);
   }
 
   bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "spline") == 0; }
@@ -155,12 +164,12 @@ public:
     if (genObj)
     {
       panel.createSeparator();
+      panelTags.clear();
       if (geomTags.nameCount())
       {
-        rg = panel.createRadioGroup(PID_SPLINE_GEOMTAGS_GROUP, "Loft tags:");
-        iterate_names_in_lexical_order(geomTags, [&](int id, const char *nm) { rg->createRadio(PID_SPLINE_GEOMTAGS_0 + id, nm); });
-        rg->createRadio(PID_SPLINE_GEOMTAGS_LAST, "--- don't show tagged geometry ---");
-        panel.setInt(PID_SPLINE_GEOMTAGS_GROUP, PID_SPLINE_GEOMTAGS_LAST);
+        create_geom_tag_controls(panel, PID_SPLINE_GEOMTAGS_BEGIN, geomTags, panelTags);
+        for (int i = 0; i < panelTags.size(); ++i)
+          set_geom_tag_controls(panel, PID_SPLINE_GEOMTAGS_BEGIN, i, find_geom_tag_ui_state(tagStates, panelTags[i]));
       }
       else
         panel.createStatic(-1, "No loft tags for generated geometry");
@@ -174,18 +183,16 @@ public:
     if (!genObj || assetName.empty())
       return;
 
+    int tagIdx = 0;
+    int ctrlType = 0;
     if (pid == PID_SPLINE_TYPE_GROUP && splineType != (FigType)panel->getInt(pid))
       splineType = (FigType)panel->getInt(pid);
     else if (pid == PID_SPLINE_LEN && fabsf(splineLen - panel->getFloat(pid)) > 1.f)
       splineLen = panel->getFloat(pid);
-    else if (pid == PID_SPLINE_GEOMTAGS_GROUP && genObj && splSrv)
+    else if (decode_geom_tag_pid(pid, PID_SPLINE_GEOMTAGS_BEGIN, panelTags.size(), tagIdx, ctrlType))
     {
-      int tag = panel->getInt(pid) == PID_SPLINE_GEOMTAGS_LAST ? -1 : panel->getInt(pid) - PID_SPLINE_GEOMTAGS_0;
-      if (showReqTagId != tag)
-      {
-        showReqTagId = tag;
-        prepareTaggedGeom();
-      }
+      apply_geom_tag_change(*panel, pid, ctrlType, find_or_add_geom_tag_ui_state(tagStates, panelTags[tagIdx]));
+      tagDrawParamsDirty = true;
       return;
     }
     else
@@ -446,51 +453,20 @@ protected:
         bbox = genObj->getBbox();
       geomTags.clear();
       if (splSrv)
-        splSrv->gatherGeneratedGeomTags(geomTags);
-      if (showReqTagId > geomTags.nameCount())
-        showReqTagId = -1;
-      prepareTaggedGeom();
+        splSrv->gatherGeneratedGeomTags(geomTags, prefabs::LOFT_MASK_EXPORT);
+      tagDrawParamsDirty = true;
     }
     else
       bbox.setempty();
   }
-  void prepareTaggedGeom()
-  {
-    del_it(taggedGeom);
-    if (showReqTagId < 0)
-      return;
-
-    ISplineGenService::LayerIndexList loft_layers(0);
-    splSrv->gatherLoftLayers(loft_layers, false);
-
-    GeomObject all_geom;
-    loft_layers.iterate_layers([&](unsigned ll) {
-      splSrv->gatherStaticGeometry(*all_geom.getGeometryContainer(), StaticGeometryNode::FLG_RENDERABLE, false, ll, 2, -1);
-    });
-
-    taggedGeom = new GeomObject;
-    for (auto *&node : all_geom.getGeometryContainer()->nodes)
-      if (node && showReqTagId == geomTags.getNameId(node->script.getStr("layerTag", "")))
-      {
-        taggedGeom->getGeometryContainer()->nodes.push_back(node);
-        node = nullptr;
-      }
-    if (taggedGeom->getGeometryContainer()->nodes.size())
-    {
-      taggedGeom->setTm(TMatrix::IDENT);
-      taggedGeom->notChangeVertexColors(true);
-      taggedGeom->recompile();
-      taggedGeom->notChangeVertexColors(false);
-    }
-    else
-      del_it(taggedGeom);
-  }
 
 private:
   IObjEntity *genObj = nullptr;
-  GeomObject *taggedGeom = nullptr;
   OAHashNameMap<true> geomTags;
-  int showReqTagId = -1;
+  Tab<SimpleString> panelTags;   // tag of each tag control row, in panel order
+  Tab<GeomTagUiState> tagStates; // kept for the session, so the states stay when the asset changes
+  Tab<GeomTagDrawParams> tagDrawParams;
+  bool tagDrawParamsDirty = true;
   float splineLen;
   String assetName;
   FigType splineType;

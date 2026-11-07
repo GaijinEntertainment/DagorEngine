@@ -749,10 +749,10 @@ bool CollisionResource::write(IGenSave &cwr, const char *(*mat_name)(int id)) co
   return true;
 }
 
-void CollisionResourceBuilder::writeRaw(const CollisionResource &res, IGenSave &cwr)
+void CollisionResourceBuilder::writeRaw(const CollisionResource &res, IGenSave &cwr, uint32_t extra_flags)
 {
-  const CollResRawHead h = {res.vBoundingSphere, res.vBindTraceSphere, res.boundingBox, res.boundingSphereRad, res.collisionFlags,
-    res.data->blockBytes(), res.bsphereCenterNode, res.defaultInstance.posedSinceBind};
+  const CollResRawHead h = {res.vBoundingSphere, res.vBindTraceSphere, res.boundingBox, res.boundingSphereRad,
+    res.collisionFlags | extra_flags, res.data->blockBytes(), res.bsphereCenterNode, res.defaultInstance.posedSinceBind};
   cwr.write(&h, sizeof(h));
   cwr.write(res.data.get(), h.blockBytes);
   cwr.write(res.defaultInstance.poseMeta.data(), data_size(res.defaultInstance.poseMeta));

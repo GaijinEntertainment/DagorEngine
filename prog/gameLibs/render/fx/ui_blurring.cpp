@@ -14,6 +14,7 @@
 #include <shaders/dag_shaders.h>
 #include <perfMon/dag_statDrv.h>
 #include <dag/dag_vector.h>
+#include <generic/dag_align.h>
 #include <memory/dag_framemem.h>
 
 #define GLOBAL_VARS_LIST         \
@@ -34,15 +35,24 @@ constexpr int FIRST_REG = 16; // same as in shader
 constexpr int CB_SIZE = 256;
 d3d::SamplerHandle clamp_sampler;
 
-// constraint: the quads array in ui_blur.dshl holds CB_SIZE entries
-static void draw_quads(const int4 *quads, uint32_t count)
+// the quads array in ui_blur.dshl holds CB_SIZE entries
+// quads must be overallocated to an even size
+static void draw_quads(const uint2 *quads, uint32_t count)
 {
-  for (uint32_t i = 0; i < count; i += CB_SIZE)
+  for (uint32_t i = 0; i < count; i += 2 * CB_SIZE)
   {
-    const uint32_t n = min(count - i, (uint32_t)CB_SIZE);
-    d3d::set_vs_const(FIRST_REG, quads + i, n);
-    d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, n);
+    const uint32_t quadCount = min(count - i, uint32_t(2 * CB_SIZE));
+    const uint32_t regCount = dag::divide_align_up(quadCount, 2);
+    d3d::set_vs_const(FIRST_REG, quads + i, regCount);
+    d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
   }
+}
+
+static uint2 pack_quad(int l, int b, int r, int t)
+{
+  G_ASSERTF(l >= 0 && b >= 0 && r >= 0 && t >= 0 && l <= UINT16_MAX && b <= UINT16_MAX && r <= UINT16_MAX && t <= UINT16_MAX,
+    "Invalid quad [%d, %d] x [%d, %d], coords must be in [0, %d]", l, r, b, t, UINT16_MAX);
+  return uint2{uint32_t(l) | (uint32_t(b) << 16), uint32_t(r) | (uint32_t(t) << 16)};
 }
 
 static void init_blur_shader_vars()
@@ -70,7 +80,7 @@ static inline int calc_all_secondary_gauss_sizes(int max_ui_mip)
 
 static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_texture,
   int interm_texture_mip, // target_mip-bloom_last_mip_start_mip
-  PostFxRenderer &blur, const IBBox2 *begin, const IBBox2 *end, int4 *quad_buffer)
+  PostFxRenderer &blur, const IBBox2 *begin, const IBBox2 *end, uint2 *quad_buffer)
 {
   TextureInfo info;
   const int levels = tex.getTex2D()->level_count();
@@ -90,13 +100,13 @@ static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_
   ShaderGlobal::set_float4(blur_pixel_offsetVarId, 1.0f / w, 0, 0, 0);
   tex.getTex2D()->texmiplevel(tex_mip, tex_mip);
 
-  int4 *quad = quad_buffer;
+  uint2 *quad = quad_buffer;
   for (auto s = begin; s != end; ++s)
   {
     if (s->lim[1].x <= s->lim[0].x || s->lim[1].y <= s->lim[0].y)
       continue;
 
-    *(quad++) = int4(s->lim[0].x, s->lim[0].y, s->lim[1].x, s->lim[1].y);
+    *(quad++) = pack_quad(s->lim[0].x, s->lim[0].y, s->lim[1].x, s->lim[1].y);
   }
 
   blur.getElem()->setStates();
@@ -146,8 +156,8 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
   TextureInfo ui_info;
   ui_mip.getTex2D()->getinfo(ui_info, 0);
   TextureInfo dinfo;
-  dag::Vector<int4, framemem_allocator> quadBufferMem(end - begin);
-  int4 *quadBuffer = quadBufferMem.data();
+  dag::Vector<uint2, framemem_allocator> quadBufferMem(dag::align_up(end - begin, 2));
+  uint2 *quadBuffer = quadBufferMem.data();
   int downsampled_frame_mip = intermediate.getTex2D()->level_count() - 1;
   for (int l = 0, e = intermediate.getTex2D()->level_count(); l < e; ++l)
   {
@@ -173,7 +183,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
     if (!src.getTex())
       d3d::resource_barrier({background.getTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
 
-    int4 *quad = quadBuffer;
+    uint2 *quad = quadBuffer;
     for (auto s = begin; s != end; ++s)
     {
       const IPoint2 lt_ = s->lim[0], rb_ = s->lim[1];
@@ -187,7 +197,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
       if (rb.x <= lt.x || rb.y <= lt.y)
         continue;
 
-      *(quad++) = int4(lt.x, lt.y, rb.x, rb.y);
+      *(quad++) = pack_quad(lt.x, lt.y, rb.x, rb.y);
     }
 
     const uint32_t quadCount = quad - quadBuffer;
@@ -227,7 +237,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
       dag::Vector<IBBox2, framemem_allocator> mipBoxes;
       const uint32_t mask = (1 << uiMipI) - 1;
 
-      int4 *quad = quadBuffer;
+      uint2 *quad = quadBuffer;
       for (auto s = begin; s != end; ++s)
       {
         const IPoint2 lt_ = s->lim[0], rb_ = s->lim[1];
@@ -247,7 +257,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
         if (rb.x <= lt.x || rb.y <= lt.y)
           continue;
 
-        *(quad++) = int4(lt.x, lt.y, rb.x, rb.y);
+        *(quad++) = pack_quad(lt.x, lt.y, rb.x, rb.y);
 
         if (uiMipI != startUiMip && max_ui_mip > 1) // additional blurring
           mipBoxes.push_back(IBBox2(lt, rb));

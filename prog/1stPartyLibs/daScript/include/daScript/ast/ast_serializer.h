@@ -139,8 +139,7 @@ namespace das {
     // module-cache resume state (trySerializeProgramModule)
         bool                checkedStreamHeader = false;
         uint64_t            resumedModules = 0;     // records skipped + reparsed in place
-        uint64_t            resumedCorrupt = 0;     // of those, failures a rewrite REPAIRS (anything but builtinHashDrift)
-        bool                builtinHashDrift = false;   // last record failed on a builtin cumulative-hash mismatch (lazily populated builtin, e.g. dasbind) - deterministic per process, a rewrite changes nothing
+        uint64_t            resumedCorrupt = 0;     // of those, failures a rewrite REPAIRS
         bool                quietCache = false;
         int32_t             recordDepth = 0;
         uint64_t            servedModules = 0;
@@ -366,11 +365,11 @@ namespace das {
         AstSerializer & serializeModule ( Module & module, bool already_exists );
 
         static constexpr uint32_t getVersion () {
-            return 218;   // 218: max_fast_call_depth joins the module-cache policy stream
+            return 220;   // 220: Program::serialize writes the module-cache program payload
         }
 
         void serializeProgram ( ProgramPtr program, ModuleGroup & libGroup ) noexcept;
-        void serializeProgramImpl ( ProgramPtr program, ModuleGroup & libGroup ); // throws dasException; called via the noexcept wrapper above
+        void serializeProgramImpl ( ProgramPtr program, ModuleGroup & libGroup, const CodeOfPolicies * expected ); // throws dasException; expected == null adopts the stored policies
         bool serializeScript ( ProgramPtr program ) noexcept;
 
         template <uint64_t n>
@@ -504,6 +503,9 @@ namespace das {
                 baseType = (EnumType) bt;
             }
         }
+    private:
+        das_hash_map<Module *, uint64_t> builtinHashes;
+        uint64_t builtinHash ( Module * m );
     };
 
 #if DAS_SERIALIZE_PROFILE

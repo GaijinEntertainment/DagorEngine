@@ -15,7 +15,6 @@
 
 #define GLOBAL_VARS_LIST                                 \
   VAR(gi_current_froxels_radiance)                       \
-  VAR(gi_current_froxels_radiance_samplerstate)          \
   VAR(gi_froxels_world_view_pos)                         \
   VAR(gi_froxels_zn_zfar)                                \
   VAR(gi_froxels_prev_zn_zfar)                           \
@@ -25,11 +24,8 @@
   VAR(gi_froxels_jittered_current_to_unjittered_history) \
   VAR(gi_prev_froxels_sph0)                              \
   VAR(gi_prev_froxels_sph1)                              \
-  VAR(gi_prev_froxels_sph0_samplerstate)                 \
-  VAR(gi_prev_froxels_sph1_samplerstate)                 \
   VAR(gi_froxels_sph0)                                   \
   VAR(gi_froxels_sph1)                                   \
-  VAR(gi_froxels_sph1_samplerstate)                      \
   VAR(gi_froxels_temporal_frame)                         \
   VAR(gi_froxels_debug_type)                             \
   VAR(gi_froxels_sizei)                                  \
@@ -57,19 +53,8 @@ void VolumetricGI::afterReset()
   temporalFrame = 0;
   validHistory = false;
   d3d::GpuAutoLock gpuLock;
-  gi_froxels_radiance[0].dropAliases();
-  if (spatialPasses)
-  {
-    gi_froxels_radiance[1].dropAliases();
-  }
-  gi_froxels_sph0[0].dropAliases();
-  gi_froxels_sph1[0].dropAliases();
-
   if (gi_froxels_sph0[1])
   {
-    gi_froxels_sph0[1].dropAliases();
-    gi_froxels_sph1[1].dropAliases();
-
     // calc increments temporal frame and binds prev frame tex after reading from current bound prev tex
     // so for frame 0 we should read prev sph from slot 1
     d3d::clear_rwtexf(gi_froxels_sph0[1].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
@@ -198,15 +183,6 @@ void VolumetricGI::init(uint32_t tile_sz, uint32_t sw, uint32_t sh, uint32_t max
   allocate(tile_sz, max_sw, max_sh, res, spatial_passes, irradiance_probe_size, irradiance_clip_w, reproject_history, z_distr);
   nextRes.w = (sw + tile_sz - 1) / tile_sz;
   nextRes.h = (sh + tile_sz - 1) / tile_sz;
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-    d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
-    gi_froxels_sph1_samplerstateVarId.set_sampler(sampler);
-    gi_prev_froxels_sph0_samplerstateVarId.set_sampler(sampler);
-    gi_prev_froxels_sph1_samplerstateVarId.set_sampler(sampler);
-    gi_current_froxels_radiance_samplerstateVarId.set_sampler(sampler);
-  }
 }
 
 CONSOLE_BOOL_VAL("render", gi_volumetrics_calc, true);

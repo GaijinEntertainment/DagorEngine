@@ -70,8 +70,8 @@ static void water_es(const ecs::UpdateStageInfoAct &, FFTWater &water)
 {
   TIME_D3D_PROFILE(water_simulate);
   float curTime = get_sync_time();
-  if (curTime >= 0.f) // client doesn't have sync time until it received from server
-    fft_water::simulate(&water, curTime);
+  if (curTime >= 0.f)                                             // client doesn't have sync time until it received from server
+    fft_water::simulate(&water, curTime, /*wake_up_pool*/ false); // the renderer update wakes the pool for it
 }
 
 ECS_TAG(gameClient)

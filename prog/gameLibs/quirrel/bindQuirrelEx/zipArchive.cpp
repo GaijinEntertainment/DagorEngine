@@ -15,6 +15,9 @@
 #include <json/value.h>
 #include <zip.h>
 #include <string.h>
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <sys/stat.h>
+#endif
 
 
 namespace bindquirrel
@@ -38,6 +41,23 @@ static bool add_file_to_zip(zip_t *zip_archive, const char *file_path, const cha
       error_details->printf(0, "Failed to add file '%s' to archive as '%s'", file_path, archive_path);
     return false;
   }
+
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+  struct stat st;
+  if (::stat(file_path, &st) != 0)
+  {
+    if (error_details)
+      error_details->printf(0, "Failed to stat file '%s'", file_path);
+    return false;
+  }
+
+  if (zip_file_set_external_attributes(zip_archive, (zip_uint64_t)idx, 0, ZIP_OPSYS_UNIX, (zip_uint32_t)st.st_mode << 16) != 0)
+  {
+    if (error_details)
+      error_details->printf(0, "Failed to set external attributes for file '%s' in archive", file_path);
+    return false;
+  }
+#endif
 
   return true;
 }

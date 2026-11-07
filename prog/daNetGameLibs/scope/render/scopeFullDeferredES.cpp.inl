@@ -11,6 +11,8 @@
 #include <render/rendererFeatures.h>
 #include <render/world/frameGraphNodes/frameGraphNodes.h>
 #include <render/world/wrDispatcher.h>
+#include <ioSys/dag_dataBlock.h>
+#include <startup/dag_globalSettings.h>
 
 static void fill_scope_nodes(dag::Vector<dafg::NodeHandle> &nodes)
 {
@@ -23,6 +25,10 @@ static void fill_scope_nodes(dag::Vector<dafg::NodeHandle> &nodes)
   nodes.push_back(makeRenderOpticsPrepassNode());
   nodes.push_back(makeRenderLensFrameNode());
   nodes.push_back(makeRenderLensOpticsNode());
+
+  const bool alignGunInScope = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("scopeAlignGunInScope", false);
+
+  nodes.push_back(makeScopeLensViewProjNode(alignGunInScope));
   nodes.push_back(makeRenderCrosshairNode());
   nodes.push_back(makeRenderCrosshairGUINode());
 
@@ -30,16 +36,14 @@ static void fill_scope_nodes(dag::Vector<dafg::NodeHandle> &nodes)
 
   if (renderer_has_feature(FeatureRenderFlags::CAMERA_IN_CAMERA))
   {
+    if (!alignGunInScope)
+      LOGERR_ONCE("camera in camera feature is enabled but graphics/scopeAlignGunInScope is not.");
+    makeScopeGunOpaqueNodes(nodes);
+
     if (WRDispatcher::isReadyToUse() && !WRDispatcher::hasHighResFx())
     {
-      const bool hasCheckerboardDepth = renderer_has_feature(FeatureRenderFlags::UPSCALE_SAMPLING_TEX);
-      const char *downsampledDepthName =
-        hasCheckerboardDepth ? "checkerboard_depth_with_water_no_stencil" : "far_downsampled_depth_with_water_no_stencil";
-      const char *downsampledDepthRenameTo =
-        hasCheckerboardDepth ? "checkerboard_depth_with_water" : "far_downsampled_depth_with_water";
-
-      nodes.push_back(
-        makeScopeDownsampleStencilNode("scope_downsample_stencil_for_fx", downsampledDepthName, downsampledDepthRenameTo));
+      nodes.push_back(makeScopeDownsampleStencilNode("scope_downsample_stencil_for_fx", get_half_res_depth_with_water_producer_name(),
+        get_half_res_depth_with_water_name()));
     }
 
     nodes.push_back(makeScopeDownsampleStencilNode("scope_downsample_stencil", "downsampled_depth_no_stencil", "downsampled_depth"));
@@ -51,6 +55,7 @@ static void fill_scope_nodes(dag::Vector<dafg::NodeHandle> &nodes)
   nodes.push_back(makeAimDofRestoreNode());
   nodes.push_back(makeSetupScopeAimRenderingDataNode());
   nodes.push_back(makeGenAimRenderingDataNode());
+  nodes.push_back(makeScopeLensEllipseNode());
 }
 
 

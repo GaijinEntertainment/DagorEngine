@@ -9,7 +9,6 @@
 #include <util/dag_baseDef.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point2.h>
-#include <3d/dag_textureIDHolder.h>
 #include <3d/dag_eventQueryHolder.h>
 #include <util/dag_stdint.h>
 #include <generic/dag_tab.h>
@@ -293,7 +292,6 @@ protected:
   bool extraGrassInstances = false;
   // Color4 color_mask_r_from, color_mask_r_to, color_mask_g_from, color_mask_g_to, color_mask_b_from, color_mask_b_to;
 
-  // TextureIDHolder grass;
   // ComputeShaderElement *cse;
 };
 
@@ -357,7 +355,7 @@ public:
 
   void driverReset();
 
-  Texture *getMaskTex() const { return maskTex.getTex(); }
+  Texture *getMaskTex() const { return maskTex.getTex2D(); }
   float getGrassDistance() const { return base.getGrassDistance(); }
   int getMaskResolution() const { return maskResolution; }
 
@@ -371,12 +369,12 @@ public:
 
 protected:
   void updateGrassMaps(const Point3 &pos, float grass_distance, float align_size, ToroidalHelper &tex_helper,
-    TextureIDHolderWithVar &mask_tex, TextureIDHolderWithVar &color_tex, IRandomGrassRenderHelper &cb,
+    const ManagedTexWithShaderVar &mask_tex, const ManagedTexWithShaderVar &color_tex, IRandomGrassRenderHelper &cb,
     ShaderVariableInfo &coord_var_id, ShaderVariableInfo &coord_ofs_var_id);
 
   PostFxRenderer copy_grass_decals;
 
-  TextureIDHolderWithVar maskTex, colorTex, farMaskTex, farColorTex;
+  UniqueTexWithShaderVar maskTex, colorTex, farMaskTex, farColorTex;
   ToroidalHelper maskTexHelper, farMaskTexHelper;
   shaders::UniqueOverrideStateId flipCullStateId;
   eastl::vector<BBox2> boxesForInvalidation;

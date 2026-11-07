@@ -15,7 +15,7 @@ function benchmark(name, runs, workload, repeats = 1) {
   println(format("\"%s\", %.8f, %d%s", name, best / repeats, runs * repeats, tail))
 }
 
-// run_vm_bench.py format: one line per rep
+// one BENCH line per rep
 function vmBench(name, workload) {
   for (local rep = 0; rep < 5; rep++) {
     let start = clock()

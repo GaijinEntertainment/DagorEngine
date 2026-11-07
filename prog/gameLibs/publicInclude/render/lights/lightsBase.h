@@ -49,7 +49,11 @@ enum class DynLightsFeatures : uint8_t
   GpuLightsCulling = (GpuLightsPartition | GpuLightsSort | GpuLightsManagerPersistentStorage | GpuLightShadowsPersistentStorage),
   GpuClusteredLightsGrid = 16,
   GpuTiledLightsZBinning = 32,
-  GpuFull = (GpuLightsCulling | GpuClusteredLightsGrid | GpuTiledLightsZBinning)
+  GpuResidentLights = 64,
+  ClusteredLightsGridEnabled = 128,
+  GpuLightsPipeline = (GpuLightsCulling | ClusteredLightsGridEnabled | GpuClusteredLightsGrid | GpuTiledLightsZBinning),
+  GpuLightsFull = (GpuLightsPipeline | GpuResidentLights),
+  Default = (ClusteredLightsGridEnabled | GpuClusteredLightsGrid | GpuTiledLightsZBinning)
 };
 DAGOR_ENABLE_ENUM_BITMASK(DynLightsFeatures);
 class IDynLightsPipelineSection

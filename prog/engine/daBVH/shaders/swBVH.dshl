@@ -2,6 +2,18 @@ include "swBLAS.dshl"
 include "swTLAS.dshl"
 buffer bvh_bottom_structures;
 buffer bvh_top_structures;
+int bvh_blas_boxes_only = 0;
+interval bvh_blas_boxes_only: off<1, on;
+
+// call before USE_SW_BVH_RAYTRACING
+macro SW_BVH_BLAS_BOXES_ONLY_VARIANT(code)
+  if (bvh_blas_boxes_only == on)
+  {
+    hlsl(code) {
+      #define BVH_BLAS_BOXES_ONLY 1
+    }
+  }
+endmacro
 
 macro INIT_SW_BVH_RAYTRACING(code)
   (code)
@@ -59,9 +71,9 @@ hlsl(code) {
   {
     return isSomethingInFrustum(bvh_top_structures, frustum, plane4, first_leaf);
   }
-  uint findLastLeafInFrustum(float4x4 frustum, float4 plane4, uint first_leaf_ofs)
+  uint findLastLeafInFrustum(float4x4 frustum, float4 plane4)
   {
-    return findLastLeafInFrustum(bvh_top_structures, frustum, plane4, first_leaf_ofs);
+    return findLastLeafInFrustum(bvh_top_structures, frustum, plane4);
   }
 }
 endmacro

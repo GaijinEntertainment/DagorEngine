@@ -61,6 +61,7 @@
 #include <dasModules/dasFsFileAccess.h>
 #include <dasModules/aotDagorConsole.h>
 #include <perfMon/dag_autoFuncProf.h>
+#include <daRg/dag_dasScriptsLoading.h>
 #include "ui/overlay.h"
 
 #include <webui/httpserver.h>
@@ -122,6 +123,16 @@ namespace gamescripts
 {
 static bool auto_hot_reload = false;
 static bool das_gc_enabled = true;
+static bool das_modules_inited = false;
+
+// daRg compiles UI das in the game das env too, on its own worker
+struct DargCompileLock
+{
+  bool compiled = true;
+  DargCompileLock() { darg::lock_das_compile(); }
+  ~DargCompileLock() { darg::unlock_das_compile(compiled); }
+  DargCompileLock(const DargCompileLock &) = delete;
+};
 
 struct SQCloser
 {
@@ -248,6 +259,7 @@ static SQInteger get_thread_id_func() { return SQInteger(get_current_thread_id()
 static const char *get_das_entry_point() { return get_das_path_setting("game_das_script"); }
 static const char *get_das_project() { return get_das_path_setting("game_das_project"); }
 static const char *get_das_sandbox_project() { return get_das_path_setting("game_das_sandbox_project"); }
+static bool has_das_entry_points() { return get_das_init_entry_point() || get_das_entry_point(); }
 static int get_game_das_loading_threads() { return get_das_int_setting("game_das_loading_threads", 1); }
 int get_game_das_reload_threads() { return get_das_int_setting("game_das_reload_threads", 0); }
 
@@ -257,10 +269,11 @@ void global_init_das()
   const DataBlock *settings = dgs_get_settings(), *debugBlk = settings->getBlockByNameEx("debug");
 #if _TARGET_PC && DAGOR_DBGLEVEL > 0 // only allow auto hot reload in dev mode
   bool useAddonVromSrc = debugBlk->getBool("useAddonVromSrc", false);
-  auto_hot_reload = debugBlk->getBool("daScriptHotReload", useAddonVromSrc);
+  auto_hot_reload = has_das_entry_points() && debugBlk->getBool("daScriptHotReload", useAddonVromSrc);
 #endif
   debug("auto_hot_reload=%d", auto_hot_reload);
-  bind_dascript::enableSerialization = !das::is_in_aot() && settings->getBool("game_das_enable_serialization", false);
+  bind_dascript::enableSerialization =
+    has_das_entry_points() && !das::is_in_aot() && settings->getBool("game_das_enable_serialization", false);
 #if defined(DAGOR_THREAD_SANITIZER)
   bind_dascript::enableSerialization = false;
 #endif
@@ -411,7 +424,11 @@ HSQUIRRELVM init()
   net::bind_danetgame_net(moduleMgr.get());
 
   global_init_das();
-  init_das();
+  // An app with no das entry points (like a .nut only launcher) never compiles das, so it skips the costly module registration.
+  // global_init_das() then turns off the AST serializer and hot reload, which compile with these modules.
+  das_modules_inited = has_das_entry_points();
+  if (das_modules_inited)
+    init_das();
 
   return vm;
 }
@@ -707,6 +724,7 @@ bool run_game_mode_entry_scripts(const char *das_entry_fn)
   if (das_entry_fn && dd_file_exist(das_entry_fn))
   {
     debug("daScript: load game mode script '%s'", das_entry_fn);
+    DargCompileLock compileLock;
     bind_dascript::start_multiple_scripts_loading();
     bind_dascript::load_das_script(das_entry_fn); // sync loading, redo to async if need it
     bind_dascript::end_multiple_scripts_loading();
@@ -724,7 +742,11 @@ bool unload_game_mode_scripts()
   return true;
 }
 
-void unload_all_das_scripts_without_debug_agents() { bind_dascript::unload_all_das_scripts_without_debug_agents(); }
+void unload_all_das_scripts_without_debug_agents()
+{
+  DargCompileLock compileLock;
+  bind_dascript::unload_all_das_scripts_without_debug_agents();
+}
 
 void das_load_ecs_templates() { bind_dascript::das_load_ecs_templates(); }
 
@@ -755,7 +777,10 @@ bool reload_changed()
   if (das::hasDebugAgentContext("breakpointsHook", nullptr, nullptr))
     das::tickSpecificDebugAgent("breakpointsHook");
 #endif
-  const bool reloaded = bind_dascript::reload_all_changed() == bind_dascript::RELOADED;
+  DargCompileLock compileLock;
+  const bind_dascript::ReloadResult res = bind_dascript::reload_all_changed();
+  compileLock.compiled = res != bind_dascript::NO_CHANGES;
+  const bool reloaded = res == bind_dascript::RELOADED;
   if (reloaded)
   {
     bind_dascript::bind_das_events(moduleMgr.get());
@@ -804,7 +829,8 @@ bool main_thread_post_load()
   G_ASSERT(::get_current_thread_id() == ::get_main_thread_id());
   sq_limitthreadaccess(get_vm(), ::get_current_thread_id());
 
-  bind_dascript::das_add_con_proc_dagor_console();
+  if (das_modules_inited)
+    bind_dascript::das_add_con_proc_dagor_console();
 
   const bool res = bind_dascript::main_thread_post_load();
   bind_dascript::bind_das_events(moduleMgr.get());
@@ -856,6 +882,7 @@ bool reload_sq_modules(ReloadMode mode)
 // NB: this function doesn't update es order
 void reload_das_init()
 {
+  DargCompileLock compileLock;
   bind_dascript::load_event_files(true);
   if (const char *dasInitPoint = get_das_init_entry_point())
   {
@@ -891,6 +918,7 @@ bool reload_das_modules()
     set_das_version(curVersion);
     debug("Reload Das: %s -> %s", wasVersion.to_string(), curVersion.to_string());
 
+    DargCompileLock compileLock;
     bind_dascript::start_multiple_scripts_loading();
     const bool success = bind_dascript::load_entry_script(dasEntryPoint, &init_das);
     bind_dascript::end_multiple_scripts_loading();
@@ -939,10 +967,18 @@ void shutdown()
   bindquirrel::clear_logerr_interceptors(sqvm.get());
   sqeventbus::unbind(sqvm.get());
 
+  moduleMgr->callUnloadHandlersOnClose();
   frp_graph->shutdown(true);
 
   shutdown_ecs_sq_script(sqvm.get());
-  bind_dascript::shutdown_systems();
+  if (das_modules_inited) // das::Module::Shutdown() must pair with the Module::Initialize() in init_das()
+    bind_dascript::shutdown_systems();
+  else
+  {
+    // without das::Module::Shutdown() nothing frees the main thread environment that InitialLoadingThread made
+    delete das::daScriptEnvironment::exchangeOwned(nullptr);
+    das::daScriptEnvironment::setBound(nullptr);
+  }
 
   destroy_script_console_processor(sqvm.get());
 

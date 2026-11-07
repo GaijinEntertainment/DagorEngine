@@ -6,7 +6,6 @@
 #include <math/dag_Point2.h>
 
 struct Driver3dPerspective;
-class TextureIDPair;
 class AntiAliasing
 {
 public:

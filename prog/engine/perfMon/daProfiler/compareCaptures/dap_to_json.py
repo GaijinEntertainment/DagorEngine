@@ -13,7 +13,7 @@ Integer encodings (VLQ) match daProfilerDumpUtils.h.
 This aggregates per-scope, per-frame inclusive/self/call counts so the output is
 small (~hundreds of KB) and ready for statistical comparison. See FORMAT.md.
 """
-import sys, os, zlib, struct, json, argparse, bisect
+import sys, os, re, zlib, struct, json, argparse, bisect
 from collections import defaultdict
 
 MAGIC = 0xC50FC50F
@@ -100,11 +100,14 @@ class Reader:
         self.o = o
         return -r if neg else r
 
-    def sstr(self):
+    def sbytes(self):
         n = self.vlq_u()
-        s = self.b[self.o:self.o + n].decode('utf-8', 'replace')
+        s = self.b[self.o:self.o + n]
         self.o += n
         return s
+
+    def sstr(self):
+        return self.sbytes().decode('utf-8', 'replace')
 
 
 class Cap:
@@ -133,6 +136,42 @@ class Cap:
         # apart from an old dump that omits the board entirely.
         self.unique_events = {}
         self.unique_events_seen = False
+        self.string_tags = []        # (tick, tid, name, raw bytes)
+
+
+# A short string tag with arguments is stored unformatted: the printf format, a NUL, then
+# one 4-byte word per argument (TagSingleWordArgument). The viewer formats it.
+_TAG_SPEC = re.compile(r'(%[-+ #0]*\d*(?:\.\d+)?)(?:hh|h|ll|l|z|j|t|L)?([diouxXeEfFgGcs%])')
+
+
+def format_tag(raw):
+    nul = raw.find(b'\0')
+    if nul < 0:
+        return _san(raw.decode('utf-8', 'replace'))
+    fmt = raw[:nul].decode('utf-8', 'replace')
+    args = raw[nul + 1:]
+    pos = [0]
+
+    def sub(m):
+        spec, conv = m.group(1), m.group(2)
+        if conv == '%':
+            return '%'
+        if conv == 's' or pos[0] + 4 > len(args):   # no pointer args; or truncated
+            return m.group(0)
+        word = args[pos[0]:pos[0] + 4]
+        pos[0] += 4
+        if conv in 'di':
+            return (spec + 'd') % struct.unpack('<i', word)[0]
+        if conv in 'eEfFgG':
+            return (spec + conv) % struct.unpack('<f', word)[0]
+        v = struct.unpack('<I', word)[0]
+        if conv == 'u':
+            return (spec + 'd') % v
+        if conv == 'c':
+            return chr(v & 0xFF)
+        return (spec + conv) % v
+
+    return _san(_TAG_SPEC.sub(sub, fmt))
 
 
 def parse_board(r, cap, descs, desc_meta, threads):
@@ -248,8 +287,10 @@ def parse_eventframe(r, cap, descs, desc_meta, threads):
     r.i64(); r.i64()                 # trailer start, end
 
 
-def parse_tags(r, cap, descs):
-    r.i32(); r.i32()                 # board, thread index
+def parse_tags(r, cap, descs, threads):
+    r.i32()                          # board
+    ti = r.i32()
+    tid = threads[ti][2] if 0 <= ti < len(threads) else None
     while True:                      # frame tags
         tick = r.u64()
         if tick == U64_MARK:
@@ -269,11 +310,13 @@ def parse_tags(r, cap, descs):
         dp = r.vlq_u(); rt = r.vlq_u(); ps = r.vlq_u(); ins = r.vlq_u(); rp = r.vlq_u()
         tri = r.i64()
         cap.gpu_ds.append((t, dp, rt, ps, ins, rp, tri))
-    while True:                      # string tags (unused here)
+    while True:                      # string tags
         endt = r.u64()
         if endt == U64_MARK:
             break
-        r.vlq_u(); r.sstr()
+        d = r.vlq_u()
+        nm = descs[d] if 0 <= d < len(descs) else '?'
+        cap.string_tags.append((endt, tid, nm, r.sbytes()))
 
 
 def parse_callstacks(r, cap):
@@ -366,7 +409,7 @@ def parse_segment(raw, cap):
         elif typ == T_EventFrame:
             parse_eventframe(sub, cap, descs, desc_meta, threads)
         elif typ == T_TagsPack:
-            parse_tags(sub, cap, descs)
+            parse_tags(sub, cap, descs, threads)
         elif typ == T_UniqueName:
             cap.meta['uniqueName'] = sub.sstr()
         elif typ == T_CallstackPack:
@@ -446,7 +489,7 @@ def build_samples(cap, intervals_by_thread):
     return out
 
 
-def finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter):
+def finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter, want_tags=False):
     freq = cap.freq or 1
     to_us = 1e6 / freq
     cpu_frames = sorted(cap.cpu_frames)
@@ -569,11 +612,11 @@ def finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter):
     # ranked among the kept scopes and still gets per-frame detail (the point of a
     # drill-down). Idle placeholders are excluded from the ranking (their full-capture
     # span would otherwise top it and steal detail slots) and always emitted summary-only.
-    def kept(s):
-        return scope_filter is None or scope_filter.lower() in s['name'].lower()
-    real = sorted((s for s in scopes.values() if not s['idle'] and kept(s)),
+    def kept(name):
+        return scope_filter is None or scope_filter.lower() in name.lower()
+    real = sorted((s for s in scopes.values() if not s['idle'] and kept(s['name'])),
                   key=lambda s: -sum(s['incl']))
-    idle = [s for s in scopes.values() if s['idle'] and kept(s)]
+    idle = [s for s in scopes.values() if s['idle'] and kept(s['name'])]
     out_scopes = []
     out_tail = []
 
@@ -638,6 +681,14 @@ def finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter):
         })
     unique_out.sort(key=lambda x: -x['totalUs'])
 
+    tags_out = None
+    if want_tags:
+        tags_out = []
+        for (t, tid, nm, raw) in sorted(cap.string_tags, key=lambda x: x[0]):
+            if kept(nm):
+                tags_out.append({'frame': bucket(t), 'thread': cap.threads.get(tid, {}).get('name', '?'),
+                                 'name': nm, 'text': format_tag(raw)})
+
     meta = dict(cap.meta)
     meta['frameCount'] = frame_count
     meta['hasGpu'] = has_gpu
@@ -662,14 +713,16 @@ def finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter):
         doc['gpu'] = gpu_out
     if samples_out is not None:
         doc['samples'] = samples_out
+    if tags_out is not None:
+        doc['tags'] = tags_out
     return doc
 
 
 def convert_file(path, top_scopes=1024, min_incl_ms=0.0, want_perframe=True,
-                 scope_filter=None):
+                 scope_filter=None, want_tags=False):
     cap = Cap()
     read_file(path, cap)
-    return finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter)
+    return finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter, want_tags)
 
 
 def main(argv=None):
@@ -683,21 +736,24 @@ def main(argv=None):
     ap.add_argument('--no-perframe', action='store_true',
                     help="omit per-frame arrays entirely (summary only; smallest)")
     ap.add_argument('--scope', default=None,
-                    help="keep only scopes whose name contains this substring (drill-down)")
+                    help="keep only scopes (and tags) whose name contains this substring (drill-down)")
+    ap.add_argument('--tags', action='store_true',
+                    help="emit the string tags (DA_PROFILE_TAG) with the frame they fall in")
     ap.add_argument('--compact', action='store_true', help="no pretty indentation")
     args = ap.parse_args(argv)
 
     doc = convert_file(args.input, args.top_scopes, args.min_incl_ms,
-                       not args.no_perframe, args.scope)
+                       not args.no_perframe, args.scope, args.tags)
     out = args.output or (args.input + '.json')
     sep = (',', ':') if args.compact else (',', ': ')
     with open(out, 'w', encoding='utf-8') as f:
         json.dump(doc, f, separators=sep, indent=(None if args.compact else 1))
     m = doc['meta']
     uev = ("%d" % len(doc['uniqueEvents'])) if m['hasUniqueEvents'] else "none"
-    sys.stderr.write("wrote %s  frames=%d scopes=%d(+%d tail) gpu=%s samples=%s unique=%s  %.0f KB\n"
+    tags = (" tags=%d" % len(doc['tags'])) if 'tags' in doc else ""
+    sys.stderr.write("wrote %s  frames=%d scopes=%d(+%d tail) gpu=%s samples=%s unique=%s%s  %.0f KB\n"
                      % (out, m['frameCount'], len(doc['scopes']), len(doc['scopesTail']),
-                        m['hasGpu'], m['hasSamples'], uev, os.path.getsize(out) / 1024.0))
+                        m['hasGpu'], m['hasSamples'], uev, tags, os.path.getsize(out) / 1024.0))
     return 0
 
 

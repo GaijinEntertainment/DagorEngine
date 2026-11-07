@@ -12,7 +12,7 @@ macro TESTGI_TRACE_COLLISION(code)
     bvh_origin@f3 = bvh_origin;
   }
   hlsl(code) {
-    // constraint: a ray from inside a collision sheet hits its back face, so the two-sided closest hit keeps buried probes occluded
+    // a ray from inside a collision sheet hits its back face, so the two-sided closest hit keeps buried probes occluded
     #define TESTGI_COLLISION_RAY_FLAGS (RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES)
     bool testgi_trace_collision(float3 origin_rel, float3 dir, float max_t, inout RayQuery<TESTGI_COLLISION_RAY_FLAGS> query)
     {

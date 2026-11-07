@@ -34,11 +34,10 @@ struct AnimatableDynModel
 {
   Tab<NodeAnimationInfo> animatedNodes;
   float curAnimProgress;
-  float animTimeMult;
 
   DynamicRenderableSceneInstance *instance;
 
-  AnimatableDynModel() : instance(NULL), curAnimProgress(0.f), animTimeMult(1.f) {}
+  AnimatableDynModel() : instance(NULL), curAnimProgress(0.f) {}
 
   bool init(DynamicRenderableSceneInstance *inst, AnimV20::AnimData *anim);
   void update(float dt);

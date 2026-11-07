@@ -47,4 +47,11 @@ void set_previous_imgui_control_tooltip(ImGuiID item_id, const char *text, const
   tooltip_helper.setPreviousImguiControlTooltip(control, text, text_end);
 }
 
+bool should_show_imgui_control_tooltip(const void *control) { return tooltip_helper.isImguiControlHovered(control); }
+
+bool should_show_imgui_control_tooltip(ImGuiID item_id)
+{
+  return tooltip_helper.isImguiControlHovered((const void *)((uintptr_t)item_id));
+}
+
 } // namespace PropPanel

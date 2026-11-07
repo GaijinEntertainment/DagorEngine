@@ -51,6 +51,16 @@ namespace das {
         return (module ? module->name+"::"+name : name); // + "#" + das_to_string(baseType);
     }
 
+    uint64_t Enumeration::getOwnSemanticHash ( HashBuilder & hb ) const {
+        hb.updateString(getMangledName());
+        hb.update(baseType);
+        for ( auto & e : list ) {
+            hb.updateString(e.name);
+            hb.update(e.value ? getConstExprIntOrUInt(e.value) : int64_t(-1));   // the folded constant, not the printer's text
+        }
+        return hb.getHash();
+    }
+
     TypeDeclPtr Enumeration::makeBaseType() const {
         return new TypeDecl(baseType, at);
     }

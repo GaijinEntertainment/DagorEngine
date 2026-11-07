@@ -294,6 +294,8 @@ macro TSR_INCLUDES(code)
       return result;
     }
 
+    #include <tsr_history_depth.hlsl>
+
     // calculates the loss term of the current sample being some subpixel distance away from the pixel's mid point
     // which will cause a loss of confidence
     float calculateResamplingLoss(float2 uv)
@@ -306,7 +308,7 @@ macro TSR_INCLUDES(code)
     {
       float3 result = tex2Dlod(historyColorTex, float4(history_tc, 0, 0)).rgb;
 
-      depth = tex2Dlod(historyDepthTex, float4(history_tc, 0, 0)).x;
+      depth = decode_tsr_depth(tex2Dlod(historyDepthTex, float4(history_tc, 0, 0)).x, zn_zfar);
 
       confidence = max(EPS, tex2Dlod(historyConfidenceTex, float4(history_tc, 0, 0)).x);
       is_dynamic = confidence > 0.5;
@@ -479,7 +481,7 @@ shader tsr_vr_cs
       {
           float4 motionMaskedColor = inputColorTex.SampleLevel(inputColorTex_samplerstate, screenTc * uv_transform.xy + uv_transform.zw, 0);
           texture2DAt(outColor, dtId) = motionMaskedColor;
-          texture2DAt(outDepth, dtId) = depthStats.closestDepth;
+          texture2DAt(outDepth, dtId) = encode_tsr_depth(depthStats.closestDepth, zn_zfar);
           texture2DAt(outConfidence, dtId) = 0;
           return;
       }
@@ -518,7 +520,7 @@ shader tsr_vr_cs
 
       TemporalSuperResolutionOutput result = calcResult(inputColor, depthStats.closestDepth, inputConfidence, historyColor, historyDepth, historyConfidence, rejection, currentIsDynamic);
       outColor[dtId] = float4(result.color, 0);
-      outDepth[dtId] = result.depth;
+      outDepth[dtId] = encode_tsr_depth(result.depth, zn_zfar);
       outConfidence[dtId] = result.confidence;
     ##if tsr_debug == on
       outDebug[dtId] = rejection;

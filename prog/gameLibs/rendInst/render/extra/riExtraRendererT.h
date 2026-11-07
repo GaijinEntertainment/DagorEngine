@@ -14,13 +14,11 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shaderConstants.h>
-#include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_decl.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <shaders/dag_shStateBlockBindless.h>
 #include <render/debugMesh.h>
-#include <render/globTMVars.h>
 #include <render/pointLod/range.h>
 #include <rendInst/packedMultidrawParams.hlsli>
 #include <shaders/dag_shaderVarsUtils.h>
@@ -42,10 +40,8 @@ class DynVariantsCache;
 namespace rendinst::render
 {
 
-extern int ri_vertex_data_no, ri_voxel_data_offset_varid, ri_voxel_depth_projection_varid;
+extern int ri_vertex_data_no;
 extern bool is_tool_shaders;
-
-extern void update_voxel_baker_textures();
 
 static constexpr uint32_t RI_RES_ORDER_COUNT_SHIFT = 14, RI_RES_ORDER_COUNT_MASK = (1 << RI_RES_ORDER_COUNT_SHIFT) - 1;
 
@@ -74,7 +70,7 @@ class RiExtraRendererT : public DynamicVariantsPolicy //-V730
     uint32_t count;
   };
   dag::Vector<PackedDrawCallsRange, Alloc, false> drawcallRanges;
-  ska::flat_hash_map<shaders::ConstStateIdx, uint16_t, eastl::hash<shaders::ConstStateIdx>, eastl::equal_to<shaders::ConstStateIdx>,
+  ska::flat_hash_map<shaders::ConstStateIdx, uint8_t, eastl::hash<shaders::ConstStateIdx>, eastl::equal_to<shaders::ConstStateIdx>,
     Alloc>
     bindlessStatesToUpdateTexLevels;
 
@@ -224,31 +220,6 @@ public:
     update_voxel_baker_textures();
   }
 
-  inline static void setVoxelDepthProj()
-  {
-    if (ri_voxel_depth_projection_varid == -1)
-      return;
-    TMatrix4 gtm;
-    d3d::getglobtm(gtm);
-    ::set_globtm_to_shader(gtm);
-
-    const Point3 a0(gtm.m[0][0], gtm.m[1][0], gtm.m[2][0]);
-    const Point3 a1(gtm.m[0][1], gtm.m[1][1], gtm.m[2][1]);
-    const Point3 a3(gtm.m[0][3], gtm.m[1][3], gtm.m[2][3]);
-    const Point3 u = a1 % a3, v = a3 % a0, w = a0 % a1;
-
-    float k = a0 * u;
-    Point3 c = gtm.m[3][0] * u + gtm.m[3][1] * v + gtm.m[3][3] * w;
-
-    // scale is free: renormalize so fp32 stays in range, and orient away from the camera
-    float s = 1.0f / max(fabsf(k), max(fabsf(c.x), max(fabsf(c.y), fabsf(c.z))));
-    if (k < 0.0f || (k < 1e-8f && a3 * c < 0.0f))
-      s = -s;
-    k *= s;
-    c *= s;
-    ShaderGlobal::set_float4(ri_voxel_depth_projection_varid, c, k);
-  }
-
   inline void renderSortedMeshesPacked(dag::ConstSpan<uint16_t> riResOrder) const
   {
     G_UNUSED(riResOrder);
@@ -324,9 +295,8 @@ public:
         d3d::set_buffer(STAGE_PS, ri_vertex_data_no, vb);
       }
 
-      RiExtraPool &riPool = riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
-      const bool needDepthPrepass =
-        (allowTreeDepthPrepass && !isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree && use_ri_depth_prepass);
+      const bool needDepthPrepass = (allowTreeDepthPrepass && !isVoxelizationPass && !isDepthPass && !isDecalPass && rl.isTree &&
+                                     use_ri_depth_prepass && !isTransparentPass);
 
       if (eastl::exchange(currentDepthPrepass, needDepthPrepass) != currentDepthPrepass)
       {
@@ -347,7 +317,7 @@ public:
           if (!voxelDepthProjectionSet)
           {
             voxelDepthProjectionSet = true;
-            setVoxelDepthProj();
+            set_voxel_depth_projection();
           }
           G_ASSERT(ri_voxel_data_offset_varid != -1);
           ShaderGlobal::set_int(ri_voxel_data_offset_varid, rl.voxelDataOffset);
@@ -447,7 +417,7 @@ public:
           if (!voxelDepthProjectionSet)
           {
             voxelDepthProjectionSet = true;
-            setVoxelDepthProj();
+            set_voxel_depth_projection();
           }
           G_ASSERT(ri_voxel_data_offset_varid != -1);
           ShaderGlobal::set_int(ri_voxel_data_offset_varid, rl.voxelDataOffset);
@@ -474,8 +444,7 @@ public:
       currentTessellationState = rl.isTessellated;
 
       const uint32_t poolId = riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK;
-      const RiExtraPool &riPool = riExtra[poolId];
-      const bool needDepthPrepass = (allowTreeDepthPrepass && !isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree &&
+      const bool needDepthPrepass = (allowTreeDepthPrepass && !isVoxelizationPass && !isDepthPass && !isDecalPass && rl.isTree &&
                                      use_ri_depth_prepass && !isTransparentPass);
       if (eastl::exchange(currentDepthPrepass, needDepthPrepass) != currentDepthPrepass)
       {
@@ -510,7 +479,7 @@ public:
       else
       {
         bool isImpostor = rl.lod == RiExtraPool::MAX_LODS - 1;
-        if (riPool.isTree && !isImpostor)
+        if (rl.isTree && !isImpostor)
         {
           const auto tcConsts = getCommonImmediateConstants();
           uint32_t immediateConsts[] = {0u, tcConsts[0], tcConsts[1]};
@@ -523,7 +492,7 @@ public:
         else
           d3d::draw_instanced(rl.primitive, rl.sv, rl.numv, rl.ofsAndCnt.y * instanceCountMultiply,
             globalRendinstRenderTypeVarId >= 0 ? rl.ofsAndCnt.x / RIEXTRA_VECS_COUNT : 0);
-        if (riPool.isTree && !isImpostor)
+        if (rl.isTree && !isImpostor)
         {
           d3d::set_immediate_const(STAGE_PS, nullptr, 0);
         }
@@ -596,14 +565,14 @@ public:
       return;
 
     stlsort::sort(multidrawList.begin(), multidrawList.end(), [&](const auto &a, const auto &b) {
-      // When we will be GPU bound we can move this check after pools check.
+      // When we will be GPU bound we can move this check after pools check. (Not for decals! Pool order is unstable)
       // It will increase amount of drawcalls (maybe 2 times which is still not a lot), but GPU time could be significantly improved
       // (depends on exact scene).
+      if (a.drawOrder_stage != b.drawOrder_stage)
+        return a.drawOrder_stage < b.drawOrder_stage;
       if (get_material_id(a.dvState.const_state) != get_material_id(b.dvState.const_state))
         return get_material_id(a.dvState.const_state) > get_material_id(b.dvState.const_state);
       // const RIExRenderRecord & a = list[ai], &b = list[bi];
-      if (a.drawOrder_stage != b.drawOrder_stage)
-        return a.drawOrder_stage < b.drawOrder_stage;
       if (a.vstride != b.vstride)
         return a.vstride < b.vstride;
       if (a.vbIdx != b.vbIdx)
@@ -639,6 +608,8 @@ public:
       return a.elemOrder < b.elemOrder;
     });
 
+    // This reordering stop doesn't stop draw orders from taking effect, but disables poolOrder based sorting, which can cause
+    // undetermenistic order based on culling results (which pool comes first)
     const bool allowReordering = !isDecalPass && !isTransparentPass;
     if (debug_mesh::is_enabled())
       coalesceDrawcalls<true>(allowReordering);
@@ -649,7 +620,9 @@ public:
   struct RiExtraElementsToHide
   {
     RiExtraElementsToHide() = default;
-    RiExtraElementsToHide(uint16_t poolId, const SmallTab<RiGenExtraVisibility::HideMarkedMaterialForInstance> &elementsToHide)
+    RiExtraElementsToHide(uint16_t poolId, int lod, uint32_t instance_base,
+      const SmallTab<RiGenExtraVisibility::HideMarkedMaterialForInstance> &elementsToHide) :
+      instanceBase(instance_base)
     {
       shaderName = nullptr;
       if (!riExtra.isValid(poolId))
@@ -664,13 +637,14 @@ public:
       if (!shaderName)
         return;
 
-      // elementsToHide is already sorted by poolId, store the range of hidden roots for this pool
+      // fill_vbextra pushes lod-major, then pool, then ascending instance, so one (lod, pool) run is contiguous and sorted
       int beginIdx = -1;
       for (int i = 0; i < elementsToHide.size(); ++i)
       {
-        if (beginIdx < 0 && elementsToHide[i].poolId == poolId)
+        const bool match = elementsToHide[i].poolId == poolId && elementsToHide[i].lod == lod;
+        if (beginIdx < 0 && match)
           beginIdx = i;
-        else if (beginIdx >= 0 && elementsToHide[i].poolId != poolId)
+        else if (beginIdx >= 0 && !match)
         {
           instances =
             dag::ConstSpan<RiGenExtraVisibility::HideMarkedMaterialForInstance>(elementsToHide.data() + beginIdx, i - beginIdx);
@@ -684,17 +658,18 @@ public:
 
     const char *shaderName = nullptr;
     dag::ConstSpan<RiGenExtraVisibility::HideMarkedMaterialForInstance> instances;
+    uint32_t instanceBase = 0; // instanceIdx of the first instance in the record (dynamic subset start)
   };
 
   inline void addObjectToRender(uint16_t ri_idx, int optimizationInstances, bool optimization_depth_prepass,
     bool ignore_optimization_instances_limits, IPoint2 ofsAndCnt, int lod, uint16_t pool_order, const TexStreamingContext &texCtx,
     float dist2, float minDist2, const RiExtraElementsToHide &elementsToHide, const ShaderElement *shader_override = nullptr,
-    bool gpu_instancing = false)
+    bool gpu_instancing = false, const char *only_shader_name = nullptr)
   {
     const DynamicVariantsPolicy &sharedPolicy = static_cast<const DynamicVariantsPolicy &>(*this);
     addObjectToRenderImpl(list, multidrawList, sharedPolicy, ri_idx, optimizationInstances, optimization_depth_prepass,
       ignore_optimization_instances_limits, ofsAndCnt, lod, pool_order, texCtx, dist2, minDist2, elementsToHide, shader_override,
-      gpu_instancing);
+      gpu_instancing, false, only_shader_name);
   }
 
   void initSortedTransparent(int pools_count)
@@ -749,7 +724,9 @@ public:
       checked = r->curShader;
       const shaders::CombinedDynVariantState now = get_dynamic_variant_states(r->curShader->native());
       if (now.program != r->dvState.program || now.state_index != r->dvState.state_index)
-        LOGERR_ONCE("%s: prebuilt variant of '%s' differs from the one selected at submit", where, r->curShader->getShaderClassName());
+        LOGERR_ONCE("%s: prebuilt variant of '%s' differs from the one selected at submit: %s", where,
+          r->curShader->getShaderClassName(),
+          describe_dynamic_variant_diff(r->curShader->native(), r->dvState.variantCode, now.variantCode).c_str());
     }
   }
 #endif
@@ -759,7 +736,8 @@ private:
   void addObjectToRenderImpl(ListT &dst_list, MultiListT &dst_multidraw, const DynamicVariantsPolicy &policy, uint16_t ri_idx,
     int optimizationInstances, bool optimization_depth_prepass, bool ignore_optimization_instances_limits, IPoint2 ofsAndCnt, int lod,
     uint16_t pool_order, const TexStreamingContext &texCtx, float dist2, float minDist2, const RiExtraElementsToHide &elementsToHide,
-    const ShaderElement *shader_override = nullptr, bool gpu_instancing = false, bool request_destr_lods = false)
+    const ShaderElement *shader_override = nullptr, bool gpu_instancing = false, bool request_destr_lods = false,
+    const char *only_shader_name = nullptr)
   {
     if (!riExtra.isValid(ri_idx))
     {
@@ -844,6 +822,8 @@ private:
         const auto &elem = allElems[EI];
         if (!elem.shader)
           continue;
+        if (only_shader_name and strcmp(elem.shader->getShaderClassName(), only_shader_name) != 0)
+          continue;
         const ShaderElement *currentShader = (shader_override) ? shader_override : elem.shader;
         shaders::CombinedDynVariantState dynVarState = policy.getStates(currentShader->native());
         if (dynVarState.variant < 0)
@@ -866,6 +846,7 @@ private:
           record.isSWVertexFetch = true;
           record.voxelSurfaceId = voxelSurfaceId;
           record.voxelDataOffset = elem.baseVertex * elem.vstride + voxelDataOffset;
+          record.isTree = false; // depth prepass is not effective for voxels
         }
 
         const auto isPacked = is_packed_material(dynVarState.const_state);
@@ -884,10 +865,16 @@ private:
         {
           // Split the current record in two for each hidden element
           uint32_t processedCounter = 0;
+          const uint32_t recordCount = record.ofsAndCnt.y;
           for (uint32_t i = 0; i < elementsToHide.instances.size(); i++)
           {
+            // the run also covers instances outside this record (static/dynamic subset, optimization count)
+            if (elementsToHide.instances[i].instanceIdx < elementsToHide.instanceBase)
+              continue;
+            uint32_t instance = elementsToHide.instances[i].instanceIdx - elementsToHide.instanceBase;
+            if (instance >= recordCount)
+              break;
             RIExRenderRecord record2 = record;
-            uint32_t instance = elementsToHide.instances[i].instanceIdx;
             record2.ofsAndCnt.y = instance - processedCounter;
             record.ofsAndCnt.x += (record2.ofsAndCnt.y + 1) * rendinst::RIEXTRA_VECS_COUNT;
             record.ofsAndCnt.y -= record2.ofsAndCnt.y + 1;
@@ -929,6 +916,7 @@ private:
       const int k = use_positions ? (int)positions[j] : j;
       int i = riResOrder[k] & RI_RES_ORDER_COUNT_MASK;
       IPoint2 ofsAndCnt = IPoint2(v.vbOffsets[l][i], v.vbCounts[l][i]);
+      uint32_t instanceBase = 0;
       if (ri_extra_subset == RiExtraRenderingSubset::OnlyStatic && next_dynamic_idx < (int)v.dynamicRiExtraInstances.size() &&
           v.dynamicRiExtraInstances[next_dynamic_idx].lod == l && v.dynamicRiExtraInstances[next_dynamic_idx].poolId == i)
       {
@@ -940,8 +928,9 @@ private:
         if (next_dynamic_idx < (int)v.dynamicRiExtraInstances.size() && v.dynamicRiExtraInstances[next_dynamic_idx].lod == l &&
             v.dynamicRiExtraInstances[next_dynamic_idx].poolId == i)
         {
-          ofsAndCnt.x += v.dynamicRiExtraInstances[next_dynamic_idx].instancesOffset * rendinst::RIEXTRA_VECS_COUNT;
-          ofsAndCnt.y -= v.dynamicRiExtraInstances[next_dynamic_idx].instancesOffset;
+          instanceBase = v.dynamicRiExtraInstances[next_dynamic_idx].instancesOffset;
+          ofsAndCnt.x += instanceBase * rendinst::RIEXTRA_VECS_COUNT;
+          ofsAndCnt.y -= instanceBase;
           next_dynamic_idx++;
         }
         else
@@ -953,7 +942,7 @@ private:
       int optimizationInstances = (riResOrder[k] >> RI_RES_ORDER_COUNT_SHIFT);
       float distSq = v.minSqDistances[l][i];
       float minDistSq = v.approxInvDensities[l][i] * v.invDensityToMinSqAllowedDistance;
-      RiExtraElementsToHide elementsToHide(i, v.hideMarkedMaterialsForInstances);
+      RiExtraElementsToHide elementsToHide(i, l, instanceBase, v.hideMarkedMaterialsForInstances);
 
       addObjectToRenderImpl(dst_list, dst_multidraw, policy, i, optimizationInstances,
         optimization_depth_prepass == OptimizeDepthPrepass::Yes, ignore_optimization_instances_limits == IgnoreOptimizationLimits::Yes,
@@ -1001,7 +990,7 @@ private:
       const int ke = (int)riResOrder.size();
       for (int vi = 0; vi < visibleLodCount; ++vi)
       {
-        const unsigned short *__restrict cntPtr = v.vbCounts[visibleLods[vi]].data();
+        const uint32_t *__restrict cntPtr = v.vbCounts[visibleLods[vi]].data();
         for (int k = 0; k < ke; ++k)
           totalPoolCount += (cntPtr[riResOrderPtr[k] & (uint16_t)RI_RES_ORDER_COUNT_MASK] != 0);
       }
@@ -1043,7 +1032,7 @@ private:
         for (int vi = 0; vi < visibleLodCount; ++vi)
         {
           const int lod = visibleLods[vi];
-          const unsigned short *__restrict cntPtr = v.vbCounts[lod].data();
+          const uint32_t *__restrict cntPtr = v.vbCounts[lod].data();
           const int dynEnd = (int)lodDynStart[lod + 1];
           int dynCursor = (int)lodDynStart[lod];
           int segBeginPos = writePos, segBeginDyn = dynCursor;

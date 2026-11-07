@@ -21,9 +21,9 @@ int pull_dll_sum =
   dll_pull_osapiwrappers_critsec + dll_pull_osapiwrappers_timed_critsec + dll_pull_osapiwrappers_dbgStr +
   dll_pull_osapiwrappers_dbgStrFmt + dll_pull_osapiwrappers_directoryService + dll_pull_osapiwrappers_directoryUtils +
   dll_pull_osapiwrappers_directory_watch + dll_pull_osapiwrappers_findFile + dll_pull_osapiwrappers_getRealFname +
-  dll_pull_osapiwrappers_localCmp + dll_pull_osapiwrappers_cpuJobs + dll_pull_osapiwrappers_miscApi +
-  dll_pull_osapiwrappers_simplifyFname + dll_pull_osapiwrappers_progGlobals + dll_pull_osapiwrappers_setThreadName +
-  dll_pull_osapiwrappers_setTitle + dll_pull_osapiwrappers_ip2str +
+  dll_pull_osapiwrappers_fnameCase + dll_pull_osapiwrappers_localCmp + dll_pull_osapiwrappers_cpuJobs +
+  dll_pull_osapiwrappers_miscApi + dll_pull_osapiwrappers_simplifyFname + dll_pull_osapiwrappers_progGlobals +
+  dll_pull_osapiwrappers_setThreadName + dll_pull_osapiwrappers_setTitle + dll_pull_osapiwrappers_ip2str +
 #if _TARGET_PC_WIN
   dll_pull_osapiwrappers_winXSaveFeatures +
 #endif

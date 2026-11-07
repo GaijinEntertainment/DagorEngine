@@ -322,6 +322,8 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
 
   if (shader == rendinst_deferred_emissive_decal)
   {
+    static int material_write_no_edit = 1 no_warnings;
+
     static int emission_anim = 0;
     interval emission_anim : no < 1, yes;
 
@@ -600,7 +602,7 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
     {
       #if HAS_NORMAL
         [earlydepthstencil]
-        GBUFFER_OUTPUT deferred_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+        GBUFFER_OUTPUT deferred_decal_ps(VsOutput input HW_USE_SCREEN_POS MATERIAL_UAV_VRS_PS_INPUT)
         {
           #if FILTER_DYNAMIC
             filterDynamic(GET_SCREEN_POS(input.pos).xy);

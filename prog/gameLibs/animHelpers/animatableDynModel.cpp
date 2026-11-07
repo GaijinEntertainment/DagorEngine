@@ -40,7 +40,7 @@ bool AnimatableDynModel::init(DynamicRenderableSceneInstance *inst, AnimV20::Ani
   return true;
 }
 
-void AnimatableDynModel::update(float dt) { curAnimProgress = fmodf(curAnimProgress + dt * animTimeMult, 1.f); }
+void AnimatableDynModel::update(float dt) { curAnimProgress = fmodf(curAnimProgress + dt, 1.f); }
 
 void AnimatableDynModel::updateTm(const TMatrix &render_space_tm)
 {

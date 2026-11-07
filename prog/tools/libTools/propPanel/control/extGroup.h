@@ -63,6 +63,7 @@ public:
     setFocusToPreviousImGuiControlAndScrollToItsTopIfRequested();
     setPreviousImguiControlTooltip();
     showJumpToGroupContextMenuOnRightClick();
+    notifyEventHandlerOnHeaderHover();
 
     if (valueHighlightColorSet)
       ImGui::PopStyleColor();

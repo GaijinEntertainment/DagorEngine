@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "motionMatchingFeatures.h"
+#include <vecmath/dag_vecMath.h>
 
 __forceinline float feature_distance_metric(const vec3f *__restrict current, const vec3f *__restrict next,
   const vec3f *__restrict weights, int count)
@@ -47,10 +47,4 @@ __forceinline bool feature_bounded_metric_need_update(vec4f best_result, const v
     }
   }
   return true;
-}
-
-
-__forceinline float path_metric(const vec3f *current, const vec3f *next, const vec3f *weights, int trajectory)
-{
-  return feature_distance_metric(current, next, weights, trajectory * TRAJECTORY_DIMENSION);
 }

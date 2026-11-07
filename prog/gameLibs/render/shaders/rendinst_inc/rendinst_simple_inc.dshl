@@ -73,14 +73,6 @@ macro INIT_COMMON_RENDINST_TESSELLATION_VARS()
     assume material_pn_triangulation = off;
   }
 
-  if (material_pn_triangulation == with_domain_uv)
-  {
-    // channel float4 tc[1] = extra[56]; // TODO: everything breaks if it is declared here, see INIT_DOMAIN_UV
-    hlsl {
-      #define HAS_DOMAIN_UV 1
-    }
-  }
-
   static float4 rendinst_displacement_min = (-0.025, -0.025, -0.025, 0) no_warnings;
   static float4 rendinst_displacement_max = (0.025, 0.025, 0.025, 0) no_warnings;
   static float4 rendinst_displacement_lod = (0, 0, 0, 0) no_warnings;
@@ -97,9 +89,13 @@ macro INIT_COMMON_RENDINST_TESSELLATION_VARS()
       (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_depth);
 endmacro
 
-macro INIT_COMMON_RENDINST_TESSELLATION_CHANNELS()
-  if(material_pn_triangulation == with_domain_uv)
+macro INIT_COMMON_RENDINST_TESSELLATION_CHANNELS(skip_domain_uv)
+  bool use_domain_uv = material_pn_triangulation == with_domain_uv && !(skip_domain_uv);
+  if (use_domain_uv)
   {
+    hlsl {
+      #define HAS_DOMAIN_UV 1
+    }
     DECLARE_DOMAINT_UV_CHANNELS()
   }
 endmacro
@@ -167,7 +163,7 @@ endmacro
 macro USE_COMMON_RENDINST_DISPLACEMENT_FOR_TESSELLATION()
   if (pn_triangulation_enabled)
   {
-    if (material_pn_triangulation == with_domain_uv)
+    if (use_domain_uv)
     {
       USE_DOMAIN_UV()
     }
@@ -193,17 +189,24 @@ macro USE_COMMON_RENDINST_DISPLACEMENT_FOR_TESSELLATION()
           return;
 
         float3 normal = output.normal.xyz;
-        float2 displacementTC = output.diffuseTexcoord.xy;
-        #if HAS_DOMAIN_UV
-          displacementTC = get_modified_domaint_uv(input, displacementTC, uvw);
-          #if DEBUG_DOMINANT_UV
-            output.diffuseTexcoord.xy = displacementTC;
+        #if RI_TRIPLANAR
+          float3 triPos = output.pos.xyz * get_triplanar_scale_mul();
+          TriplanarCoords tri = make_triplanar_coords(triPos, normal, get_triplanar_sharpness());
+          half3 initialHeight = triplanar_detail_heights(tri, get_rendinst_displacement_lod().xyz);
+        #else
+          float2 displacementTC = output.diffuseTexcoord.xy;
+          #if HAS_DOMAIN_UV
+            displacementTC = get_modified_domaint_uv(input, displacementTC, uvw);
+            #if DEBUG_DOMINANT_UV
+              output.diffuseTexcoord.xy = displacementTC;
+            #endif
           #endif
-        #endif
 
-        half4 diffuseColor  = tex2DLodBindless(get_diffuse_tex(), float4(displacementTC, 0, get_rendinst_displacement_lod().x));
-        half4 diffuseColor1 = tex2DLodBindlessSampler(get_diffuse_tex1(), get_diffuse_tex().smp, float4(displacementTC, 0, get_rendinst_displacement_lod().y));
-        half4 diffuseColor2 = tex2DLodBindlessSampler(get_diffuse_tex2(), get_diffuse_tex().smp, float4(displacementTC, 0, get_rendinst_displacement_lod().z));
+          half4 diffuseColor  = tex2DLodBindless(get_diffuse_tex(), float4(displacementTC, 0, get_rendinst_displacement_lod().x));
+          half4 diffuseColor1 = tex2DLodBindlessSampler(get_diffuse_tex1(), get_diffuse_tex().smp, float4(displacementTC, 0, get_rendinst_displacement_lod().y));
+          half4 diffuseColor2 = tex2DLodBindlessSampler(get_diffuse_tex2(), get_diffuse_tex().smp, float4(displacementTC, 0, get_rendinst_displacement_lod().z));
+          half3 initialHeight = half3(diffuseColor.a, diffuseColor1.a, diffuseColor2.a);
+        #endif
         float2 by_normal_params = float2(0, 0);
         ##if (shader == rendinst_cliff)
           by_normal_params = float2(max(dot(get_mask_by_normal().xyz, normal.xyz), 0), get_mask_by_normal().w);
@@ -213,7 +216,6 @@ macro USE_COMMON_RENDINST_DISPLACEMENT_FOR_TESSELLATION()
           weights = init_blend_weights(output.vcolMask, by_normal_params);
         #endif
 
-        half3 initialHeight = half3(diffuseColor.a, diffuseColor1.a, diffuseColor2.a);
         half3 invertedHeight = select(get_invert_heights().xyz != 0, 1 - initialHeight, initialHeight);
         weights = get_blending_weights_for_height(weights, invertedHeight);
 

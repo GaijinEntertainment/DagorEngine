@@ -51,6 +51,7 @@ struct NodeParams
   eastl::fixed_function<32, void(dafg::Registry)> declareInputs;
   eastl::fixed_function<32, void()> setShaderState;
   bool dynamicLights = true;
+  bool rayReconstruction = false;
 };
 
 void initialize();

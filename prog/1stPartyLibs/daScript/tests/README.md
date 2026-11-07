@@ -799,6 +799,7 @@ JIT compilation and code-generation tests. None have `expect` directives. The sl
 | typeAlias.das | Type aliases - `Point3Array`, indexing, swizzle, array ops on aliased types | |
 | typefunction.das | `[type_function]` annotation - `type<T>` argument syntax | |
 | typeinfo.das | typeinfo sizeof, has_field, struct_get_annotation_argument | |
+| failed_typeinfo_offsetof_missing_field.das | `typeinfo offsetof` of a field the struct does not have | **expect** `30825` |
 | test_rtti_init_mnh.das | Named-module structure RTTI retains the generated initializer's mangled-name hash | |
 | typeinfo_annotations.das | Struct annotation queries - has_annotation, get_annotation_argument | |
 | typeinfo_traits.das | typeinfo trait queries - is_local, is_ref, is_numeric, etc. | |

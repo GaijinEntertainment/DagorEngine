@@ -2,6 +2,10 @@
 float3 interpolation_c2( float3 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 float3 interpolation_c2_deriv( float3 x ) { return x * x * (x * (x * 30.0 - 60.0) + 30.0); }
 
+// on PS5 psslc lowers a float % to x - s * trunc(x * rcp(s)) with the approximate v_rcp_f32, so an exact multiple comes out as s instead of 0
+float2 lattice_mod(float2 x, float s) { return float2(int2(round(x)) % max(int(round(s)), 1)); }
+float3 lattice_mod(float3 x, float s) { return float3(int3(round(x)) % max(int(round(s)), 1)); }
+
 void perlin_hash(float3 gridcell, float s, bool3 tile,
           out float4 lowz_hash_0,
           out float4 lowz_hash_1,
@@ -20,9 +24,9 @@ void perlin_hash(float3 gridcell, float s, bool3 tile,
   float3 gridcell_inc1 = step( gridcell, float3( d,d,d ) ) * ( gridcell + 1.0 );
 
   #if __HLSL_VERSION >= 2021
-    gridcell_inc1 = select(tile, gridcell_inc1 % s, gridcell_inc1);
+    gridcell_inc1 = select(tile, lattice_mod(gridcell_inc1, s), gridcell_inc1);
   #else
-    gridcell_inc1 = tile ? gridcell_inc1 % s : gridcell_inc1;
+    gridcell_inc1 = tile ? lattice_mod(gridcell_inc1, s) : gridcell_inc1;
   #endif
 
   float4 P = float4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
@@ -168,7 +172,7 @@ uint3 hash_int3(uint3 x)
 }
 
 float3 voronoi_hash( float3 x, float s) {
-  x = x % s;
+  x = lattice_mod(x, s);
   x = float3( dot(x, float3(127.1,311.7, 74.7)),
               dot(x, float3(269.5,183.3,246.1)),
               dot(x, float3(113.5,271.9,124.6)));
@@ -360,7 +364,7 @@ float fb_worley_cells(float3 p, float cellCount)
         {
             float3 tp = floor(pCell) + float3(xo, yo, zo);
 
-            tp = pCell - tp - fb_worley_noise(tp % cellCount);
+            tp = pCell - tp - fb_worley_noise(lattice_mod(tp, cellCount));
 
             d = min(d, dot(tp, tp));
         }
@@ -415,9 +419,9 @@ void perlin_hash(float2 gridcell, float s, bool2 tile,
   float2 gridcell_inc1 = step( gridcell, float2( d, d ) ) * ( gridcell + 1.0 );
 
   #if __HLSL_VERSION >= 2021
-    gridcell_inc1 = select(tile, gridcell_inc1 % s, gridcell_inc1);
+    gridcell_inc1 = select(tile, lattice_mod(gridcell_inc1, s), gridcell_inc1);
   #else
-    gridcell_inc1 = tile ? gridcell_inc1 % s : gridcell_inc1;
+    gridcell_inc1 = tile ? lattice_mod(gridcell_inc1, s) : gridcell_inc1;
   #endif
 
   float4 P = float4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
@@ -508,7 +512,7 @@ uint2 hash_int2(uint2 x)
 }
 
 float2 voronoi_hash( float2 x, float s) {
-  x = x % s;
+  x = lattice_mod(x, s);
   x = float2( dot(x, float2(127.1,311.7)),
               dot(x, float2(269.5,183.3)));
 

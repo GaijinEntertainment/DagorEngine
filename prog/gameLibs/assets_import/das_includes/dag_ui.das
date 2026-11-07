@@ -42,9 +42,6 @@ def get_asset_status_color(status : AssetLoadingStatus)
   else //status == AssetLoadingStatus NotLoaded
     return float4(1f, 1f, 1f, 1f)
 
-def dag_tex_id_to_imgui(tex_id : D3DRESID&)
-  return convert_dag_res_id_to_imgui(tex_id)
-
 def open_file(path : string)
   //this shell call will open file with default application
   os_shell_execute("open", path, "", "")
@@ -68,7 +65,7 @@ def asset_dependencies_tree(var asset : DagorAsset?; asset__manager : DagorAsset
     let texId = status == AssetLoadingStatus.Loaded ? get_managed_texture_id("{asset.name}*") : BAD_TEXTUREID
     if texId != BAD_TEXTUREID
       imgui::SameLine()
-      let imguiTexId = dag_tex_id_to_imgui(texId)
+      let imguiTexId = convert_dag_res_id_to_imgui(texId)
       imgui::PushStyleVar(ImGuiStyleVar.FramePadding, float2(0))
       imgui::ImageButton("{asset}_image", imgui::ImTextureRef(imguiTexId), float2(textureIconSize), float2(0), float2(1), float4(1), float4(1))
       imgui::PopStyleVar()
@@ -105,6 +102,16 @@ def asset_dependencies_tree(var asset : DagorAsset?; asset__manager : DagorAsset
 
 
 
+def asset_combo(combo_label : string; names : array<string>; var selected_idx : int&)
+  // names must not be empty
+  if selected_idx >= length(names)
+    selected_idx = 0
+  if imgui::BeginCombo(combo_label, names[selected_idx])
+    for name, idx in names, iter_range(names)
+      if imgui::Selectable(name, selected_idx == idx)
+        selected_idx = idx
+    imgui::EndCombo()
+
 def view_dag_assets(assset_type : string; b : block<(arg1 : string const) : void>)
   static_let <|
     var selectedAssetIdx = 0
@@ -114,21 +121,12 @@ def view_dag_assets(assset_type : string; b : block<(arg1 : string const) : void
 
     get_filtered_assets(assset_type, string(asset__currentSearchFilter)) <| $(assetsNames)
 
-      if selectedAssetIdx >= length(assetsNames)
-        selectedAssetIdx = 0
-
       if (empty(assetsNames))
         imgui::Text("No assets {assset_type}")
+        selectedAssetIdx = 0
         return
       else
-        let firstName = assetsNames[selectedAssetIdx]
-        if imgui::BeginCombo("##", firstName)
-          for name, idx in assetsNames, iter_range(assetsNames)
-            let isSelected = selectedAssetIdx == idx
-            if imgui::Selectable(name, isSelected)
-              selectedAssetIdx = idx
-
-          imgui::EndCombo()
+        asset_combo("##", assetsNames, selectedAssetIdx)
         imgui::SameLine()
 
 
@@ -141,7 +139,8 @@ def view_dag_assets(assset_type : string; b : block<(arg1 : string const) : void
         imgui_click_to_copy(name)
         imgui::Spacing()
 
-        imgui::Button("Copy path")
+        if imgui::Button("Copy path")
+          SetClipboardText(path)
         imgui_click_to_copy(path)
         imgui::Spacing()
 

@@ -287,7 +287,12 @@ bool RenderableInstanceLodsResSrc::addVoxelLod(int first_mip, int num_mips, real
 bool RenderableInstanceLodsResSrc::buildVoxels(const DataBlock &blk, const DataBlock &default_voxel_params,
   voxelcache::CacheDump *voxel_cache, LodsEqualMaterialGather &mat_gather, DagorMatShaderSubstitute &mat_subst)
 {
-  int numVoxelLods = rendinst::RI_MAX_LODS - lods.size();
+  const auto vblk = blk.getBlockByNameEx("voxel_impostor");
+  const int maxTotalLods = vblk->getInt("maxTotalLods", default_voxel_params.getInt("maxTotalLods", defaults::maxTotalLods));
+  const int maxVoxelLods = vblk->getInt("maxVoxelLods", default_voxel_params.getInt("maxVoxelLods", defaults::maxVoxelLods));
+
+  int numVoxelLods = min(maxTotalLods, rendinst::RI_MAX_LODS) - lods.size();
+  numVoxelLods = min(numVoxelLods, maxVoxelLods);
   if (numVoxelLods <= 0)
   {
     ISSUE_FATAL("Can't add voxel LODs in %s - too many regular LODs (%d)", assetName.c_str(), lods.size());
@@ -300,7 +305,6 @@ bool RenderableInstanceLodsResSrc::buildVoxels(const DataBlock &blk, const DataB
   if (!buildVoxelHull(blk, default_voxel_params))
     return false;
 
-  const auto vblk = blk.getBlockByNameEx("voxel_impostor");
   const float targetFov = vblk->getReal("targetFov", default_voxel_params.getReal("targetFov", defaults::targetFov));
   const float targetResolution =
     vblk->getReal("targetResolution", default_voxel_params.getReal("targetResolution", defaults::targetResolution));
@@ -309,12 +313,16 @@ bool RenderableInstanceLodsResSrc::buildVoxels(const DataBlock &blk, const DataB
     vblk->getReal("triangleThreshold", default_voxel_params.getReal("triangleThreshold", defaults::triangleThreshold));
   const bool adjustMeshLodRanges =
     vblk->getBool("adjustMeshLodRanges", default_voxel_params.getBool("adjustMeshLodRanges", defaults::adjustMeshLodRanges));
+  float maxRange = vblk->getReal("range", default_voxel_params.getReal("range", defaults::range));
 
   Lod tmpImpostorLod;
   if (hasImpostor)
   {
     tmpImpostorLod = eastl::move(lods.back());
     lods.pop_back();
+
+    if (maxRange <= 0 and !lods.empty())
+      maxRange = sqrtf(tmpImpostorLod.range * lods.back().range);
   }
 
   if (adjustMeshLodRanges)
@@ -354,6 +362,8 @@ bool RenderableInstanceLodsResSrc::buildVoxels(const DataBlock &blk, const DataB
   {
     float voxelSize = voxelMips[li == numVoxelLods - 1 ? voxelMips.size() - 1 : li].voxelSize;
     float range = projScale * voxelSize;
+    if (maxRange > 0)
+      range = min(range, maxRange);
     if (range <= lods.back().range)
     {
       if (log)

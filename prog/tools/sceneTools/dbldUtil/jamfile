@@ -18,6 +18,8 @@ AddIncludes =
 Sources =
   dbldUtil.cpp
   dbldDeps.cpp
+  dbldCheckIdx.cpp
+  dbldCheckSlivers.cpp
   cmain.cpp
 ;
 

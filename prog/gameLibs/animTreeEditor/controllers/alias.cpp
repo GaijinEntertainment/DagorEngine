@@ -20,12 +20,12 @@ void alias_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::Contain
   remove_param_if_default_bool(params, panel, "allowSuffixless");
 }
 
-void AnimTreeEditor::aliasFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings)
+void AnimTreeEditor::aliasFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings)
 {
   const char *childName = settings.getStr("origin", nullptr);
   if (childName)
   {
-    const int idx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
+    const int idx = add_ctrl_child_idx_by_name(child_index, data, childName);
     check_ctrl_child_idx(idx, settings.getStr("name"), childName);
   }
 }

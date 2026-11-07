@@ -3,6 +3,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <memory/dag_framemem.h>
 #include <datacache/datacache.h>
+#include <util/dag_baseDef.h>
 #include <folders/folders.h>
 #include <json/json.h>
 #include <sqEventBus/sqEventBus.h>
@@ -66,6 +67,7 @@ static void init_cache(const char *cache_name, Sqrat::Table params)
   config.timeoutSec = params.GetSlotValue("timeoutSec", config.timeoutSec);
   config.maxSize = params.GetSlotValue("maxSize", config.maxSize);
   config.manualEviction = params.GetSlotValue("manualEviction", config.manualEviction);
+  config.syncPopulate = params.GetSlotValue("syncPopulate", config.syncPopulate);
   SNPRINTF(tmps, sizeof(tmps), "sq-webcache-%s", cache_name);
   config.jobMgrName = tmps;
 
@@ -118,7 +120,10 @@ static SQInteger get_all_entries(HSQUIRRELVM vm)
   G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 2, &cacheName)));
   auto it = datacaches.find(cacheName);
   if (it == datacaches.end())
+  {
+    sq_newarray(vm, 0);
     return 1;
+  }
 
   eastl::unique_ptr<datacache::Backend> &cache = it->second;
   void *iter = NULL;
@@ -134,6 +139,15 @@ static SQInteger get_all_entries(HSQUIRRELVM vm)
   }
   sq_pushobject(vm, entries);
   cache->endEnumeration(&iter);
+  return 1;
+}
+
+static SQInteger entry_key_for_url(HSQUIRRELVM vm)
+{
+  const char *url = nullptr;
+  G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 2, &url)));
+  char keyBuf[DAGOR_MAX_PATH];
+  sq_pushstring(vm, datacache::make_url_entry_key(url, keyBuf, sizeof(keyBuf)), -1);
   return 1;
 }
 
@@ -169,6 +183,7 @@ void bind_datacache(SqModules *module_mgr)
     .Func("abort_requests", abort_requests)
     .Func("del_entry", del_entry)
     .SquirrelFuncDeclString(get_all_entries, "get_all_entries(cache_name: string): array")
+    .SquirrelFuncDeclString(entry_key_for_url, "entry_key_for_url(url: string): string")
     .SetValue("ERR_UNKNOWN", (SQInteger)datacache::ERR_UNKNOWN)
     .SetValue("ERR_OK", (SQInteger)datacache::ERR_OK)
     .SetValue("ERR_PENDING", (SQInteger)datacache::ERR_PENDING)

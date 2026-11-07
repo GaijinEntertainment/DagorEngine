@@ -12,6 +12,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_fileIo.h>
+#include <ioSys/dag_zstdIo.h>
 #include <debug/dag_log.h>
 #include <generic/dag_initOnDemand.h>
 #include <generic/dag_tab.h>
@@ -200,15 +201,28 @@ public:
   LocStringTable main;
   PluralFormFn pluralFormFn = nullptr;
 
-  // Editor multi-language path. Less hot than `main` but follows the same
-  // hash-only model: mapFull holds key_hash -> row_idx, and the (rows x langs)
-  // grid of translation offsets lives in tableFull. fullLangList must keep
-  // stored language names because getLangById and loadCsvFull walk names back
-  // from indices for diagnostics.
+  // Multi-language ("full") table, mapFull: key_hash -> row_idx. The parser fills the tableFull/stringsFull grid,
+  // buildFullLangBlocks() moves it into fullBlocks: the current language and English unpacked,
+  // the others zstd-packed and unpacked per block on first use. Unpacked texts never move until shutdown, as callers keep pointers.
+  static constexpr uint32_t FULL_BLOCK_ROWS = 512;
+  struct FullLangBlock
+  {
+    eastl::unique_ptr<char[]> data; // row offsets, then NUL-terminated texts
+    eastl::unique_ptr<char[]> packed;
+    uint32_t packedSize = 0, textSize = 0;
+    const char *getText(uint32_t row) const
+    {
+      return data.get() + reinterpret_cast<const uint32_t *>(data.get())[row % FULL_BLOCK_ROWS];
+    }
+  };
+
   Tab<uint32_t> tableFull; // row_idx * fullLangList.nameCount() + lang_idx -> offset
   StringTableAllocator stringsFull{12, 16};
   HashedKeyMap<uint64_t, uint32_t> mapFull;
-  LocHashNameMapType fullLangList;
+  LocHashNameMapType fullLangList;       // names kept for getLangById and loadCsvFull
+  dag::Vector<FullLangBlock> fullBlocks; // lang_idx * fullBlocksPerLang + row_idx / FULL_BLOCK_ROWS
+  uint32_t fullBlocksPerLang = 0;
+  dag::Vector<eastl::unique_ptr<char[]>> retiredFullBlocks; // replaced texts that callers may still hold
 
   Tab<PluralFormFn> langToPluralIdxFunctions;
 
@@ -245,16 +259,18 @@ public:
 
   bool hasMainKey(uint64_t key_hash) const { return main.hashToOffset.findVal(key_hash) != nullptr; }
 
-  const char *getFullText(const char *key, int lang_idx)
+  FullLangBlock *findFullBlock(uint64_t key_hash, int lang_idx, uint32_t &row)
   {
-    const uint32_t *idx_p = mapFull.findVal(loc_hash(key, strlen(key)));
-    if (!idx_p)
-      return NULL;
-    const int nLangs = fullLangList.nameCount();
-    const int slot = (int)*idx_p * nLangs + lang_idx;
-    G_ASSERT(slot < tableFull.size());
-    return stringsFull.getDataRawUnsafe(tableFull[slot]);
+    const uint32_t *rowPtr = mapFull.findVal(key_hash);
+    if (!rowPtr || (unsigned)lang_idx >= (unsigned)fullLangList.nameCount())
+      return nullptr;
+    row = *rowPtr;
+    return &fullBlocks[lang_idx * fullBlocksPerLang + row / FULL_BLOCK_ROWS];
   }
+
+  void resetFullTable();
+  void buildFullLangBlocks(const char *cur_lang);
+  bool unpackFullBlock(FullLangBlock &block, uint32_t row);
 
   static const char *getText(LocTextId id) { return id ? (const char *)(void *)id : ""; }
 
@@ -990,7 +1006,7 @@ public:
       // any tableFull slot left untouched (e.g. a row missing a column whose
       // language was not found in this CSV, see loadCsvFull + parseCsvV2Full
       // bmap_col[langColNo] < 0 path) reads as the empty string when
-      // getFullText -> stringsFull.getDataRawUnsafe(0) is called. Without
+      // buildFullLangBlocks -> stringsFull.getDataRawUnsafe(0) is called. Without
       // this, the slot is value-initialized to 0 (see resize below) and
       // offset 0 would alias into the first stored string -- or into
       // uninitialized page bytes before any string is stored.
@@ -1082,8 +1098,8 @@ public:
 // locRwLock guards the main localization state: locTable, fakeLocKeys,
 // defLangOverride, force_def_lang.
 // NoWritersSpinLockReadWriteLock: 4 bytes, reader fast-path is a single
-// interlocked_increment (no kernel transition). Ideal here because writes
-// only happen during startup/shutdown; at runtime it is read-only.
+// interlocked_increment (no kernel transition). Ideal here because writes are rare:
+// startup/shutdown, the first unpack of a full-table block and fake key interning.
 // Non-reentrant: caller-supplied dag_on_duplicate_loc_key must not call back
 // into localization, and locked helpers (suffix _locked) are used to avoid
 // re-acquiring the lock from inside a write critical section.
@@ -1140,6 +1156,92 @@ bool LocalizationTable::loadCsvV2Full(char *buffer, int len, dag::ConstSpan<int>
 #endif
   LocTableParserCB cb(this, key_dump);
   return parseCsvV2Full(buffer, len, lang_col, &cb);
+}
+
+static void index_full_block(char *data, uint32_t rows)
+{
+  uint32_t ofs = rows * sizeof(uint32_t);
+  for (uint32_t row = 0; row < rows; row++)
+  {
+    reinterpret_cast<uint32_t *>(data)[row] = ofs;
+    ofs += (uint32_t)strlen(data + ofs) + 1;
+  }
+}
+
+void LocalizationTable::resetFullTable()
+{
+  for (FullLangBlock &block : fullBlocks)
+    retiredFullBlocks.push_back(eastl::move(block.data));
+  fullBlocks.clear();
+  mapFull.clear();
+}
+
+void LocalizationTable::buildFullLangBlocks(const char *cur_lang)
+{
+  const int startMsec = get_time_msec();
+  const uint32_t nLangs = fullLangList.nameCount(), rows = mapFull.size();
+  fullBlocksPerLang = (rows + FULL_BLOCK_ROWS - 1) / FULL_BLOCK_ROWS;
+  fullBlocks.resize(nLangs * fullBlocksPerLang);
+  size_t textTotal = 0, packedTotal = 0;
+  dag::Vector<Tab<char>> texts(nLangs);
+  Tab<char> packBuf;
+  for (uint32_t blockIdx = 0; blockIdx < fullBlocksPerLang; blockIdx++)
+  {
+    const uint32_t row0 = blockIdx * FULL_BLOCK_ROWS, blockRows = min(rows - row0, FULL_BLOCK_ROWS);
+    for (Tab<char> &text : texts)
+      text.clear();
+    // Row-major: stringsFull keeps a row's languages adjacent
+    for (uint32_t row = row0; row < row0 + blockRows; row++)
+      for (uint32_t lang = 0; lang < nLangs; lang++)
+      {
+        const char *str = stringsFull.getDataRawUnsafe(tableFull[row * nLangs + lang]);
+        append_items(texts[lang], strlen(str) + 1, str);
+      }
+    for (uint32_t lang = 0; lang < nLangs; lang++)
+    {
+      const char *langName = fullLangList.getName(lang);
+      const bool keepUnpacked = strcmp(langName, cur_lang) == 0 || strcmp(langName, "English") == 0;
+      const Tab<char> &text = texts[lang];
+      FullLangBlock &block = fullBlocks[lang * fullBlocksPerLang + blockIdx];
+      block.textSize = text.size();
+      textTotal += text.size();
+      if (!keepUnpacked)
+      {
+        packBuf.resize(zstd_compress_bound(text.size()));
+        const size_t packedSize = zstd_compress(packBuf.data(), packBuf.size(), text.data(), text.size(), 1);
+        if (packedSize <= packBuf.size())
+        {
+          block.packed.reset(new char[packedSize]);
+          memcpy(block.packed.get(), packBuf.data(), packedSize);
+          block.packedSize = packedSize;
+          packedTotal += packedSize;
+          continue;
+        }
+      }
+      const uint32_t ofsSize = blockRows * sizeof(uint32_t);
+      char *data = new char[ofsSize + text.size()];
+      memcpy(data + ofsSize, text.data(), text.size());
+      index_full_block(data, blockRows);
+      block.data.reset(data);
+    }
+  }
+  clear_and_shrink(tableFull);
+  stringsFull.clear();
+  debug("[LANG] full table: %u rows x %u langs, %u KB of texts, %u KB in packed blocks, %d ms", rows, nLangs,
+    unsigned(textTotal >> 10), unsigned(packedTotal >> 10), get_time_msec() - startMsec);
+}
+
+bool LocalizationTable::unpackFullBlock(FullLangBlock &block, uint32_t row)
+{
+  const uint32_t row0 = row / FULL_BLOCK_ROWS * FULL_BLOCK_ROWS;
+  const uint32_t rows = min(mapFull.size() - row0, FULL_BLOCK_ROWS), ofsSize = rows * sizeof(uint32_t);
+  eastl::unique_ptr<char[]> data(new char[ofsSize + block.textSize]);
+  if (zstd_decompress(data.get() + ofsSize, block.textSize, block.packed.get(), block.packedSize) != block.textSize)
+    return false;
+  index_full_block(data.get(), rows);
+  block.data = eastl::move(data);
+  block.packed.reset();
+  return true;
 }
 
 static InitOnDemand<LocalizationTable> locTable;
@@ -1228,27 +1330,38 @@ const char *get_localized_text(LocTextId id)
   return LocalizationTable::getText(id);
 }
 
+static const char *get_full_text(const char *key, const char *lang, int lang_id)
+{
+  const uint64_t keyHash = loc_hash(key, strlen(key));
+  uint32_t row = 0;
+  auto findBlock = [&] {
+    return locTable ? locTable->findFullBlock(keyHash, lang ? locTable->fullLangList.getNameId(lang) : lang_id, row) : nullptr;
+  };
+  {
+    LocReadLock lock(locRwLock);
+    const LocalizationTable::FullLangBlock *block = findBlock();
+    if (!block || block->data)
+      return block ? block->getText(row) : nullptr;
+  }
+  LocWriteLock lock(locRwLock);
+  LocalizationTable::FullLangBlock *block = findBlock();
+  if (!block || (!block->data && !locTable->unpackFullBlock(*block, row)))
+    return nullptr;
+  return block->getText(row);
+}
+
 const char *get_localized_text_for_lang(const char *key, const char *lang)
 {
   if (!key || !*key || !lang || !*lang)
-    return NULL;
-  LocReadLock lock(locRwLock);
-  if (!locTable)
-    return NULL;
-  int id = locTable->fullLangList.getNameId(lang);
-  if (id < 0)
-    return NULL;
-  return locTable->getFullText(key, id);
+    return nullptr;
+  return get_full_text(key, lang, -1);
 }
 
 const char *get_localized_text_for_lang_id(const char *key, int lang_id)
 {
   if (!key || !*key || lang_id < 0)
     return nullptr;
-  LocReadLock lock(locRwLock);
-  if (!locTable)
-    return nullptr;
-  return locTable->getFullText(key, lang_id);
+  return get_full_text(key, nullptr, lang_id);
 }
 
 const char *get_fake_loc_for_missing_key(const char *key)
@@ -1525,6 +1638,7 @@ bool startup_localization_V2(const class DataBlock &blk, const char *lang, LocKe
     const DataBlock *langsBlk = blk.getBlockByNameEx("text_translation");
     if (const DataBlock *override = langsBlk->getBlockByName(get_platform_string_id()))
       langsBlk = override;
+    locTable->resetFullTable();
     locTable->fullLangList.reset();
     clear_and_shrink(locTable->langToPluralIdxFunctions);
     for (int i = 0; i < langsBlk->paramCount(); i++)
@@ -1549,6 +1663,7 @@ bool startup_localization_V2(const class DataBlock &blk, const char *lang, LocKe
         ok = false;
       }
     }
+    locTable->buildFullLangBlocks(lang);
   }
 
   return ok;

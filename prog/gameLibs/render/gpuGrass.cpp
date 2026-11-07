@@ -481,17 +481,30 @@ void GPUGrassBase::init(const DataBlock &grassSettings, const bool has_cam_in_ca
       grassChannels.push_back(); // default
       G_ASSERTF_CONTINUE(0, "default grass channel block <%s> not exist!", channel_name[i]);
     }
-    int id = i < decal_channel_first ? i : grassRandomBlock->getInt("id", -1);
-    G_ASSERTF_CONTINUE(i < decal_channel_first || id >= 0, "grass channel <%s> id= %d is invalid ", grassRandomBlock->getBlockName(),
-      id);
-    if (i >= decal_channel_first && decal_channel_first > 0)
-      id += decal_channel_first - 1;
+    Tab<int> ids;
+    auto addId = [&](int id) {
+      G_ASSERTF_RETURN(i < decal_channel_first || id >= 0, , "grass channel <%s> id= %d is invalid ", grassRandomBlock->getBlockName(),
+        id);
+      if (i >= decal_channel_first && decal_channel_first > 0)
+        id += decal_channel_first - 1;
 
-    G_ASSERTF_CONTINUE(id < GRASS_MAX_CHANNELS, "too big id = %d at <%s>", id, grassRandomBlock->getBlockName());
-    G_ASSERTF_CONTINUE(!randomGrassesUsed[id], "grass with id %d is already initialized (on <%s> grass_type)", id,
-      grassRandomBlock->getBlockName());
+      G_ASSERTF_RETURN(id < GRASS_MAX_CHANNELS, , "too big id = %d at <%s>", id, grassRandomBlock->getBlockName());
+      G_ASSERTF_RETURN(!randomGrassesUsed[id], , "grass with id %d is already initialized (on <%s> grass_type)", id,
+        grassRandomBlock->getBlockName());
 
-    randomGrassesUsed.set(id);
+      randomGrassesUsed.set(id);
+      ids.push_back(id);
+    };
+
+    if (i < decal_channel_first)
+      addId(i);
+    else if (!grassRandomBlock->paramExists("id"))
+      addId(-1);
+    else
+      for (int pi = grassRandomBlock->findParam("id", -1); pi >= 0; pi = grassRandomBlock->findParam("id", pi))
+        addId(grassRandomBlock->getInt(pi));
+    if (ids.empty())
+      continue;
 
     Tab<eastl::pair<const char *, float>> channelGrasses;
     float noGrassWeight = 0;
@@ -580,9 +593,12 @@ void GPUGrassBase::init(const DataBlock &grassSettings, const bool has_cam_in_ca
     // memcpy(&tp.random_weights0.x, randomWeights, MAX_TYPES_PER_CHANNEL*sizeof(float));// implicit, but potentially dangerous
     memcpy(&tp.random_types, randomTypes, MAX_TYPES_PER_CHANNEL * sizeof(uint8_t));
 
-    if (id >= grassChannels.size())
-      grassChannels.resize(id + 1);
-    grassChannels[id] = tp;
+    for (int id : ids)
+    {
+      if (id >= grassChannels.size())
+        grassChannels.resize(id + 1);
+      grassChannels[id] = tp;
+    }
   }
 
   loadGrassTypes(grassSettings, grassTypesUsed);
@@ -1061,22 +1077,22 @@ void GPUGrass::init(const DataBlock &grassSettings, const bool has_cam_in_cam)
   maskTexHelper.texSize = maskResolution;
   farMaskTexHelper.texSize = farMaskResolution;
 
-  maskTex.set(d3d::create_tex(NULL, maskResolution, maskResolution, TEXCF_RTARGET, 1, "grass_mask_tex", RESTAG_GRASS),
-    "grass_mask_tex");
+  maskTex = dag::create_tex(NULL, maskResolution, maskResolution, TEXCF_RTARGET, 1, "grass_mask_tex", RESTAG_GRASS);
   if (useFarGrass)
-    farMaskTex.set(d3d::create_tex(NULL, farMaskResolution, farMaskResolution, TEXCF_RTARGET, 1, "grass_far_mask_tex", RESTAG_GRASS),
-      "grass_far_mask_tex");
+    farMaskTex = dag::create_tex(NULL, farMaskResolution, farMaskResolution, TEXCF_RTARGET, 1, "grass_far_mask_tex", RESTAG_GRASS);
   else
     ShaderGlobal::set_texture(get_shader_variable_id("grass_far_mask_tex", true), BAD_TEXTUREID);
   ShaderGlobal::set_sampler(get_shader_variable_id("grass_mask_tex_samplerstate"), d3d::request_sampler({}));
 
-  colorTex.set(d3d::create_tex(NULL, maskResolution, maskResolution, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1,
-                 "grass_color_tex", RESTAG_GRASS),
-    "grass_color_tex");
+  colorTex = dag::create_tex(NULL, maskResolution, maskResolution, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1,
+    "grass_color_tex", RESTAG_GRASS);
   if (useFarGrass)
-    farColorTex.set(d3d::create_tex(NULL, farMaskResolution, farMaskResolution, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1,
-                      "grass_far_color_tex", RESTAG_GRASS),
-      "grass_far_color_tex");
+    farColorTex = dag::create_tex(NULL, farMaskResolution, farMaskResolution, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1,
+      "grass_far_color_tex", RESTAG_GRASS);
+
+  // Shaders test grass_mask_tex != NULL, so keep the maps unbound until updateGrassMaps fills them
+  for (const UniqueTexWithShaderVar *tex : {&maskTex, &colorTex, &farMaskTex, &farColorTex})
+    ShaderGlobal::set_texture(tex->getVarId(), BAD_TEXTUREID);
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
@@ -1146,8 +1162,8 @@ enum
 };
 
 void GPUGrass::updateGrassMaps(const Point3 &pos, float grass_distance, float align_size, ToroidalHelper &tex_helper,
-  TextureIDHolderWithVar &mask_tex, TextureIDHolderWithVar &color_tex, IRandomGrassRenderHelper &cb, ShaderVariableInfo &coord_var_id,
-  ShaderVariableInfo &coord_ofs_var_id)
+  const ManagedTexWithShaderVar &mask_tex, const ManagedTexWithShaderVar &color_tex, IRandomGrassRenderHelper &cb,
+  ShaderVariableInfo &coord_var_id, ShaderVariableInfo &coord_ofs_var_id)
 {
   const float distance = grass_distance + float(THRESHOLD) * align_size;
   const Point2 next_pos = floor(Point2::xz(pos) / (2 * align_size) + Point2(0.5f, 0.5f)) * (2 * align_size);

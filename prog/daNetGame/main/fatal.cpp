@@ -30,7 +30,6 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
 #include "game/gameScripts.h"
-#include "ui/userUi.h"
 #include "ui/overlay.h"
 #include "main/main.h"
 
@@ -201,7 +200,6 @@ inline void dump_sqvm_callstacks(const char *call_stack)
   // Dump every vm since it's not trivial to detect in which vm fatal was called from.
   HSQUIRRELVM vms[] = {
     is_main_thread() ? gamescripts::get_vm() : nullptr,
-    user_ui::get_vm(), // Do it even in non main thread since darg might be rendered/updated not in main thread.
     is_main_thread() ? overlay_ui::get_vm() : nullptr,
   };
   for (HSQUIRRELVM vm : vms)

@@ -9,6 +9,7 @@
 #include <drv/3d/dag_driver.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_tabUtils.h>
+#include <EASTL/algorithm.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/string.h>
@@ -22,7 +23,6 @@ struct CamRecord
 
 struct CameraTrack
 {
-  const char *filename = NULL; // points to hash_map's string key
   Tab<CamRecord> records;
   int cachedRecord = -1;
 
@@ -43,44 +43,10 @@ struct CameraTrack
     df_close(file);
   }
 
-  Point2 getTimeRange() const
-  {
-    G_ASSERT_RETURN(!records.empty(), Point2(0.f, 0.f));
-    return Point2(records[0].time, records.back().time);
-  }
-
-  float getDistToTime(float timestamp) const
-  {
-    Point2 timeRange = getTimeRange();
-    return fabsf(timestamp - clamp(timestamp, timeRange.x, timeRange.y));
-  }
-
-  int bin_range_search(float time, int from, int to)
-  {
-    int a = from;
-    int b = to;
-    while (a <= b)
-    {
-      int c = (a + b) / 2;
-      if (c == a)
-        return a;
-      int v = records[c].time > time ? -1 : +1;
-      if (v < 0)
-        b = c;
-      else
-        a = c;
-    }
-    return -1;
-  }
-
   void calcCachedRecord(float time)
   {
-    if (time <= records[0].time)
-      cachedRecord = 0;
-    else if (time >= records.back().time)
-      cachedRecord = records.size() - 1;
-    else
-      cachedRecord = bin_range_search(time, 0, records.size() - 1);
+    auto next = eastl::upper_bound(records.begin(), records.end(), time, [](float t, const CamRecord &r) { return t < r.time; });
+    cachedRecord = max(int(next - records.begin()) - 1, 0);
   }
 
   void apply(float abs_time, TMatrix &out_itm, float &out_fov)
@@ -142,7 +108,6 @@ camtrack::handle_t camtrack::load_track(const char *filename)
   if (it == tracks.end())
   {
     it = tracks.insert(eastl::string(filename)).first;
-    it->second.filename = it->first.c_str();
     it->second.init(it->first.c_str());
   }
   return &it->second;
@@ -154,13 +119,3 @@ bool camtrack::get_track(handle_t handle, float abs_time, TMatrix &out_itm, floa
   static_cast<CameraTrack *>(handle)->apply(abs_time, out_itm, out_fov);
   return true;
 }
-
-void camtrack::stop_play(handle_t handle)
-{
-  G_ASSERT_RETURN(handle, );
-  auto it = tracks.find_as(static_cast<CameraTrack *>(handle)->filename);
-  G_ASSERT_RETURN(it != tracks.end(), );
-  tracks.erase(it);
-}
-
-void camtrack::term() { tracks.clear(); }

@@ -131,7 +131,7 @@ hlsl(vs) {
     float4 packedBoneIndices    : t1;\
     float4 boneWeights          : t2;
 }
-hlsl {
+hlsl(vs) {
   #define HAS_SKINNING 1
 }
 endmacro
@@ -319,7 +319,7 @@ hlsl(code)
     return skinning_matrix_base(input, 3);//Skip 3 rows
   }
 
-  // constraint: a pass that defines HAS_COR_SKINNING declares VsInput::corOffset; zero keeps linear blend skinning
+  // a pass that defines HAS_COR_SKINNING declares VsInput::corOffset; zero keeps linear blend skinning
   bool skin_vertex_base(in VsInput input, uint in_matrix_offset, float3 vertex_pos, out float3 skinned_pos,
     out float3x3 skinned_rot)
   {
@@ -337,7 +337,7 @@ hlsl(code)
     return checkAllBonesToCollapse(bi, bw);
   ##else
     bone_t skinned_tm = blend_skinning_matrix(bi, bw, in_matrix_offset);
-    // constraint: the node collapser zeroes the blended matrix, not the bone rows
+    // the node collapser zeroes the blended matrix, not the bone rows
     bool collapsed = all(and(and(skinned_tm.r0 == 0, skinned_tm.r1 == 0), skinned_tm.r2 == 0));
     skinned_rot = float3x3(skinned_tm.r0.xyz, skinned_tm.r1.xyz, skinned_tm.r2.xyz);
     skinned_pos = mul_bone(vertex_pos, skinned_tm);

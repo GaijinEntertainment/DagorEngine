@@ -105,10 +105,12 @@ public:
   // Sync fallback: block only until THIS script is published, not the whole queue.
   void waitScriptResolved(const DasScript *s);
 
-  // The destructive part of cleanupAfterReload (freeSourceData + moduleGroup->reset +
-  // ClearSharedModules). Runs only when numJobsInFlight==0 - either immediately, or deferred to
-  // the last job's releaseJob() via pendingModuleGroupCleanup. Takes the global das compile lock.
+  // The destructive part of cleanupAfterReload (freeSourceData + moduleGroup->reset + drop of the shared modules).
+  // Runs only when numJobsInFlight==0 - either immediately, or deferred to the last job's releaseJob() via pendingModuleGroupCleanup.
+  // Takes the global das compile lock.
   void cleanupModuleGroupLocked();
+
+  void clearOwnSharedModules();
 
 public:
   das::string dasProject;
@@ -133,6 +135,9 @@ public:
   // handles are script-referenced (caches) and outlive env reset, so their dtors must not drop
   // ctx/program against freed modules. GuiScene API thread only (no lock).
   eastl::vector<DasScript *> liveScripts;
+
+  // Names of the shared modules that this manager's compiles promoted; das compile lock only.
+  das::das_hash_set<das::string> ownSharedModules;
 
   das::TypeInfo *typeGuiContextRef = nullptr;
   das::TypeInfo *typeConstElemRenderDataRef = nullptr;

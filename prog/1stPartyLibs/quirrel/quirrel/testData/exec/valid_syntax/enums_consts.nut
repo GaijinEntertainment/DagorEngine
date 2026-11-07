@@ -1,4 +1,5 @@
 // Valid syntax: Enums and constants
+#allow-switch-statement
 
 // Basic enum
 enum Color {
@@ -79,7 +80,6 @@ if (color == Color.RED) {
 }
 
 // Enum in switch
-#allow-switch-statement
 local result = ""
 let status = HttpCode.NOT_FOUND
 switch (status) {

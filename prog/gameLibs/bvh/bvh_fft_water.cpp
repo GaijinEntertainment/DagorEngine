@@ -56,20 +56,9 @@ static bool create_blas_and_meta(ContextId context_id, Context::WaterPatches &wa
   desc.data.triangles.indexOffset = 0;
   desc.data.triangles.flags = RaytraceGeometryDescription::Flags::IS_OPAQUE;
 
-  auto blas = UniqueBLAS::create(&desc, 1, blas_flags);
-  HANDLE_LOST_DEVICE_STATE(blas, false);
-
-  raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
-  buildInfo.flags = blas_flags;
-  buildInfo.geometryDesc = &desc;
-  buildInfo.geometryDescCount = 1;
-  buildInfo.scratchSpaceBuffer = alloc_scratch_buffer(blas.getBuildScratchSize(), buildInfo.scratchSpaceBufferOffsetInBytes);
-  buildInfo.scratchSpaceBufferSizeInBytes = blas.getBuildScratchSize();
-  HANDLE_LOST_DEVICE_STATE(buildInfo.scratchSpaceBuffer, false);
-
-  d3d::build_bottom_acceleration_structure(blas.get(), buildInfo);
-
-  water_patch.blas = eastl::move(blas);
+  water_patch.blas = build_blas(desc, blas_flags);
+  if (!water_patch.blas)
+    return false;
 
   G_ASSERT(water_patch.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID);
   TIME_PROFILE(meta_lock_water);
@@ -93,26 +82,10 @@ static bool create_blas_and_meta(ContextId context_id, Context::WaterPatches &wa
   return true;
 }
 
-static E3DCOLOR pack_normal(const Point3 &normal) { return e3dcolor(Color3::xyz(normal * 0.5 + 0.5), 0); }
-
-static bool generate_flat_indices(ContextId context_id)
-{
-  uint16_t ibData[] = {0, 1, 2, 0, 2, 3};
-  constexpr int ibDwords = 3;
-  static_assert(ibDwords * sizeof(uint32_t) == sizeof(ibData));
-  context_id->waterFlatIb =
-    dag::buffers::create_persistent_sr_byte_address(ibDwords, "bvh_flat_water_ib", d3d::buffers::Init::No, RESTAG_BVH);
-  HANDLE_LOST_DEVICE_STATE(context_id->waterFlatIb, false);
-  context_id->waterFlatIb->updateData(0, sizeof(ibData), ibData, VBLOCK_WRITEONLY);
-  d3d::resource_barrier(ResourceBarrierDesc(context_id->waterFlatIb.getBuf(), bindlessSRVBarrier));
-
-  return true;
-}
-
 static void make_flat_patches(ContextId context_id, const fft_water::WaterHeightmap *heightmap, float water_level, const IBBox2 &box,
   int tile_size, int grid_size)
 {
-  if (!generate_flat_indices(context_id))
+  if (!create_quad_ib(context_id->waterFlatIb, "bvh_flat_water_ib"))
     return;
 
   auto &flatPatches = context_id->water_patches.push_back();
@@ -315,8 +288,8 @@ static void make_heightmap_patches(ContextId context_id, const fft_water::WaterH
           heightmap->getHeightmapDataBilinear(locationRight.x, locationRight.z, locationRight.y);
           Point3 locationDown = Point3::xVz(location, water_level) + Point3(0, 0, 0.5);
           heightmap->getHeightmapDataBilinear(locationDown.x, locationDown.z, locationDown.y);
-          Point3 right = normalize(locationRight - location);
-          Point3 down = normalize(locationDown - location);
+          Point3 right = locationRight - location;
+          Point3 down = locationDown - location;
           Point3 normal = normalize(cross(down, right));
 
           WaterVertexData &v = scratch[z * (water_cell.size + 1) + x];
@@ -332,7 +305,7 @@ static void make_heightmap_patches(ContextId context_id, const fft_water::WaterH
   }
 }
 
-static bool validate_water_area(ContextId context_id, int tile_size)
+[[maybe_unused]] static bool validate_water_area(ContextId context_id, int tile_size)
 {
   int areaSum = 0;
   for (auto &patch : context_id->water_patches)

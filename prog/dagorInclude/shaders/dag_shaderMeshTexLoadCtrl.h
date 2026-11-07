@@ -6,6 +6,7 @@
 
 // forwards for used classes
 class String;
+class ShaderMaterial;
 
 
 class IShaderMatVdataTexLoadCtrl
@@ -19,7 +20,12 @@ public:
   virtual const char *preprocessMatVdataTexName(const char *original_tex_name, unsigned ctx_obj_type, const char *ctx_obj_name,
     String &tmp_storage) = 0;
 
+  //! called for each material created while loading a mesh, after its texture IDs are resolved;
+  //! lets the game adjust texture policy (e.g. sampler anisotropy) by shader class
+  virtual void onMatVdataMaterialCreated(ShaderMaterial & /*mat*/) {}
+
   static const char *preprocess_tex_name(const char *original_tex_name, String &tmp_storage);
+  static void on_material_created(ShaderMaterial &mat);
 };
 
 extern IShaderMatVdataTexLoadCtrl *dagor_sm_tex_load_controller;

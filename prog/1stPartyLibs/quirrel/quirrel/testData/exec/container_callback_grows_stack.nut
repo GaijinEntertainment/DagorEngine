@@ -157,3 +157,13 @@ inThread("table.reduce", function() {
   }, 0)
   return ok && res == 6
 })
+
+inThread("string.join", function() {
+  local ok = true
+  let res = ",".join(["a", "b", "c"], function(s) {
+    grow()
+    ok = ok && this == ","
+    return s != "b"
+  })
+  return ok && res == "a,c"
+})

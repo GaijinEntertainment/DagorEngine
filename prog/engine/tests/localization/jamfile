@@ -13,6 +13,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 Sources =
   main.cpp
   test_duplicates.cpp
+  test_full_table.cpp
 ;
 
 UseProgLibs +=

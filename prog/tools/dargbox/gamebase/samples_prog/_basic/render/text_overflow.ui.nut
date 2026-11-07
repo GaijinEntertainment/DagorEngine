@@ -2,14 +2,9 @@ from "%darg/ui_imports.nut" import *
 from "math" import max
 
 /*
-   Horizontal overflow handling modes:
-    - TOVERFLOW_CLIP (clip at coord, default)
-    - TOVERFLOW_CHAR (truncate by symbol)
-    - TOVERFLOW_WORD (truncate by word)
-
-   Vertical overflow handling modes:
-    - TOVERFLOW_CLIP (clip at coord default)
-    - TOVERFLOW_LINE (truncate by line)
+   textOverflow modes:
+    - TOVERFLOW_CLIP (draw all the text, the box clips it; default)
+    - TOVERFLOW_ELLIPSIS (cut the end of the text by character and end it with an ellipsis)
 */
 
 let cursors = require("samples_prog/_cursors.nut")
@@ -34,7 +29,7 @@ function dTextFrame(params={}) {
     color = Color(255,0,0)
     size = textFrameState.get().size
     pos = textFrameState.get().pos
-    children = dText("Съешь ещё этих мягких французских булок, да выпей же чаю").__update(params, {size=flex() textOverflowX=null})
+    children = dText("Съешь ещё этих мягких французских булок, да выпей же чаю").__update(params, {size=flex() textOverflow=null})
     behavior = Behaviors.MoveResize
     moveResizeCursors = cursors.moveResizeCursors
     watch = textFrameState
@@ -69,10 +64,11 @@ return {
       {rendObj = ROBJ_FRAME  size = [100,30].map(hdpx) children = {  rendObj = ROBJ_TEXT text="This is long-long-long text"}}
       dText("This is clipped overflowed text")
       {rendObj = ROBJ_FRAME size = [100,30].map(hdpx) clipChildren = true children = {rendObj = ROBJ_TEXT text="This is long-long-long text"}}
-      dText("This is ellipsis overflowed text, split by chars.")
-      {rendObj = ROBJ_FRAME size = [210,30].map(hdpx) children = {rendObj = ROBJ_TEXT text="Съешь ещё этих мягких французских булок, да" ellipsis = true textOverflowX = TOVERFLOW_CHAR size = flex() }}
-      dText("This is ellipsis overflowed (d)text, split by words.")
-      {rendObj = ROBJ_FRAME size = [210,30].map(hdpx) children = {rendObj = ROBJ_TEXT text="Съешь ещё этих мягких французских булок, да" ellipsis = true textOverflowX = TOVERFLOW_WORD size = flex()}}
+      dText("textOverflow = TOVERFLOW_ELLIPSIS: the end of the text is cut by character")
+      {rendObj = ROBJ_FRAME size = [210,30].map(hdpx) children = {rendObj = ROBJ_TEXT text="Съешь ещё этих мягких французских булок, да" textOverflow = TOVERFLOW_ELLIPSIS size = flex() }}
+      dText("TOVERFLOW_ELLIPSIS, halign = ALIGN_CENTER and ALIGN_RIGHT: alignment only places the cut text")
+      {rendObj = ROBJ_FRAME size = [210,30].map(hdpx) children = {rendObj = ROBJ_TEXT text="Съешь ещё этих мягких французских булок, да" textOverflow = TOVERFLOW_ELLIPSIS halign = ALIGN_CENTER size = flex()}}
+      {rendObj = ROBJ_FRAME size = [210,30].map(hdpx) children = {rendObj = ROBJ_TEXT text="Съешь ещё этих мягких французских булок, да" textOverflow = TOVERFLOW_ELLIPSIS halign = ALIGN_RIGHT size = flex()}}
       dText("This is resizable overflowed text, split by chars")
       @(){ watch = textFrameState children = dTextFrame({fontFxColor = Color(255, 155, 0, 0) color = Color(255,255,255) size=textFrameState.get().size})}
       dText("This is autoscrolled text with delay and speed")

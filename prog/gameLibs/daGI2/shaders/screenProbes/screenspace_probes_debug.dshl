@@ -2,6 +2,7 @@ include "world_sdf.dshl"
 include "sky_shader_global.dshl"
 include "screenspace_probes_common.dshl"
 include "screenspace_probes_reprojection.dshl"
+include "tonemapHelpers/debug_draw_hdr_inc.dshl"
 
 int debug_screenspace_probes_type;
 
@@ -13,6 +14,7 @@ shader screenspace_probes_draw_debug
 {
   supports global_frame;
   supports none;
+  color_write = rgb;
   (vs) {
     globtm@f44 = globtm;
   }
@@ -128,8 +130,7 @@ shader screenspace_probes_draw_debug
     sp_irradiance_res@i4 = sp_irradiance_res;
   }
   SREENSPACE_PROBES_OCTAHEDRAL(ps)
-  INIT_HDR(ps)
-  USE_HDR(ps)
+  INIT_AND_USE_DEBUG_DRAW_HDR()
   hlsl(ps) {
     #include <sp_calc_common.hlsl>
 
@@ -150,14 +151,14 @@ shader screenspace_probes_draw_debug
         float3 colors[] = {float3(1,1,1), float3(1,0,0), float3(0,1,0), float3(0,0,1)};
         //return pack_hdr(colors[revAge]);
         if (input.tag&SP_TAG_MOVING_PROBE)
-          return pack_hdr(float3(isScreenProbe ? 0 : 1, 1,0));
+          return pack_debug_draw_hdr(float3(isScreenProbe ? 0 : 1, 1,0));
         if (!isScreenProbe)
-          return pack_hdr(float3(1,0,0));
+          return pack_debug_draw_hdr(float3(1,0,0));
       }
       if (debug_screenspace_probes_type == DEBUG_DISTANCE)
-        return pack_hdr(tex2Dlod(screenprobes_current_radiance, float4(sampleTC,0,0)).w > 10);
+        return pack_debug_draw_hdr(tex2Dlod(screenprobes_current_radiance, float4(sampleTC,0,0)).w > 10);
       if (debug_screenspace_probes_type == DEBUG_IRRADIANCE)
-        return pack_hdr(tex2Dlod(screenspace_irradiance, float4(sampleTC,0,0)).xyz);
+        return pack_debug_draw_hdr(tex2Dlod(screenspace_irradiance, float4(sampleTC,0,0)).xyz);
       if (debug_screenspace_probes_type == DEBUG_COORD)
       {
         uint2 coordOfs = decodeCoordOfs(input.encodedProbeNormal);
@@ -166,11 +167,11 @@ shader screenspace_probes_draw_debug
         //uint2 screen_tile_coord = sampleCoord;
         uint2 prevCoordOfs = decodeCoordOfs(sp_loadEncodedProbeNormalCoord(prev_screenspace_probe_pos, input.atlasProbeIndex, sp_getPrevNumTotalProbes()));
         if (any(prevCoordOfs != uint(screenspace_probe_res.z)/2))
-          return pack_hdr(float3(0,1,0));
+          return pack_debug_draw_hdr(float3(0,1,0));
         if (any(coordOfs != uint(screenspace_probe_res.z)/2))
-          return pack_hdr(float3(1,0,0));
+          return pack_debug_draw_hdr(float3(1,0,0));
         if (any(prevCoordOfs != coordOfs))
-          return pack_hdr(float3(1, 1, 0));
+          return pack_debug_draw_hdr(float3(1, 1, 0));
       }
       if (debug_screenspace_probes_type == DEBUG_NORMAL)
       {
@@ -179,7 +180,7 @@ shader screenspace_probes_draw_debug
       }
       //if (debug_screenspace_probes_type == DEBUG_RADIANCE)
         float currentExposure = 1;
-        return pack_hdr(currentExposure*(screenprobes_current_radiance[sampleTC*screenspace_probe_atlas_size.xy*screenspace_probe_res.w].xyz));
+        return pack_debug_draw_hdr(currentExposure*(screenprobes_current_radiance[sampleTC*screenspace_probe_atlas_size.xy*screenspace_probe_res.w].xyz));
         return pack_hdr(currentExposure*(tex2Dlod(screenprobes_current_radiance, float4(sampleTC,0,0)).xyz));
       //return tex2Dlod(screenspace_iadiance, float4(sampleTC,0,0)).xyz;
     }

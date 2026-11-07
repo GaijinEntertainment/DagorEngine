@@ -18,6 +18,7 @@ extern void init_plugin_collision();
 extern void init_plugin_physobj();
 extern void init_plugin_effects(const DataBlock &appblk);
 extern void init_plugin_vehicle();
+extern void init_plugin_bike_desc();
 extern void init_plugin_fastphys();
 extern void init_plugin_rndgrass();
 extern void init_plugin_csg_entities();
@@ -48,6 +49,7 @@ void init_all_editor_plugins(const DataBlock &appblk)
   INIT_SERVICE("physObj", ::init_plugin_physobj());
   INIT_SERVICE("fx", ::init_plugin_effects(appblk));
   INIT_SERVICE("vehicle", ::init_plugin_vehicle());
+  INIT_SERVICE("bikeDesc", ::init_plugin_bike_desc());
   INIT_SERVICE("fastPhys", ::init_plugin_fastphys());
   INIT_SERVICE("rndGrass", ::init_plugin_rndgrass());
   INIT_SERVICE("csg", ::init_plugin_csg_entities());

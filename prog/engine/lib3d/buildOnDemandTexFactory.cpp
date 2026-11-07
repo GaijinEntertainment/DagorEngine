@@ -535,8 +535,7 @@ public:
       }
       if (!texmgr_internal::texq_load_on_demand)
         resQS.setMaxReqLev(15);
-      RMGR.texSamplerInfo[idx] = get_sampler_info(tmd);
-      RMGR.texSamplers[idx] = d3d::request_sampler(RMGR.texSamplerInfo[idx]);
+      texmgr_internal::set_texture_derived_sampler(RMGR.toId(idx), get_sampler_info(tmd));
 
       TEXTUREID bt_id = BAD_TEXTUREID;
       if (!tmd.baseTexName.empty())
@@ -961,11 +960,15 @@ bool get_managed_tex_entry_desc(TEXTUREID tid, ManagedTexEntryDesc &out_desc)
     else
       out_desc.qResSz[ql] = 0;
   }
-  uint64_t texStateBits =
-    (interlocked_relaxed_load(build_on_demand_tex_factory::shared.textureLoadingState[idx / 32u]) >> uint64_t((idx % 32u) * 2u)) &
-    0b11u;
-  out_desc.isLoadedWithErrors = !bool(texStateBits >> 1u);
-  out_desc.isLoading = bool(texStateBits & 1u);
+  out_desc.isLoading = out_desc.isLoadedWithErrors = 0;
+  // Empty until build_on_demand_tex_factory::init.
+  const auto &loadingState = build_on_demand_tex_factory::shared.textureLoadingState;
+  if (idx / 32u < loadingState.size())
+  {
+    uint64_t texStateBits = (interlocked_relaxed_load(loadingState[idx / 32u]) >> uint64_t((idx % 32u) * 2u)) & 0b11u;
+    out_desc.isLoadedWithErrors = !bool(texStateBits >> 1u);
+    out_desc.isLoading = bool(texStateBits & 1u);
+  }
   return true;
 }
 

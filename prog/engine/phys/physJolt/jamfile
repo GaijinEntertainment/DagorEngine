@@ -21,6 +21,7 @@ Sources =
   joltPhysSysInst.cpp
   joltDbgRender.cpp
   joltRayCar.cpp
+  joltMotorcycle.cpp
   shapes/HeightField16Shape.cpp
   shapes/FastCollideConvexVsTriangles.cpp
   shapes/CollisionBlasShape.cpp

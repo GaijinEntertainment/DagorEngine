@@ -9,8 +9,9 @@ println("hash(42) == hash(42) =", hash(42) == hash(42))
 println("hash([1,2,3]) == hash([\"x\"]) =", hash([1, 2, 3]) == hash(["x"]))
 println("hash({a=1}) == hash({}) =", hash({a = 1}) == hash({}))
 
+let fn = hash
 try {
-  hash(hash) // functions cannot be hashed
+  hash(fn) // functions cannot be hashed
 } catch (e) {
-  println("hash(hash) throws:", e)
+  println("hash(fn) throws:", e)
 }

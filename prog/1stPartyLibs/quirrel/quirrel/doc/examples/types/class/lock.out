@@ -1,2 +1,2 @@
 rawset("z", 1) error: trying to modify a class that has already been instantiated, inherited or is locked manually
-Foo.shared = 42
+newmember("helper", ...) error: trying to modify a class that has already been instantiated, inherited or is locked manually

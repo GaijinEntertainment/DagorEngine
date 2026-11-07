@@ -13,6 +13,7 @@ AddIncludes =
 ;
 
 Sources =
+  invisibleFacesHighlight.cpp
   assetStatsFiller.cpp
   entity.cpp
   entityMatEditor.cpp
@@ -37,6 +38,7 @@ Sources =
   compositeEditorViewport.cpp
   outlineRenderer.cpp
   editModeRenderer.cpp
+  materialHighlightRenderer.cpp
 ;
 
 

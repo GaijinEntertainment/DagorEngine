@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "main/hostedServerLauncher.h"
+#include "main/physMat.h"
 #include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
 #include <atomic>
@@ -183,6 +184,17 @@ extern "C" const char *dedicated_server_dll_fn;
 struct InternalDedicatedServerMainThread;
 static eastl::unique_ptr<InternalDedicatedServerMainThread> current_running_internal_server;
 static bool dedicated_server_dll_pdb_loaded = false;
+static std::atomic<void *> dll_pending_main_thread_unload{nullptr};
+
+// The main thread calls into the dll too, so on Sony it must release its TLS of the dll before the unload.
+static void unload_pending_dll_on_main_thread()
+{
+  void *dll = dll_pending_main_thread_unload.exchange(nullptr);
+  if (!dll)
+    return;
+  bool result = os_dll_close(dll);
+  debug("%s: unload dll=%p result=%s", __FUNCTION__, dll, result ? "SUCCESS" : "FAIL");
+}
 
 void hosted_internal_server_pass_shared_memory(DataBlock &startParams);
 void hosted_internal_server_term_shared_memory();
@@ -555,8 +567,13 @@ public:
     // the host after close.
     dll_set_log_forwarder(dllHandle, nullptr, false);
     dll_set_work_status_callback(dllHandle, nullptr);
+#if _TARGET_C1 | _TARGET_C2
+
+
+#else
     bool result = os_dll_close(dllHandle);
     debug("%s: unload dll result=%s", func_label, result ? "SUCCESS" : "FAIL");
+#endif
 #if DAGOR_DBGLEVEL <= 0 // skip unloading symbols in non-release build to report
                         // memory leaks properly
     ::symhlp_unload(dllPath);
@@ -570,6 +587,7 @@ public:
     if (!isWaitingShutdown)
       current_running_internal_server.reset();
     return run_action_on_main_thread([stoppedUid] {
+      unload_pending_dll_on_main_thread();
       g_entity_mgr->broadcastEvent(EventHostedInternalServerDidStop{stoppedUid});
       debug_flush(true);
       if (is_new_server_scheduled())
@@ -737,6 +755,7 @@ static void launch_internal_server_with_args_block(DataBlock args)
 {
   SCOPED_STATE_LOCK();
   make_sure_no_current_server_running();
+  unload_pending_dll_on_main_thread();
   export_memalloc_for_hosted_server();
   remove_current_new_server_request();
   if (!get_valid_dll_fn().empty())
@@ -859,6 +878,7 @@ void shutdown_internal_server_on_host_exit()
   SCOPED_STATE_LOCK();
   remove_current_new_server_request();
   make_sure_no_current_server_running();
+  unload_pending_dll_on_main_thread();
   hosted_internal_server_term_shared_memory();
 }
 
@@ -892,6 +912,8 @@ void prelaunch_internal_server_if_needed()
   char **argv = (char **)cmdsCopy.data();
   int argc = cmdsCopy.size();
   debug("%s: starting with %d args", __FUNCTION__, argc);
+  // The server loads collision through the host factories, which resolve node materials with the host PhysMat: it must not be empty
+  physmat::init();
   schedule_new_internal_server_with_args(argc, argv);
 }
 

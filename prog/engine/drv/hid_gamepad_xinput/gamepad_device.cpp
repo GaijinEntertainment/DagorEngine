@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gamepad_device.h"
+#include "../hid_commonCode/joystickAxisUtils.h"
 #include <math/dag_mathUtils.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <supp/_platform.h>
@@ -140,35 +141,12 @@ bool HumanInput::Xbox360GamepadDevice::updateState(int dt_msec, bool def, bool h
     int clampedValue = applyDeadzone(value, clamp(threshold, 0, JOY_XINPUT_MAX_AXIS_VAL - 1000), max_value);
     return scaleAxis(clampedValue, max_value);
   };
-  auto applyStickDeadzoneAndScale = [&scaleAxis, &applyDeadzone](int &dest_x, int &dest_y, int vx, int vy, int deadzone) -> void {
-    deadzone = clamp(deadzone, 0, JOY_XINPUT_MAX_AXIS_VAL - 1000);
-    dest_x = vx;
-    dest_y = vy;
-    if (deadzone)
-    {
-      unsigned int d2 = sqr(unsigned(abs(vx))) + sqr(unsigned(abs(vy)));
-      if (d2 < unsigned(deadzone * deadzone))
-        dest_x = dest_y = 0;
-      else
-      {
-        float d = sqrtf(d2), s = float(JOY_XINPUT_MAX_AXIS_VAL) / (JOY_XINPUT_MAX_AXIS_VAL - deadzone);
-        dest_x = (int)::roundf((vx - deadzone / d * vx) * s);
-        dest_y = (int)::roundf((vy - deadzone / d * vy) * s);
-      }
-    }
-
-    unsigned int d2 = sqr(unsigned(abs(dest_x))) + sqr(unsigned(abs(dest_y)));
-    if (d2 > JOY_XINPUT_MAX_AXIS_VAL * JOY_XINPUT_MAX_AXIS_VAL)
-    {
-      float d = sqrtf(d2);
-      dest_x = (int)::roundf(dest_x * JOY_XINPUT_MAX_AXIS_VAL / d);
-      dest_y = (int)::roundf(dest_y * JOY_XINPUT_MAX_AXIS_VAL / d);
-    }
-  };
-  applyStickDeadzoneAndScale(state.x, state.y, st.Gamepad.sThumbLX, st.Gamepad.sThumbLY,
-    axis_dead_thres[deviceType][0] * stickDeadZoneScale[0]);
-  applyStickDeadzoneAndScale(state.rx, state.ry, st.Gamepad.sThumbRX, st.Gamepad.sThumbRY,
-    axis_dead_thres[deviceType][1] * stickDeadZoneScale[1]);
+  state.x = st.Gamepad.sThumbLX;
+  state.y = st.Gamepad.sThumbLY;
+  state.rx = st.Gamepad.sThumbRX;
+  state.ry = st.Gamepad.sThumbRY;
+  apply_stick_deadzone(state.x, state.y, getStickDeadZoneAbs(0), JOY_XINPUT_MAX_AXIS_VAL);
+  apply_stick_deadzone(state.rx, state.ry, getStickDeadZoneAbs(1), JOY_XINPUT_MAX_AXIS_VAL);
   state.slider[0] = applyDeadzoneAndScale(st.Gamepad.bLeftTrigger, axis_dead_thres[deviceType][2], 255);
   state.slider[1] = applyDeadzoneAndScale(st.Gamepad.bRightTrigger, axis_dead_thres[deviceType][2], 255);
 

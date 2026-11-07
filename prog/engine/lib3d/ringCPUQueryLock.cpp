@@ -94,8 +94,7 @@ bool RingCPUBufferLock::lockData(int buffer, int &stride, uint8_t **pdata, bool 
   if (buffers[buffer].gpu->getType() == D3DResourceType::SBUF)
     return ((Sbuffer *)buffers[buffer].gpu)->lock(0, 0, (void **)pdata, VBLOCK_READONLY | (wait ? 0 : VBLOCK_NOSYSLOCK));
   else
-    return ((Texture *)buffers[buffer].gpu)
-      ->lockimg((void **)pdata, stride, 0, TEXLOCK_READ | TEXLOCK_RAWDATA | (wait ? 0 : TEXLOCK_NOSYSLOCK));
+    return ((Texture *)buffers[buffer].gpu)->lockimg((void **)pdata, stride, 0, TEXLOCK_READ | (wait ? 0 : TEXLOCK_NOSYSLOCK));
 }
 
 uint8_t *RingCPUBufferLock::lock(int &stride, uint32_t &frame, bool get_to_topmost_event, int max_frames_to_flush)

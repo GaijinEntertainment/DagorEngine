@@ -5,6 +5,13 @@ interval allow_fluid_wind : no < 1, yes;
 assume_if_not_assumed allow_fluid_wind = yes;
 
 texture fluid_wind_tex;
+sampler fluid_wind_sampler
+{
+  address_u = border;
+  address_v = border;
+  address_w = border;
+  border_color = (0, 0, 0, 0);
+};
 float4 fluid_wind_origin_delta = float4(0, 0, 0, 0);
 float4 fluid_wind_origin;
 float4 fluid_wind_world_size;
@@ -21,7 +28,8 @@ int disable_wind = 0;
 
 macro INIT_FLUID_WIND(stage)
   (stage) {
-      fluid_wind_tex@smp3d = fluid_wind_tex;
+      fluid_wind_tex@tex3d = fluid_wind_tex;
+      fluid_wind_tex_samplerstate@sampler = fluid_wind_sampler;
       fluid_wind_origin@f4 = fluid_wind_origin;
       fluid_wind_world_size@f4 = fluid_wind_world_size;
       fluid_wind_multiplier@f1 = (fluid_wind_multiplier);

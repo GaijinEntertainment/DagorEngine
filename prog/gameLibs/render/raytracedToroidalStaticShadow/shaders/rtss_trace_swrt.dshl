@@ -7,14 +7,18 @@ shader rtss_trace_swrt_cs
   RTSS_TRACE_TEXEL(cs)
   RTSS_TRACE_HMAP(cs)
   hlsl(cs) {
-    // constraint: a TLAS of raw instance transforms holds mirrored instances, which the default decode drops
+    // a TLAS of raw instance transforms holds mirrored instances, which the default decode drops
     #define BVH_TLAS_DECODE_REFLECTION 1
     static float rtss_box_half_extent = 0;
     #define SWRT_LEAF_BOX_HALF_EXTENT rtss_box_half_extent
   }
+  SW_BVH_BLAS_BOXES_ONLY_VARIANT(cs)
   INIT_SW_BVH_RAYTRACING(cs)
   USE_SW_BVH_RAYTRACING(cs)
   hlsl(cs) {
+    ##if hardware.scarlett
+    #pragma wave32 // a wave of an 8 x 4 half tile waits for fewer slow rays
+    ##endif
     [numthreads(RTSS_BUILD_GROUP, 1, 1)]
     void rtss_trace_swrt(uint3 gid : SV_GroupID, uint tid : SV_GroupThreadID)
     {
@@ -23,7 +27,7 @@ shader rtss_trace_swrt_cs
         return;
       float t = tx.t;
       uint level = tx.job.levelSlot >> 16;
-      // constraint: xform row 1 is sy * ey (rtss_common.hlsli), so an atlas texel spans texel / sy metres along it
+      // xform row 1 is sy * ey (rtss_common.hlsli), so an atlas texel spans texel / sy metres along it
       rtss_box_half_extent = 0.5 * rtss_texel(level) / length(rtss_level_row(level, (tx.job.flags & RTSS_JOB_BIT) * 3 + 1).xyz);
       float3 dirInv = select(abs(tx.dir) < 1e-32f, select(tx.dir < 0, -1e32f, 1e32f), rcp(tx.dir));
       float3 triNorm = 0;

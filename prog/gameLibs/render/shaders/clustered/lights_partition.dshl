@@ -6,11 +6,8 @@ include "frustum.dshl"
 include "gpu_occlusion.dshl"
 include "hardware_defines.dshl"
 
-buffer scene_omni_managed_lights;
-buffer scene_spot_managed_lights;
-
-buffer scene_omni_render_lights;
-buffer scene_spot_render_lights;
+buffer scene_managed_lights;
+buffer scene_render_lights;
 
 buffer visible_lights_data_buf;
 buffer visible_lights_counts_buf;
@@ -50,14 +47,14 @@ shader partition_lights_cs
   GPU_OCCLUSION(cs)
 
   (cs) {
-    scene_omni_managed_lights@buf = scene_omni_managed_lights hlsl {
+    scene_managed_lights@buf = scene_managed_lights hlsl {
       #include <lightsManager.hlsli>
-      StructuredBuffer<ManagedLight> scene_omni_managed_lights@buf;
+      StructuredBuffer<ManagedLight> scene_managed_lights@buf;
     };
 
-    scene_omni_render_lights@buf = scene_omni_render_lights hlsl {
+    scene_render_lights@buf = scene_render_lights hlsl {
       #include <renderLights.hlsli>
-      ByteAddressBuffer scene_omni_render_lights@buf;
+      ByteAddressBuffer scene_render_lights@buf;
     };
 
     visible_lights_data_buf@uav = visible_lights_data_buf hlsl {
@@ -66,16 +63,6 @@ shader partition_lights_cs
 
     visible_lights_counts_buf@uav = visible_lights_counts_buf hlsl {
       RWStructuredBuffer<uint> visible_lights_counts_buf@uav;
-    };
-
-    scene_spot_managed_lights@buf = scene_spot_managed_lights hlsl {
-      #include <lightsManager.hlsli>
-      StructuredBuffer<ManagedLight> scene_spot_managed_lights@buf;
-    };
-
-    scene_spot_render_lights@buf = scene_spot_render_lights hlsl {
-      #include <renderLights.hlsli>
-      ByteAddressBuffer scene_spot_render_lights@buf;
     };
   }
 
@@ -101,7 +88,10 @@ shader partition_lights_cs
       uint kMaxLightsCount = isSpot ? MAX_SCENE_SPOT_LIGHTS : MAX_SCENE_OMNI_LIGHTS;
 
       uint sceneLightIndex = isSpot ? (dispatch_thread_id.x - MAX_SCENE_OMNI_LIGHTS) : dispatch_thread_id.x;
-      uint renderStructByteOffset = sceneLightIndex * (isSpot ? RENDER_SPOT_LIGHT_STRIDE_SIZE : RENDER_OMNI_LIGHT_STRIDE_SIZE);
+      uint managedLightIndex = (isSpot ? SCENE_SPOT_MANAGED_LIGHTS_FIRST_INDEX : SCENE_OMNI_MANAGED_LIGHTS_FIRST_INDEX) + sceneLightIndex;
+      uint renderStructByteOffset = isSpot
+        ? SCENE_SPOT_RENDER_LIGHTS_BYTE_OFFSET + sceneLightIndex * RENDER_SPOT_LIGHT_STRIDE_SIZE
+        : SCENE_OMNI_RENDER_LIGHTS_BYTE_OFFSET + sceneLightIndex * RENDER_OMNI_LIGHT_STRIDE_SIZE;
 
       float4 lightBoundSphere = 0;
       bool validLight = false;
@@ -115,7 +105,7 @@ shader partition_lights_cs
       if(isSpot)
       {
         float4 lightPos_halfRadius_halfCullRadius = asfloat(
-          loadBuffer4(scene_spot_render_lights, renderStructByteOffset + RENDER_SPOT_LIGHT_POS_HALF_RADIUS_HALF_CULL_RADIUS_OFFSET));
+          loadBuffer4(scene_render_lights, renderStructByteOffset + RENDER_SPOT_LIGHT_POS_HALF_RADIUS_HALF_CULL_RADIUS_OFFSET));
         float2 rad = decode_spot_light_radius_and_culling_radius(lightPos_halfRadius_halfCullRadius.w);
         validLight = rad.x > 0.0f;
 
@@ -123,10 +113,10 @@ shader partition_lights_cs
         if(validLight)
         {
           float4 lightColorAngleScale =
-            asfloat(loadBuffer4(scene_spot_render_lights, renderStructByteOffset + RENDER_SPOT_LIGHT_COLOR_ANGLE_SCALE_OFFSET));
+            asfloat(loadBuffer4(scene_render_lights, renderStructByteOffset + RENDER_SPOT_LIGHT_COLOR_ANGLE_SCALE_OFFSET));
           float4 lightDirectionAngleOffset =
-            asfloat(loadBuffer4(scene_spot_render_lights, renderStructByteOffset + RENDER_SPOT_LIGHT_DIRECTION_ANGLE_OFFSET_OFFSET));
-          ManagedLight ml = structuredBufferAt(scene_spot_managed_lights, sceneLightIndex);
+            asfloat(loadBuffer4(scene_render_lights, renderStructByteOffset + RENDER_SPOT_LIGHT_DIRECTION_ANGLE_OFFSET_OFFSET));
+          ManagedLight ml = structuredBufferAt(scene_managed_lights, managedLightIndex);
           lightBoundSphere = getSpotLightBoundingSphere(lightPos_halfRadius_halfCullRadius, lightColorAngleScale, lightDirectionAngleOffset);
           shadowIdMask = ml.shadowId_mask;
           ##if downsampled_far_depth_tex != NULL
@@ -136,15 +126,15 @@ shader partition_lights_cs
       }
       else
       {
-        float4 posRadius = asfloat(loadBuffer4(scene_omni_render_lights, renderStructByteOffset + RENDER_OMNI_LIGHT_POS_RADIUS_OFFSET));
+        float4 posRadius = asfloat(loadBuffer4(scene_render_lights, renderStructByteOffset + RENDER_OMNI_LIGHT_POS_RADIUS_OFFSET));
         validLight = posRadius.w > 0.0f;
 
         BRANCH
         if(validLight)
         {
           float4 posRelToOrigin_cullRadius = asfloat(
-            loadBuffer4(scene_omni_render_lights, renderStructByteOffset + RENDER_OMNI_LIGHT_POS_REL_TO_ORIGIN_CULL_RADIUS_OFFSET));
-          ManagedLight ml = structuredBufferAt(scene_omni_managed_lights, sceneLightIndex);
+            loadBuffer4(scene_render_lights, renderStructByteOffset + RENDER_OMNI_LIGHT_POS_REL_TO_ORIGIN_CULL_RADIUS_OFFSET));
+          ManagedLight ml = structuredBufferAt(scene_managed_lights, managedLightIndex);
           lightBoundSphere = getOmniLightBoundingSphere(posRadius, posRelToOrigin_cullRadius);
           shadowIdMask = ml.shadowId_mask;
           ##if downsampled_far_depth_tex != NULL
@@ -862,19 +852,12 @@ buffer visible_lights_transit_buffer;
 shader visible_lights_pack_constant_buffers_data
 {
   (cs) {
-    scene_omni_render_lights@buf = scene_omni_render_lights hlsl {
-      ByteAddressBuffer scene_omni_render_lights@buf;
+    scene_render_lights@buf = scene_render_lights hlsl {
+      ByteAddressBuffer scene_render_lights@buf;
     };
-    scene_spot_render_lights@buf = scene_spot_render_lights hlsl {
-      ByteAddressBuffer scene_spot_render_lights@buf;
-    };
-    scene_omni_managed_lights@buf = scene_omni_managed_lights hlsl {
+    scene_managed_lights@buf = scene_managed_lights hlsl {
       #include <lightsManager.hlsli>
-      StructuredBuffer<ManagedLight> scene_omni_managed_lights@buf;
-    };
-    scene_spot_managed_lights@buf = scene_spot_managed_lights hlsl {
-      #include <lightsManager.hlsli>
-      StructuredBuffer<ManagedLight> scene_spot_managed_lights@buf;
+      StructuredBuffer<ManagedLight> scene_managed_lights@buf;
     };
     visible_lights_data_buf@buf = visible_lights_data_buf hlsl {
       ByteAddressBuffer visible_lights_data_buf@buf;
@@ -904,6 +887,7 @@ shader visible_lights_pack_constant_buffers_data
         uint countIndex = isSpot ? CLUSTERED_SPOT_LIGHTS_COUNT_INDEX : CLUSTERED_OMNI_LIGHTS_COUNT_INDEX;
         uint idsOffset = isSpot ? CLUSTERED_SPOT_LIGHTS_IDS_OFFSET : CLUSTERED_OMNI_LIGHTS_IDS_OFFSET;
         uint maxLights = isSpot ? MAX_CLUSTERED_SPOT_LIGHTS : MAX_CLUSTERED_OMNI_LIGHTS;
+        uint managedOffset = isSpot ? SCENE_SPOT_MANAGED_LIGHTS_FIRST_INDEX : SCENE_OMNI_MANAGED_LIGHTS_FIRST_INDEX;
 
         uint rawLightsCount = structuredBufferAt(visible_lights_counts_buf, countIndex);
         ##assert(rawLightsCount <= maxLights, "clustered lights count %f exceeds max %f", rawLightsCount, maxLights);
@@ -919,16 +903,7 @@ shader visible_lights_pack_constant_buffers_data
         )
         {
           uint sceneLightIndex = loadBuffer(visible_lights_data_buf, (idsOffset + lightIndex) * 4u);
-          uint shadowIdMask = 0u;
-          BRANCH
-          if (isSpot)
-          {
-            shadowIdMask = structuredBufferAt(scene_spot_managed_lights, sceneLightIndex).shadowId_mask;
-          }
-          else
-          {
-            shadowIdMask = structuredBufferAt(scene_omni_managed_lights, sceneLightIndex).shadowId_mask;
-          }
+          uint shadowIdMask = structuredBufferAt(scene_managed_lights, managedOffset + sceneLightIndex).shadowId_mask;
           packedMask |= (decode_managed_mask(shadowIdMask) & 0xFFu) << (i * 8u);
         }
         BRANCH
@@ -1021,14 +996,10 @@ shader visible_lights_pack_constant_buffers_data
 
       uint constInLight = (constInSection - 1u) % section.lightConsts;
       uint sceneLightIndex = loadBuffer(visible_lights_data_buf, (section.idsOffset + lightIndex) * 4u);
-      uint srcByteOffset = (sceneLightIndex * section.lightConsts + constInLight) * VISIBLE_LIGHTS_TRANSIT_CONST_SIZE;
+      uint srcByteOffset = (section.isSpot ? SCENE_SPOT_RENDER_LIGHTS_BYTE_OFFSET : SCENE_OMNI_RENDER_LIGHTS_BYTE_OFFSET) +
+                           (sceneLightIndex * section.lightConsts + constInLight) * VISIBLE_LIGHTS_TRANSIT_CONST_SIZE;
 
-      uint4 value;
-      BRANCH
-      if (section.isSpot)
-        value = loadBuffer4(scene_spot_render_lights, srcByteOffset);
-      else
-        value = loadBuffer4(scene_omni_render_lights, srcByteOffset);
+      uint4 value = loadBuffer4(scene_render_lights, srcByteOffset);
       storeBuffer4(visible_lights_transit_buffer, constIndex * VISIBLE_LIGHTS_TRANSIT_CONST_SIZE, value);
     }
   }
@@ -1036,3 +1007,102 @@ shader visible_lights_pack_constant_buffers_data
   compile("target_cs", "main");
 }
 
+buffer visible_lights_indirect_args;
+buffer visible_clustered_omni_lights_cb;
+buffer visible_far_omni_lights_cb;
+buffer visible_clustered_spot_lights_cb;
+buffer visible_far_spot_lights_cb;
+int4 visible_lights_renderer_index_ranges = (0, 0, 0, 0);
+int4 tiled_lights_draw_counts = (0, 0, 0, 0);
+
+shader fill_visible_lights_indirect_args_cs
+{
+  (cs) {
+    visible_lights_indirect_args@uav = visible_lights_indirect_args hlsl {
+      RWByteAddressBuffer visible_lights_indirect_args@uav;
+    };
+    visible_clustered_omni_lights_cb@cbuf = visible_clustered_omni_lights_cb hlsl {
+      cbuffer visible_clustered_omni_lights_cb@cbuf
+      {
+        uint4 visible_clustered_omni_lights_count;
+      };
+    }
+    visible_far_omni_lights_cb@cbuf = visible_far_omni_lights_cb hlsl {
+      cbuffer visible_far_omni_lights_cb@cbuf
+      {
+        uint4 visible_far_omni_lights_count;
+      };
+    }
+    visible_clustered_spot_lights_cb@cbuf = visible_clustered_spot_lights_cb hlsl {
+      cbuffer visible_clustered_spot_lights_cb@cbuf
+      {
+        uint4 visible_clustered_spot_lights_count;
+      };
+    }
+    visible_far_spot_lights_cb@cbuf = visible_far_spot_lights_cb hlsl {
+      cbuffer visible_far_spot_lights_cb@cbuf
+      {
+        uint4 visible_far_spot_lights_count;
+      };
+    }
+    visible_lights_renderer_index_ranges@i4 = visible_lights_renderer_index_ranges;
+    tiled_lights_draw_counts@i2 = tiled_lights_draw_counts;
+  }
+
+  hlsl(cs) {
+    #include "lightsPartition.hlsli"
+    #include <clustered_constants.hlsli>
+    #include <tiled_light_consts.hlsli>
+
+    void store_renderer_draw_indexed_args(uint byte_offset, uint2 index_count_start, uint instance_count)
+    {
+      storeBuffer4(visible_lights_indirect_args, byte_offset, uint4(index_count_start.x, instance_count, index_count_start.y, 0));
+      storeBuffer(visible_lights_indirect_args, byte_offset + 16u, 0u);
+    }
+
+    void store_grid_dispatch_args(uint byte_offset, uint3 group_count)
+    {
+      storeBuffer3(visible_lights_indirect_args, VISIBLE_LIGHTS_INDIRECT_ARGS_GRID_OFFSET + byte_offset, group_count);
+    }
+
+    void store_grid_clusters_dispatch_args(uint byte_offset, uint lights_count)
+    {
+      uint groupsX = (CLUSTERS_W + CLUSTERED_LIGHTS_GRID_CLUSTERS_GROUP_SIZE_X - 1) / CLUSTERED_LIGHTS_GRID_CLUSTERS_GROUP_SIZE_X;
+      uint groupsY = (CLUSTERS_H + CLUSTERED_LIGHTS_GRID_CLUSTERS_GROUP_SIZE_Y - 1) / CLUSTERED_LIGHTS_GRID_CLUSTERS_GROUP_SIZE_Y;
+      store_grid_dispatch_args(byte_offset, uint3(groupsX, groupsY, CLUSTERS_D * lights_count));
+    }
+
+    [numthreads(1, 1, 1)]
+    void main()
+    {
+      uint2 omniRange = uint2(visible_lights_renderer_index_ranges.xy);
+      uint2 spotRange = uint2(visible_lights_renderer_index_ranges.zw);
+      store_renderer_draw_indexed_args(LIGHTS_RENDERER_INDIRECT_ARGS_CLUSTERED_OMNI_DRAW_OFFSET, omniRange, visible_clustered_omni_lights_count.x);
+      store_renderer_draw_indexed_args(LIGHTS_RENDERER_INDIRECT_ARGS_FAR_OMNI_DRAW_OFFSET, omniRange, visible_far_omni_lights_count.x);
+      store_renderer_draw_indexed_args(LIGHTS_RENDERER_INDIRECT_ARGS_CLUSTERED_SPOT_DRAW_OFFSET, spotRange, visible_clustered_spot_lights_count.x);
+      store_renderer_draw_indexed_args(LIGHTS_RENDERER_INDIRECT_ARGS_FAR_SPOT_DRAW_OFFSET, spotRange, visible_far_spot_lights_count.x);
+
+      uint omniCount = visible_clustered_omni_lights_count.x;
+      uint spotCount = visible_clustered_spot_lights_count.x;
+      uint zBinningBlocks = (omniCount + Z_BINNING_LIGHTS_BLOCK_SIZE - 1) / Z_BINNING_LIGHTS_BLOCK_SIZE +
+                            (spotCount + Z_BINNING_LIGHTS_BLOCK_SIZE - 1) / Z_BINNING_LIGHTS_BLOCK_SIZE;
+      storeBuffer3(visible_lights_indirect_args,
+        VISIBLE_LIGHTS_INDIRECT_ARGS_TILED_OFFSET + TILED_LIGHTS_INDIRECT_ARGS_ZBINNING_DISPATCH_OFFSET,
+        uint3((Z_BINS_COUNT + Z_BINNING_GROUP_SIZE - 1) / Z_BINNING_GROUP_SIZE, zBinningBlocks, 1));
+      storeBuffer4(visible_lights_indirect_args,
+        VISIBLE_LIGHTS_INDIRECT_ARGS_TILED_OFFSET + TILED_LIGHTS_INDIRECT_ARGS_OMNI_DRAW_OFFSET,
+        uint4(tiled_lights_draw_counts.x, omniCount, 0, 0));
+      store_renderer_draw_indexed_args(VISIBLE_LIGHTS_INDIRECT_ARGS_TILED_OFFSET + TILED_LIGHTS_INDIRECT_ARGS_SPOT_DRAW_OFFSET,
+        uint2(tiled_lights_draw_counts.y, 0), spotCount);
+
+      uint clusteredLightsCount = omniCount + spotCount;
+      uint precalculateGroups =
+        (clusteredLightsCount + CLUSTERED_LIGHTS_GRID_PRECALCULATE_GROUP_SIZE - 1) / CLUSTERED_LIGHTS_GRID_PRECALCULATE_GROUP_SIZE;
+      store_grid_dispatch_args(CLUSTERED_LIGHTS_GRID_INDIRECT_ARGS_PRECALCULATE_OFFSET, uint3(precalculateGroups, 1, 1));
+      store_grid_clusters_dispatch_args(CLUSTERED_LIGHTS_GRID_INDIRECT_ARGS_FILL_ITEMS_OFFSET, clusteredLightsCount);
+      store_grid_clusters_dispatch_args(CLUSTERED_LIGHTS_GRID_INDIRECT_ARGS_CULL_SPOTS_OFFSET, spotCount);
+    }
+  }
+
+  compile("target_cs", "main");
+}

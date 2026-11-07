@@ -23,6 +23,7 @@ struct ShortcutRow
 
 const ShortcutRow SHORTCUT_ROWS[] = {
   {"General", SHOW_SHORTCUTS, nullptr, "Show / hide this panel"},
+  {nullptr, NEW_GRAPH, nullptr, "Create a new graph"},
   {nullptr, nullptr, "RMB", "Context menu for the node, pin, edge or empty space under the cursor"},
   {nullptr, CANVAS_TOGGLE_AUTOUPDATE, nullptr, "Toggle auto-update"},
   {nullptr, FORCE_REBUILD, nullptr, "Force rebuild"},
@@ -54,7 +55,7 @@ const ShortcutRow SHORTCUT_ROWS[] = {
   {nullptr, CANVAS_MODIFY_EDGE_AT_PIN, nullptr, "Modify edge, several edges open a list (cursor must be over a pin)"},
   {nullptr, CANVAS_JUMP_OPPOSITE_PIN, nullptr, "Jump to the opposite pin, several edges open a list (cursor must be over a pin)"},
   {nullptr, CANVAS_COMMENT_PIN, nullptr, "Comment a pin (cursor must be over a pin)"},
-  {nullptr, CANVAS_ADD_NODE_AT_PIN, nullptr, "Add a connected node (cursor must be over a pin or an edge)"},
+  {nullptr, CANVAS_ADD_NODE_AT_PIN, nullptr, "Add a node: connected over a pin or an edge, unconnected anywhere else"},
   {nullptr, CANVAS_ADD_TRANSIT_NODE, nullptr, "Add a node into the connections (over a pin or an edge, or press and then aim)"},
   {nullptr, nullptr, "LMB Drag", "Drag a link to empty space to add a connected node"},
 

@@ -266,6 +266,10 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
       #endif
       if (!CHECK_VALID_MOTION_VECTOR(surface_motion))
         surface_3d_motion = oldExactUVZ - hit_uv_z;
+      #ifdef MOTION_TO_PREV_JITTERED_UV_OFS
+      else
+        surface_3d_motion.xy += MOTION_TO_PREV_JITTERED_UV_OFS;
+      #endif
     #else
       #if PREV_HERO_SPHERE
         bool isHero = apply_hero_matrix(hit_uv_z.xy, cameraToHitPoint);
@@ -299,6 +303,18 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
     hit = true;
     result.rgb = PREV_FRAME_UNPACK(tex2Dlod(prev_frame_tex, float4(sampleUV.xy, 0, TXlod)).rgb);
   #endif
+  BRANCH if (!hit)
+  {
+    BRANCH if (ssr_behind_depth_hit_point(cameraToHitPoint))
+    {
+      float4 startClip = mul(float4(cameraToPoint, 1), globtm_no_ofs_psf);
+      float2 startUV = startClip.xy / max(startClip.w, 1e-6) * float2(0.5, -0.5) + 0.5;
+      float2 marchDir = normalize(hit_uv_z.xy - startUV);
+      float2 shiftedUV = sampleUV.xy + marchDir * prev_downsampled_close_depth_tex_target_size.zw;
+      result.rgb = PREV_FRAME_UNPACK(tex2Dlod(prev_frame_tex, float4(shiftedUV, 0, 0)).rgb);
+      hit = true;
+    }
+  }
 
   BRANCH if (analytic_light_sphere_pos_r.w > 0)
   {

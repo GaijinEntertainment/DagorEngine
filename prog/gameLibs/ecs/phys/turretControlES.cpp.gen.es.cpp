@@ -39,7 +39,7 @@ static ecs::EntitySystemDesc update_turret_payload_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
   0
-,nullptr,nullptr,"*");
+,nullptr,nullptr,"before_net_phys_sync");
 static constexpr ecs::ComponentDesc turret_payload_gun_ammo_ecs_query_comps[] =
 {
 //start of 2 ro components at [0]

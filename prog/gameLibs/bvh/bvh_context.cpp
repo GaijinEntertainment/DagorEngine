@@ -6,7 +6,6 @@
 #include <3d/dag_lockSbuffer.h>
 #include <util/dag_convar.h>
 #include <generic/dag_enumerate.h>
-#include <shaders/dag_shaderResUnitedData.h>
 
 const PerInstanceData PerInstanceData::ZERO = {};
 
@@ -57,20 +56,23 @@ struct DeathrowJob : public cpujobs::IJob
 
 void Object::teardown(ContextId context_id, uint64_t object_id)
 {
-  if (type == BvhType::RI && blas)
-    unitedvdata::riUnitedVdata.adjustBlasSize(-int64_t(blas.getASSize()));
-  else if (type == BvhType::Dyn && blas)
-    unitedvdata::dmUnitedVdata.adjustBlasSize(-int64_t(blas.getASSize()));
+  if (blas)
+    adjust_united_vdata_blas_size(type, -int64_t(blas.getASSize()));
   blas.reset();
   if (auto iter = context_id->stationaryTreeBuffers.find(object_id); iter != context_id->stationaryTreeBuffers.end())
   {
     if (iter->second.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
       context_id->freeMetaRegion(iter->second.metaAllocId);
-    if (type == BvhType::RI && iter->second.blas)
-      unitedvdata::riUnitedVdata.adjustBlasSize(-int64_t(iter->second.blas.getASSize()));
-    else if (type == BvhType::Dyn && iter->second.blas)
-      unitedvdata::dmUnitedVdata.adjustBlasSize(-int64_t(iter->second.blas.getASSize()));
+    if (iter->second.blas)
+      adjust_united_vdata_blas_size(type, -int64_t(iter->second.blas.getASSize()));
     iter->second.blas.reset();
+    if (const auto &buffer = iter->second.buffer; buffer)
+    {
+      WinAutoLock lock(context_id->processBufferAllocatorLock);
+      const bool isPoolReleased = buffer.allocator >= context_id->processBufferAllocator.size();
+      if (!isPoolReleased)
+        context_id->processBufferAllocator[buffer.allocator].first.free(buffer.allocId);
+    }
     context_id->stationaryTreeBuffers.erase(iter);
   }
 
@@ -263,7 +265,6 @@ void Context::releaseGameTextureHolds()
   grass_land_color_maskBindless.close(this);
   dynamic_mfd_texBindless.close(this);
   cache_tex0Bindless.close(this);
-  indirection_texBindless.close(this);
   cache_tex1Bindless.close(this);
   cache_tex2Bindless.close(this);
   last_clip_texBindless.close(this);
@@ -341,10 +342,8 @@ void Context::freeMetaRegion(MeshMetaAllocator::AllocId &id)
   id = MeshMetaAllocator::INVALID_ALLOC_ID;
 }
 
-TextureHandle Context::holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded)
+void Context::holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded)
 {
-  TextureHandle handle(id);
-
   texture_bindless_index = MeshMeta::INVALID_TEXTURE;
   if (id != BAD_TEXTUREID)
   {
@@ -381,15 +380,8 @@ TextureHandle Context::holdTexture(TEXTUREID id, uint32_t &texture_bindless_inde
     }
 
     if (bindlessTex.resourceType)
-    {
       texture_bindless_index = bindlessTex.rangeBase + bindlessTex.slotIndex;
-
-      // Taking an exclusive reference count for the returned texture pointer.
-      handle.texture = acquire_managed_tex(id);
-    }
   }
-
-  return handle;
 }
 
 bool Context::releaseTextureNoLock(TEXTUREID id)
@@ -663,20 +655,12 @@ void Context::freeSourceGeometry(int &heapix, LinearHeapAllocatorSbuffer::Region
   heapix = -1;
 }
 
-uint32_t Context::getSourceBufferOffset(int heapix, LinearHeapAllocatorSbuffer::RegionId region)
+LinearHeapAllocatorSbuffer::Region Context::getSourceGeometryRegion(int heapix, LinearHeapAllocatorSbuffer::RegionId region)
 {
-  G_ASSERT_RETURN(heapix >= 0, 0);
-  G_ASSERT_RETURN(sourceGeometryAllocators[heapix].first.has_value(), 0);
+  G_ASSERT_RETURN(heapix >= 0, {});
+  G_ASSERT_RETURN(sourceGeometryAllocators[heapix].first.has_value(), {});
 
-  return sourceGeometryAllocators[heapix].first->get(region).offset;
-}
-
-uint32_t Context::getSourceBufferSize(int heapix, LinearHeapAllocatorSbuffer::RegionId region)
-{
-  G_ASSERT_RETURN(heapix >= 0, 0);
-  G_ASSERT_RETURN(sourceGeometryAllocators[heapix].first.has_value(), 0);
-
-  return sourceGeometryAllocators[heapix].first->get(region).size;
+  return sourceGeometryAllocators[heapix].first->get(region);
 }
 
 void TerrainPatch::teardown(ContextId context_id)
@@ -698,6 +682,23 @@ bool Context::RingBuffers::allocate(int struct_size, int elements, int type, con
   }
   logdbg("%s resized to %u", name, elements);
   return true;
+}
+
+UniqueBLAS build_blas(RaytraceGeometryDescription &desc, RaytraceBuildFlags flags)
+{
+  auto blas = UniqueBLAS::create(&desc, 1, flags);
+  HANDLE_LOST_DEVICE_STATE(blas, UniqueBLAS());
+
+  raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
+  buildInfo.flags = flags;
+  buildInfo.geometryDesc = &desc;
+  buildInfo.geometryDescCount = 1;
+  buildInfo.scratchSpaceBuffer = alloc_scratch_buffer(blas.getBuildScratchSize(), buildInfo.scratchSpaceBufferOffsetInBytes);
+  buildInfo.scratchSpaceBufferSizeInBytes = blas.getBuildScratchSize();
+  HANDLE_LOST_DEVICE_STATE(buildInfo.scratchSpaceBuffer, UniqueBLAS());
+
+  d3d::build_bottom_acceleration_structure(blas.get(), buildInfo);
+  return blas;
 }
 
 } // namespace bvh

@@ -7,6 +7,7 @@
 #include <generic/dag_tabFwd.h>
 #include <de3_navmeshObstacle.h>
 #include <de3_gameLadder.h>
+#include <de3_layerHiddenMask.h>
 #include <util/dag_oaHashNameMap.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
@@ -96,7 +97,9 @@ public:
   virtual void gatherStaticCollisionGeomEditor(StaticGeometryContainer &container) = 0;
 
   //! called to get static scene visual geometry
-  virtual void gatherStaticVisualGeometryForStage([[maybe_unused]] StaticGeometryContainer &cont, [[maybe_unused]] int stage_idx) {}
+  virtual void gatherStaticVisualGeometryForStage([[maybe_unused]] StaticGeometryContainer &cont, [[maybe_unused]] int stage_idx,
+    [[maybe_unused]] LayerHiddenMask lh_mask)
+  {}
 };
 
 

@@ -89,6 +89,10 @@ define_macro_if_not_defined USE_POSTFX_POST_TONEMAP_EFFECTS_MODIFIER()
   }
 endmacro
 
+define_macro_if_not_defined INIT_SHADER_GAMMA_MODIFIER()
+  INIT_SHADER_GAMMA()
+endmacro
+
 define_macro_if_not_defined INIT_LOCAL_TONE_MAPPING(code)
 endmacro
 
@@ -110,18 +114,16 @@ shader postfx
   {
     #define frame_tex_samplerstate global_linear_clamp_sampler
     #define screen_droplets_tex_samplerstate global_linear_clamp_sampler
-
-    ##if antialiasing_type == temporal
-      #define DOF_FAR_POSTFX_9_TAP 1
-    ##elif antialiasing_type == tsr
-      #define DOF_FAR_POSTFX_TSR 1
-      #define tsr_depth_samplerstate global_linear_clamp_sampler
-    ##endif
   }
 
+  bool dof_far_postfx_9_tap = antialiasing_type == temporal;
+  bool dof_far_postfx_tsr = antialiasing_type == tsr;
   if (antialiasing_type == tsr)
   {
     (ps) { tsr_depth@tex2d = tsr_depth; }
+    hlsl(ps) {
+      #define tsr_depth_samplerstate global_linear_clamp_sampler
+    }
   }
 
   USE_DOF_COMPOSITE_NEAR_FAR_OPTIONAL()
@@ -170,7 +172,7 @@ shader postfx
   INIT_POSTFX_UV_MODIFIER()
   INIT_POSTFX_MODIFIER()
   INIT_POSTFX_POST_TONEMAP_EFFECTS_MODIFIER()
-  INIT_SHADER_GAMMA()
+  INIT_SHADER_GAMMA_MODIFIER()
   USE_SHADER_GAMMA()
   INIT_VIGNETTE()
   USE_VIGNETTE()

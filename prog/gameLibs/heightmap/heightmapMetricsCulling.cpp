@@ -16,6 +16,7 @@
 #include <heightmap/heightmapCulling.h>
 #include <heightmap/heightmapMetricsCalc.h>
 #include <perfMon/dag_perfTimer.h>
+#include "edgeTessPack.h"
 
 CONSOLE_INT_VAL("hmap", default_max_tesselation, 4, -4, 27);
 CONSOLE_BOOL_VAL("hmap", allow_exact_edges, true);
@@ -49,13 +50,6 @@ static inline float float_pack_edges_tess(int edgeTessOut[4])
   int packed_edge_tess = edgeTessOut[0] | (edgeTessOut[1] << 4) | (edgeTessOut[2] << 8) | (edgeTessOut[3] << 12);
 
   return float(packed_edge_tess);
-}
-
-static inline uint32_t uint_pack_edges_tess(int edgeTessOut[4])
-{
-  // Pack 4 x 4bit = 16 bit of information in a integer and then static_cast it as float. Shader unpacks edge tesselation.
-  // Note: float has 23 bit of mantissa + 1 implicit bit. Thus, up to 24 bits can be packed using this trick.
-  return edgeTessOut[0] | (edgeTessOut[1] << 4) | (edgeTessOut[2] << 8) | (edgeTessOut[3] << 12);
 }
 
 static constexpr bool debug_visual_position = false;
@@ -320,7 +314,9 @@ inline void recursive_split_root_mirror(RecursiveContext &ctx, float tileSize)
   ctx.frustum.calcFrustumBBox(fBox);
   // Expand conservatively
   alignas(16) int xzBox[4];
-  vec4f xzXZ = v_div(v_sub(v_perm_xzac(fBox.bmin, fBox.bmax), v_perm_xyxy(v_ldu_half(&ctx.lt.x))), v_splats(tileSize));
+  vec4f clipMin = v_neg(v_perm_zwzw(ctx.XZMinysxzBbox)), clipMax = v_perm_xyxy(ctx.XZMinysxzBbox);
+  vec4f fBoxXZ = v_max(v_min(v_perm_xzac(fBox.bmin, fBox.bmax), clipMax), clipMin);
+  vec4f xzXZ = v_div(v_sub(fBoxXZ, v_perm_xyxy(v_ldu_half(&ctx.lt.x))), v_splats(tileSize));
   vec4i xzXZi = v_permi_xycd(v_cvt_floori(xzXZ), v_cvt_ceili(xzXZ));
   v_sti(xzBox, xzXZi);
 
@@ -342,7 +338,7 @@ inline void recursive_split_root_mirror(RecursiveContext &ctx, float tileSize)
 }
 
 void cull_lod_grid3(const MetricsErrors &errors, LodGridCullData &cull_data, const Frustum &frustum, const Occlusion *use_occlusion,
-  float hMin, float hMax, const BBox2 &clip, float maxUpwardDisplacement, float maxDownwardDisplacement, bool mirror, vec3f vp,
+  float hMin, float hMax, const BBox2 &clip, float maxUpwardDisplacement, float maxDownwardDisplacement, vec4f mirroring, vec3f vp,
   const vec4f *bbox2, const HeightmapMetricsQuality &q)
 {
   const bool exactEdges = allow_exact_edges && (q.quality & q.EXACT_EDGES), useMorph = exactEdges && (q.quality & q.USE_MORPH);
@@ -365,13 +361,10 @@ void cull_lod_grid3(const MetricsErrors &errors, LodGridCullData &cull_data, con
   const float curAbsErr = q.maxAbsHeightErr > 0 ? q.maxAbsHeightErr : abs_height_error;
 
   // todo: pass that as argument
-  vec4f XZMinysxzBbox;
+  vec4f XZMinysxzBbox = v_make_vec4f(clip[1].x, clip[1].y, -clip[0].x, -clip[0].y);
+  XZMinysxzBbox = v_add(XZMinysxzBbox, mirroring);
   if (bbox2)
-    XZMinysxzBbox = *bbox2;
-  else if (mirror)
-    XZMinysxzBbox = v_splats(FLT_MAX);
-  else
-    XZMinysxzBbox = v_make_vec4f(clip[1].x, clip[1].y, -clip[0].x, -clip[0].y);
+    XZMinysxzBbox = v_min(XZMinysxzBbox, *bbox2);
 
   RecursiveContext ctx = {errors, cull_data, frustum, vp, XZMinysxzBbox, use_occlusion, clip[0], hMin - maxDownwardDisplacement,
     hMax + maxUpwardDisplacement, hDisplacementRange, hDisplacementMaxErr, errors.boundsHeightOffset - maxDownwardDisplacement,
@@ -388,7 +381,9 @@ void cull_lod_grid3(const MetricsErrors &errors, LodGridCullData &cull_data, con
   // debug("start");
   ctx.reserve(cull_data.patches.capacity());
   ctx.useMorph = useMorph && exactEdges;
-  if (mirror)
+
+  bool hasMirroring = !v_test_all_bits_ones(v_cmp_eq(mirroring, v_zero()));
+  if (hasMirroring)
     recursive_split_root_mirror(ctx, patchSize);
   else
     recursive_split_root(ctx, patchSize);

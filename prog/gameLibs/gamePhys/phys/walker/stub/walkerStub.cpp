@@ -13,6 +13,8 @@ template class PhysicsBase<HumanPhysState, HumanControlState, CommonPhysPartialS
 
 HumanPhysState::HumanPhysState() { G_ASSERT(0); }
 bool HumanPhysState::deserialize(const danet::BitStream &, IPhysBase &) { G_ASSERT_RETURN(false, false); }
+void HumanPhysState::ropeAttach(const Point3 &, float) { G_ASSERT(0); }
+void HumanPhysState::ropeDetach() { G_ASSERT(0); }
 
 void HumanPhys::updatePhys(double, float, bool) { G_ASSERT(0); }
 

@@ -78,8 +78,6 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
   currentRtIdx(1),
   prevMaskIdx(0),
   currentMaskIdx(1),
-  postFxSrcIdx(0),
-  postFxDstIdx(1),
   currentCamPosXZ(0, 0),
   prevCamPosXZ(0, 0),
   fpsCamDist(desc.fpsCamDist)
@@ -184,7 +182,7 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
 
   iViewTm.identity();
   viewTm.identity();
-  projTm.identity();
+  projTm = matrix_ortho_lh_reverse(boxSize, boxSize, zn, zf);
 
 #define VAR(a) &&VariableMap::isGlobVariablePresent(a##VarId)
   bool isValid = reprojectPostFx && reprojectPostFx->getElem() != nullptr && clearMaskCs && deformCs && clearIndirect &&
@@ -290,8 +288,6 @@ void DeformHeightmap::beforeRenderWorld(const Point3 &cam_pos)
   iViewTm.setcol(3, Point3::x0y(currentCamPosXZ));
   viewTm = inverse(iViewTm);
 
-  projTm = matrix_ortho_lh_reverse(boxSize, boxSize, zn, zf);
-
   float camDist = cam_dist_forced.get() < 0.00001 ? fpsCamDist : cam_dist_forced.get();
   ShaderGlobal::set_float(deform_fps_cam_distVarId, isCameraInFpsView() ? camDist : 0);
 }
@@ -371,6 +367,7 @@ void DeformHeightmap::afterRenderDepth()
   d3d::resource_barrier(
     {maskGridTextures[currentMaskIdx].getTex2D(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE, 0, 0});
 
+  int postFxSrcIdx = 0, postFxDstIdx = 1;
   // Calculate deform values and mask grid from depth data
   {
     STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), postFxTextures[postFxDstIdx].getTex2D());
@@ -418,8 +415,6 @@ void DeformHeightmap::afterRenderDepth()
     d3d::resource_barrier({postFxCellBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
   }
 
-  d3d::resource_barrier({postFxCellBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
-
   // Blur postfx pass
   {
     STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), postFxTextures[postFxDstIdx].getTex2D());
@@ -450,8 +445,6 @@ void DeformHeightmap::afterRenderDepth()
   prevCamPosXZ = currentCamPosXZ;
   eastl::swap(prevRtIdx, currentRtIdx);
   eastl::swap(currentMaskIdx, prevMaskIdx);
-  postFxSrcIdx = 0;
-  postFxDstIdx = 1;
 }
 
 void DeformHeightmap::saveStates()

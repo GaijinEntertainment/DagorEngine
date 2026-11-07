@@ -10,7 +10,9 @@ function useParam(abs) {
 }
 println(useParam(@(x) x + 100))  // -> 105
 
-// the import is still the fastcall native at file scope
-println(abs(-5))         // -> 5
+// the import is still the fastcall native at file scope; a constant
+// argument would fold the call, so give it a run-time value
+let negative = -5
+println(abs(negative))   // -> 5
 
 println("OK")

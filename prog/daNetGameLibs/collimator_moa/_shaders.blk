@@ -1,1 +1,2 @@
 file:t = "collimator_moa/shaders/dynamic_collimator_moa.dshl"
+file:t = "collimator_moa/shaders/collimator_tube_rivalry.dshl"

@@ -236,6 +236,9 @@ class CheckerVisitor : public Visitor
   }
 
   bool shouldCallResultBeUtilized(const char *name, const CallExpr *call);
+  const char *findNodiscardKind(const CallExpr *call);
+  SQClass *findTypeClass(const Expr *receiver, const char *method);
+  bool resolveCallee(const Expr *callee, SQObjectPtr &value);
 
   void checkUnterminatedLoop(LoopStatement *loop);
   void checkVariableMismatchForLoop(ForStatement *loop);
@@ -255,7 +258,7 @@ class CheckerVisitor : public Visitor
   void checkFunctionPairSimilarity(const FunctionExpr *f1, const FunctionExpr *f2);
 
   void checkAssignExpressionSimilarity(const Block *b);
-  void checkUnutilizedResult(const ExprStatement *b);
+  const CallExpr *checkUnutilizedResult(const ExprStatement *b, bool &nameLike);
   void checkNullableContainer(const ForeachStatement *loop);
   void checkMissedBreak(const SwitchStatement *swtch);
 
@@ -315,6 +318,7 @@ class CheckerVisitor : public Visitor
   std::unordered_set<std::string> namedSlotImportedModules;
 
   std::unordered_map<const Node *, ValueRef *> astValues;
+  std::unordered_map<const ClassExpr *, const Expr *> classBases;
 
   Arena *arena;
 
@@ -339,11 +343,13 @@ class CheckerVisitor : public Visitor
   const char *computeNameRef(const Expr *lhs, char *buffer, size_t bufferSize);
 
   ValueRef *findValueInScopes(const char *ref);
+  ValueRef *findValueInScopes(const Expr *expr);
   void applyKnownInvocationToScope(const ValueRef *ref);
   void applyUnknownInvocationToScope();
 
   const ExternalValue *findExternalValue(const Expr *e);
   const FunctionInfo *findFunctionInfo(const Expr *e, bool &isCtor);
+  const FunctionExpr *findClassConstructor(const ClassExpr *klass) const;
 
   void setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf);
   const ValueRef *findValueForExpr(const Expr *e);

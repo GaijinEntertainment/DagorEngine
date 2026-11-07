@@ -52,6 +52,8 @@ int aux_game_res_handle_to_id(const char *res_name, unsigned class_id);
 
 //! called for each gameres (or texture) pack before scanning it to get confirmation; by default all packs are allowed to be scanned
 extern bool (*on_gameres_pack_load_confirm)(const char *pack_fname, bool is_tex_pack);
+//! finds a pack or patch desc missing in its res dir, sets out_pack_fname and returns true; while set, all packs are checked
+extern bool (*on_missing_pack_resolve)(const char *pack_fname, String &out_pack_fname);
 //! called at the end of load_res_packs_from_list()
 extern void (*on_load_res_packs_from_list_complete)(const char *pack_list_blk_fname, bool load_grp, bool load_tex);
 } // namespace gamereshooks

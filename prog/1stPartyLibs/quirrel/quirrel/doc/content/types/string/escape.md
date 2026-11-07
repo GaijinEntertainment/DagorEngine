@@ -14,9 +14,8 @@ When there is nothing to escape, `str` itself comes back unchanged.
 
 ## Notes
 
-Takes no arguments. Same implementation as [string.escape](sym:string.escape);
-see the Notes on [types.String.strip](sym:types.String.strip) for how the two
-forms differ only in their reported attributes, not their behavior.
+Takes no arguments. Same implementation and attributes as
+[string.escape](sym:string.escape).
 
 ## Example
 

@@ -57,9 +57,10 @@ void PipelineCompiler::PrimaryWorkerThread::execute()
 #if VULKAN_PROFILE_PIPELINE_COMPILER_THREADS
   TIME_PROFILE_THREAD(getCurrentThreadName());
 #endif
+#if _TARGET_ANDROID
+  applyThisThreadAffinity(android_pipeline_compiler_affinity());
+#endif
   auto &compileQueue = Globals::timelines.get<PipelineCompileTimeline>();
-  // replicate logic for android WORKER_THREADS_AFFINITY_USE
-  applyThisThreadAffinity(cpujobs::get_core_count() >= 4 ? ~MAIN_THREAD_AFFINITY : ~0ull);
   while (!isThreadTerminating())
   {
     // wait for at least one work item to be processed
@@ -73,8 +74,9 @@ void PipelineCompiler::SecondaryWorkerThread::execute()
 #if VULKAN_PROFILE_PIPELINE_COMPILER_THREADS
   TIME_PROFILE_THREAD(getCurrentThreadName());
 #endif
-  // replicate logic for android WORKER_THREADS_AFFINITY_USE
-  applyThisThreadAffinity(cpujobs::get_core_count() >= 4 ? ~MAIN_THREAD_AFFINITY : ~0ull);
+#if _TARGET_ANDROID
+  applyThisThreadAffinity(android_pipeline_compiler_affinity());
+#endif
 
   // initial startup
   compiler.notifyWorkerCompleted();

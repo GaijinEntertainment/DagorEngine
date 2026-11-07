@@ -78,8 +78,7 @@ void init_statsd_common(const char *circuit_name)
     init_statsd_client(circuit_name);
 }
 
-static debug_log_callback_t orig_debug_log;
-static int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line);
+static void on_debug_log(void *, LogMessage &msg);
 
 void init_event_log(const char *circuit_name)
 {
@@ -121,7 +120,8 @@ void init_event_log(const char *circuit_name)
   eparams.game = gameproj::game_telemetry_name();
 
   if ((dedicated::is_dedicated() || DAGOR_DBGLEVEL == 0) && ::dgs_get_settings()->getBool("logerr_telemetry", true))
-    orig_debug_log = debug_set_log_callback(on_debug_log);
+    debug_add_log_handler(&on_debug_log, nullptr,
+      {.levelMask = LOGMASK_ERRORS, .tags = {LOGTAG_D3D_ERROR}, .order = LOGORDER_SEND_REPORT});
 
   event_log::init_error_log(eparams);
 }
@@ -134,12 +134,12 @@ static const char *find_nth_occurance(const String &where, char ch, int occuranc
   return end;
 }
 
-int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+void on_debug_log(void *, LogMessage &msg)
 {
-  static const int D3DE_TAG = _MAKE4C('D3DE');
-
-  if (orig_debug_log)
-    orig_debug_log(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
+  static const int D3DE_TAG = LOGTAG_D3D_ERROR;
+  const int lev_tag = msg.levTag;
+  const char *fmt = msg.fmt;
+  const char *ctx_file = msg.ctxFile;
 
   if (lev_tag == LOGLEVEL_ERR || lev_tag == D3DE_TAG
 #if _TARGET_PC_WIN | _TARGET_XBOX                                          // linux dumps to core on fatals anyway
@@ -151,10 +151,10 @@ int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum, const 
 
     String s;
     if (ctx_file)
-      s.printf(0, "[%c] %s,%d: ", chError, ctx_file, ctx_line);
+      s.printf(0, "[%c] %s,%d: ", chError, ctx_file, msg.ctxLine);
     else
       s.printf(0, "[%c] ", chError);
-    s.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+    s.avprintf(0, fmt, (const DagorSafeArg *)msg.arg, msg.anum);
 
     event_log::ErrorLogSendParams params;
     params.attach_game_log = true;
@@ -215,8 +215,6 @@ int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum, const 
 
     event_log::send_error_log(s.str(), params);
   }
-
-  return 1;
 }
 
 void send_first_run_event()

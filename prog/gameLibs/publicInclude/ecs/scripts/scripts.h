@@ -40,7 +40,6 @@ extern void sq_register_native_component(ecs::component_type_t type, SqPushCB cb
 
 ECS_BROADCAST_EVENT_TYPE(EventScriptBeforeReload);
 ECS_BROADCAST_EVENT_TYPE(EventScriptReloaded);
-ECS_BROADCAST_EVENT_TYPE(CmdRequireUIScripts);
 
 class WinCritSec;
 

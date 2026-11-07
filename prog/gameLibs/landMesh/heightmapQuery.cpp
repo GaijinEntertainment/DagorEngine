@@ -36,7 +36,7 @@ public:
   void beforeDeviceReset();
   void afterDeviceReset();
 
-  void set_landclass_data(LandclassQueryData &data) { this->data = data; }
+  void set_landclass_data(LandclassQueryData &data) { eastl::swap(this->data, data); }
 
   int query(const Point3 &world_pos, const Point3 &grav_dir);
   GpuReadbackResultState getQueryResult(int query_id, HeightmapQueryResult &result);

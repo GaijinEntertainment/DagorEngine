@@ -1,0 +1,93 @@
+map 1: ok 10,6,18,2,14
+map 2: ok 5,103,209,301,407
+map 3: ok 10,8,14,6,12
+map 0 params: ok 42,42,42,42,42
+map 5 params: error: wrong number of parameters passed to '(container_callbacks.nut:41)' testData/exec/container_callbacks.nut:41 (4 passed, 6 required)
+map default param: ok 5,4,11,4,11
+map vararg: ok 1,1,1,1,1
+map generator: ok generator,generator,generator,generator,generator
+map typed: ok 6,4,10,2,8
+map typed wrong: error: parameter 1 of '(container_callbacks.nut:46)' has an invalid type 'string' ; expected: 'integer'
+map bound env: ok 15,9,27,3,21
+map throws: error: nine
+map throws null skips: ok 5,3,1,7
+map native: ok integer,integer,integer,integer,integer
+map nested: ok 2,2,2,2,2
+apply: ok 4,2,8,0,6
+filter 1: ok 5,9,7
+filter 2: ok 5,9,7
+filter throws: error: f
+reduce 2: ok 25
+reduce init: ok 125
+reduce 4: ok 77
+reduce 1 param: ok 5
+reduce empty: ok null
+reduce throws: error: r
+sortby 1: ok 9,7,5,3,1
+sortby 2: ok 7,1,9,3,5
+sortby 3: ok 5,1,7,3,9
+sortby typed wrong: error: parameter 1 of '(container_callbacks.nut:65)' has an invalid type 'string' ; expected: 'integer'
+sortby throws: error: s
+sortby_reversed: ok 9,7,5,3,1
+deep callback: ok 305,303,309,301,307
+callback grows the array: ok 1,2,3
+callback shrinks the array: ok 1,2
+callback shrinks during reduce: ok 6
+callback shrinks during filter: ok 1,2
+callback error reaches the error handler: ok handler nine, caller nine
+  hook saw each call: true
+under a debug hook: ok 10,6,18,2,14
+each 1: ok 5,3,9,1,7
+each 2: ok 5,4,11,4,11
+each table: ok x1,y2
+each throws: error: e
+findindex hit: ok 2
+findindex miss: ok null
+findindex 2: ok 3
+findindex table: ok y
+findindex throws: error: fi
+each sees an appended element: ok 4
+findindex sees an appended element: ok 2
+callback resizes during each: ok 1
+findvalue array hit: ok 5
+findvalue array miss: ok null
+findvalue array default: ok -1
+findvalue array 2: ok 9
+findvalue array 3: ok 9
+findvalue table: ok 9
+findvalue table 3: ok 9
+findvalue throws: error: fv
+table map 1: ok a=10,b=6,c=18,d=2
+table map 2: ok a=a5,b=b3,c=c9,d=d1
+table map 3: ok a=9,b=7,c=13,d=5
+table map 0 params: ok a=42,b=42,c=42,d=42
+table map 5 params: error: wrong number of parameters passed to '(container_callbacks.nut:121)' testData/exec/container_callbacks.nut:121 (4 passed, 6 required)
+table map default param: ok a=5a,b=3b,c=9c,d=1d
+table map vararg: ok a=1,b=1,c=1,d=1
+table map generator: ok a=generator,b=generator,c=generator,d=generator
+table map typed: ok a=6,b=4,c=10,d=2
+table map typed wrong: error: parameter 1 of '(container_callbacks.nut:126)' has an invalid type 'string' ; expected: 'integer'
+table map bound env: ok a=15,b=9,c=27,d=3
+table map throws: error: nine
+table map throws null skips: ok a=5,b=3,d=1
+table map native: ok a=integer,b=integer,c=integer,d=integer
+table filter 1: ok a=5,c=9
+table filter 2: ok b=3,c=9,d=1
+table filter throws: error: f
+table reduce 2: ok 18
+table reduce init: ok 118
+table reduce 4: ok 38
+table reduce 1 param: ok 0
+table reduce empty: ok null
+table reduce throws: error: r
+callback grows the table: ok x=1,y=2
+  hook saw each call: true
+table filter under a debug hook: ok a=5,c=9
+join filter: ok a,b,c
+join filter this: ok a
+join filter native: ok a,b
+join filter 2 params: error: wrong number of parameters passed to '(container_callbacks.nut:154)' testData/exec/container_callbacks.nut:154 (2 passed, 3 required)
+join filter 0 params: error: wrong number of parameters passed to '(container_callbacks.nut:155)' testData/exec/container_callbacks.nut:155 (2 passed, 1 required)
+join filter bound env: ok a
+join filter throws: error: j
+join filter grows the array: ok 1,2,3,3,3,3

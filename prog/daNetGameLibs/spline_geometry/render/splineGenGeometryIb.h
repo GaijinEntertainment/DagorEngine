@@ -14,7 +14,7 @@ class SplineGenGeometryIb
 {
 public:
   SplineGenGeometryIb(int slices_, int stripes_);
-  void resize(int stripes);
+  bool resize(int stripes);
 
   UniqueBuf indexBuffer;
   const int slices;

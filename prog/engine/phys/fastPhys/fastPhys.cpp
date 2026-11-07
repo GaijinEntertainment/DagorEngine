@@ -743,6 +743,114 @@ TMatrix makeNodeWTM(mat44f *node_wtm, const vec3f *node_wofs)
   return wtm;
 }
 
+static real clip_sphere(const TMatrix &box, const Point3 &pos, real radius, Point3 &normal)
+{
+  Point3 dp = pos - box.getcol(3);
+  Point3 axes[3], local, halfSize, out;
+  for (int k = 0; k < 3; ++k)
+  {
+    halfSize[k] = length(box.getcol(k));
+    axes[k] = box.getcol(k) / halfSize[k];
+    local[k] = dp * axes[k];
+    out[k] = local[k] - clamp(local[k], -halfSize[k], halfSize[k]);
+  }
+
+  real outLenSq = lengthSq(out);
+  if (outLenSq > 0)
+  {
+    if (outLenSq >= radius * radius)
+      return MAX_REAL;
+    real outLen = sqrtf(outLenSq);
+    normal = (axes[0] * out.x + axes[1] * out.y + axes[2] * out.z) / outLen;
+    return outLen - radius;
+  }
+
+  // the center is inside: leave through the nearest face
+  int axis = 0;
+  for (int k = 1; k < 3; ++k)
+    if (halfSize[k] - fabsf(local[k]) < halfSize[axis] - fabsf(local[axis]))
+      axis = k;
+  normal = local[axis] < 0 ? -axes[axis] : axes[axis];
+  return fabsf(local[axis]) - halfSize[axis] - radius;
+}
+
+static real clip_sphere(const Capsule &capsule, const Point3 &pos, real radius, Point3 &normal)
+{
+  Point3 axis = capsule.b - capsule.a;
+  real t = clamp(safediv((pos - capsule.a) * axis, lengthSq(axis)), 0.f, 1.f);
+  Point3 dp = pos - (capsule.a + axis * t);
+  real r = capsule.r + radius;
+  real distSq = lengthSq(dp);
+  if (distSq >= r * r)
+    return MAX_REAL;
+  real dist = sqrtf(distSq);
+  if (!float_nonzero(dist))
+    return MAX_REAL;
+  normal = dp / dist;
+  return dist - r;
+}
+
+template <typename Shape>
+static bool link_end_clip_plane(const Shape &shape, const Point3 &pivot, const Point3 &end, real radius, Point3 &normal,
+  real &plane_ofs)
+{
+  real pivotDepth = clip_sphere(shape, pivot, 0, normal);
+  if (pivotDepth < 0)
+  {
+    plane_ofs = normal * pivot - pivotDepth + radius;
+    return true;
+  }
+  real d = clip_sphere(shape, end, radius, normal);
+  if (d >= 0)
+    return false;
+  plane_ofs = normal * end - d;
+  return true;
+}
+
+template <typename Shape>
+static void clip_link(FastPhysSystem &sys, const FastPhys::ClippedLink &link, real len, const Shape &shape, real radius)
+{
+  FastPhysSystem::Point &pivot = sys.points[link.pivotIndex];
+  FastPhysSystem::Point &end = sys.points[link.endIndex];
+  FastPhysSystem::Point &virt = sys.points[link.virtIndex];
+
+  Point3 dir = virt.pos - pivot.pos;
+  real virtLen = length(dir);
+  if (!float_nonzero(virtLen))
+    return;
+  dir /= virtLen;
+  end.pos = pivot.pos + dir * len;
+
+  Point3 normal;
+  real planeOfs;
+  if (!link_end_clip_plane(shape, pivot.pos, end.pos, radius, normal, planeOfs) || normal * end.pos >= planeOfs)
+    return;
+
+  // turn the link so that its end lies on the plane
+  real pivotHeight = normal * pivot.pos - planeOfs;
+  Point3 tang = dir - normal * (normal * dir);
+  real tangLen = length(tang);
+  if (!float_nonzero(tangLen))
+    return;
+  real s = clamp(-pivotHeight / len, -1.0f, 1.0f);
+  dir = tang * (sqrtf(1 - s * s) / tangLen) + normal * s;
+  end.pos = pivot.pos + dir * len;
+  virt.pos = pivot.pos + dir * virtLen;
+  // a link resting on the shape must not keep turning into it
+  Point3 away = normal - dir * (normal * dir);
+  real awayLen = length(away);
+  if (!float_nonzero(awayLen))
+    return;
+  away /= awayLen;
+  Point3 relVel = virt.vel - pivot.vel;
+  real towards = relVel * away;
+  if (towards < 0)
+    virt.vel -= away * towards;
+
+  Point3 slide = relVel - dir * (relVel * dir) - away * towards;
+  virt.vel -= slide * clamp(sys.clipFriction * sys.deltaTime, 0.f, 1.f);
+}
+
 
 class FastPhysClipSphericalAction : public FastPhysAction
 {
@@ -1110,6 +1218,73 @@ public:
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
 
+class FastPhysClipExternalAction : public FastPhysAction
+{
+public:
+  real radius;
+  SmallTab<int, MidmemAlloc> ptInd;
+  SmallTab<FastPhys::ClippedLink, MidmemAlloc> links;
+  SmallTab<real, MidmemAlloc> linkLen;
+
+
+  FastPhysClipExternalAction(IGenLoad &cb)
+  {
+    cb.readReal(radius);
+    cb.readTab(ptInd);
+    cb.readTab(links);
+  }
+
+
+  virtual void init(FastPhysSystem &sys, GeomNodeTree &)
+  {
+    clear_and_resize(linkLen, links.size());
+    for (int i = 0; i < links.size(); ++i)
+      linkLen[i] = length(sys.points[links[i].endIndex].pos - sys.points[links[i].pivotIndex].pos);
+  }
+
+
+  virtual void perform(FastPhysSystem &sys)
+  {
+    const int PASSES = 3;
+    for (int pass = 0; pass < PASSES; ++pass)
+    {
+      for (const TMatrix &box : sys.clipBoxes)
+        clip(sys, box);
+      for (const Capsule &capsule : sys.clipCapsules)
+        clip(sys, capsule);
+    }
+  }
+
+  template <typename Shape>
+  void clip(FastPhysSystem &sys, const Shape &shape)
+  {
+    for (int i = 0; i < ptInd.size(); ++i)
+    {
+      FastPhysSystem::Point &pt = sys.points[ptInd[i]];
+
+      Point3 normal;
+      real d = clip_sphere(shape, pt.pos, radius, normal);
+      if (d >= 0)
+        continue;
+
+      pt.pos -= normal * d;
+
+      real nv = pt.vel * normal;
+      if (nv < 0)
+        pt.vel -= normal * nv;
+    }
+
+    for (int i = 0; i < links.size(); ++i)
+      clip_link(sys, links[i], linkLen[i], shape, radius);
+  }
+
+  virtual void reset(FastPhysSystem &) {}
+};
+
+
+// ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
+
+
 class FastPhysAngularSpringAction : public FastPhysAction
 {
 public:
@@ -1464,6 +1639,8 @@ FastPhysAction *FastPhysSystem::loadAction(IGenLoad &cb)
     case FastPhys::AID_CLIP_SPHERICAL: return new FastPhysClipSphericalAction(cb);
 
     case FastPhys::AID_CLIP_CYLINDRICAL: return new FastPhysClipCylindricalAction(cb);
+
+    case FastPhys::AID_CLIP_EXTERNAL: return new FastPhysClipExternalAction(cb);
 
     case FastPhys::AID_ANGULAR_SPRING: return new FastPhysAngularSpringAction(cb);
 

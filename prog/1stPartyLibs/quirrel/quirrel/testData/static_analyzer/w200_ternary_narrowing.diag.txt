@@ -1,0 +1,180 @@
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:68:9
+
+  let result = height != null ? height : 10
+  return height - result
+         ^-----
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:73:9
+
+  let height = style?.height
+  return ((height != null || enabled) ? height : 10) - 2
+         ^------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:77:9
+
+function incompleteAccessCheck(style) {
+  return ((style?.height != null || style?.width != null) ? style?.height : 10) - 2
+         ^---------------------------------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:82:9
+
+  let height = style?.height
+  return (height == null ? height : 10) - 2
+         ^-----------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:88:9
+
+  let width = style?.width
+  return ((height instanceof Float || width instanceof Integer) ? height : 10) - 2
+         ^--------------------------------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:93:9
+
+  let height = style?.height
+  return ((height instanceof Float || enabled) ? height : 10) - 2
+         ^---------------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:99:9
+
+  let width = style?.width
+  return ((height instanceof Float || height instanceof Integer) ? width : 10) - 2
+         ^--------------------------------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:104:9
+
+  let height = style?.height
+  return ((height instanceof Float || height instanceof Integer) ? height : null) - 2
+         ^-----------------------------------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:109:9
+
+  let height = style?.height
+  return ((height instanceof Float || height instanceof Integer) ? 10 : height) - 2
+         ^---------------------------------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:132:9
+
+function uncheckedIndex(x, i, j) {
+  return (x?[i] != null ? x?[j] : 0) - 2
+         ^--------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:136:9
+
+function incompleteIndexCheck(x, i, enabled) {
+  return ((x?[i] != null || enabled) ? x?[i] : 0) - 2
+         ^---------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:140:9
+
+function nullableIndexFallback(x, i, j) {
+  return (x?[i] != null ? x?[i] : x?[j]) - 2
+         ^------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:144:9
+
+function callRoot(foo) {
+  return (foo()?.bar != null ? foo()?.bar : 0) - 2
+         ^------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:148:9
+
+function nullableCall(foo) {
+  return (foo?() != null ? foo?() : 0) - 2
+         ^----------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:152:9
+
+function callInIndex(x, index) {
+  return (x?[index()] != null ? x?[index()] : 0) - 2
+         ^--------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:156:9
+
+function changingIndex(x, i) {
+  return (x?[i++] != null ? x?[i++] : 0) - 2
+         ^------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:164:9
+
+  let height = style?.height
+  return ((height instanceof NullType || height instanceof IntegerType) ? height : 10) - 2
+         ^----------------------------------------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:169:9
+
+  let height = style?.height
+  return ((height instanceof NullAlias || height instanceof IntegerType) ? height : 10) - 2
+         ^-----------------------------------------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:174:9
+
+  let height = style?.height
+  return ((height instanceof types.Null || height instanceof IntegerType) ? height : 10) - 2
+         ^------------------------------------------------------------------------------
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_ternary_narrowing.nut:188:11
+
+  if (height instanceof NullType)
+    return height - 2
+           ^-----
+  return 0
+
+

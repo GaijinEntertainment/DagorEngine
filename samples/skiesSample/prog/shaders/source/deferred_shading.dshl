@@ -96,6 +96,7 @@ shader deferred_shadow_to_buffer
   INIT_SUN_LIGHT()
   ONE_POINT_LIGHT()
 
+  USE_SCATTERING_TC_Z_PRECISE(ps)
   BRUNETON_FOG()
   SQ_INIT_CLOUDS_SHADOW()
   SQ_CLOUDS_SHADOW()

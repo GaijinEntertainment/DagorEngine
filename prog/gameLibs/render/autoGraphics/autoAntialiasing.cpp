@@ -93,6 +93,9 @@ static bool use_fxaa_intel(uint32_t family)
     FAMILY_CASE(LUNARLAKE, false);
     FAMILY_CASE(PANTHERLAKE, false);
     FAMILY_CASE(WILDCATLAKE, false);
+    FAMILY_CASE(NOVALAKE, false);
+    FAMILY_CASE(NOVALAKE_P, false);
+    FAMILY_CASE(CRESCENTISLAND, false);
 #undef FAMILY_CASE
     default: logwarn("auto_antialiasing: unknown Intel GPU family %u, assume it's a new family and don't use FXAA", family);
   }
@@ -167,7 +170,7 @@ const char *get_auto_selected_method(bool force_enable_and_use_upscaling_method)
   if (!useAutoSelectedMethod)
     return nullptr;
 
-  auto availableMethods = render::antialiasing::get_available_methods(false, false);
+  auto availableMethods = render::antialiasing::get_available_methods(false, true);
   if (strcmp(availableMethods, "off") == 0)
   {
     logerr("auto_antialiasing: render::antialiasing must be initialized first");

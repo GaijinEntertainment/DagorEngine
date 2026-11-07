@@ -3,6 +3,13 @@ macro SETUP_CHARACTER_PAINT_COLOR()
   static float4 paint_color = (1, 1, 1, 0);
 endmacro
 
+// For shaders without paintColorMask: no paint color, no texture-presence variant axis
+macro NO_CHARACTER_PAINT_COLOR()
+  hlsl(ps) {
+    void apply_character_paint_color(inout float3 diffuseColor, float2 uv) {}
+  }
+endmacro
+
 macro USE_CHARACTER_PAINT_COLOR()
   (ps){
     paintColorMask@staticSmp = paintColorMask;

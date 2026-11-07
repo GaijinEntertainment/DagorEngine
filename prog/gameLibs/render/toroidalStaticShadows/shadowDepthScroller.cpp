@@ -69,6 +69,7 @@ bool ShadowDepthScroller::translateDepth(Texture *tex, int layer, float scale, f
       // we only write independent tiles d3d::resource_barrier({tex, RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX,
       // 0, 0});
     }
+  d3d::set_immediate_const(STAGE_PS, nullptr, 0);
   d3d::resource_barrier({tex, RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
   ShaderElement::invalidate_cached_state_block();
   shaders::overrides::reset();

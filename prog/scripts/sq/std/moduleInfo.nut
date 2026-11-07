@@ -157,7 +157,7 @@ function topairs(val): array {
   let sorted = []
   foreach (k, v in val)
     sorted.append([k, v])
-  sorted.sort(@(pairA, pairB) pairA[0] <=> pairB[0])
+  sorted.sortby(@(pairA) pairA[0])
   return sorted
 }
 function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null): string {

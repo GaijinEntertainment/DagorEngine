@@ -25,7 +25,7 @@ struct OutgoingFrame
   Payload payload;
   unsigned flags = 0;
   size_t sent = 0;
-  // constraint: curl_ws_send continues an unfinished frame
+  // curl_ws_send continues an unfinished frame
   bool started = false;
 };
 
@@ -63,7 +63,7 @@ static const char *find_response_header(CURL *easy, const char *name)
   return curl_easy_header(easy, name, 0, CURLH_1XX, -1, &header) == CURLHE_OK ? header->value : nullptr;
 }
 
-// constraint: libcurl checks no 101 response headers
+// libcurl checks no 101 response headers
 static eastl::string check_upgrade_response(CURL *easy, const eastl::string &sec_key)
 {
   const char *upgrade = find_response_header(easy, "Upgrade");
@@ -110,7 +110,7 @@ private:
   void failTransport(CURLcode code);
   int closeReplyWaitMs() const;
 
-  // constraint: libcurl ws calls need the easy kept in multi
+  // libcurl ws calls need the easy kept in multi
   CURLM *multi = nullptr;
   CURL *easy = nullptr;
   curl_slist *headers = nullptr;
@@ -163,10 +163,10 @@ void CurlWsConnection::start(CURLM *multi_handle, const ConnectRequest &request)
   curl_easy_setopt(easy, CURLOPT_PRIVATE, static_cast<IoConnection *>(this));
   curl_easy_setopt(easy, CURLOPT_URL, to_ws_scheme(request.uri).c_str());
   curl_easy_setopt(easy, CURLOPT_CONNECT_ONLY, 2L);
-  // constraint: libcurl sends auto PONG only on later calls
+  // libcurl sends auto PONG only on later calls
   curl_easy_setopt(easy, CURLOPT_WS_OPTIONS, CURLWS_NOAUTOPONG);
 
-  // constraint: libcurl sends a given Sec-WebSocket-Key unchanged
+  // libcurl sends a given Sec-WebSocket-Key unchanged
   secKey = generate_sec_key();
   const eastl::string secKeyHeader = "Sec-WebSocket-Key: " + secKey;
   headers = curl_slist_append(nullptr, secKeyHeader.c_str());
@@ -253,9 +253,9 @@ void CurlWsConnection::onTransferDone(CURLcode code)
       open = true;
       lastRecvMs = get_time_msec();
       recvBuffer.resize(64 << 10);
-      // constraint: the finished CONNECT_ONLY transfer adds no socket to the multi wait
+      // the finished CONNECT_ONLY transfer adds no socket to the multi wait
       curl_easy_getinfo(easy, CURLINFO_ACTIVESOCKET, &wsSocket);
-      // constraint: with TLS, verbose logs every record
+      // with TLS, verbose logs every record
       curl_easy_setopt(easy, CURLOPT_VERBOSE, 0L);
       debug("[websocket] connected to %s from local port %ld", peerIp, localPort);
       emitConnected(peerIp);
@@ -349,7 +349,7 @@ int CurlWsConnection::closeReplyWaitMs() const
   return settings.closeTimeoutMs > 0 ? settings.closeTimeoutMs : default_close_reply_wait_ms;
 }
 
-// constraint: the cap keeps one flooding connection from starving the others in the shared I/O loop
+// the cap keeps one flooding connection from starving the others in the shared I/O loop
 CURLcode CurlWsConnection::receive()
 {
   moreToReceive = false;
@@ -373,7 +373,7 @@ CURLcode CurlWsConnection::receive()
   return CURLE_OK;
 }
 
-// constraint: curl_ws_recv can split one frame into chunks
+// curl_ws_recv can split one frame into chunks
 void CurlWsConnection::onFrameData(PayloadView data, const curl_ws_frame &meta)
 {
   if (meta.flags & (CURLWS_TEXT | CURLWS_BINARY))
@@ -421,7 +421,7 @@ void CurlWsConnection::onPeerClose()
   closeReason = log_peer_close(control);
   const CloseStatusInt remoteCloseStatus = (CloseStatusInt)closeReason.code;
 
-  // constraint: RFC 6455 requires a close frame reply
+  // RFC 6455 requires a close frame reply
   if (remoteCloseStatus == (CloseStatusInt)CloseStatus::NoStatusRcvd)
     queueFrame({}, CURLWS_CLOSE);
   else
@@ -441,7 +441,7 @@ void CurlWsConnection::failLocally(CloseStatus status, eastl::string &&reason)
   closedMs = get_time_msec();
 }
 
-// constraint: after a close, only the current frame finishes
+// after a close, only the current frame finishes
 void CurlWsConnection::dropUnstartedFrames()
 {
   auto isUnsentData = [](const OutgoingFrame &frame) { return !frame.started && frame.flags != CURLWS_CLOSE; };
@@ -507,7 +507,7 @@ void CurlWsConnection::failTransport(CURLcode code)
   if (localClose)
     localCloseNote.sprintf("; local close queued with code %d: %s", closeReason.code, closeReason.message.c_str());
 
-  // constraint: curl reports peer TCP close as CURLE_GOT_NOTHING
+  // curl reports peer TCP close as CURLE_GOT_NOTHING
   const char *curlError = code == CURLE_GOT_NOTHING ? "connection was closed by the remote side without a close frame"
                           : errorBuffer[0]          ? errorBuffer
                                                     : curl_easy_strerror(code);

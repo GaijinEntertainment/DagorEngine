@@ -57,6 +57,10 @@ public:
   bool isActive() const;
 
   void setGroupAndLayerMask(unsigned int group, unsigned int mask);
+  // Jolt: bodies pass through a "passable" static body, except dynamic ones outside the default group (not debris), such as ragdolls.
+  // Bullet: does nothing.
+  void setPassableLayer();
+  bool isPassableLayer() const;
   unsigned int getInteractionLayer();
 
   void setVelocity(const Point3 &vel);

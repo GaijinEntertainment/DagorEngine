@@ -11,3 +11,4 @@ table.findvalue: true
 table.map: true
 table.filter: true
 table.reduce: true
+string.join: true

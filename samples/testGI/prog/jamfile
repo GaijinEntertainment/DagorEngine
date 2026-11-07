@@ -90,8 +90,6 @@ UseProgLibs =
   gameLibs/render/voxelizationTarget
   gameLibs/bvh
   gameLibs/eventLog
-  gameLibs/render/rtsm
-  gameLibs/render/denoiser
   gameLibs/render/upscale
   gameLibs/render/heightmapShadows
   gameLibs/profileEventsGUI

@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "joy_device_xinput.h"
+#include "../hid_commonCode/joystickAxisUtils.h"
 #include <generic/dag_carray.h>
 #include <drv/hid/dag_hiXInputMappings.h>
 #include <math/dag_mathUtils.h>
@@ -294,33 +295,6 @@ bool HidJoystickDeviceXInput::updateState(int dt_msec, bool def)
 }
 
 
-void HidJoystickDeviceXInput::applyCircularDeadZone(int axis_x, int axis_y, int deadzone)
-{
-  float lx = axes[axis_x].sysAbsInfo.value;
-  float ly = axes[axis_y].sysAbsInfo.value;
-
-  float mag = fastsqrt(lx * lx + ly * ly);
-  if (mag < REAL_EPS)
-    return;
-
-  if (mag > deadzone)
-  {
-    float normLX = safediv(lx, mag);
-    float normLY = safediv(ly, mag);
-    mag = (mag - deadzone) / (JOY_XINPUT_MAX_AXIS_VAL - deadzone) * JOY_XINPUT_MAX_AXIS_VAL;
-    lx = normLX * mag;
-    ly = normLY * mag;
-  }
-  else
-  {
-    lx = 0;
-    ly = 0;
-  }
-
-  axes[axis_x].sysAbsInfo.value = clamp(int(lx), JOY_XINPUT_MIN_AXIS_VAL, JOY_XINPUT_MAX_AXIS_VAL);
-  axes[axis_y].sysAbsInfo.value = clamp(int(ly), JOY_XINPUT_MIN_AXIS_VAL, JOY_XINPUT_MAX_AXIS_VAL);
-}
-
 bool HidJoystickDeviceXInput::updateSelfState()
 {
   dag::ConstSpan<AxisData> origAxes = joydev->getAxesInfo();
@@ -338,8 +312,10 @@ bool HidJoystickDeviceXInput::updateSelfState()
       axis.sysAbsInfo.value *= -1;
   }
 
-  applyCircularDeadZone(JOY_XINPUT_REAL_AXIS_L_THUMB_H, JOY_XINPUT_REAL_AXIS_L_THUMB_V, lThumbDeadZone);
-  applyCircularDeadZone(JOY_XINPUT_REAL_AXIS_R_THUMB_H, JOY_XINPUT_REAL_AXIS_R_THUMB_V, rThumbDeadZone);
+  apply_stick_deadzone(axes[JOY_XINPUT_REAL_AXIS_L_THUMB_H].sysAbsInfo.value, axes[JOY_XINPUT_REAL_AXIS_L_THUMB_V].sysAbsInfo.value,
+    getStickDeadZoneAbs(0), JOY_XINPUT_MAX_AXIS_VAL);
+  apply_stick_deadzone(axes[JOY_XINPUT_REAL_AXIS_R_THUMB_H].sysAbsInfo.value, axes[JOY_XINPUT_REAL_AXIS_R_THUMB_V].sysAbsInfo.value,
+    getStickDeadZoneAbs(1), JOY_XINPUT_MAX_AXIS_VAL);
 
   for (int i = 0; i < axes.size(); ++i)
   {

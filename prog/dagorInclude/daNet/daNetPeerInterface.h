@@ -111,6 +111,7 @@ public:
 
   DaNetTime GetLastReceivedPacketTime(SystemIndex idx) const; // return 0 if unknown
   DaNetTime GetConnectionStartTime(SystemIndex idx) const;    // return 0 if unknown
+  DaNetTime GetReliableTimeoutTime(SystemIndex idx) const;    // ENet earliestTimeout if connected, else 0
 
   void SetMaximumIncomingConnections(uint32_t max_incoming_connections);
   uint32_t GetMaximumIncomingConnections() const
@@ -177,7 +178,9 @@ private:
   {
     uint32_t host;
     uint16_t port;
-  } forcedHostAddr = {0, 0}; // force host (peer[0]) address (in network byte order)
+  } forcedHostAddr = {0, 0};           // force host (peer[0]) address (in network byte order)
+  volatile int routeChangePending = 0; // set by ChangeHostAddress, handled on the ENet thread
+  IDaNetTrafficEncoder *volatile delayedTrafficEncoder = nullptr;
 
   os_event_t packetsEvent;
 
@@ -185,6 +188,7 @@ private:
   {
     volatile DaNetTime connectionStartTime;
     volatile DaNetTime lastReceiveTime;
+    volatile DaNetTime earliestTimeout;
     volatile bool notResponsive;
     uint8_t unordChannel;
 

@@ -1,4 +1,5 @@
 // Valid syntax: Control flow statements
+#allow-switch-statement
 
 // if/else
 local result = null
@@ -154,7 +155,6 @@ for (local i = 0; i < 5; i++) {
 assert(nested_count == 10)
 
 // switch statement
-#allow-switch-statement
 local sw_val = 2
 local sw_result = null
 switch (sw_val) {

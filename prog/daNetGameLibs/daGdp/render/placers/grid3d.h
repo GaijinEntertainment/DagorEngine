@@ -14,18 +14,13 @@ struct Grid3dPlacer
 {
   dag::RelocatableFixedVector<PlacerObjectGroup, 4> objectGroups;
 
-  float density = 0.0f;
   int prngSeed = 0;
   float gridJitter = 0.0f;
   float worldStep = FLT_MAX;
   float maxDrawDistance = 0;
   int csmCascadeCount = -1;
-  Point2 distBasedScale = Point2(1, 1);
-  Point3 distBasedCenter = Point3(0, 0, 0);
-  float distBasedRange = 1;
   Point3 axis;
   bool axisLocal = false;
-  bool axisAbs = false;
 };
 
 using Grid3dMapping = dag::VectorMap<ecs::EntityId, uint32_t>;

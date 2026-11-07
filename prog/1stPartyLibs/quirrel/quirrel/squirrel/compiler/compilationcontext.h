@@ -124,7 +124,8 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(ACCESS_POT_EMPTY, WARNING, SEMA, 339, "access-potentially-empty", "'%s' can be an empty %s here, the accessed element would not exist."), \
   DEF_DIAGNOSTIC(LET_FUNCTION_STYLE, WARNING, SEMA, 344, "let-function-style", "'let %s' is legacy style; the plain form already declares a non-reassignable binding."), \
   DEF_DIAGNOSTIC(BINDING_NAME_MISMATCH, WARNING, SEMA, 346, "binding-and-function-name", "Binding and function name are not the same ('%s' and '%s')."), \
-  DEF_DIAGNOSTIC(REDUNDANT_SPREAD_GUARD, WARNING, SEMA, 347, "redundant-spread-guard", "A null source adds nothing to a spread, so the '??' fallback to an empty %s can go.") \
+  DEF_DIAGNOSTIC(REDUNDANT_SPREAD_GUARD, WARNING, SEMA, 347, "redundant-spread-guard", "A null source adds nothing to a spread, so the '??' fallback to an empty %s can go."), \
+  DEF_DIAGNOSTIC(DISCARDED_NODISCARD, WARNING, SEMA, 348, "discarded-nodiscard", "The result of '%s' is discarded, but it is a %s function.") \
 
 
 namespace SQCompilation {

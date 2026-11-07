@@ -51,10 +51,10 @@ static SQInteger math_recursive_hash_impl(HSQUIRRELVM vm, HSQOBJECT &obj, SQUnsi
       break;
     }
     case OT_ARRAY: {
+      SQObjectPtr arrHolder(obj);
       SQArray *arr = _array(obj);
       SQUnsignedInteger h = prev_hash;
-      SQInteger arrSize = arr->Size();
-      for (SQInteger i = 0; i < arrSize; ++i) {
+      for (SQInteger i = 0, arrSize = arr->Size(); i < arrSize && i < arr->Size(); ++i) {
         SQUnsignedInteger resultHash = 0;
         if (SQ_FAILED(math_recursive_hash_impl(vm, arr->_values[i], h, resultHash, depth - 1)))
           return SQ_ERROR;

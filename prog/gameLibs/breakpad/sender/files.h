@@ -22,7 +22,6 @@ const char separator = '/';
 std::string normalize(const std::string &path);
 } // namespace path
 
-std::string compress(const std::string &path);
 void prepare(Configuration &cfg);
 void postprocess(Configuration &cfg, const std::string &guid);
 

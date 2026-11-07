@@ -6,7 +6,7 @@
 #include <generic/dag_enumerate.h>
 #include <rendInst/rendInstGen.h>
 #include <EASTL/unordered_set.h>
-#include <gameRes/dag_resourceNameResolve.h>
+#include <debug/dag_streamingLog.h>
 
 #include "bvh_tools.h"
 
@@ -16,8 +16,6 @@ namespace bvh::ri
 void init_ex();
 void teardown_ex();
 
-static constexpr float bvh_ri_lod_range_exception_threshold = 10000.0f;
-
 using RelemChangedContextsReadLock = ScopedLockReadTemplate<NoWritersSpinLockReadWriteLock>;
 using RelemChangedContextsWriteLock = ScopedLockWriteTemplate<NoWritersSpinLockReadWriteLock>;
 static NoWritersSpinLockReadWriteLock relem_changed_contexts_lock;
@@ -26,76 +24,19 @@ static CallbackToken relem_changed_token;
 static CallbackToken relem_prechanged_token;
 static float ri_lod_dist_bias = 0.0f;
 
-static int ri_single_lod_filter_max_faces = 0;
-static float ri_single_lod_filter_max_range = 0;
+static SingleLodFilter<RenderableInstanceLodsResource> single_lod_filter;
 
 bool ri_enable_caching = true;
 
 vec4f ri_tree_anim_max_distance_sq_v = v_zero();
 
-struct BrokenAssetDetails
-{
-  const RenderableInstanceLodsResource *resource;
-  float range;
-  int faceCnt;
-};
-// deferred logging because of its name not being ready at the moment of detection
-static eastl::vector<BrokenAssetDetails> brokenAssets;
-
-static String get_resource_name(const RenderableInstanceLodsResource *resource)
-{
-  String name;
-  if (!resolve_game_resource_name(name, resource))
-    name = "<unknown>";
-  return name;
-}
-
-static int calc_face_cnt(const RenderableInstanceLodsResource *resource)
-{
-  int faceCnt = 0;
-  for (auto &lod : resource->lods)
-    for (auto &e : lod.scene->getMesh()->getMesh()->getMesh()->getAllElems())
-      faceCnt += e.numf;
-  return faceCnt;
-}
-
-static bool filter_broken_lod_resources(const RenderableInstanceLodsResource *resource, bool log_broken_assets)
-{
-  G_ASSERT_RETURN(resource->lods.size() > 0, true);
-  const bool filterBrokenAssets = ri_single_lod_filter_max_faces > 0 && ri_single_lod_filter_max_range > 0;
-  if (filterBrokenAssets && resource->lods.size() == 1)
-  {
-    float range = resource->lods[0].range;
-    if (range >= bvh_ri_lod_range_exception_threshold)
-      return true;
-    int faceCnt = calc_face_cnt(resource);
-    if (range > ri_single_lod_filter_max_range && faceCnt > ri_single_lod_filter_max_faces)
-    {
-      if (log_broken_assets)
-        brokenAssets.push_back({resource, range, faceCnt});
-      return false;
-    }
-  }
-  return true;
-}
-
 static bool filter_lod_resources(const RenderableInstanceLodsResource *resource, bool log_broken_assets)
 {
   // can add more filters here if necessary
-  return filter_broken_lod_resources(resource, log_broken_assets);
+  return single_lod_filter.accepts(resource, log_broken_assets);
 }
 
-void debug_update()
-{
-#if DAGOR_DBGLEVEL > 0
-  for (auto asset : brokenAssets)
-  {
-    String resName = get_resource_name(asset.resource);
-    logwarn("BVH RI: resource %s has a single lod!! (range = %f, faceCnt = %d)", resName.data(), asset.range, asset.faceCnt);
-  }
-#endif
-  brokenAssets.clear();
-}
+void debug_update() { single_lod_filter.report("RI"); }
 
 static void impostor_callback(const RenderableInstanceLodsResource *resource)
 {
@@ -149,6 +90,8 @@ static void on_relem_changed(ContextId context_id, const RenderableInstanceLodsR
   }
 
   const int bestLod = resource->getBvhMinLod();
+  STREAMING_LOG("bvh rendInst event res=%p bvhId=%08X deleted=%d upperLod=%d pre=%d", resource, resource->getBvhId(), deleted,
+    upper_lod, pre_change_event);
 
   if (deleted)
   {
@@ -215,8 +158,7 @@ static void on_relem_changed_all(const RenderableInstanceLodsResource *resource,
 
 void init(const AdditionalSettings &settings)
 {
-  ri_single_lod_filter_max_faces = settings.singleLodFilterMaxFaces;
-  ri_single_lod_filter_max_range = settings.singleLodFilterMaxRange;
+  single_lod_filter.init(settings);
   ri_lod_dist_bias = settings.riLodDistBias;
   ri_enable_caching = settings.enableCaching;
   relem_prechanged_token = unitedvdata::riUnitedVdata.on_mesh_relems_about_to_be_updated.subscribe(
@@ -236,7 +178,7 @@ void teardown_ri_gen();
 
 void teardown(bool device_reset)
 {
-  brokenAssets.clear();
+  single_lod_filter.clear();
 
   if (!device_reset)
   {
@@ -337,7 +279,6 @@ void teardown(ContextId context_id)
 void readdRendinst(ContextId context_id, const RenderableInstanceLodsResource *resource)
 {
   on_relem_changed(context_id, resource, true, 8, true);
-  on_relem_changed(context_id, resource, true, 8, false);
   on_relem_changed(context_id, resource, false, 8, true);
   on_relem_changed(context_id, resource, false, 8, false);
 }

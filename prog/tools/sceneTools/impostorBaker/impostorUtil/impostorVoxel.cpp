@@ -25,7 +25,7 @@
 #include <EASTL/hash_set.h>
 
 
-#define VOXEL_OVERSCALE 3
+#define VOXEL_OVERSCALE 1
 
 // 0 means use default level
 #define ZSTD_COMPRESSION_LEVEL 0
@@ -332,7 +332,7 @@ void ImpostorBaker::getVoxelFaceParams(uint32_t face_id, uint32_t &view_w, uint3
 }
 
 
-bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests)
+bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests, const char *shader_name)
 {
   // create readback textures as needed
   const IPoint2 extent = IPoint2(voxelBakeWidth(), voxelBakeHeight()) * VOXEL_OVERSCALE;
@@ -417,7 +417,7 @@ bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests)
       // for (int i = 0; i < 4; i++)
       //   debug("!!! %f %f %f", P3D(viewToModel.col[i]));
       get_impostor_texture_mgr()->render_slice_voxels(viewToModel, wd, ht, zn, zf, bakeRes, rendinst::RenderPass::ImpostorVoxel,
-        rendinstSceneBlockId, bakeLod);
+        rendinstSceneBlockId, bakeLod, shader_name);
 
       ShaderGlobal::set_texture(depthSliceVarId, nullptr);
 
@@ -684,8 +684,99 @@ static uint32_t profile_lapse_usec(uint64_t &reft)
 }
 
 
+void ImpostorBaker::checkVoxelShaders(const char *asset_name)
+{
+  G_ASSERT(bakeRes);
+  if (!bakeRes)
+    return;
+  if (bakeLod >= bakeRes->lods.size())
+  {
+    conerror("bake lod number is out of range: %d/%d for %s", bakeLod, bakeRes->lods.size(), asset_name);
+    return;
+  }
+  ShaderMesh *mesh = nullptr;
+  if (bakeRes->lods[bakeLod].scene)
+    mesh = bakeRes->lods[bakeLod].scene->getMesh()->getMesh()->getMesh();
+  if (!mesh)
+  {
+    conerror("no mesh for bake lod #%d of %s", bakeLod, asset_name);
+    return;
+  }
+
+  ska::flat_hash_set<const char *> reportedShaders;
+
+  for (const auto &re : mesh->getAllElems())
+  {
+    if (!re.e)
+      continue;
+
+    auto shaderName = re.e->getShaderClassName();
+    if (reportedShaders.count(shaderName) != 0)
+      continue;
+
+    auto it = knownShaders.find(shaderName);
+    if (it != knownShaders.end())
+    {
+      if (!it->second)
+      {
+        conerror("asset '%s' has shader '%s' that lacks voxel baking support", asset_name, shaderName);
+        reportedShaders.insert(shaderName);
+      }
+      continue;
+    }
+
+    eastl::array<VoxelBakeRequest, 6> requests;
+    for (int i = 0; i < requests.size(); i++)
+    {
+      requests[i].faceId = i;
+      requests[i].offset = 0;
+    }
+
+    if (!bakeVoxels(make_span(requests), shaderName))
+      continue;
+
+    bool empty = true;
+    for (auto &r : requests)
+    {
+      auto const *zp = r.depth->getPixels();
+      for (int num = r.depth->w * r.depth->h; num > 0; num--, zp++)
+        if (*zp < 1e30f)
+        {
+          empty = false;
+          break;
+        }
+      if (!empty)
+        break;
+    }
+
+    if (empty)
+    {
+      conerror("it looks like shader '%s' of asset '%s' doesn't support voxel baking", shaderName, asset_name);
+      reportedShaders.insert(shaderName);
+    }
+    knownShaders.emplace(shaderName, !empty);
+  }
+}
+
+
 bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &options)
 {
+  if (knownShaders.empty())
+  {
+    const auto &blk = *defaultVoxelParams.getBlockByNameEx("known_shaders");
+    dblk::iterate_params_by_type(blk, blk.TYPE_BOOL, [this, &blk](int index, int name_id, int type) {
+      G_UNUSED(type);
+      knownShaders.emplace(blk.getName(name_id), blk.getBool(index));
+    });
+
+    if (knownShaders.empty())
+    {
+      // adding known supported decals because they would fail the test, producing no voxels
+      knownShaders.emplace("rendinst_blend_diffuse_decal", true);
+      knownShaders.emplace("rendinst_modulate2x_diffuse_decal", true);
+    }
+  }
+
   conlog("Baking voxel impostor for %s", asset->getName());
   auto reft = profile_ref_ticks();
   int resIdx = rendinst::addRIGenExtraResIdx(asset->getName(), -1, -1, rendinst::AddRIFlag::UseShadow);
@@ -788,6 +879,8 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
     conerror("Failed to bake voxels for rendInst %s", asset->getName());
     return false;
   }
+
+  checkVoxelShaders(asset->getName());
 
   // allocate voxel maps
   VoxelBitmap solid(mapSize * VOXEL_OVERSCALE);
@@ -991,10 +1084,8 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
     });
   }
 
-  String outFolder = getAssetFolder(asset);
-  ::dd_mkpath(outFolder.c_str());
-
-  String filename(0, "%s%s_%s", outFolder.c_str(), asset->getName(), voxelcache::VOXEL_CACHE_NAME);
+  String filename = voxelcache::make_cache_fname(voxelCachePath.c_str(), asset->getName());
+  ::dd_mkpath(filename.c_str());
 
   try
   {

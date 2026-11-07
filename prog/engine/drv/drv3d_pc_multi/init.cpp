@@ -11,6 +11,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_messageBox.h>
 #include <osApiWrappers/dag_winVersionQuery.h>
+#include <drv_log_defs.h>
 #include <drv_utils.h>
 #include <dxgi_utils.h>
 #include <gpuVendor.h>
@@ -22,6 +23,17 @@
 #if _TARGET_PC_WIN
 #include <winapi_helpers.h>
 #include <Windows.h>
+#if (defined(__x86_64__) || defined(_M_X64)) && !defined(_M_ARM64EC)
+#if defined(__clang__)
+#include <cpuid.h>
+#else
+#include <intrin.h>
+#endif
+#endif
+#endif
+
+#if _TARGET_PC_LINUX
+#include <osApiWrappers/dag_linuxGUI.h>
 #endif
 
 static DriverCode get_selected_driver();
@@ -229,6 +241,72 @@ static eastl::optional<DriverCode> override_driver_preference([[maybe_unused]] c
   return {};
 }
 
+static void override_auto_driver_for_known_cpu_bugs([[maybe_unused]] auto &candidate_driver,
+  [[maybe_unused]] const auto &display_devices)
+{
+#if USE_MULTI_D3D_DX12 && USE_MULTI_D3D_DX11
+#if (defined(__x86_64__) || defined(_M_X64)) && !defined(_M_ARM64EC)
+
+  bool cantUseDx12DueToCrashFallback =
+    crash_fallback_helper && (crash_fallback_helper->previousStartupFailed() || crash_fallback_helper->alreadySetToAuto());
+  if (candidate_driver.is(d3d::dx11 || d3d::undefined) && !cantUseDx12DueToCrashFallback)
+  {
+#if defined(__clang__)
+#define CPUID(op, eax, ebx, ecx, edx) __get_cpuid(op, &eax, &ebx, &ecx, &edx)
+#else
+#define CPUID(op, eax, ebx, ecx, edx) \
+  ([&] {                              \
+    int regs[4];                      \
+    __cpuid(regs, op);                \
+    eax = regs[0];                    \
+    ebx = regs[1];                    \
+    ecx = regs[2];                    \
+    edx = regs[3];                    \
+  }())
+#endif
+    uint32_t cpuVendorId[3];
+    uint32_t cpuVersionInfo;
+    uint32_t unused, unused1, unused2;
+    CPUID(0, unused, cpuVendorId[0], cpuVendorId[2], cpuVendorId[1]);
+    CPUID(1, cpuVersionInfo, unused, unused1, unused2);
+    if (cpuVersionInfo == 0xb0671) // Raptor lake susceptible to Vmin Shift Instability
+    {
+      char cpuVendorString[13]{};
+      snprintf(cpuVendorString, sizeof(cpuVendorString), "%c%c%c%c%c%c%c%c%c%c%c%c", cpuVendorId[0] & 0xff,
+        (cpuVendorId[0] >> 8) & 0xff, (cpuVendorId[0] >> 16) & 0xff, (cpuVendorId[0] >> 24) & 0xff, cpuVendorId[1] & 0xff,
+        (cpuVendorId[1] >> 8) & 0xff, (cpuVendorId[1] >> 16) & 0xff, (cpuVendorId[1] >> 24) & 0xff, cpuVendorId[2] & 0xff,
+        (cpuVendorId[2] >> 8) & 0xff, (cpuVendorId[2] >> 16) & 0xff, (cpuVendorId[2] >> 24) & 0xff);
+      if (strcmp(cpuVendorString, "GenuineIntel") == 0)
+      {
+        for (auto [cpuVendorId, _] : display_devices)
+        {
+          if (d3d_get_vendor(cpuVendorId) == GpuVendor::NVIDIA)
+          {
+            candidate_driver = DriverCode::make(d3d::dx12);
+            logwarn(
+              "[DRV_MULTI] Detected Raptor Lake CPU (version %x) with an NVIDIA graphics adapter while "
+              "choosing auto driver.\nSwitching preference to dx12 due to common instabilities in the dx11 shader compiler caused "
+              "by possible Vmin Shift Instability having degraded the CPU "
+              "(https://community.intel.com/t5/Blogs/Tech-Innovation/Client/"
+              "Intel-Core-13th-and-14th-Gen-Desktop-Instability-Root-Cause/post/1633239).",
+              cpuVersionInfo);
+            break;
+          }
+        }
+      }
+      else
+      {
+        D3D_ERROR("[DRV_MULTI] While selecting auto driver, detected CPU version %x from vendor %s, while "
+                  "expecting intel. Suspected hardware bug.",
+          cpuVersionInfo, cpuVendorString);
+      }
+    }
+#undef CPUID
+  }
+#endif
+#endif
+}
+
 static DriverCode detect_driver()
 {
   const eastl::unordered_map<eastl::string_view, DriverCode> codes{
@@ -280,6 +358,9 @@ static DriverCode detect_driver()
     if (auto overrideDriver = override_driver_preference(candidateDriver, displayDevices); overrideDriver)
       candidateDriver = *overrideDriver;
   }
+
+  if (autoDriverMode)
+    override_auto_driver_for_known_cpu_bugs(candidateDriver, displayDevices);
 
   // 31315844 = DX11; 32315844 = DX12; 4B4C5556 = VULK; 4C544D00 = MTL; 42555453 = STUB, FFFFFFFF = undefined
   logdbg("[DRV_MULTI] driver:t=%s mapped to %08X", driver, candidateDriver.asFourCC());
@@ -557,6 +638,9 @@ bool init_video(void *hinst, main_wnd_f *f, const char *wcname, int ncmdshow, vo
       [&] {
         if (multi_stub::init_video(hinst, f, wcname, ncmdshow, mainwnd, hicon, title, cb))
         {
+#if _TARGET_PC_LINUX
+          linux_GUI::init_stub();
+#endif
           init_driver_desc(multi_stub::get_driver_desc());
           return true;
         }

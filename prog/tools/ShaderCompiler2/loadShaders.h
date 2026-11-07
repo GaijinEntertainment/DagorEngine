@@ -16,7 +16,7 @@ struct RenderState;
 
 bool get_file_time64(const char *fn, int64_t &ft);
 CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps, const shc::CompilationContext &ctx,
-  bool check_cppstcode);
+  const char *obj_source_file);
 bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetContext &out_ctx);
 
 /// @brief Loads a per-source-file (local) refined block layout from a shader cache bindump.

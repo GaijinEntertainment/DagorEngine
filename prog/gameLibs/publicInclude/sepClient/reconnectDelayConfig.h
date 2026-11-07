@@ -6,8 +6,6 @@
 
 #include <util/dag_stdint.h>
 
-#include <utility>
-
 
 namespace sepclient
 {

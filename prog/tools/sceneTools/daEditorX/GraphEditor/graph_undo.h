@@ -6,17 +6,24 @@
 
 #include <graphEditor/graph_data.h>
 
+#include <EASTL/shared_ptr.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
+
 #include "graph_edit_types.h"
 
 class GraphDocument;
+class GraphPanel;
+class GraphTab;
+class SubgraphWindow;
 
 // Undo entry for a single node creation (drag-drop spawn). Holds a full Node snapshot so redo
 // re-inserts it with the same id and spawn position; the editor's global UndoSystem owns and
 // deletes the object. Operations are owned by the GraphTab that recorded them
-// (GraphPanel::stampUndoOwner), so closing that tab drops them via remove_ops_by_owner without a
-// stale-id guard, and each one activates its tab before it applies.
-// This is the home for future graph undo entries (delete, move, edge, property edit, paste) --
-// each is a separate UndoRedoObject bracketed by begin()/accept().
+// (GraphPanel::stampUndoOwner), whose document lives as long as they do, so they need no stale-id
+// guard; each one activates its tab before it applies. UndoInstancePins is the exception: it can
+// change another tab's document, which lives as long because closes and opens are undo steps too,
+// and it activates no tab.
 class UndoCreateNode : public UndoRedoObject
 {
 public:
@@ -270,4 +277,112 @@ private:
   GraphDocument &doc;
   eastl::vector<BlockSize> oldSizes;
   eastl::vector<BlockSize> newSizes;
+};
+
+// A subgraph instance's pins, its incident edges and the link selection, before and after. Activates no tab: an edit in a
+// window must not bring the parent graph to the front.
+class UndoInstancePins : public UndoRedoObject
+{
+public:
+  DAG_DECLARE_NEW(midmem)
+
+  UndoInstancePins(GraphDocument &doc, int node_id, InstancePins before_pins, InstancePins after_pins, GraphSelection before_selection,
+    GraphSelection after_selection);
+
+  void restore(bool save_redo_data) override;
+  void redo() override;
+  size_t size() override;
+  void accepted() override {}
+  void get_description(String &s) override;
+  // Instance pins are a cache of the subgraph's file, which catches up on its next save.
+  bool changes_saved_data() const override { return false; }
+
+private:
+  GraphDocument &doc;
+  int nodeId;
+  InstancePins before;
+  InstancePins after;
+  GraphSelection beforeSelection;
+  GraphSelection afterSelection;
+};
+
+// A graph tab's Save as: the tab moves to the new file and to that file's undo owner token, and undo moves it back. The
+// written file stays.
+class UndoGraphPath : public UndoRedoObject
+{
+public:
+  DAG_DECLARE_NEW(midmem)
+
+  UndoGraphPath(GraphDocument &doc, eastl::string old_path, void *old_token, eastl::string new_path, void *new_token);
+
+  void restore(bool save_redo_data) override;
+  void redo() override;
+  size_t size() override { return sizeof(*this) + oldPath.length() + newPath.length(); }
+  void accepted() override {}
+  void get_description(String &s) override;
+  // Each file keeps its save point under its own token.
+  bool changes_saved_data() const override { return false; }
+
+private:
+  GraphDocument &doc;
+  eastl::string oldPath;
+  void *oldToken;
+  eastl::string newPath;
+  void *newToken;
+};
+
+// A root tab with every window over it, or a subgraph window tree of a root, that an undo entry can bring back: it
+// lives in the UI or here, never both. What is still held at destruction goes to the panel's graveyard.
+struct HeldSurfaces
+{
+  struct HeldWindow
+  {
+    eastl::unique_ptr<SubgraphWindow> window;
+    int listIndex = -1;
+  };
+
+  // A null top holds the root tab itself.
+  HeldSurfaces(GraphPanel &panel, GraphTab &root, SubgraphWindow *top);
+  ~HeldSurfaces();
+  HeldSurfaces(const HeldSurfaces &) = delete;
+  HeldSurfaces &operator=(const HeldSurfaces &) = delete;
+
+  bool isHolding() const { return heldRoot || !held.empty(); }
+  // The root tab with its windows, or the windows.
+  void appendTabs(eastl::vector<GraphTab *> &out) const;
+  bool holdsTab(const void *token) const;
+  size_t approxSize() const;
+  // "Close subgraph <stem>", "Open graph <name>".
+  String entryName(bool closing) const;
+  GraphTab &ownerTab() const;
+
+  GraphPanel &panel;
+  GraphTab &root;
+  SubgraphWindow *top;            // the closed or opened window; the rest were opened from it
+  eastl::vector<HeldWindow> held; // ascending listIndex
+  eastl::unique_ptr<GraphTab> heldRoot;
+  int stripIndex = -1;
+};
+
+// One graph tab or subgraph window closed (redo holds it, undo restores it) or opened (the reverse). The move waits
+// for the panel's next tick: an undo apply must not record.
+class UndoSurfaceLifetime : public UndoRedoObject
+{
+public:
+  DAG_DECLARE_NEW(midmem)
+
+  UndoSurfaceLifetime(eastl::shared_ptr<HeldSurfaces> held_surfaces, bool closing_surfaces);
+
+  void restore(bool save_redo_data) override;
+  void redo() override;
+  size_t size() override { return heldSize; }
+  void accepted() override {}
+  void get_description(String &s) override;
+  // Each graph keeps its own save point; opening or closing it changes none.
+  bool changes_saved_data() const override { return false; }
+
+private:
+  eastl::shared_ptr<HeldSurfaces> surfaces;
+  size_t heldSize = 0; // measured once: the undo system asks on every accept
+  bool closing = false;
 };

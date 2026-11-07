@@ -2,7 +2,7 @@
 #pragma once
 
 #include <util/dag_stdint.h>
-#include <generic/dag_tab.h>
+#include <generic/dag_relocatableFixedVector.h>
 
 // Raw HID access to one gamepad: Windows hid.dll with overlapped reads, Linux hidraw.
 // The driver IO thread owns the devices, waits on up to 16 connected ones inside HidWaitSet::wait and drains every
@@ -10,7 +10,7 @@
 // under the driver lock.
 namespace HumanInput
 {
-namespace sonypad
+namespace dspad
 {
 
 struct HidDeviceInfo
@@ -21,8 +21,11 @@ struct HidDeviceInfo
   char path[512] = {};
 };
 
+// rescanned every few seconds on the IO thread stack; a PC with more interfaces overflows to the heap
+using HidDeviceList = dag::RelocatableFixedVector<HidDeviceInfo, 32>;
+
 // every HID interface the process can see, with vid and pid; false when the system call failed
-bool enumerate_hid_devices(Tab<HidDeviceInfo> &out);
+bool enumerate_hid_devices(HidDeviceList &out);
 
 class HidDevice
 {
@@ -86,5 +89,5 @@ private:
 #endif
 };
 
-} // namespace sonypad
+} // namespace dspad
 } // namespace HumanInput

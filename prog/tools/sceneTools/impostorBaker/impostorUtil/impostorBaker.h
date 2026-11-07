@@ -55,7 +55,7 @@ public:
   static constexpr int VOXEL_VERSION = 2;
   static const unsigned int NUM_SCALED_VERTICES = 8;
 
-  explicit ImpostorBaker(ILogWriter *log_writer, bool displayExportedImages = false) noexcept;
+  explicit ImpostorBaker(ILogWriter *log_writer, const DataBlock &app_blk, bool displayExportedImages = false) noexcept;
   ~ImpostorBaker();
 
   struct ImpostorPackNamePattern
@@ -201,8 +201,8 @@ private:
     eastl::vector<SliceExportData> sliceData;
   };
 
-  void exportAssetBlk(DagorAsset *asset, RenderableInstanceLodsResource *res, const ImpostorExportData &export_data, DataBlock &blk,
-    const AOData &ao_data) const;
+  void exportAssetBlk(DagorAsset *asset, RenderableInstanceLodsResource *res, int baked_lod, const ImpostorExportData &export_data,
+    DataBlock &blk, const AOData &ao_data) const;
   void prepareTextures(IPoint2 resolution) noexcept;
   ImpostorTextureData prepareRt(IPoint2 extent, String asset_name, int mips) noexcept;
   static IPoint2 get_extent(const ImpostorTextureManager::GenerationData &gen_data);
@@ -244,6 +244,8 @@ private:
   eastl::string getDDSxPackName(const char *folder_path);
   AOData generateAOData(RenderableInstanceLodsResource *res, const DataBlock &blk_in);
 
+  String voxelCachePath;
+
   struct VoxelReadBackTextures
   {
     UniqueTex albedo;
@@ -259,6 +261,8 @@ private:
   Point3 bakeBoxMin;
   float bakeVoxelSize;
   int bakeLod;
+
+  ska::flat_hash_map<eastl::string, bool> knownShaders;
 
   int voxelBakeWidth() const { return max(bakeMapSize.x, bakeMapSize.z); }
   int voxelBakeHeight() const { return max(bakeMapSize.y, bakeMapSize.x); }
@@ -287,8 +291,10 @@ private:
 
   bool beginVoxelBaking(RenderableInstanceLodsResource *res, int lod, const IPoint3 &map_size, const Point3 &box_min,
     float voxel_size);
-  bool bakeVoxels(dag::Span<VoxelBakeRequest> requests);
+  bool bakeVoxels(dag::Span<VoxelBakeRequest> requests, const char *shader_name = nullptr);
   void endVoxelBaking();
+
+  void checkVoxelShaders(const char *name);
 
   float computeVoxelSize(RenderableInstanceLodsResource *res, const char *name, float proj_scale, float triangle_threshold,
     bool warn_bad_range);

@@ -678,6 +678,331 @@ TEST_CASE("updateFrom both empty", "[idSparseIndexedMapping]")
   REQUIRE(dst.empty());
 }
 
+// -- IdHideableSparseIndexedMapping tests --
+
+static dag::Vector<IdType> collect_keys(const auto &view)
+{
+  dag::Vector<IdType> result;
+  for (auto key : view.keys())
+    result.push_back(key);
+  return result;
+}
+
+static IdHideableSparseIndexedMapping<IdType, uint32_t> make_hideable(uint32_t item_count, std::initializer_list<uint32_t> hidden)
+{
+  IdHideableSparseIndexedMapping<IdType, uint32_t> mapping;
+  for (IdType i : IdRange<IdType>(item_count))
+    mapping.appendNew(static_cast<uint32_t>(i) * 10);
+  for (uint32_t i : hidden)
+    mapping.hide(static_cast<IdType>(i));
+  return mapping;
+}
+
+TEST_CASE("hidden keys are holes for the default interface only", "[idHideableSparseIndexedMapping]")
+{
+  auto mapping = make_hideable(5, {1, 3});
+
+  CHECK((collect_keys(mapping) == dag::Vector<IdType>{IdType{0}, IdType{2}, IdType{4}}));
+  CHECK((collect_keys(mapping.all()) == dag::Vector<IdType>{IdType{0}, IdType{1}, IdType{2}, IdType{3}, IdType{4}}));
+  CHECK(mapping.used() == 3);
+  CHECK(mapping.all().used() == 5);
+  CHECK(mapping.totalKeys() == 5);
+  CHECK_FALSE(mapping.isMapped(IdType{1}));
+  CHECK(mapping.all().isMapped(IdType{1}));
+  CHECK(mapping.all()[IdType{3}] == 30);
+
+  uint32_t valueSum = 0;
+  for (auto v : mapping.values())
+    valueSum += v;
+  CHECK(valueSum == 0 + 20 + 40);
+
+  uint32_t allValueSum = 0;
+  for (auto v : mapping.all().values())
+    allValueSum += v;
+  CHECK(allValueSum == 0 + 10 + 20 + 30 + 40);
+
+  dag::Vector<IdType> enumerated;
+  for (auto &&[k, v] : mapping.enumerate())
+    enumerated.push_back(k);
+  CHECK((enumerated == dag::Vector<IdType>{IdType{0}, IdType{2}, IdType{4}}));
+
+  uint32_t allEnumerated = 0;
+  for (auto &&[k, v] : mapping.all().enumerate())
+  {
+    CHECK(v == static_cast<uint32_t>(k) * 10);
+    ++allEnumerated;
+  }
+  CHECK(allEnumerated == 5);
+
+  const auto allHidden = make_hideable(2, {0, 1});
+  CHECK(allHidden.empty());
+  CHECK_FALSE(allHidden.all().empty());
+}
+
+TEST_CASE("hidden keys can be changed through all()", "[idHideableSparseIndexedMapping]")
+{
+  auto mapping = make_hideable(3, {1});
+  mapping.all()[IdType{1}] = 7;
+  CHECK(mapping.all()[IdType{1}] == 7);
+  CHECK_FALSE(mapping.isMapped(IdType{1}));
+}
+
+TEST_CASE("hidden keys stay occupied", "[idHideableSparseIndexedMapping]")
+{
+  auto mapping = make_hideable(3, {1});
+
+  CHECK(mapping.emplaceAt(IdType{1}, 5u) == nullptr);
+  CHECK(mapping.all()[IdType{1}] == 10);
+
+  mapping.erase(IdType{0});
+  CHECK(mapping.used() == 1);
+  CHECK(mapping.all().used() == 2);
+  CHECK(mapping.appendNew(5u).first == IdType{0});
+  CHECK(mapping.appendNew(6u).first == IdType{3});
+}
+
+TEST_CASE("erasing a hidden key frees it", "[idHideableSparseIndexedMapping]")
+{
+  auto mapping = make_hideable(3, {1});
+
+  mapping.erase(IdType{1});
+  CHECK_FALSE(mapping.all().isMapped(IdType{1}));
+  CHECK(mapping.used() == 2);
+  CHECK(mapping.all().used() == 2);
+
+  CHECK(mapping.emplaceAt(IdType{1}, 5u) != nullptr);
+  CHECK(mapping.isMapped(IdType{1}));
+  CHECK(mapping[IdType{1}] == 5);
+}
+
+TEST_CASE("erasing a visible key skips hidden keys", "[idHideableSparseIndexedMapping]")
+{
+  auto mapping = make_hideable(4, {1, 2});
+
+  auto it = mapping.erase(IdType{0});
+  CHECK(eastl::get<0>(*it) == IdType{3});
+}
+
+TEST_CASE("erasing a hidden key continues at the next visible key", "[idHideableSparseIndexedMapping]")
+{
+  auto mapping = make_hideable(4, {1, 2});
+
+  auto it = mapping.erase(IdType{1});
+  CHECK(eastl::get<0>(*it) == IdType{3});
+}
+
+TEST_CASE("neighbour queries skip hidden keys", "[idHideableSparseIndexedMapping]")
+{
+  const uint32_t itemCount = GENERATE(5, 40, 200);
+  IdHideableSparseIndexedMapping<IdType, uint32_t> mapping;
+  for (IdType i : IdRange<IdType>(itemCount))
+    mapping.appendNew(static_cast<uint32_t>(i));
+  mapping.hide(IdType{0});
+  for (uint32_t i = 2; i < itemCount - 2; ++i)
+    mapping.hide(static_cast<IdType>(i));
+  mapping.hide(static_cast<IdType>(itemCount - 1));
+
+  CHECK(mapping.frontKey() == IdType{1});
+  CHECK(mapping.backKey() == static_cast<IdType>(itemCount - 2));
+  CHECK(mapping.getNextUsed(IdType{1}) == static_cast<IdType>(itemCount - 2));
+  CHECK(mapping.getNextUsed(IdType{2}) == static_cast<IdType>(itemCount - 2));
+  CHECK(mapping.getNextUsed(static_cast<IdType>(itemCount - 2)) == static_cast<IdType>(itemCount));
+
+  CHECK(mapping.all().frontKey() == IdType{0});
+  CHECK(mapping.all().backKey() == static_cast<IdType>(itemCount - 1));
+  CHECK(mapping.all().getNextUsed(IdType{2}) == IdType{3});
+
+  dag::Vector<IdType> reversed;
+  for (auto k : dag::ReverseView{mapping.keys()})
+    reversed.push_back(k);
+  CHECK((reversed == dag::Vector<IdType>{static_cast<IdType>(itemCount - 2), IdType{1}}));
+}
+
+TEST_CASE("growing, copying and moving keep hidden keys", "[idHideableSparseIndexedMapping]")
+{
+  auto mapping = make_hideable(3, {1});
+  for (uint32_t i = 3; i < 300; ++i)
+    mapping.appendNew(i * 10);
+  mapping.hide(IdType{299});
+
+  const auto check = [](const IdHideableSparseIndexedMapping<IdType, uint32_t> &m) {
+    CHECK(m.used() == 298);
+    CHECK(m.all().used() == 300);
+    CHECK_FALSE(m.isMapped(IdType{1}));
+    CHECK_FALSE(m.isMapped(IdType{299}));
+    CHECK(m.all()[IdType{1}] == 10);
+    CHECK(m.all()[IdType{299}] == 2990);
+    CHECK(m.backKey() == IdType{298});
+  };
+  check(mapping);
+
+  auto copy = mapping;
+  check(copy);
+  CHECK((copy == mapping));
+  CHECK(copy.usedKeysSameAs(mapping));
+
+  copy.erase(IdType{1});
+  CHECK_FALSE((copy == mapping));
+  CHECK_FALSE(copy.usedKeysSameAs(mapping));
+
+  auto moved = eastl::move(mapping);
+  check(moved);
+
+  auto assigned = make_hideable(2, {0});
+  assigned = moved;
+  check(assigned);
+
+  auto moveAssigned = make_hideable(2, {0});
+  moveAssigned = eastl::move(moved);
+  check(moveAssigned);
+}
+
+TEST_CASE("key set comparison reads the words that one side lacks", "[idHideableSparseIndexedMapping]")
+{
+  const auto shortMapping = make_hideable(3, {1});
+
+  auto longMapping = make_hideable(300, {1});
+  for (uint32_t i = 3; i < 300; ++i)
+    longMapping.erase(static_cast<IdType>(i));
+  CHECK(longMapping.usedKeysSameAs(shortMapping));
+  CHECK(shortMapping.usedKeysSameAs(longMapping));
+  CHECK((longMapping == shortMapping));
+
+  auto hiddenTail = make_hideable(300, {299});
+  hiddenTail.erase(IdType{1});
+  for (uint32_t i = 3; i < 299; ++i)
+    hiddenTail.erase(static_cast<IdType>(i));
+  CHECK_FALSE(hiddenTail.usedKeysSameAs(shortMapping));
+  CHECK_FALSE(shortMapping.usedKeysSameAs(hiddenTail));
+  CHECK_FALSE((hiddenTail == shortMapping));
+}
+
+TEST_CASE("comparison reads the values", "[idHideableSparseIndexedMapping]")
+{
+  const auto mapping = make_hideable(3, {1});
+
+  auto changedHidden = mapping;
+  changedHidden.all()[IdType{1}] = 7;
+  CHECK(changedHidden.usedKeysSameAs(mapping));
+  CHECK_FALSE((changedHidden == mapping));
+
+  auto changedVisible = mapping;
+  changedVisible[IdType{2}] = 7;
+  CHECK(changedVisible.usedKeysSameAs(mapping));
+  CHECK_FALSE((changedVisible == mapping));
+
+  IdSparseIndexedMapping<IdType, uint32_t> plain;
+  plain.appendNew(0u);
+  plain.appendNew(10u);
+  auto copiedPlain = plain;
+  CHECK((copiedPlain == plain));
+  auto changedPlain = plain;
+  changedPlain[IdType{1}] = 7;
+  CHECK(changedPlain.usedKeysSameAs(plain));
+  CHECK_FALSE((changedPlain == plain));
+
+  IdSparseIndexedMapping<IdType, uint32_t> shiftedPlain;
+  shiftedPlain.appendNew(0u);
+  shiftedPlain.appendNew(5u);
+  shiftedPlain.appendNew(10u);
+  shiftedPlain.erase(IdType{1});
+  CHECK_FALSE((shiftedPlain == plain));
+}
+
+TEST_CASE("hiding is part of the key set", "[idHideableSparseIndexedMapping]")
+{
+  auto hidden = make_hideable(3, {1});
+  auto shown = make_hideable(3, {});
+  shown.erase(IdType{1});
+
+  CHECK_FALSE(hidden.usedKeysSameAs(shown));
+  CHECK_FALSE((hidden == shown));
+
+  auto hiddenFirst = make_hideable(4, {1});
+  hiddenFirst.erase(IdType{3});
+  auto hiddenLast = make_hideable(4, {3});
+  hiddenLast.erase(IdType{1});
+  CHECK_FALSE(hiddenFirst.usedKeysSameAs(hiddenLast));
+  CHECK_FALSE((hiddenFirst == hiddenLast));
+
+  const auto hiddenZero = make_hideable(3, {0});
+  const auto hiddenOne = make_hideable(3, {1});
+  CHECK_FALSE(hiddenZero.usedKeysSameAs(hiddenOne));
+  CHECK_FALSE((hiddenZero == hiddenOne));
+
+  IdSparseIndexedMapping<IdType, uint32_t> plain;
+  plain.appendNew(0u);
+  plain.appendNew(10u);
+  plain.appendNew(20u);
+  plain.erase(IdType{1});
+  CHECK(hidden.usedKeysSameAs(plain));
+}
+
+TEST_CASE("clear forgets hidden keys", "[idHideableSparseIndexedMapping]")
+{
+  auto mapping = make_hideable(3, {1});
+  mapping.clear();
+
+  CHECK(mapping.all().empty());
+  CHECK(mapping.totalKeys() == 0);
+  CHECK(mapping.emplaceAt(IdType{1}, 7u) != nullptr);
+  CHECK(mapping.isMapped(IdType{1}));
+  CHECK(mapping.appendNew(5u).first == IdType{0});
+}
+
+struct LiveCounted
+{
+  static inline int live = 0;
+  uint32_t value;
+  const LiveCounted *self = this;
+  LiveCounted(uint32_t v) : value(v) { ++live; }
+  LiveCounted(const LiveCounted &other) : value(other.value) { ++live; }
+  LiveCounted &operator=(const LiveCounted &other)
+  {
+    value = other.value;
+    return *this;
+  }
+  ~LiveCounted()
+  {
+    --live;
+    self = nullptr;
+  }
+  bool isConstructedHere() const { return self == this; }
+};
+
+TEST_CASE("hidden values live as long as the visible ones", "[idHideableSparseIndexedMapping]")
+{
+  {
+    IdHideableSparseIndexedMapping<IdType, LiveCounted> mapping;
+    for (uint32_t i = 0; i < 3; ++i)
+      mapping.appendNew(i);
+    mapping.hide(IdType{1});
+    CHECK(LiveCounted::live == 3);
+
+    for (uint32_t i = 3; i < 300; ++i)
+      mapping.appendNew(i);
+    CHECK(LiveCounted::live == 300);
+    CHECK(mapping.all()[IdType{1}].isConstructedHere());
+    CHECK(mapping.all()[IdType{1}].value == 1);
+
+    {
+      auto copy = mapping;
+      CHECK(LiveCounted::live == 600);
+      CHECK(copy.all()[IdType{1}].isConstructedHere());
+      CHECK(copy.all()[IdType{1}].value == 1);
+    }
+    CHECK(LiveCounted::live == 300);
+
+    mapping.clear();
+    CHECK(LiveCounted::live == 0);
+
+    for (uint32_t i = 0; i < 3; ++i)
+      mapping.appendNew(i);
+    mapping.hide(IdType{1});
+  }
+  CHECK(LiveCounted::live == 0);
+}
+
 TEST_CASE("IdSparseIndexedMapping keys() benchmark", "[idSparseIndexedMapping][!benchmark]")
 {
   constexpr uint32_t BIT_COUNT = 10'000;

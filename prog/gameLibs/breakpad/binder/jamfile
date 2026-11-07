@@ -31,13 +31,14 @@ UseProgLibs =
 Sources =
   callbacks.cpp
   binder.cpp
+  ../product.cpp
 ;
 
 if $(PlatformSpec) in vc9 vc10 vc11 vc12 vc14 {
   CPPopt += -wd4548 ; # expression before comma has no effect; expected expression with side-effect
 }
 
-if $(Platform) in windows && ! $(PlatformArch) in arm64 {
+if $(Platform) in windows && ! $(PlatformArch) in arm64 arm64ec {
   UseProgLibs += 3rdPartyLibs/minhook ;
 }
 

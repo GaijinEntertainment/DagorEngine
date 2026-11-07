@@ -4,13 +4,14 @@
 //
 #pragma once
 
+static constexpr int MAX_DRIVELINE_DIFFS = 4;
+
 enum DrivelineElements
 {
   Engine = 0,
   Gearbox,
-  Diff0, // Usually rear
-  Diff1, // Usually front
-  Num
+  Diff0,
+  Num = Diff0 + MAX_DRIVELINE_DIFFS
 };
 
 class DrivelineElementState

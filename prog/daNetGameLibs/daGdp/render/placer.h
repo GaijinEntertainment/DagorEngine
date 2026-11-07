@@ -21,6 +21,8 @@ struct PlacerObjectGroup
 
 float get_frustum_culling_bias();
 
+void request_place_stage_buffers(dafg::Registry registry, const ViewInfo &view_info, bool is_optimistic);
+
 struct CommonPlacerBufferInit
 {
   // Draw ranges are concatenated across variants, with `drawRangeStartIndex` marking the start of entries for the variant.
@@ -87,6 +89,21 @@ bool update_frame_mem(dag::ConstSpan<T> items, Sbuffer *buffer, uint32_t max_siz
   }
 
   return true;
+}
+
+template <typename ViewportGpuData>
+void fill_viewport_gpu_data(ViewportGpuData &result, const Viewport &viewport, float max_draw_distance)
+{
+  const Point3 worldPos(viewport.worldPos);
+  result.worldPos = worldPos;
+  result.maxDistance = min(viewport.maxDrawDistance, max_draw_distance) * get_global_range_scale();
+
+  v_stu(&result.frustumPlanes[0].x, viewport.frustum.plane03X);
+  v_stu(&result.frustumPlanes[1].x, viewport.frustum.plane03Y);
+  v_stu(&result.frustumPlanes[2].x, viewport.frustum.plane03Z);
+  v_stu(&result.frustumPlanes[3].x, viewport.frustum.plane03W);
+  v_stu(&result.frustumPlanes[4].x, viewport.frustum.camPlanes[Frustum::FARPLANE]);
+  v_stu(&result.frustumPlanes[5].x, viewport.frustum.camPlanes[Frustum::NEARPLANE]);
 }
 
 void debug_draw_volume(const TMatrix &transform, float scale, vec4f extent2, int volume_type);

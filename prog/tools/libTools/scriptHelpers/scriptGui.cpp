@@ -22,6 +22,8 @@ TunedElement *selected_elem = NULL;
 ObjectEditor *obj_editor = NULL;
 
 ParamChangeCB *param_change_cb = NULL;
+
+ParamWarnings param_warnings;
 }; // namespace ScriptHelpers
 
 
@@ -32,6 +34,7 @@ void ScriptHelpers::set_tuned_element(TunedElement *elem)
 {
   del_it(root_element);
   root_element = elem;
+  param_warnings.clear();
 }
 
 

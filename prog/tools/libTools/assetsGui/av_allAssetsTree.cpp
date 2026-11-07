@@ -183,29 +183,41 @@ void AllAssetsTree::selectNextItem(bool forward)
   }
 }
 
+PropPanel::TLeafHandle AllAssetsTree::findItemByData(const void *item_data) const
+{
+  PropPanel::TLeafHandle root = getRoot();
+  for (PropPanel::TLeafHandle item = root; item;)
+  {
+    // getNextNode() skips the filtered out items, but the walk starts at the root also when it is filtered out.
+    if (getItemData(item) == item_data && getItemNode(item)->getFlagValue(PropPanel::TreeNode::FILTERED_IN))
+      return item;
+
+    item = getNextNode(item, true);
+    if (item == root)
+      break;
+  }
+
+  return nullptr;
+}
+
 bool AllAssetsTree::selectAsset(const DagorAsset *asset)
 {
-  PropPanel::TLeafHandle sel = getRoot();
-  if (!sel || !asset)
+  PropPanel::TLeafHandle item = asset ? findItemByData(asset) : nullptr;
+  if (!item)
     return false;
 
-  PropPanel::TLeafHandle next = sel;
-  PropPanel::TLeafHandle first = 0;
-  for (;;)
-  {
-    next = getNextNode(next, true);
-    if (!next || (next == first))
-      return false;
-    if (!first)
-      first = next;
+  setSelectedItem(item);
+  return true;
+}
 
-    void *itemData = getItemData(next);
-    if (asset == itemData && !get_dagor_asset_folder(itemData))
-    {
-      setSelectedItem(next);
-      return true;
-    }
-  }
+bool AllAssetsTree::selectAssetFolder(const DagorAssetFolder &folder)
+{
+  PropPanel::TLeafHandle item = findItemByData((void *)(((uintptr_t)&folder) | IS_DAGOR_ASSET_FOLDER));
+  if (!item)
+    return false;
+
+  setSelectedItem(item);
+  return true;
 }
 
 DagorAsset *AllAssetsTree::getSelectedAsset() const
@@ -222,7 +234,8 @@ DagorAssetFolder *AllAssetsTree::getSelectedAssetFolder() const
   return get_dagor_asset_folder(itemData);
 }
 
-void AllAssetsTree::getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const
+DagorAssetFolder *AllAssetsTree::getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets,
+  dag::Vector<DagorAssetFolder *> &sub_folders) const
 {
   PropPanel::TLeafHandle selectedFolder = getSelectedItem();
   if (!isFolder(selectedFolder))
@@ -235,10 +248,14 @@ void AllAssetsTree::getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset
     if (getItemNode(child)->getFlagValue(PropPanel::TreeNode::FILTERED_IN))
     {
       void *childItemData = getItemData(child);
-      if (!get_dagor_asset_folder(childItemData))
+      if (DagorAssetFolder *childFolder = get_dagor_asset_folder(childItemData))
+        sub_folders.push_back(childFolder);
+      else
         assets.push_back(reinterpret_cast<DagorAsset *>(childItemData));
     }
   }
+
+  return get_dagor_asset_folder(getItemData(selectedFolder));
 }
 
 void AllAssetsTree::setShownTypes(dag::ConstSpan<bool> new_shown_types)

@@ -41,13 +41,7 @@ void os_debug_break()
 #endif
 }
 
-static int log_callback(int lev_tag, const char * /*fmt*/, const void * /*arg*/, int /*anum*/, const char * /*ctx_file*/,
-  int /*ctx_line*/)
-{
-  if (lev_tag == LOGLEVEL_ERR || lev_tag == LOGLEVEL_FATAL || lev_tag == LOGLEVEL_WARN)
-    return 1;
-  return 0;
-}
+static void skip_log_below_warnings(void *, LogMessage &msg) { msg.flags |= LOGMSG_SKIP_FILE; }
 
 int DagorWinMain(bool debugmode)
 {
@@ -57,7 +51,8 @@ int DagorWinMain(bool debugmode)
   set_debug_console_handle((intptr_t)::GetStdHandle(STD_OUTPUT_HANDLE));
 #endif
   dgs_report_fatal_error = stderr_report_fatal_error;
-  debug_set_log_callback(&log_callback);
+  debug_add_log_handler(&skip_log_below_warnings, nullptr,
+    {.levelMask = LOGMASK_DEBUG | LOGMASK_REMARK | LOGMASK_ANY_TAG, .order = LOGORDER_FILTER});
 
   char exe_dir[DAGOR_MAX_PATH] = {0};
   dd_get_fname_location(exe_dir, dgs_argv[0]);

@@ -62,7 +62,8 @@ struct WrapperContactResultCB
     PhysWorld *physWorld = bodyA ? bodyA->getPhysWorld() : (bodyB ? bodyB->getPhysWorld() : nullptr);
     if (physWorld && physdbg::isInDebugMode(physWorld))
     {
-      physdbg::renderOneBody(physWorld, bodyA);
+      if (bodyA) // a shape probe has no body A
+        physdbg::renderOneBody(physWorld, bodyA);
       physdbg::renderOneBody(physWorld, bodyB);
     }
 

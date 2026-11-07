@@ -5,6 +5,7 @@
 #include "hmlHoleObject.h"
 
 #include <de3_interface.h>
+#include <de3_objEntity.h>
 #include <de3_hmapService.h>
 
 #include <propPanel/commonWindow/dialogWindow.h>
@@ -361,32 +362,29 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
         lastExpLoftRect[1][1] = lastExpLoftRect[1][0] + panel.getPoint2(25);
 
         G_STATIC_ASSERT(EditLayerProps::MAX_LAYERS <= LayerHiddenMask::BIT_COUNT);
-        const LayerHiddenMask prev_layers_hide_mask = DAEDITOR3.getEntityLayerHiddenMask();
+        LayerHiddenMask layerHideMask = DAEDITOR3.getEntityLayerHiddenMask();
         bool honor_layer_props = panel.getBool(61);
         if (!honor_layer_props)
           DAEDITOR3.conNote("%s: ignoring layers' \"to mask\" property", "Loft mask export");
         else
         {
-          LayerHiddenMask layers_hide_mask;
+          layerHideMask = LayerHiddenMask(IObjEntity::LAYER_INDEX_ALWAYS_HIDDEN, true);
           for (unsigned i = 0; i < EditLayerProps::layerProps.size(); i++)
           {
             const EditLayerProps &layerProp = EditLayerProps::layerProps[i];
             if (!layerProp.renderToMask)
-              layers_hide_mask.setHidden(i);
+              layerHideMask.setHidden(i);
             if (layerProp.isLayerOrTypeHidden() && layerProp.renderToMask)
               DAEDITOR3.conNote("%s: unhiding layer '%s' due to \"to mask\" is ON", "Loft mask export", EditLayerProps::layerName(i));
             else if (!layerProp.isLayerOrTypeHidden() && !layerProp.renderToMask)
               DAEDITOR3.conNote("%s: hiding layer '%s' due to \"to mask\" is OFF", "Loft mask export", EditLayerProps::layerName(i));
           }
-          DAEDITOR3.setEntityLayerHiddenMask(layers_hide_mask);
         }
 
         objEd.showHiddenObjectsForBuild();
 
         exportLoftMasks(lastExpLoftFolder, lastExpLoftMain ? lastExpLoftMainSz : 0, lastExpLoftDet ? lastExpLoftDetSz : 0,
-          panel.getFloat(31), panel.getFloat(31) + panel.getFloat(32), panel.getBool(51) ? panel.getInt(52) : -1);
-
-        DAEDITOR3.setEntityLayerHiddenMask(prev_layers_hide_mask);
+          panel.getFloat(31), panel.getFloat(31) + panel.getFloat(32), panel.getBool(51) ? panel.getInt(52) : -1, layerHideMask);
 
         objEd.restoreHiddenObjectsAfterBuild();
       }

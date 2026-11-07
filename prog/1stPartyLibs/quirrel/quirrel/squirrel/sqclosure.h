@@ -57,6 +57,8 @@ public:
     }
     SQObjectType GetType() {return OT_CLOSURE;}
 #endif
+    // The storage of an outer value: in a shared SQOuter, or in the slot itself for a copy
+    SQObjectPtr &OuterValue(SQInteger i);
     SQWeakRef *_env;
     SQClass *_base;
     SQFunctionProto *_function;
@@ -97,6 +99,12 @@ public:
     SQObjectPtr  _value;   /* value of outer after stack frame is closed */
     SQOuter     *_next;    /* pointer to next outer when frame is open   */
 };
+
+inline SQObjectPtr &SQClosure::OuterValue(SQInteger i)
+{
+    SQObjectPtr &o = _outervalues[i];
+    return sq_type(o) == OT_OUTER ? *_outer(o)->_valptr : o;
+}
 
 //////////////////////////////////////////////
 struct SQGenerator : public CHAINABLE_OBJ
@@ -167,9 +175,6 @@ public:
         nc->_outervalues = (SQObjectPtr *)(nc + 1);
         nc->_noutervalues = nouters;
         nc->_result_type_mask = ~0u;
-        nc->_purefunction = false;
-        nc->_nodiscard = false;
-        nc->_isfastcall = false;
         _CONSTRUCT_VECTOR(SQObjectPtr,nc->_noutervalues,nc->_outervalues);
         return nc;
     }

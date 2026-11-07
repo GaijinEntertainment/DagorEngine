@@ -5,6 +5,7 @@
 #include <id/idRange.h>
 #include <debug/backendDebug.h>
 #include <debug/gpuRangeCapture.h>
+#include <debug/shaderVarDump.h>
 #include <frontend/multiplexingInternal.h>
 #include <backend/blobBindingHelpers.h>
 
@@ -249,7 +250,7 @@ void activate_untracked_texture(BaseTexture *tex, const d3d::TextureBarrier &fir
   }
 
   constexpr d3d::TextureLayout clearLayout = d3d::TextureLayout::ClearDest;
-  constexpr d3d::AccessFlags clearAccess{d3d::AccessFlag::ClearWrite};
+  const d3d::AccessFlags clearAccess{clearAsUav ? d3d::AccessFlag::ClearWrite : d3d::AccessFlag::ClearTargetWrite};
   constexpr d3d::PipelineStageFlags clearStage{d3d::PipelineStageFlag::Clear};
 
   const auto firstStage = first_use.pipelineSync.dst;
@@ -303,6 +304,7 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
   auto frameGraphMarker = graphMarksParser.createGraphMarker();
 #endif
   gpu_capture_range_prepare(graph, multiplexing_extents);
+  shadervar_dump::begin_frame(graph);
   for (auto i : graph.nodes.keys())
   {
     const intermediate::Node &irNode = graph.nodes[i];
@@ -312,6 +314,7 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
       applyStateBeforeEvents(state_deltas[i], curr_frame, prev_frame);
       processEvents(events[i], curr_frame);
       applyState(state_deltas[i], curr_frame, prev_frame);
+      shadervar_dump::after_node(i);
       continue;
     }
 
@@ -408,6 +411,7 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
     // complete whatever is outstanding and hope for the best
     d3d::driver_command(Drv3dCommand::COMPLETE_SYNC);
     gpu_capture_range_after_node(i);
+    shadervar_dump::after_node(i);
   }
 
   // End-of-frame events (deactivations, trailing barriers). The state itself has
@@ -416,6 +420,7 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
   if (!graph.nodes.empty())
     processEvents(events.back(), curr_frame);
   gpu_capture_range_after_frame();
+  shadervar_dump::end_frame(graph);
 }
 
 void NodeExecutor::gatherExternalResources(multiplexing::Extents extents)

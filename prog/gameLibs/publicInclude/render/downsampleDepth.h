@@ -7,8 +7,6 @@
 #include <3d/dag_resPtr.h>
 #include <generic/dag_span.h>
 
-class TextureIDPair;
-
 namespace downsample_depth
 {
 enum

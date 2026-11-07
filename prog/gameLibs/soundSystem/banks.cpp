@@ -53,6 +53,7 @@ struct Bank
 
   FMOD::Studio::Bank *fmodBank = nullptr;
   const eastl::string path;
+  eastl::string taggedPath;
   int64_t fileSize = -1;
   int64_t fileMTime = -1;
   uint64_t fileHeadTailHash = 0;
@@ -365,6 +366,8 @@ static inline void load_bank(Bank &bank, const PathTags &path_tags)
     return;
   }
 
+  bank.taggedPath = taggedPath.c_str();
+
   FMOD_STUDIO_LOAD_BANK_FLAGS flags = is_async(bank.id) ? FMOD_STUDIO_LOAD_BANK_NONBLOCKING : FMOD_STUDIO_LOAD_BANK_NORMAL;
   const int32_t start = get_time_msec();
 
@@ -592,7 +595,7 @@ static void update_impl(loaded_presets_t &lp)
 
     if (state == FMOD_STUDIO_LOADING_STATE_LOADED)
     {
-      debug("[SNDSYS] loaded bank '%s', isMod=%s, %s", bank.path.c_str(), bank.isMod ? "true" : "false",
+      debug("[SNDSYS] loaded bank '%s', isMod=%s, %s", bank.taggedPath.c_str(), bank.isMod ? "true" : "false",
         make_file_info_str(bank).c_str());
       loaded_banks.set(bank.id);
       if (is_preload(bank.id))

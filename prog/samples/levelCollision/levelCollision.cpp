@@ -145,11 +145,13 @@ bool LevelCollision::load(IGenLoad &cb)
     logerr("level collision: <%s> did not load", cb.getTargetName());
     clear();
   }
+  const int trees = int(eastl::count_if(resources.begin(), resources.end(),
+    [](const Ptr<CollisionResource> &r) { return r && (r->getCollisionFlags() & COLLISION_RES_FLAG_RI_TREE); }));
   const int loadUsec = get_time_usec(reft);
   finalize();
   if (ok)
-    debug("level collision: <%s> %s, %u resources, %u instances, loaded in %d ms, finalized in %d ms", cb.getTargetName(),
-      collres ? "collres" : "ri_collisions", resourceCount(), instanceCount(), loadUsec / 1000,
+    debug("level collision: <%s> %s, %u resources (%d marked as trees), %u instances, loaded in %d ms, finalized in %d ms",
+      cb.getTargetName(), collres ? "collres" : "ri_collisions", resourceCount(), trees, instanceCount(), loadUsec / 1000,
       (get_time_usec(reft) - loadUsec) / 1000);
   return ok;
 }

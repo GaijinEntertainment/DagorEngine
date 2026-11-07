@@ -695,7 +695,7 @@ ECS_TRACK(floatingRiGroup__resName, floatingRiGroup__inertiaMult, floatingRiGrou
 ECS_TAG(gameClient)
 static __forceinline void init_floating_rendinst_res_group_es_event_handler(const ecs::Event &, ecs::EntityManager &manager,
   ecs::EntityId eid, const ecs::string &floatingRiGroup__resName, const Point3 &floatingRiGroup__inertiaMult,
-  int floatingRiGroup__volumesCount, ecs::string floatingRiGroup__volumePresetName, float floatingRiGroup__density,
+  int floatingRiGroup__volumesCount, const ecs::string &floatingRiGroup__volumePresetName, float floatingRiGroup__density,
   float floatingRiGroup__densityRandRange, bool floatingRiGroup__useBoxInertia,
   rendinstfloating::PhysFloatingModel &floatingRiGroup__riPhysFloatingModel)
 {

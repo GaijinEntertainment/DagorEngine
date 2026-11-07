@@ -10,6 +10,27 @@ float4 world_sdf_cull_update_rb;
 int world_sdf_update_mip;
 int4 world_sdf_update_mip_coord_lt;
 
+float4 world_sdf_cull_grid_lt_0;
+float4 world_sdf_cull_grid_lt_1;
+float4 world_sdf_cull_grid_lt_2;
+float4 world_sdf_cull_grid_lt_3;
+float4 world_sdf_cull_grid_lt_4;
+float4 world_sdf_cull_grid_lt_5;
+float4 world_sdf_cull_grid_rb_0;
+float4 world_sdf_cull_grid_rb_1;
+float4 world_sdf_cull_grid_rb_2;
+float4 world_sdf_cull_grid_rb_3;
+float4 world_sdf_cull_grid_rb_4;
+float4 world_sdf_cull_grid_rb_5;
+int world_sdf_cull_grid_boxes_count;
+macro WORLD_SDF_UPDATE_BOXES(code)
+  (code) {
+    world_sdf_cull_grid_boxes_count@i1 = world_sdf_cull_grid_boxes_count;
+    world_sdf_cull_grid_lt@f4[] = {world_sdf_cull_grid_lt_0, world_sdf_cull_grid_lt_1, world_sdf_cull_grid_lt_2, world_sdf_cull_grid_lt_3, world_sdf_cull_grid_lt_4, world_sdf_cull_grid_lt_5};
+    world_sdf_cull_grid_rb@f4[] = {world_sdf_cull_grid_rb_0, world_sdf_cull_grid_rb_1, world_sdf_cull_grid_rb_2, world_sdf_cull_grid_rb_3, world_sdf_cull_grid_rb_4, world_sdf_cull_grid_rb_5};
+  }
+endmacro
+
 macro WSDF_COORD_UPDATE(code)
   (code) {
     world_sdf_coord_lt_buf@cbuf = world_sdf_coord_lt_buf hlsl {

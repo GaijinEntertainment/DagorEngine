@@ -79,6 +79,16 @@ static bool reserve_special_cbuffer_at(HlslSlotSemantic cbuffer_sem, int reg, Pr
   return vrOk && pcrOk;
 }
 
+static bool is_in_supp_chain(const ShaderStateBlock *root, const ShaderStateBlock *b)
+{
+  if (root == b)
+    return true;
+  for (const auto &sblk : root->shConst.suppBlk)
+    if (is_in_supp_chain(sblk.get(), b))
+      return true;
+  return false;
+}
+
 static bool process_supports(supports_stat &s, PreshaderCompilationContext &ctx)
 {
   NamedConstBlock &outNcTable = ctx.output->code.namedConstTable;
@@ -135,6 +145,20 @@ static bool process_supports(supports_stat &s, PreshaderCompilationContext &ctx)
       report_error(parser, s.name[i], "block <%s>, layer %d, cannot be supported here", s.name[i]->text, int(b->layerLevel));
       return false;
     }
+
+    // Blocks that are not related by transitive supports may claim the same binding slots -- and the backend compiler may or may not
+    // be ok with it, but from the app code it will most certainly be a bug (reading aliased values in the shader). So, we just never
+    // allow supporting more than one supports chain.
+    const ShaderStateBlock *emptyBlk = vctx.tgtCtx().blocks().emptyBlock();
+    if (b != emptyBlk)
+      for (const auto &prev : outNcTable.suppBlk)
+        if (prev.get() != emptyBlk && !is_in_supp_chain(b, prev.get()) && !is_in_supp_chain(prev.get(), b))
+        {
+          report_error(parser, s.name[i],
+            "block <%s> is not in one support chain with block <%s>: a shader can support one chain only", s.name[i]->text,
+            prev->name.c_str());
+          return false;
+        }
 
     if (b->shConst.multidrawCbuf)
       outNcTable.multidrawCbuf = true;

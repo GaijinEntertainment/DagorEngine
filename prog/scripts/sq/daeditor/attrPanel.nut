@@ -118,7 +118,7 @@ function getModComps(): table|null {
   if (comps == null) // non-scene entity
     return null
   let compsObj = {}
-  comps.map(@(v) compsObj[v] <- true)
+  comps.each(@(v) compsObj[v] <- true)
   return compsObj
 }
 let modifiedComponents = Watched(getModComps())
@@ -1112,7 +1112,7 @@ flattenComp = function(acc, eid, rawComponentName, rawObject, isLocked, caption,
     let tags = isObjFirst ? mkFlagTags(eid, rawComponentName).append(ecsObjectSign) : [ecsObjectSign]
     containerRows(acc, isConst, cap, objData.len(), tags, eid, rawComponentName, cpath, depth,
       function(child_depth) {
-        let objKeys = objData.keys().filter(@(v) !isComponentHidden(v)).sort(@(a, b) a <=> b)
+        let objKeys = objData.keys().filter(@(v) !isComponentHidden(v)).sort()
         foreach (ok in objKeys) {
           let nkeys = (clone cpath).append(ok)
           if (objData[ok]?.getAll() != null || objData[ok] instanceof Table || objData[ok] instanceof Array)
@@ -1178,7 +1178,7 @@ let filteredCurComponents = Computed(function(){
     if (isKeyInFilter(compName, filterString.get()))
       res.append({compName, compObj, eid = selectedEntity.get()})
     }
-  res.sort(@(a, b) a.compName <=> b.compName)
+  res.sortby(@(a) a.compName)
   return res
 })
 

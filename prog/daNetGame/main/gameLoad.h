@@ -21,6 +21,7 @@ struct GamePackage
     eastl::string vromFile;
     eastl::string stripPrefixes;
     bool mountAsPack = false;
+    bool keepFileOpen = false;
   };
 
   eastl::vector<eastl::string> basePaths;

@@ -51,6 +51,7 @@ macro INIT_MASK_LAYERED(is_normal_stage)
 endmacro
 
 macro MASK_LAYERED_PS(has_sampler, isDynamic)
+  INIT_AND_USE_DBG_GBUFF_TEX()
   USE_PIXEL_TANGENT_SPACE()
   if (compatibility_mode == compatibility_mode_off)
   {
@@ -87,8 +88,8 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
   #if VOXELIZE_ALBEDO_PASS
     void mask_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
   #else
-    #ifdef FORCE_EARLY_DEPTH_STENCIL
-      FORCE_EARLY_DEPTH_STENCIL
+    #ifdef USE_EARLY_DEPTH_STENCIL
+      USE_EARLY_DEPTH_STENCIL
     #endif
     GBUFFER_OUTPUT mask_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS
         #if RI_HMAP_BLEND_ON
@@ -199,6 +200,7 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
       init_ao(gbuffer, ao);
 
       init_albedo(gbuffer, diffuseColor.rgb);
+      init_worldTexelDensity(gbuffer, get_basetex().tex, input.uv12.xy, input.pointToEye.xyz);
       init_dynamic(gbuffer,IS_DYNAMIC);
       init_order(gbuffer, GBUFF_ORDER);
 

@@ -56,13 +56,18 @@ inline bool is_teleporting(const CameraParams &cur, const CameraParams &prev)
   return (cur.cameraWorldPos - prev.cameraWorldPos).length() > teleportDistanceThreshold;
 }
 
+inline TMatrix4_vec4 get_prev_proj_tm_with_cur_jitter(const TMatrix4_vec4 &prev_no_jitter_proj_tm,
+  const TMatrix4_vec4 &cur_jitter_proj_tm, const TMatrix4_vec4 &cur_no_jitter_proj_tm)
+{
+  TMatrix4_vec4 prevProjTm = prev_no_jitter_proj_tm;
+  prevProjTm(2, 0) += cur_jitter_proj_tm(2, 0) - cur_no_jitter_proj_tm(2, 0);
+  prevProjTm(2, 1) += cur_jitter_proj_tm(2, 1) - cur_no_jitter_proj_tm(2, 1);
+  return prevProjTm;
+}
+
 inline TMatrix4_vec4 get_prev_proj_tm_with_cur_jitter(const CameraParams &prev, const CameraParams &cur)
 {
-  TMatrix4_vec4 prevProjTm = prev.noJitterProjTm;
-  const auto curJitter = cur.jitterProjTm - cur.noJitterProjTm;
-  prevProjTm(2, 0) += curJitter(2, 0);
-  prevProjTm(2, 1) += curJitter(2, 1);
-  return prevProjTm;
+  return get_prev_proj_tm_with_cur_jitter(prev.noJitterProjTm, cur.jitterProjTm, cur.noJitterProjTm);
 }
 
 // This is supposed to be used for culling, and possibly other usages that

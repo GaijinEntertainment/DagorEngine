@@ -14,6 +14,7 @@
 #include "internal/visualLabels_internal.h"
 #include "internal/pathHash.h"
 #include "internal/occlusion_internal.h"
+#include "internal/occlusionGPU_internal.h"
 #include "internal/events_internal.h"
 #include "internal/debug_internal.h"
 
@@ -60,8 +61,19 @@ bool has_occlusion_impl(const FMOD::Studio::EventDescription &event_description)
   TIME_PROFILE_DEV(has_occlusion_impl);
   FMOD_STUDIO_PARAMETER_DESCRIPTION paramDesc;
   const char *occlusion_param_name = "occlusion"; // occlusion::get_occlusion_param_name();
-  return /*occlusion::is_inited() && */ FMOD_OK == event_description.getParameterDescriptionByName(occlusion_param_name, &paramDesc) &&
+  const bool hasScalar = FMOD_OK == event_description.getParameterDescriptionByName(occlusion_param_name, &paramDesc);
+  // the per-band parameters stand in for "occlusion", so an event that has only them is tracked too
+  const int bandParams = occlusion_gpu::count_band_params(event_description);
+  return /*occlusion::is_inited() && */ (hasScalar || bandParams == occlusion_gpu::OCCLUSION_BANDS) &&
          is_event_3d_impl(event_description);
+}
+
+static void report_partial_band_params(const FMOD::Studio::EventDescription &event_description)
+{
+  const int bandParams = occlusion_gpu::count_band_params(event_description);
+  if (bandParams > 0 && bandParams < occlusion_gpu::OCCLUSION_BANDS)
+    logerr("[SNDSYS] event '%s' has %d of %d per-band occlusion params, they are ignored", get_debug_name(event_description).c_str(),
+      bandParams, occlusion_gpu::OCCLUSION_BANDS);
 }
 
 static bool is_delayable_impl(const FMOD::Studio::EventDescription &event_description, bool has_occlusion)
@@ -148,6 +160,7 @@ void make_and_add_event_attributes(const char *path, size_t path_len, const FMOD
 {
   TIME_PROFILE_DEV(make_and_cache_event_attributes);
   event_attributes = make_event_attributes(event_description);
+  report_partial_band_params(event_description);
   SNDSYS_ATTRIBUTES_BLOCK;
   g_path_attributes.emplace(hash_fun(path, path_len), event_attributes);
 #if DAGOR_DBGLEVEL > 0
@@ -164,6 +177,7 @@ void make_and_add_event_attributes(const FMODGUID &event_id, const FMOD::Studio:
 {
   TIME_PROFILE_DEV(make_and_cache_event_attributes);
   event_attributes = make_event_attributes(event_description);
+  report_partial_band_params(event_description);
   SNDSYS_ATTRIBUTES_BLOCK;
   g_guid_attributes.emplace(hash_fun(event_id), event_attributes);
 }

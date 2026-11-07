@@ -9,7 +9,6 @@ require DagorImgui
 require DagorMath
 require imgui/imgui_boost
 require daslib/static_let
-require DaeditorPlotDebug
 require ecs.ecs_struct_walker_common
 require %gameLibs.imgui_daeditor.imgui.imgui_common
 require %gameLibs.imgui_daeditor.imgui.ecs_plot_common
@@ -20,13 +19,30 @@ require gameLibs.imgui_daeditor.imgui.ecs_plot_macro
 def private get_plot_color(idx : int) : uint
   static_let <|
     let colors = fixed_array(
-      IM_COL32(60,  60,  220, 255), IM_COL32(60,  220, 60,  255),
-      IM_COL32(220, 100, 60,  255), IM_COL32(60,  220, 220, 255),
-      IM_COL32(220, 220, 60,  255), IM_COL32(220, 60,  220, 255),
-      IM_COL32(30,  30,  110, 255), IM_COL32(30,  110, 30,  255),
-      IM_COL32(110, 50,  30,  255), IM_COL32(30,  110, 110, 255),
-      IM_COL32(110, 110, 30,  255), IM_COL32(110, 30,  110, 255))
+      IM_COL32(220, 60,  60,  255), IM_COL32(60,  220, 60,  255),
+      IM_COL32(60,  100, 220, 255), IM_COL32(220, 220, 60,  255),
+      IM_COL32(60,  220, 220, 255), IM_COL32(220, 60,  220, 255),
+      IM_COL32(110, 30,  30,  255), IM_COL32(30,  110, 30,  255),
+      IM_COL32(30,  50,  110, 255), IM_COL32(110, 110, 30,  255),
+      IM_COL32(30,  110, 110, 255), IM_COL32(110, 30,  110, 255))
   return colors[idx % length(colors)]
+
+
+// Signals live in the daeditor_plot_debug singleton of the optional daeditorPlotDebug lib; read here, not via its das module.
+def private get_debug_signal(slot : int) : float
+  var value = 0.0
+  find_query() <| $ [es] (daeditor_plot_debug__signals : FloatList)
+    if slot >= 0 && slot < length(daeditor_plot_debug__signals)
+      value = daeditor_plot_debug__signals[slot]
+    return true
+  return value
+
+
+def private set_debug_signal(value : float; slot : int)
+  find_query() <| $ [es] (var daeditor_plot_debug__signals : FloatList)
+    if slot >= 0 && slot < length(daeditor_plot_debug__signals)
+      daeditor_plot_debug__signals[slot] = value
+    return true
 
 
 def plot_ensure(var g_plot_windows : array<PlotWindow>&; win_idx : int)
@@ -370,7 +386,7 @@ def plot_sample_entries(var w : PlotWindow&)
       e.rows = 0
       e.type_name = "float"
       e.comp_idx = 0
-      e.committed_val = daeditor_plot_debug_get_signal(int(e.slot))
+      e.committed_val = get_debug_signal(int(e.slot))
       e.found = true
     else
       let entry_eid = EntityId(e.eid)
@@ -762,7 +778,7 @@ def plot_entry_rows(var w : PlotWindow&; var to_delete : int&)
     let field_invalid = eid_invalid_as_entity || slot_invalid
     imgui::PushItemWidth(90.f)
     if field_invalid
-      imgui::PushStyleColor(ImGuiCol.FrameBg, IM_COL32(50, 50, 160, 160))
+      imgui::PushStyleColor(ImGuiCol.FrameBg, IM_COL32(160, 50, 50, 160))
     if e.slot_mode
       if imgui::InputScalar("##slot", ImGuiDataType.U32, unsafe(addr(e.slot)), null, null, "%u", ImGuiInputTextFlags.None)
         w.dirty = true
@@ -788,7 +804,7 @@ def plot_entry_rows(var w : PlotWindow&; var to_delete : int&)
       imgui::SameLine()
       imgui::PushItemWidth(200.f)
       if name_not_found
-        imgui::PushStyleColor(ImGuiCol.FrameBg, IM_COL32(50, 50, 160, 160))
+        imgui::PushStyleColor(ImGuiCol.FrameBg, IM_COL32(160, 50, 50, 160))
       let buf <- ImGuiInputTextBuffer(e.name, 256)
       if InputText("##name", buf, ImGuiInputTextFlags.None)
         e.name = clone_string(to_string(buf))
@@ -857,7 +873,7 @@ def plot_entry_rows(var w : PlotWindow&; var to_delete : int&)
       let new_val = e.edit_val
       e.committed_val = new_val
       if e.slot_mode
-        daeditor_plot_debug_signal(new_val, int(e.slot))
+        set_debug_signal(new_val, int(e.slot))
       else
         if empty(e.name)
           w.dirty = true

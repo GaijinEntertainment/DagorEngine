@@ -60,6 +60,7 @@ private:
   DataBlock impostorDataBlk;
   const DataBlock *assetsBlk = nullptr;
   eastl::vector<TexturePackingProfilingInfo> qualitySummary;
+  bool isStandaloneTool;
 
   struct CharacterMicrodetails
   {

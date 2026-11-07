@@ -10,6 +10,7 @@
 // into smoke_trace_current_time.xzw, BVH uses separate scalars).
 
 float tracer_head_radius_coeff = 0.0125;
+float4 smoke_tracer_turbulence_params = (0.25, 2, 0.1, 1);
 
 macro SMOKE_TRACER_HEAD_FUNC(stage)
   hlsl(stage) {

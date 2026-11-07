@@ -58,7 +58,6 @@
 #include <de3_waterSrv.h>
 #include <de3_landmesh.h>
 #include <EditorCore/ec_interface_ex.h>
-#include <EditorCore/ec_testSystem.h>
 
 #include <scene/dag_visibility.h>
 #include <shaders/dag_renderScene.h>
@@ -341,6 +340,8 @@ public:
     del_d3dres(sceneRt);
     combinedShadowsRenderer.clear();
     deferredTarget.reset();
+    closeIsolatedTargets();
+    unitExposureBuffer.close();
     light_probe::destroy(enviProbe);
     ShaderGlobal::set_texture(get_shader_variable_id("envi_probe_specular"), BAD_TEXTUREID);
     enviProbe = NULL;
@@ -569,7 +570,7 @@ public:
 
     d3d::set_render_target();
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 0, 0);
-    renderUI(clientRectWidth, clientRectHeight);
+    editor_core_update_and_render_imgui(clientRectWidth, clientRectHeight);
 
     if (VRDevice::getInstance())
     {
@@ -886,49 +887,8 @@ public:
     d3d::stretch_rect(finalRt, rt.getColor(0).tex, NULL, &r);
     d3d::set_srgb_backbuffer_write(false);
 
-    // fill alfa mask using depthBuf
-    {
-      BaseTexture *alphaMaskDepth;
-      if (rtype == RTYPE_DYNAMIC_DEFERRED)
-        alphaMaskDepth = deferredTarget->getDepth();
-      else
-        alphaMaskDepth = fallbackSceneDepth.getTex2D();
-      d3d::set_render_target({alphaMaskDepth, 0, 0}, DepthAccess::RW, {{rt.getColor(0).tex, 0, 0}});
-      d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
-
-      shaders::overrides::reset();
-      d3d::set_program(d3d::get_debug_program());
-      d3d::set_vs_const(0, &TMatrix4_vec4::IDENT, 4);
-
-      struct Vertex
-      {
-        Point3 p;
-        E3DCOLOR c;
-      };
-      static Vertex v[4];
-      v[0].p.set(-1, -1, 0);
-      v[1].p.set(+1, -1, 0);
-      v[2].p.set(-1, +1, 0);
-      v[3].p.set(+1, +1, 0);
-
-      shaders::render_states::set(alphaWriterRenderStateId);
-      v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
-      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-      d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
-      d3d::draw(PRIM_TRISTRIP, 0, 2);
-      d3d::setvsrc(0, nullptr, 0);
-
-      shaders::render_states::set(depthMaskRenderStateId);
-      v[0].c = v[1].c = v[2].c = v[3].c = 0x00FFFFFF;
-      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-      d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
-      d3d::draw(PRIM_TRISTRIP, 0, 2);
-      d3d::setvsrc(0, nullptr, 0);
-
-      d3d::set_program(BAD_PROGRAM);
-      shaders::overrides::reset();
-      shaders::render_states::set(defaultRenderStateId);
-    }
+    writeAlphaMaskFromDepth(rtype == RTYPE_DYNAMIC_DEFERRED ? deferredTarget->getDepth() : fallbackSceneDepth.getTex2D(),
+      rt.getColor(0).tex, viewportW, viewportH, viewportMinZ, viewportMaxZ);
 
     if (!gbufferDebug)
     {
@@ -950,6 +910,156 @@ public:
     d3d_err(d3d::set_render_target(rt));
     d3d::setview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
   }
+
+  void writeAlphaMaskFromDepth(BaseTexture *depth, BaseTexture *color, int w, int h, float min_z, float max_z)
+  {
+    d3d::set_render_target({depth, 0, 0}, DepthAccess::RW, {{color, 0, 0}});
+    d3d::setview(0, 0, w, h, min_z, max_z);
+
+    shaders::overrides::reset();
+    d3d::set_program(d3d::get_debug_program());
+    d3d::set_vs_const(0, &TMatrix4_vec4::IDENT, 4);
+
+    static Vertex v[4];
+    v[0].p.set(-1, -1, 0);
+    v[1].p.set(+1, -1, 0);
+    v[2].p.set(-1, +1, 0);
+    v[3].p.set(+1, +1, 0);
+
+    shaders::render_states::set(alphaWriterRenderStateId);
+    v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
+    coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
+    d3d::draw(PRIM_TRISTRIP, 0, 2);
+    d3d::setvsrc(0, nullptr, 0);
+
+    shaders::render_states::set(depthMaskRenderStateId);
+    v[0].c = v[1].c = v[2].c = v[3].c = 0x00FFFFFF;
+    coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
+    d3d::draw(PRIM_TRISTRIP, 0, 2);
+    d3d::setvsrc(0, nullptr, 0);
+
+    d3d::set_program(BAD_PROGRAM);
+    shaders::overrides::reset();
+    shaders::render_states::set(defaultRenderStateId);
+  }
+
+  bool canRenderIsolated() const { return rtype == RTYPE_DYNAMIC_DEFERRED && noPfxResolve.getMat(); }
+
+  TexPtr renderIsolated(int width, int height, const TMatrix &view_itm, const Driver3dPerspective &persp,
+    dag::FunctionRef<void(const Point3 &)> render_opaque)
+  {
+    if (!canRenderIsolated() || width <= 0 || height <= 0)
+      return {};
+
+    if (!isolatedTarget || isolatedTarget->getWidth() != width || isolatedTarget->getHeight() != height)
+    {
+      // The managed texture names must be free before the new targets are made.
+      closeIsolatedTargets();
+      isolatedTarget = eastl::make_unique<DeferredRenderTarget>("deferred_shadow_to_buffer", "isolated", width, height,
+        DeferredRT::StereoMode::MonoOrMultipass, 0, deferred_mrt_cnt, deferred_mrt_fmts, TEXFMT_DEPTH32);
+      isolatedSceneRt = dag::create_tex(nullptr, width, height, TEXCF_RTARGET | deferredRtFmt, 1, "isolated_scene_rt");
+      // The resolve of some projects reads these by texel at its own pixel, so they have the target size.
+      isolatedNoOcclusionTex = dag::create_tex(nullptr, width, height, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, "isolated_no_occlusion");
+      isolatedNoShadowTex = dag::create_tex(nullptr, width, height, TEXFMT_R8 | TEXCF_RTARGET, 1, "isolated_no_shadow");
+    }
+    TexPtr result = dag::create_tex(nullptr, width, height, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, "isolated_render");
+    if (!isolatedSceneRt || !isolatedNoOcclusionTex || !isolatedNoShadowTex || !result)
+      return {};
+
+    static int zn_zfarVarId = get_shader_variable_id("zn_zfar", true);
+    static int combinedShadowsVarId = get_shader_variable_id("combined_shadows", true);
+    static int ssaoTexVarId = get_shader_variable_id("ssao_tex", true);
+    static int ssrTargetVarId = get_shader_variable_id("ssr_target", true);
+    static int sourceTexVarId = get_shader_variable_id("source_tex");
+
+    ScopeViewProjMatrix scopeViewProj;
+    SCOPE_RENDER_TARGET;
+    const int prevFrameBlockId = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
+    const Color4 prevWorldViewPos = ShaderGlobal::get_float4(worldViewPosVarId);
+    const Color4 prevZnZfar = ShaderGlobal::get_float4(zn_zfarVarId);
+    const TEXTUREID prevCombinedShadows = ShaderGlobal::get_tex(combinedShadowsVarId);
+    const TEXTUREID prevSsaoTex = ShaderGlobal::get_tex(ssaoTexVarId);
+    const TEXTUREID prevSsrTarget = ShaderGlobal::get_tex(ssrTargetVarId);
+
+    const TMatrix viewTm = orthonormalized_inverse(view_itm);
+    TMatrix4 projTm;
+    d3d::calcproj(persp, projTm);
+    d3d::settm(TM_VIEW, viewTm);
+    d3d::settm(TM_PROJ, &projTm);
+    ShaderGlobal::set_float4(worldViewPosVarId, Color4::xyz1(view_itm.getcol(3)));
+    ShaderGlobal::set_float4(zn_zfarVarId, persp.zn, persp.zf, 0, 0);
+    if (globalFrameBlockId != -1)
+      ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
+
+    isolatedTarget->setRt();
+    d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
+
+    // The main render can leave TM_WORLD set.
+    mat44f prevWorldTm;
+    d3d::gettm(TM_WORLD, prevWorldTm);
+    d3d::settm(TM_WORLD, TMatrix::IDENT);
+    render_opaque(Point3::ZERO);
+    d3d::settm(TM_WORLD, prevWorldTm);
+
+    // The main render binds full size targets here. White ones read as no shadow and no occlusion whether
+    // the resolve of the project samples them or reads them by texel, and a null ssr_target skips SSR.
+    d3d::set_render_target({}, DepthAccess::RW, {{isolatedNoOcclusionTex.getTex2D(), 0, 0}});
+    d3d::clearview(CLEAR_TARGET, 0xFFFFFFFF, 0, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{isolatedNoShadowTex.getTex2D(), 0, 0}});
+    d3d::clearview(CLEAR_TARGET, 0xFFFFFFFF, 0, 0);
+    ShaderGlobal::set_texture(combinedShadowsVarId, isolatedNoShadowTex.getTexId());
+    ShaderGlobal::set_texture(ssaoTexVarId, isolatedNoOcclusionTex.getTexId());
+    ShaderGlobal::set_texture(ssrTargetVarId, BAD_TEXTUREID);
+    isolatedTarget->resolve(isolatedSceneRt.getTex2D(), viewTm, projTm, nullptr, ShadingResolver::ClearTarget::Yes);
+
+    // DemonPostFx reads the glow and lens flare state of the main view, so with it the result gets no tonemap.
+    // Replace it when a project with DemonPostFx needs thumbnails that match its viewport.
+    const bool usePostFx = ::hdr_render_mode != HDR_MODE_NONE && postFx && !postFx->getDemonPostFx() && !renderNoPostfx;
+    if (usePostFx)
+    {
+      static int depthTexVarId = get_shader_variable_id("depth_tex", true);
+      const TEXTUREID prevDepthTex = ShaderGlobal::get_tex(depthTexVarId);
+      ShaderGlobal::set_texture(depthTexVarId, isolatedTarget->getDepthId());
+      postFx->apply(isolatedSceneRt.getTex2D(), result.get(), viewTm, projTm, true);
+      ShaderGlobal::set_texture(depthTexVarId, prevDepthTex);
+    }
+    else
+    {
+      // The resolve stores the color multiplied by the exposure, and noPfxResolve divides by the
+      // exposure that is bound, so an exposure of 1 there keeps the scene exposure in the result.
+      d3d::set_render_target({}, DepthAccess::RW, {{result.get(), 0, 0}});
+      ShaderGlobal::set_texture(sourceTexVarId, isolatedSceneRt.getTexId());
+      const Color4 prevExposureParams = ShaderGlobal::get_float4(exposureParamsVarId);
+      if (exposureBuffer.getBuf() && writeUnitExposure())
+        ShaderGlobal::set_buffer(exposureBuffer.getVarId(), unitExposureBuffer.getBufId());
+      else if (exposureParamsVarId != VariableMap::BAD_ID)
+        ShaderGlobal::set_float4(exposureParamsVarId, 1.0f, 1.0f, 1.0f, 0.0f);
+      noPfxResolve.render();
+      if (exposureBuffer.getBuf())
+        ShaderGlobal::set_buffer(exposureBuffer.getVarId(), exposureBuffer.getBufId());
+      else if (exposureParamsVarId != VariableMap::BAD_ID)
+        ShaderGlobal::set_float4(exposureParamsVarId, prevExposureParams);
+      ShaderGlobal::set_texture(sourceTexVarId, BAD_TEXTUREID);
+    }
+
+    writeAlphaMaskFromDepth(isolatedTarget->getDepth(), result.get(), width, height, 0.f, 1.f);
+
+    // The resolve binds the isolated gbuffer. Bind the main gbuffer again, because
+    // renderGeomDeferredDecals() reads the gbuffer before deferredRender() binds it.
+    if (deferredTarget)
+      deferredTarget->setVar();
+
+    ShaderGlobal::set_texture(combinedShadowsVarId, prevCombinedShadows);
+    ShaderGlobal::set_texture(ssaoTexVarId, prevSsaoTex);
+    ShaderGlobal::set_texture(ssrTargetVarId, prevSsrTarget);
+    ShaderGlobal::set_float4(worldViewPosVarId, prevWorldViewPos);
+    ShaderGlobal::set_float4(zn_zfarVarId, prevZnZfar);
+    ShaderGlobal::setBlock(prevFrameBlockId, ShaderGlobal::LAYER_FRAME);
+    return result;
+  }
+
   void closeMicroDetails()
   {
     if (characterMicrodetailsId == BAD_TEXTUREID)
@@ -1632,25 +1742,6 @@ public:
       rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_DYNAMIC_TRANS);
   }
 
-  void renderUI(int client_rect_width, int client_rect_height)
-  {
-    TIME_D3D_PROFILE(imgui);
-
-    // Maybe just add a updateImgui call to IEditorCoreEngine?
-    IMainWindowImguiRenderingService *renderingService =
-      IEditorCoreEngine::get()->queryEditorInterface<IMainWindowImguiRenderingService>();
-    G_ASSERT_RETURN(renderingService, );
-
-    renderingService->beforeUpdateImgui();
-    imgui_update(client_rect_width, client_rect_height);
-    renderingService->updateImgui();
-
-    editor_core_render_dag_imgui_windows();
-    editor_core_test_runtime_end_frame();
-    imgui_endframe();
-    imgui_render();
-  }
-
   void initVsm()
   {
     if (!vsm_allowed)
@@ -1797,6 +1888,8 @@ public:
     enviProbeCaptureDeadlineMs = get_time_msec() + 5000;
   }
 
+  bool isEnviProbeUpdatePending() const { return rtype == RTYPE_DYNAMIC_DEFERRED && reqEnviProbeUpdate && enviProbe; }
+
   void resetEnviProbesToBlack(bool set_sph_harm_vars)
   {
     G_ASSERT(enviProbeBlack);
@@ -1899,7 +1992,7 @@ public:
     // A device reset leaves preIntegratedGF blank, and every environment lit surface loses its ambient light.
     if (preIntegratedGF.getTex2D())
       render_preintegrated_fresnel_GGX(preIntegratedGF.getTex2D(), nullptr, 0, 1);
-    // constraint: a device reset loses the exposure buffer content, and writeExposure() runs only on a value change.
+    // a device reset loses the exposure buffer content, and writeExposure() runs only on a value change.
     writtenExposure = -1.0f;
     if (ssao)
       ssao->reset();
@@ -2371,23 +2464,43 @@ private:
       return false;
     }
 
+    if (!fillExposureBuffer(exposureBuffer.getBuf(), exposure_value))
+      return false;
+    writtenExposure = exposure_value;
+    return true;
+  }
+
+  static bool fillExposureBuffer(Sbuffer *buffer, float exposure_value)
+  {
     float *exposureDestination;
-    if (exposureBuffer.getBuf()->lock(0, 0, (void **)&exposureDestination, VBLOCK_WRITEONLY) && exposureDestination)
-    {
-      static constexpr float EXPOSURE_MIN_LOG = -12;
-      static constexpr float EXPOSURE_MAX_LOG = 3;
-      alignas(16) float exposureData[] = {exposure_value, 1.0f / exposure_value, 1.0f, 0.0f, EXPOSURE_MIN_LOG, EXPOSURE_MAX_LOG,
-        EXPOSURE_MAX_LOG - EXPOSURE_MIN_LOG, 1.0f / (EXPOSURE_MAX_LOG - EXPOSURE_MIN_LOG)};
-      memcpy(exposureDestination, exposureData, EXPOSURE_BUF_SIZE * sizeof(float));
-      exposureBuffer.getBuf()->unlock();
-      writtenExposure = exposure_value;
-      return true;
-    }
-    else
+    if (!buffer->lock(0, 0, (void **)&exposureDestination, VBLOCK_WRITEONLY) || !exposureDestination)
     {
       debug("dynRender: can't lock buffer for exposure");
       return false;
     }
+    static constexpr float EXPOSURE_MIN_LOG = -12;
+    static constexpr float EXPOSURE_MAX_LOG = 3;
+    alignas(16) float exposureData[] = {exposure_value, 1.0f / exposure_value, 1.0f, 0.0f, EXPOSURE_MIN_LOG, EXPOSURE_MAX_LOG,
+      EXPOSURE_MAX_LOG - EXPOSURE_MIN_LOG, 1.0f / (EXPOSURE_MAX_LOG - EXPOSURE_MIN_LOG)};
+    memcpy(exposureDestination, exposureData, EXPOSURE_BUF_SIZE * sizeof(float));
+    buffer->unlock();
+    return true;
+  }
+
+  // Fills the buffer on each call, because a device reset loses its content.
+  bool writeUnitExposure()
+  {
+    if (!unitExposureBuffer)
+      unitExposureBuffer = dag::buffers::create_ua_sr_structured(4, EXPOSURE_BUF_SIZE, "isolated_unit_exposure");
+    return unitExposureBuffer && fillExposureBuffer(unitExposureBuffer.getBuf(), 1.0f);
+  }
+
+  void closeIsolatedTargets()
+  {
+    isolatedTarget.reset();
+    isolatedSceneRt.close();
+    isolatedNoOcclusionTex.close();
+    isolatedNoShadowTex.close();
   }
 
   enum
@@ -2482,6 +2595,11 @@ private:
   VolFogCallback volFogCallback;
   PostFxRenderer noPfxResolve;
 
+  eastl::unique_ptr<DeferredRenderTarget> isolatedTarget;
+  UniqueTex isolatedSceneRt;
+  UniqueTex isolatedNoOcclusionTex;
+  UniqueTex isolatedNoShadowTex;
+  UniqueBuf unitExposureBuffer;
 
   float csmMinSparseDist;
   float csmMinSparseFrame;
@@ -3052,6 +3170,17 @@ public:
     else if (stage == Stage::STG_RENDER_DYNAMIC_DISTORTION)
       sceneInstance->renderDistortion();
   }
+
+  bool canRenderIsolated() const override { return dynScene && dynScene->canRenderIsolated(); }
+
+  TexPtr renderIsolated(int width, int height, const TMatrix &view_itm, const Driver3dPerspective &persp,
+    dag::FunctionRef<void(const Point3 &)> render_opaque) override
+  {
+    d3d::GpuAutoLock gpuLock;
+    return dynScene ? dynScene->renderIsolated(width, height, view_itm, persp, render_opaque) : TexPtr();
+  }
+
+  bool isEnvironmentLightingReady() override { return !dynScene || !dynScene->isEnviProbeUpdatePending(); }
 
   static void render_viewport_frame(ViewportWindow *vpw);
 };

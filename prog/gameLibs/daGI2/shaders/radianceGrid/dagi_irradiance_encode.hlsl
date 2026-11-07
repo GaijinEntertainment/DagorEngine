@@ -98,7 +98,7 @@ SH1 dagi_irrad_decode_sh1(SH1Encoded enc)
 uint3 dagi_irrad_pack_encoded_sh1(SH1Encoded enc)
 {
   uint3 p;
-  uint4 con = uint4(saturate(enc.s0) * 255);
+  uint4 con = uint4(saturate(enc.s0) * 255 + 0.5);
   p.x = con.x | (con.y << 8u) | (con.z << 16u) | (con.w << 24u);
   uint4 lin = f32tof16(enc.s1);
   p.y = lin.x | (lin.y << 16u);

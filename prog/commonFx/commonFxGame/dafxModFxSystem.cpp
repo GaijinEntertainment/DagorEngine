@@ -108,6 +108,12 @@ enum
 
 enum
 {
+  MOTION_VECTOR_CHANNELS_RG = 0,
+  MOTION_VECTOR_CHANNELS_BA = 1,
+};
+
+enum
+{
   VELADD_POINT = 0,
   VELADD_VEC = 1,
   VELADD_CONE = 2,
@@ -150,6 +156,7 @@ enum
   LIGHT_DISC = 2,
   LIGHT_SPHERE = 3,
   LIGHT_NORMALMAP = 4,
+  LIGHT_SCATTER = 5,
 };
 
 template <typename T>
@@ -399,6 +406,8 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
     ddesc.emitterData.linearData.lifeLimit = parLife.part_life_max;
     ddesc.emitterData.linearData.instant = true;
     maximumParticleEmissionCount = ddesc.emitterData.linearData.countMax;
+    if (maximumParticleEmissionCount == 1)
+      ddesc.specialFlags |= dafx::SystemDesc::FLAG_DISABLE_SIM_LODS | dafx::SystemDesc::FLAG_DISABLE_OCCLUSION;
   }
   else if (parSpawn.type == SPAWN_BURST)
   {
@@ -466,12 +475,13 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
                                    parPos.gpu_placement.use_water || parPos.gpu_placement.use_water_flowmap);
 
   bool isMotionVectorsEnabled = false;
+  const bool isMotionVectorsInBa = parTex.animation.motion_vectors_channels == MOTION_VECTOR_CHANNELS_BA;
   uint32_t motionVectorQualityMask = 0;
   if (parTex.enabled && parTex.animation.enabled && parTex.animation.animated_flipbook && parRenderShape.type == RSHAPE_TYPE_BBOARD)
   {
-    if (parTex.animation.motion_vectors && parLighting.type == LIGHT_NORMALMAP)
+    if (parTex.animation.motion_vectors && parLighting.type == LIGHT_NORMALMAP && !isMotionVectorsInBa)
     {
-      logerr("fx: modfx: motion_vectors is not compatible with normalmap");
+      logerr("fx: modfx: motion_vectors in rg channels are not compatible with normalmap, use motion_vectors_channels = ba");
       parTex.animation.motion_vectors = false;
     }
 
@@ -502,7 +512,8 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
     }
   };
 
-  const bool canLoadSecondaryTexture = [&parTex, &parRenderShape, &parLighting, &parRenderShader, &setAndLogerrIfItWasSet]() -> bool {
+  const bool canLoadSecondaryTexture = [&parTex, &parRenderShape, &parLighting, &parRenderShader, &setAndLogerrIfItWasSet,
+                                         isMotionVectorsInBa]() -> bool {
     bool secondaryTexNeeded = false;
     if (!parTex.enabled)
       return false;
@@ -515,7 +526,9 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
       setAndLogerrIfItWasSet(parLighting.type == LIGHT_NORMALMAP, secondaryTexNeeded,
         "fx: modfx: Multiple features require secondary texture: both water fx height tex and normalmap based lighting is enabled. "
         "These are colliding.");
-      setAndLogerrIfItWasSet(parTex.animation.enabled && parTex.animation.animated_flipbook && parTex.animation.motion_vectors,
+      const bool isMotionVectorsSharingNormalmapTex = isMotionVectorsInBa && parLighting.type == LIGHT_NORMALMAP;
+      setAndLogerrIfItWasSet(parTex.animation.enabled && parTex.animation.animated_flipbook && parTex.animation.motion_vectors &&
+                               !isMotionVectorsSharingNormalmapTex,
         secondaryTexNeeded,
         "fx: modfx: Multiple features require secondary texture: More than 1 of the following is enabled: Motion vectors; Normalmap "
         "based lighting; Water fx height tex");
@@ -562,12 +575,6 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
       parPos.gpu_placement.enabled = false;
       parPos.rain_map_based_density.enabled = false;
     }
-  }
-
-  if (parLighting.type != LIGHT_NONE && parBlending.type == RBLEND_ADD && parLighting.translucency.advanced_translucency.enabled)
-  {
-    logerr("fx: modfx: advanced translucency is not supported with additive blending");
-    parLighting.translucency.advanced_translucency.enabled = false;
   }
 
   // shaders
@@ -1629,6 +1636,8 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
           motionVecParams.quality_mask = motionVectorQualityMask;
           renOffsets[MODFX_RMOD_MOTION_VECTORS] = push_system_data(renderData, motionVecParams);
           ENABLE_MOD(rmods, MODFX_RMOD_MOTION_VECTORS);
+          if (isMotionVectorsInBa)
+            ENABLE_FLAG(rflags, MODFX_RFLAG_MOTION_VECTORS_BA);
         }
       }
 
@@ -1822,11 +1831,11 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
                "name: %s)",
           resName.c_str());
       }
-
-      const auto &parDistanceScale = parRenderShape.billboard.distance_scale;
-      sinfo.distanceScale = {
-        parDistanceScale.enabled, parDistanceScale.begin_distance, parDistanceScale.end_distance, parDistanceScale.curve};
     }
+
+    const auto &parDistanceScale = parRenderShape.billboard.distance_scale;
+    sinfo.distanceScale = {
+      parDistanceScale.enabled, parDistanceScale.begin_distance, parDistanceScale.end_distance, parDistanceScale.curve};
   }
   else if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
   {
@@ -1883,6 +1892,7 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
       pp.specular_strength = saturate(parLighting.specular_strength) * 255;
 
       pp.sphere_normal_power = saturate(parLighting.sphere_normal_power) * 255;
+      pp.direction_ambient_min = saturate(parLighting.direction_ambient_min) * 255;
       pp.sphere_normal_radius = parLighting.sphere_normal_radius;
 
       if (parLighting.type == LIGHT_UNIFORM)
@@ -1893,6 +1903,8 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
         pp.type = MODFX_LIGHTING_TYPE_SPHERE;
       else if (parLighting.type == LIGHT_NORMALMAP)
         pp.type = MODFX_LIGHTING_TYPE_NORMALMAP;
+      else if (parLighting.type == LIGHT_SCATTER)
+        pp.type = MODFX_LIGHTING_TYPE_SCATTER;
 
       renOffsets[MODFX_RMOD_LIGHTING_INIT] = push_system_data(renderData, pp);
       ENABLE_MOD(rmods, MODFX_RMOD_LIGHTING_INIT);
@@ -1903,40 +1915,44 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
       if (parLighting.external_lights_enabled)
         ENABLE_FLAG(rflags, MODFX_RFLAG_EXTERNAL_LIGHTS_ENABLED);
 
-      if (parLighting.translucency.advanced_translucency.enabled)
-      {
-        auto &advanced_translucency = parLighting.translucency.advanced_translucency;
-
-        ModfxDeclAdvancedTranslucency pp;
-        pp.advanced_translucency_flags = 0;
-        pp.translucency_color_mul = advanced_translucency.tranclucency_color_mul;
-
-        pp.min_radian = advanced_translucency.from_degree * DEG_TO_RAD;
-        pp.max_radian = advanced_translucency.to_degree * DEG_TO_RAD;
-        float max_degree_diff = abs(advanced_translucency.to_degree - advanced_translucency.from_degree) * 0.5f * DEG_TO_RAD;
-        pp.inv_max_radian_diff = 1.0f / max(max_degree_diff, 0.01f);
-
-        pp.alpha_min = advanced_translucency.alpha_for_translucent_min;
-        pp.alpha_max = advanced_translucency.alpha_for_translucent_max;
-        pp.trans_min = advanced_translucency.min_translucency_value;
-        pp.trans_max = advanced_translucency.max_translucency_value;
-        pp.alpha_diff_inv = 1.0f / max(abs(pp.alpha_max - pp.alpha_min), 0.01f);
-
-        if (advanced_translucency.weigh_translucency_by_view_light_degree)
-          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_WEIGH_BY_VOL);
-        if (advanced_translucency.use_normal_as_translucency)
-          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_NORMAL_BASED_TRANSLUCENCY);
-        if (advanced_translucency.invert_accepted_degrees)
-          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_INVERT_ACCEPTED_DEGREES);
-        if (advanced_translucency.use_viewvector_for_normal_based_translucency)
-          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_VIEW_VEC_TRANSLUCENCY);
-        if (advanced_translucency.use_alpha_as_translucency)
-          ENABLE_FLAG(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_ALPHA_BASED_TRANSLUCENCY);
-
-        renOffsets[MODFX_RMOD_ADVANCED_TRANSLUCENCY] = push_system_data(renderData, pp);
-        ENABLE_MOD(rmods, MODFX_RMOD_ADVANCED_TRANSLUCENCY);
-      }
+      if (parLighting.use_direction_ambient)
+        ENABLE_FLAG(rflags, MODFX_RFLAG_DIRECTIONAL_AMBIENT);
     }
+  }
+
+  if (parLighting.type == LIGHT_SCATTER)
+  {
+    const FxScatterLighting &vol = parLighting.scatter_lighting;
+    ModfxDeclScatterLighting pp;
+    pp.flags = 0;
+    if (vol.scale_opacity_with_radius)
+      ENABLE_FLAG(pp.flags, MODFX_SCATTER_FLAG_OPACITY_BY_RADIUS);
+    if (vol.alpha_from_opacity)
+      ENABLE_FLAG(pp.flags, MODFX_SCATTER_FLAG_ALPHA_FROM_OPACITY);
+    if (vol.opacity_src_is_thickness)
+      ENABLE_FLAG(pp.flags, MODFX_SCATTER_FLAG_SRC_IS_THICKNESS);
+    if (vol.opacity_src_remapped)
+      ENABLE_FLAG(pp.flags, MODFX_SCATTER_FLAG_SRC_REMAPPED);
+    pp.opacity_src_mask = vol.opacity_src_mask;
+    pp.max_opacity = clamp(vol.max_opacity, 0.f, 0.999f); // keeps the transmittance above zero for the log2
+    pp.density = -log2f(1.f - pp.max_opacity);            // density path: shader uses exp2, remapped to 0..1 for artists
+    pp.ambient_self_shadow = saturate(vol.ambient_self_shadow);
+    const float ratioRoot = powf(max(vol.sun_backlit_boost, 1.f), 1.f / 3.f); // HG lobe, mapped to 1..N
+    const float g = clamp((ratioRoot - 1.f) / (ratioRoot + 1.f), 0.f, 0.95f); // HG sun phase lighting, separated to 3 vars to offload
+                                                                              // ALU from GPU
+    pp.sun_phase = float3(1.f + g, 1.f + g * g, 2.f * g);
+    pp.sun_self_shadow = max(vol.sun_self_shadow, 0.f);
+    const float fill = saturate(vol.sun_shadow_fill) * (0.7f / 1.7f); // lerp(e1, (e1 + 0.7 e2) / 1.7, fill) folded into two weights
+                                                                      // for e1 and e2
+    pp.sun_shadow_fill = float2(1.f - fill, fill);
+    pp.sun_thin_fade = saturate(vol.sun_thin_fade);
+    // band on the opacity: center, inverse half width, view dependence, brightness; 0.77 is the peak of the former
+    // 2T(1-T^2) lobe, so intensity 1 matches the old look
+    pp.rim_params = float4(saturate(vol.rim_opacity), 1.f / max(vol.rim_width, 1e-3f), saturate(vol.rim_backlit),
+      0.77f * max(vol.rim_intensity, 0.f));
+
+    renOffsets[MODFX_RMOD_SCATTER_LIGHTING] = push_system_data(renderData, pp);
+    ENABLE_MOD(rmods, MODFX_RMOD_SCATTER_LIGHTING);
   }
 
   // depth mask

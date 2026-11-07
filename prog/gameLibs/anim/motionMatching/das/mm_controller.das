@@ -1,20 +1,19 @@
 require ecs
+require math.base
 require AnimV20
 require MotionMatching
 require gameLibs.pufd_events.pufd_events
 
 
 [es(after=wait_motion_matching_job_es)]
-def mm_lod_selector(info : ParallelUpdateFrameDelayed;
-                    var motion_matching__distanceFactor : float&;
-                    transform aka character_transform : float3x4)
-  motion_matching__distanceFactor = 1.f
-  find_query() <| $ [es] (camera__active : bool; transform aka camera_transform : float3x4)
-    if !camera__active
-      return false
-    let distance = length(camera_transform[3] - character_transform[3])
-    motion_matching__distanceFactor += 0.2f * sqrt(distance)
-    return true
+def mm_lod_selector(info : ParallelUpdateFrameDelayed)
+  var cameraPos : float3
+  let cameraFound = find_query() <| $ [es] (camera__active : bool; transform aka camera_transform : float3x4)
+    if camera__active
+      cameraPos = camera_transform[3]
+    return camera__active
+  query() <| $ [es] (var motion_matching__distanceFactor : float&; transform aka character_transform : float3x4)
+    motion_matching__distanceFactor = cameraFound ? 1.f + 0.2f * sqrt(length(cameraPos - character_transform[3])) : 1.f
 
 [es(after=wait_motion_matching_job_es)]
 def mm_update_metrica_tolerance(info : ParallelUpdateFrameDelayed;
@@ -50,9 +49,7 @@ def mm_synchronize_anim_tree_timer(info : ParallelUpdateFrameDelayed;
   let timerProgress = anim_state_holder_getParam(animState, timeParamId) % curClip.animTreeTimerCycle / curClip.animTreeTimerCycle
   var timeScale = motion_matching__controller.playSpeedMult * curClip.animTreeTimerCycle / curClip.duration
   // Detect whatever is better to synchronize anitTree timer with MM clip in assumption that animations are looped.
-  var accelerateRange = mmClipProgress - timerProgress
-  if accelerateRange < 0.f
-    accelerateRange = 1.f + accelerateRange
+  let accelerateRange = frac(mmClipProgress - timerProgress)
   let decelerateRange = 1.f - accelerateRange
   if accelerateRange < decelerateRange
     timeScale *= 1.f + accelerateRange

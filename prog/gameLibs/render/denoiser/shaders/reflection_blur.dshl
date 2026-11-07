@@ -1,0 +1,232 @@
+include "shader_global.dshl"
+
+int4 denoiser_resolution;
+
+texture denoiser_blur_src;
+texture denoiser_blur_dst;
+texture denoiser_blur_view_z;
+texture denoiser_blur_nr;
+int denoiser_blur_vertical;
+int denoiser_blur_last_pass;
+// in texels
+float denoiser_blur_max_radius;
+float denoiser_blur_max_roughness;
+// the texels of a unit at view distance 1
+float denoiser_blur_texels_per_unit;
+// the parity of x + y of the traced texels of a checkerboard source, packed in its left half, 2 for a full source as in NRD
+int denoiser_blur_checkerboard = 2;
+
+shader denoiser_reflection_blur
+{
+  (cs) {
+    resolution@u2 = denoiser_resolution.xy;
+    vertical@u1 = denoiser_blur_vertical;
+    lastPass@u1 = denoiser_blur_last_pass;
+    maxRadius@f1 = denoiser_blur_max_radius;
+    maxRoughness@f1 = denoiser_blur_max_roughness;
+    texelsPerUnit@f1 = denoiser_blur_texels_per_unit;
+    checkerboard@u1 = denoiser_blur_checkerboard;
+    src@tex2d = denoiser_blur_src;
+    output@uav = denoiser_blur_dst hlsl { RWTexture2D<float4> output@uav; };
+    viewZTexture@tex2d = denoiser_blur_view_z;
+    nrTexture@tex2d = denoiser_blur_nr;
+  }
+
+  hlsl(cs) {
+    #include <NRD.hlsli>
+    #include "common_consts.hlsli"
+
+    #define TAPS_PER_SIDE 6
+    // the alpha of the last pass where it is no radius, getRTRWeighted of rtr_use.dshl reads them
+    #define ALPHA_NO_BLUR -1
+    #define ALPHA_NO_RAY -2
+
+    // the blur radius of the GGX lobe around the hit of the trace: 3/4 of the lobe fits a Gaussian at 0.75 of its median (a tangent
+    // of 2 alpha), the blur median is 0.56 of its radius. getRTRWeighted of rtr_use.dshl adds the other 1/4, 4 times as wide
+    float lobe_radius(float roughness, float hit_dist, float view_z)
+    {
+      return 2.7 * pow2(roughness) * hit_dist / (view_z + hit_dist) * texelsPerUnit;
+    }
+
+    // a texel of a checkerboard source the trace shot no ray from, it shoots the last column of an odd width on every row
+    bool is_hole(uint2 tc)
+    {
+      return checkerboard != 2 && ((tc.x + tc.y) & 1) != checkerboard && ((resolution.x & 1) == 0 || tc.x != resolution.x - 1);
+    }
+
+    float4 load_src(uint2 tc) { return texture2DAt(src, uint2(checkerboard != 2 ? tc.x >> 1 : tc.x, tc.y)); }
+
+    // the texel at the offset forward or back along the blur, back from the first texel it wraps to a large uint
+    uint2 tap_tc(uint2 tc, float offset, uint forward)
+    {
+      uint2 delta = vertical != 0 ? uint2(0, uint(offset)) : uint2(uint(offset), 0);
+      return forward != 0 ? tc + delta : tc - delta;
+    }
+
+    // how well a tap fits the surface of the texel: its view z against the one of the surface there, its normal and roughness
+    float similarity(float tap_z, float surface_z, float4 tap_nr, float view_z, float4 nr)
+    {
+      return saturate(1 - abs(tap_z - surface_z) / (0.02 * view_z)) * pow(saturate(dot(nr.xyz, tap_nr.xyz)), 8) *
+             saturate(1 - 2 * abs(tap_nr.w - nr.w));
+    }
+
+    // the hole filling of the checkerboard rendering of the GDK: the four traced neighbours by how well they fit the
+    // surface of the hole, their plain average where none fits
+    float4 fill_hole(uint2 tc, float view_z, float4 nr)
+    {
+      // a neighbour off the edge wraps to a large uint
+      uint2 neighbours[4] = {tc - uint2(1, 0), tc + uint2(1, 0), tc - uint2(0, 1), tc + uint2(0, 1)};
+      float4 sum = 0;
+      float weightSum = 0;
+      UNROLL
+      for (uint i = 0; i < 4; ++i)
+      {
+        uint2 ntc = neighbours[i];
+        if (any(ntc >= resolution))
+          continue;
+        float4 tap = load_src(ntc);
+        float tapZ = texture2DAt(viewZTexture, ntc).x;
+        if (tapZ >= DENOISING_RANGE || tap.a == 0 || any(!isfinite(tap.rgb)))
+          continue;
+        float4 tapNr = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(nrTexture, ntc));
+        float weight = 1e-3 + similarity(tapZ, view_z, tapNr, view_z, nr);
+        sum += tap * weight;
+        weightSum += weight;
+      }
+      return weightSum > 0 ? sum / weightSum : float4(0, 0, 0, 0);
+    }
+
+    [numthreads(8, 8, 1)]
+    void main(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= resolution))
+        return;
+
+      float viewZ = texture2DAt(viewZTexture, dtid).x;
+      float4 nr = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(nrTexture, dtid));
+      // the trace shoots no ray above the max roughness, a hole there has none either. A hole in the sky or a marked one
+      // keeps the traced texel of its pair, the trace marks both
+      float4 center;
+      BRANCH
+      if (viewZ < DENOISING_RANGE && is_hole(dtid))
+        center = nr.w < maxRoughness ? fill_hole(dtid, viewZ, nr) : float4(0, 0, 0, 0);
+      else
+        center = load_src(dtid);
+
+      // the sky and a marked pixel keep the trace value, one with hit distance 0 has no ray
+      BRANCH
+      if (viewZ >= DENOISING_RANGE || center.a == 0)
+      {
+        texture2DAt(output, dtid) =
+          float4(center.rgb, lastPass != 0 ? (viewZ >= DENOISING_RANGE ? ALPHA_NO_BLUR : ALPHA_NO_RAY) : center.a);
+        return;
+      }
+
+      float lobeRadius = lobe_radius(nr.w, center.a, viewZ);
+      float radius = min(lobeRadius, maxRadius);
+      // the last pass writes the radius the lobe needs, the reader takes a wider one from the mips
+      float alpha = lastPass != 0 ? lobeRadius : center.a;
+
+      BRANCH
+      if (radius < 1)
+      {
+        texture2DAt(output, dtid) = float4(center.rgb, alpha);
+        return;
+      }
+
+      // the depth slope along the blur from the closer neighbour, so a depth edge does not set it
+      uint2 axis = vertical != 0 ? uint2(0, 1) : uint2(1, 0);
+      float prevZ = texture2DAt(viewZTexture, max(dtid, axis) - axis).x;
+      float nextZ = texture2DAt(viewZTexture, min(dtid + axis, resolution - 1)).x;
+      float slope = abs(nextZ - viewZ) < abs(viewZ - prevZ) ? nextZ - viewZ : viewZ - prevZ;
+
+      // a spacing of 2 keeps the shifted taps of a checkerboard source on different texels
+      float spacing = max(radius / TAPS_PER_SIDE, checkerboard != 2 ? 2 : 1);
+      float3 sum = center.rgb;
+      float weightSum = 1;
+      UNROLL
+      for (uint i = 1; i <= TAPS_PER_SIDE; ++i)
+      {
+        UNROLL
+        for (uint forward = 0; forward < 2; ++forward)
+        {
+          float offset = round(i * spacing);
+          // a tap on a hole takes the traced texel next to it, toward the center
+          if (is_hole(tap_tc(dtid, offset, forward)))
+            offset -= 1;
+          if (offset > radius)
+            continue;
+          uint2 tc = tap_tc(dtid, offset, forward);
+          if (any(tc >= resolution))
+            continue;
+
+          float4 tap = load_src(tc);
+          float tapZ = texture2DAt(viewZTexture, tc).x;
+          float4 tapNr = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(nrTexture, tc));
+          if (tapZ >= DENOISING_RANGE || tap.a == 0 || any(!isfinite(tap.rgb)))
+            continue;
+
+          // the hit distance of the trace, both passes keep it: a nearer hit weighs in only as far as the lobe of this texel
+          // reaches at that distance, a farther one over all of it
+          float reach = tap.a < center.a ? min(lobe_radius(nr.w, tap.a, viewZ), radius) : radius;
+          float surfaceZ = viewZ + (forward != 0 ? slope : -slope) * offset;
+          float weight = exp2(-3 * pow2(offset / reach)) * similarity(tapZ, surfaceZ, tapNr, viewZ, nr);
+          sum += tap.rgb * weight;
+          weightSum += weight;
+        }
+      }
+      texture2DAt(output, dtid) = float4(sum / weightSum, alpha);
+    }
+  }
+
+  compile("cs_5_0", "main");
+}
+
+int4 denoiser_reflection_mip_dst_size;
+int4 denoiser_reflection_mip_src_size;
+
+// One mip of the pyramid of the blurred reflection from the mip above it, bound with texmiplevel. The first one keeps
+// the texels with a radius, and every mip holds the color premultiplied by that coverage: a reader divides it out.
+shader denoiser_reflection_mip_first, denoiser_reflection_mip
+{
+  (cs) {
+    dstSize@u2 = denoiser_reflection_mip_dst_size.xy;
+    srcSize@u2 = denoiser_reflection_mip_src_size.xy;
+  }
+
+  hlsl(cs) {
+    Texture2D<float4> mipSrc : register(t0);
+    RWTexture2D<float4> mipDst : register(u0);
+
+    [numthreads(8, 8, 1)]
+    void main(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= dstSize))
+        return;
+
+      // the last texel of an axis takes what is left of the source, 3 texels on an odd one, and the nominal 4 below keeps
+      // its larger area in its coverage, so the coarser mips weigh every source texel alike
+      uint2 lastTaps = srcSize + 2 - dstSize * 2;
+      uint2 taps = uint2(dtid.x == dstSize.x - 1 ? lastTaps.x : 2, dtid.y == dstSize.y - 1 ? lastTaps.y : 2);
+      float4 sum = 0;
+      UNROLL
+      for (uint y = 0; y < 3; ++y)
+      {
+        UNROLL
+        for (uint x = 0; x < 3; ++x)
+        {
+          if (x >= taps.x || y >= taps.y)
+            continue;
+          float4 texel = mipSrc[dtid * 2 + uint2(x, y)];
+          ##if shader == denoiser_reflection_mip_first
+            texel = texel.a >= 0 ? float4(texel.rgb, 1) : 0;
+          ##endif
+          sum += texel;
+        }
+      }
+      mipDst[dtid] = sum / 4;
+    }
+  }
+
+  compile("cs_5_0", "main");
+}

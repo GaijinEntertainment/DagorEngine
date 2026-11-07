@@ -10,12 +10,12 @@ AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog
 ;
 
 Sources =
   main.cpp
   plugin.cpp
-  csg.cpp
   objEd_csg.cpp
   box_csg.cpp
 ;
@@ -24,10 +24,9 @@ Sources =
 UseProgLibs =
   tools/libTools/winGuiWrapper
   tools/libTools/staticGeom
-  3rdPartyLibs/math/carve
+  tools/libTools/meshCSG
 ;
 
 include $(Root)/prog/tools/sceneTools/daEditorX/plugin_setup.jam ;
 
-include $(Root)/prog/3rdPartyLibs/math/carve/carve-options.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

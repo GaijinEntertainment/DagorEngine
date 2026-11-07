@@ -628,6 +628,48 @@ static void call_splash_render_func()
   splash_render_func(w, h, splash_render_func_arg);
 }
 
+struct ShaderCacheWarmupProgressInfo
+{
+  uint32_t completed = 0;
+  uint32_t total = 0;
+};
+
+// dedicated function to make it easier to implement alternate ways of obtaining the counters
+static eastl::optional<ShaderCacheWarmupProgressInfo> get_shader_cache_warmup_progress()
+{
+  static ShaderCacheWarmupProgressInfo prevResult;
+  if (d3d::get_driver_code().is(d3d::dx12 && !d3d::anyXbox))
+  {
+    const uint32_t currentQueueLength = d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH);
+    if (currentQueueLength > 0)
+    {
+      prevResult.total = max(prevResult.total, currentQueueLength);
+      prevResult.completed = max(prevResult.completed, prevResult.total - currentQueueLength);
+      return prevResult;
+    }
+    else
+    {
+      prevResult = {};
+    }
+  }
+  else
+  {
+    if (shadercache::get_warmup_status(prevResult.completed, prevResult.total))
+    {
+      return prevResult;
+    }
+  }
+  return {};
+}
+
+static void draw_shader_cache_warmup_progress()
+{
+  if (auto shaderCacheProgress = get_shader_cache_warmup_progress(); shaderCacheProgress)
+  {
+    shadercache::draw_warmup_status(shaderCacheProgress->completed, shaderCacheProgress->total);
+  }
+}
+
 // Graph scenes skip the half-res target and the VRS 2x2 trick: coarse shading
 // fights sub-pixel jitter, and internal resolution is the graph's own scale:r.
 // False when the graph failed this frame and is gone: the caller then draws
@@ -654,7 +696,8 @@ static bool draw_graph_frame()
       return false;
     }
   }
-  shadercache::draw_warmup_status();
+
+  draw_shader_cache_warmup_progress();
   call_splash_render_func();
   return true;
 }
@@ -775,7 +818,7 @@ void animated_splash_screen_draw()
         d3d::set_variable_rate_shading(1, 1);
     }
 
-    shadercache::draw_warmup_status();
+    draw_shader_cache_warmup_progress();
 
     if (halfResRt)
     {

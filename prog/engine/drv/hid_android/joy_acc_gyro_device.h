@@ -6,12 +6,41 @@
 #include <util/dag_globDef.h>
 #include <drv/hid/dag_hiJoystick.h>
 #include <drv/hid/dag_hiDeclDInput.h>
-#include <osApiWrappers/dag_wndProcComponent.h>
+#include <EASTL/bitset.h>
+#include <android/input.h>
 #include <string.h>
 
 namespace HumanInput
 {
-class JoyAccelGyroInpDevice : public IAndroidJoystick, public IWndProcComponent
+// the keys and axes of one gamepad, which the class driver records on the input thread
+struct AndroidGamepadInput
+{
+  enum
+  {
+    AXIS_X,
+    AXIS_Y,
+    AXIS_Z,
+    AXIS_RZ,
+    AXIS_HAT_X,
+    AXIS_HAT_Y,
+    AXIS_GAS,
+    AXIS_BRAKE,
+    AXIS_COUNT
+  };
+  // the android axis of each AXIS_* above, in the same order
+  static constexpr int32_t ANDROID_AXES[AXIS_COUNT] = {AMOTION_EVENT_AXIS_X, AMOTION_EVENT_AXIS_Y, AMOTION_EVENT_AXIS_Z,
+    AMOTION_EVENT_AXIS_RZ, AMOTION_EVENT_AXIS_HAT_X, AMOTION_EVENT_AXIS_HAT_Y, AMOTION_EVENT_AXIS_GAS, AMOTION_EVENT_AXIS_BRAKE};
+  using KeyCodes = eastl::bitset<256>;
+
+  KeyCodes keyCodes; // android key codes held, or pressed since the last read
+  float axes[AXIS_COUNT] = {};
+};
+
+// reads the input of the gamepad that getGamepadDeviceId_android() names; a zero input when that gamepad has sent no
+// input yet or there is no such gamepad
+void read_android_gamepad_input(AndroidGamepadInput &out_input);
+
+class JoyAccelGyroInpDevice : public IAndroidJoystick
 {
   enum
   {
@@ -23,7 +52,9 @@ class JoyAccelGyroInpDevice : public IAndroidJoystick, public IWndProcComponent
   };
 
 public:
-  JoyAccelGyroInpDevice();
+  // sensor_source must expose GyroX..GravityZ at axes 9-14 and outlive the device;
+  // the class driver updates it before every updateState() of this device
+  explicit JoyAccelGyroInpDevice(const IGenJoystick *sensor_source);
   ~JoyAccelGyroInpDevice() override;
 
   bool updateState() override;
@@ -94,8 +125,6 @@ public:
 
   virtual bool isConnected() { return true; }
 
-  virtual RetCode process(void *hwnd, unsigned msg, uintptr_t wParam, intptr_t lParam, intptr_t &result);
-
   virtual bool isStickDeadZoneSetupSupported() const { return true; }
   virtual float getStickDeadZoneScale(int stick_idx) const override
   {
@@ -109,6 +138,7 @@ public:
 
 protected:
   IGenJoystickClient *client;
+  const IGenJoystick *sensorSource;
   JoystickRawState state, nextState;
 
   struct LogicalAxis
@@ -119,8 +149,10 @@ protected:
   LogicalAxis axis[AXES_NUM];
   int accel[3], gyro[3], gravity[5];
 
-  int deviceId;
   int vendorId = 0;
+
+  void readInput();
+  int keyCodeToButton(int key_code) const;
 
   static const char *btnName[BTN_NUM];
   static const char *axisName[AXES_NUM];

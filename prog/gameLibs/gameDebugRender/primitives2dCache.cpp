@@ -6,16 +6,14 @@
 #include <math/dag_TMatrix.h>
 #include <EASTL/fixed_function.h>
 #include <generic/dag_carray.h>
-#include <osApiWrappers/dag_critSec.h>
-
-static WinCritSec render_data_render_cs;
+#include "primitivesRenderCs.h"
 
 template <typename T>
 static auto &safe_push_back_primitive(T &vec)
 {
   if (DAGOR_UNLIKELY(vec.size() == vec.capacity()))
   {
-    WinAutoLock lock(render_data_render_cs);
+    WinAutoLock lock(game_dbg::primitives_render_cs);
     return vec.push_back();
   }
   return vec.push_back();
@@ -35,7 +33,7 @@ void game_dbg::Primitives2dCache::addText(const char *text, float x, float y, co
 
 void game_dbg::Primitives2dCache::clear()
 {
-  WinAutoLock lock(render_data_render_cs);
+  WinAutoLock lock(game_dbg::primitives_render_cs);
   texts.clear();
   lines.clear();
 }

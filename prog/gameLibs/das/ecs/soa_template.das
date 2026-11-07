@@ -59,7 +59,7 @@ def fn_or_block_apply(var func; body; var errors : das_string)
 
 [macro_function]
 def patch_soa_blocks(fn : Function?; var ast_changed : bool?)
-  var astVisitor = new PatchSoaBlocks(ast_changed)
+  let astVisitor = new PatchSoaBlocks(ast_changed)
   make_visitor(*astVisitor) <| $(astVisitorAdapter)
     visit(fn, astVisitorAdapter)
 
@@ -204,7 +204,7 @@ class SoaBlkMarkerMacro : AstBlockAnnotation
 
 [macro_function]
 def replate_index_and_field(prefix : string; var fields : array<string>; blk : ExpressionPtr)
-  var astVisitor = new ReplaceIndexAndFieldsVisitor(prefix, fields)
+  let astVisitor = new ReplaceIndexAndFieldsVisitor(prefix, fields)
   make_visitor(*astVisitor) <| $(astVisitorAdapter)
     visit(blk, astVisitorAdapter)
 
@@ -222,7 +222,7 @@ class ReplaceIndexAndFieldsVisitor : AstVisitor
 
   def override preVisitExprAssume(var expr : ExprAssume?) : void
     if expr.subexpr is ExprAt
-      var at = expr.subexpr as ExprAt
+      let at = expr.subexpr as ExprAt
       if (at.subexpr is ExprVar)
         if (at.subexpr as ExprVar).name == it_prefix
           aliases.insert(string(expr.alias), expr.subexpr as ExprAt)
@@ -239,7 +239,7 @@ class ReplaceIndexAndFieldsVisitor : AstVisitor
             )
 
     if expr.value is ExprVar
-      var eVar = expr.value as ExprVar
+      let eVar = expr.value as ExprVar
       for alName, at in keys(aliases), values(aliases)
         if alName == eVar.name
           return new ExprAt(

@@ -13,6 +13,7 @@
 #include <render/rendererFeatures.h>
 #include <render/resolution.h>
 #include <util/dag_console.h>
+#include <util/dag_delayedAction.h>
 #include "postfxRender.h"
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include "render/world/frameGraphNodes/frameGraphNodes.h"
@@ -213,11 +214,13 @@ static bool dof_console_handler(const char *argv[], int argc)
   {
     float fNumber = argc > 1 ? atof(argv[1]) : 1;
     float sensorHeight_mm = argc > 2 ? atof(argv[2]) : 24.0f;
-    get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
-      dof.setOn(true);
-      DOFProperties focus = dof.getDoFParams();
-      focus.setFilmicDoF(-1.f, fNumber, sensorHeight_mm * 0.001f, 0.5f * sensorHeight_mm * 0.001f);
-      dof.setDoFParams(focus);
+    delayed_call([fNumber, sensorHeight_mm] {
+      get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
+        dof.setOn(true);
+        DOFProperties focus = dof.getDoFParams();
+        focus.setFilmicDoF(-1.f, fNumber, sensorHeight_mm * 0.001f, 0.5f * sensorHeight_mm * 0.001f);
+        dof.setDoFParams(focus);
+      });
     });
     console::print("usage: postfx.dof_focus [fNumber=%f] [sensorHeight_mm=%f] Focuses at infinity", fNumber, sensorHeight_mm);
   }
@@ -226,27 +229,35 @@ static bool dof_console_handler(const char *argv[], int argc)
     float amount = argc > 1 ? atof(argv[1]) : 0;
     float start = argc > 2 ? atof(argv[2]) : 0.08;
     float end = argc > 3 ? atof(argv[3]) : start + 10;
-    get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
-      dof.setOn(true);
-      DOFProperties focus = dof.getDoFParams();
-      focus.setNearDof(start, end, amount);
-      dof.setDoFParams(focus);
+    float maxAmount = 0;
+    get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) { maxAmount = dof.getMaxDofAmount(); });
+    delayed_call([amount, start, end] {
+      get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
+        dof.setOn(true);
+        DOFProperties focus = dof.getDoFParams();
+        focus.setNearDof(start, end, amount);
+        dof.setDoFParams(focus);
+      });
     });
-    console::print("usage: postfx.dof_near [amount(percent of screen)=%f] [start=%f] [end=%f]", amount, start, end);
+    console::print("usage: postfx.dof_near [amount(percent of screen)=%f/%f(max)] [start=%f] [end=%f]", amount, maxAmount, start, end);
   }
   CONSOLE_CHECK_NAME("postfx", "dof_far", 1, 4)
   {
     float amount = argc > 1 ? atof(argv[1]) : 0;
     float start = argc > 2 ? atof(argv[2]) : 0.001;
     float end = argc > 3 ? atof(argv[3]) : start + 10;
-    set_far_dof_ecs_query(*g_entity_mgr,
-      [&](bool &dof__on, float &dof__farDofStart, float &dof__farDofEnd, float &dof__farDofAmountPercent) {
-        dof__on = true;
-        dof__farDofStart = start;
-        dof__farDofEnd = end;
-        dof__farDofAmountPercent = amount;
-      });
-    console::print("usage: postfx.dof_far [amount(percent of screen)=%f] [start=%f] [end=%f]", amount, start, end);
+    float maxAmount = 0;
+    get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) { maxAmount = dof.getMaxDofAmount(); });
+    delayed_call([start, end, amount] {
+      set_far_dof_ecs_query(*g_entity_mgr,
+        [&](bool &dof__on, float &dof__farDofStart, float &dof__farDofEnd, float &dof__farDofAmountPercent) {
+          dof__on = true;
+          dof__farDofStart = start;
+          dof__farDofEnd = end;
+          dof__farDofAmountPercent = amount;
+        });
+    });
+    console::print("usage: postfx.dof_far [amount(percent of screen)=%f/%f(max)] [start=%f] [end=%f]", amount, maxAmount, start, end);
   }
   CONSOLE_CHECK_NAME("postfx", "dof_bokeh", 1, 3)
   {
@@ -254,11 +265,13 @@ static bool dof_console_handler(const char *argv[], int argc)
     float fStops = argc > 2 ? atof(argv[2]) : 1;
     if (argc > 1)
     {
-      get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
-        dof.setOn(true);
-        DOFProperties focus = dof.getDoFParams();
-        dof.setBokehShape(fStops, blades);
-        dof.setDoFParams(focus);
+      delayed_call([blades, fStops] {
+        get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
+          dof.setOn(true);
+          DOFProperties focus = dof.getDoFParams();
+          dof.setBokehShape(fStops, blades);
+          dof.setDoFParams(focus);
+        });
       });
     }
     console::print("usage: postfx.dof_bokeh [blades=%f] [fStops/fNumber=%f]", blades, fStops);
@@ -266,11 +279,13 @@ static bool dof_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("postfx", "dof_minCheckDistance", 1, 2)
   {
     float dist = argc > 1 ? atof(argv[1]) : -1;
-    get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
-      dof.setOn(true);
-      DOFProperties focus = dof.getDoFParams();
-      dof.setMinCheckDistance(dist);
-      dof.setDoFParams(focus);
+    delayed_call([dist] {
+      get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
+        dof.setOn(true);
+        DOFProperties focus = dof.getDoFParams();
+        dof.setMinCheckDistance(dist);
+        dof.setDoFParams(focus);
+      });
     });
     console::print("usage: postfx.dof_minCheckDistance [min distance to check if near dof is on=%f]", dist);
   }

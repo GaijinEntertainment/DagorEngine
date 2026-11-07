@@ -2,4 +2,5 @@
 base_path = ../../libTools/EditorCore/sq_stubs
 
 sqrat_bind_dagor_math_module = yes
+register_dagor_time_module = yes
 sqstd_register_base_libs = yes

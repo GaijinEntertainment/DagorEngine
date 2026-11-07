@@ -34,17 +34,7 @@ class Element;
 class ElementTree;
 struct HotkeyButton;
 
-// Screen pixels of the element screen; angles in radians, clockwise positive
-struct TouchPadGesture
-{
-  int type = 0; // one GestureDetector::Type bit
-  Point2 pos;   // the cursor
-  Point2 pos0;  // the cursor at BEGIN
-  Point2 delta; // pad move since the last event
-  Point2 drag;  // pad move since the start; DRAG, PINCH, ROTATE only
-  float scale = 1, deltaScale = 0;
-  float angle = 0, deltaAngle = 0;
-};
+using TouchSource = HumanInput::PointingRawState::Touch::Source;
 
 
 class Behavior
@@ -72,7 +62,7 @@ public:
     F_FOCUS_ON_CLICK = 0x0200,
     F_USES_TOUCH_MARGIN = 0x400,
     F_ALLOW_AUTO_SCROLL = 0x800,
-    F_HANDLE_TOUCH_PAD_GESTURE = 0x1000,
+    F_HANDLE_TOUCHPAD_PAIR = 0x1000, // the finger pair of a game pad touch pad, for pan and zoom: only its motion is real
   };
 
   enum DetachMode
@@ -94,8 +84,9 @@ public:
     return 0;
   }
 
-  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent /*event*/, int /*pointer_id*/, int /*btn_id*/,
-    Point2 /*pos*/, int /*accum_res*/)
+  // touch_src: the HID source of a touch (touch pad, touch screen); TS_none for any other event
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, TouchSource /*touch_src*/, InputEvent /*event*/,
+    int /*pointer_id*/, int /*btn_id*/, Point2 /*pos*/, int /*accum_res*/)
   {
     return 0;
   }
@@ -105,11 +96,6 @@ public:
   {
     return 0;
   }
-
-  // state is HumanInput::Gesture::State; gets only the types of getTouchPadGestures()
-  virtual int touchPadGestureEvent(ElementTree *, Element *, int /*state*/, const TouchPadGesture &, int /*accum_res*/) { return 0; }
-  // a mask of GestureDetector::Type bits this behavior takes on the element
-  virtual int getTouchPadGestures(const Element *) { return 0; }
 
   virtual void onAttach(Element *) {}
   virtual void onDetach(Element *, DetachMode) {}

@@ -3,6 +3,9 @@
 
 #include <vecmath/dag_vecMathDecl.h>
 #include <scene/dag_physMatIdDecl.h>
+#include <rendInst/riexHandle.h>
+#include <generic/dag_functionRef.h>
+#include "riDestrProps.h"
 #if DAGOR_DBGLEVEL > 0
 #include <util/dag_convar.h>
 #endif
@@ -12,6 +15,7 @@
 namespace rendinst
 {
 struct RendInstDesc;
+struct RendInstBufferData;
 extern bool enable_apex;
 } // namespace rendinst
 
@@ -28,17 +32,18 @@ inline constexpr float MAX_RI_DESTROY_IMPULSE = 1e8f;
 namespace rendinstdestr
 {
 
-struct DestrObjProps;
-
 #if DAGOR_DBGLEVEL > 0
 extern ConVarT<bool, false> ri_debug_collision;
 #else
 inline constexpr bool ri_debug_collision = false;
 #endif
 
+rendinst::riex_handle_t restore_rendinst(const rendinst::RendInstBufferData &buffer);
+void for_each_nearby_ri(const RiNearbyGroupsProps *nearby_groups, RiNearbyGroupsProps::Actions required_actions,
+  const rendinst::RendInstBufferData &owner, dag::FunctionRef<void(rendinst::riex_handle_t, RiNearbyGroupsProps::Actions) const> cb);
+
 float get_sync_time();
 void queue_ri_collision_for_debris_if_enabled(const mat44f &inst_tm, const bbox3f &local_bbox);
 PhysMat::MatID get_destructable_physmat_for_ri(const rendinst::RendInstDesc &desc);
-void fill_destr_obj_params(destructables::DestructableCreationParams &params, const DestrObjProps *obj);
 
 } // namespace rendinstdestr

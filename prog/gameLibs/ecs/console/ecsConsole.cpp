@@ -82,7 +82,7 @@ namespace ecs
 {
 #if DAECS_EXTENSIVE_CHECKS
 extern bool log_unchaged_track_components_marked_as_changed;
-extern dag::VectorMap<int, int> component_index_to_unchanged_track_count;
+void set_log_tracked_compare_stats(bool on);
 #endif
 }; // namespace ecs
 
@@ -662,7 +662,7 @@ static void who_can_access_component_of_template(const char *component_name, con
 
   if (outputQueries.size() > 0)
     console::print_d("Queries:");
-  for (auto name : outputQueries)
+  for (const auto &name : outputQueries)
     console::print_d("\t%s", name.c_str());
 
   console::print_d("Systems: %d queries: %d.", outputSystems.size(), outputQueries.size());
@@ -685,7 +685,7 @@ static void who_modifies_tracked_components_of_template(const char *template_nam
     console::print_d("\t%s", name);
   }
 
-  auto componentsToStr = [](eastl::vector<ecs::component_type_t> trackedComps) {
+  auto componentsToStr = [](const eastl::vector<ecs::component_type_t> &trackedComps) {
     String result;
     for (auto &c : trackedComps)
     {
@@ -741,7 +741,7 @@ static void who_modifies_tracked_components_of_template(const char *template_nam
 
   if (outputSystems.size() > 0)
     console::print_d("Systems:");
-  for (auto name : outputSystems)
+  for (const auto &name : outputSystems)
     console::print_d("\t%s", name);
 
   if (outputQueries.size() > 0)
@@ -1266,7 +1266,7 @@ static bool ecs_console_handler(const char *argv[], int argc)
         auto thash = t.buildHash();
         eastl::string str;
         str.append_sprintf("template <%s:%s>: hash=0x%X,\ncomponents(%d) :", t.getName(), t.getPath(), thash, t.componentsCount());
-        for (auto c : t.getComponentsMap())
+        for (const auto &c : t.getComponentsMap())
           str.append_sprintf(" %s:0x%X", templates.data().getComponentName(c.first), templates.data().getComponentType(c.first));
         str.append_sprintf(")");
         auto printList = [&](const char *n, const ecs::Template::ComponentsSet &s) {
@@ -1525,31 +1525,14 @@ static bool ecs_console_handler(const char *argv[], int argc)
   }
   CONSOLE_CHECK_NAME("ecs", "serialize_entity", 3, 3) { serialize_entity(atoi(argv[1]), unquote_arg(argv[2]).c_str()); }
   CONSOLE_CHECK_NAME_EX("ecs", "log_tracked_unchanged_components", 1, 2,
-    "Logs components which were marked as possibly changed but the underlying data was the same.", "")
+    "Logs per tracked component compare time and changed/unchanged counts, toggle to start and to report.", "")
   {
 #if DAECS_EXTENSIVE_CHECKS
-    ecs::log_unchaged_track_components_marked_as_changed =
-      argc < 2 ? !ecs::log_unchaged_track_components_marked_as_changed : to_bool(argv[1]);
+    ecs::set_log_tracked_compare_stats(argc < 2 ? !ecs::log_unchaged_track_components_marked_as_changed : to_bool(argv[1]));
     if (ecs::log_unchaged_track_components_marked_as_changed)
       console::print("Logging of components is now on");
     else
-    {
-      eastl::vector<eastl::pair<int, int>> sortedComps;
-      sortedComps.reserve(ecs::component_index_to_unchanged_track_count.size());
-      for (auto &c : ecs::component_index_to_unchanged_track_count)
-      {
-        sortedComps.push_back(c);
-      }
-      eastl::sort(sortedComps.begin(), sortedComps.end(),
-        [](const eastl::pair<int, int> &a, const eastl::pair<int, int> &b) { return a.second > b.second; });
-      ecs::component_index_to_unchanged_track_count.clear();
-
-      for (auto &c : sortedComps)
-        debug("Component was marked changed but wasnt %d times for <%s>(%d)", c.second,
-          g_entity_mgr->getDataComponents().getComponentNameById(c.first), c.first);
-
       console::print("Logging of unchaged components marked as changed is now off. See log for report.");
-    }
 #else
     console::print("This command requires the game to be build with DAECS_EXTENSIVE_CHECKS flag.");
 #endif

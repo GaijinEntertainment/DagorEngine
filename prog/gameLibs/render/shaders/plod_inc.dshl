@@ -13,6 +13,10 @@ macro PLOD_GEN_COMMON(enable, channel_count)
       #define PLOD_VS_OUTPUT nointerpolation uint plodIdx : BLENDINDICES0;
       #define PLOD_VS_GEN(output, value) output.plodIdx = value; output.pos = 0.f;
       #define SAMPLE_TEX(tex, tc) tex2DLodBindless(tex, float4(tc, 0.0f, get_plod_level()))
+      #define SAMPLE_TEX_LOD(tex, tc, lod) SAMPLE_TEX(tex, tc)
+      #define SAMPLE_TEX_GRAD(tex, tc, dx, dy) SAMPLE_TEX(tex, tc)
+      #define SAMPLE_TEX_SAMPLER_LOD(tex, smp, tc, lod) tex2DLodBindlessSampler(tex, smp, float4(tc, 0.0f, get_plod_level()))
+      #define SAMPLE_TEX_SAMPLER_GRAD(tex, smp, tc, dx, dy) SAMPLE_TEX_SAMPLER_LOD(tex, smp, tc, 0)
     }
     (ps) {
       plod_level@f1 = plod_level;

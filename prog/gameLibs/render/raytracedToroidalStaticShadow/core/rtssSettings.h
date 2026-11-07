@@ -4,7 +4,7 @@
 #include <math/dag_hlsl_floatx.h>
 #include "../shaders/rtss_common.hlsli"
 
-// constraint: a layout change needs a new scheduler
+// a layout change needs a new scheduler
 struct RtssSchedulerLayout
 {
   int levels = 4;       // 1..12
@@ -14,6 +14,7 @@ struct RtssSchedulerLayout
   float texel0 = 0.05f; // meters, 0.001..1000
   float maxCasterReach = 2000.f, minSunY = 0.f;
   float maxAnisotropy = 1.f; // 1..8; above 1, light space y is scaled for square ground texels at a low sun
+  bool sunSweep = true;      // false: a sun step restarts the level; the library sets it from the rtss_sun_sweep assume
 
   int pageTexels() const { return slotTexels - 2 * borderTexels; }
   bool operator==(const RtssSchedulerLayout &) const = default;

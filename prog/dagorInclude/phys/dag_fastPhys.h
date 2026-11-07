@@ -7,7 +7,9 @@
 #include <util/dag_globDef.h>
 #include <math/dag_Point3.h>
 #include <math/dag_TMatrix.h>
+#include <math/dag_capsule.h>
 #include <generic/dag_smallTab.h>
+#include <generic/dag_tab.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <EASTL/string.h>
@@ -44,6 +46,8 @@ enum
   AID_LOOK_AT_BONE_CTRL,
 
   AID_HINGE_CONSTRAINT,
+
+  AID_CLIP_EXTERNAL,
 };
 
 
@@ -54,6 +58,14 @@ struct ClippedLine
 
   ClippedLine() {} //-V730
   ClippedLine(int i1, int i2, int n) : p1Index(i1), p2Index(i2), numSegs(n) {}
+};
+
+struct ClippedLink
+{
+  int pivotIndex, endIndex, virtIndex;
+
+  ClippedLink() {} //-V730
+  ClippedLink(int pivot, int end, int virt) : pivotIndex(pivot), endIndex(end), virtIndex(virt) {}
 };
 
 
@@ -109,6 +121,10 @@ public:
 
   // Gate honored by AnimcharBaseComponent::postRecalcWtm; when false, update() is skipped.
   bool enabled = true;
+
+  Tab<TMatrix> clipBoxes;
+  Tab<Capsule> clipCapsules;
+  real clipFriction = 0;
 
   int firstIntegratePoint;
 

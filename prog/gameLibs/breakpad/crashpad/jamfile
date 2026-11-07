@@ -18,6 +18,7 @@ AddIncludes =
 
 Sources =
   crashpad.cpp
+  ../product.cpp
 ;
 
 if $(Platform) = windows {

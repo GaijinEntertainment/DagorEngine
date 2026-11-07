@@ -10,9 +10,11 @@
 #include <de3_interface.h>
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_workspace.h>
+#include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <drv/3d/dag_tex3d.h>
 #include <image/dag_tga.h>
 #include <image/tiff-4.4.0/tiffio.h>
@@ -38,13 +40,21 @@
 #include <libTools/util/strUtil.h>
 #include <libTools/util/appDirRelativePath.h>
 #include <util/dag_fileTimeChecker.h>
+#include <util/dag_hash.h>
 #include <workCycle/dag_workCycle.h>
 
 #include <debug/dag_debug.h>
 #include <math/dag_mathBase.h>
 #include <math/dag_mathUtils.h>
+#include <3d/dag_eventQueryHolder.h>
 #include <3d/dag_resPtr.h>
 
+#include <EASTL/algorithm.h>
+#include <EASTL/fixed_vector.h>
+#include <EASTL/hash_map.h>
+#include <EASTL/hash_set.h>
+#include <EASTL/sort.h>
+#include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/unordered_map.h>
 #include <time.h>
@@ -52,6 +62,39 @@
 
 namespace
 {
+constexpr int MAX_FENCE_POLL_USEC = 250000;
+constexpr int MAX_SLEEP_OVERSHOOT_USEC = 1000;
+constexpr int FENCE_YIELD_POLL_USEC = 100;
+constexpr int MAX_YIELD_POLL_PREDICTION_FACTOR = 2;
+constexpr int MIN_YIELD_POLL_USEC = 2000;
+constexpr uint64_t MAX_MEASURED_CMD_USEC = 10000000;
+constexpr int LOAD_AHEAD_NODE_WINDOW = 16;
+constexpr int MAX_KEY_COSTS = 1 << 16;
+constexpr int MIN_COST_KEYS_FOR_SPREAD = 2;
+constexpr float MAX_COST_KEY_SPREAD = 5.0f;
+
+int usec_for_pixels(float usec_per_pixel, int pixels)
+{
+  return static_cast<int>(min(usec_per_pixel * static_cast<float>(pixels), static_cast<float>(MAX_MEASURED_CMD_USEC)));
+}
+
+void wait_before_fence_poll(int64_t flush_end_ticks, int predicted_usec, int poll_msec)
+{
+  const int elapsedUsec = get_time_usec(flush_end_ticks);
+  const bool sleepEndsInBatch = elapsedUsec + poll_msec * 1000 + MAX_SLEEP_OVERSHOOT_USEC <= predicted_usec;
+  const bool batchOverdue = elapsedUsec > predicted_usec * MAX_YIELD_POLL_PREDICTION_FACTOR + MIN_YIELD_POLL_USEC;
+  if (sleepEndsInBatch || batchOverdue)
+  {
+    sleep_msec(poll_msec);
+    return;
+  }
+  const int64_t yieldStart = ref_time_ticks();
+  do
+  {
+    sleep_usec(0);
+  } while (get_time_usec(yieldStart) < FENCE_YIELD_POLL_USEC);
+}
+
 int fmtToChannelsCount(int fmt)
 {
   switch (fmt & TEXFMT_MASK)
@@ -74,46 +117,254 @@ int fmtToChannelsCount(int fmt)
   }
 }
 
+const eastl::string *find_label(const CompiledNameLabels &labels, eastl::string_view name)
+{
+  auto it = labels.find_as(name);
+  return it != labels.end() ? &it->second : nullptr;
+}
+
+// Texgen messages put names in `<...>`; a compiled name there becomes its label, brackets included.
+String apply_name_labels(const char *text, const CompiledNameLabels &graph_labels, const CompiledNameLabels &variant_labels)
+{
+  eastl::string out(text);
+  size_t open = 0;
+  while ((open = out.find('<', open)) != eastl::string::npos)
+  {
+    const size_t close = out.find('>', open + 1);
+    if (close == eastl::string::npos)
+    {
+      break;
+    }
+    const eastl::string_view name(out.data() + open + 1, close - open - 1);
+    const eastl::string *label = find_label(graph_labels, name);
+    if (!label)
+    {
+      label = find_label(variant_labels, name);
+    }
+    if (label)
+    {
+      out.replace(open, close - open + 1, *label);
+      open += label->size();
+    }
+    else
+    {
+      ++open;
+    }
+  }
+  return String(out.c_str());
+}
 
 class GraphLoggerImpl : public TextureGenLogger
 {
 public:
-  bool hasErrors = false;
-  bool hasWarnings = false;
-  // Last (most recent) error / warning of the pass -- the status bar shows only these. Every
-  // error / warning is echoed to the editor console as it happens (see log()); the full ordered
-  // transcript also accumulates in `lines`.
-  String lastError;
-  String lastWarning;
-  String lines;
+  // Where a message logged outside a node goes, in pipeline order: the status bar shows an earlier stage first.
+  enum class LogStage
+  {
+    DshlCompile,
+    ShaderSetup,
+    Pass,
+    Count
+  };
 
-  void clear()
+  // The full transcript of the pass.
+  String lines;
+  // Not reset by startPass(): they outlive one generation pass.
+  CompiledNameLabels graphLabels;
+  CompiledNameLabels variantLabels;
+  // Set only around a pass step: outside one, the generator's current node is not what a message is about.
+  TextureGenerator *steppingGen = nullptr;
+  // GraphData::mainGraphStamp of the compile whose blocks the node logs name: the one the last pass ran.
+  uint32_t logsStamp = 0;
+
+  void startPass()
   {
     ::clear_and_shrink(lines);
-    ::clear_and_shrink(lastError);
-    ::clear_and_shrink(lastWarning);
-    hasErrors = false;
-    hasWarnings = false;
+    dropStage(LogStage::Pass);
+  }
+
+  void dropStage(LogStage s) { stageMessages[static_cast<size_t>(s)] = NewestMessages(); }
+
+  // A message of a step outside texgen, which keeps it until the step runs again.
+  void report(LogStage s, int level, const String &text) { logTo(s, level, text); }
+
+  void dropAllMessages()
+  {
+    nodeLogs.clear();
+    logsStamp = 0;
+    for (NewestMessages &m : stageMessages)
+    {
+      m = NewestMessages();
+    }
+  }
+
+  // Right after a pass starts: a node it runs logs anew, and a changed or gone node is not the one that logged.
+  void checkNodeLogs(TextureGenerator &gen, const DataBlock &commands, uint32_t commands_stamp)
+  {
+    logsStamp = commands_stamp;
+    servedRecords.clear();
+    for (int i = 0; i < commands.blockCount(); ++i)
+    {
+      const char *id = texgen_get_cache_node_record_id(*commands.getBlock(i));
+      if (id && regcache::is_record_exists(id))
+      {
+        servedRecords.insert(id);
+      }
+    }
+    if (nodeLogs.empty() && (servedRecords.empty() || recordLogs.empty()))
+    {
+      return;
+    }
+    eastl::vector<const char *> passNames, usedNames;
+    texgen_get_pass_node_names(gen, passNames);
+    texgen_get_used_node_names(commands, usedNames);
+    const eastl::hash_set<eastl::string_view> passNodes(passNames.begin(), passNames.end());
+    const eastl::hash_set<eastl::string_view> usedNodes(usedNames.begin(), usedNames.end());
+    auto outdated = [&](const NodeLog &l) {
+      const char *name = l.messages.nodeName.c_str();
+      return texgen_get_node_key(gen, name) != l.nodeKey || passNodes.count(name) != 0;
+    };
+    nodeLogs.erase(eastl::remove_if(nodeLogs.begin(), nodeLogs.end(), outdated), nodeLogs.end());
+    // A served record stands in for its inputs, so they do not run: they get back the logs they had when it was made.
+    for (const eastl::string &id : servedRecords)
+    {
+      auto record = recordLogs.find(id);
+      if (record == recordLogs.end())
+      {
+        continue;
+      }
+      for (const NodeLog &kept : record->second)
+      {
+        const char *name = kept.messages.nodeName.c_str();
+        if (passNodes.count(name) == 0 && texgen_get_node_key(gen, name) == kept.nodeKey && !findNodeLog(name))
+        {
+          nodeLogs.push_back(kept);
+        }
+      }
+    }
+    // Hidden, not dropped: a final that reads the node again can take its kept result, which does not log again.
+    for (NodeLog &l : nodeLogs)
+    {
+      l.used = usedNodes.count(l.messages.nodeName.c_str()) != 0;
+    }
+  }
+
+  // At every pass end, stop or cut: each record keeps the logs of its inputs, for a later graph bind that the record serves.
+  void snapshotRecordLogs(const DataBlock &commands)
+  {
+    for (auto it = recordLogs.begin(); it != recordLogs.end();)
+    {
+      if (regcache::is_record_exists(it->first.c_str()))
+      {
+        ++it;
+      }
+      else
+      {
+        it = recordLogs.erase(it);
+      }
+    }
+    eastl::vector<const char *> inputs;
+    for (int i = 0; i < commands.blockCount(); ++i)
+    {
+      const DataBlock &node = *commands.getBlock(i);
+      const char *id = texgen_get_cache_node_record_id(node);
+      if (!id || !regcache::is_record_exists(id))
+      {
+        continue;
+      }
+      // An input of a record served since the pass start ran, if at all, with the same block and inputs, so the logs it keeps
+      // still hold.
+      if (servedRecords.find_as(id) != servedRecords.end() && recordLogs.find_as(id) != recordLogs.end())
+      {
+        continue;
+      }
+      texgen_get_node_input_names(commands, node.getBlockName(), inputs);
+      eastl::vector<NodeLog> &kept = recordLogs[id];
+      kept.clear();
+      for (const char *name : inputs)
+      {
+        if (const NodeLog *l = findNodeLog(name))
+        {
+          kept.push_back(*l);
+        }
+      }
+    }
+  }
+
+  // Next to each regcache::clear(): the records are gone.
+  void dropRecordLogs()
+  {
+    recordLogs.clear();
+    servedRecords.clear();
+  }
+
+  // A stage message first, as an earlier stage can cause the later messages; else the newest node message.
+  bool findShown(bool error, String &text, eastl::string &node) const
+  {
+    for (const NewestMessages &m : stageMessages)
+    {
+      if (m.seq(error) != 0)
+      {
+        text = m.text(error);
+        node.clear();
+        return true;
+      }
+    }
+    const NodeLog *newest = nullptr;
+    for (const NodeLog &l : nodeLogs)
+    {
+      if (l.used && l.newest.seq(error) > (newest ? newest->newest.seq(error) : 0))
+      {
+        newest = &l;
+      }
+    }
+    if (!newest)
+    {
+      return false;
+    }
+    text = newest->newest.text(error);
+    node = newest->messages.nodeName;
+    return true;
+  }
+
+  void copyNodeMessages(eastl::vector<TexGenNodeMessages> &out) const
+  {
+    for (const NodeLog &l : nodeLogs)
+    {
+      if (l.used)
+      {
+        out.push_back(l.messages);
+      }
+    }
   }
 
   String getFullLog() const { return lines; }
 
-  void log(int level, const String &s) override
+  void log(int level, const String &s) override { logTo(LogStage::Pass, level, s); }
+
+private:
+  void logTo(LogStage stage, int level, const String &s)
   {
-    // Every error / warning is mirrored to the editor console (not just the first), and the
-    // most recent of each is retained for the status-bar message.
-    if (level == LOGLEVEL_ERR)
+    if (level == LOGLEVEL_ERR || level == LOGLEVEL_WARN)
     {
-      lastError = s;
-      hasErrors = true;
-      DAEDITOR3.conError("GraphTexGenService: %s", s.str());
-    }
-    // Warnings e.g. a shader that compiled with a recoverable issue (texturePSGenShader.cpp).
-    else if (level == LOGLEVEL_WARN)
-    {
-      lastWarning = s;
-      hasWarnings = true;
-      DAEDITOR3.conWarning("GraphTexGenService: %s", s.str());
+      const bool error = level == LOGLEVEL_ERR;
+      const String text = apply_name_labels(s.str(), graphLabels, variantLabels);
+      if (error)
+      {
+        DAEDITOR3.conError("GraphTexGenService: %s", text.str());
+      }
+      else
+      {
+        DAEDITOR3.conWarning("GraphTexGenService: %s", text.str());
+      }
+      ++messageSeq;
+      if (const char *node = steppingGen ? texgen_get_current_node_name(*steppingGen) : nullptr)
+      {
+        addNodeMessage(*steppingGen, node, error, text);
+      }
+      else
+      {
+        stageMessages[static_cast<size_t>(stage)].add(error, text, messageSeq);
+      }
     }
 
     if (level <= startLevel)
@@ -121,6 +372,61 @@ public:
       logmessage(level, "%s", s.str());
       lines.aprintf(1024, "%s\n", s.str());
     }
+  }
+
+  // The newest error and warning of one source; the seq orders them across sources.
+  struct NewestMessages
+  {
+    String error, warning;
+    uint32_t errorSeq = 0, warningSeq = 0; // 0: none
+
+    void add(bool is_error, const String &s, uint32_t seq)
+    {
+      (is_error ? error : warning) = s;
+      (is_error ? errorSeq : warningSeq) = seq;
+    }
+    uint32_t seq(bool is_error) const { return is_error ? errorSeq : warningSeq; }
+    const String &text(bool is_error) const { return is_error ? error : warning; }
+  };
+  struct NodeLog
+  {
+    TexGenNodeMessages messages;
+    NewestMessages newest;
+    uint64_t nodeKey = 0; // the node's content hash when it logged
+    bool used = true;     // a final reads the node; else the log is not shown
+  };
+  // A source keeps its messages until it runs again.
+  eastl::vector<NodeLog> nodeLogs;
+  NewestMessages stageMessages[static_cast<size_t>(LogStage::Count)];
+  // Never reset, so a kept message never looks newer than a later one.
+  uint32_t messageSeq = 0;
+  // By cache record key: the logs of the record's inputs when it was made. A graph bind can take the record, not run them.
+  eastl::hash_map<eastl::string, eastl::vector<NodeLog>> recordLogs;
+  // The records that stood in for their inputs at the last pass start.
+  eastl::hash_set<eastl::string> servedRecords;
+
+  NodeLog *findNodeLog(const char *node)
+  {
+    auto it = eastl::find_if(nodeLogs.begin(), nodeLogs.end(), [node](const NodeLog &l) { return l.messages.nodeName == node; });
+    return it != nodeLogs.end() ? &*it : nullptr;
+  }
+
+  void addNodeMessage(TextureGenerator &gen, const char *node, bool error, const String &s)
+  {
+    NodeLog *entry = findNodeLog(node);
+    if (!entry)
+    {
+      entry = &nodeLogs.push_back();
+      entry->messages.nodeName = node;
+      entry->nodeKey = texgen_get_node_key(gen, node);
+    }
+    else
+    {
+      entry->messages.text.push_back('\n');
+    }
+    entry->messages.text.append(s.str());
+    entry->messages.hasErrors = entry->messages.hasErrors || error;
+    entry->newest.add(error, s, messageSeq);
   }
 };
 
@@ -260,11 +566,9 @@ class GraphTexGenServiceImpl : public IEditorService, public IGraphTexGenService
 public:
   GraphTexGenServiceImpl() = default;
 
-  ~GraphTexGenServiceImpl() override
-  {
-    stopWorker();
-    closeTexGen();
-  }
+  // The service plugin unregisters before GraphEditorPlg (lower render order), so at exit and on a workspace
+  // switch the plugin's own shutdownTexGen call finds no service; this is the path that always runs.
+  ~GraphTexGenServiceImpl() override { shutdownTexGen(); }
 
   // IEditorService
   const char *getServiceName() const override { return "texgen"; }
@@ -287,14 +591,29 @@ public:
     defaultShadersPath = default_shader_path;
     defaultTexgenPath = default_texgen_path;
 
+    texgen_set_command_sync(TextureGenCommandSync::None);
+    texgen_set_max_tile_size(clamp(dgs_get_settings()->getBlockByNameEx("texgen")->getInt("maxTileSize", 1024), 0, 16384));
     startWorker();
   }
 
   void shutdownTexGen() override
   {
     stopWorker();
-    closeTexGen();
-    texGenReg.close();
+    {
+      d3d::GpuAutoLock gpuLock;
+      closeTexGen();
+      texGenReg.close();
+      close_pixel_shader_texgen();
+      if (dshlBindump != INVALID_BINDUMP_HANDLE)
+      {
+        unload_shaders_bindump(dshlBindump);
+        dshlBindump = INVALID_BINDUMP_HANDLE;
+        // The dump stays on disk; a pass before the next compile loads it again.
+        dshlNeedLoad = true;
+      }
+      selectedTexPreview.close();
+      selectedTexState = SelectedTextureState{};
+    }
     // Worker is gone; drain whatever it queued so the dtor doesn't free GPU textures
     // outside a GpuAutoLock scope.
     drainPendingTextureDestroys();
@@ -339,7 +658,7 @@ public:
       if (inputFileCheckers[i].fileChanged() && is_file_ready_to_open(inputFileCheckers[i].getFileName()))
       {
         changed = true;
-        texGenReg.validateFile(inputFileCheckers[i].getFileName());
+        texGenReg.markFileChanged(inputFileCheckers[i].getFileName());
       }
     }
 
@@ -348,6 +667,7 @@ public:
       timeToRecalcGraphSec = max(timeToRecalcGraphSec, inputFileCheckers.size() <= 1 ? 0.2f : 1.2f);
       inputFileCheckers.updateFileTimes();
       regcache::clear();
+      graphLogger.dropRecordLogs();
     }
   }
 
@@ -357,16 +677,23 @@ public:
   // worker thread inside workerLoop() under GpuAutoLock + stateLock.
   void tickTexGeneration() override
   {
+    drainPendingTextureDestroys();
+
     if (!graphData)
     {
       return;
     }
 
-    drainPendingTextureDestroys();
-
     bool shouldKick = false;
     {
       WinAutoLock guard(stateLock);
+      // A full device reset empties every render target; a failed one is retried.
+      const unsigned fullResetGen = get_d3d_full_reset_counter();
+      if (fullResetGen != texGenFullResetGen && !is_restoring_3d_device())
+      {
+        forceRebuild = true;
+        texGenFullResetGen = fullResetGen;
+      }
       checkInputFilesForUpdate();
       shouldKick = hasWorkUnlocked();
     }
@@ -408,10 +735,10 @@ public:
     st.memUsedCurrent = texGenReg.getCurrentMemSize();
     st.memUsedMax = texGenReg.getMaxMemSize();
     st.gpuMemTotal = static_cast<uint64_t>(d3d::get_dedicated_gpu_memory_size_kb()) << 10;
-    // texGenStep counts the commands attempted so far while a pass is stepping; it parks at
-    // 0 (idle / finished) or -1 (failed), which both render as "no pass in flight".
-    st.commandsDone = texGenStep > 0 ? texGenStep : 0;
-    st.commandsTotal = texGenTotalCmds;
+    // texGenStep is positive only while a pass is stepping; it parks at 0 (idle / finished) or -1
+    // (failed), which both render as "no pass in flight".
+    st.nodesDone = texGenStep > 0 && texGen ? texgen_get_done_node_count(*texGen) : 0;
+    st.nodesTotal = texGenTotalNodes;
     // Outputs = declared graph finals captured at generation start (declaredOutputsCount), NOT
     // finalStrings.size(). On a generation failure the pipeline closes texGenReg and then
     // finalizeTexGen prunes every final whose register no longer exists, emptying finalStrings --
@@ -422,16 +749,37 @@ public:
     // Build outcome for the status-bar message. graphLogger is written by the worker under
     // stateLock (same lock held here), so this snapshot is consistent.
     st.graphCompileFailed = graphCompileFailed;
-    st.hasErrors = graphLogger.hasErrors;
     st.generationCompleted = generationCompleted;
+    st.passHeldByAutoupdate = shouldGenerateTex && !autoupdate && !generateOnce && boundGraphCompiled;
+    st.nodeMessagesStamp = graphLogger.logsStamp;
+    st.compilePending = compilePending();
+    String texgenError, texgenWarning;
+    st.hasErrors = graphLogger.findShown(/*error=*/true, texgenError, st.lastErrorNode);
+    const bool texgenWarned = graphLogger.findShown(/*error=*/false, texgenWarning, st.lastWarningNode);
     // The compile's own text outranks the logger's -- stage 2 never saw the part it is about --
     // and graphCompileFailed decides which channel it lands on. Empty on a failure leaves the panel
     // its generic line.
-    st.lastError = graphCompileFailed ? graphCompileMessage.str() : graphLogger.lastError.c_str();
+    st.lastError = graphCompileFailed ? graphCompileMessage.str() : texgenError.str();
+    if (graphCompileFailed)
+    {
+      st.lastErrorNode.clear();
+    }
     const bool compileWarned = !graphCompileFailed && !graphCompileMessage.empty();
-    st.hasWarnings = compileWarned || graphLogger.hasWarnings;
-    st.lastWarning = compileWarned ? graphCompileMessage.str() : graphLogger.lastWarning.c_str();
+    st.graphCompileWarned = compileWarned;
+    st.hasWarnings = compileWarned || texgenWarned;
+    st.lastWarning = compileWarned ? graphCompileMessage.str() : texgenWarning.str();
+    if (compileWarned)
+    {
+      st.lastWarningNode.clear();
+    }
+    graphLogger.copyNodeMessages(st.nodeMessages);
     return st;
+  }
+
+  uint32_t getNodeMessagesStamp() const override
+  {
+    WinAutoLock guard(stateLock);
+    return graphLogger.logsStamp;
   }
 
   SelectedTextureState getSelectedTextureState() const override
@@ -440,12 +788,12 @@ public:
     return selectedTexState;
   }
 
-  const eastl::hash_set<eastl::string> &getFinalStrings() const override { return finalStrings; }
-
   void saveTextures(const char *mask) override
   {
+    bool heldByAutoupdate = false;
     {
       WinAutoLock guard(stateLock);
+      heldByAutoupdate = !autoupdate && !generateOnce && !forceRebuild && (shouldGenerateTex || compilePending());
       saveTexturesToFiles = true;
       if (mask)
       {
@@ -469,6 +817,10 @@ public:
 
     DAEDITOR3.conNote("GraphTexGenService: render directory: '%s'", rDir);
     DAEDITOR3.conNote("GraphTexGenService: entity directory: '%s'", eDir);
+    if (heldByAutoupdate)
+    {
+      DAEDITOR3.conNote("GraphTexGenService: the save waits for the next pass, as auto-update is off");
+    }
 
     if (worker)
     {
@@ -484,51 +836,52 @@ public:
 
   void setGraphData(GraphData *gd) override
   {
-    if (!gd)
     {
-      // Going idle: drop any pipeline state tied to the previous graph data. The teardown does D3D
-      // work, so it stays outside stateLock -- lock order is GpuAutoLock outer, stateLock inner.
+      // Drop the pass and any pipeline state tied to the previous graph data. The worker may be inside
+      // a generation batch, so take its locks in its order: GpuAutoLock outer, stateLock inner.
+      d3d::GpuAutoLock gpuLock;
+      WinAutoLock guard(stateLock);
+      // A record that the cut pass made keeps the logs of its inputs, which dropAllMessages below drops.
+      if (graphData && texGenStep > 0)
+      {
+        graphLogger.snapshotRecordLogs(graphData->mainGraphBlk);
+      }
       texGenReg.close();
       finalizeTexGen();
       closeTexGen();
-      // getPipelineStatus reads this state under stateLock as one snapshot; the worker writes it
-      // under the same lock.
-      WinAutoLock guard(stateLock);
       texGenStep = -1;
-      texGenTotalCmds = 0;
+      texGenTotalNodes = 0;
       declaredOutputsCount = 0;
       graphCompileFailed = false;
       graphCompileMessage.clear();
       generationCompleted = false;
-      previewFinalName.clear();
-      previewFinalAddedToBlk = false;
+      graphLogger.dropAllMessages(); // node ids restart per graph
       pendingPreviewReg.clear();
       selectedTexState = SelectedTextureState{};
-      graphData = nullptr;
-      // Reset both gens so the next setGraphData(non-null) followed by
-      // markGraphDirty() starts cleanly at 0/0 -> 1/0 (dirty).
-      graphDirtyGen = 0;
-      graphCompiledGen = 0;
-      return;
-    }
-
-    {
-      WinAutoLock guard(stateLock);
+      if (gd != graphData && saveTexturesToFiles)
+      {
+        saveTexturesToFiles = false;
+        DAEDITOR3.conError("GraphTexGenService: save dropped, the graph changed before it ran");
+      }
       graphData = gd;
-      // Drop any preview-final inherited from the previous graph -- the new BLK is unrelated, and a
-      // stale name typically won't match any output reg in it (which would assert in the texgen lib's
-      // get_nodes_generating_regs). The panel will re-issue setPreviewFinal on its next selection.
-      previewFinalName.clear();
-      previewFinalAddedToBlk = false;
-      pendingPreviewReg.clear();
-      selectedTexState = SelectedTextureState{};
-      // Old graph's output count / build outcome are meaningless for the new one; recomputed on the
-      // first compile + generation.
-      declaredOutputsCount = 0;
-      graphCompileFailed = false;
-      graphCompileMessage.clear();
-      generationCompleted = false;
-      shouldGenerateTex = true;
+      texGenFullResetGen = get_d3d_full_reset_counter();
+      boundGraphCompiled = false;
+      // A waiting pass belonged to the old graph; the new one asks again when it compiles, and waits for auto-update.
+      shouldGenerateTex = false;
+      generateOnce = false;
+      forceRebuild = false;
+      if (!gd)
+      {
+        if (selectedTexPreview)
+        {
+          pendingTextureDestroy.push_back(eastl::move(selectedTexPreview));
+        }
+        // Reset both gens so the next setGraphData(non-null) followed by
+        // markGraphDirty() starts cleanly at 0/0 -> 1/0 (dirty).
+        graphDirtyGen = 0;
+        graphCompiledGen = 0;
+        return;
+      }
     }
     if (worker)
     {
@@ -540,6 +893,9 @@ public:
     {
       WinAutoLock guard(stateLock);
       forceRebuild = true;
+      generateOnce = true;
+      // Only a compile runs prepareDshlShaders, which reads the default shader files again.
+      ++graphDirtyGen;
     }
     if (worker)
     {
@@ -636,9 +992,8 @@ public:
 
   void setPreviewFinal(const char *tex_name) override
   {
-    // Mutates state shared with the worker (previewFinalName, pendingPreviewReg, selectedTexState,
-    // shouldGenerateTex) and writes to graphData->mainGraphBlk via add/removePreviewFinalFromBlk.
-    // Hold stateLock for all of it; release before waking the worker.
+    // Mutates state shared with the worker (pendingPreviewReg, selectedTexState, shouldGenerateTex).
+    // The worker moves the final into mainGraphBlk at the start of the next pass.
     {
       WinAutoLock guard(stateLock);
       if (!graphData)
@@ -647,14 +1002,11 @@ public:
       }
 
       eastl::string newName = (tex_name && tex_name[0]) ? tex_name : "";
-      if (newName == previewFinalName)
+      if (newName == pendingPreviewReg)
       {
         return;
       }
 
-      removePreviewFinalFromBlk();
-      previewFinalName = newName;
-      addPreviewFinalToBlk();
       pendingPreviewReg = eastl::move(newName);
       // Drop the stale preview from the previous selection right away so the panel doesn't keep
       // showing it across the regen window. If the new pipeline produces pendingPreviewReg, the
@@ -705,44 +1057,36 @@ public:
     return false;
   }
 
-  // Mutates graphData->mainGraphBlk so the texgen library's optimizer (which reads final:t=...
-  // directly from the BLK in textureGenerator.cpp) sees the preview register as a live target.
-  // Otherwise the texture for an intermediate node gets freed after generation and the preview
-  // lookup fails.
-  void addPreviewFinalToBlk()
+  // Worker only, under stateLock: the worker is the only writer of graphData->mainGraphBlk. The texgen
+  // library's optimizer reads final:t=... from the BLK, so a preview register that is not a final is
+  // freed after generation and the preview lookup fails.
+  void applyPreviewFinalToBlk()
   {
-    if (!graphData || previewFinalName.empty())
-    {
-      return;
-    }
-
-    if (!blk_has_output_reg(graphData->mainGraphBlk, previewFinalName.c_str()))
-    {
-      debug("TexGenService: preview final '%s' is not an output reg of any node; not promoting", previewFinalName.c_str());
-      return;
-    }
-    graphData->mainGraphBlk.addStr("final", previewFinalName.c_str());
-    previewFinalAddedToBlk = true;
-  }
-
-  void removePreviewFinalFromBlk()
-  {
-    if (!graphData || !previewFinalAddedToBlk || previewFinalName.empty())
-    {
-      previewFinalAddedToBlk = false;
-      return;
-    }
     DataBlock &blk = graphData->mainGraphBlk;
-    for (int i = blk.paramCount() - 1; i >= 0; --i)
+    if (!previewFinalInBlk.empty())
     {
-      if (blk.getParamType(i) == DataBlock::TYPE_STRING && strcmp(blk.getParamName(i), "final") == 0 &&
-          previewFinalName == blk.getStr(i))
+      for (int i = blk.paramCount() - 1; i >= 0; --i)
       {
-        blk.removeParam(i);
-        break;
+        if (blk.getParamType(i) == DataBlock::TYPE_STRING && strcmp(blk.getParamName(i), "final") == 0 &&
+            previewFinalInBlk == blk.getStr(i))
+        {
+          blk.removeParam(i);
+          break;
+        }
       }
+      previewFinalInBlk.clear();
     }
-    previewFinalAddedToBlk = false;
+    if (pendingPreviewReg.empty())
+    {
+      return;
+    }
+    if (!blk_has_output_reg(blk, pendingPreviewReg.c_str()))
+    {
+      debug("TexGenService: preview final '%s' is not an output reg of any node; not promoting", pendingPreviewReg.c_str());
+      return;
+    }
+    blk.addStr("final", pendingPreviewReg.c_str());
+    previewFinalInBlk = pendingPreviewReg;
   }
 
   // Heightmap metadata extracted from main graph (for landscape preview)
@@ -779,7 +1123,7 @@ public:
     for (const char *name : {"heightmap", "tex_hmap_low"})
     {
       eastl::string regName = texgen_get_final_reg_name(texGen, name);
-      int regNo = texGenReg.getRegNo(regName.c_str());
+      int regNo = getUsedRegNo(regName.c_str());
       if (regNo >= 0)
       {
         return texGenReg.getTextureId(regNo);
@@ -833,7 +1177,7 @@ public:
     }
 
     eastl::string regName = texgen_get_final_reg_name(texGen, tex_name);
-    int regNo = texGenReg.getRegNo(regName.c_str());
+    int regNo = getUsedRegNo(regName.c_str());
     if (regNo < 0)
     {
       return;
@@ -878,9 +1222,6 @@ public:
   }
 
 private:
-  // Nested worker thread. Each tick of workerLoop() takes (GpuAutoLock, stateLock) and runs
-  // the existing tickTexGenerationCore() for up to workerLockHoldUsec microseconds, then
-  // releases both so the main thread can render a frame between batches.
   class TexGenWorker final : public DaThread
   {
     GraphTexGenServiceImpl *svc;
@@ -917,36 +1258,47 @@ private:
 
     interlocked_release_store(workerTerminating, 1);
     os_event_set(&wakeEvent);
-    worker->terminate(true, 10000);
+    // No timeout: a batch that runs after the return re-creates the texgen state that the caller closes next.
+    worker->terminate(true);
     worker.reset();
+    {
+      d3d::GpuAutoLock gpuLock;
+      batchFence.reset();
+      releaseBatchTimestamps();
+    }
     os_event_destroy(&wakeEvent);
   }
 
-  // Caller must hold stateLock.
-  bool hasWorkUnlocked() const
+  // Callers must hold stateLock.
+  bool passRequested() const { return shouldGenerateTex && (autoupdate || generateOnce) && boundGraphCompiled; }
+  bool compilePending() const { return graphDirtyGen != graphCompiledGen && graphCompiler && graphData; }
+  bool passStartPendingUnlocked() const { return forceRebuild || passRequested(); }
+  bool hasGenerationWorkUnlocked() const { return passStartPendingUnlocked() || texGenStep > 0; }
+  // Finals stay empty until the reset rebuild. A waiting pass, also one that auto-update holds back, holds the save.
+  bool savePendingUnlocked() const
   {
-    return shouldGenerateTex || texGenStep > 0 || forceRebuild || saveTexturesToFiles || generateOnce ||
-           (graphDirtyGen != graphCompiledGen && graphCompiler && graphData);
+    return saveTexturesToFiles && !shouldGenerateTex && !compilePending() && !hasGenerationWorkUnlocked() &&
+           (!graphData || get_d3d_full_reset_counter() == texGenFullResetGen);
   }
+  bool hasWorkUnlocked() const { return compilePending() || hasGenerationWorkUnlocked() || savePendingUnlocked(); }
 
-  // Old tickTexGeneration body, minus checkInputFilesForUpdate (that stays on the main-thread
-  // poller). Runs under stateLock + GpuAutoLock on the worker thread. Each call performs
-  // one state-machine transition (start / step / save), matching the original per-frame
-  // cadence semantics.
-  void tickTexGenerationCore()
+  void tickGeneration()
   {
     if (forceRebuild)
     {
       regcache::clear();
+      graphLogger.dropRecordLogs();
       texGenReg.close();
       finalizeTexGen();
       closeTexGen();
       texGenStep = -1;
       forceRebuild = false;
       shouldGenerateTex = true;
+      // A queued save waits for this pass, also with autoupdate off.
+      generateOnce |= saveTexturesToFiles;
     }
 
-    if (shouldGenerateTex && (autoupdate || generateOnce))
+    if (passRequested())
     {
       shouldGenerateTex = false;
       generateOnce = false;
@@ -954,16 +1306,23 @@ private:
     }
     else if (texGenStep > 0)
     {
-      doGenerateTexStep(texGenStep, texGenStepCount);
+      doGenerateTexStep();
     }
-
-    doSaveTextures();
   }
 
   void workerLoop()
   {
-    const int lockHoldUsec = clamp(dgs_get_settings()->getBlockByNameEx("texgen")->getInt("workerLockHoldUsec", 15000), 1000, 100000);
-    const int betweenBatchesMsec = clamp(dgs_get_settings()->getBlockByNameEx("texgen")->getInt("workerBetweenBatchesMsec", 1), 0, 50);
+    const DataBlock *cfg = dgs_get_settings()->getBlockByNameEx("texgen");
+    const int submitUsec = clamp(cfg->getInt("workerSubmitUsec", 3000), 500, 20000);
+    const int gpuTargetUsec = clamp(cfg->getInt("workerBatchGpuTargetUsec", 8000), 1000, 50000);
+    const int maxBatchCmds = clamp(cfg->getInt("workerBatchMaxCmds", 256), 1, 1024);
+    const int pollMsec = clamp(cfg->getInt("workerBetweenBatchesMsec", 1), 1, 50);
+    const bool fencePollUnlocked = d3d::get_driver_code().is(d3d::dx11);
+    {
+      WinAutoLock stateGuard(stateLock);
+      texGenReg.setTexturePoolLimit(static_cast<uint64_t>(clamp(cfg->getInt("workerTexturePoolMb", 1024), 0, 16384)) << 20);
+    }
+    batchGpuStamps.resize(maxBatchCmds + 1, nullptr);
 
     while (!interlocked_acquire_load(workerTerminating))
     {
@@ -984,7 +1343,8 @@ private:
         // true so the very next iteration picks it up cleanly. This naturally
         // coalesces all the intermediate compiles during a slider drag into one
         // compile + one pipeline pass per pipeline-duration window.
-        if (graphDirtyGen != graphCompiledGen && graphCompiler && graphData && texGenStep <= 0)
+        // A force rebuild drops the pass anyway, so its compile does not wait for it.
+        if (compilePending() && (texGenStep <= 0 || forceRebuild))
         {
           // Snapshot the pointer; the actual call happens outside stateLock so
           // the plugin's compiler can take its own mutex without lock-order risk.
@@ -1008,12 +1368,8 @@ private:
 
       // Compile pass. Runs outside stateLock + outside GpuAutoLock. The plugin
       // commits the compile result into graphData->mainGraphBlk / shaderListBlk
-      // INSIDE compile() under its own mutex (see IGraphCompiler doc) -- the
-      // service does not write those BLKs itself, otherwise the worker's
-      // stateLock and the plugin's mutation lock would both guard the same
-      // memory under different names, which is not a guard at all.
-      // Re-applies the preview-final under stateLock since a fresh mainGraphBlk
-      // just clobbered the previously-injected `final:t`.
+      // INSIDE compile() under its own mutex (see IGraphCompiler doc).
+      // A fresh mainGraphBlk drops the injected preview `final:t`; startGenerateTex adds it again.
       if (compilerSnap)
       {
         const bool ok = compilerSnap->compile();
@@ -1022,73 +1378,356 @@ private:
         // from this private copy, never reading graphData -- which a main-thread graph load can wipe
         // under graphMutex during the multi-second compile.
         DataBlock dshlMainCopy, dshlShaderListCopy;
+        CompiledNameLabels labelsCopy;
         if (ok)
         {
-          compilerSnap->copyCompiledGraph(dshlMainCopy, dshlShaderListCopy);
+          compilerSnap->copyCompiledGraph(dshlMainCopy, dshlShaderListCopy, labelsCopy);
         }
+        const GraphData *compiledFor = nullptr;
         {
           WinAutoLock guard(stateLock);
           // graphCompileFailed is not set here: compile() pushes it with its message through
           // setGraphCompileOutcome so the bar can never pair one with the other's verdict.
           if (ok && graphData)
           {
-            previewFinalAddedToBlk = false;
-            addPreviewFinalToBlk();
+            graphLogger.graphLabels = eastl::move(labelsCopy);
+            previewFinalInBlk.clear();
             shouldGenerateTex = true;
-            generateOnce = true;
+            boundGraphCompiled = true;
           }
           // Advance graphCompiledGen even on failure: compile_graph_to_blks is
           // deterministic, so a retry without new input would just fail again
           // and spin the worker. The user has to edit the graph (incrementing
           // graphDirtyGen) to retrigger compile.
           graphCompiledGen = compileGenSnap;
+          // A bind waits only for compileInProgress, so the dsc2 pass below can outlive this graph.
+          compiledFor = graphData;
           compileInProgress = false;
         }
         // dshl phase 1: run the slow dsc2 compile of the freshly-compiled graph HERE -- still OUTSIDE
         // GpuAutoLock (only the generation batch below takes it) -- so it never stalls the main render
         // thread (which blocks in acquireD3dOwnership while the worker holds the GPU lock).
-        if (ok)
+        if (ok && !interlocked_acquire_load(workerTerminating))
         {
-          prepareDshlShaders(dshlMainCopy, dshlShaderListCopy);
+          prepareDshlShaders(dshlMainCopy, dshlShaderListCopy, compiledFor);
         }
       }
 
-      // Run one batch. Both locks are held for up to lockHoldUsec microseconds; the
-      // main thread is blocked from rendering / reading shared state during that window.
+      int submitted = 0;
+      int predictedUsec = 0;
+      bool fencePending = false;
+      int64_t flushEndTicks = 0;
+      {
+        d3d::GpuAutoLock gpuLock;
+        ensureBatchFence();
+        measureLastBatch();
+        const int64_t t0 = ref_time_ticks();
+        while (submitted < maxBatchCmds && !interlocked_acquire_load(workerTerminating))
+        {
+          WinAutoLock stateGuard(stateLock);
+          if (!hasGenerationWorkUnlocked())
+          {
+            break;
+          }
+          TextureGenCommand cmd;
+          const bool stepping = !passStartPendingUnlocked() && texGen && texgen_get_next_command(*texGen, cmd);
+          const int costUsec = stepping ? predictCmdGpuUsec(cmd.shaderName, cmd.pixels, cmd.costKey, gpuTargetUsec) : gpuTargetUsec;
+          // A texture created late in a batch stalls the DX11 driver; at a batch start it does not.
+          if (submitted > 0 && (!stepping || cmd.mapsOnCpu || cmd.loadsFiles || cmd.createsTextures ||
+                                 predictedUsec + costUsec > gpuTargetUsec || waitsForKeyMeasure(cmd)))
+          {
+            break;
+          }
+          if (submitted == 0)
+          {
+            d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &batchGpuStamps[0]);
+          }
+          tickGeneration();
+          ++submitted;
+          d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &batchGpuStamps[submitted]);
+          // A failed command closes texGen.
+          batchCmds.push_back({stepping && texGen ? cmd.shaderName : "",
+            stepping && texGen ? texgen_get_last_command_pixels(*texGen) : 0, cmd.pixels == 0, cmd.costKey});
+          predictedUsec += costUsec;
+          if (get_time_usec(t0) >= submitUsec)
+          {
+            break;
+          }
+        }
+        if (submitted > 0)
+        {
+          if (batchFence && d3d::issue_event_query(batchFence.get()))
+          {
+            fencePending = !d3d::get_event_query_status(batchFence.get(), true);
+          }
+          else
+          {
+            d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+          }
+          flushEndTicks = ref_time_ticks();
+        }
+      }
+      loadInputFilesAhead();
+
+      bool yielded = false;
+      const int64_t pollStart = ref_time_ticks();
+      while (fencePending && !interlocked_acquire_load(workerTerminating))
+      {
+        if (fencePollUnlocked && get_time_usec(pollStart) < MAX_FENCE_POLL_USEC)
+        {
+          {
+            // The DX11 status call needs no GPU ownership once the submit queued the fence signal;
+            // a device reset releases the fence under the loading lock taken for writing.
+            d3d::LoadingAutoLock resetGuard;
+            fencePending = get_d3d_reset_counter() == fenceResetGen && !d3d::get_event_query_status(batchFence.get(), false);
+          }
+          if (fencePending)
+          {
+            wait_before_fence_poll(flushEndTicks, predictedUsec, pollMsec);
+            yielded = true;
+          }
+          continue;
+        }
+        sleep_msec(pollMsec);
+        yielded = true;
+        d3d::GpuAutoLock gpuLock;
+        if (get_d3d_reset_counter() != fenceResetGen)
+        {
+          break;
+        }
+        // A Vulkan query completes only at a later present or flush, and a minimized editor does not present.
+        if (get_time_usec(pollStart) >= MAX_FENCE_POLL_USEC)
+        {
+          d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+        }
+        fencePending = !d3d::get_event_query_status(batchFence.get(), true);
+      }
+
+      bool savePending = false;
+      {
+        WinAutoLock stateGuard(stateLock);
+        savePending = savePendingUnlocked();
+      }
+      if (savePending && !interlocked_acquire_load(workerTerminating))
       {
         d3d::GpuAutoLock gpuLock;
         WinAutoLock stateGuard(stateLock);
-        if (hasWorkUnlocked())
-        {
-          const int64_t t0 = ref_time_ticks();
-          do
-          {
-            tickTexGenerationCore();
-          } while (hasWorkUnlocked() && get_time_usec(t0) < lockHoldUsec && !interlocked_acquire_load(workerTerminating));
-        }
+        doSaveTextures();
       }
 
-      // Yield to the main thread so it gets a chance to acquire GpuAutoLock and render
-      // a frame of the landscape preview before we grab the locks again. Without this
-      // the worker can keep both locks saturated and starve rendering. 1 ms is enough
-      // for one main-loop render on a desktop editor; tunable via texgen.workerBetweenBatchesMsec.
-      if (!interlocked_acquire_load(workerTerminating) && betweenBatchesMsec > 0)
+      if (submitted > 0 && !yielded && !interlocked_acquire_load(workerTerminating))
       {
-        sleep_msec(betweenBatchesMsec);
+        sleep_msec(pollMsec);
       }
     }
+  }
+
+  // Worker thread only, holding neither GpuAutoLock nor stateLock.
+  void loadInputFilesAhead()
+  {
+    eastl::vector<TextureRegManager::FileLoad> loads;
+    {
+      WinAutoLock stateGuard(stateLock);
+      if (!texGen || texGenStep <= 0 || passStartPendingUnlocked())
+      {
+        return;
+      }
+      eastl::vector<const char *> regNames;
+      texgen_get_upcoming_tex_inputs(*texGen, LOAD_AHEAD_NODE_WINDOW, regNames);
+      for (const char *regName : regNames)
+      {
+        TextureRegManager::FileLoad load;
+        if (texGenReg.prepareFileLoad(regName, load))
+        {
+          loads.push_back(eastl::move(load));
+        }
+      }
+    }
+    for (TextureRegManager::FileLoad &load : loads)
+    {
+      if (interlocked_acquire_load(workerTerminating))
+      {
+        return;
+      }
+      TextureRegManager::loadFile(load);
+      WinAutoLock stateGuard(stateLock);
+      // setGraphData(nullptr) can close the pass while the file loads.
+      if (!texGen || texGenStep <= 0 || passStartPendingUnlocked())
+      {
+        TextureRegManager::releaseLoad(load);
+        return;
+      }
+      texGenReg.addLoadedFile(load);
+    }
+  }
+
+  void ensureBatchFence()
+  {
+    const unsigned resetGen = get_d3d_reset_counter();
+    if (batchFence && fenceResetGen == resetGen)
+    {
+      return;
+    }
+    if (fenceResetGen != resetGen)
+    {
+      releaseBatchTimestamps();
+    }
+    batchFence.reset(d3d::create_event_query());
+    fenceResetGen = resetGen;
+    if (!batchFence && !fenceUnavailableLogged)
+    {
+      fenceUnavailableLogged = true;
+      DAEDITOR3.conWarning("GraphTexGenService: event queries unavailable, texgen batches flush under the GPU lock");
+    }
+  }
+
+  void releaseBatchTimestamps()
+  {
+    for (void *&stamp : batchGpuStamps)
+    {
+      d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &stamp);
+    }
+  }
+
+  void measureLastBatch()
+  {
+    if (batchCmds.empty())
+    {
+      return;
+    }
+    uint64_t freq = 0;
+    uint64_t prev = 0;
+    d3d::driver_command(Drv3dCommand::TIMESTAMPFREQ, &freq);
+    lastBatchTimed = freq != 0 && d3d::driver_command(Drv3dCommand::TIMESTAMPGET, batchGpuStamps[0], &prev);
+    if (lastBatchTimed)
+    {
+      for (int i = 0; i < batchCmds.size(); ++i)
+      {
+        uint64_t stamp = 0;
+        if (!d3d::driver_command(Drv3dCommand::TIMESTAMPGET, batchGpuStamps[i + 1], &stamp) || stamp < prev)
+        {
+          break;
+        }
+        const int usec = static_cast<int>(min<uint64_t>((stamp - prev) * 1000000 / freq, MAX_MEASURED_CMD_USEC));
+        prev = stamp;
+        const BatchCmd &cmd = batchCmds[i];
+        if (!cmd.name.empty())
+        {
+          CmdCost &cost = cmdCosts[cmd.name];
+          int cmdUsec = usec;
+          if (cmd.pixels > 0)
+          {
+            const float usecPerPixel = learnKeyCost(cost.costKeys, cmd.costKey, cmd.pixels, cmd.startsNode, usec);
+            cmdUsec = usec_for_pixels(usecPerPixel, cmd.pixels);
+            cost.usecPerPixel = cost.usecPerPixel > 0.0f ? (cost.usecPerPixel + usecPerPixel) * 0.5f : usecPerPixel;
+          }
+          cost.maxUsec = max(cmdUsec, cost.maxUsec - cost.maxUsec / 8);
+          avgCmdGpuUsec = avgCmdGpuUsec > 0 ? (avgCmdGpuUsec * 7 + cmdUsec) / 8 : cmdUsec;
+        }
+      }
+    }
+    batchCmds.clear();
+  }
+
+  // Records a command's cost under its cost key; returns the upper median of the key's recent times per pixel,
+  // so an even count leans to the slower sample and one inflated sample shifts it by at most one rank.
+  float learnKeyCost(eastl::vector<uint64_t> &shader_keys, uint64_t cost_key, int pixels, bool starts_node, int usec)
+  {
+    auto keyed = keyCosts.find(cost_key);
+    if (keyed == keyCosts.end())
+    {
+      if (keyCosts.size() >= MAX_KEY_COSTS)
+      {
+        keyCosts.clear();
+        for (auto &named : cmdCosts)
+        {
+          named.second.costKeys.clear();
+        }
+      }
+      keyed = keyCosts.emplace(cost_key, KeyCost()).first;
+      shader_keys.push_back(cost_key);
+    }
+    KeyCost &keyCost = keyed->second;
+    if (starts_node)
+    {
+      keyCost.firstPixels = pixels;
+    }
+    keyCost.add(static_cast<float>(usec) / static_cast<float>(pixels));
+    return keyCost.median;
+  }
+
+  int predictCmdGpuUsec(const char *name, int pixels, uint64_t cost_key, int target_usec) const
+  {
+    const auto keyed = keyCosts.find(cost_key);
+    if (keyed != keyCosts.end())
+    {
+      const int keyPixels = pixels > 0 ? pixels : keyed->second.firstPixels;
+      if (keyPixels > 0)
+      {
+        return usec_for_pixels(keyed->second.median, keyPixels);
+      }
+    }
+    const auto known = cmdCosts.find_as(name);
+    if (known == cmdCosts.end())
+    {
+      // With no GPU timestamps, the submit time alone bounds the batch.
+      return lastBatchTimed ? max(avgCmdGpuUsec, target_usec / 4) : 0;
+    }
+    if (pixels > 0 && known->second.usecPerPixel > 0.0f)
+    {
+      return usec_for_pixels(known->second.usecPerPixel, pixels);
+    }
+    return known->second.maxUsec;
+  }
+
+  // A node with a cost key not measured yet is predicted at its shader's cost, which can be far below its own when the shader's
+  // nodes differ widely: while batches give GPU timestamps, only its first command then joins the batch, and the batch measures it.
+  bool waitsForKeyMeasure(const TextureGenCommand &cmd) const
+  {
+    if (!lastBatchTimed || keyCosts.find(cmd.costKey) != keyCosts.end() ||
+        eastl::none_of(batchCmds.begin(), batchCmds.end(), [&cmd](const BatchCmd &c) { return c.costKey == cmd.costKey; }))
+    {
+      return false;
+    }
+    const auto known = cmdCosts.find_as(cmd.shaderName);
+    if (known == cmdCosts.end())
+    {
+      return true;
+    }
+    eastl::fixed_vector<float, 32> medians;
+    for (uint64_t key : known->second.costKeys)
+    {
+      const auto keyed = keyCosts.find(key);
+      if (keyed != keyCosts.end())
+      {
+        medians.push_back(keyed->second.median);
+      }
+    }
+    if (static_cast<int>(medians.size()) < MIN_COST_KEYS_FOR_SPREAD)
+    {
+      return true;
+    }
+    // The lower middle for an even count, so that two keys can show a spread.
+    const auto middle = medians.begin() + (medians.size() - 1) / 2;
+    eastl::nth_element(medians.begin(), middle, medians.end());
+    const float typical = *middle;
+    return typical <= 0.0f || *eastl::max_element(medians.begin(), medians.end()) > MAX_COST_KEY_SPREAD * typical;
   }
 
   // dshl pipeline, phase 1 (worker COMPILE pass, OUTSIDE GpuAutoLock): assemble the per-graph .dshl and
   // run the slow dsc2 subprocess to build the bindump on disk, stashing the result for phase 2. The dsc2
   // run MUST stay off the GPU lock -- doing it under GpuAutoLock starves the main render thread (it blocks
-  // in acquireD3dOwnership). Gated on the assembled-body hash so param-only edits skip the recompile.
+  // in acquireD3dOwnership). Param-only edits skip the assemble (input hash) and the recompile (body hash).
   // main_graph_blk / shader_list_blk are a private snapshot of the compiled graph (taken by the worker
   // via IGraphCompiler::copyCompiledGraph under the plugin's graphMutex); this runs the slow dsc2 pass
-  // without ever touching graphData, so a concurrent main-thread graph load can't corrupt it.
-  void prepareDshlShaders(const DataBlock &main_graph_blk, const DataBlock &shader_list_blk)
+  // without ever touching graphData's content, so a concurrent main-thread graph load can't corrupt it.
+  void prepareDshlShaders(const DataBlock &main_graph_blk, const DataBlock &shader_list_blk, const GraphData *compiled_for)
   {
     dshlReady = false;
+    {
+      WinAutoLock guard(stateLock);
+      graphLogger.dropStage(GraphLoggerImpl::LogStage::DshlCompile);
+    }
     // dshlNeedLoad is sticky: cleared only after setupDshlShaders actually loads the dump, so a dump
     // compiled by one prepare pass is not lost if another prepare (unchanged hash) runs before the load.
     DataBlock defaultTexgen, defaultShaders;
@@ -1113,14 +1752,19 @@ private:
     }
 
     String err;
-    if (!assemble_texgen_dshl(main_graph_blk, dshlSources, sk, dshlResult, err))
+    const uint64_t inputHash = texgen_dshl_input_hash(main_graph_blk, dshlSources, sk);
+    if (inputHash != dshlInputHash)
     {
-      DAEDITOR3.conError("GraphTexGenService(dshl): assemble failed: %s", err.str());
-      return;
-    }
-    if (!err.empty())
-    {
-      DAEDITOR3.conWarning("GraphTexGenService(dshl): %s", err.str());
+      if (!assemble_texgen_dshl(main_graph_blk, dshlSources, sk, dshlResult, err))
+      {
+        DAEDITOR3.conError("GraphTexGenService(dshl): assemble failed: %s", err.str());
+        return;
+      }
+      if (!err.empty())
+      {
+        DAEDITOR3.conWarning("GraphTexGenService(dshl): %s", err.str());
+      }
+      dshlInputHash = inputHash;
     }
 
     if (dshlBindump == INVALID_BINDUMP_HANDLE || dshlResult.bodyHash != dshlBodyHash)
@@ -1128,7 +1772,16 @@ private:
       if (!TexgenDshlCompiler::initPaths(err) ||
           !TexgenDshlCompiler::compileToDump(dshlResult.dshlText.c_str(), "texgen_graph", dshlDumpBase, err))
       {
-        DAEDITOR3.conError("GraphTexGenService(dshl): dsc2 compile failed: %s", err.str());
+        WinAutoLock guard(stateLock);
+        // A graph bound since the compile is not the one that failed, so only the console keeps the error.
+        if (graphData == compiled_for)
+        {
+          graphLogger.report(GraphLoggerImpl::LogStage::DshlCompile, LOGLEVEL_ERR, err);
+        }
+        else
+        {
+          DAEDITOR3.conError("GraphTexGenService(dshl): dsc2 compile of the previous graph failed: %s", err.str());
+        }
         return;
       }
       dshlBodyHash = dshlResult.bodyHash;
@@ -1138,7 +1791,7 @@ private:
     dshlReady = true;
   }
 
-  // dshl pipeline, phase 2 (under GpuAutoLock at generation init): fast bindump load (only if recompiled)
+  // dshl pipeline, phase 2 (under GpuAutoLock and stateLock at generation init): fast bindump load (only if recompiled)
   // + register each variant as a ShaderElement-backed texgen shader, from the state prepareDshlShaders
   // stashed. The shader:t rewrite is applied later via applyDshlShaderRewrite.
   void setupDshlShaders()
@@ -1151,39 +1804,90 @@ private:
 
     if (dshlNeedLoad)
     {
+      graphLogger.dropStage(GraphLoggerImpl::LogStage::ShaderSetup);
       String err;
       if (!TexgenDshlCompiler::loadOrReload(dshlDumpBase.c_str(), dshlBindump, err))
       {
-        DAEDITOR3.conError("GraphTexGenService(dshl): %s", err.str());
+        graphLogger.report(GraphLoggerImpl::LogStage::ShaderSetup, LOGLEVEL_ERR, err);
         return;
       }
       dshlNeedLoad = false;
+      dshlRegisteredHash = 0;
     }
     if (dshlBindump == INVALID_BINDUMP_HANDLE)
     {
       return;
     }
 
+    eastl::vector<DshlRegistration> registrations;
+    auto addRegistration = [&](const eastl::string &reg_name, const eastl::string &shader_name, const eastl::string &src_name) {
+      const DataBlock *src = dshlSources.getBlockByName(src_name.c_str());
+      registrations.push_back({reg_name.c_str(), shader_name.c_str(), src ? src->getBlockByName("params") : nullptr,
+        src ? src->getInt("inputs", 0) : 0, src ? src->getInt("outputs", 1) : 1, src ? src->getInt("defMaxSubSize", 4096) : 4096});
+    };
+    graphLogger.variantLabels.clear();
     // Per-node variants, registered under the variant name (node shader:t is rewritten to it).
     for (auto &kv : dshlResult.variantToSource)
     {
-      const DataBlock *src = dshlSources.getBlockByName(kv.second.c_str());
-      add_dshl_shader_texgen(texGen, kv.first.c_str(), kv.first.c_str(), dshlBindump, src ? src->getBlockByName("params") : nullptr,
-        src ? src->getInt("inputs", 0) : 0, src ? src->getInt("outputs", 1) : 1, src ? src->getInt("defMaxSubSize", 4096) : 4096);
+      addRegistration(kv.first, kv.first, kv.second);
+      graphLogger.variantLabels[kv.first] = "'" + kv.second + "'";
     }
     // Builtin/library sub-shaders, registered under their ORIGINAL names, so the C++ orchestrators
     // (distance_field/blur/...) resolve their REQUIRE'd sub-shaders via texgen_get_shader(name).
     for (auto &kv : dshlResult.sourceToVariant)
     {
-      const DataBlock *src = dshlSources.getBlockByName(kv.first.c_str());
-      add_dshl_shader_texgen(texGen, kv.first.c_str(), kv.second.c_str(), dshlBindump, src ? src->getBlockByName("params") : nullptr,
-        src ? src->getInt("inputs", 0) : 0, src ? src->getInt("outputs", 1) : 1, src ? src->getInt("defMaxSubSize", 4096) : 4096);
+      addRegistration(kv.first, kv.second, kv.first);
     }
+
+    // Re-registering replaces each shader object, which makes texGen mark every node that uses it dirty.
+    const uint64_t registrationHash = dshlRegistrationHash(registrations);
     dshlNodeToVariant = dshlResult.nodeToVariant;
+    const bool sameSet = dshlRegisteredHash == registrationHash;
+    eastl::hash_set<eastl::string> failed;
+    for (const DshlRegistration &r : registrations)
+    {
+      // Each pass clears graphLogger: retry failed adds.
+      if (sameSet && dshlFailedRegs.find_as(r.regName) == dshlFailedRegs.end())
+      {
+        continue;
+      }
+      if (!add_dshl_shader_texgen(texGen, r.regName, r.shaderName, dshlBindump, r.params, r.inputs, r.outputs, r.defMaxSubSize))
+      {
+        failed.insert(r.regName);
+      }
+    }
+    dshlFailedRegs = eastl::move(failed);
+    dshlRegisteredHash = registrationHash;
+  }
+
+  // The add_dshl_shader_texgen arguments of one variant.
+  struct DshlRegistration
+  {
+    const char *regName;
+    const char *shaderName;
+    const DataBlock *params;
+    int inputs, outputs, defMaxSubSize;
+  };
+
+  static uint64_t dshlRegistrationHash(const eastl::vector<DshlRegistration> &registrations)
+  {
+    // Sum the entries: they come from hash maps, which give no stable order.
+    uint64_t sum = 0;
+    for (const DshlRegistration &r : registrations)
+    {
+      uint64_t h = mem_hash_fnv1<64>(r.regName, strlen(r.regName) + 1);
+      h = mem_hash_fnv1<64>(r.shaderName, strlen(r.shaderName) + 1, h);
+      const int counts[3] = {r.inputs, r.outputs, r.defMaxSubSize};
+      h = mem_hash_fnv1<64>((const char *)counts, sizeof(counts), h);
+      const uint64_t paramsHash = r.params ? texgen_hash_block_content(*r.params) : 0;
+      h = mem_hash_fnv1<64>((const char *)&paramsHash, sizeof(paramsHash), h);
+      sum += h;
+    }
+    return sum;
   }
 
   // Rewrite each main-graph node's shader:t to its dshl variant name, so the scheduler resolves the
-  // ShaderElement-backed variant. Runs after the cache_node fixups (which read the original names).
+  // ShaderElement-backed variant.
   void applyDshlShaderRewrite()
   {
     if (!graphData || dshlNodeToVariant.empty())
@@ -1210,14 +1914,14 @@ private:
     }
 
     texgen_set_logger(texGen, &graphLogger);
-    graphLogger.clear();
+    graphLogger.startPass();
 
-    // Still need the shared texgen buffers (textureParamsCB, particlesInstancesIndirect, common_vdecl)
+    // Still need the shared texgen resources (textureParamsCB, textureNodeParamsCB)
     // that process() binds -- normally created inside load_pixel_shader_texgen. dshl only skips the vprog
-    // HLSL compile (the VS now lives in each bindump variant), not the buffers.
+    // HLSL compile (the VS now lives in each bindump variant), not the resources.
     init_pixel_shader_texgen();
     // Register the variants prepareDshlShaders() already compiled. The shader:t rewrite is deferred to
-    // startGenerateTex (after the cache_node fixups).
+    // startGenerateTex.
     setupDshlShaders();
 
     extern void init_texgen_df_shader(TextureGenerator *);
@@ -1249,6 +1953,7 @@ private:
     finalStrings.clear();
     delete_texture_generator(texGen);
     texGen = nullptr;
+    dshlRegisteredHash = 0;
   }
 
   void startGenerateTex()
@@ -1260,47 +1965,35 @@ private:
 
     if (texGenStep > 0)
     {
+      graphLogger.snapshotRecordLogs(graphData->mainGraphBlk);
+      // Before removeOldFinalStrings below, which can free a texture the stopped node still uses.
+      texgen_stop_process_commands(*texGen);
       texGenStep = 0;
     }
 
+    texGenReg.releaseLoadedFiles();
     texGenReg.setEntitiesSaver(&entitiesSaver);
     // Node input paths are stored app-relative (no per-graph texture root), so the registry resolves
     // them against the application dir directly. Strip any trailing slash: getRelativeTexName joins
     // "<root>/<name>" by naive concat, so a trailing slash would yield "<appDir>//<name>" -- which
-    // passes df_stat but makes the raw-texture loader fail ("can not create ... although file exist").
+    // passes df_stat but makes the raw-texture loader fail ("can not load texture ... although file exist").
     String appDir(DAGORED2->getWorkspace().getAppDir());
     ::simplify_fname(appDir);
     ::remove_trailing_string(appDir, "/");
     texGenReg.setTextureRootDir(appDir.str());
     debug("TexGenService: texture root (app dir) '%s'", appDir.str());
-    texGenStepCount = clamp(dgs_get_settings()->getBlockByNameEx("texgen")->getInt("texGenPerFrame", 2), 1, 256);
     texGenStep = 0;
 
     initTexGenInternal();
     debug("TexGenService: graph changed");
 
+    regcache::unpin_all();
+
+    applyPreviewFinalToBlk();
+    DataBlock &mainBlk = graphData->mainGraphBlk;
+    texgen_pin_cache_node_records(mainBlk);
     regcache::update();
 
-    DataBlock &mainBlk = graphData->mainGraphBlk;
-    for (int i = 0; i < mainBlk.blockCount(); ++i)
-    {
-      if (DataBlock *node = mainBlk.getBlock(i))
-      {
-        const char *shaderName = node->getStr("shader", "");
-        if (!strcmp(shaderName, "cache_node"))
-        {
-          const char *id = node->getBlockByNameEx("params")->getStr("preceding_subgraph_hash", "");
-          if (regcache::is_record_exists(id) && strcmp(node->getBlockByNameEx("input")->getStr("reg", ""), "tex:const:0") != 0)
-          {
-            node->getBlockByName("input")->setStr("reg", "tex:const:0");
-            node->getBlockByName("params")->setBool("use_data_from_cache", true);
-          }
-        }
-      }
-    }
-
-    // dshl pipeline: now that the cache_node fixups (which read original shader names) are done, point
-    // each node at its dsc2-compiled variant shader.
     applyDshlShaderRewrite();
 
     entitiesSaver.clearUsedBlkNames();
@@ -1330,6 +2023,9 @@ private:
     }
 
     texGenReg.setAutoShrink(true);
+    const int defaultBudgetMb = clamp<int>(int(d3d::get_dedicated_gpu_memory_size_kb() >> 12), 256, 4096);
+    const int budgetMb = dgs_get_settings()->getBlockByNameEx("texgen")->getInt("retainBudgetMb", defaultBudgetMb);
+    texGenReg.setRetainBudget(budgetMb > 0 ? uint64_t(budgetMb) << 20 : 0);
     for (const auto &fi : finalStrings)
     {
       if (newFinalStrings.find_as(fi.c_str()) == newFinalStrings.end())
@@ -1343,64 +2039,65 @@ private:
     generationCompleted = false;
     // Snapshot the declared-output count now, before doGenerateTexStep can fail and prune
     // finalStrings to empty. Exclude the preview-final (a UI artifact injected into mainGraphBlk
-    // by setPreviewFinal), matching how it is excluded from the texture save path.
+    // by applyPreviewFinalToBlk), matching how it is excluded from the texture save path.
     declaredOutputsCount = static_cast<int>(newFinalStrings.size());
-    if (previewFinalAddedToBlk && newFinalStrings.find(previewFinalName) != newFinalStrings.end())
+    if (!previewFinalInBlk.empty() && newFinalStrings.find(previewFinalInBlk) != newFinalStrings.end())
     {
       --declaredOutputsCount;
     }
     texGenReg.clearStat();
-    doGenerateTexStep(texGenStep, 1);
+    doGenerateTexStep();
   }
 
-  void doGenerateTexStep(int &start, int count)
+  void doGenerateTexStep()
   {
-    int generated = 0;
-    if (start <= 0)
+    int generated;
+    if (texGenStep <= 0)
     {
-      int totalCount = texgen_start_process_commands(*texGen, graphData->mainGraphBlk, texGenReg);
-      if (totalCount < 0)
-      {
-        generated = -1;
-      }
-      // Remember the pass size for getPipelineStatus' progress readout (commandsDone/Total).
-      texGenTotalCmds = totalCount > 0 ? totalCount : 0;
+      generated = texgen_start_process_commands(*texGen, graphData->mainGraphBlk, texGenReg);
+      graphLogger.checkNodeLogs(*texGen, graphData->mainGraphBlk, graphData->mainGraphStamp);
+      // Remember the pass size for getPipelineStatus' progress readout (nodesDone/Total).
+      texGenTotalNodes = generated > 0 ? generated : 0;
     }
-
-    if (!generated)
+    else
     {
-      generated = texgen_process_commands(*texGen, count);
+      graphLogger.steppingGen = texGen;
+      generated = texgen_process_commands(*texGen, 1);
+      graphLogger.steppingGen = nullptr;
     }
 
     if (generated < 0)
     {
       DAEDITOR3.conNote("GraphTexGenService: texgen failed");
+      graphLogger.snapshotRecordLogs(graphData->mainGraphBlk);
       texGenReg.close();
       finalizeTexGen();
       closeTexGen();
-      start = -1;
+      texGenStep = -1;
     }
     else if (generated == 0)
     {
-      DAEDITOR3.conNote("GraphTexGenService: success, produced %d textures, maxMemUsed = %.1fMB, current = %.1fMB",
-        texGenReg.getRegsAlive(), texGenReg.getMaxMemSize() / float(1 << 20), texGenReg.getCurrentMemSize() / float(1 << 20));
+      DAEDITOR3.conNote("GraphTexGenService: success, produced %d textures, maxMemUsed = %.1fMB, current = %.1fMB, retained = %.1fMB",
+        texGenReg.getRegsAlive() - texGenReg.getRegsRetained(), texGenReg.getMaxMemSize() / float(1 << 20),
+        texGenReg.getCurrentMemSize() / float(1 << 20), texGenReg.getRetainedMemSize() / float(1 << 20));
+      graphLogger.snapshotRecordLogs(graphData->mainGraphBlk);
       finalizeTexGen();
-      start = 0;
+      texGenStep = 0;
       generationCompleted = true;
     }
     else
     {
-      start += count;
+      texGenStep = 1;
     }
 
-    if (start >= 0)
+    if (texGenStep >= 0)
     {
       for (const auto &str : finalStrings)
       {
         int varId = get_shader_variable_id(str.c_str(), true);
         if (varId >= 0)
         {
-          int resultTexReg = texGenReg.getRegNo(texgen_get_final_reg_name(texGen, str.c_str()));
+          int resultTexReg = getUsedRegNo(texgen_get_final_reg_name(texGen, str.c_str()));
           if (resultTexReg >= 0)
           {
             ShaderGlobal::set_texture(varId, texGenReg.getTextureId(resultTexReg));
@@ -1412,10 +2109,13 @@ private:
 
   void finalizeTexGen()
   {
+    regcache::unpin_all();
+    texGenReg.releaseLoadedFiles();
     removeOldFinalStrings();
+    texGenReg.releaseTexturePool();
     for (auto it = finalStrings.begin(); it != finalStrings.end();)
     {
-      int resultTexReg = texGenReg.getRegNo(texgen_get_final_reg_name(texGen, it->c_str()));
+      int resultTexReg = getUsedRegNo(texgen_get_final_reg_name(texGen, it->c_str()));
       if (resultTexReg < 0)
       {
         it = finalStrings.erase(it);
@@ -1434,6 +2134,13 @@ private:
     {
       updateSelectedTexture(pendingPreviewReg.c_str());
     }
+  }
+
+  // A retained register is a cache entry with no use count, and the texture getters refuse it.
+  int getUsedRegNo(const char *name) const
+  {
+    const int regNo = texGenReg.getRegNo(name);
+    return regNo >= 0 && texGenReg.getRegUsageLeft(regNo) > 0 ? regNo : -1;
   }
 
   void removeOldFinalStrings()
@@ -1848,8 +2555,14 @@ private:
 
   void doSaveTextures()
   {
-    if (!saveTexturesToFiles || shouldGenerateTex || texGenStep != 0 || !texGen)
+    if (!savePendingUnlocked())
     {
+      return;
+    }
+    if (texGenStep < 0 || !texGen)
+    {
+      saveTexturesToFiles = false;
+      DAEDITOR3.conError("GraphTexGenService: nothing to save, no finished generation of the current graph");
       return;
     }
 
@@ -2237,8 +2950,8 @@ private:
   String defaultTexgenPath;
   String defaultShadersPath;
   GraphData *graphData = nullptr; // owned by the plugin; null = idle
-  eastl::string previewFinalName;
-  bool previewFinalAddedToBlk = false;
+  // The preview final that applyPreviewFinalToBlk added to mainGraphBlk; empty when none.
+  eastl::string previewFinalInBlk;
   // What the panel last asked to preview. After each finalizeTexGen we re-pull this register's
   // texture into selectedTexState so the panel doesn't have to poll.
   eastl::string pendingPreviewReg;
@@ -2254,35 +2967,38 @@ private:
 
   // dshl pipeline: node shaders are dsc2-compiled into this bindump and rendered as ShaderElements.
   // dshlBodyHash gates the (slow) dsc2 recompile so param-only edits don't retrigger it. dshlNodeToVariant
-  // maps each main-graph node block to its variant shader name; applied to shader:t after the cache_node fixups.
+  // maps each main-graph node block to its variant shader name; applied to shader:t at each pass start.
   ShaderBindumpHandle dshlBindump = INVALID_BINDUMP_HANDLE;
   uint32_t dshlBodyHash = 0;
   eastl::hash_map<eastl::string, eastl::string> dshlNodeToVariant;
   // Worker-thread-only dshl state. prepareDshlShaders() (worker compile pass, OUTSIDE GpuAutoLock) runs
   // the slow dsc2 subprocess and stashes the result here; setupDshlShaders() (under GpuAutoLock at init)
-  // then does the fast bindump load + shader registration. Both run on the texgen worker thread, never
-  // the main thread, so these need no extra locking.
+  // then does the fast bindump load + shader registration. Both run on the texgen worker thread; the one
+  // main thread writer is shutdownTexGen, after stopWorker() joined the worker, so these need no extra locking.
   TexgenDshlResult dshlResult;
   DataBlock dshlSources;
   String dshlDumpBase;
+  uint64_t dshlInputHash = 0;
   bool dshlReady = false;
   bool dshlNeedLoad = false;
+  // The hash of the dshl variant set that the last pass registered or tried, 0 when none.
+  // The worker writes it in setupDshlShaders and clears it through closeTexGen.
+  // The main thread writers are closeTexGen from setGraphData, under GpuAutoLock + stateLock (the locks the worker holds),
+  // and from shutdownTexGen and the destructor, which are safe because stopWorker ran first.
+  uint64_t dshlRegisteredHash = 0;
+  eastl::hash_set<eastl::string> dshlFailedRegs;
   eastl::hash_set<eastl::string> finalStrings;
   eastl::hash_set<eastl::string> oldFinalStrings;
   eastl::hash_set<eastl::string> skipSavingNames;
   int texGenStep = 0;
-  int texGenStepCount = 2;
-  // Command count returned by the most recent texgen_start_process_commands; pairs with
-  // texGenStep to form the status bar's "done/total" progress readout.
-  int texGenTotalCmds = 0;
+  int texGenTotalNodes = 0;
   // Declared graph outputs (final:t entries) captured at the start of the most recent generation
   // pass, minus the preview-final UI artifact. Reported by the status bar's Outputs counter
   // instead of finalStrings.size(), which a generation failure prunes to 0 (see getPipelineStatus).
   int declaredOutputsCount = 0;
   // Build outcome for the status bar (see TexGenPipelineStatus). graphCompileFailed: stage-1 graph
-  // compile returned false. graphCompileMessage: why it failed, or what it dropped -- stored here
-  // rather than in graphLogger, which startGenerateTex clears before the user could read it.
-  // generationCompleted: a stage-2 generation pass reached success. All reset on graph swap;
+  // compile returned false. graphCompileMessage: why it failed, or what it dropped; every compile
+  // sets it. generationCompleted: a stage-2 generation pass reached success. All reset on graph swap;
   // generationCompleted also resets at each pass start.
   bool graphCompileFailed = false;
   String graphCompileMessage;
@@ -2291,10 +3007,11 @@ private:
   // Flags
   bool shouldGenerateTex = false;
   bool autoupdate = true;
-  // One-shot regen request that bypasses the autoupdate gate. Set by requestRegenerate(),
-  // cleared on the next startGenerateTex() pass.
+  // One-shot regen request that bypasses the autoupdate gate, which an edit alone waits for; cleared on the
+  // next startGenerateTex() pass.
   bool generateOnce = false;
   bool forceRebuild = false;
+  unsigned texGenFullResetGen = 0;
   // Plugin-supplied graph compiler. The worker invokes compile() outside stateLock
   // when the graph is dirty. nullptr = no compile path wired (service ignores dirty).
   IGraphCompiler *graphCompiler = nullptr;
@@ -2304,6 +3021,8 @@ private:
   // `graphDirtyGen != graphCompiledGen` decides whether a compile is pending.
   uint64_t graphDirtyGen = 0;
   uint64_t graphCompiledGen = 0;
+  // A pass waits for a good compile of the graph setGraphData bound last.
+  bool boundGraphCompiled = false;
   // True while the worker has captured graphCompiler and is mid-call. Used by
   // setGraphCompiler(nullptr) to drain in-flight calls before the plugin destroys
   // the impl. Set/cleared under stateLock around the compile() invocation.
@@ -2344,6 +3063,49 @@ private:
   os_event_t wakeEvent{};
   mutable WinCritSec stateLock;
   volatile int workerTerminating = 0;
+  // Worker thread only, under GpuAutoLock (the DX11 fence poll: LoadingAutoLock); stopWorker frees them after the join.
+  EventQueryHolder batchFence;
+  unsigned fenceResetGen = 0;
+  bool fenceUnavailableLogged = false;
+  struct BatchCmd
+  {
+    eastl::string name;
+    int pixels = 0;
+    bool startsNode = false;
+    uint64_t costKey = 0;
+  };
+  struct CmdCost
+  {
+    float usecPerPixel = 0.0f;
+    int maxUsec = 0;
+    eastl::vector<uint64_t> costKeys;
+  };
+  // Nodes of one shader differ in GPU cost by their params, so a cost key keeps its own recent samples.
+  struct KeyCost
+  {
+    static constexpr int SAMPLES = 5;
+    float usecPerPixel[SAMPLES] = {};
+    float median = 0.0f;
+    int count = 0;
+    int next = 0;
+    int firstPixels = 0;
+    void add(float usec_per_pixel)
+    {
+      usecPerPixel[next] = usec_per_pixel;
+      next = (next + 1) % SAMPLES;
+      count = min(count + 1, SAMPLES);
+      float sorted[SAMPLES];
+      eastl::copy(usecPerPixel, usecPerPixel + count, sorted);
+      eastl::sort(sorted, sorted + count);
+      median = sorted[count / 2];
+    }
+  };
+  eastl::vector<void *> batchGpuStamps;
+  eastl::vector<BatchCmd> batchCmds;
+  bool lastBatchTimed = true;
+  eastl::hash_map<eastl::string, CmdCost> cmdCosts;
+  eastl::hash_map<uint64_t, KeyCost> keyCosts;
+  int avgCmdGpuUsec = 0;
 };
 
 

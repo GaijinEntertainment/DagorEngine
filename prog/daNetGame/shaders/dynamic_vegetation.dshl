@@ -44,6 +44,15 @@ shader dynamic_tree_colored
     angle_dissolve@f1 = (angle_dissolve);
   }
 
+  static int has_burning = 0;
+  interval has_burning : off < 1, on;
+  if (has_burning == on && dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define HAS_BURNING 1
+    }
+  }
+
   USING_ATEST_HALF_AND(
     cull_mode = none;
   )
@@ -64,7 +73,7 @@ shader dynamic_tree_colored
   {
     if (num_bones == four_bones)
     {
-      hlsl {
+      hlsl(vs) {
         #define HAS_SKINNING 1
       }
     }
@@ -87,6 +96,12 @@ shader dynamic_tree_colored
       ##if (atest == atestOn || dyn_model_render_pass != render_to_depth)
         float3 diffuseTexcoord : TEXCOORD2;
       ##endif
+
+      #if HAS_BURNING
+        nointerpolation float burnedEffect : TEXCOORD7;
+        float3 fragPos : TEXCOORD8;
+        float3 fragNormal : TEXCOORD9;
+      #endif
 
       #ifdef MOTION_VECTORS_ENABLED
         float3 out_pos                          : TEXCOORD4;
@@ -129,6 +144,27 @@ shader dynamic_tree_colored
   else
   {
     (ps) { diffuse_tex@staticSmp = tex; }
+  }
+
+  if (has_burning == on && dyn_model_render_pass == render_pass_normal)
+  {
+    MODEL_SPACE_PROJECTION()
+    INIT_BURNED_DIFFUSE_FUNCTION_SHADER()
+    SET_BURNED_DIFFUSE_FUNCTION(get_diffuse_tex().smp)
+    hlsl(ps) {
+      void apply_tree_burning_additional_data(VsOutput input, inout UnpackedGbuffer gbuffer)
+      {
+        float3 diffuse = gbuffer.albedo.rgb;
+        float smoothness = gbuffer.smoothness;
+        apply_burning_effect(diffuse, smoothness, input.fragPos, input.fragNormal, input.burnedEffect, false);
+        gbuffer.albedo.rgb = diffuse;
+        gbuffer.smoothness = smoothness;
+      }
+      void apply_tree_burning_additional_data(VsOutput input, inout UnpackedGbuffer gbuffer, SamplerState tex_samplerstate)
+      {
+        apply_tree_burning_additional_data(input, gbuffer);
+      }
+    }
   }
 
   if (atest == atestOn)
@@ -195,6 +231,11 @@ shader dynamic_tree_colored
       output.localPos.w = movementAmount;
 ##endif
       output.pointToEye = pointToEye.xyzz;
+    #if HAS_BURNING
+      output.burnedEffect = getBurnedEffect();
+      output.fragPos = input.pos;
+      output.fragNormal = localNormal;
+    #endif
 
 ##if (atest == atestOn || dyn_model_render_pass != render_to_depth)
       output.diffuseTexcoord.xyz = float3(input.diffuseTexcoord, 0);
@@ -219,7 +260,7 @@ shader dynamic_tree_colored
       #define IS_DYNAMIC 1
     }
 
-    VEGETATION_PS(dyn_model_render_pass == render_to_depth, atest == atestOn, false, true, false, GBUFFER_ORDER_DYNAMIC)
+    VEGETATION_PS(dyn_model_render_pass == render_to_depth, atest == atestOn, false, true, (has_burning == on && dyn_model_render_pass == render_pass_normal), GBUFFER_ORDER_DYNAMIC)
   }
   else
   {

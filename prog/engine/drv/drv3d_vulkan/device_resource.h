@@ -326,8 +326,10 @@ public:
   }
 #if DAGOR_DBGLEVEL > 0
   void checkAccessAfterDeviceReset(bool is_write);
+  bool isEmptyAfterDeviceReset() { return emptyAfterDeviceReset; }
 #else
   void checkAccessAfterDeviceReset(bool) {}
+  bool isEmptyAfterDeviceReset() { return false; }
 #endif
   void freeMemory();
   ResourceMemoryId getMemoryId() const { return memoryId; }

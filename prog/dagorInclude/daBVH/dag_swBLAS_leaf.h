@@ -69,7 +69,7 @@ struct Vert21StrideLoaderRaw // returns unscaled raw coords; caller scales its q
   }
 };
 // returns q * invScale + bmin: the vert decoded into the metric frame whose box minimum q = 0 packs.
-// constraint: the walker's ray must be in that frame too, since the leaf test compares the two
+// the walker's ray must be in that frame too, since the leaf test compares the two
 struct Vert21MetricLoader
 {
   vec3f invScale, bmin;
@@ -240,7 +240,7 @@ inline bool RayTriangleIntersectInf(vec3f orig, vec3f dir, vec3f v0, vec3f v1, v
 }
 // the sign-exact edge test of three projected corners, read from lanes x and y of a, b and c: a zero
 // admits; bary is UVW / det and bc its last two lanes, both written on a hit alone.
-// constraint: the edge functions are v_cross3 z lanes, unfused on every build: a shared edge's lane is one value on both, up to sign
+// the edge functions are v_cross3 z lanes, unfused on every build: a shared edge's lane is one value on both, up to sign
 static __forceinline bool watertight_edge_test(vec3f a, vec3f b, vec3f c, float degenerate_det, vec3f &bary, Point2 &bc)
 {
   const vec3f cb = v_cross3(c, b), ac = v_cross3(a, c), ba = v_cross3(b, a);
@@ -306,7 +306,7 @@ inline bool RayTriangleIntersectWT(vec3f orig, vec3f unit_dir, float len, vec3f 
 // Closest point to p on triangle abc by Ericson's Voronoi regions (RTCD 5.1.5). A sliver answers its
 // nearest edge point, off by at most its width. The edges run as SoA lanes and pick the region
 // without a branch: the region of a query point changes from triangle to triangle.
-// constraint: point_distance.hlsl closestPointOnTriangleBarycentric picks the same regions, without the sliver branch
+// point_distance.hlsl closestPointOnTriangleBarycentric picks the same regions, without the sliver branch
 inline vec3f closestPointOnTriVec(vec3f p, vec3f a, vec3f b, vec3f c)
 {
   vec3f ab = v_sub(b, a), ac = v_sub(c, a), bc = v_sub(c, b);

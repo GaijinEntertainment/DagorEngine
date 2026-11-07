@@ -113,6 +113,7 @@ public:
 
   ShaderBindumpHandle bindumpHandle() const { return scriptedShadersDumpHandle; }
   void setShadervars(int variant_id);
+  NodeBasedShaderType getType() const { return shader; }
 };
 
 const char *node_based_shader_current_platform_suffix();

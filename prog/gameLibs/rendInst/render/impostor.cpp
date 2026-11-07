@@ -1122,7 +1122,13 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
       // draw geometry to baseMip of texture
       ShaderMesh *mesh = sourceScene->getMesh()->getMesh()->getMesh();
       dag::Span<ShaderMesh::RElem> elems = mesh->getElems(mesh->STG_opaque, mesh->STG_decal);
+      const auto tcConsts = rendinst::render::getCommonImmediateConstants();
+      const uint32_t psImmediateConsts[] = {
+        rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset({layerIdx, poolNo}, pool.impostorDataOffsetCache),
+        tcConsts[0], tcConsts[1]};
+      d3d::set_immediate_const(STAGE_PS, psImmediateConsts, sizeof(psImmediateConsts) / sizeof(psImmediateConsts[0]));
       rendinst::render::impostorRenderer.render(elems);
+      d3d::set_immediate_const(STAGE_PS, nullptr, 0);
 
       for (int j = 0; j < pool.impostor.tex.size(); ++j)
       {

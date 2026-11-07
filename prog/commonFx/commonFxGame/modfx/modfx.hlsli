@@ -23,6 +23,15 @@ float4 modfx_get_culling( float3_cref wpos, float radius )
   return float4( wpos.x, wpos.y, wpos.z, radius );
 }
 
+DAFX_INLINE
+float modfx_get_culling_radius( DAFX_CREF(ModfxParentRenData) parent_rdata, float etm_scale, bool apply_etm, float radius )
+{
+  // only these shapes keep the emitter scale in the quad axes (bboard vs), others use normalized view based axes
+  bool scaled = parent_rdata.mods_offsets[MODFX_RMOD_SHAPE_STATIC_ALIGNED] ||
+    ( !apply_etm && MOD_ENABLED( parent_rdata.mods, MODFX_RMOD_SHAPE_STATIC_VELOCITY_ALIGNED ) );
+  return scaled ? radius * etm_scale : radius;
+}
+
 ModfxDeclCollisionDecay ModfxDeclCollisionDecay_load( BufferData_cref buf, uint ofs )
 {
   ModfxDeclCollisionDecay pp;
@@ -397,7 +406,8 @@ DAFX_CULLING_RET_TYPE dafx_emission_shader_cb(
   }
 
   float3 cull_pos = apply_etm ? rdata.pos : mul_tm_pos(rdata.pos, etm);
-  float4 cull = modfx_get_culling( cull_pos, rdata.radius );
+  float cull_rad = modfx_get_culling_radius( parent_rdata, etm_scale, apply_etm, rdata.radius );
+  float4 cull = modfx_get_culling( cull_pos, cull_rad );
   return modfx_apply_placement_to_culling( parent_rdata, buf, cull );
 }
 
@@ -453,7 +463,8 @@ DAFX_CULLING_RET_TYPE dafx_simulation_shader_cb(
   modfx_save_sim_data(buf, cdesc.dataSimOffsetCurrent, parent_sdata.decls, false, sdata);
 
   float3 cull_pos = apply_etm ? rdata.pos : mul_tm_pos(rdata.pos, etm);
-  float4 cull = modfx_get_culling( cull_pos, rdata.radius );
+  float cull_rad = modfx_get_culling_radius( parent_rdata, etm_scale, apply_etm, rdata.radius );
+  float4 cull = modfx_get_culling( cull_pos, cull_rad );
   return modfx_apply_placement_to_culling( parent_rdata, buf, cull );
 }
 

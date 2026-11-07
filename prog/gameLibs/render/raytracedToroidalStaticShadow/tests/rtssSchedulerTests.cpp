@@ -432,7 +432,7 @@ TEST_CASE("T8 a sun change of 1 deg with no angular velocity makes one sweep of 
     const double measured = sim.stats.levels[k].lastSweepSeconds;
     INFO("level " << k << " measured sweep " << measured << " s, bounds " << shortest << " .. " << longest << " s");
     CHECK(measured >= shortest - sim.dt);
-    CHECK(measured <= longest + 1e-6); // constraint: lastSweepSeconds is a float
+    CHECK(measured <= longest + 1e-6); // lastSweepSeconds is a float
     CHECK_FALSE(sim.sweeping(k));
     CHECK(sim.stats.levels[k].sweeps == sweepsBefore[k] + 1);
     CHECK(sim.stats.levels[k].sunErrorDeg < 0.01f);
@@ -1841,7 +1841,7 @@ TEST_CASE("T39 the raster rectangle and matrices put each slot texel at its view
           const DPoint3 ls = x.toLs(w);
           const double tx = (ls.x - o.x * pw) / texel - ((j.page.x - o.x) * P - B);
           const double ty = (ls.y - o.y * pw) / texel - ((j.page.y - o.y) * P - B);
-          const Point3 wf = point3(w); // constraint: the raster callback takes float positions
+          const Point3 wf = point3(w); // the raster callback takes float positions
           const double posErr = 4 * eastl::max(eastl::max(fabs(w.x), fabs(w.y)), fabs(w.z)) * FLT_EPSILON;
           const double errX = tolX + posErr / texel, errY = tolY + posErr * sy / texel;
           float v[3], ndc[3], turnedNdc[3];
@@ -3315,4 +3315,125 @@ TEST_CASE("T89 past its burst the coarsest level takes the update budget before 
   CHECK(bigFiner == big.settings.updatePagesPerFrame * big.settings.batchFrames);
   big.run(200);
   check_invariants(big);
+}
+
+TEST_CASE("T90 casterReach is 0 with no page in use, the least reach of the pages in use once settled, that of level 0, and shrinks "
+          "by a move toward the sun; start planes on the world box make it FLT_MAX")
+{
+  CHECK(RtssSim().sched.casterReach() == 0);
+  for (const float maxReach : {2000.f, 20.f})
+  {
+    INFO("maxCasterReach " << maxReach);
+    RtssSchedulerSettings s;
+    s.maxCasterReach = maxReach;
+    RtssSim sim(s);
+    sim.run(60);
+    if (maxReach > 1000)
+      REQUIRE(2 * sim.extent(sim.settings.levels - 1) <= maxReach);
+    else
+      REQUIRE(2 * sim.extent(0) > maxReach);
+    const double reach = eastl::max(double(maxReach), 2 * sim.extent(0)), move = 0.5 * sim.extent(0);
+    REQUIRE(sim.jobs.empty());
+    CHECK(fabs(sim.sched.casterReach() - reach) < 0.01);
+    sim.camera += dpoint3(sim.sun) * move;
+    sim.step();
+    CHECK(sim.jobs.empty());
+    CHECK(fabs(sim.sched.casterReach() - (reach - move)) < 0.01);
+    check_invariants(sim);
+  }
+
+  RtssSim boxed;
+  boxed.setWorldBox(BBox3(point3(boxed.camera) - Point3(1000, 1000, 1000), point3(boxed.camera) + Point3(1000, 1000, 1000)));
+  boxed.run(60);
+  REQUIRE(boxed.sched.isReady(BBox3(point3(boxed.camera), 1.f)));
+  CHECK(boxed.sched.casterReach() == FLT_MAX);
+  check_invariants(boxed);
+}
+
+TEST_CASE("T91 a point fullWeightDistance from the camera along the light y axis of the largest sy lands on the seam band start of "
+          "the coarsest level, which bounds the other axes too, at a high sun, in the sweep to a low sun and after it")
+{
+  RtssSchedulerSettings s;
+  s.maxAnisotropy = 2;
+  RtssSim sim(s);
+  const int last = sim.settings.levels - 1;
+  auto checkDistance = [&]() {
+    const double dist = sim.sched.fullWeightDistance(), edge = (1 - sim.settings.seamBand) * sim.extent(last);
+    double onY = 0;
+    for (int b = 0; b < 2; ++b)
+    {
+      const RtssLightXform &xf = sim.sched.xform(last, b);
+      onY = eastl::max(onY, fabs((xf.toLs(sim.camera + dpoint3(xf.ey) * dist) - xf.toLs(sim.camera)).y));
+    }
+    CHECK(fabs(onY - edge) < 1e-3);
+  };
+  sim.sun = sun_at(60, 30);
+  sim.run(60);
+  checkDistance();
+  sim.strictCoverage = false;
+  sim.sun = sun_at(14, 30);
+  sim.step();
+  REQUIRE(sim.sweeping(last));
+  REQUIRE(sim.sched.xform(last, sim.curBit(last) ^ 1).sy > 1.5f);
+  checkDistance();
+  run_to_idle(sim, 600);
+  REQUIRE_FALSE(sim.sweeping(last));
+  checkDistance();
+  sim.strictCoverage = true;
+  sim.step();
+  check_invariants(sim);
+}
+
+TEST_CASE("T92 with sunSweep off a sun step restarts each level in transform 0 with no sweep, and the levels rebuild in bit 0")
+{
+  RtssSchedulerSettings s;
+  s.sunSweep = false;
+  RtssSim sim(s);
+  sim.run(60);
+  const int levels = sim.settings.levels, slotsPerLevel = sim.windowPages() * sim.windowPages();
+  for (int k = 0; k < levels; ++k)
+    REQUIRE(sim.stats.levels[k].validSlots == slotsPerLevel);
+  sim.strictCoverage = false;
+  sim.sun = turned(sim.sun, 1);
+  sim.beforeCommit = [&](dag::Vector<uint32_t> &, dag::Vector<uint32_t> &) {
+    for (const RtssSlot &slot : sim.slots())
+      CHECK((slot.flags & RTSS_SLOT_VALID) == 0);
+  };
+  sim.step();
+  sim.beforeCommit = nullptr;
+  for (int k = 0; k < levels; ++k)
+  {
+    CHECK_FALSE(sim.sweeping(k));
+    CHECK(sim.curBit(k) == 0);
+    CHECK(sim.stats.levels[k].sunErrorDeg < 0.01f);
+  }
+  int frames = 0;
+  for (; frames < 600 && !sim.jobs.empty(); ++frames)
+    sim.step();
+  INFO("rebuilt in " << frames << " frames");
+  REQUIRE(sim.jobs.empty());
+  for (const RtssSlot &slot : sim.slots())
+    CHECK(((slot.flags & RTSS_SLOT_VALID) != 0 && rtss_slot_bit(slot.flags) == 0));
+  sim.strictCoverage = true;
+  sim.step();
+  check_invariants(sim);
+}
+
+TEST_CASE("T93 with sunSweep off and a tolerance of 0 the frames end, with every level in transform 0 at the sun")
+{
+  RtssSchedulerSettings s;
+  s.sunSweep = false;
+  s.toleranceDeg0 = 0;
+  RtssSim sim(s);
+  sim.strictCoverage = false;
+  sim.run(10);
+  sim.sun = turned(sim.sun, 1);
+  sim.step();
+  for (int k = 0; k < sim.settings.levels; ++k)
+  {
+    CHECK_FALSE(sim.sweeping(k));
+    CHECK(sim.curBit(k) == 0);
+    CHECK(sim.stats.levels[k].sunErrorDeg < 0.01f);
+  }
+  check_invariants(sim);
 }

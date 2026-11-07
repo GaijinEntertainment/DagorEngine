@@ -120,6 +120,8 @@ struct SsaoFilterParameters
 {
   TargetDesc target;
   ResourceNames names;
+  // See SsaoRenderParameters::materialGbufferBeforeRootPublish.
+  bool materialGbufferBeforeRootPublish = false;
 };
 
 struct GtaoFilterParameters
@@ -143,6 +145,7 @@ namespace detail
 struct SsaoNodeState
 {
   ssao_pass::RenderResources resources;
+  eastl::optional<gtao_pass::FilterResources> spatialTemporalFilter;
   ViewDependentResource<ao_common::FrameState, 2> frameState;
 };
 

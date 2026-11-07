@@ -280,11 +280,8 @@ public:
       das::SideEffects::modifyArgument, "prepare_features_for_mm_search");
     das::addExtern<DAS_BIND_FUN(calculate_trajectory_features_cost)>(*this, lib, "calculate_trajectory_features_cost",
       das::SideEffects::none, "calculate_trajectory_features_cost");
-    das::addExtern<DAS_BIND_FUN(calculate_features_cost_detailed)>(*this, lib, "calculate_features_cost_detailed",
-      das::SideEffects::modifyArgument, "calculate_features_cost_detailed");
 
     das::addExtern<DAS_BIND_FUN(clearAnimations)>(*this, lib, "clearAnimations", das::SideEffects::modifyArgument, "clearAnimations");
-    das::addExtern<DAS_BIND_FUN(get_root_node_id)>(*this, lib, "get_root_node_id", das::SideEffects::none, "get_root_node_id");
     das::addExtern<DAS_BIND_FUN(init_feature_weights)>(*this, lib, "init_feature_weights", das::SideEffects::modifyArgument,
       "init_feature_weights");
     das::addExtern<DAS_BIND_FUN(commit_feature_weights)>(*this, lib, "commit_feature_weights", das::SideEffects::modifyArgument,

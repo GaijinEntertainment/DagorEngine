@@ -33,6 +33,8 @@ class String;
 //   D - premultiply color by alpha on image load
 //   X - force override file's settings (e.g. in DDSx) with meta data, values {0|1} (e.g., X1; def=X0)
 //   U - index of predefined stub texture that can be used in d3d, values {INT} (e.g., U1, U3; def=U0)
+//   I - loose DDSx file: load content when the texture is created, not in the DDSx load queue
+//       (invalid with U; no effect for paired textures, tex packs and vromfs files)
 //   < - force TEXID_LQ (base quality of texture)
 //   > - force TEXID_FQ (full quality of texture)
 //   V - scaling factor for IES textures
@@ -82,6 +84,7 @@ struct TextureMetaData
     FLG_OVERRIDE = (1 << 3), // X
     FLG_PREMUL_A = (1 << 4), // D
     FLG_IES_ROT = (1 << 5),  // R
+    FLG_LD_IMM = (1 << 6),   // I
   };
 
   uint8_t addrU : 4, addrV : 4, addrW : 4;
@@ -138,7 +141,9 @@ struct TextureMetaData
       return false;
     if (anisoFunc == AFUNC_DIV && anisoFactor == 0)
       return false;
-    if (flags & ~(FLG_NONPOW2 | FLG_OPTIMIZE | FLG_PACK | FLG_OVERRIDE | FLG_PREMUL_A | FLG_IES_ROT))
+    if (flags & ~(FLG_NONPOW2 | FLG_OPTIMIZE | FLG_PACK | FLG_OVERRIDE | FLG_PREMUL_A | FLG_IES_ROT | FLG_LD_IMM))
+      return false;
+    if ((flags & FLG_LD_IMM) && stubTexIdx != 0)
       return false;
     if (texFilterMode == FILT_LINEAR)
       return false;

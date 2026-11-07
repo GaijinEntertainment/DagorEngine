@@ -41,13 +41,29 @@ public:
 
   // draw functions
 private:
-  void drawUI();
-  void drawGpuCaptureWindow();
+  void drawExplorerPanel();
+  void drawCanvasPanel();
+
+  void drawSearchBar();
+  void drawNameSpaceTree(NameSpaceNameId namespace_id);
+
+  void drawControls();
   void drawCanvas();
 
   void drawNodes(ImDrawList *draw_list, const CanvasLayout &layout);
   void drawEdges(ImDrawList *draw_list, const CanvasLayout &layout);
   void drawNodeBoxes(ImDrawList *draw_list);
+
+  void drawGpuCaptureWindow();
+
+  // tree view functions
+private:
+  void hideResource(ResNameId res_name_id);
+  void showResource(ResNameId res_name_id);
+  void hideResourcesInSubTree(NameSpaceNameId namespace_id);
+  void hideResourcesInNameSpace(NameSpaceNameId namespace_id);
+  void showResourcesInSubTree(NameSpaceNameId namespace_id);
+  void showResourcesInNameSpace(NameSpaceNameId namespace_id);
 
   // control functions
 private:
@@ -59,6 +75,7 @@ private:
   // update functions
 private:
   void updateNodesRess();
+  void updateSearchItems();
   void updateIRInfo();
   void updateNameSpaces();
   void updateDependencies();
@@ -112,11 +129,7 @@ private:
   NodeId getRepresentId(const NodeNameId id) const { return id != NodeNameId::Invalid ? regNodesRepresent[id] : NodeId::Invalid; }
   ResourceId getRepresentId(const ResNameId id) const { return id != ResNameId::Invalid ? regResRepresent[id] : ResourceId::Invalid; }
 
-  IdIndexedMapping<NameSpaceNameId, NameSpace> nameSpaces; // Information about sub namespaces, nodes and resources for
-  dag::Vector<NodeNameId> nsNodeNameIds;                   // ImGuiDagor::ComboWithFilter() and treeWithFilter()
-  dag::Vector<ResNameId> nsResNameIds;
-  dag::Vector<eastl::string_view> nsNodeNames;
-  dag::Vector<eastl::string_view> nsResNames;
+  IdIndexedMapping<NameSpaceNameId, NameSpace> nameSpaces; // Information about sub namespaces, nodes and resources for tree view
 
   IdIndexedMapping<DependencyId, Dependency> registryDependencies; // List of all dependencies, stated in InternalRegistry
   dag::Vector<DependencyId> disabledDependencies;                  // Dependencies, disabled during check for cycles
@@ -124,16 +137,26 @@ private:
   IdIndexedMapping<NodeBoxId, NodeBox> nodeBoxes;
   IdIndexedMapping<NodeId, NodeBoxId> nodesNodeBox;
 
+  bool updateNeeded = true;
+
 
   // layouts
 private:
   eastl::unique_ptr<IGraphLayouter> layouter = make_default_layouter();
   CanvasLayout generalLayout;   // Non-hierarchical layout, nodes are placed individually
   CanvasLayout condensedLayout; // Hierarchical layout, nodes are grouped by name spaces
+
+
+  // view
+private:
+  NodeColorationType nodeColoration = NodeColorationType::None;
   bool hierarchicalView = false;
-  bool updateNeeded = true;
+  bool smoothCamera = true;
+  bool canvasGrid = true;
+  bool macroView = false;
 
 
+  // canvas
 private:
   ImGuiEx::Canvas canvas;
   enum CanvasChannels
@@ -147,9 +170,6 @@ private:
   };
 
   CanvasCamera canvasCamera{};
-  bool macroView = false;
-
-  NodeColorationType coloration = NodeColorationType::None;
 
 
   // hovering
@@ -235,6 +255,70 @@ private:
   }
 
 
+  // search
+private:
+  struct SearchItem
+  {
+    NodeId nodeId = NodeId::Invalid;
+    ResourceId resId = ResourceId::Invalid;
+    float rating = 0;
+
+    eastl::string_view shortName = {};
+    eastl::string_view fullName = {};
+    eastl::string_view parentName = {};
+
+    dag::Vector<eastl::pair<uint16_t, uint16_t>> shortNameMatches = {};
+    dag::Vector<eastl::pair<uint16_t, uint16_t>> fullNameMatches = {};
+
+    bool isNode() const { return nodeId != NodeId::Invalid; }
+  };
+  struct SearchState
+  {
+    eastl::string input;
+    eastl::string lastRatedInput;
+
+    dag::Vector<SearchItem> searchItems;
+    dag::Vector<uint32_t> sortedIndices;
+    int selectedIndex = 0;
+
+    bool needRating = false;
+
+    void reset(const uint32_t search_items_count)
+    {
+      searchItems.clear();
+      sortedIndices.clear();
+
+      searchItems.reserve(search_items_count);
+      sortedIndices.reserve(search_items_count);
+
+      needRating = true;
+    }
+
+    void rateSearch()
+    {
+      needRating |= lastRatedInput != input;
+      if (eastl::exchange(needRating, false))
+      {
+        lastRatedInput = input;
+        sortedIndices.clear();
+        selectedIndex = 0;
+
+        for (uint32_t itemIdx = 0; itemIdx < searchItems.size(); ++itemIdx)
+        {
+          auto &item = searchItems[itemIdx];
+          item.rating = fuzzy_search(input, item.shortName, item.fullName, item.shortNameMatches, item.fullNameMatches);
+          if (input.empty() || item.rating > 0.f)
+            sortedIndices.push_back(itemIdx);
+        }
+
+        if (!input.empty())
+          eastl::sort(sortedIndices.begin(), sortedIndices.end(),
+            [this](uint32_t a, uint32_t b) { return searchItems[a].rating > searchItems[b].rating; });
+      }
+    };
+  } searchState;
+
+
   // focusing
 private:
   struct FocusState
@@ -252,20 +336,7 @@ private:
     bool resValid() const { return resId != ResourceId::Invalid; }
   } focusState;
 
-  eastl::string nodeSearchInput;
-  int focusedNodeIndex = UNKNOWN_INDEX;
-
-  eastl::string resourceSearchInput;
-  int focusedResourceIndex = UNKNOWN_INDEX;
-
-  void clearFocus()
-  {
-    focusState = {};
-    nodeSearchInput.clear();
-    focusedNodeIndex = UNKNOWN_INDEX;
-    resourceSearchInput.clear();
-    focusedResourceIndex = UNKNOWN_INDEX;
-  }
+  void clearFocus() { focusState = {}; }
 
   void setFocus(NodeNameId id)
   {
@@ -281,12 +352,6 @@ private:
       .focusType = ResourceFocusType::All,
       .hasRenames = false,
     };
-
-    if (auto it = eastl::find(nsNodeNameIds.begin(), nsNodeNameIds.end(), id); it != nsNodeNameIds.end())
-    {
-      focusedNodeIndex = int(it - nsNodeNameIds.begin());
-      nodeSearchInput = nsNodeNames[focusedNodeIndex];
-    }
   }
 
   void setFocus(ResNameId id, ResourceFocusType focus_type = ResourceFocusType::All)
@@ -303,12 +368,6 @@ private:
       .focusType = focus_type,
       .hasRenames = false,
     };
-
-    if (auto it = eastl::find(nsResNameIds.begin(), nsResNameIds.end(), id); it != nsResNameIds.end())
-    {
-      focusedResourceIndex = int(it - nsResNameIds.begin());
-      resourceSearchInput = nsResNames[focusedResourceIndex];
-    }
 
     if (focusState.resValid())
       for (const auto [from, to] : depData.renamingChains.enumerate())
@@ -331,7 +390,37 @@ private:
       setFocus(focusState.resNameId, focusState.focusType);
   }
 
-  void centerOnFocus();
+  void centerOnFocus()
+  {
+    if (focusState.nodeValid())
+    {
+      const auto nodeRect = (hierarchicalView ? condensedLayout : generalLayout).nodes[focusState.nodeId];
+      canvasCamera.targetCamera(nodeRect.offset + nodeRect.size / 2.f);
+    }
+
+    if (focusState.resValid())
+    {
+      constexpr ImVec2 MAX_IMVEC2 = ImVec2{eastl::numeric_limits<float>::max(), eastl::numeric_limits<float>::max()};
+
+      ImVec2 leftPos = MAX_IMVEC2;
+      ImVec2 rightPos = MAX_IMVEC2;
+      for (const auto &edge : (hierarchicalView ? condensedLayout : generalLayout).edges.values())
+        for (const auto depId : edge.carriedDeps)
+          if (registryDependencies[depId].resource == focusState.resId)
+            for (const auto &spline : edge.splines)
+              if (spline.P0.x < leftPos.x)
+              {
+                leftPos = spline.P0;
+                rightPos = spline.P3;
+                break;
+              }
+
+      if (leftPos == MAX_IMVEC2 || rightPos == MAX_IMVEC2)
+        return;
+
+      canvasCamera.targetCamera((leftPos + rightPos) / 2.f);
+    }
+  }
 
 
   // inspecting
@@ -347,6 +436,13 @@ private:
     bool wasChanged = false;
   } inspectedDependency;
 
+  void clearInspectedDependency()
+  {
+    inspectedDependency = {
+      .wasChanged = true,
+    };
+  }
+
   void setInspectedDependency(const DependencyId dep_id)
   {
     const auto &dep = registryDependencies[dep_id];
@@ -356,13 +452,6 @@ private:
       .resNameId = getNameId(dep.resource),
       .depId = dep_id,
       .history = dep.type == DependencyType::IMPLICIT_RES_HIST,
-      .wasChanged = true,
-    };
-  }
-
-  void clearInspectedDependency()
-  {
-    inspectedDependency = {
       .wasChanged = true,
     };
   }
@@ -415,6 +504,8 @@ private:
   // gpu capture
 private:
   GpuCapture gpuCapture;
+  dag::Vector<NodeNameId> nsNodeNameIds;
+  dag::Vector<eastl::string_view> nsNodeNames;
   void setCaptureBoundary(CaptureBoundary &boundary, NodeNameId id);
 
 
@@ -438,16 +529,6 @@ private:
     return registry.knownNames.getShortName(res_id);
   }
 
-  template <class EnumType>
-  inline dag::Vector<eastl::string_view> gatherNames(eastl::span<const EnumType> ids) const
-  {
-    dag::Vector<eastl::string_view> names;
-    names.reserve(ids.size());
-    for (auto id : ids)
-      names.push_back(getName(id));
-    return names;
-  }
-
   inline bool isResourceVisible(const ResourceId res_id) const
   {
     return res_id == ResourceId::Invalid ||
@@ -457,23 +538,6 @@ private:
                focusState.focusType == ResourceFocusType::ResourceAndRenames &&
                  depData.renamingRepresentatives[getNameId(res_id)] == depData.renamingRepresentatives[getNameId(focusState.resId)]);
   }
-
-
-  // tree view functions
-private:
-  void hideResourcesInSubTree(NameSpaceNameId name_space_id);
-
-  void hideResourcesInNameSpace(NameSpaceNameId namespace_id);
-
-  void showResourcesInSubTree(NameSpaceNameId namespace_id);
-
-  void showResourcesInNameSpace(NameSpaceNameId namespace_id);
-
-  void drawTree(const dafg::NameSpaceNameId &namespace_id, int &res_idx, int &counter, bool &selected_by_mouse,
-    ImGuiDagor::ComboInfo &info, eastl::string &input, float text_width, float button_offset);
-
-  bool treeWithFilter(const char *label, const dag::Vector<eastl::string_view> &data, int &current_idx, eastl::string &input,
-    bool return_on_arrows = true, const char *hint = "", ImGuiComboFlags flags = 0);
 };
 
 } // namespace dafg::visualization::usergraph

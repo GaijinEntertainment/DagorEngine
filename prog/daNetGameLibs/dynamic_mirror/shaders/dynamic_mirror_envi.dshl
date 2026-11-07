@@ -1,0 +1,27 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+
+shader dynamic_mirror_envi
+{
+  supports global_frame;
+  cull_mode = none;
+  z_write = false;
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_VIEWVEC(0, viewVect)
+
+  INIT_ENVI_SPECULAR()
+  INIT_ENVI_SPECULAR_SAMPLE(ps)
+  USE_ENVI_SPECULAR_SAMPLE(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
+  hlsl(ps) {
+    half4 dynamic_mirror_envi_ps(VsOutput input) : SV_Target
+    {
+      half3 envi = sample_envi_probe(float4(input.viewVect, 0)).rgb;
+      return half4(pack_hdr(envi), 1);
+    }
+  }
+  compile("target_ps", "dynamic_mirror_envi_ps");
+}

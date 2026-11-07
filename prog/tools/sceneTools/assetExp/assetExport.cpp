@@ -28,7 +28,7 @@
 #include "jobSharedMem.h"
 
 static bool reqFastConv = false;
-static debug_log_callback_t original_log_callback = nullptr;
+static LogHandlerId warning_checking_handler_id = LogHandlerId::Invalid;
 static dag::Vector<String> *build_warnings = nullptr;
 
 class WarningCheckingLogWriter : public ILogWriter
@@ -89,19 +89,17 @@ private:
   ILogWriter &originalLogWriter;
 };
 
-static int warning_checking_log_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void warning_checking_log_callback(void *, LogMessage &msg)
 {
   // AssetViewer only redirects errors to the console, so capture only those.
   // Ignore messages redirected by the console to log (these start with "CON: ") otherwise they would be added twice.
-  if (lev_tag == LOGLEVEL_ERR && is_main_thread() && strncmp(fmt, "CON: ", 5) != 0)
+  if (is_main_thread() && strncmp(msg.fmt, "CON: ", 5) != 0)
   {
     String message;
     message += WarningCheckingLogWriter::getLogPrefix(ILogWriter::ERROR);
-    message.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+    message.avprintf(0, msg.fmt, (const DagorSafeArg *)msg.arg, msg.anum);
     build_warnings->emplace_back(message);
   }
-
-  return original_log_callback ? original_log_callback(lev_tag, fmt, arg, anum, ctx_file, ctx_line) : 1;
 }
 
 static bool warning_checking_build_asset(IDagorAssetExporter &exp, DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log,
@@ -111,7 +109,7 @@ static bool warning_checking_build_asset(IDagorAssetExporter &exp, DagorAsset &a
 
   const bool reentrance = build_warnings != nullptr;
   if (!reentrance)
-    original_log_callback = debug_set_log_callback(&warning_checking_log_callback);
+    warning_checking_handler_id = debug_add_log_handler(&warning_checking_log_callback, nullptr, {.levelMask = LOGMASK_ERR});
 
   dag::Vector<String> *originalBuildWarnings = build_warnings;
   build_warnings = &warnings;
@@ -123,8 +121,8 @@ static bool warning_checking_build_asset(IDagorAssetExporter &exp, DagorAsset &a
 
   if (!reentrance)
   {
-    debug_set_log_callback(original_log_callback);
-    original_log_callback = nullptr;
+    debug_remove_log_handler(warning_checking_handler_id);
+    warning_checking_handler_id = LogHandlerId::Invalid;
   }
 
   return result;

@@ -98,3 +98,18 @@ def reduce(obj : Object | #; var res : auto(T); cb : block<(res : T; elem : Chil
 
 def operator ??(a : das_string const?; default_value : string)
   return a != null ? *a |> string() : default_value
+
+// Fills the first {} or {:spec} field with the value (plain like interpolation, or via fmt).
+// No field: the template is returned as is and the value is unused.
+[generic]
+def fmt_template(tmpl : string; value) : string
+  let open = find(tmpl, "\{")
+  let close = open < 0 ? -1 : find(tmpl, "\}", open)
+  if close < 0
+    return tmpl
+  let spec = slice(tmpl, open + 1, close)
+  var text = "{value}"
+  static_if typeinfo is_numeric(value)
+    if !empty(spec)
+      text = fmt(spec, value)
+  return "{slice(tmpl, 0, open)}{text}{slice(tmpl, close + 1)}"

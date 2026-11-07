@@ -1458,7 +1458,8 @@ void AnimBlendCtrl_Hub::setBlendNodesWt(AnimGraphStateHolder &st, dag::ConstSpan
 {
   if (paramId == -1)
   {
-    LOGERR_ONCE("Trying to set hub blend node weights but hub was inited with const:b=true");
+    LOGERR_ONCE("Trying to set hub \"%s\" blend node weights but hub was inited with const:b=true",
+      st.getGraph().getBlendNodeName(this));
     return;
   }
   float *ptr = (float *)st.getInlinePtr(paramId);

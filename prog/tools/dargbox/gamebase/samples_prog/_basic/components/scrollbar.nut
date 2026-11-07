@@ -116,7 +116,7 @@ let makeSideScroll = kwarg(function(content, scrollAlign = ALIGN_RIGHT, orientat
 
 
 let makeHVScrolls = function(content, options = null ) {
-  let {needReservePlace=true, size=flex(), behaviors=null} = options
+  let {needReservePlace=true, size=flex(), behaviors=null, rootBase=null} = options
   let scrollHandler = options?.scrollHandler ?? ScrollHandler()
 
   let contentRoot = {
@@ -125,6 +125,7 @@ let makeHVScrolls = function(content, options = null ) {
     joystickScroll = true
     size = flex()
     children = content
+    ...rootBase
   }
 
   return {

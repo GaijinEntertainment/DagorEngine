@@ -399,20 +399,20 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
 
   StringKeys *csk = guiScene->getStringKeys();
 
-  const int inputBehaviorFlags = Behavior::F_HANDLE_JOYSTICK | Behavior::F_HANDLE_KEYBOARD | Behavior::F_HANDLE_MOUSE |
-                                 Behavior::F_HANDLE_TOUCH | Behavior::F_CAN_HANDLE_CLICKS | Behavior::F_FOCUS_ON_CLICK |
-                                 Behavior::F_HANDLE_TOUCH_PAD_GESTURE;
-
-  bool wasHidden = existing && existing->isHidden();
   bool hadTransitions = existing && !existing->transitions.empty();
   bool hadBehaviors = existing && !existing->behaviors.empty();
-  bool hadInputBehaviors = existing && existing->hasBehaviors(inputBehaviorFlags);
   bool wasXmbNode = existing && existing->xmb;
-  auto prevZOrder = existing ? existing->zOrder : Element::undefined_z_order;
+  Element::StackInputs prevStackInputs = existing ? existing->getStackInputs() : Element::StackInputs{};
+  Sqrat::Object prevHotkeys = existing ? existing->props.scriptDesc.RawGetSlot(csk->hotkeys) : Sqrat::Object();
 
   Element *elem = existing ? existing : allocateElement(vm, parent, csk);
 
   elem->setup(comp, guiScene, existing ? SM_REBUILD_UPDATE : SM_INITIAL);
+
+  Sqrat::Object newHotkeys = comp.scriptDesc.RawGetSlot(csk->hotkeys);
+  bool readNewHotkeys = !existing || (!elem->isDetached() && !is_same_immutable_obj(prevHotkeys, newHotkeys));
+  if (readNewHotkeys && elem->readHotkeys(comp.scriptDesc, newHotkeys, guiScene->getHotkeys()))
+    out_flags |= RESULT_HOTKEYS_STACK_MODIFIED;
 
   if (elem->statefulInst)
   {
@@ -424,12 +424,8 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
     elem->props.uniqueKey = elem->statefulInst->keyValue;
   }
 
-  if (elem->isHidden() != wasHidden)
-    out_flags |= RESULT_ELEMS_ADDED_OR_REMOVED;
-  if (!existing && !elem->hotkeyCombos.empty())
-    out_flags |= RESULT_HOTKEYS_STACK_MODIFIED;
-  if (elem->zOrder != prevZOrder)
-    out_flags |= RESULT_INVALIDATE_RENDER_LIST;
+  if (existing && elem->getStackInputs() != prevStackInputs)
+    out_flags |= RESULT_INVALIDATE_RENDER_LIST | RESULT_INVALIDATE_INPUT_STACK;
 
   dag::Vector<Sqrat::Object, framemem_allocator> childrenDescObjs;
   dag::Vector<ChildSlot, framemem_allocator> slots;
@@ -561,9 +557,6 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
   }
   if (wasXmbNode != isXmbNode)
     out_flags |= RESULT_NEED_XMB_REBUILD;
-
-  if (elem->hasBehaviors(inputBehaviorFlags) != hadInputBehaviors)
-    out_flags |= RESULT_INVALIDATE_INPUT_STACK;
 
   elem->delayedCallElemStateHandler(); // force state synchronization
   if (existing && elem->watch.size() && call_depth > 0)

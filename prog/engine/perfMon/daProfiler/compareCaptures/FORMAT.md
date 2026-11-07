@@ -24,7 +24,8 @@ they merge across appended capture segments and match cleanly between two captur
   "scopes": [ ... ],       // per-frame detail
   "scopesTail": [ ... ],   // summary-only (scopes below the detail threshold)
   "uniqueEvents": [ ... ], // cumulative rare-event counters (UniqueEventsBoard)
-  "samples": { ... }       // present only if the capture has stack sampling
+  "samples": { ... },      // present only if the capture has stack sampling
+  "tags": [ ... ]          // present only with --tags
 }
 ```
 
@@ -159,6 +160,26 @@ Each stack sample is attributed to the innermost scope active on its thread at t
 sample tick; the leaf frame is resolved against the dump's symbol table. This is the
 "drill into a changed timeline" view. Best-effort (the sample path is skipped if the
 dump has no callstacks; the two reference testGI captures have none).
+
+### `tags` (only with `--tags`)
+
+The string tags (`DA_PROFILE_TAG` and the other `DA_PROFILE_TAG_*` macros) of all CPU
+threads, sorted by time.
+`--scope` filters them by tag name too.
+
+```jsonc
+{
+  "frame": 12,                      // CPU frame index the tag falls in
+  "thread": "Main",
+  "name": "DX12_deviceLocalMemory", // tag description name
+  "text": "budget 8424 used 8033 avail 391 MiB"
+}
+```
+
+- A tag with arguments is stored unformatted (format string, NUL, one 4-byte word per
+  argument); the viewer formats it at display time. The converter formats it the same
+  way; a `%s` or an argument cut off by the 54-byte tag limit stays as the raw specifier.
+- Tags can be numerous (thousands per frame), so they are opt-in.
 
 ## Source of truth
 

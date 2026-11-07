@@ -186,7 +186,7 @@ void StcodeExpression::specifyNextExprUnaryOp(shexpr::UnaryOperator op)
 
   G_ASSERT(strchr(content.c_str(), EXPR_UNARY_OP_PLACEHOLDER));
   // @NOTE: because we specify unary ops while unwinding, the placeholders have to be resolved in reverse order
-  resolve_last_placeholder(content, EXPR_UNARY_OP_PLACEHOLDER, op == shexpr::UOP_NEGATIVE ? "-" : "");
+  resolve_last_placeholder(content, EXPR_UNARY_OP_PLACEHOLDER, op == shexpr::UOP_NEGATIVE ? " -" : "");
 }
 
 eastl::string StcodeExpression::releaseAssembledCode()

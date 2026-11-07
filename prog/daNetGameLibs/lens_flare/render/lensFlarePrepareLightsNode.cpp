@@ -83,7 +83,8 @@ dafg::NodeHandle create_lens_flare_prepare_lights_node(LensFlareRenderer *render
         renderer->collectAndPrepareECSFlares_DynamicLights();
 
       bool hasFlaresToRender = renderer->endPreparingLights(camera.cameraWorldPos, camera.viewItm.getcol(2),
-        lights.hasClusteredLights(), WRDispatcher::getShadowInfoProvider().getShadowFramesCount());
+        lights.getLightsCountInterval() != DynLightsOptimizationMode::NO_LIGHTS,
+        WRDispatcher::getShadowInfoProvider().getShadowFramesCount());
 
       hasLensFlaresHndl.ref() |= hasFlaresToRender ? 1 : 0;
     };

@@ -1534,9 +1534,6 @@ int RegExp::parseRange()
     }
     break;
   }
-  //printf("maxc = %d, maxb = %d\n",r.maxc,r.maxb);
-  ((unsigned short *)(buf->data + offset))[0] = (unsigned short)r.maxc;
-  ((unsigned short *)(buf->data + offset))[1] = (unsigned short)r.maxb;
   if (attributes & REAignoreCase)
   {
     // BUG: what about unicode?
@@ -1549,6 +1546,10 @@ int RegExp::parseRange()
         r.setbit(c);
     }
   }
+  // header last: setbitmax() grows the bitmap
+  //printf("maxc = %d, maxb = %d\n",r.maxc,r.maxb);
+  ((unsigned short *)(buf->data + offset))[0] = (unsigned short)r.maxc;
+  ((unsigned short *)(buf->data + offset))[1] = (unsigned short)r.maxb;
   return 1;
 }
 #else
@@ -1806,6 +1807,7 @@ void RegExp::optimize()
         unsigned offset;
         Range r(&bitbuf);
 
+        r.setbitmax(0x7F);
         offset = prog - (char *)buf->data;
         if (startchars(&r, prog, NULL))
         {
@@ -1829,13 +1831,13 @@ void RegExp::optimize()
 // OR the leading character bits into r.
 // Limit the character range from 0..7F,
 // trymatch() will allow through anything over maxc.
+// The caller first sets r to 0..7F.
 // Return 1 if success, 0 if we can't build a filter or
 // if there is no point to one.
 
 int RegExp::startchars(Range *r, char *prog, char *progend)
 {
   unsigned c;
-  unsigned maxc;
   unsigned maxb;
   unsigned len;
   unsigned b;
@@ -1847,21 +1849,21 @@ int RegExp::startchars(Range *r, char *prog, char *progend)
   for (;;)
   {
     if (prog == progend)
-      return 1;
+      return 0;   // the part can match empty
     switch (*prog)
     {
       case REchar:
       c = *(unsigned char *)(prog + 1);
       if (c <= 0x7F)
-        r->setbit2(c);
+        r->setbit(c);
       return 1;
 
     case REichar:
       c = *(unsigned char *)(prog + 1);
       if (c <= 0x7F)
       {
-        r->setbit2(c);
-        r->setbit2(_totlower((TCHAR)c));
+        r->setbit(c);
+        r->setbit(_totlower((TCHAR)c));
       }
       return 1;
 
@@ -1879,7 +1881,7 @@ int RegExp::startchars(Range *r, char *prog, char *progend)
       assert(len);
       c = *(TCHAR *)(prog + 1 + sizeof(unsigned));
       if (c <= 0x7F)
-        r->setbit2(c);
+        r->setbit(c);
       return 1;
 
     case REistring:
@@ -1889,30 +1891,23 @@ int RegExp::startchars(Range *r, char *prog, char *progend)
       assert(len);
       c = *(TCHAR *)(prog + 1 + sizeof(unsigned));
       if (c <= 0x7F)
-        r->setbit2(c);
+        r->setbit(c);
       return 1;
 
     case REtestbit:
     case REbit:
-      maxc = ((unsigned short *)(prog + 1))[0];
       maxb = ((unsigned short *)(prog + 1))[1];
-      if (maxc <= 0x7F)
-        r->setbitmax(maxc);
-      else
+      if (maxb > r->maxb)
         maxb = r->maxb;
       for (b = 0; b < maxb; b++)
         r->base[b] |= *(char *)(prog + 1 + 4 + b);
       return 1;
 
     case REnotbit:
-      maxc = ((unsigned short *)(prog + 1))[0];
       maxb = ((unsigned short *)(prog + 1))[1];
-      if (maxc <= 0x7F)
-        r->setbitmax(maxc);
-      else
-        maxb = r->maxb;
-      for (b = 0; b < maxb; b++)
-        r->base[b] |= ~*(char *)(prog + 1 + 4 + b);
+      // every char above the bitmap matches
+      for (b = 0; b < r->maxb; b++)
+        r->base[b] |= b < maxb ? ~*(char *)(prog + 1 + 4 + b) : 0xFF;
       return 1;
 
     case REbol:

@@ -23,8 +23,8 @@ BhvProcessPointingInput bhv_process_pointing_input;
 BhvProcessPointingInput::BhvProcessPointingInput() : Behavior(0, F_HANDLE_MOUSE | F_HANDLE_TOUCH) {}
 
 
-int BhvProcessPointingInput::pointingEvent(ElementTree * /*etree*/, Element *elem, InputDevice device, InputEvent event,
-  int pointer_id, int btn_id, Point2 pos, int accum_res)
+int BhvProcessPointingInput::pointingEvent(ElementTree * /*etree*/, Element *elem, InputDevice device, TouchSource touch_src,
+  InputEvent event, int pointer_id, int btn_id, Point2 pos, int accum_res)
 {
   Sqrat::Function handler;
 
@@ -44,6 +44,7 @@ int BhvProcessPointingInput::pointingEvent(ElementTree * /*etree*/, Element *ele
 
   Sqrat::Table evt(vm);
   evt.SetValue(csk->devId, device);
+  evt.SetValue(csk->touchSrc, touch_src);
   evt.SetValue(csk->eventId, event);
   evt.SetValue(csk->pointerId, pointer_id);
   evt.SetValue(csk->btnId, btn_id);

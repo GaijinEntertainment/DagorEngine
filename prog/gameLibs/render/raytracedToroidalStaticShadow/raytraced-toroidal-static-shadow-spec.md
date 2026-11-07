@@ -10,26 +10,26 @@ a window of 8 x 8 pages of 122 x 122 texels, with twice the texel of the
 level below: 0.08 m at level 0 and 5 levels to +- 468 m by default.
 Build rays (SWRT, HWRT or a project tracer) or a raster callback fill a
 page, and each page keeps its own light transform. A moving sun rebuilds
-a level page by page in a sweep; a moving camera pre-traces the pages
-that come into the window. Two page budgets bound this work: a
-validity burst for each frame for the coarsest level, which has no
-coarser level to fall back to, and an update budget for all the rest,
-which a frame may spend for a batch of frames; the missing pages of the
-coarsest level take it too, past the burst. A shader samples the rtss
-at any world position inside the levels: screen pixels, GI ray hits,
-voxels.
+a level page by page in a sweep (a static sun restarts it, 8.11); a
+moving camera pre-traces the pages that come into the window. Two page
+budgets bound this work: a validity burst for each frame for the
+coarsest level, which has no coarser level to fall back to, and an
+update budget for all the rest, which a frame may spend for a batch of
+frames; the missing pages of the coarsest level take it too, past the
+burst. A shader samples the rtss at any world position inside the
+levels: screen pixels, GI ray hits, voxels.
 
-Effect: no empty or popping static shadow when the sun or the camera
-moves, a shadow at most two tolerances behind the sun while the budget
-follows it, no skewed matrix and no height window, and a range that
-doubles with each level of 2 MiB. Cost: in testGI the trace producers
-take more GPU time than the classic raster to follow the same moves,
-and the screen lookup costs 0.22 ms more at 4K (see "Why").
+Effect: no empty or popping static shadow when the camera or (with
+sweeps) the sun moves, and then a shadow at most two tolerances behind
+the sun while the budget follows it; no skewed matrix and no height
+window, and a range that doubles with each level of 2 MiB. Cost: in testGI the trace
+producers take more GPU time than the classic raster to follow the same
+moves, and the screen lookup costs 0.22 ms more at 4K (see "Why").
 
 ## Why: against the classic static shadow
 
-The classic static shadow is `ToroidalStaticShadows` (3.1). WT and DNG
-use it so:
+The classic static shadow is `ToroidalStaticShadows` (3.1). WT uses it,
+and DNG used it before the rtss, so:
 - **WT** (`skyquake/prog/render/staticShadows.cpp`,
   `_shadowPresets.blk`): 2 cascades at most, DEPTH16. For the animated
   sun the far cascade has a transition texture of the cascade size (a
@@ -40,11 +40,11 @@ use it so:
   (`weather.cpp` clamps the light direction to y <= -0.2). The default
   thresholds give a whole-cascade re-render at each 0.81 deg, a forced
   one at 8.1 deg.
-- **DNG** (`shadowsManager.cpp`): 2 cascades of 4096 to 700 m, a static
-  sun by default. With a dynamic time each sun step of 2.56 deg is a
-  forced re-render (thresholds 0.999, 0.999), and the far cascade gets a
+- **DNG** (before the rtss): 2 cascades of 4096 to 700 m, a static sun
+  by default. With a dynamic time each sun step of 2.56 deg was a forced
+  re-render (thresholds 0.999, 0.999), and the far cascade got a
   transition texture, so again the memory of 3 cascades. Enlisted
-  updates 0.025 of the texture in a frame, in uniform parts.
+  updated 0.025 of the texture in a frame, in uniform parts.
 
 What the rtss changes (from the code of both libraries):
 - **Moving sun.** The classic re-renders a whole cascade at each sun
@@ -54,7 +54,10 @@ What the rtss changes (from the code of both libraries):
   The rtss sweeps each level in key order (8.4), so a lookup reads no
   gap and no wrong transform (8.5), and a page falls at most twice the
   tolerance of its level behind the sun. The tolerance is 0.1 deg at
-  level 0, doubled for each level up to 1.6 deg.
+  level 0, doubled for each level up to 1.6 deg. With `sunSweep` off
+  (8.11: AM, Enlisted) a sun step restarts the level instead: until
+  the budget rebuilds its pages, a receiver falls back to a coarser
+  level, or is lit where no level has data.
 - **Moving camera.** The classic draws the new strip of a cascade (the
   full texture width) in one frame when it is at most twice the budget
   of the frame; a larger strip is cleared and reads as lit until it is
@@ -292,9 +295,6 @@ classic static shadow stays as it is. The first user is testGI (section
 - Translucent casters and canopy transmittance.
 - Soft shadows wider than a 2x2 PCF at ray hits. A denoiser does the
   rest; the screen consumer has the filters of 9.7.
-- A game integration (DNG, WT). testGI only.
-- Console targets. The code must compile on all platforms that build
-  testGI, but it is tested on PC DX12 and DX11 (HWRT on DX12 only).
 
 ## 3. Current state
 
@@ -319,10 +319,11 @@ classic static shadow stays as it is. The first user is testGI (section
   `readyToRenderRegionWithFinalQuality(transform, region)`,
   `RasterizedResult renderStaticShadowDepth(culling_view_proj, transform, region)`,
   `endRenderStaticShadow()`.
-- DNG uses a two-phase flow: `updateOrigin`, then cull jobs from
-  `getRegionToRenderCount`/`getRegionToRenderCullTm`, then `render(cb)`
-  (`prog/daNetGame/render/world/shadowsManager.cpp:779-839`). The raster
-  producer keeps this flow (section 7.3).
+- The classic of DNG had a two-phase flow: `updateOrigin`, then cull
+  jobs from `getRegionToRenderCount`/`getRegionToRenderCullTm`, then
+  `render(cb)`. The raster producer keeps this flow (section 7.3), and
+  the `ShadowsManager` of DNG runs it: `update`, a cull job for each
+  `getRasterRegion`, then `render`.
 
 ### 3.2 SWRT (daBVH + daSWRT)
 
@@ -453,6 +454,7 @@ border of 1 texel, `texel0` 0.05 m, no anisotropy, an update budget of
 | `borderTexels` B | 3 | texels of the slot border on each side, 1..4; a screen filter kernel stays within it (9.7) |
 | `texel0` | 0.08 m | texel size of level 0, 0.001..1000 m |
 | `maxAnisotropy` | 2 | largest y scale of light space for a low sun, 1..8; 1 turns it off (6.6) |
+| `sunSweep` | true | false: a sun step restarts the level in transform 0 (8.11); the library sets it from the shader interval `rtss_sun_sweep` |
 | `toleranceDeg0` | 0.1 | tolerance of level 0; it doubles for each level |
 | `toleranceDegMax` | 1.6 | largest tolerance |
 | `fastSweepDeg` | 5 | a sun step above this, or above 80% of the window limit, sweeps in the REQUIRED class (8.8) |
@@ -469,7 +471,7 @@ border of 1 texel, `texel0` 0.05 m, no anisotropy, an update budget of
 | `rasterBoxPagesPerJob` | 2 | a raster box holds at most this many pages for each of its jobs, 1..64 (7.3) |
 | `rasterCallCost` | 0 | cost units of a raster call, which the job that opens a raster box pays (8.2) |
 | `rasterTranspose` | true | the scratch is half as high, and a box that fits it only turned by 90 deg draws turned (7.3) |
-| `maxCasterReach` | 2000 m | the least half-range of a slot's depth range at its whole-slot build, before the world box clips it, so the distance sunward of the camera to which casters count then; a level reaches them to twice its extent where twice the extent is more; a camera move toward the sun shrinks the reach of a kept slot, which a sub-slot job keeps (6.4) |
+| `maxCasterReach` | 2000 m | the least half-range of a slot's depth range at its whole-slot build, before the world box clips it, so the distance sunward of the camera to which casters count then; a level reaches them to twice its extent where twice the extent is more; a camera move toward the sun shrinks the reach of a kept slot, which a sub-slot job keeps (6.4); `getCasterReach` gives the least reach of the pages in use |
 | `minSunY` | 0 | `dir_to_sun.y` below this: sun below horizon |
 | `biasTexels` | 1.0 | depth bias in texels of the level |
 | `normalBiasTexels` | 2.0 | normal offset in texels at the receiver distance, times `1 - NoL` (9.5) |
@@ -591,12 +593,16 @@ struct RtssSlot         // 16 bytes, levels * W * W entries
   the slot and `minDepth`/`maxDepth` stay true.
 - A sweep job on a slot replaces the DIRTY job of that slot in the same
   frame: it rebuilds the whole slot, so it also removes the rectangle.
-- The CPU writes the table after it records the jobs of the frame, as one
-  buffer update.
+- The CPU writes the table after it records the jobs of the frame: to
+  `rtss_levels` at `RTSS_SLOTS_OFFSET`, and the copy in `rtss_slots`.
 
 ### 5.4 Level table
 
-For each level, 112 bytes in one GPU buffer (`rtss_levels`), updated
+For each level, 112 bytes at the start of the GPU buffer `rtss_levels`
+(the slot table follows at `RTSS_SLOTS_OFFSET`, after `RTSS_MAX_LEVELS`
+levels: one buffer, as a static shadow reader is short of t registers;
+the buffer `rtss_slots` keeps a copy of the slot table for the
+additional dumps built when the slots had their own buffer), updated
 each frame:
 - `T[2]`: two transforms, 3 float4 each: the rows of M in xyz and the
   relative translation k (5.5) in w. M has orthogonal rows, with the y scale
@@ -609,9 +615,9 @@ each frame:
   of them with one load.
 
 The texel of level k is `texel_0 * 2^k` (1), so only `rtss_globals`
-keeps it. The slot and the level tables are ByteAddressBuffers, which
-the shaders read with one `Load4` for a slot or a row: the strides are
-multiples of 16 bytes.
+keeps it. The slot and the level tables are parts of the
+ByteAddressBuffer `rtss_levels`, which the shaders read with one
+`Load4` for a slot or a row: the strides are multiples of 16 bytes.
 
 Global values, one array `float4 rtss_globals[5]` set in each frame;
 `rtss_common.hlsli` names its parts:
@@ -917,7 +923,9 @@ float maxT = job.zEnd - job.zStart;
     whose largest half extent is at most half the texel's extent along
     `e_y` hits as its box (a footprint under one texel along the light
     axes, up to `sqrt(3)` on a diagonal; 12 views differ in 0.002 % of
-    their pixels). It is faster than `rayTLASOrdered` in testGI.
+    their pixels). It is faster than `rayTLASOrdered` in testGI. It
+    has the daSWRT `bvh_blas_boxes_only` variant: with a `BoxesOnly`
+    BLAS (daSWRT CLAUDE.md, BLAS Modes) every BLAS leaf hits as its box.
   - `rtss_trace_hwrt_cs` (`rtss_trace_hwrt.dshl`, `cs_6_5`; with no
     `use_hw_raytracing` or with `compatibility_mode` on it is not made,
     so a project that lists it declares both, as for `bvh_debug`):
@@ -1334,6 +1342,9 @@ SWEEPING: T[target bit] is live too; slots move from the current bit to
 
 ### 8.4 Sweeps
 
+With `sunSweep` off, a level restarts (8.11) where 8.4 to 8.9 start a
+sweep.
+
 - **Duration.** `tolerance_k = min(toleranceDeg0 * 2^k, toleranceDegMax)`
   in degrees, and `tol_k` is the same angle in radians. With a moving sun,
   `sweepDuration_k = clamp(tol_k / |angular_velocity|, minSweepSeconds, maxSweepSeconds)`.
@@ -1621,6 +1632,31 @@ Rules:
 All slots become EMPTY. The atlas is created again. The next frame
 rebuilds the slots near the camera (REQUIRED).
 
+### 8.11 Static sun
+
+A project whose sun moves only by a console command or a level change
+assumes the shader interval `rtss_sun_sweep` off (the
+`game_common_override.blk` of active_matter and of Enlisted, and the
+DNG tools dump; active_matter drops it when its open raid, which steps
+the sun in play at each raid cycle, ships). The library reads the
+assumed value into `RtssSchedulerLayout::sunSweep`. Then a sun step
+does not sweep: the scheduler empties the level and builds it again in
+transform 0, toward the new sun, as at a level load, so every slot
+holds bit 0. Until the budget rebuilds its pages, a receiver falls back
+to a coarser level, or is lit where no level has data (8.8). The static
+shadow API of `static_shadow.dshl` then reads transform 0 as a
+constant, and `rtss_find_tap` makes one pass with no bit test. A shader
+that defines `RTSS_TAP_LOOP` 1 keeps the loop and the bit test of the
+sweep form, where the single pass needs more VGPRs: the merged_parallel
+froxel fog loses a wave on Scarlett without it.
+
+The interval sits in `static_shadow_stcode.dshl`, not in
+`rtss_lookup.dshl`: an additional dump (the node based fog) must assume
+each of its intervals as the game dump does, and it has no
+`assume_vars`. So it, `rtss_debug` and `rtss_box_occlusion` keep the
+sweep form, which reads a static sun right: the newest bit is 0 and no
+level sweeps.
+
 ## 9. Lookup
 
 ### 9.1 Frame order contract
@@ -1637,7 +1673,7 @@ a `render()` writes the tables, so a lookup then finds no data.
 ### 9.2 Shader interface
 
 `rtss_lookup.dshl`:
-- `INIT_RTSS(code)`: binds `rtss_atlas`, `rtss_slots`, `rtss_levels`,
+- `INIT_RTSS(code)`: binds `rtss_atlas`, `rtss_levels`,
   `rtss_globals` (5.4), and `rtss_gather_sampler` on Vulkan and Metal,
   else as `rtss_cmp_sampler` the compare sampler
   `static_shadow_tex_samplerstate` of the classic static shadow, whose
@@ -1667,9 +1703,14 @@ half rtss_sun_visibility(float3 world_pos, float3 world_normal, float dither);
   position of a shader (`-pointToEye`) is `pos_rel` with no loss.
 
 - `dither` in [0, 1) selects the seam level (9.6). Pass a per-pixel or a
-  per-ray noise. A zero normal turns the normal offset off.
+  per-ray noise. A zero normal turns the normal offset off, and the
+  screen filters (9.7) then sample in the light plane. On a surface at a
+  low sun that gives acne in stripes, so a lookup on a surface gives its
+  normal; a zero normal is for a point with no surface (fog, particles).
 
 ### 9.3 Algorithm
+
+The sweep form; 8.11 gives the static sun form and `RTSS_TAP_LOOP`.
 
 ```hlsl
 // RTSS_TAP_HIT, else the miss of the read that passed the most checks: RELEASED < BIT < DEPTH
@@ -1815,9 +1856,9 @@ The scheduler uses the same band for the inner pages of 8.2.
 
 ### 9.7 Screen filters
 
-GI and the other consumers keep the 2x2 PCF of 9.4: it is fast, and
-their denoisers do the rest. On screen the 2x2 PCF shows texel steps,
-so `rtss_sun_visibility_screen_rel(pos_rel, normal, dither, radius_scale, harden)`
+GI and the other direct lookups keep the 2x2 PCF of 9.4: it is fast,
+and their denoisers do the rest. On screen the 2x2 PCF shows texel
+steps, so `rtss_sun_visibility_screen_rel(pos_rel, normal, dither, radius_scale, harden)`
 gives a wider filter, selected with defines:
 
 | Define | Classic form | Samples | Use |
@@ -1837,8 +1878,14 @@ gives a wider filter, selected with defines:
   by `dither`, with a radius of 1.5 texels times `radius_scale`, in the
   tangent plane of the receiver (the NORMAL_ADJ form): the taps follow
   the surface depth, so half of them are not inside the surface, and
-  there is less acne than with taps in the light plane. The disc is
-  clamped to the border in light space.
+  there is less acne than with taps in the light plane, which a zero
+  normal gives (9.2). The kernel makes that disc as the sun sees it,
+  on the unit light axes (`e_x`, `e_y`, `d`): it scales the light plane
+  disc by `abs(nz)`, the `d` part of the normal, along the light plane
+  part of the normal, and puts the z of each tap on the receiver plane.
+  Then `sy` stretches its y to light space. It needs no tangent frame
+  and no transform of the axes. The disc is clamped to the border
+  in light space.
 - **HARDEN.** The center tap reads the caster depth. Here that depth is
   metric light space z, so the caster-to-receiver distance is in meters
   (the classic form needs `max_ht_range` for it). The radius goes from
@@ -1858,9 +1905,19 @@ gives a wider filter, selected with defines:
   9.3, at least 1/2), from half at the inner edge of the level to whole
   at the outer edge, so at a seam both levels filter over the same world
   size.
+- **The static shadow API** (`rtss_static_shadow.dshl`) dithers only
+  where the classic filter did: only a reader with
+  `STATIC_SHADOW_DITHERED` selects the level with its dither. The
+  others keep the finer level up to its edge and switch there, as the
+  classic cascades did and as with a `seamBand` of 0 (without TAA a
+  dither shows as noise). The filter is a 2x2 PCF with
+  `FASTEST_STATIC_SHADOW_PCF` (the fog, the lights of GI). Else a
+  DITHERED reader gets DITHERED with HARDEN (a 2x2 PCF at a
+  `radius_scale` of 0), and the others (transparents, particles, water)
+  `rtss_pcf_tent3x3`, 4 PCF samples at half a texel.
 - **Cost.** DITHERED is 8 PCF samples (one more texel read with
-  HARDEN) and TENT 9, against 1 for the GI lookup. Each reads one slot
-  entry for each level that it visits (9.3).
+  HARDEN), TENT 9 and the API tent 4, against 1 for the GI lookup. Each
+  reads one slot entry for each level that it visits (9.3).
 
 ## 10. C++ API
 
@@ -1896,7 +1953,8 @@ public:
 };
 
 // core/rtssSettings.h: the settings of the scheduler, in the table of 5.1
-// RtssSchedulerLayout: levels, windowPages, slotTexels, borderTexels, texel0, maxCasterReach, minSunY, maxAnisotropy
+// RtssSchedulerLayout: levels, windowPages, slotTexels, borderTexels, texel0, maxCasterReach, minSunY, maxAnisotropy,
+//   sunSweep
 // RtssSchedulerBudget: the tolerances, the sweep timing, maxCameraSpeed, the page budgets in cost units, seamBand,
 //   and the raster box: rasterBatchPages, rasterBoxPagesPerJob, rasterCallCost, rasterTranspose
 // RtssSchedulerRecipes: recipes[k], the raster and the pageCost of level k (7.5)
@@ -1922,9 +1980,10 @@ public:
   ~RaytracedToroidalStaticShadow(); // a lookup after it finds no level and reads lit
 
   // budgets, costs and raster sizes apply from the next update(), biases from the next render(); a layout change rebuilds,
-  // a raster change of a level invalidates that level; a project must invalidate a level whose tracer it changes (7.5)
-  void setSettings(const RaytracedToroidalStaticShadowSettings &settings);
-  const RaytracedToroidalStaticShadowSettings &getSettings() const; // as given; the scheduler clamps its copy (5.1)
+  // a raster change of a level invalidates that level; a project must invalidate a level whose tracer it changes (7.5);
+  // sunSweep follows the shader interval rtss_sun_sweep (8.11)
+  void setSettings(RaytracedToroidalStaticShadowSettings settings);
+  const RaytracedToroidalStaticShadowSettings &getSettings() const; // as given but sunSweep; the scheduler clamps its copy (5.1)
 
   void setWorldBox(const BBox3 &casters_box); // a changed box invalidates all slots
   // a changed sun moves at its step over the update time since the last change (8.1)
@@ -1951,6 +2010,12 @@ public:
   // the level, clamped to the coarsest, has data over box if it covers it; DIRTY data counts, a page in a depth rebuild does not;
   // false while it sweeps fast or is not live. A lookup with the coarsest level ready reads no lit gap over box
   bool isReady(const BBox3 &box, uint32_t level = ~0u) const;
+  // the least distance to the sun from the camera to which every page in use with data holds its casters, FLT_MAX where the world box
+  // holds them all, 0 with none; isReady tells where a page lacks data. A move toward the sun shrinks it until a depth rebuild (6.4)
+  float getCasterReach() const;
+  // the camera distance within which the coarsest level holds a receiver at full weight, short of its seam band (9.6) also
+  // along the light y axis, which the anisotropic texels of a low sun shorten (6.6)
+  float getFullWeightDistance() const;
   void afterDeviceReset();
 
   // pixels of a debug pass that a later pass reads back, up to 3 frames later, all with the sun above the horizon only (13);
@@ -1967,8 +2032,9 @@ public:
     GpuCounters gpu;
   };
   void getStats(Stats &out) const;
-  // from the gbuffer depth; 1: visibility, 2: level, 3: slot bit, 4: fallback, 5: the difference to the project reference
-  void debugRenderScreen(int mode);
+  // from the gbuffer depth; 1: visibility, 2: level, 3: slot bit, 4: fallback, 5: the difference to the project reference;
+  // counters clears and copies a buffer, which a native render pass must not hold
+  void debugRenderScreen(int mode, bool counters = true);
   void debugDrawAtlas(int level); // slot states and depth, for a debug overlay
 };
 ```
@@ -2013,6 +2079,7 @@ shaders/rtss_static_shadow.dshl           // static_shadow.dshl API over the loo
 shaders/rtss_trace_common.dshl            // the build vars, RTSS_TRACE_TEXEL of the tracer shaders (7.2)
 shaders/rtss_build.dshl                   // rtss_resolve_cs
 shaders/rtss_debug.dshl                   // the debug views; include_optional project_rtss_reference.dshl (13)
+shaders/rtss_box_occlusion.dshl           // rtss_box_occlusion_cs, GpuVisibilityTestManager over the rtss; a project lists it
 shaders/rtss_trace_hmap.dshl              // RTSS_TRACE_HMAP: the terrain of the heightmap max grid (7.2)
 shaders/rtss_trace_swrt.dshl              // rtss_trace_swrt_cs, the SWRT tracer (7.2)
 shaders/rtss_trace_hwrt.dshl              // rtss_trace_hwrt_cs, the HW tracer of the bvh main TLAS (7.2)
@@ -2174,13 +2241,13 @@ sees a wrapped travel as a short step.
 
 ### 12.5 Consumers
 
-The rtss is the only static shadow of testGI. These shaders use
-`rtss_sun_visibility` where the classic one used `getStaticShadow`:
+The rtss is the only static shadow of testGI. These shaders read it
+where the classic one was read:
 - `dagi_get_sun_color` in `SUN_LIGHT_POINT_TRACE_HIT` and the functions
   of `PROJECT_LIGHT_POINT_TRACE_HIT` and `PROJECT_LIGHT_POINT_VOXELIZE`
-  (`project_light_point.dshl`). CSM stays where it is today. The normal
-  goes to the lookup. `dither` is a hash of the position, with no frame
-  term, so it is stable in time.
+  (`project_light_point.dshl`). CSM stays where it is today. The static
+  shadow API of 9.7 with `FASTEST_STATIC_SHADOW_PCF`: a 2x2 PCF, with
+  no dither.
 - The static term of `combine_shadows` (`deferred_shadow.dshl`), in
   the screen form of 9.7 with the gbuffer normal: DITHERED with HARDEN
   (the panel default) and the panel screen radius (1.5), or TENT from
@@ -2189,17 +2256,23 @@ The rtss is the only static shadow of testGI. These shaders use
   `dither` is the existing `interleavedGradientNoiseFramed` value. The
   heightmap shadow and the CSM stay; the CSM `maxDist` is a fixed 50 m,
   as it read the distance of the classic static shadow.
-- `get_project_skies_shadows` (`project_skies_shadows.dshl`), with the
-  same position hash as dither.
+- `get_project_skies_shadows` (`project_skies_shadows.dshl`), the same
+  2x2 PCF with no dither.
 - `deferred_simple` (`deferred_shadow.dshl`), the simple deferred
-  path, with the same position hash as dither.
+  path: the API with no define, `rtss_pcf_tent3x3` with no dither.
 
 `updateSSGIPos` waits for `rtss->isReady(box)`, the coarsest level,
 which every lookup falls back to, and clamps the position to the rtss
 world box; the probe bake waits for level 0. With no SWRT data the
-traced levels become `All` (12.4). The SWRT screen shadow has no step
-offset (the default of daSWRT): `project_swrt_shadows_step.dshl`
-loses its override, which read the transform of the classic cascade.
+traced levels become `All` (12.4). testGI passes the SWRT screen shadows
+the reaches of its CSM and of the rtss (`daSWRT::ShadowCasterReach`), so
+a ray starts past the casters they hold; the rtss reach counts only
+while the coarsest level has data over the reach and no level traces on
+the HW: below the top of the rtss world box, up to `getCasterReach` to
+the sun, and within `getFullWeightDistance`, short of the seam band of
+the coarsest level, where it fades to lit (9.6). Both distances are from
+the view of the last `update`, so testGI takes off the camera's distance
+from it (a frozen rtss, a probe bake).
 
 ### 12.6 Reference
 
@@ -2207,8 +2280,8 @@ The debug view "difference" needs a reference sun visibility for each
 pixel. testGI has it: with `rtss.reference 1`, `swRTShadows()` passes
 `sun_size = 0` and no checkerboard frame (the reference overrides
 `render.swrt_shadow_use_checkerboard`), so it traces one hard sun ray
-for each half-res pixel. The reference ray starts at the pixel (the
-daSWRT default step), and `combined_shadows` is a white texture for the
+for each half-res pixel. The reference ray starts at the pixel (it
+gets no caster reach), and `combined_shadows` is a white texture for the
 pass, so the early-out of the SWRT shader cannot copy the rtss term
 that the view checks. The reference has the SWRT casters only, no
 terrain, so the diff test runs with `rtss.terrain 0` and the `swrt`

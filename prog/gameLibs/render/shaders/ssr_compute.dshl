@@ -1,6 +1,7 @@
 include "ssr_base.dshl"
 include "camera_in_camera.dshl"
 include "sky_polarization_filter_term_inc.dshl"
+include_optional "ssr_indoor_probes.dshl"
 
 texture ssr_target_before_denoise;
 int ssr_denoiser_tile;
@@ -11,6 +12,10 @@ float4 ssr_fix_confidence_for_disoccluded = (1.0, 0.3, 0, 0);
 int filter_high_luminance_changes = 0;
 float4 ssr_history_weights = (0.97, 0.8, 0.95, 0.97); // x - history weight of a rough surface, y - of a mirror, z - the share of the clamp a rough surface skips, w - x while the camera moves
 float4 ssr_motion_filter = (1, 1, 0, 0); // x - history clamp half width in neighbourhood deviations, y - spatial kernel falloff scale while the camera moves
+
+int ssr_alternate_reflections_preserve_indoor_probes = 0;
+interval ssr_alternate_reflections_preserve_indoor_probes : no<1, yes;
+assume_if_not_assumed ssr_alternate_reflections_preserve_indoor_probes = no;
 
 macro SSR_STOCHASTIC_RAY(code)
   (code) {
@@ -170,9 +175,6 @@ shader ssr_temporal_denoise_cs
   INIT_TEXTURES(cs)
   SSR_BASE(cs)
   SSR_REPROJECTION(cs)
-  hlsl(cs) {
-    //#undef USE_PREV_DOWNSAMPLED_NORMALS
-  }
   INIT_ZNZFAR_STAGE(cs)
   SSR_GET_TEMPORAL_REPROJECTION_DUO(cs)
 
@@ -864,6 +866,13 @@ endmacro
 float4 ssr_hit_dist_params;
 float4 ssr_alternate_reflections_roughness_threshold = (0.45, 0.5, 0, 0); // x - min roughness, y - max roughness, z - unused, w - unused
 int ssr_alternate_reflections_ignore_roughness = 0;
+
+define_macro_if_not_defined SSR_ALTERNATE_INDOOR_PROBES(code)
+  hlsl(code) {
+    float4 use_indoor_probes(float3 world_pos, float3 normal, float3 reflected_dir, float roughnessMip, float viewDist) { return float4(0, 0, 0, 1); }
+  }
+endmacro
+
 shader tile_ssr_compute
 {
   INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
@@ -882,8 +891,14 @@ shader tile_ssr_compute
     SKIP_SKY_POLARIZATION_FILTER_TERM_INIT()
     INIT_BRUNETON_FOG(cs)
     BASE_USE_BRUNETON_FOG(cs)
+    if (ssr_alternate_reflections_preserve_indoor_probes == yes) {
+      SSR_ALTERNATE_INDOOR_PROBES(cs)
+    }
   }
-  SSR_GET_TEMPORAL_REPROJECTION_DUO(cs)
+  if (ssr_denoiser_type == manual)
+  {
+    SSR_GET_TEMPORAL_REPROJECTION_DUO(cs)
+  }
   bool manual_denoising = ssr_denoiser_type == manual || ssr_denoiser_type == simple;
   if (!manual_denoising && !hardware.dx12) { dont_render; }
   if (!manual_denoising && ssr_quality == low) { dont_render; }
@@ -1009,9 +1024,6 @@ shader tile_ssr_compute
   if (manual_denoising)
   {
     RESOLVE_BY_NEIGHBOURS(cs)
-  }
-  if (ssr_alternate_reflections != yes) {
-    if (ssr_denoiser_type != manual) { SSR_ENV_RESOLVE(cs) }
   }
 
   hlsl(cs) {
@@ -1195,9 +1207,6 @@ shader tile_ssr_compute
         //uint2 screenCoordOfs = uint2(scr)%uint2(ssr_target_size.xy);
         screenCoord = screenCoordOfs;
         outputCoord = uint2(scr);
-        ##if ssr_denoiser_type != simple
-          #define TEMPORAL_IN_ONE_PASS 1
-        ##endif
       ##endif
 
       float2 screenCoordCenter = screenCoord + float2(0.5,0.5);
@@ -1344,6 +1353,10 @@ shader tile_ssr_compute
               traceSdf = true;
             #endif
 
+            ##if ssr_alternate_reflections_preserve_indoor_probes == yes
+              float4 indoorRefl = use_indoor_probes(world_view_pos.xyz + cameraToPoint, normal, R, 0, length(cameraToPoint));
+            ##endif
+
             BRANCH
             if (traceSdf)
             {
@@ -1369,6 +1382,10 @@ shader tile_ssr_compute
                   half4 screenRefl = sample_vignetted_color(screenHitUVZ, calcRoughness, screenHitUVZ.z, cameraToPoint, R,
                     ssr_world_view_pos.xyz + cameraToPoint, cameraToScreenHit);
                   alternateRefl.rgb = lerp(alternateRefl.rgb, screenRefl.rgb, screenRefl.a);
+                  ##if ssr_alternate_reflections_preserve_indoor_probes == yes
+                    // Screen pixels have better colors and details, so we need them atop of indoor probes
+                    indoorRefl.w = max(indoorRefl.w, screenRefl.a);
+                  ##endif
                 }
               }
             }
@@ -1379,19 +1396,17 @@ shader tile_ssr_compute
               reflectionDistance = SSR_FP16_MAX;
             }
             alternateRefl.a = alternateConfidence;
+            ##if ssr_alternate_reflections_preserve_indoor_probes == yes
+              // Indoor probes are applied in deferred light pass and only when SSR is missed,
+              // so keep real SSR weight and ignore alternate reflections while indoors.
+              alternateRefl.a = lerp(newFrame.a, alternateRefl.a, indoorRefl.w);
+            ##endif
             newFrame = half4(lerp(alternateRefl.rgb, newFrame.rgb, newFrame.a), alternateRefl.a);
             //newFrame.a = reflectionDistance < 1000;
-            #if !TEMPORAL_IN_ONE_PASS
-            newFrame.a = alternateRefl.a;
-            #endif
             //newFrame = alternateRefl.a > 0 ? half4(lerp(alternateRefl.rgb, newFrame.rgb, newFrame.a), alternateRefl.a) : newFrame;
           }
           half4 light_transmittance = get_translucent_alternate_reflections(cameraToPoint, R, reflectionDistance);
           newFrame.rgb = newFrame.rgb*light_transmittance.a + light_transmittance.rgb;
-
-        //##elif (ssr_denoiser_type != manual)
-        //  half3 enviLight = GetEnvLight(world_view_pos.xyz + cameraToPoint, w, R, normal, averageRoughness);
-        //  newFrame.rgb = lerp(enviLight, newFrame.rgb, newFrame.a);
         ##endif
       }
 
@@ -1430,7 +1445,7 @@ shader tile_ssr_compute
         newFrame = NEEDSSR ? newFrame : 0;
       ##endif
 
-      #if TEMPORAL_IN_ONE_PASS
+      ##if (ssr_denoiser_type == manual)
         // equal where NEEDSSR; zero result elsewhere
         normal = calcN;
         linear_roughness = calcRoughness;
@@ -1482,7 +1497,7 @@ shader tile_ssr_compute
         half deltaLuminance = saturate(abs(luminance(prevFrame.rgb) - luminance(newFrame.rgb)) * lumMul);
         reprojectionWeight = filter_high_luminance_changes ? lerp(reprojectionWeight, 0, deltaLuminance) : reprojectionWeight;
         newFrame = force_ignore_history == 0 ? lerp(newFrame, prevFrame, reprojectionWeight) : newFrame;
-      #endif
+      ##endif
 
       float4 result = newFrame;
       if (any(!isfinite(result)))

@@ -1,4 +1,4 @@
 "hello".indexof("l") = 2
 "hello".indexof("l", 3) = 3
 "hello".indexof("z") == null = true
-"hello".indexof("") throws: empty substring
+s.indexof("") throws: empty substring

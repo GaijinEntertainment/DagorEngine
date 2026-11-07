@@ -2,9 +2,11 @@
 
 #include <math/dag_Point3.h>
 #include <math/dag_Point2.h>
+#include <ioSys/dag_dataBlock.h>
 #include <memory/dag_framemem.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic_types.h>
+#include <perfMon/dag_cpuFreq.h>
 #include <fmod_studio.hpp>
 
 #include <EASTL/vector.h>
@@ -64,8 +66,24 @@ static Backend make_sdf_backend()
   b.mainThreadUpdate = &snd_occlusion_gpu::dispatch;
   b.numActiveSources = &snd_occlusion_gpu::get_num_active_sources;
   b.maxActiveSources = &snd_occlusion_gpu::get_max_active_sources;
-  return b;
+  return b; // an SDF knows no detours, so the layer applies the hint
 }
+
+#if DAGOR_DBGLEVEL > 0
+// The debug draw traces a line a blob under the locks the sound thread's update waits on, so each blob keeps what it traced
+// for a while, and only a few are traced a frame.
+static constexpr int g_debug_materials_period_ms = 150;
+static constexpr int g_debug_materials_budget = 6;
+static constexpr uint8_t g_debug_empty_blob_alpha = 0x50; // a blob with no sound instance is drawn see-through
+
+struct DebugMaterialsCache
+{
+  int32_t tracedAt = 0;
+  bool traced = false;
+  bool valid = false; // the backend answered
+  DebugMaterials materials;
+};
+#endif
 
 struct Blob
 {
@@ -80,6 +98,9 @@ struct Blob
     {}
   };
 
+  uint64_t detourHintSequence = 0;
+  uint64_t detourHintCountedSequence = 0;
+
   const Template tmpl;
 
   Point3 pos = {};
@@ -88,12 +109,20 @@ struct Blob
 
   float gpuOcclusion = 0.f;
   float finalOcclusion = 0.f;
+  float finalOcclusionBands[OCCLUSION_BANDS] = {};
   float activeRadius = 0.f;
+  float detourHint = 0.f;
+  float detourHintAge = -1.f;
+  uint32_t detourHintDropped = 0; // debug draw: calls refused for a sequence below the counted one
 
   int gpuIdx = -1;
 
-  bool occlusionValid = false;
   float tryDeleteAt = -1;
+  bool detourHintFed = false; // debug draw: told apart from a caller that never feeds this blob
+  bool occlusionValid = false;
+#if DAGOR_DBGLEVEL > 0
+  DebugMaterialsCache materialsTrace; // debug draw: the last trace of the centre line
+#endif
 
   Blob(const Point3 &pos, Template tmpl) : tmpl(tmpl), pos(pos) {}
 
@@ -119,6 +148,13 @@ struct Blob
     if (gpuIdx != -1)
       g_backend.deleteSource(gpuIdx);
     gpuIdx = -1;
+    // the caller resends the hint each update, and a new backend source counts its sequence from 0
+    detourHint = 0.f;
+    detourHintSequence = 0;
+    detourHintAge = -1.f;
+#if DAGOR_DBGLEVEL > 0
+    materialsTrace = DebugMaterialsCache(); // the line of the source it held is no line of a new one
+#endif
   }
 
   bool gpuActive() const { return gpuIdx != -1; }
@@ -138,13 +174,16 @@ struct Blob
 struct Instance
 {
   fmod_instance_t *fmodInstance = nullptr;
-  Point3 pos = {};
   VarId varId = {};
+  VarId bandVarIds[OCCLUSION_BANDS] = {};
+  Point3 pos = {};
   sound_handle_t blobHandle = INVALID_SOUND_HANDLE;
   blob_template_id_t blobTemplateId = undefined_blob_template_id_value;
   float occlusion = 0.f;
+  float occlusionBands[OCCLUSION_BANDS] = {};
   float resumeAt = -1.f;
 
+  bool bands = false; // the per-band parameters are written, varId is zero; else varId is
   bool moveBlob = false;
   bool detachWhenOutside = false;
   bool dropOnOcclusionValid = false;
@@ -170,11 +209,24 @@ static int g_total_blobs = 0;
 static eastl::vector<int> g_released_slots;
 static Listener g_listener;
 static external_factor_t g_external_factor = nullptr;
+static detour_hint_gain_t g_detour_hint_gain = nullptr;
 
 static dag::AtomicInteger<bool> g_inited = false;
 static BackendSuspends g_backend_suspends;
 
 static const float g_def_active_radius = 150.f;
+static bool g_detour_hint_enabled = true;
+static constexpr float g_detour_hint_occluded_threshold = 0.5f;
+static bool has_detour_hint(const Blob &blob) { return g_detour_hint_enabled && blob.detourHint > 0.f; }
+
+// a backend that takes the hint applies it itself, so the layer must not apply it again
+static float deepen_by_detour_hint(const Blob &blob, float occlusion)
+{
+  if (!g_backend.setSourceDetourHint && g_detour_hint_gain && has_detour_hint(blob) && occlusion > g_detour_hint_occluded_threshold)
+    return 1.f - (1.f - occlusion) * g_detour_hint_gain(blob.detourHint);
+  return occlusion;
+}
+
 static constexpr float g_start_dist_attenuation_mul = 0.75f;
 static constexpr int g_max_blobs = 2048;
 
@@ -308,6 +360,44 @@ void set_blob_active_range(OcclusionBlobHandle blob_handle, float active_radius)
     blob->activeRadius = active_radius;
 }
 
+void set_blob_detour_hint(OcclusionBlobHandle blob_handle, float delta_m, bool valid, uint64_t measurement_sequence,
+  float measurement_age_seconds)
+{
+  SNDSYS_OCCLUSION_GPU_BLOCK;
+  if (!g_inited.load())
+    return;
+  if (Blob *blob = get_blob((sound_handle_t)blob_handle))
+  {
+    blob->detourHintFed = true;
+    if (measurement_sequence && measurement_sequence < blob->detourHintCountedSequence)
+    {
+      ++blob->detourHintDropped;
+      return;
+    }
+    blob->detourHint = valid && delta_m > 0.f ? delta_m : 0.f;
+    blob->detourHintSequence = measurement_sequence;
+    blob->detourHintCountedSequence = max(blob->detourHintCountedSequence, measurement_sequence);
+    // the caller resends the age each update, so the layer does not age it
+    blob->detourHintAge = measurement_age_seconds;
+  }
+}
+
+int count_band_params(const fmod_description_t &fmod_description, FMOD_STUDIO_PARAMETER_DESCRIPTION *out_descs)
+{
+  int count = 0;
+  for (int b = 0; b < OCCLUSION_BANDS; ++b)
+  {
+    FMOD_STUDIO_PARAMETER_DESCRIPTION desc = {};
+    if (FMOD_OK == fmod_description.getParameterDescriptionByName(OCCLUSION_BAND_PARAMS[b], &desc) && as_var_id(desc.id))
+    {
+      if (out_descs)
+        out_descs[b] = desc;
+      ++count;
+    }
+  }
+  return count;
+}
+
 void append_new_instance(fmod_instance_t *fmod_instance, const fmod_description_t *fmod_description, const Point3 &pos)
 {
   SNDSYS_OCCLUSION_GPU_BLOCK;
@@ -318,28 +408,46 @@ void append_new_instance(fmod_instance_t *fmod_instance, const fmod_description_
   auto pred = [fmod_instance](const Instance &inst) { return inst.fmodInstance == fmod_instance; };
   G_ASSERT_RETURN(eastl::find_if(g_instances.begin(), g_instances.end(), pred) == g_instances.end(), );
 
-  FMOD_STUDIO_PARAMETER_DESCRIPTION desc;
-  SOUND_VERIFY(fmod_description->getParameterDescriptionByName("occlusion", &desc));
-  const VarId varId = as_var_id(desc.id);
-  if (!varId)
+  // a backend with bands gets them written to an event that has them, else "occlusion"; one with none, the SDF, gets "occlusion"
+  // alone, and the bands only for an event that has nothing else
+  FMOD_STUDIO_PARAMETER_DESCRIPTION bandDescs[OCCLUSION_BANDS] = {};
+  const bool hasBands = count_band_params(*fmod_description, bandDescs) == OCCLUSION_BANDS;
+
+  FMOD_STUDIO_PARAMETER_DESCRIPTION desc = {};
+  const VarId scalarVarId =
+    FMOD_OK == fmod_description->getParameterDescriptionByName("occlusion", &desc) ? as_var_id(desc.id) : VarId{};
+  if (!scalarVarId && !hasBands)
   {
     logerr("[SNDSYS] missing var labeled '%s' in event '%s'", "occlusion", get_debug_name(*fmod_description).c_str());
     return;
   }
+  const bool useBands = hasBands && (g_backend.getOcclusionBands || !scalarVarId);
+  const VarId varId = useBands ? VarId{} : scalarVarId;
 
   Instance &inst = g_instances.push_back();
   inst.fmodInstance = fmod_instance;
   inst.varId = varId;
+  inst.bands = useBands;
+  for (int b = 0; b < OCCLUSION_BANDS; ++b)
+    inst.bandVarIds[b] = as_var_id(bandDescs[b].id);
   inst.pos = pos;
   inst.detachWhenOutside = true;
   inst.trySuspendOnAttachToBlob = !g_backend.immediateStart;
   if (g_backend.immediateStart)
   {
     const Blob *warm = find_blob_for_instance(inst).second;
-    inst.occlusion = desc.defaultvalue;
-    if (warm && warm->occlusionValid)
-      inst.occlusion = warm->finalOcclusion;
-    SOUND_VERIFY(fmod_instance->setParameterByID(desc.id, inst.occlusion, true));
+    const bool warmValid = warm && warm->occlusionValid;
+    if (varId)
+    {
+      inst.occlusion = warmValid ? warm->finalOcclusion : desc.defaultvalue;
+      SOUND_VERIFY(fmod_instance->setParameterByID(desc.id, inst.occlusion, true));
+    }
+    if (useBands)
+      for (int b = 0; b < OCCLUSION_BANDS; ++b)
+      {
+        inst.occlusionBands[b] = warmValid ? warm->finalOcclusionBands[b] : bandDescs[b].defaultvalue;
+        SOUND_VERIFY(fmod_instance->setParameterByID(bandDescs[b].id, inst.occlusionBands[b], true));
+      }
   }
 }
 
@@ -490,12 +598,20 @@ static int get_num_valid_instances(sound_handle_t blob_handle)
   return num;
 }
 
+static bool is_inside_active_radius(const Blob &blob)
+{
+  return lengthSq(blob.pos - g_listener.pos) < blob.activeRadius * blob.activeRadius;
+}
+
 static void update_blob(Blob &blob)
 {
-  blob.gpuActivate(lengthSq(blob.pos - g_listener.pos) < blob.activeRadius * blob.activeRadius);
+  blob.gpuActivate(is_inside_active_radius(blob));
 
-  if (blob.gpuActive())
-    g_backend.setSource(blob.gpuIdx, blob.pos, blob.tmpl.occlusionRadius);
+  if (!blob.gpuActive())
+    return;
+  g_backend.setSource(blob.gpuIdx, blob.pos, blob.tmpl.occlusionRadius);
+  if (g_backend.setSourceDetourHint)
+    g_backend.setSourceDetourHint(blob.gpuIdx, blob.detourHint, has_detour_hint(blob), blob.detourHintSequence, blob.detourHintAge);
 }
 
 static bool delete_or_update_blob(Blob &blob, sound_handle_t blob_handle, float cur_time) // -> true to delete
@@ -536,6 +652,22 @@ bool is_suspended(const fmod_instance_t *fmod_instance)
   if (it != g_instances.end())
     return it->suspended;
   return false;
+}
+
+// what is written for a backend's occlusion, scalar or one band of it: the falloff by distance, the external factor, the rounding
+static float finalize_occlusion(const Blob &blob, float occlusion)
+{
+  float result = 0.f;
+  if (blob.occlusionValid)
+  {
+    const float dist = length(blob.pos - g_listener.pos);
+    result = cvt(dist, blob.activeRadius * g_start_dist_attenuation_mul, blob.activeRadius, occlusion, 0.f);
+  }
+  if (g_external_factor)
+    result = lerp(result, blob.externalFactor.y, blob.externalFactor.x);
+  if (!g_backend.continuousParameters)
+    result = floor(result * 10.f + 0.5f) * 0.1f;
+  return result;
 }
 
 void update(float cur_time, float dt, const TMatrix &listener_tm)
@@ -624,33 +756,31 @@ void update(float cur_time, float dt, const TMatrix &listener_tm)
       return;
     }
 
+    float gpuOcclusionBands[OCCLUSION_BANDS] = {};
+    bool backendBands = false;
     if (blob.gpuActive())
+    {
       blob.occlusionValid = g_backend.getOcclusion(blob.gpuIdx, blob.gpuOcclusion);
+      backendBands = blob.occlusionValid && g_backend.getOcclusionBands && g_backend.getOcclusionBands(blob.gpuIdx, gpuOcclusionBands);
+    }
     else
     {
       blob.gpuOcclusion = 0.f;
       blob.occlusionValid = false;
     }
 
-    blob.finalOcclusion = 0.f;
-    if (blob.occlusionValid)
-    {
-      const float dist = length(blob.pos - g_listener.pos);
-      blob.finalOcclusion = cvt(dist, blob.activeRadius * g_start_dist_attenuation_mul, blob.activeRadius, blob.gpuOcclusion, 0.f);
+    if (g_external_factor && cur_time >= blob.externalFactorAt)
+    { // about game-specific cases e.g when is_underground(listener) != is_underground(source) need to mute sounds(set param to "2")
+      const float distSq = lengthSq(blob.pos - g_listener.pos);
+      g_external_factor(g_listener.pos, blob.pos, distSq, blob.gpuOcclusion, blob.occlusionValid, blob.externalFactor);
+      blob.externalFactorAt = cur_time + blob.externalFactor.z;
     }
 
-    if (g_external_factor)
-    {
-      if (cur_time >= blob.externalFactorAt)
-      { // about game-specific cases e.g when is_underground(listener) != is_underground(source) need to mute sounds(set param to "2")
-        const float distSq = lengthSq(blob.pos - g_listener.pos);
-        g_external_factor(g_listener.pos, blob.pos, distSq, blob.gpuOcclusion, blob.occlusionValid, blob.externalFactor);
-        blob.externalFactorAt = cur_time + blob.externalFactor.z;
-      }
-      blob.finalOcclusion = lerp(blob.finalOcclusion, blob.externalFactor.y, blob.externalFactor.x);
-    }
-    if (!g_backend.continuousParameters)
-      blob.finalOcclusion = floor(blob.finalOcclusion * 10.f + 0.5f) * 0.1f;
+    blob.finalOcclusion = finalize_occlusion(blob, deepen_by_detour_hint(blob, blob.gpuOcclusion));
+    // a backend with no bands repeats the scalar, hint and all, in every band
+    for (int b = 0; b < OCCLUSION_BANDS; ++b)
+      blob.finalOcclusionBands[b] =
+        backendBands ? finalize_occlusion(blob, deepen_by_detour_hint(blob, gpuOcclusionBands[b])) : blob.finalOcclusion;
   });
 
   // update instances
@@ -671,14 +801,23 @@ void update(float cur_time, float dt, const TMatrix &listener_tm)
   for (Instance &inst : g_instances)
     if (const Blob *blob = get_blob(inst.blobHandle))
     {
-      // a voice takes its first measured value at once, not over a ramp
-      const bool first = g_backend.immediateStart && !inst.occlusionValid && blob->occlusionValid;
+      // FMOD may hold the authored default or a formatted var, so a first valid value is written even if equal
+      const bool first = !inst.occlusionValid && blob->occlusionValid;
       inst.occlusionValid = blob->occlusionValid;
-      if ((!g_backend.immediateStart || blob->occlusionValid || !blob->gpuActive()) && inst.occlusion != blob->finalOcclusion)
+      const bool mayWrite = !g_backend.immediateStart || blob->occlusionValid || !blob->gpuActive();
+      if (inst.varId && (first || (inst.occlusion != blob->finalOcclusion && mayWrite)))
       {
         inst.occlusion = blob->finalOcclusion;
-        inst.fmodInstance->setParameterByID(as_fmod_param_id(inst.varId), inst.occlusion, first);
+        inst.fmodInstance->setParameterByID(as_fmod_param_id(inst.varId), inst.occlusion, first && g_backend.immediateStart);
       }
+      if (inst.bands)
+        for (int b = 0; b < OCCLUSION_BANDS; ++b)
+          if (first || (mayWrite && inst.occlusionBands[b] != blob->finalOcclusionBands[b]))
+          {
+            inst.occlusionBands[b] = blob->finalOcclusionBands[b];
+            inst.fmodInstance->setParameterByID(as_fmod_param_id(inst.bandVarIds[b]), inst.occlusionBands[b],
+              first && g_backend.immediateStart);
+          }
 
       if (inst.suspended && (blob->occlusionValid || !blob->gpuActive() || cur_time >= inst.resumeAt))
         resume_instance(inst);
@@ -744,7 +883,7 @@ void level_unloaded()
     g_backend.levelUnloaded();
 }
 
-void init(const DataBlock & /*blk*/)
+void init(const DataBlock &blk)
 {
   G_ASSERT(is_main_thread());
 
@@ -752,6 +891,8 @@ void init(const DataBlock & /*blk*/)
   SNDSYS_OCCLUSION_BACKEND_BLOCK;
 
   G_ASSERT_RETURN(!g_inited.load(), );
+
+  g_detour_hint_enabled = blk.getBool("occlusionDetourHint", true);
 
   // no host backend: the layer owns the world SDF one
   if (!g_backend.isInited)
@@ -816,10 +957,168 @@ void set_external_factor(external_factor_t external_factor)
   g_external_factor = external_factor;
 }
 
+void set_detour_hint_gain(detour_hint_gain_t gain)
+{
+  G_ASSERT(is_main_thread());
+  SNDSYS_OCCLUSION_GPU_BLOCK;
+  g_detour_hint_gain = gain;
+}
+
 #if DAGOR_DBGLEVEL > 0
 static E3DCOLOR occlusion_to_color(float occ) { return E3DCOLOR(0xff, (1.f - saturate(occ)) * 0xff, 0, 0xff); }
 
 #include "./occlusionGPU_debug.inl"
+
+struct HintColors
+{
+  E3DCOLOR frame; // the plate's border
+  E3DCOLOR ring;  // around the blob's sphere; no alpha: none
+};
+
+// the hint stops before the backend, or the backend cannot say what it did with it
+static const HintColors g_hint_neutral = {E3DCOLOR(0, 0, 0, 160), E3DCOLOR(0, 0, 0, 0)};
+static const HintColors g_hint_used = {E3DCOLOR(110, 60, 210, 210), E3DCOLOR(180, 140, 255, 255)};
+// delivered, the backend demoted it, and the published answer still rests on it
+static const HintColors g_hint_held = {E3DCOLOR(50, 80, 170, 210), E3DCOLOR(140, 170, 255, 255)};
+// delivered, the answer does not rest on it
+static const HintColors g_hint_unused = {E3DCOLOR(140, 100, 0, 210), E3DCOLOR(255, 200, 60, 255)};
+// the backend has no source for the blob, or does not hold a hint delivered to it
+static const HintColors g_hint_bad = {E3DCOLOR(180, 20, 20, 230), E3DCOLOR(255, 60, 60, 255)};
+
+// How far a blob's detour hint got, so the draw says where it stops: the caller, the layer or the backend. Returns its colors.
+static HintColors debug_hint_lines(const Blob &blob, FrameStr &str)
+{
+  if (!blob.gpuActive() && is_inside_active_radius(blob) && g_backend.numActiveSources && g_backend.maxActiveSources &&
+      g_backend.numActiveSources() == g_backend.maxActiveSources())
+  {
+    str.append_sprintf("\nNO BACKEND SOURCE: the pool is full (%d), the blob plays unoccluded", g_backend.maxActiveSources());
+    return g_hint_bad;
+  }
+  if (!blob.detourHintFed)
+  {
+    str.append("\nhint: never fed, nothing sets it for this blob");
+    return g_hint_neutral;
+  }
+  if (blob.detourHintDropped)
+    str.append_sprintf("\nhint: %u calls dropped, sequence below the counted one", blob.detourHintDropped);
+  if (!blob.gpuActive())
+  {
+    str.append(is_inside_active_radius(blob) ? "\nhint: blob not activated yet" : "\nhint: blob outside the active range");
+    return g_hint_neutral;
+  }
+  if (blob.detourHint <= 0.f)
+  {
+    str.append("\nhint: cleared by the caller: no row, an expired table, valid false or delta <= 0");
+    return g_hint_neutral;
+  }
+
+  str.append_sprintf("\nhint: %.1fm seq %llu", blob.detourHint, (unsigned long long)blob.detourHintSequence);
+  if (blob.detourHintAge >= 0.f)
+    str.append_sprintf(" age %.2fs", blob.detourHintAge);
+  if (!g_detour_hint_enabled)
+  {
+    str.append("\nOFF: occlusionDetourHint is no");
+    return g_hint_neutral;
+  }
+
+  if (!g_backend.setSourceDetourHint)
+  {
+    if (!g_detour_hint_gain)
+    {
+      str.append("\nlayer: skipped, no detour hint gain is set");
+      return g_hint_unused;
+    }
+    if (blob.gpuOcclusion > g_detour_hint_occluded_threshold)
+    {
+      str.append_sprintf("\nlayer: APPLIED, gain %.2f", g_detour_hint_gain(blob.detourHint));
+      return g_hint_used;
+    }
+    str.append_sprintf("\nlayer: skipped, occlusion %.2f is not above %.1f", blob.gpuOcclusion, g_detour_hint_occluded_threshold);
+    return g_hint_unused;
+  }
+
+  DebugHintState lib;
+  if (!g_backend.debugDetourHint || !g_backend.debugDetourHint(blob.gpuIdx, lib))
+  {
+    str.append("\nlib: no state to read");
+    return g_hint_neutral;
+  }
+  if (lib.demoted)
+  {
+    // a demoted hint that is still valid holds the answer it measured, which the route says
+    if (lib.valid && lib.route == HintRoute::Hint)
+    {
+      str.append_sprintf("\nlib: HELD, demoted, the answer still rests on it, detour %.1fm", lib.delta);
+      return g_hint_held;
+    }
+    str.append("\nlib: DEMOTED, the pose or the geometry moved on, or the library was off");
+    return g_hint_unused;
+  }
+  if (!lib.valid)
+  {
+    str.append("\nlib: NOT HELD, the backend got the call and refused or dropped it, see seq and age");
+    return g_hint_bad;
+  }
+  switch (lib.route)
+  {
+    case HintRoute::Hint:
+      str.append_sprintf("\nlib: USED, detour %.1fm%s", lib.delta, lib.saturated ? " (saturated)" : "");
+      return g_hint_used;
+    case HintRoute::Visible: str.append_sprintf("\nlib: ignored, source visible (%.2f)", lib.visibility); return g_hint_unused;
+    case HintRoute::Graph:
+      str.append_sprintf("\nlib: graph route won, detour %.1fm%s", lib.delta, lib.saturated ? " (hint saturated)" : "");
+      return g_hint_unused;
+    case HintRoute::None: break;
+  }
+  str.append("\nlib: held, no answer has read it yet");
+  return g_hint_unused;
+}
+
+static void debug_materials_lines(const DebugMaterials &m, FrameStr &str)
+{
+  if (!m.measured)
+    str.append("materials: the line is unmeasured");
+  else if (m.count == 0)
+    str.append("materials: clear line");
+  else
+    str.append("materials on the line:");
+  for (int i = 0; i < m.count; ++i)
+  {
+    const DebugMaterialSpan &s = m.spans[i];
+    if (s.thin)
+      str.append_sprintf("\n%s at %.1fm: thin %.0f dB", s.material, s.start, s.lossDb[1]);
+    else
+      str.append_sprintf("\n%s at %.1fm: %.2fm, %.0f/%.0f/%.0f dB", s.material, s.start, s.thickness, s.lossDb[0], s.lossDb[1],
+        s.lossDb[2]);
+  }
+  if (m.more)
+    str.append_sprintf("\n+%d more", m.more);
+  if (m.count)
+    str.append_sprintf("\ntotal, capped by maxLoss: %.0f/%.0f/%.0f dB", m.totalDb[0], m.totalDb[1], m.totalDb[2]);
+  if (m.passed)
+    str.append_sprintf("\npasses %s x%d at no loss", m.passedMaterial, m.passed);
+}
+
+static void debug_materials_append(Blob &blob, int &traces_left, FrameStr &str)
+{
+  if (!g_backend.debugMaterials || !blob.gpuActive() || !is_inside_active_radius(blob))
+    return;
+  DebugMaterialsCache &cache = blob.materialsTrace;
+  const int32_t now = get_time_msec();
+  if (traces_left > 0 && (!cache.traced || now - cache.tracedAt >= g_debug_materials_period_ms))
+  {
+    --traces_left;
+    cache.traced = true;
+    cache.tracedAt = now;
+    cache.materials = DebugMaterials();
+    cache.valid = g_backend.debugMaterials(blob.gpuIdx, cache.materials);
+  }
+  if (!cache.valid)
+    return;
+  str.append("\n");
+  debug_materials_lines(cache.materials, str);
+}
+
 void debug_render_3d()
 {
   SNDSYS_OCCLUSION_GPU_BLOCK;
@@ -831,18 +1130,25 @@ void debug_render_3d()
   set_cached_debug_lines_wtm(TMatrix::IDENT);
   begin_draw_cached_debug_lines(false, false, false);
 
+  int materialTraces = g_debug_materials_budget;
   g_blobs.enumerate([&](Blob &blob, sound_handle_t handle) {
     const Point3 &spos = blob.pos;
     const float occlusionRadius = max(0.1f, blob.tmpl.occlusionRadius);
-    const E3DCOLOR color = blob.occlusionValid ? occlusion_to_color(blob.finalOcclusion) : E3DCOLOR(0xff0000ff);
+    E3DCOLOR color = blob.occlusionValid ? occlusion_to_color(blob.finalOcclusion) : E3DCOLOR(0xff0000ff);
 
     FrameStr str;
     const int numValidInstances = get_num_valid_instances(handle);
-    if (numValidInstances)
-      str.sprintf("n=[%d] o={%.1f}", numValidInstances, blob.finalOcclusion);
-    else
-      str.sprintf("{%.1f}", blob.finalOcclusion);
-    add_debug_text_mark(spos, str.c_str(), -1, 0.5f);
+    if (!numValidInstances)
+      color.a = g_debug_empty_blob_alpha;
+    str.sprintf("{%.2f} instances %d", blob.finalOcclusion, numValidInstances);
+    if (blob.occlusionValid)
+      str.append_sprintf(" backend %.2f", blob.gpuOcclusion);
+    if (blob.occlusionValid && g_backend.getOcclusionBands)
+      str.append_sprintf(" bands %.2f/%.2f/%.2f", blob.finalOcclusionBands[0], blob.finalOcclusionBands[1],
+        blob.finalOcclusionBands[2]);
+    const HintColors hintColors = debug_hint_lines(blob, str);
+    debug_materials_append(blob, materialTraces, str);
+    add_debug_text_mark(spos, str.c_str(), -1, 2.5f, hintColors.frame);
 
     if (lengthSq(spos - g_listener.pos) > occlusionRadius * occlusionRadius)
     {
@@ -857,6 +1163,9 @@ void debug_render_3d()
     }
 
     draw_cached_debug_sphere(spos, occlusionRadius, 0xff000000);
+
+    if (hintColors.ring.a)
+      draw_cached_debug_sphere(spos, occlusionRadius * 1.3f + 0.05f, hintColors.ring);
   });
   set_cached_debug_lines_wtm(TMatrix::IDENT);
 

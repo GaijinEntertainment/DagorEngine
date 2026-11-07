@@ -210,10 +210,10 @@ enum class Drv3dCommand
   // [out] par3 is pointer to internal shader id (if driver doesn't support this command, then par3 remains unchanged)
   GET_SHADER,
 
-  PIX_GPU_BEGIN_CAPTURE,
-  PIX_GPU_END_CAPTURE,
-  PIX_GPU_CAPTURE_NEXT_FRAMES,
-  PIX_GPU_CAPTURE_AFTER_LONG_FRAMES,
+  GPU_BEGIN_CAPTURE,
+  GPU_END_CAPTURE,
+  GPU_CAPTURE_NEXT_FRAMES,
+  GPU_CAPTURE_AFTER_LONG_FRAMES,
 
   // Ask driver by what factor it was limited when rendering last frame
   GET_FRAMERATE_LIMITING_FACTOR,

@@ -459,6 +459,12 @@ inline void blk_obsolete_param_logerr(const DataBlock *blk, const char *param_na
       blk->resolveFilename());
 }
 
+inline void blk_obsolete_block_logerr(const DataBlock *blk, const char *block_name)
+{
+  if (blk->blockExists(block_name))
+    logerr("Obsolete block %s found in %s - please replace", block_name, blk->resolveFilename());
+}
+
 namespace blkutil
 {
 template <typename T>
@@ -606,6 +612,35 @@ inline void getParamFromDoubleBlk(const DataBlock *blk1, const DataBlock *blk2, 
     ;
   else
     out = def_val;
+}
+
+template <typename T>
+inline void add_bit_from_blk_param(T &mask, const DataBlock &blk, int param_num)
+{
+  const int bit = blk.getInt(param_num);
+  G_ASSERTF_RETURN(bit >= 0 && bit < int(sizeof(T) * 8), , "%s:i = %d is out of range [0, %d] in block %s of %s",
+    blk.getParamName(param_num), bit, int(sizeof(T) * 8) - 1, blk.getBlockName(), blk.resolveFilename());
+  mask |= T(T(1) << bit);
+}
+
+template <typename T>
+inline T load_bit_mask(const DataBlock &blk, const char *param_name)
+{
+  T mask = 0;
+  const int paramNameId = blk.getNameId(param_name);
+  int paramNum = -1;
+  while ((paramNum = blk.findParam(paramNameId, paramNum)) >= 0)
+    add_bit_from_blk_param(mask, blk, paramNum);
+  return mask;
+}
+
+template <typename T>
+inline T load_bit_mask(const DataBlock &blk)
+{
+  T mask = 0;
+  for (int paramNum = 0; paramNum < blk.paramCount(); ++paramNum)
+    add_bit_from_blk_param(mask, blk, paramNum);
+  return mask;
 }
 
 struct ModRec

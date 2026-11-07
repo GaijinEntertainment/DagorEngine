@@ -69,7 +69,7 @@ void extract_frame_info(float t, const AnimationClip &clip, BoneInertialInfo &in
 
   AnimV20Math::PrsAnimSampler<AnimV20Math::DefaultConfig> sampler(clip.animation);
 
-  for (const AnimationClip::Point3Channel &channel : clip.channelTranslation)
+  for (const AnimationClip::NodeChannel &channel : clip.channelTranslation)
   {
     sampler.seekTicks(a2dTime1);
     vec3f p1 = sampler.samplePosTrack(channel.first);
@@ -81,7 +81,7 @@ void extract_frame_info(float t, const AnimationClip &clip, BoneInertialInfo &in
     info.velocity[nodeIdx] = v_mul(v_sub(p2, p1), dtInv);
   }
 
-  for (const AnimationClip::QuaternionChannel &channel : clip.channelRotation)
+  for (const AnimationClip::NodeChannel &channel : clip.channelRotation)
   {
     sampler.seekTicks(a2dTime1);
     vec3f r1 = sampler.sampleRotTrack(channel.first);

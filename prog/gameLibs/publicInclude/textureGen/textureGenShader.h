@@ -62,6 +62,7 @@ struct TextureGenNodeData
   bool use_depth = false;
   BlendingType blending;
   Sbuffer *particles = 0;
+  const char *nodeName = "";
   DataBlock params;
   TextureGenNodeData() = default;
   TextureGenNodeData(int w, int h, BlendingType blend, bool depth, const DataBlock &parameters, dag::ConstSpan<TextureInput> in,
@@ -69,6 +70,17 @@ struct TextureGenNodeData
     nodeW(w), nodeH(h), blending(blend), use_depth(depth), params(parameters), inputs(in, tmpmem), outputs(out, tmpmem), particles(p)
   {}
 };
+
+// Tiled passes split a w x h node into tile x tile squares (tile > 0), row by row; the last row and column can be smaller.
+inline int texgen_tiles_per_side(int size, int tile) { return (size + tile - 1) / tile; }
+inline void texgen_get_tile(int w, int h, int tile, int index, int &x, int &y, int &tile_w, int &tile_h)
+{
+  const int tilesW = texgen_tiles_per_side(w, tile);
+  x = index % tilesW * tile;
+  y = index / tilesW * tile;
+  tile_w = w - x < tile ? w - x : tile;
+  tile_h = h - y < tile ? h - y : tile;
+}
 
 
 class TextureGenShader
@@ -84,6 +96,15 @@ public:
   virtual int getRegCount(TShaderRegType tp) const = 0;
   virtual bool isRegOptional(TShaderRegType tp, int reg) const = 0;
   virtual unsigned subSteps(const TextureGenNodeData &) const { return 1; }
+  // True when sub-step sub_step can block until all GPU work queued before it is done, so a host ends its batch before it.
+  virtual bool mapsResourcesOnCpu(int /*sub_step*/) const { return false; }
+  // Pixels one process() call of this sub-step covers; by default the whole node, so a shader that splits a node overrides it.
+  virtual int subStepPixels(const TextureGenNodeData &data, int) const { return data.nodeW * data.nodeH; }
+  // Shader that does the work of this sub-step; a wrapper shader names the one it runs.
+  virtual const char *subStepShaderName(const TextureGenNodeData &, int) const { return getName(); }
+  // The pass stopped this node, or its next_sub_step failed, after sub-step 0 succeeded and while its textures are still live:
+  // release what its remaining sub-steps would take or free, such as a started readback or work registers.
+  virtual void cancelSubSteps(TextureRegManager &, const TextureGenNodeData &, int /*next_sub_step*/) {}
 
   // to be removed
   virtual bool process(TextureGenerator &gen, TextureRegManager &regs, const TextureGenNodeData &data, int subStep) = 0;

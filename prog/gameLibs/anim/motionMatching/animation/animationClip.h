@@ -22,10 +22,6 @@ struct RootMotion
     quat4f invRot = v_quat_conjugate(rotation);
     return {v_quat_mul_vec3(invRot, v_neg(translation)), invRot};
   }
-  RootMotion operator*(const RootMotion &other) const
-  {
-    return {v_add(translation, v_quat_mul_vec3(rotation, other.translation)), v_quat_mul_quat(rotation, other.rotation)};
-  }
   vec3f transformPosition(vec3f v) const { return v_add(translation, v_quat_mul_vec3(rotation, v)); }
   vec3f transformDirection(vec3f dir) const { return v_quat_mul_vec3(rotation, dir); }
 };
@@ -57,11 +53,10 @@ struct AnimationClip
   bool inPlaceAnimation;
   bool immediateAnimTreeTimerSync;
   Ptr<AnimV20::AnimData> animation;
-  using Point3Channel = eastl::pair</*animation node id*/ dag::Index16, /*node index*/ dag::Index16>;
-  using QuaternionChannel = eastl::pair</*animation node id*/ dag::Index16, /*node index*/ dag::Index16>;
-  dag::Vector<Point3Channel> channelTranslation;
-  dag::Vector<QuaternionChannel> channelRotation;
-  dag::Vector<Point3Channel> channelScale;
+  using NodeChannel = eastl::pair</*animation node id*/ dag::Index16, /*node index*/ dag::Index16>;
+  dag::Vector<NodeChannel> channelTranslation;
+  dag::Vector<NodeChannel> channelRotation;
+  dag::Vector<NodeChannel> channelScale;
   dag::Vector<float> nodeMask;
   vec3f rootScale;
   Point2 playSpeedMultiplierRange;

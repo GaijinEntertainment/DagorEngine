@@ -114,10 +114,9 @@ bool upload_initial_data_texture2d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
       for (auto j : desc.mips)
       {
         BaseTex::ImageMem &src = initial_data[desc.mips.count() * i.index() + j.index()];
-        auto subResInfo = calculate_texture_mip_info(*tex.image, j);
         uploader->CopyIntoSubresource(tex.image->getMemory().asPointer(), 0,
           calculate_subresource_index(j.index(), i.index(), 0, desc.mips.count(), desc.arrays.count()), src.ptr, src.rowPitch,
-          src.rowPitch * subResInfo.rowCount);
+          src.slicePitch);
       }
     }
     // only need end access as begin is implicit after create
@@ -131,7 +130,7 @@ bool upload_initial_data_texture2d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
   if (!stage)
   {
     auto size = calculate_texture_staging_buffer_size(*tex.image, tex.image->getSubresourceRange());
-    stage = get_device().allocateTemporaryUploadMemory(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+    stage = get_device().allocateTemporaryUploadMemory(size, TextureSubresourceInfo::placement_alignment);
     if (!stage)
     {
       return false;
@@ -154,7 +153,6 @@ bool upload_initial_data_texture2d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
         offset += subResInfo.footprint.RowPitch;
         srcPtr += src.rowPitch;
       }
-      offset = (offset + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1);
     }
     TextureMipsCopyInfo copies =
       calculate_texture_mips_copy_info(*tex.image, desc.mips.count(), i.index(), desc.arrays.count(), flushStart);
@@ -192,7 +190,7 @@ bool upload_initial_data_texture3d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
 #endif
 
   uint64_t size = calculate_texture_staging_buffer_size(*tex.image, SubresourceRange::make(0, desc.mips.count()));
-  auto stage = get_device().allocateTemporaryUploadMemory(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+  auto stage = get_device().allocateTemporaryUploadMemory(size, TextureSubresourceInfo::placement_alignment);
   if (!stage)
     return false;
 
@@ -213,7 +211,6 @@ bool upload_initial_data_texture3d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
       }
       srcPtr += initSource.slicePitch;
     }
-    offset = (offset + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1);
   }
   stage.flush();
 
@@ -227,7 +224,12 @@ bool upload_initial_data_texture3d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
 
 Image *create_image_from_desc(Device &device, BaseTex *base_texture, const ImageInfo &desc, const char *res_name)
 {
-  const bool wasBaseTracked = base_texture && !base_texture->image->isAliased();
+  if (base_texture && !base_texture->image)
+  {
+    logwarn("DX12: Can not alias <%s>, its base texture <%s> has no image", res_name, base_texture->getName());
+    return nullptr;
+  }
+  const bool wasBaseTracked = base_texture && !base_texture->image->isAliased(); //-V522
   if (wasBaseTracked)
     TEXQL_ON_RELEASE(base_texture); // we must re-register the base texture as aliasing may make it untracked
   auto image = device.createImage(desc, base_texture ? base_texture->image : nullptr, res_name);
@@ -316,7 +318,7 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
     // when base texture is esram, than alias has to be also esram
     flg = (flg & ~TEXCF_ESRAM_ONLY) | baseEsram;
   }
-  if (flg & TEXCF_ESRAM_ONLY)
+  if ((flg & TEXCF_ESRAM_ONLY) && (!baseTexture || baseTexture->image))
   {
     tex.image = device.createEsramBackedImage(desc, baseTexture ? baseTexture->image : nullptr, tex.getName());
   }
@@ -385,7 +387,7 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
         if (!stage)
         {
           auto size = calculate_texture_staging_buffer_size(*tex.image, SubresourceRange::make(0, 1));
-          stage = device.allocateTemporaryUploadMemory(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+          stage = device.allocateTemporaryUploadMemory(size, TextureSubresourceInfo::placement_alignment);
           if (!stage)
             return false;
         }
@@ -468,7 +470,7 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
     // when base texture is esram, than alias has to be also esram
     flg = (flg & ~TEXCF_ESRAM_ONLY) | baseEsram;
   }
-  if (flg & TEXCF_ESRAM_ONLY)
+  if ((flg & TEXCF_ESRAM_ONLY) && (!baseTexture || baseTexture->image))
   {
     tex.image = device.createEsramBackedImage(desc, baseTexture ? baseTexture->image : nullptr, tex.getName());
   }
@@ -518,7 +520,7 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
 #endif
       {
         uint64_t size = calculate_texture_staging_buffer_size(*tex.image, SubresourceRange::make(0, 1));
-        auto stage = device.allocateTemporaryUploadMemory(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+        auto stage = device.allocateTemporaryUploadMemory(size, TextureSubresourceInfo::placement_alignment);
         if (stage)
         {
           memset(stage.cpuPointer(), 0, size);
@@ -760,7 +762,7 @@ void BaseTex::fillLockedLevelInfo(int level, uint64_t offset)
 {
   auto subResInfo = calculate_texture_mip_info(*image, MipMapIndex::make(level));
   lockMsr.rowPitch = subResInfo.footprint.RowPitch;
-  lockMsr.slicePitch = uint64_t{subResInfo.footprint.RowPitch} * subResInfo.rowCount;
+  lockMsr.slicePitch = subResInfo.slicePitchSizeInBytes;
   lockMsr.memSize = lockMsr.slicePitch;
   lockMsr.ptr = stagingMemory.cpuPointer() + offset;
 }
@@ -768,7 +770,7 @@ void BaseTex::fillLockedLevelInfo(int level, uint64_t offset)
 HostDeviceSharedMemoryRegion BaseTex::allocate_read_write_staging_memory(const Image *image, const SubresourceRange &subresource_range)
 {
   uint64_t size = calculate_texture_staging_buffer_size(*image, subresource_range);
-  return get_device().allocatePersistentBidirectionalMemory(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+  return get_device().allocatePersistentBidirectionalMemory(size, TextureSubresourceInfo::placement_alignment);
 }
 
 void BaseTex::notifySamplerChange()
@@ -1775,7 +1777,7 @@ uint64_t BaseTex::prepareReadWriteStagingMemoryAndGetOffset(uint32_t flags)
       free_and_reset_staging_memory(stagingMemory);
     auto size = calculate_texture_staging_buffer_size(*image, SubresourceRange::make(lockedSubRes, 1)); // -V522 12 line above image
                                                                                                         // checked
-    stagingMemory = get_device().allocateTemporaryUploadMemory(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+    stagingMemory = get_device().allocateTemporaryUploadMemory(size, TextureSubresourceInfo::placement_alignment);
 
     return 0;
   }
@@ -1924,7 +1926,8 @@ int BaseTex::lockimg(void **pointer, int &stride, int face, int level, unsigned 
   lockedSubRes = calculate_subresource_index(level, face, 0, mipLevels, getArrayCount().count());
   auto subResInfo = calculate_texture_mip_info(*image, MipMapIndex::make(level));
 
-  stagingMemory = get_device().allocatePersistentBidirectionalMemory(subResInfo.totalByteSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+  stagingMemory =
+    get_device().allocatePersistentBidirectionalMemory(subResInfo.totalAlignedByteSize, TextureSubresourceInfo::placement_alignment);
   if (!stagingMemory)
   {
     D3D_ERROR("DX12: failed to allocate staging memory on lockimg for texture %p <%s>", this, getName());
@@ -2019,7 +2022,8 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
 
     auto subResInfo = calculate_texture_subresource_info(*image, SubresourceIndex::make(lockedSubRes));
     // only get a buffer large enough to hold the locked level
-    stagingMemory = device.allocatePersistentBidirectionalMemory(subResInfo.totalByteSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+    stagingMemory =
+      device.allocatePersistentBidirectionalMemory(subResInfo.totalAlignedByteSize, TextureSubresourceInfo::placement_alignment);
 
     if (!stagingMemory)
       return 0;
@@ -2035,11 +2039,11 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
     }
     *data = lockMsr.ptr = stagingMemory.cpuPointer();
     row_pitch = lockMsr.rowPitch = subResInfo.footprint.RowPitch;
-    lockMsr.slicePitch = uint64_t{subResInfo.footprint.RowPitch} * subResInfo.rowCount;
+    lockMsr.slicePitch = subResInfo.slicePitchSizeInBytes;
     G_ASSERTF_RETURN(lockMsr.slicePitch <= eastl::numeric_limits<int>::max(), 0,
       "DX12: Compute slice pitch of %llu exceeds signed int bit storage of slice_pitch", lockMsr.slicePitch);
     slice_pitch = static_cast<int>(lockMsr.slicePitch);
-    lockMsr.memSize = subResInfo.totalByteSize;
+    lockMsr.memSize = subResInfo.totalAlignedByteSize;
     return 1;
   }
   else
@@ -2183,6 +2187,23 @@ int BaseTex::texmiplevel(int minlevel, int maxlevel)
   return 1;
 }
 
+void BaseTex::setReadStencil(bool on)
+{
+  const bool sampleStencil = on && getFormat().isStencil();
+  if (isSampleStencil() == sampleStencil)
+    return;
+  setIsSampleStencil(sampleStencil);
+  notifySrvChange();
+
+  if (usedInBindless.test(dag::mo::relaxed))
+  {
+    ScopedCommitLock ctxLock{get_device().getContext()};
+    OSSpinlockScopedLock resourceBindingLock(get_resource_binding_guard());
+    STORE_RETURN_ADDRESS();
+    get_device().updateTextureBindlessReferencesNoLock(this, image);
+  }
+}
+
 static constexpr int IMAGE_BYTES_PER_PIXEL = 4;
 static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, Texture *baseTexture,
   ResourceTagType tag)
@@ -2278,13 +2299,11 @@ static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int 
       hdr.w = w;
       hdr.h = h;
       hdr.levels = levels;
-      hdr.bitsPerPixel = tex->getFormat().getBytesPerPixelBlock();
-      if (hdr.d3dFormat == D3DFMT_DXT1)
-        hdr.dxtShift = 3;
-      else if (hdr.d3dFormat == D3DFMT_DXT3 || hdr.d3dFormat == D3DFMT_DXT5)
-        hdr.dxtShift = 4;
-      if (hdr.dxtShift)
-        hdr.bitsPerPixel = 0;
+      const uint32_t bytesPerBlock = tex->getFormat().getBytesPerPixelBlock();
+      if (tex->getFormat().isBlockCompressed())
+        hdr.dxtShift = __ctz_unsafe(bytesPerBlock);
+      else
+        hdr.bitsPerPixel = bytesPerBlock * 8;
       hdr.memSz = memSz;
       /*sysCopyQualityId*/ hdr.hqPartLevels = 0;
 
@@ -2299,9 +2318,9 @@ static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int 
   if (img)
   {
     idata.ptr = img + 1;
-    idata.rowPitch = w * 4;
-    idata.slicePitch = 0; // -V1048
-    idata.memSize = w * h * 4;
+    idata.rowPitch = w * IMAGE_BYTES_PER_PIXEL;
+    idata.slicePitch = h * w * IMAGE_BYTES_PER_PIXEL;
+    idata.memSize = w * h * IMAGE_BYTES_PER_PIXEL;
   }
 
   if (!create_tex2d(*tex, w, h, levels, false, img ? &idata : nullptr, 1, static_cast<BaseTex *>(baseTexture)))
@@ -2413,13 +2432,11 @@ static VolTexture *create_voltex_internal(int w, int h, int d, int flg, int leve
     hdr.h = h;
     hdr.depth = d;
     hdr.levels = levels;
-    hdr.bitsPerPixel = tex->getFormat().getBytesPerPixelBlock();
-    if (hdr.d3dFormat == D3DFMT_DXT1)
-      hdr.dxtShift = 3;
-    else if (hdr.d3dFormat == D3DFMT_DXT3 || hdr.d3dFormat == D3DFMT_DXT5)
-      hdr.dxtShift = 4;
-    if (hdr.dxtShift)
-      hdr.bitsPerPixel = 0;
+    const uint32_t bytesPerBlock = tex->getFormat().getBytesPerPixelBlock();
+    if (tex->getFormat().isBlockCompressed())
+      hdr.dxtShift = __ctz_unsafe(bytesPerBlock);
+    else
+      hdr.bitsPerPixel = bytesPerBlock * 8;
     hdr.flags = hdr.FLG_VOLTEX;
     if ((tex->cflg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE)) == 0)
       hdr.flags |= hdr.FLG_GAMMA_EQ_1;

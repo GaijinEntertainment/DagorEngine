@@ -83,6 +83,7 @@ macro USE_COMBINE_SHADOWS()
     //on mobile devices taa is currently off. it is actually tied to taa being enabled
     #define STATIC_SHADOW_DITHERED 1
     ##endif
+    #define STATIC_SHADOW_DITHERED_NORMAL_ADJ 1
     #define STATIC_SHADOW_DITHER_RADIUS 1.5
     #define STATIC_SHADOW_REFERENCE_FXAA_IMPL 1
     #define STATIC_SHADOW_CUSTOM_FXAA_DIR 0
@@ -210,7 +211,7 @@ macro USE_COMBINE_SHADOWS()
           #endif
           shadows.vsm = vsm;
           ##if ssss_quality == transmittance_and_reflectance_blur
-            staticShadow = getStaticShadow(worldPos, 0, shadows.staticCascadeId, shadowRadiusScale);
+            staticShadow = getStaticShadow(worldPos, gbuffer.normal, from_sun_direction, 0, shadows.staticCascadeId, shadowRadiusScale);
           ##endif
         }
         else
@@ -227,10 +228,10 @@ macro USE_COMBINE_SHADOWS()
             float3 staticShadowPos = worldPos;
             if (shadows.csmCascadeId < CSM_DYNAMIC_ONLY_CASCADE)
               staticShadowPos = projectToShadowFrustumNearPlane(worldPos, shadows.csmCascadeId);
-            staticShadow = getStaticShadow(staticShadowPos, 0, shadows.staticCascadeId, shadowRadiusScale);
+            staticShadow = getStaticShadow(staticShadowPos, gbuffer.normal, from_sun_direction, 0, shadows.staticCascadeId, shadowRadiusScale);
             shadow *= staticShadow;
           #else
-            staticShadow = getStaticShadow(worldPos, dither, shadows.staticCascadeId, shadowRadiusScale);
+            staticShadow = getStaticShadow(worldPos, gbuffer.normal, from_sun_direction, dither, shadows.staticCascadeId, shadowRadiusScale);
             shadow = staticShadow*cloudsShadow;
             BRANCH
             if ( w < csm_distance.x && shadow > 0.5/255)//we store combined_shadows in argb8, not point

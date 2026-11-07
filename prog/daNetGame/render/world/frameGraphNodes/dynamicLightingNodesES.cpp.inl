@@ -11,6 +11,7 @@
 #include <render/renderSettings.h>
 #include <render/resolution.h>
 #include <render/world/bvh.h>
+#include <render/denoiser/denoiser_api.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/shadowsManager.h>
 #include <render/world/wrDispatcher.h>
@@ -122,7 +123,7 @@ static void recreate_dynamic_lighting_nodes(bool is_rtsm,
     });
 
     lighting_node = dafg::register_node("dynamic_lighting", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      registry.readBlob<OrderingToken>("rtao_token").optional();
+      denoiser::read_ao_output(registry); // the AO comes through bindless, the optional read orders after the denoiser
       registry.readBlob<OrderingToken>("dynamic_lights_shadow_buffers_ready_token").optional();
 
       registry.readTexture("ssao_tex").atStage(dafg::Stage::COMPUTE).bindToShaderVar("ssao_tex").optional();

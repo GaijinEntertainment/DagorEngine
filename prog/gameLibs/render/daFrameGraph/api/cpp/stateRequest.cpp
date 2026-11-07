@@ -71,8 +71,8 @@ StateRequest StateRequest::allowWireframe() &&
 
 StateRequest StateRequest::maxVrs() &&
 {
-  auto &RenderReq = registry->nodes[id].renderingRequirements;
-  if (DAGOR_UNLIKELY(RenderReq.has_value() && RenderReq->vrsRateAttachment.nameId != ResNameId::Invalid))
+  const auto *RenderReq = eastl::get_if<VirtualPassRequirements>(&registry->nodes[id].renderingRequirements);
+  if (DAGOR_UNLIKELY(RenderReq && RenderReq->vrsRateAttachment.nameId != ResNameId::Invalid))
   {
     logerr("daFG: Node %s requested maxVrs after requesting a VRS rate texture to be used!"
            " Using max VRS and using a rate texture are incompatible, ignoring maxVrs.",

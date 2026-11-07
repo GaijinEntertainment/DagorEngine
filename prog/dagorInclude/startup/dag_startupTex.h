@@ -30,7 +30,7 @@ void register_psd_tex_load_factory();
 void register_png_tex_load_factory();
 //! registers factory for loading .avif files
 void register_avif_tex_load_factory();
-//! registers factory for loading .SVG files
+//! registers factory for loading .SVG and .SVGZ files
 void register_svg_tex_load_factory();
 //! registers factory for loading images from files without extension (tries with specified extensions and order)
 void register_any_tex_load_factory(const char *try_order = "jpg|jpeg|avif|png|tga");

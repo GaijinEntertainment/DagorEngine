@@ -16,9 +16,11 @@
 
 #include "viewTransformData.h"
 
+class ComputeShaderElement;
+
 // Implements functionality for testing bboxes visibility
-// by rasterizing them into provided depth texture. (without depth writing)
-// When we pass z-test (at least at one pixel) for a bbox instance,
+// by rasterizing them into provided depth texture (without depth writing), or by a compute shader.
+// When a bbox instance passes z-test (at least at one pixel), or the shader finds it visible,
 // we set related bit to 1. Then readback this result to cpu
 // (which takes >= 1 frame time).
 // Since there is a limit for tests per one frame, we create a queue
@@ -59,6 +61,8 @@ public:
   void getVisibilityTestResults(dag::FunctionRef<void(bool /*isVisible*/, const TestObjectData & /*testedObject*/) const> tested_fn);
   // Caller is responsible for saving,restoring Render Target, Viewport, Globtm states
   void doTestsOnGpu(Texture *tex);
+  // test_cs reads box i at ri_bboxes_buf[2i], [2i+1] and the count in immediate dword 0, and sets bit i of the uav at register 1
+  void doTestsOnGpu(const ComputeShaderElement &test_cs);
   // Remove groups with objects that can't be tested by current depth tex
   void removeOutdatedObjectGroups(dag::FunctionRef<bool(const ViewTransformData & /*group_view*/) const> is_group_outdated);
 
@@ -68,6 +72,11 @@ public:
   inline void afterDeviceReset() { resetIssuedTests(); }
 
 protected:
+  void issueTests(dag::FunctionRef<bool(Sbuffer *result_buffer, int end_object_id)> test); // test returns false when it ran none
+  int groupEnd(int group_id) const
+  {
+    return group_id + 1 >= (int)objectGroups.size() ? (int)objectsToTest.size() : objectGroups[group_id + 1].startObjectId;
+  }
   void resetIssuedTests();
 
   // Just copies existing objects to the end of the queue

@@ -154,6 +154,11 @@ private:
   bool needCopyDFS(component_t comp, const TemplatesData &db, eastl::bitvector<framemem_allocator> &visited) const;
   bool isReplicatedDFS(component_t comp, const TemplatesData &db, eastl::bitvector<framemem_allocator> &visited) const;
   uint32_t getRegExpInheritedFlagsDFS(component_t aname, const TemplatesData &db, eastl::bitvector<framemem_allocator> &visited) const;
+  static uint64_t componentBloomBit(component_t c) { return 1ULL << ((c * 0x9E3779B9u) >> 26); }
+  const ChildComponent *findOwnComponent(component_t c) const
+  {
+    return (componentsBloom & componentBloomBit(c)) ? components.find(c) : nullptr;
+  }
   void resolveFlags(const TemplatesData &db)
   {
     setInheritedFlags(resolveComponentsFlagsRecursive(db) | FLAG_CANT_INSTANTIATE);
@@ -179,6 +184,7 @@ private:
   mutable bool setsValidated = false; // validateSets ran for this template
 #endif
   ComponentsMap components;
+  uint64_t componentsBloom = 0;
   mutable dag::RelocatableFixedVector<component_index_t, 7, true, MidmemAlloc, uint16_t> dependencies; // cache for dependencies
   uint16_t trackedCount = 0, replicatedCount = 0, ignoredCount = 0;
   mutable uint8_t localFlags = FLAGS_ALL;

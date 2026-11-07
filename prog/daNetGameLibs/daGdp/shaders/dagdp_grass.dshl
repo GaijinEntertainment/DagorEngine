@@ -15,6 +15,7 @@ buffer dagdp_heightmap__biomes;
 buffer dagdp_heightmap__variants;
 buffer dagdp_heightmap__indirect_args;
 buffer dagdp_heightmap__visible_tile_positions;
+buffer dagdp_heightmap__viewport_data;
 
 int dagdp_heightmap__num_renderables;
 int dagdp_heightmap__num_placeables;
@@ -40,12 +41,6 @@ int dagdp_heightmap__prng_seed_roll;
 int dagdp_heightmap__prng_seed_density;
 int dagdp_heightmap__prng_seed_decal;
 int dagdp_grass__prng_seed_height;
-
-float4 dagdp_heightmap__base_tile_pos_xz;
-int4 dagdp_heightmap__base_tile_int_pos_xz;
-float4 dagdp_heightmap__viewport_pos;
-float dagdp_heightmap__viewport_max_distance;
-int dagdp_heightmap__viewport_index;
 
 shader dagdp_grass_place_stage0, dagdp_grass_place_stage1
 {
@@ -93,6 +88,15 @@ shader dagdp_grass_place_stage0, dagdp_grass_place_stage1
       ByteAddressBuffer visible_tile_positions@buf;
     }
 
+    viewport_data@cbuf = dagdp_heightmap__viewport_data hlsl {
+      #include "dagdp_heightmap.hlsli"
+      #include "dagdp_constants.hlsli"
+      cbuffer viewport_data@cbuf
+      {
+        DagdpViewportGpuData viewport_data[DAGDP_MAX_VIEWPORTS];
+      };
+    }
+
     num_renderables@i1 = dagdp_heightmap__num_renderables;
     num_placeables@i1 = dagdp_heightmap__num_placeables;
     num_biomes@i1 = dagdp_heightmap__num_biomes;
@@ -117,17 +121,16 @@ shader dagdp_grass_place_stage0, dagdp_grass_place_stage1
     prng_seed_decal@i1 = dagdp_heightmap__prng_seed_decal;
     prng_seed_height@i1 = dagdp_grass__prng_seed_height;
 
-    base_tile_pos_xz@f2 = dagdp_heightmap__base_tile_pos_xz;
-    base_tile_int_pos_xz@i2 = dagdp_heightmap__base_tile_int_pos_xz;
-    viewport_pos@f3 = dagdp_heightmap__viewport_pos;
-    viewport_max_distance@f1 = dagdp_heightmap__viewport_max_distance;
-    viewport_index@i1 = dagdp_heightmap__viewport_index;
-
     grass_color_tex@smp2d = grass_color_tex;
   }
 
   hlsl(cs) {
     static const int lower_level = 0;
+    static float3 viewport_pos;
+    static float viewport_max_distance;
+    static uint viewport_index;
+    static float4 viewport_frustum_planes[6];
+    #define DAGDP_VIEWPORT_FRUSTUM_PLANES viewport_frustum_planes
   }
 
   USE_DAGDP_COMMON_HEIGHTMAP(shader == dagdp_grass_place_stage1)
@@ -174,8 +177,19 @@ shader dagdp_grass_place_stage0, dagdp_grass_place_stage1
       // XZ position inside the tile.
       const uint2 instanceIntPos = uint2(dtId.y / TILE_INSTANCE_COUNT_1D, dtId.y % TILE_INSTANCE_COUNT_1D);
 
-      // XZ position of the tile itself.
-      const int2 tileIntPos = loadBuffer2(visible_tile_positions, dtId.x * TILE_POSITION_BYTE_SIZE);
+      // XZ position of the tile itself, and its viewport.
+      const int4 tileEntry = asint(loadBuffer4(visible_tile_positions, dtId.x * TILE_POSITION_BYTE_SIZE));
+      const int2 tileIntPos = tileEntry.xy;
+
+      const DagdpViewportGpuData viewportData = viewport_data[uint(tileEntry.z)];
+      const float2 base_tile_pos_xz = float2(viewportData.baseTileIntPosXZ * tile_pos_delta);
+      const int2 base_tile_int_pos_xz = viewportData.baseTileIntPosXZ;
+      viewport_pos = viewportData.worldPos;
+      viewport_max_distance = viewportData.maxDistance;
+      viewport_index = uint(tileEntry.z);
+      UNROLL
+      for (uint planeIndex = 0; planeIndex < 6; planeIndex++)
+        viewport_frustum_planes[planeIndex] = viewportData.frustumPlanes[planeIndex];
 
       const int2 stablePos = (base_tile_int_pos_xz + tileIntPos) * TILE_INSTANCE_COUNT_1D + int2(instanceIntPos);
       const float2 randPosJitter = float2(stableRand(stablePos, prng_seed_jitter_x), stableRand(stablePos, prng_seed_jitter_z));

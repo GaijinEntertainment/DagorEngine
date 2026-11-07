@@ -43,3 +43,4 @@ include $(Root)/prog/daNetGameLibs/sound/sound_utils/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/sound/sound_utils_net/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/composite_entity/_lib.jam ;
 include $(Root)/prog/gameLibs/render/puddle_query/_lib.jam ;
+include $(Root)/prog/gameLibs/imgui_daeditor/_lib.jam ;

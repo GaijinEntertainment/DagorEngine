@@ -4,6 +4,7 @@
 #include "../assetStats.h"
 #include <3d/dag_texIdSet.h>
 #include <generic/dag_tab.h>
+#include <util/dag_stdint.h>
 
 #include <ska_hash_map/flat_hash_map2.hpp>
 
@@ -25,6 +26,10 @@ public:
   void fillAssetStatsFromObjEntity(IObjEntity &entity, const Point3 &camera_pos);
   int fillAssetStatsFromRenderableInstanceLodsResource(const RenderableInstanceLodsResource &res, float distance);
   void fillAssetCollisionStats(CollisionResource &collision_resource);
+
+  static const ShaderMesh *getRenderableInstanceLodMesh(const RenderableInstanceLodsResource &res, int lod);
+  // GPU memory that only this LOD uses: its VB/IB ranges and voxel data. Textures are not included.
+  static uint32_t calcRenderableInstanceLodGpuMemory(const RenderableInstanceLodsResource &res, int lod);
 
   // This must be called to calculate the final statistics for materials and textures.
   void finalizeStats();

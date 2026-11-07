@@ -140,7 +140,7 @@ shader fill_windows_grid_range_cs, fill_windows_grid_range_fast_cs
       GroupMemoryBarrier();
       uint writeAt = gridWriteTo[subGridCoord];
 
-      if (windowFrameId<windowsCnt)
+      if (windowFrameId<windowsCnt && writeAt + windowFrameId < WINDOW_GRID_XZ*WINDOW_GRID_XZ*WINDOW_GRID_Y)
         structuredBufferAt(grid, WINDOW_GRID_XZ*WINDOW_GRID_XZ*WINDOW_GRID_Y + writeAt + windowFrameId) = thread_result[subGridCoord*MAX_WINDOWS + windowFrameId];
     }
   }

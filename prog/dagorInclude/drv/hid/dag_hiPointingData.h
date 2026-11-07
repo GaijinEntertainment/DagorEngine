@@ -4,7 +4,6 @@
 //
 #pragma once
 
-#include <generic/dag_functionRef.h>
 // #include <util/dag_globDef.h> // TODO: for Gesture::elapsedTime
 
 
@@ -12,6 +11,13 @@ namespace HumanInput
 {
 static constexpr int MAX_MOUSE_BUTTONS = 7;
 static constexpr int MAX_TOUCHES = 32;
+
+struct TouchpadBallistics
+{
+  bool enabled = false;
+  int speed = 10;           // 1..20, as the Windows cursor speed
+  float countsPerMm = 40.f; // pad mm to Windows mouse counts
+};
 
 struct PointingSettings
 {
@@ -21,18 +27,13 @@ struct PointingSettings
 
   bool emuTouchScreenWithMouse = false;
   bool touchScreen = false;
-  bool touchpadAsTouch = false; // Windows; set before mouse init; unthreaded window
   bool allowEmulatedLMB = true;
   int tapAndHoldThresMs = 2000;
   int tapStillCircleRad = 8;
   int tapReleaseDelayMs = 100;
 
-  float touchPadSpeedMin = 100;
-  float touchPadSpeedFull = 300;
-  float touchPadSpeedFactorAtMin = 0.2f;
-
-  bool emuMouseWithTouchPad = false;
-  bool touchPadTapClicks = true;
+  bool touchPadTouches = false; // the touch pad of a game pad gives TS_touchPad touches
+  TouchpadBallistics touchPadBallistics;
 };
 
 struct PointingRawState
@@ -50,6 +51,7 @@ struct PointingRawState
     float x = 0, y = 0;           //< current absolute coordinates of pointer
     float deltaX = 0, deltaY = 0; //< mouse translation since last reset (incremented by driver)
     float deltaZ = 0;             //< mouse wheel rotation since last reset (incremented by driver)
+    bool moveInjected = false;    //< Windows raw input: the last mouse report had no device (SendInput, touch screen); else false
 
     bool isBtnDown(int btn_idx) const { return buttons & (1 << btn_idx); }
   };
@@ -57,7 +59,7 @@ struct PointingRawState
   struct Touch
   {
     // all coords are screen pixels
-    enum
+    enum Source : unsigned
     {
       TS_none,
       TS_touchPad,
@@ -72,9 +74,10 @@ struct PointingRawState
     unsigned t0msec = 0;  //< timestamp of touch start (in msec)
 
     float deltaX = 0, deltaY = 0; //< relative touch movement since last resetDelta
-    float maxDist = 0;            //< maximum distance between (x,y) and (x0,y0)
+    float maxDist = 0;            //< maximum distance between (x,y) and (x0,y0); TS_touchPad: finger travel times the plain scale
     unsigned touchOrdId = 0;      //< ordinal ID, incremented for each new touch
-    unsigned touchSrc = TS_none;  //< source of touch data (touch pad, touch screen, etc.)
+    Source touchSrc = TS_none;    //< source of touch data (touch pad, touch screen, etc.)
+    unsigned padButtonState = 0;  // JoystickTouchpadFrame::buttonState
 
     bool screenCoords() const { return touchSrc != TS_none; }
   };
@@ -124,13 +127,11 @@ struct Gesture
   float deltaX = 0, deltaY = 0; //< delta since previous position
   float x0 = 0, y0 = 0;         //< initial position
   float scale = 1.0;            //< scale factor, only for PINCH
-  float angle = 0.0;            //< radians from the start, clockwise, only for ROTATE
+  float angle = 0.0;            //< TODO: rotation angle, only for ROTATION
 
   Direction dir = Direction::LEFT; //< FLICK direction shortcut
   // uint64_t elapsedTimeUsec = 0; //< TODO: time elapsed since gesture start
   //
 }; // struct Gesture
-
-using GestureCb = dag::FunctionRef<void(Gesture::State state, const Gesture &g)>;
 
 } // namespace HumanInput

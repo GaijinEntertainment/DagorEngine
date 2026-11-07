@@ -23,6 +23,10 @@ static bool isMetaMethodName(const char *name) {
     return false;
 }
 
+static bool canStartImport(const char *name) {
+    return strcmp(name, "import") == 0 || strcmp(name, "from") == 0;
+}
+
 struct NestingChecker {
     SQParser *_p;
     const uint32_t _max_depth;
@@ -267,6 +271,7 @@ RootBlock* SQParser::parse()
         Lex();
         SourceLoc start = _lex.tokenStart();
         RootBlock *rootBlock = newNode<RootBlock>(arena(), start);
+        parseModuleHeader(rootBlock);
         while(_token > 0){
             rootBlock->addStatement(parseStatement());
             if(_lex._prevtoken != '}' && _lex._prevtoken != ';') OptionalSemicolon();
@@ -277,6 +282,33 @@ RootBlock* SQParser::parse()
     catch (SQCompilation::CompilerError &) {
         return NULL;
     }
+}
+
+
+// Header: [docstring] directive* import*. Only here can directives change
+// _lang_features, so one feature set covers the whole file.
+void SQParser::parseModuleHeader(RootBlock *root)
+{
+    if (_token == TK_DOCSTRING) {
+        onDocString(_lex._svalue);
+        Lex();
+        OptionalSemicolon();
+    }
+    while (_token == TK_DIRECTIVE) {
+        root->addStatement(parseDirectiveStatement());
+        OptionalSemicolon();
+    }
+    while (_token == TK_IDENTIFIER && canStartImport(_lex._svalue)) {
+        root->addStatement(parseImportStatement());
+        OptionalSemicolon();
+    }
+}
+
+
+bool SQParser::isImportOutsideHeader(const Expr *e) const
+{
+    bool moduleNameFollows = _token == TK_STRING_LITERAL;
+    return moduleNameFollows && e->op() == TO_ID && canStartImport(e->asId()->name());
 }
 
 
@@ -313,11 +345,8 @@ Statement* SQParser::parseStatement(bool closeframe)
     NestingChecker nc(this);
     Statement *result = NULL;
 
-    bool allowsImport = false;
-
     switch(_token) {
     case ';':
-        allowsImport = true;
         result = newNode<EmptyStatement>(_lex.tokenSpan());
         Lex();
         break;
@@ -329,8 +358,7 @@ Statement* SQParser::parseStatement(bool closeframe)
         break;
     }
     case TK_DIRECTIVE:
-        allowsImport = true;
-        result = parseDirectiveStatement();
+        throwError("directives must be at the top of the file, before imports");
         break;
     case TK_IF:     result = parseIfStatement();          break;
     case TK_WHILE:  result = parseWhileStatement();       break;
@@ -393,13 +421,11 @@ Statement* SQParser::parseStatement(bool closeframe)
         break;
     case '{':
     {
-        SQUnsignedInteger savedLangFeatures = _lang_features;
         SourceLoc blockStart = _lex.tokenStart();
         Lex();
         Block *block = parseStatements(blockStart);
         block->setSpanEnd(_lex.currentPos());
         Expect('}');
-        _lang_features = savedLangFeatures;
         result = block;
         break;
     }
@@ -427,23 +453,14 @@ Statement* SQParser::parseStatement(bool closeframe)
         break;
     }
     default: {
-        // Check for contextual import keywords to switch parsing mode
-        if (_are_imports_still_allowed && _token == TK_IDENTIFIER) {
-            if (strcmp(_lex._svalue, "import") == 0 || strcmp(_lex._svalue, "from") == 0) {
-                allowsImport = true;
-                result = parseImportStatement();
-                break;
-            }
-        }
         Expr *e = Expression(SQE_REGULAR);
+        if (isImportOutsideHeader(e))
+            _ctx.throwError(e, "import statements must be at the top of the file, after directives");
         return newNode<ExprStatement>(e);
       }
     }
 
     assert(result);
-
-    if (!allowsImport)
-        _are_imports_still_allowed = false;
 
     return result;
 }
@@ -1205,7 +1222,6 @@ Expr* SQParser::Factor(SQInteger &pos)
             throwError("Access to compiler internals is forbidden");
         SQExpressionContext saved_expression_context = _expression_context;
         _expression_context = SQE_REGULAR;
-        SQUnsignedInteger savedLangFeatures = _lang_features;
         SourceLoc start = _lex.tokenStart();
         Lex();
         Block *blk = parseStatements(start);
@@ -1213,7 +1229,6 @@ Expr* SQParser::Factor(SQInteger &pos)
         blk->setSpanEnd(_lex.currentPos());
         r = newNode<CodeBlockExpr>(blk);
         Expect('}');
-        _lang_features = savedLangFeatures;
         _expression_context = saved_expression_context;
         break;
     }
@@ -2038,15 +2053,8 @@ TryStatement* SQParser::parseTryCatchStatement()
 
 Id* SQParser::generateSurrogateFunctionName()
 {
-    const char * fileName = _sourcename ? _sourcename : "unknown";
-    int lineNum = int(_lex._currentline);
-
-    const char * rightSlash = std::max(strrchr(fileName, '/'), strrchr(fileName, '\\'));
-
-    constexpr int maxLen = 256;
-
-    char buf[maxLen];
-    scsprintf(buf, maxLen, "(%s:%d)", rightSlash ? (rightSlash + 1) : fileName, lineNum);
+    char buf[256];
+    SQFunctionProto::FormatDerivedName(buf, sizeof(buf), _sourcename ? _sourcename : "unknown", int(_lex._currentline));
     return newId(buf);
 }
 
@@ -2280,7 +2288,6 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
 
     Block *body = NULL;
 
-    SQUnsignedInteger savedLangFeatures = _lang_features;
     _docObjectStack.push_back(&f->docObject);
 
     if (lambda) {
@@ -2308,17 +2315,12 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
     f->setLambda(lambda);
     f->setResultTypeMask(resultTypeMask);
 
-    _lang_features = savedLangFeatures;
-
     return f;
 }
 
 
 ImportStmt* SQParser::parseImportStatement()
 {
-    if (!_are_imports_still_allowed)
-        throwError("import statements must be at the top of the file");
-
     // Reuse lexer for the specific import syntax
 
     SourceLoc start = _lex.tokenStart();

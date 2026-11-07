@@ -24,7 +24,7 @@ struct ConnectRequest
   Headers headers;
 };
 
-// constraint: moving an empty MoveOnlyFunction reads an uninitialized field, so empty callbacks stay null pointers
+// moving an empty MoveOnlyFunction reads an uninitialized field, so empty callbacks stay null pointers
 using ConnectCbPtr = eastl::unique_ptr<ConnectCb>;
 
 struct IoEvent

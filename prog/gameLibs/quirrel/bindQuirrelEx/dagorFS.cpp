@@ -17,6 +17,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <sys/stat.h>
+#endif
 
 
 static void list_directories(Tab<SimpleString> &out_list, const String &root, bool recursive)
@@ -141,13 +144,24 @@ static SQInteger find_files(HSQUIRRELVM v)
 }
 
 
+static int text_file_read_mode() { return SqModulesDagorFileAccess::tryOpenFilesFromRealFS ? DF_READ : DF_VROM_ONLY | DF_READ; }
+
+static bool can_read_text_from_file(const char *path)
+{
+  if (file_ptr_t fp = df_open(path, text_file_read_mode() | DF_IGNORE_MISSING))
+  {
+    df_close(fp);
+    return true;
+  }
+  return false;
+}
+
 // TODO: implement Dagor file API for Squirrel
 static SQInteger read_text_from_file(HSQUIRRELVM vm)
 {
   const char *fn;
   sq_getstring(vm, 2, &fn);
-  const int mode = SqModulesDagorFileAccess::tryOpenFilesFromRealFS ? DF_READ : DF_VROM_ONLY | DF_READ;
-  FullFileLoadCB cb(fn, mode);
+  FullFileLoadCB cb(fn, text_file_read_mode());
   if (!cb.fileHandle)
     return sqstd_throwerrorf(vm, "Failed to open file '%s'", fn);
 
@@ -263,6 +277,22 @@ static SQInteger stat(HSQUIRRELVM vm)
   return 1;
 }
 
+static bool make_file_executable(const char *path)
+{
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+  const char *tempRealPath = ::df_get_real_name(path);
+  if (!tempRealPath)
+    return false;
+  struct stat st;
+  if (::stat(tempRealPath, &st) != 0)
+    return false;
+  return ::chmod(tempRealPath, st.st_mode | S_IXUSR | S_IXGRP | S_IXOTH) == 0;
+#else
+  G_UNUSED(path);
+  return false;
+#endif
+}
+
 void register_dagor_fs_module(SqModules *module_mgr)
 {
   HSQUIRRELVM vm = module_mgr->getVM();
@@ -274,8 +304,16 @@ void register_dagor_fs_module(SqModules *module_mgr)
   */
   exports //
     .Func("file_exists", dd_file_exists)
-    ///@param path s
-    ///@return b
+    /* qdox
+    finds the file in the vromfs and on the disk.
+    read_text_from_file reads the disk only where scripts may read it, so before that read use can_read_text_from_file
+    @param path s
+    @return b
+    */
+    .Func("can_read_text_from_file", can_read_text_from_file)
+    /* qdox
+    true when read_text_from_file can open the file: the same vromfs and disk rules as that read
+    */
     .Func("dir_exists", dd_dir_exists)
     ///@param path s
     ///@return b
@@ -306,6 +344,12 @@ void register_dagor_fs_module(SqModules *module_mgr)
     .Func("is_path_absolute", is_path_abs)
     ///@param path s
     ///@return b
+    .Func("make_file_executable", make_file_executable)
+    /* qdox
+    adds the execute permission bits to the file on Linux and macOS, returns false on other platforms
+    @param path s : path to a file to make executable
+    @return b : true on success, false on chmod/stat fail, or if the platform is unsupported
+    */
     .SquirrelFuncDeclString(sq_scan_folder, "scan_folder(params: table): array")
     /* qdox
     @kwarged

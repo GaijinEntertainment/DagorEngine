@@ -14,8 +14,8 @@ public:
   BhvWheelScroll();
 
   virtual void onDetach(Element *, DetachMode) override;
-  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent event, int pointer_id, int data, Point2 pos,
-    int /*accum_res*/) override;
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, TouchSource /*touch_src*/, InputEvent event,
+    int pointer_id, int data, Point2 pos, int /*accum_res*/) override;
 };
 
 

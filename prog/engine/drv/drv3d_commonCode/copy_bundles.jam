@@ -3,6 +3,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 if $(UseStreamline) = yes {
   local ArchDir_x86_64 = x64 ;
   local ArchDir_arm64 = arm64 ;
+  local ArchDir_arm64ec = arm64ec ;
 
   local Dlls_dlss    = sl.dlss.dll nvngx_dlss.dll ;
   local Dlls_dlss_d  = sl.dlss_d.dll nvngx_dlssd.dll ;

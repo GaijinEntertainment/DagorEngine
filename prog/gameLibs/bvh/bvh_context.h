@@ -30,6 +30,7 @@
 #include <EASTL/deque.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <bvh/bvh.h>
+#include <bvh/bvh_processors.h>
 #include <math/dag_bits.h>
 #include <generic/dag_span.h>
 #include <math/dag_hlsl_floatx.h>
@@ -48,39 +49,6 @@ struct PerInstanceData
   uint32_t w;
 
   static const PerInstanceData ZERO;
-};
-
-struct TextureHandle
-{
-  TextureHandle() = default;
-  TextureHandle(TEXTUREID id) : id(id) {}
-  TextureHandle(const TextureHandle &) = delete;
-  TextureHandle(TextureHandle &&other)
-  {
-    texture = other.texture;
-    id = other.id;
-    other.texture = nullptr;
-  }
-  TextureHandle &operator=(const TextureHandle &) = delete;
-  TextureHandle &operator=(TextureHandle &&other)
-  {
-    if (texture)
-      release_managed_tex(id);
-
-    texture = other.texture;
-    id = other.id;
-    other.texture = nullptr;
-    return *this;
-  }
-  ~TextureHandle()
-  {
-    if (texture)
-      release_managed_tex(id);
-  }
-  operator bool() const { return !!texture; }
-  Texture *operator->() { return texture; }
-  Texture *texture = nullptr;
-  TEXTUREID id = BAD_TEXTUREID;
 };
 
 struct BVHBufferReference
@@ -133,14 +101,15 @@ inline constexpr bool is_blas_compaction_enabled() { return true; }
 inline constexpr bool is_blas_compaction_cheap() { return false; }
 #endif
 
-// To be stored in InstanceContributionToHitGroupIndex
-inline uint32_t pack_color8_to_color777(uint32_t color)
-{
-  return ((color & 0xFEu) << 2) | ((color & 0xFE00u) << 1) | ((color & 0xFE0000u) << 0);
-}
-
 inline constexpr uint64_t GPU_ADDRESS_LOW_MASK = 0xFFFFFFFFu;
 inline constexpr int GPU_ADDRESS_HIGH_SHIFT = 32;
+
+template <typename T>
+inline void split_gpu_address(T &out, uint64_t address)
+{
+  out.x = address & GPU_ADDRESS_LOW_MASK;
+  out.y = address >> GPU_ADDRESS_HIGH_SHIFT;
+}
 
 inline constexpr ResourceBarrier bindlessSRVBarrier = ResourceBarrier::RB_RO_SRV | ResourceBarrier::RB_STAGE_ALL_SHADERS;
 inline constexpr ResourceBarrier bindlessUAVBarrier = ResourceBarrier::RB_RW_UAV | ResourceBarrier::RB_STAGE_ALL_SHADERS;
@@ -170,9 +139,6 @@ bool handle_lost_device_state(const T &resource)
 #define CHECK_LOST_DEVICE_STATE() \
   if (is_in_lost_device_state)    \
   return
-#define CHECK_LOST_DEVICE_STATE_RET(retVal) \
-  if (is_in_lost_device_state)              \
-  return retVal
 
 // Using the LinearHeapAllocator would be nice here, but we can't.
 // We cannot allow moving the elements in the heap, but LinearHeapAllocator
@@ -458,13 +424,21 @@ struct MeshMeta : public BVHMeta
     alphaTextureIndex = INVALID_TEXTURE;
     secondaryMaskTextureIndex = INVALID_TEXTURE;
     ahsVertexBufferIndex = BVH_BINDLESS_BUFFER_MAX;
-    padding2 = 0;
+    emissionMaskSource = BVH_EMISSION_MASK_NONE;
     colorOffset = 0xFFu;
     indexCount = 0;
     texcoordOffset = 0xFFu;
     normalOffset = 0xFFu;
     indexBit = 1;
-    texcoordFormat = 0x7FFFFFFFu;
+    texcoordFormatIndex = BVH_TEXCOORD_FORMAT_INVALID;
+    emissionMode = BVH_EMISSION_MODE_ALBEDO;
+    emissionInvertMask = 0;
+    emissionSrgbMask = 0;
+    emissionOnlyAtNight = 0;
+    emissionPart = 0;
+    emissionAlbedoMult = 0;
+    emissionFadeStart = 0;
+    emissionFadeEnd = 0;
     indexBufferIndex = BVH_BINDLESS_BUFFER_MAX;
     vertexStride = 0xFFu;
     vertexBufferIndexHigh = 0xFu;
@@ -479,6 +453,7 @@ struct MeshMeta : public BVHMeta
     atlasFirstLastTile = 0;
     vertexOffset = 0;
     texcoordAdd = 0;
+    emissionColor = 0;
   }
 
   bool isInitialized() const { return initialized; }
@@ -491,13 +466,34 @@ struct MeshMeta : public BVHMeta
   }
   void setTexcoordFormat(uint32_t texcoord_format)
   {
-    G_ASSERT((texcoord_format >> 31) == 0 || texcoord_format == 0xFFFFFFFFU);
-    texcoordFormat = texcoord_format & 0x7FFFFFFFU;
+    switch (texcoord_format)
+    {
+      case VSDT_FLOAT2: texcoordFormatIndex = BVH_TEXCOORD_FORMAT_FLOAT2; break;
+      case BufferProcessor::bvhAttributeShort2TC: texcoordFormatIndex = BVH_TEXCOORD_FORMAT_SHORT2TC; break;
+      case VSDT_SHORT2N: texcoordFormatIndex = BVH_TEXCOORD_FORMAT_SHORT2N; break;
+      case VSDT_USHORT2N: texcoordFormatIndex = BVH_TEXCOORD_FORMAT_USHORT2N; break;
+      case VSDT_HALF2: texcoordFormatIndex = BVH_TEXCOORD_FORMAT_HALF2; break;
+      case 0xFFFFFFFFu: texcoordFormatIndex = BVH_TEXCOORD_FORMAT_INVALID; break; // no texcoord channel
+      default:
+        G_ASSERT_FAIL("Unknown BVH texcoord format 0x%X", texcoord_format);
+        texcoordFormatIndex = BVH_TEXCOORD_FORMAT_INVALID;
+        break;
+    }
+  }
+  uint32_t getTexcoordFormat() const
+  {
+    switch (texcoordFormatIndex)
+    {
+      case BVH_TEXCOORD_FORMAT_FLOAT2: return VSDT_FLOAT2;
+      case BVH_TEXCOORD_FORMAT_SHORT2TC: return BufferProcessor::bvhAttributeShort2TC;
+      case BVH_TEXCOORD_FORMAT_SHORT2N: return VSDT_SHORT2N;
+      case BVH_TEXCOORD_FORMAT_USHORT2N: return VSDT_USHORT2N;
+      case BVH_TEXCOORD_FORMAT_HALF2: return VSDT_HALF2;
+      default: return 0xFFFFFFFFu;
+    }
   }
   void setIndexBitAndTexcoordFormat(uint32_t index_format, uint32_t texcoord_format)
   {
-    indexBit = 0;
-    texcoordFormat = 0;
     setIndexBit(index_format);
     setTexcoordFormat(texcoord_format);
   }
@@ -518,11 +514,11 @@ struct MeshMeta : public BVHMeta
     ahsVertexBufferIndex = index;
   }
   // Helper functions because we can't pass the address of bitfields
-  TextureHandle holdAlbedoTex(Context *context_id, TEXTUREID texture_id);
-  TextureHandle holdNormalTex(Context *context_id, TEXTUREID texture_id);
-  TextureHandle holdAlphaTex(Context *context_id, TEXTUREID texture_id);
-  TextureHandle holdExtraTex(Context *context_id, TEXTUREID texture_id);
-  TextureHandle holdSecondaryMaskTex(Context *context_id, TEXTUREID texture_id);
+  void holdAlbedoTex(Context *context_id, TEXTUREID texture_id);
+  void holdNormalTex(Context *context_id, TEXTUREID texture_id);
+  void holdAlphaTex(Context *context_id, TEXTUREID texture_id);
+  void holdExtraTex(Context *context_id, TEXTUREID texture_id);
+  void holdSecondaryMaskTex(Context *context_id, TEXTUREID texture_id);
 };
 static_assert(sizeof(MeshMeta) == sizeof(BVHMeta));
 
@@ -778,16 +774,6 @@ struct Object
   void ensureMetaAllocated(ContextId context_id, int size);
 };
 
-struct PhysTrackData
-{
-  int number_id = -1;
-  int number_t_id = -1;
-  int number_no = -1;
-  int number_t_no = -1;
-  int number_f = -1;
-  int number_t_f = -1;
-};
-
 struct TerrainPatch
 {
   Point2 position;
@@ -796,12 +782,6 @@ struct TerrainPatch
   MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
 
   TerrainPatch() = default;
-  TerrainPatch(const Point2 &position, UniqueBVHBuffer &&vertices, UniqueBLAS &&blas) :
-    position(position), vertices(eastl::move(vertices)), blas(eastl::move(blas))
-  {}
-  TerrainPatch(const Point2 &position, UniqueBVHBuffer &&vertices, UniqueBLAS &&blas, MeshMetaAllocator::AllocId meta_alloc_id) :
-    position(position), vertices(eastl::move(vertices)), blas(eastl::move(blas)), metaAllocId(meta_alloc_id)
-  {}
   TerrainPatch(TerrainPatch &&other) :
     position(other.position), vertices(eastl::move(other.vertices)), blas(eastl::move(other.blas)), metaAllocId(other.metaAllocId)
   {
@@ -917,6 +897,20 @@ struct OmmCacheEntry
 
 using OmmCache = eastl::unordered_map<OmmCacheKey, OmmCacheEntry, OmmCacheKeyHash>;
 
+// The OMM bake of one geometry of the two grass paths. Only the render thread uses it, as with OmmCacheEntry.
+struct GrassOmmBake
+{
+  TEXTUREID alphaTexId = BAD_TEXTUREID;
+  TEXTUREID diffuseTexId = BAD_TEXTUREID;
+  OmmState ommState = OmmState::None;
+  uint32_t ommWaitAttempts = 0;
+  render::omm::BakeHandle ommBakeHandle;
+  render::omm::BakeResult ommBakeResult;
+  render::omm::BakeStats ommBakeStats;
+  render::omm::DebugBakeSource ommDebugBakeSource;
+  UniqueOMM omm;
+};
+
 // One reference for each mesh of a blas, in mesh order; an empty slot links no OMM. The ownership is all
 // OmmEntryRef's, thus the references travel with the blas through the recycle pools as moves and exactly
 // one holder ever gives them back.
@@ -980,15 +974,26 @@ inline void swap_blas_with_pool(ReferencedTransformData &data, PooledBLAS &poole
   data.linkedOmms.swap(pooled.linkedOmms);
 }
 
-inline void take_blas_from_pool(ReferencedTransformData &data, PooledBLAS &pooled) { swap_blas_with_pool(data, pooled); }
-
-inline void give_blas_to_pool(PooledBLAS &pooled, ReferencedTransformData &data) { swap_blas_with_pool(data, pooled); }
-
 struct BLASesWithAtomicCursor
 {
   dag::AtomicInteger<int> cursor = 0;
   dag::Vector<PooledBLAS> blases;
 };
+
+inline bool take_blas_from_pool(ReferencedTransformData &data, eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> &pool,
+  uint64_t mesh_id)
+{
+  if (data.buffer || data.blas)
+    return false;
+  auto iter = pool.find(mesh_id);
+  if (iter == pool.end())
+    return false;
+  int index = iter->second.cursor.sub_fetch(1);
+  if (index < 0)
+    return false;
+  swap_blas_with_pool(data, iter->second.blases[index]);
+  return true;
+}
 
 struct DECLSPEC_ALIGN(16) HWInstance
 {
@@ -1239,7 +1244,7 @@ struct Context
   MeshMetaAllocator::AllocId allocateMetaRegion(int size, const char *origin);
   void freeMetaRegion(MeshMetaAllocator::AllocId &id);
 
-  TextureHandle holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded = false);
+  void holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded = false);
   bool releaseTexture(TEXTUREID id);
   bool releaseTexture(uint32_t texture_and_sampler_bindless_indices);
   void releaseUnavailableTextures();
@@ -1378,11 +1383,6 @@ struct Context
   eastl::unordered_map<uint64_t, CompQueue::iterator> blasCompactionsAccel;
   eastl::vector<eastl::unique_ptr<cpujobs::IJob>> createCompactedBLASJobQueue;
   int numCompactionBlasesInFlight = 0;
-  struct PendingCompactSizeBuffer
-  {
-    UniqueBVHBuffer buf;
-    EventQueryHolder query;
-  };
   UniqueBVHBuffer compactedSizeBuffer; // not used on PS5
   UniqueBVHBuffer compactedSizeBufferReadback;
   static constexpr uint32_t compactedSizeBufferSize = 512; // 4KB
@@ -1445,11 +1445,13 @@ struct Context
   VoxelActivity voxelActivity;
 
   HeightProvider *heightProvider = nullptr;
+  uint32_t terrainHeightVersion = 0;
   dag::Vector<TerrainLOD> terrainLods;
-  Point2 terrainMiddlePoint = Point2(-1000000, -1000000);
+  static constexpr Point2 noTerrainPoint = Point2(-1000000, -1000000);
+  Point2 terrainMiddlePoint = noTerrainPoint;
   // The terrain TLAS transforms are relative to this anchor, not the camera, so the TLAS only
   // needs a rebuild when a patch BLAS changes. The bvh_terrain_offset shader var moves the rays.
-  Point2 terrainAnchorPoint = Point2(-1000000, -1000000);
+  Point2 terrainAnchorPoint = noTerrainPoint;
   bool terrainDirty = false;
 
   eastl::vector<eastl::pair<eastl::optional<LinearHeapAllocatorSbuffer>, uint32_t>> sourceGeometryAllocators;
@@ -1462,8 +1464,7 @@ struct Context
   };
   SourceGeometryAllocation allocateSourceGeometry(uint32_t dwordCount, bool force_unique = false);
   void freeSourceGeometry(int &heapix, LinearHeapAllocatorSbuffer::RegionId region);
-  uint32_t getSourceBufferOffset(int heapix, LinearHeapAllocatorSbuffer::RegionId region);
-  uint32_t getSourceBufferSize(int heapix, LinearHeapAllocatorSbuffer::RegionId region);
+  LinearHeapAllocatorSbuffer::Region getSourceGeometryRegion(int heapix, LinearHeapAllocatorSbuffer::RegionId region);
 
   static constexpr int maxUniqueLods = 8;
 
@@ -1482,6 +1483,7 @@ struct Context
 
   WinCritSec processBufferAllocatorLock;
   eastl::vector<eastl::pair<LinearHeapAllocatorSbuffer, uint32_t>> processBufferAllocator;
+  dag::AtomicInteger<uint32_t> processBufferDuplicateDrops = 0;
 
   eastl::unordered_map<uint64_t, ReferencedTransformData> stationaryTreeBuffers;
 
@@ -1594,19 +1596,9 @@ struct Context
     uint32_t indexBufferBindless = BVH_BINDLESS_BUFFER_MAX;
     uint32_t ahsBufferBindless = BVH_BINDLESS_BUFFER_MAX;
 
-    // Only the render thread uses the bake state, as with OmmCacheEntry.
-    struct TextureSlot
+    struct TextureSlot : GrassOmmBake
     {
-      TEXTUREID alphaTexId = BAD_TEXTUREID;
-      TEXTUREID diffuseTexId = BAD_TEXTUREID; // for the bake diagnostics
       UniqueBLAS blas;
-      OmmState ommState = OmmState::None;
-      uint32_t ommWaitAttempts = 0;
-      render::omm::BakeHandle ommBakeHandle;
-      render::omm::BakeResult ommBakeResult;
-      render::omm::BakeStats ommBakeStats;
-      render::omm::DebugBakeSource ommDebugBakeSource;
-      UniqueOMM omm;
     };
     dag::Vector<TextureSlot> textureSlots;
     // The position where the entries of this orientation start in the shared mapping buffer.
@@ -1619,11 +1611,9 @@ struct Context
   GPUGrassBillboard gpuGrassBillboard, gpuGrassHorizontal;
 
   BindlessTexHolder paint_details_texBindless;
-  uint32_t paintTexSize = 0;
   BindlessTexHolder grass_land_color_maskBindless;
   BindlessTexHolder dynamic_mfd_texBindless;
   BindlessTexHolder cache_tex0Bindless;
-  BindlessTexHolder indirection_texBindless;
   BindlessTexHolder cache_tex1Bindless;
   BindlessTexHolder cache_tex2Bindless;
   BindlessTexHolder last_clip_texBindless;
@@ -1714,41 +1704,43 @@ Object *find_half_baked_object(ContextId context_id, uint64_t object_id) DAG_TS_
 
 Sbuffer *alloc_scratch_buffer(uint32_t size, uint32_t &offset);
 
+// Empty on a lost device.
+UniqueBLAS build_blas(RaytraceGeometryDescription &desc, RaytraceBuildFlags flags);
+
+void adjust_united_vdata_blas_size(BvhType type, int64_t delta_bytes);
+
 // Helper functions because we can't pass the address of bitfields
-inline TextureHandle MeshMeta::holdAlbedoTex(Context *context_id, TEXTUREID texture_id)
+inline void MeshMeta::holdAlbedoTex(Context *context_id, TEXTUREID texture_id)
 {
   uint32_t textureIndex;
-  auto tex = context_id->holdTexture(texture_id, textureIndex);
+  context_id->holdTexture(texture_id, textureIndex);
   albedoTextureIndex = textureIndex;
-  return tex;
 }
-inline TextureHandle MeshMeta::holdNormalTex(Context *context_id, TEXTUREID texture_id)
+inline void MeshMeta::holdNormalTex(Context *context_id, TEXTUREID texture_id)
 {
   uint32_t textureIndex;
-  auto tex = context_id->holdTexture(texture_id, textureIndex);
+  context_id->holdTexture(texture_id, textureIndex);
   normalTextureIndex = textureIndex;
-  return tex;
 }
-inline TextureHandle MeshMeta::holdAlphaTex(Context *context_id, TEXTUREID texture_id)
+inline void MeshMeta::holdAlphaTex(Context *context_id, TEXTUREID texture_id)
 {
   uint32_t textureIndex;
-  auto tex = context_id->holdTexture(texture_id, textureIndex);
+  context_id->holdTexture(texture_id, textureIndex);
   alphaTextureIndex = textureIndex;
-  return tex;
 }
-inline TextureHandle MeshMeta::holdExtraTex(Context *context_id, TEXTUREID texture_id)
+inline void MeshMeta::holdExtraTex(Context *context_id, TEXTUREID texture_id)
 {
   uint32_t textureIndex;
-  auto tex = context_id->holdTexture(texture_id, textureIndex);
+  context_id->holdTexture(texture_id, textureIndex);
   extraTextureIndex = textureIndex;
-  return tex;
 }
-inline TextureHandle MeshMeta::holdSecondaryMaskTex(Context *context_id, TEXTUREID texture_id)
+inline void MeshMeta::holdSecondaryMaskTex(Context *context_id, TEXTUREID texture_id)
 {
   uint32_t textureIndex;
-  auto tex = context_id->holdTexture(texture_id, textureIndex);
+  context_id->holdTexture(texture_id, textureIndex);
   secondaryMaskTextureIndex = textureIndex;
-  return tex;
 }
+
+void log_process_buffers(ContextId context_id);
 
 } // namespace bvh

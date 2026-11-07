@@ -22,6 +22,7 @@ public:
     None,
     AddNode,
     AddNodeAtEdge,
+    AddNodeAtPoint, // empty canvas: no pin, added where the menu was opened
     AddTransitNode,
     AddTransitNodeAtEdge,
     CreateSubgraph,

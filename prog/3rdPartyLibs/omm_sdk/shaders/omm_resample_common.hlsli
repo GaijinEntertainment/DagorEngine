@@ -63,131 +63,58 @@ namespace raster
         PRECISE float2 _v2;
     };
 
-    struct Edge
+    // Gaijin: the edge as p0 + t * e and the alpha as a quadratic in t, in place of the slope form, its roots and
+    // the point-on-edge test: no square root, no special cases, and no absolute epsilon that rejects real
+    // crossings in float32.
+    // One axis of the cell [0,1]: narrows [t0, t1] to the part of p + t * e inside it.
+    void ClipToCellAxis(PRECISE float p, PRECISE float e, inout PRECISE float t0, inout PRECISE float t1)
     {
-        // public
-        void Init(PRECISE float2 p0,  PRECISE float2 p1)
-        {
-            _p0 = p0;
-            _p1 = p1;
-            _length = length(p1 - p0);
-        }
-
-        bool IsPointOnEdge(PRECISE float2 p) {
-            return IsZero(length(p - _p0) + length(p - _p1) - _length);
-        }
-        // private
-        PRECISE float2 _p0;
-        PRECISE float2 _p1;
-        PRECISE float _length;
-    };
-
-    void swap(inout PRECISE float2 a, inout PRECISE float2 b)
-    {
-        PRECISE float2 tmp = a;
-        a = b;
-        b = tmp;
+        const PRECISE float inv = rcp(e); // inf for e == 0, which the selects below replace
+        const PRECISE float ta = -p * inv;
+        const PRECISE float tb = (1.0f - p) * inv;
+        const bool inSlab = p >= 0.0f && p <= 1.0f;
+        t0 = max(t0, e != 0.0f ? min(ta, tb) : (inSlab ? 0.0f : 2.0f));
+        t1 = min(t1, e != 0.0f ? max(ta, tb) : (inSlab ? 1.0f : -1.0f));
     }
 
-    bool IsPointInsideUnitSquare(PRECISE float2 p)
+    // Gaijin: use optimized branchless hyperbola intersection function
+    // True when the level line h.x + h.y*x + h.z*y + h.w*x*y = 0 crosses the edge p0-p1 inside the cell [0,1]^2.
+    bool TestEdgeHyperbolaIntersection(PRECISE float2 p0, PRECISE float2 p1, const PRECISE float4 h)
     {
-        return p.x >= 0.f && p.x <= 1.f && p.y >= 0.f && p.y <= 1.f;
+        const PRECISE float2 e = p1 - p0;
+        PRECISE float t0 = 0.0f;
+        PRECISE float t1 = 1.0f;
+        ClipToCellAxis(p0.x, e.x, t0, t1);
+        ClipToCellAxis(p0.y, e.y, t0, t1);
+
+        const PRECISE float A = h.w * e.x * e.y;
+        const PRECISE float B = h.y * e.x + h.z * e.y + h.w * (p0.x * e.y + p0.y * e.x);
+        const PRECISE float C = h.x + h.y * p0.x + h.z * p0.y + h.w * p0.x * p0.y;
+        const PRECISE float g0 = (A * t0 + B) * t0 + C;
+        const PRECISE float g1 = (A * t1 + B) * t1 + C;
+        // Same sign at both ends: only the vertex of the parabola can cross. A == 0 puts tv out of range.
+        const PRECISE float tv = -B / (2.0f * A);
+        const PRECISE float gv = (A * tv + B) * tv + C;
+        const bool vertexCross = tv > t0 && tv < t1 && g0 * gv <= 0.0f;
+        return t0 <= t1 && (g0 * g1 <= 0.0f || vertexCross);
     }
 
-    bool TestEdgeHyperbolaIntersection(
-        PRECISE float2 p0, PRECISE float2 p1,       // 'Edge'       - Defined by the end points (in any order)
-        const PRECISE float4 h              // 'Hyperbola'  - Hyperbolic curve on the form x * h.x + y * h.y + x * y + h.z + h.w = 0
-    )
+    // Gaijin: one Gather of the alpha channel for GetStateAtPixelCenter and for the CS opacity table
+    PRECISE float4 GatherAlphaTex(PRECISE float2 texCoord)
     {
-        if (p0.x > p1.x)
-            swap(p0, p1);
+#if IN_ALPHA_TEXTURE_CHANNEL == 0
+        const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_R(texCoord);
+#elif IN_ALPHA_TEXTURE_CHANNEL == 1
+        const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_G(texCoord);
+#elif IN_ALPHA_TEXTURE_CHANNEL == 2
+        const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_B(texCoord);
+#elif IN_ALPHA_TEXTURE_CHANNEL == 3
+        const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_A(texCoord);
+#else
+#error "unexpected value of IN_ALPHA_TEXTURE_CHANNEL"
+#endif
 
-        Edge edge;
-        edge.Init(p0, p1);
-
-        const PRECISE float a = h.x;
-        const PRECISE float b = h.y;
-        const PRECISE float c = h.z;
-        const PRECISE float d = h.w;
-
-        const PRECISE float k_denum = (p1.x - p0.x);
-
-        if (IsZero(k_denum))
-        {
-            const PRECISE float x = p0.x;
-            const PRECISE float n = x;
-
-            const PRECISE float c0 = d * n + c;
-            const PRECISE float c1 = a + b * n;
-
-            if (IsZero(c0))
-            {
-                // (edge is identical to hyperbola asymptote => no intersection)
-                return false;
-            }
-            else
-            {
-                const PRECISE float y = -c1 / c0;
-
-                return IsPointInsideUnitSquare(float2(x, y)) && edge.IsPointOnEdge(float2(x, y));
-            }
-        }
-        else // k_denum != 0
-        {
-            const PRECISE float k_enum = (p1.y - p0.y);
-            const PRECISE float k = k_enum / k_denum;
-            const PRECISE float m = p1.y - p1.x * k;
-
-            const PRECISE float c0 = d * k;
-            const PRECISE float c1 = c * k + d * m + b;
-            const PRECISE float c2 = a + c * m;
-
-            if (IsZero(c0))  // Hyperbola is not a hyperbola. It's a straight line.
-            {
-                if (IsZero(c1))
-                {
-                    // Lines are parallel -> no solution
-                    return false;
-                }
-                else
-                {
-                    // Intersection point of non-parallel straight lines
-                    const PRECISE float x = -c2 / c1;
-                    const PRECISE float y = k * x + m;
-
-                    return IsPointInsideUnitSquare(float2(x, y)) && edge.IsPointOnEdge(float2(x, y));
-                }
-            }
-            else  // c0 != 0
-            {
-                // Hyperbola - straight line intersection.
-
-                const PRECISE float innerRoot = c1 * c1 - 4 * c0 * c2;
-                const bool isRealValued = innerRoot > 0.f;
-
-                if (isRealValued)
-                {
-                    const PRECISE float root = sqrt(innerRoot); // NOTE: check that it's > 0!
-                    const PRECISE float x0 = 0.5f * (-c1 + root) / c0;
-                    const PRECISE float x1 = 0.5f * (-c1 - root) / c0;
-
-                    const PRECISE float2 pX0 = float2(x0, k * x0 + m);
-                    const PRECISE float2 pX1 = float2(x1, k * x1 + m);
-
-                    const bool pX0Intersects = IsPointInsideUnitSquare(pX0) && edge.IsPointOnEdge(pX0);
-                    const bool pX1Intersects = IsPointInsideUnitSquare(pX1) && edge.IsPointOnEdge(pX1);
-                    // At least a single intersection point inside the triangle
-                    return pX0Intersects || pX1Intersects;
-                }
-                else
-                {
-                    // No real valued roots -> no intersection point.
-                    return false;
-                }
-            }
-        }
-
-        return false;
+        return gatherAlpha;
     }
 
     void GetStateAtPixelCenter(PRECISE float2 texCoord, PRECISE float2 texel, PRECISE float2 i_verts0, PRECISE float2 i_verts1, PRECISE float2 i_verts2, uint i_primitiveId, inout bool IsOpaque, inout bool IsTransparent)
@@ -198,20 +125,23 @@ namespace raster
         {
             if (g_GlobalConstants.EnableLevelLine)
             {
+                const PRECISE float4 gatherAlpha = GatherAlphaTex(texCoord);
 
-            #if IN_ALPHA_TEXTURE_CHANNEL == 0
-                const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_R(texCoord.xy);
-            #elif IN_ALPHA_TEXTURE_CHANNEL == 1
-                const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_G(texCoord.xy);
-            #elif IN_ALPHA_TEXTURE_CHANNEL == 2
-                const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_B(texCoord.xy);
-            #elif IN_ALPHA_TEXTURE_CHANNEL == 3
-                const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_A(texCoord.xy);
-            #else
-            #error "unexpected value of IN_ALPHA_TEXTURE_CHANNEL"
-            #endif
+                const PRECISE float min_a = min(gatherAlpha.x, min(gatherAlpha.y, min(gatherAlpha.z, gatherAlpha.w)));
+                const PRECISE float max_a = max(gatherAlpha.x, max(gatherAlpha.y, max(gatherAlpha.z, gatherAlpha.w)));
 
-                // ~~~ Look for internal extremes ~~~ 
+                // Gaijin: a bilinear cell takes its extremes at the corners, thus with the cutoff outside
+                // [min_a, max_a) the whole cell is on one side: no level line, no need to test corners and edges.
+                // The conservative raster square of the texel is this cell, so the micro-triangle covers a part of it.
+                if (g_GlobalConstants.AlphaCutoff < min_a || g_GlobalConstants.AlphaCutoff >= max_a)
+                {
+                    IsOpaque |= g_GlobalConstants.AlphaCutoff < min_a;
+                    IsTransparent |= g_GlobalConstants.AlphaCutoff >= max_a;
+
+                    return;
+                }
+
+                // ~~~ Look for internal extremes ~~~
                 if (true)
                 {
                     // Output order from GatherAlpha : (-, +), (+, +), (+, -), (-, -)
@@ -253,13 +183,6 @@ namespace raster
                                     (IsInside1 && !IsOpaque1) || 
                                     (IsInside2 && !IsOpaque2) || 
                                     (IsInside3 && !IsOpaque3);
-                    
-
-                    // We've already concluded it's unknown -> return!
-                    if (IsOpaque && IsTransparent)
-                    {
-                        return;
-                    }
                 }
 
                 // ~~~ Look for external extremes that may cause intersections ~~~ 
@@ -273,9 +196,6 @@ namespace raster
                     //      |
                     //      |
                     // 3<---2
-
-                    const PRECISE float min_a = min(gatherAlphaSwizzled.x, min(gatherAlphaSwizzled.y, min(gatherAlphaSwizzled.z, gatherAlphaSwizzled.w)));
-                    const PRECISE float max_a = max(gatherAlphaSwizzled.x, max(gatherAlphaSwizzled.y, max(gatherAlphaSwizzled.z, gatherAlphaSwizzled.w)));
 
                     // Intersections with level lines is loosley based on
                     // "Extraction of the Level Lines of a Bilinear Image"
@@ -293,77 +213,47 @@ namespace raster
                     const PRECISE float c = p1 - p0;
                     const PRECISE float d = p0 + p2 - p1 - p3;
 
-                    if (IsZero(b) && IsZero(c) && IsZero(d))  ///< All points on the same level.
-                    {
-                        if (g_GlobalConstants.AlphaCutoff < a) {
-                            IsOpaque = 1;
+                    [unroll]
+                    for (uint edge = 0; edge < 3; ++edge) {
+
+                        PRECISE float2 p0;
+                        PRECISE float2 p1;
+
+                        if (edge == 0)
+                        {
+                            p0 = i_verts0;
+                            p1 = i_verts1;
+                        }
+                        else if (edge == 1)
+                        {
+                            p0 = i_verts1;
+                            p1 = i_verts2;
                         }
                         else
                         {
-                            IsTransparent = 1;
+                            p0 = i_verts2;
+                            p1 = i_verts0;
                         }
-                    }
-                    else
-                    {
-                        [unroll]
-                        for (uint edge = 0; edge < 3; ++edge) {
 
-                            PRECISE float2 p0;
-                            PRECISE float2 p1;
+                        p0 = p0 * g_GlobalConstants.TexSize - (float2)(texel);
+                        p1 = p1 * g_GlobalConstants.TexSize - (float2)(texel);
+                        // Hyperbolic paraboloid (3D surface) => Hyperbola (2D line)
+                        // f(x, y) = a + b * x + c * y + d * x * y where f(x, y) = p->alphaCutoff =>
+                        // a - alpha + b * x + c * y + d * x * y = 0
+                        const PRECISE float4 h = float4(a - g_GlobalConstants.AlphaCutoff, b, c, d);
 
-                            if (edge == 0)
-                            {
-                                p0 = i_verts0;
-                                p1 = i_verts1;
-                            }
-                            else if (edge == 1)
-                            {
-                                p0 = i_verts1;
-                                p1 = i_verts2;
-                            }
-                            else
-                            {
-                                p0 = i_verts2;
-                                p1 = i_verts0;
-                            }
-
-                            if (p0.x > p1.x)
-                            {
-                                PRECISE float2 tmp = p1;
-                                p1 = p0;
-                                p0 = tmp;
-                            }
-
-                            p0 = p0 * g_GlobalConstants.TexSize - (float2)(texel);
-                            p1 = p1 * g_GlobalConstants.TexSize - (float2)(texel);
-                            // Hyperbolic paraboloid (3D surface) => Hyperbola (2D line)
-                            // f(x, y) = a + b * x + c * y + d * x * y where f(x, y) = p->alphaCutoff =>
-                            // a - alpha + b * x + c * y + d * x * y = 0  
-                            const PRECISE float4 h = float4(a - g_GlobalConstants.AlphaCutoff, b, c, d);
-
-                            if (TestEdgeHyperbolaIntersection(p0, p1, h))
-                            {
-                                IsOpaque = 1;
-                                IsTransparent = 1;
-                                return;
-                            }
+                        if (TestEdgeHyperbolaIntersection(p0, p1, h))
+                        {
+                            IsOpaque = 1;
+                            IsTransparent = 1;
+                            return;
                         }
                     }
                 }
             }
             else
             {
-                #if IN_ALPHA_TEXTURE_CHANNEL == 0
-                    const PRECISE float4 alpha = OMM_ALPHA_GATHER_R(texCoord.xy);
-                #elif IN_ALPHA_TEXTURE_CHANNEL == 1
-                    const PRECISE float4 alpha = OMM_ALPHA_GATHER_G(texCoord.xy);
-                #elif IN_ALPHA_TEXTURE_CHANNEL == 2
-                    const PRECISE float4 alpha = OMM_ALPHA_GATHER_B(texCoord.xy);
-                #elif IN_ALPHA_TEXTURE_CHANNEL == 3
-                    const PRECISE float4 alpha = OMM_ALPHA_GATHER_A(texCoord.xy);
-                #else
-                #error "unexpected value of IN_ALPHA_TEXTURE_CHANNEL"
-                #endif
+                    const PRECISE float4 alpha = GatherAlphaTex(texCoord);
 
                     const PRECISE float min_a = min(alpha.x, min(alpha.y, min(alpha.z, alpha.w)));
                     const PRECISE float max_a = max(alpha.x, max(alpha.y, max(alpha.z, alpha.w)));

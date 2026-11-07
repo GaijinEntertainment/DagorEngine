@@ -31,7 +31,7 @@ public:
   // ImguiHelper::imageButtonFrameless
   virtual bool imageButtonFrameless(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size, const char *tooltip) = 0;
 
-  // ImguiHelper::treeNodeWithSpecialHoverBehavior*, in the order ITreeRenderEx calls them.
+  // ImguiHelper::treeNodeWithSpecialHoverBehavior*, in the order of the calls.
   // treeNodeEnd draws the label, so a custom renderer inserts its own icons between render and end.
   virtual bool treeNodeStart(ImGuiID id, ImGuiTreeNodeFlags flags, const char *label, const char *label_end,
     ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover = true) = 0;

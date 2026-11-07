@@ -156,8 +156,7 @@ void RenderObjectDebug::render(StdGuiRender::GuiContext &ctx, const Element *, c
     fxFactor: numeric or null. Be default - 48.
     fxOffsX: numeric or null, 0 by default
     fxOffsY: numeric or null, 0 by default
-    overflowX: int or TOVERVLOW_ const, by TOVERFLOW_CLIP
-    ellipsis: boolean - add ellipsis symbol on overflow
+    textOverflow: TOVERFLOW_CLIP (default) or TOVERFLOW_ELLIPSIS (cut the end of the text to fit and end it with an ellipsis)
     spacing: numeric or null. Extra spacing bnetween charactes.
     monoWidth: numeric. Use provided number as character width.
     password: null, bool or string character. Replace text with provided character or with "*"
@@ -203,8 +202,7 @@ bool RobjParamsText::load(const Element *elem)
   fontTexSv = props.getInt(elem->csk->fontTexSv, 32);
   fontTexBov = props.getInt(elem->csk->fontTexBov, 0);
 
-  overflowX = (TextOverflow)props.getInt(elem->csk->textOverflowX, TOVERFLOW_CLIP);
-  ellipsis = props.getBool(elem->csk->ellipsis, true);
+  textOverflow = props.getInt<TextOverflow>(elem->csk->textOverflow, TOVERFLOW_CLIP);
 
   discard_text_cache(elem->robjParams);
   return true;
@@ -237,8 +235,9 @@ bool RobjParamsText::getAnimFloat(AnimProp prop, float **ptr)
 
 Use the same properties as text plus:
 
- `overflowY`: int or TOVERVLOW_ type (CLIP by default)
- 'lowLineCountAlign': PLACE_DEFAULT by default (where to vertical align text when it doesnt overflow)
+ `textOverflow`: TOVERFLOW_CLIP (default) or TOVERFLOW_ELLIPSIS (show only whole lines, but at least the first one,
+   cut each line that is wider than the box and the last shown line when lines are hidden, and end each cut with
+   an ellipsis)
 */
 
 bool RobjParamsTextArea::load(const Element *elem)
@@ -247,15 +246,12 @@ bool RobjParamsTextArea::load(const Element *elem)
 
   const Properties &props = elem->props;
 
-  overflowY = props.getInt<TextOverflow>(elem->csk->textOverflowY, TOVERFLOW_CLIP);
+  textOverflow = props.getInt<TextOverflow>(elem->csk->textOverflow, TOVERFLOW_CLIP);
   fontFx = props.getInt<FontFxType>(elem->csk->fontFx, FFT_NONE);
   fxColor = props.getColor(elem->csk->fontFxColor, defFontFxColor);
   fxFactor = props.getInt(elem->csk->fontFxFactor, 48);
   fxOffsX = props.getInt(elem->csk->fontFxOffsX, 0);
   fxOffsY = props.getInt(elem->csk->fontFxOffsY, 0);
-
-  lowLineCount = props.getInt(elem->csk->lowLineCount, 0);
-  lowLineCountAlign = props.getInt<ElemAlign>(elem->csk->lowLineCountAlign, PLACE_DEFAULT);
 
   return true;
 }
@@ -304,7 +300,14 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
   bool all_glyphs_ready = true;
   bool has_focus = ((elem->getStateFlags() & Element::S_KB_FOCUS) && is_text_input(elem));
   float relCursorX = -1e6;
-  if (!params->guiText.isReady() || has_focus)
+
+  // GuiVertex keeps cached glyph positions as int16 in 1/GUI_POS_SCALE px, so a wider text cannot be cached
+  constexpr float maxCachedWidth = 32767 / GUI_POS_SCALE;
+  const bool cutToFit = params->textOverflow == TOVERFLOW_ELLIPSIS && !is_text_input(elem);
+  const float maxWidth =
+    cutToFit ? min(sc.size.x - elem->layout.padding().l - elem->layout.padding().r, maxCachedWidth) : maxCachedWidth;
+
+  if (!params->guiText.isReady() || has_focus || maxWidth != params->guiTextMaxWidth)
   {
     if (const char *e = (const char *)memchr(elem->props.text.c_str(), 0, textLength))
       textLength = e - elem->props.text.c_str();
@@ -329,55 +332,33 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
       for (int i = 0; i < textLength; i++)
         textU16[i] = params->passChar;
 
-    TextOverflow textOverflowMode = params->overflowX;
-    if (elem->layout.hAlign == ALIGN_CENTER)
-      textOverflowMode = TOVERFLOW_CLIP; // other modes are currently disabled for centered text (TODO)
-
-    float ellipsisWidth = params->ellipsis ? StdGuiRender::get_str_bbox_u(ellipsisUtf16, 1, fctx).width().x : 0;
-    int start_char_idx = 0, char_count = 0;
-    float strWidth = StdGuiRender::get_str_bbox_u_ex(textU16, textLength, fctx,
-      textOverflowMode == TOVERFLOW_CLIP ? 4096 : (sc.size.x - elem->layout.padding().l - elem->layout.padding().r),
-      elem->layout.hAlign != ALIGN_RIGHT, start_char_idx, char_count, textOverflowMode == TOVERFLOW_WORD ? L" \t\r\n" : NULL,
-      ellipsisWidth)
-                       .width()
-                       .x;
-
-    if ((start_char_idx || char_count < textLength) && ellipsisWidth > 0)
+    const float ellipsisWidth = cutToFit ? StdGuiRender::get_str_bbox_u(ellipsisUtf16, 1, fctx).width().x : 0;
+    int startIdx = 0, charCount = 0;
+    float strWidth =
+      StdGuiRender::get_str_bbox_u_ex(textU16, textLength, fctx, maxWidth, true, startIdx, charCount, nullptr, ellipsisWidth)
+        .width()
+        .x;
+    G_ASSERT(startIdx == 0);
+    if (cutToFit && charCount < textLength)
     {
-      if (elem->layout.hAlign != ALIGN_RIGHT)
-      {
-        // append ellipsis
-        textU16[start_char_idx + char_count] = ellipsisUtf16[0];
-        char_count++;
-      }
-      else
-      {
-        // prepend ellipsis
-        if (start_char_idx > 0)
-          start_char_idx--;
-        else
-          memmove(&textU16[1], &textU16[0], sizeof(*textU16) * char_count);
-        textU16[start_char_idx] = ellipsisUtf16[0];
-        char_count++;
-      }
+      textU16[charCount++] = ellipsisUtf16[0];
       strWidth += ellipsisWidth;
     }
-    all_glyphs_ready = ctx.draw_str_scaled_u_buf(params->guiText.v, params->guiText.c, params->guiText.samplers, 0, SCALE,
-      textU16 + start_char_idx, char_count);
+
+    all_glyphs_ready =
+      ctx.draw_str_scaled_u_buf(params->guiText.v, params->guiText.c, params->guiText.samplers, 0, SCALE, textU16, charCount);
 
     params->strWidth = strWidth;
+    params->guiTextMaxWidth = maxWidth;
     if (has_focus)
     {
       int cursorPos = elem->props.storage.RawGetSlotValue(elem->csk->cursorPos, textLength);
 
       int len = clamp(cursorPos, 0, textLength);
-      if (len >= start_char_idx && len <= start_char_idx + char_count)
-      {
-        BBox2 bbox = StdGuiRender::get_str_bbox_u(textU16 + start_char_idx, len - start_char_idx, fctx);
-        relCursorX = (bbox.isempty() ? 0 : bbox.right());
-        if (len)
-          relCursorX += params->spacing * 0.5f;
-      }
+      BBox2 bbox = StdGuiRender::get_str_bbox_u(textU16, len, fctx);
+      relCursorX = (bbox.isempty() ? 0 : bbox.right());
+      if (len)
+        relCursorX += params->spacing * 0.5f;
     }
   }
 
@@ -1585,13 +1566,10 @@ void RenderObjectTextArea::render(StdGuiRender::GuiContext &ctx, const Element *
     return;
   }
 
-  bool ellipsis = (fmtText->preformattedFlags & textlayout::FMT_HIDE_ELLIPSIS) == 0;
-
   AutoProfileScope pfl(GuiScene::get_from_elem(elem)->getProfiler(), M_RENDER_TEXT);
 
   E3DCOLOR color = color_apply_mods(params->color, render_state.opacity, params->brightness);
   int spacing = elem->props.getInt(elem->csk->spacing, 0);
-  Sqrat::Object objMonoWidth = elem->props.getObject(elem->csk->monoWidth);
   int lastFontId = -2, lastFontHt = 0;
   int monoWidth = 0;
 
@@ -1604,141 +1582,132 @@ void RenderObjectTextArea::render(StdGuiRender::GuiContext &ctx, const Element *
     ctx.set_draw_str_attr(params->fontFx, params->fxOffsX, params->fxOffsY,
       color_apply_mods(params->fxColor, render_state.opacity, params->brightness), params->fxFactor);
 
-  bool useEllipsis = ellipsis && params->overflowY == TOVERFLOW_LINE;
-  bool shouldBreakWithEllipsis = false;
+  const float visibleBottom = sc.size.y + sc.scrollOffs.y;
+  const bool cutToFit = params->textOverflow == TOVERFLOW_ELLIPSIS && !etext;
+  int numLines = fmtText->lines.size();
+  bool linesHidden = false;
+  if (cutToFit)
+  {
+    auto lineBottom = [&](int i) { return fmtText->lines[i].yPos + fmtText->yOffset + fmtText->lines[i].contentHeight; };
+    int numWholeLines = 0;
+    while (numWholeLines < numLines && lineBottom(numWholeLines) <= visibleBottom)
+      ++numWholeLines;
+    if (numWholeLines < numLines)
+    {
+      linesHidden = true;
+      numLines = max(numWholeLines, 1);
+    }
+  }
 
-  // FIXME: ellipsis is rendered using block font, but its size is calculated with default
-  StdGuiFontContext fctxDefault;
-  StdGuiRender::get_font_context(fctxDefault, 0, spacing /*, monoWidth*/);
+  const ElemAlign halign = elem->layout.hAlign;
+
+  auto setFont = [&](int font_id, int font_ht) {
+    if (font_id != lastFontId || font_ht != lastFontHt)
+    {
+      lastFontId = font_id;
+      lastFontHt = font_ht;
+      monoWidth = fmtText->lastFormatParamsForCurText.monoWidthFor(font_id, font_ht);
+    }
+    ctx.set_font(font_id, spacing, monoWidth);
+    if (font_ht)
+      ctx.set_font_ht(font_ht);
+  };
+
+  auto setBlockStyle = [&](const textlayout::TextBlock *block) {
+    ctx.set_color(block->useCustomColor ? color_apply_mods(block->customColor, render_state.opacity, params->brightness) : color);
+    setFont(block->fontId, block->fontHt);
+  };
+
+  auto buildTextCache = [&](darg::GuiTextCache &cache, const wchar_t *str, int len) {
+    if (ctx.draw_str_scaled_u_buf(cache.v, cache.c, cache.samplers, 0, 1.0f, str, len))
+      return true;
+    cache.discard();
+    return false;
+  };
+
+  auto drawTextCache = [&](const darg::GuiTextCache &cache, float x, float y) {
+    ctx.goto_xy(x, y);
+    ctx.start_font_str(1.0f);
+    ctx.render_str_buf(cache.v, cache.c, cache.samplers, StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
+  };
 
   Tab<wchar_t> tmpU16(framemem_ptr());
-  BBox2 ellipsisBox = StdGuiRender::get_str_bbox_u(ellipsisUtf16, 1, fctxDefault);
-  float ellipsisHeight = useEllipsis ? ellipsisBox.width().y : 0;
-  float ellipsisWidth = ellipsisBox.width().x;
-
-  ElemAlign halign = elem->layout.hAlign;
-  if (fmtText->lines.size() <= params->lowLineCount && params->lowLineCountAlign != PLACE_DEFAULT)
-    halign = params->lowLineCountAlign;
-
-  for (int iLine = 0, nLines = fmtText->lines.size(); iLine < nLines; ++iLine)
+  for (int iLine = 0; iLine < numLines; ++iLine)
   {
-    if (shouldBreakWithEllipsis)
+    textlayout::TextLine &line = fmtText->lines[iLine];
+    const float lineTop = line.yPos + fmtText->yOffset;
+
+    if (lineTop + line.contentHeight < sc.scrollOffs.y)
+      continue;
+
+    if (lineTop > visibleBottom)
       break;
 
-    textlayout::TextLine &line = fmtText->lines[iLine];
-
-    if (line.yPos + fmtText->yOffset + line.contentHeight < sc.scrollOffs.y)
+    if (!ctx.vpBoxIsVisible(rdata->pos.x, rdata->pos.y + lineTop - sc.scrollOffs.y, rdata->pos.x + rdata->size.x,
+          rdata->pos.y + lineTop + line.contentHeight - sc.scrollOffs.y))
       continue;
 
-    if (iLine == fmtText->lines.size() - 1)
-      ellipsisHeight = 0;
-
-    if (line.yPos + fmtText->yOffset + (params->overflowY == TOVERFLOW_LINE ? line.contentHeight : 0) >
-        sc.size.y + sc.scrollOffs.y - ellipsisHeight)
+    const bool isClampLine = cutToFit && ((linesHidden && iLine == numLines - 1) || line.contentWidth > sc.size.x);
+    textlayout::LineClamp clamp;
+    if (isClampLine)
+      clamp = fmtText->clampLine(line, sc.size.x, ellipsisUtf16, 1);
+    else
     {
-      if (useEllipsis)
-        shouldBreakWithEllipsis = true;
-      else
-        break;
+      clamp.numBlocks = line.blocks.size();
+      clamp.width = line.contentWidth;
     }
 
-    if (!ctx.vpBoxIsVisible(rdata->pos.x, rdata->pos.y + line.yPos - sc.scrollOffs.y, rdata->pos.x + rdata->size.x,
-          rdata->pos.y + line.yPos + line.contentHeight - sc.scrollOffs.y))
-      continue;
-
-    float xLineOffs = 0;
-    float lineWidth = shouldBreakWithEllipsis ? ellipsisWidth : line.contentWidth;
-    int numBlocks = line.blocks.size();
-
-    int numBlocksToRender = shouldBreakWithEllipsis ? 0 : numBlocks;
-
-    bool hadAllSymbols = true;
-    bool nowHaveAllSymbols = true;
-    for (int i = 0; i < numBlocksToRender && hadAllSymbols; ++i)
+    // A line is drawn only when the glyphs of all its blocks are rasterized
+    bool lineReady = true;
+    for (int i = 0, n = clamp.numBlocks + (clamp.cutBytes ? 1 : 0); i < n; ++i)
     {
       textlayout::TextBlock *block = line.blocks[i];
       darg::GuiTextCache &guiText = block->guiText;
-      if (block->type == textlayout::TextBlock::TBT_SPACE)
+      if (block->type != textlayout::TextBlock::TBT_TEXT || guiText.isReady())
         continue;
-      hadAllSymbols = guiText.isReady();
+      setFont(block->fontId, block->fontHt);
+      tmpU16.resize(block->text.length() + 1);
+      tmpU16.resize(utf8_to_wcs_ex(block->text.c_str(), tmpU16.size() - 1, tmpU16.data(), tmpU16.size()));
+      lineReady &= buildTextCache(guiText, tmpU16.data(), tmpU16.size());
+    }
+    const textlayout::FormatParams &fmtParams = fmtText->lastFormatParamsForCurText;
+    if (isClampLine && !params->ellipsisText.isReady())
+    {
+      setFont(fmtParams.defFontId, fmtParams.defFontHt);
+      lineReady &= buildTextCache(params->ellipsisText, ellipsisUtf16, 1);
+    }
+    if (!lineReady)
+      continue;
+
+    float x = sc.screenPos.x - sc.scrollOffs.x;
+    if (halign == ALIGN_RIGHT)
+      x += sc.size.x - clamp.width;
+    else if (halign == ALIGN_CENTER)
+      x += floorf((sc.size.x - clamp.width) * 0.5f);
+    const float y = sc.screenPos.y - sc.scrollOffs.y + lineTop + line.baseLineY;
+
+    for (int i = 0; i < clamp.numBlocks; ++i)
+    {
+      const textlayout::TextBlock *block = line.blocks[i];
+      if (block->type != textlayout::TextBlock::TBT_TEXT)
+        continue;
+      setBlockStyle(block);
+      drawTextCache(block->guiText, x + block->position.x, y);
     }
 
-    if (halign == ALIGN_RIGHT)
-      xLineOffs += sc.size.x - lineWidth;
-    else if (halign == ALIGN_CENTER)
-      xLineOffs += floorf((sc.size.x - lineWidth) * 0.5f);
-
-    auto iterateBlocks = [&]() {
-      for (int i = 0; i < numBlocks; ++i)
-      {
-        textlayout::TextBlock *block = line.blocks[i];
-        darg::GuiTextCache &guiText = block->guiText;
-
-        float x = block->position.x + xLineOffs;
-        float y = block->position.y + fmtText->yOffset + line.baseLineY;
-
-#if 0 // debug blocks
-        ctx.set_color(color_apply_mods(color, 0.5, 1.0));
-
-        int ascent = StdGuiRender::get_font_ascent(block->fontId, block->fontHt);
-        ctx.render_frame(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y - ascent,
-          sc.screenPos.x - sc.scrollOffs.x + x + block->size.x, sc.screenPos.y - sc.scrollOffs.y + y - ascent + block->size.y, 1);
-
-        ctx.set_color(color);
-#endif
-
-        if (block->type != textlayout::TextBlock::TBT_TEXT) // otherwise don't neeed to draw anything
-          continue;
-
-        if (block->useCustomColor)
-          ctx.set_color(color_apply_mods(block->customColor, render_state.opacity, params->brightness));
-
-        if (block->fontId != lastFontId || block->fontHt != lastFontHt)
-        {
-          lastFontId = block->fontId;
-          lastFontHt = block->fontHt;
-          monoWidth = font_mono_width_from_sq(block->fontId, block->fontHt, objMonoWidth);
-        }
-
-        ctx.set_font(block->fontId, spacing, monoWidth);
-        if (block->fontHt)
-          ctx.set_font_ht(block->fontHt);
-
-        ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
-
-        if (shouldBreakWithEllipsis)
-        {
-          ctx.draw_str_u(ellipsisUtf16, 1);
-          break;
-        }
-
-        bool all_glyphs_ready = true;
-        if (!guiText.isReady())
-        {
-          tmpU16.resize(block->text.length() + 1);
-          tmpU16.resize(utf8_to_wcs_ex(block->text.c_str(), tmpU16.size() - 1, tmpU16.data(), tmpU16.size()));
-          all_glyphs_ready = ctx.draw_str_scaled_u_buf(guiText.v, guiText.c, guiText.samplers, 0, 1.0f, tmpU16.data(), tmpU16.size());
-        }
-        nowHaveAllSymbols &= all_glyphs_ready;
-        if (all_glyphs_ready && hadAllSymbols)
-        {
-          ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
-          ctx.start_font_str(1.0f);
-          ctx.render_str_buf(guiText.v, guiText.c, guiText.samplers, StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
-        }
-        if (!all_glyphs_ready)
-          guiText.discard();
-
-        if (block->useCustomColor)
-          ctx.set_color(color);
-      }
-    };
-
-    iterateBlocks();
-    if (!hadAllSymbols && nowHaveAllSymbols)
+    if (isClampLine)
     {
-      hadAllSymbols = true;
-      iterateBlocks();
+      if (clamp.cutBytes)
+      {
+        const textlayout::TextBlock *block = line.blocks[clamp.numBlocks];
+        setBlockStyle(block);
+        ctx.goto_xy(x + block->position.x, y);
+        ctx.draw_str(block->text.c_str(), clamp.cutBytes);
+      }
+
+      ctx.set_color(color);
+      setFont(fmtParams.defFontId, fmtParams.defFontHt);
+      drawTextCache(params->ellipsisText, x + clamp.suffixX, y);
     }
   }
 

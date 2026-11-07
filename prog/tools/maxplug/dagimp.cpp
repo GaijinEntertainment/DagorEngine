@@ -6,6 +6,8 @@
 #include <format>
 #include <unordered_set>
 #include <vector>
+#include <memory>
+#include <type_traits>
 #include <string_view>
 #include <filesystem>
 #include <max.h>
@@ -62,122 +64,161 @@ typedef unsigned int uint;
 
 extern void convertnew(Interface *ip, bool on_import);
 
-// isolate struct Block to avoid linker confusion with struct Block in expUtil.cpp
-
 namespace
 {
-struct Block
+// vc16 (Max2023, Max2024) has no std::wformat_string, there the format is checked at run time
+#if __cpp_lib_format >= 202207L
+template <class... Args>
+using WFormat = std::wformat_string<Args...>;
+
+template <class... Args>
+std::wstring wformat(WFormat<Args...> fmt, Args &&...args)
 {
-  int ofs, len;
-  int t;
+  return std::format(fmt, std::forward<Args>(args)...);
+}
+#else
+template <class... Args>
+using WFormat = std::type_identity_t<std::wstring_view>;
+
+template <class... Args>
+std::wstring wformat(WFormat<Args...> fmt, Args &&...args)
+{
+  return std::vformat(fmt, std::make_wformat_args(args...));
+}
+#endif
+
+// The file does not hold what its blocks declare.
+struct DagError
+{
+  std::wstring what;
+};
+
+template <class... Args>
+[[noreturn]] void reject(WFormat<Args...> fmt, Args &&...args)
+{
+  throw DagError{wformat<Args...>(fmt, std::forward<Args>(args)...)};
+}
+
+// Every read is held to the current block, and every block to the one that holds it: a field the
+// block does not have would otherwise be taken from whatever follows it, and a zero there would
+// pass for a real count.
+class DagReader
+{
+public:
+  // opens a block on construction and skips to its end on destruction
+  class Block
+  {
+  public:
+    explicit Block(DagReader &r) : reader(r) { reader.begin(); }
+    ~Block() { reader.end(); }
+    Block(const Block &) = delete;
+    Block &operator=(const Block &) = delete;
+
+  private:
+    DagReader &reader;
+  };
+
+  explicit DagReader(FILE *f) : file(f), pos(ftell(f))
+  {
+    // block lengths are declared by the file; measure it once so they can be held to it
+    if (pos < 0)
+      return;
+    if (fseek(file, 0, SEEK_END) == 0)
+      file_len = ftell(file);
+    fseek(file, pos, SEEK_SET);
+  }
+
+  int type() const { return blocks.back().type; }
+
+  // never negative: every read is held to the block and end() leaves the reader at its end
+  int rest() const { return int(blocks.back().end - pos); }
+
+  // how many records of item_size bytes are still left in the current block
+  size_t restItems(size_t item_size) const { return size_t(rest()) / item_size; }
+
+  void field(void *dest, size_t size, const wchar_t *what = L"a field")
+  {
+    if (!size)
+      return;
+    if (size > size_t(rest()))
+      reject(L"{} is past the end of its block", what);
+    raw(dest, size);
+  }
+
+  template <class T>
+  T get(const wchar_t *what = L"a field")
+  {
+    static_assert(std::is_trivially_copyable_v<T>);
+    T v{};
+    field(&v, sizeof v, what);
+    return v;
+  }
+
+  // the count comes out of the file, so it is held to the block before it sizes an allocation
+  template <class T>
+  std::vector<T> getArray(size_t count, std::wstring_view what)
+  {
+    static_assert(std::is_trivially_copyable_v<T>);
+    if (count > restItems(sizeof(T)))
+      reject(L"{} {} do not fit the block", count, what);
+    std::vector<T> v(count);
+    if (count)
+      raw(v.data(), count * sizeof(T));
+    return v;
+  }
+
+  std::wstring string(size_t len)
+  {
+    if (!len)
+      return {};
+    std::string s(len, '\0');
+    field(s.data(), s.size(), L"a string");
+    return strToWide(s);
+  }
+
+private:
+  struct Range
+  {
+    long end;
+    int type;
+  };
+
+  void raw(void *dest, size_t size)
+  {
+    if (fread(dest, size, 1, file) != 1)
+      reject(L"the file could not be read");
+    pos += long(size);
+  }
+
+  void begin()
+  {
+    const long outer_end = blocks.empty() ? file_len : blocks.back().end;
+    int blk_len = 0, blk_type = 0;
+    if (pos < 0 || outer_end - pos < long(sizeof blk_len + sizeof blk_type))
+      reject(L"a block header runs past the block or file that holds it");
+    raw(&blk_len, sizeof blk_len);
+    raw(&blk_type, sizeof blk_type);
+    if (blk_len < 4)
+      reject(L"a block declares {} bytes, less than its own header", blk_len);
+    blk_len -= 4;
+    if (outer_end - pos < blk_len)
+      reject(L"a block of {} bytes runs past the block or file that holds it", blk_len);
+    blocks.push_back({pos + blk_len, blk_type});
+  }
+
+  void end()
+  {
+    pos = blocks.back().end;
+    fseek(file, pos, SEEK_SET);
+    blocks.pop_back();
+  }
+
+  FILE *file;
+  long file_len = 0;
+  long pos;
+  std::vector<Range> blocks;
 };
 } // namespace
-
-static Tab<Block> blk;
-static FILE *fileh = NULL;
-static long file_len = 0;
-
-static void init_blk(FILE *h)
-{
-  blk.SetCount(0);
-  fileh = h;
-  file_len = 0;
-
-  // block lengths are declared by the file; measure it once so they can be held to it
-  const long at = ftell(h);
-  if (at < 0)
-    return;
-  if (fseek(h, 0, SEEK_END) == 0)
-    file_len = ftell(h);
-  fseek(h, at, SEEK_SET);
-}
-
-static int begin_blk()
-{
-  Block b;
-  if (fread(&b.len, 4, 1, fileh) != 1)
-    return 0;
-  if (fread(&b.t, 4, 1, fileh) != 1)
-    return 0;
-  if (b.len < 4)
-    return 0;
-  b.len -= 4;
-  b.ofs = ftell(fileh);
-  if (b.ofs < 0 || file_len - b.ofs < b.len)
-    return 0;
-  int n = blk.Count();
-  blk.Append(1, &b);
-  if (blk.Count() != n + 1)
-    return 0;
-  return 1;
-}
-
-static int end_blk()
-{
-  int i = blk.Count() - 1;
-  if (i < 0)
-    return 0;
-  fseek(fileh, blk[i].ofs + blk[i].len, SEEK_SET);
-  blk.Delete(i, 1);
-  return 1;
-}
-
-static int blk_type()
-{
-  int i = blk.Count() - 1;
-  if (i < 0)
-  {
-    assert(0);
-    return 0;
-  }
-  return blk[i].t;
-}
-
-static int blk_len()
-{
-  int i = blk.Count() - 1;
-  if (i < 0)
-  {
-    assert(0);
-    return 0;
-  }
-  return blk[i].len;
-}
-
-static int blk_rest()
-{
-  int i = blk.Count() - 1;
-  if (i < 0)
-  {
-    assert(0);
-    return 0;
-  }
-  return blk[i].ofs + blk[i].len - ftell(fileh);
-}
-
-// How many records of item_sz bytes are still left in the current block. Only reached right after a
-// read_blk_field() that fit, which leaves what remains of the block non-negative.
-static uint blk_rest_items(int item_sz) { return uint(blk_rest()) / uint(item_sz); }
-
-// Reads one count or header field of the current block. begin_blk() holds a block to the file, but
-// nothing holds a read to the block, so a field the block does not have would be taken from
-// whatever follows it and a zero there would pass for a real count. Once it fits, only the storage
-// can leave the read short, so the result is still worth asking for.
-static bool read_blk_field(void *dest, int size, FILE *h) { return blk_rest() >= size && fread(dest, size, 1, h) == 1; }
-
-static bool read_char_string(int len, FILE *h, std::wstring &out)
-{
-  out.clear();
-  if (len < 0)
-    return false;
-  if (len == 0)
-    return true;
-  std::string s(len, 0);
-  if (!read_blk_field(&s[0], len, h))
-    return false;
-  out = strToWide(s);
-  return true;
-}
 
 //===============================================================================//
 
@@ -368,8 +409,8 @@ public:
 
 private:
   int doHierImport(const fs::path &fname, ImpInterface *ii, Interface *ip, bool suppressPrompts);
-  void makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii, Interface *ip, bool nomsg);
-  void makeHierLayer(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg);
+  bool makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii, Interface *ip, bool nomsg);
+  bool makeHierLayer(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg);
 
   int doLegacyImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, bool nomsg);
   int doBatchImport(const TSTR &fname, ImpInterface *ii, Interface *ip, bool nomsg);
@@ -1417,21 +1458,16 @@ static void adj_wtm(Matrix3 &tm)
   tm.ClearIdentFlag(ROT_IDENT | SCL_IDENT);
 }
 
-#define rd(p, l)                \
-  {                             \
-    if (fread(p, l, 1, h) != 1) \
-      goto read_err;            \
-  }
-#define bblk          \
-  {                   \
-    if (!begin_blk()) \
-      goto read_err;  \
-  }
-#define eblk         \
-  {                  \
-    if (!end_blk())  \
-      goto read_err; \
-  }
+template <class... Args>
+static void log_import(DagorLogWindow::LogLevel level, INode *node, WFormat<Args...> fmt, Args &&...args)
+{
+  const std::wstring msg = wformat<Args...>(fmt, std::forward<Args>(args)...);
+  if (node)
+    DagorLogWindow::addToLog(level, L"%s: '%s': %s\r\n", scene_name.data(), node->GetName(), msg.c_str());
+  else
+    DagorLogWindow::addToLog(level, L"%s: %s\r\n", scene_name.data(), msg.c_str());
+  DagorLogWindow::show();
+}
 
 static void flip_normals(Mesh &m)
 {
@@ -1439,166 +1475,99 @@ static void flip_normals(Mesh &m)
     m.FlipNormal(i);
 }
 
-// The two mesh blocks of DAG_NODE_OBJ differ only in these widths. They are derived from the block
-// type once and carried together: a bound that worked one of them out on its own could fall out of
-// step with the reads it is there to guard.
-struct MeshFormat
+// The two mesh blocks of DAG_NODE_OBJ differ only in the widths of their counts and indices.
+namespace
 {
-  bool big;     // DAG_OBJ_BIGMESH: four byte counts and 32 bit indices
-  int count_sz; // one count field
-  int face_sz;  // one face record
-  int tface_sz; // one map face record
-
-  explicit MeshFormat(bool big_) :
-    big(big_),
-    count_sz(big_ ? 4 : 2),
-    face_sz(int(big_ ? sizeof(DagBigFace) : sizeof(DagFace))),
-    tface_sz(int(big_ ? sizeof(DagBigTFace) : sizeof(DagTFace)))
-  {}
+struct NarrowMesh
+{
+  using Count = ushort;
+  using Face = DagFace;
+  using TFace = DagTFace;
 };
 
-// Reads the map channel records that follow the faces of a mesh block. False if the block does not
-// hold what the records declare, and it is the block that bounds them: fread() stops at the end of
-// the file, end_blk() then seeks back over an overrun, so a record read past the block would import
-// as plausible garbage. The format gives every channel one map face per mesh face, so that count
-// comes from the mesh the records are read into. `err` names what stopped a read, for the caller to
-// log against the node: an aborted import is otherwise silent in a batch, where the prompt is off.
-// On false the mesh keeps the channels that were read before the refusal.
-#define fail(...)                   \
-  {                                 \
-    err = std::format(__VA_ARGS__); \
-    return false;                   \
-  }
+struct BigMesh
+{
+  using Count = uint;
+  using Face = DagBigFace;
+  using TFace = DagBigTFace;
+};
+} // namespace
 
-// The counts and the indices below are checked against the block and against each other. A record
-// read needs none of that: it is already inside its block by the count bound above it, and
-// begin_blk() keeps a block inside the file. What a bound cannot rule out is the storage failing
-// mid-file, which leaves any read short, so read_data() still asks, the way rd() does for every
-// other block of load_node().
-#define read_data(dest, size)                     \
-  do                                              \
-  {                                               \
-    const size_t nbytes = (size);                 \
-    if (nbytes && fread(dest, nbytes, 1, h) != 1) \
-      fail(_T("the file could not be read"));     \
-  } while (0)
-
-static bool read_map_channels(Mesh &m, FILE *h, const MeshFormat &fmt, std::wstring &err)
+// Reads the map channel records that follow the faces of a mesh block. It is the block that bounds
+// them: a record read past the block would import as plausible garbage. The format gives every
+// channel one map face per mesh face, so that count comes from the mesh the records are read into.
+template <class Fmt>
+static void read_map_channels(DagReader &r, Mesh &m)
 {
   const int nf = m.numFaces;
-  const int tface_bytes = nf * fmt.tface_sz;
-
-  uchar numch = 0;
-  if (!read_blk_field(&numch, 1, h))
-    fail(_T("the map channel count is past the end of its block"));
-
+  const int numch = r.get<uchar>(L"the map channel count");
   for (int ch = 0; ch < numch; ++ch)
   {
-    uint ntv = 0;
-    uchar tcsz = 0, chid = 0;
-    if (!read_blk_field(&ntv, fmt.count_sz, h) || !read_blk_field(&tcsz, 1, h) || !read_blk_field(&chid, 1, h))
-      fail(_T("map channel record {} has no header left in its block"), ch);
+    const uint ntv = r.get<typename Fmt::Count>(L"a map channel header");
+    const int tcsz = r.get<uchar>(L"a map channel header");
+    const int chid = r.get<uchar>(L"a map channel header");
 
-    // the channel id and the coordinate count come out of the file too, and the map verts are
-    // allocated from ntv before anything is read into them. setNumMapVerts() reports nothing, so
-    // the counts are all there is to check. A wider coordinate than the three read below would
-    // leave the rest of them in the stream and desynchronise the records that follow.
-    const int rest = blk_rest();
+    // the channel id and the coordinate count come out of the file too: a mesh has MAX_MESHMAPS
+    // channels and a map vertex holds three coordinates
     if (chid >= MAX_MESHMAPS || tcsz < 1 || tcsz > 3)
-      fail(_T("map channel record {} declares id {} and {} coordinates per vertex"), ch, chid, tcsz);
-    if (tface_bytes > rest)
-      fail(_T("the {} faces of map channel {} do not fit its block"), nf, chid);
-    if (ntv > uint(rest - tface_bytes) / uint(tcsz * 4))
-      fail(_T("map channel {} declares {} vertices, more than its block holds"), chid, ntv);
+      reject(L"map channel record {} declares id {} and {} coordinates per vertex", ch, chid, tcsz);
+    const auto coords = r.getArray<float>(size_t(ntv) * tcsz, std::format(L"coordinates of map channel {}", chid));
+    const auto tfaces = r.getArray<typename Fmt::TFace>(nf, std::format(L"faces of map channel {}", chid));
 
     m.setMapSupport(chid);
     m.setNumMapVerts(chid, ntv);
     Point3 *tv = m.mapVerts(chid);
     if (ntv && !tv)
-      fail(_T("cannot allocate {} vertices of map channel {}"), ntv, chid);
-    for (uint v = 0; v < ntv; ++v, ++tv)
-    {
-      int i = 0;
-      for (; i < tcsz; ++i)
-        read_data(&tv[0][i], 4);
-      for (; i < 3; ++i)
-        tv[0][i] = 0;
-    }
+      reject(L"cannot allocate {} vertices of map channel {}", ntv, chid);
+    for (uint v = 0; v < ntv; ++v)
+      for (int i = 0; i < 3; ++i)
+        tv[v][i] = i < tcsz ? coords[size_t(v) * tcsz + i] : 0.f;
 
     TVFace *tf = m.mapFaces(chid);
     if (nf && !tf)
-      fail(_T("cannot allocate the faces of map channel {}"), chid);
+      reject(L"cannot allocate the faces of map channel {}", chid);
     for (int f = 0; f < nf; ++f)
     {
-      DagBigTFace t;
-      if (fmt.big)
-        read_data(&t, sizeof(DagBigTFace));
-      else
-      {
-        DagTFace narrow;
-        read_data(&narrow, sizeof(DagTFace));
-        t.t[0] = narrow.t[0];
-        t.t[1] = narrow.t[1];
-        t.t[2] = narrow.t[2];
-      }
+      const auto &t = tfaces[f];
       // the record fits the block, its indices still have to fit the channel they point into
       if (t.t[0] >= ntv || t.t[1] >= ntv || t.t[2] >= ntv)
-        fail(_T("face {} of map channel {} points outside its {} vertices"), f, chid, ntv);
+        reject(L"face {} of map channel {} points outside its {} vertices", f, chid, ntv);
       tf[f].t[0] = t.t[0];
       tf[f].t[2] = t.t[1];
       tf[f].t[1] = t.t[2];
     }
   }
-  return true;
 }
 
-// Reads a DAG_OBJ_MESH or DAG_OBJ_BIGMESH payload, the two differing only in the width of their
-// counts and indices. This is where the bound policy of a mesh block lives: every count comes out
-// of the file, so each is held to what the block still holds before it is used as a length or an
-// allocation size.
+// Reads a DAG_OBJ_MESH or DAG_OBJ_BIGMESH payload. This is where the bound policy of a mesh block
+// lives: every count comes out of the file, so each is held to what the block still holds before
+// it is used as a length or an allocation size.
 //
-// Neither this nor read_map_channels() unwinds what it has already built, and a refusal can come
-// after the mesh is allocated and part filled. On false the object holding it has to be discarded,
-// the way load_node() does at read_err.
-static bool read_mesh(Mesh &m, FILE *h, const MeshFormat &fmt, std::wstring &err)
+// A refusal can come after the mesh is allocated and part filled, so the object holding it has to be
+// discarded, which NodeLoader does for any failed node.
+template <class Fmt>
+static void read_mesh(DagReader &r, Mesh &m)
 {
-  uint nv = 0;
-  if (!read_blk_field(&nv, fmt.count_sz, h))
-    fail(_T("the vertex count is past the end of its block"));
-  if (nv > blk_rest_items(sizeof(Point3)))
-    fail(_T("{} vertices do not fit the block"), nv);
+  const uint nv = r.get<typename Fmt::Count>(L"the vertex count");
+  if (nv > r.restItems(sizeof(Point3)))
+    reject(L"{} vertices do not fit the block", nv);
   if (!m.setNumVerts(nv))
-    fail(_T("cannot allocate {} vertices"), nv);
-  read_data(m.verts, size_t(nv) * sizeof(Point3));
+    reject(L"cannot allocate {} vertices", nv);
+  r.field(m.verts, size_t(nv) * sizeof(Point3), L"the vertices");
 
-  uint nf = 0;
-  if (!read_blk_field(&nf, fmt.count_sz, h))
-    fail(_T("the face count is past the end of its block"));
-  if (nf > blk_rest_items(fmt.face_sz))
-    fail(_T("{} faces do not fit the block"), nf);
+  const auto faces = r.getArray<typename Fmt::Face>(r.get<typename Fmt::Count>(L"the face count"), L"faces");
+  const int nf = int(faces.size());
   if (!m.setNumFaces(nf))
-    fail(_T("cannot allocate {} faces"), nf);
+    reject(L"cannot allocate {} faces", nf);
 
   DebugPrint(_T("   faces: %d\n"), nf);
 
-  for (uint i = 0; i < nf; ++i)
+  for (int i = 0; i < nf; ++i)
   {
-    DagBigFace f;
-    if (fmt.big)
-      read_data(&f, sizeof(DagBigFace));
-    else
-    {
-      DagFace narrow;
-      read_data(&narrow, sizeof(DagFace));
-      f.v[0] = narrow.v[0];
-      f.v[1] = narrow.v[1];
-      f.v[2] = narrow.v[2];
-      f.smgr = narrow.smgr;
-      f.mat = narrow.mat;
-    }
+    const auto &f = faces[i];
     // the record fits the block, its indices still have to fit the mesh they point into
     if (f.v[0] >= nv || f.v[1] >= nv || f.v[2] >= nv)
-      fail(_T("face {} points outside the {} vertices of the mesh"), i, nv);
+      reject(L"face {} points outside the {} vertices of the mesh", i, nv);
     m.faces[i].v[0] = f.v[0];
     m.faces[i].v[2] = f.v[1];
     m.faces[i].v[1] = f.v[2];
@@ -1607,426 +1576,470 @@ static bool read_mesh(Mesh &m, FILE *h, const MeshFormat &fmt, std::wstring &err
     m.faces[i].flags |= EDGE_ALL;
   }
 
-  return read_map_channels(m, h, fmt, err);
+  read_map_channels<Fmt>(r, m);
 }
 
-#undef read_data
-#undef fail
-
-static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std::vector<SkinData> &skin_data, Tab<NodeId> &node_id)
+static Class_ID light_class(int dag_light_type)
 {
-  float master_scale = get_master_scale();
-  bool need_rescale = fabs(master_scale - 1.f) > 1e-4f;
-
-  ImpNode *in = NULL;
-  INode *n = NULL;
-  if (pnode)
+  switch (dag_light_type)
   {
-    in = ii->CreateNode();
-    assert(in);
-    ii->AddNodeToScene(in);
-    n = in->GetINode();
-    assert(n);
+    case DAG_LIGHT_SPOT: return Class_ID(FSPOT_LIGHT_CLASS_ID, 0);
+    case DAG_LIGHT_DIR: return Class_ID(DIR_LIGHT_CLASS_ID, 0);
+    default: return Class_ID(OMNI_LIGHT_CLASS_ID, 0);
   }
-  else
-  {
-    n = ip->GetRootNode();
-    assert(n);
-  }
-  ushort nid = ~0;
-  Mtl *mtl = NULL;
-  Object *obj = NULL;
-  MultiMtl *mm = nullptr;
-  int nflg = 0;
-  while (blk_rest() > 0)
-  {
-    bblk;
-
-    DebugPrint(_T("load_node %d\n"), blk_type());
-
-    if (blk_type() == DAG_NODE_DATA)
-    {
-      DagNodeData d;
-      rd(&d, sizeof(d));
-      nid = d.id;
-      n->SetRenderable(d.flg & DAG_NF_RENDERABLE ? 1 : 0);
-      n->SetCastShadows(d.flg & DAG_NF_CASTSHADOW ? 1 : 0);
-      n->SetRcvShadows(d.flg & DAG_NF_RCVSHADOW ? 1 : 0);
-      NodeId id(nid, n);
-      node_id.Append(1, &id);
-      nflg = d.flg;
-      int l = blk_rest();
-      if (l > 0 && in)
-      {
-
-        std::wstring nm;
-        read_char_string(l, h, nm);
-        in->SetName(nm.data(), DagImp::useLegacyImport);
-        DebugPrint(_T("node <%s>\n"), nm.data());
-      }
-    }
-    else if (blk_type() == DAG_NODE_TM && in)
-    {
-      Matrix3 tm;
-      rd(tm.GetAddr(), 4 * 3 * 4);
-      tm.SetNotIdent();
-      if (need_rescale)
-        tm.SetTrans(tm.GetTrans() * master_scale);
-      if (pnode->IsRootNode())
-        adj_wtm(tm);
-      in->SetTransform(0, tm);
-    }
-    else if (blk_type() == DAG_NODE_SCRIPT && in)
-    {
-      DebugPrint(_T("   node script...\n"));
-      int l = blk_rest();
-      if (l > 0)
-      {
-        std::wstring s;
-        read_char_string(l, h, s);
-        std::wstring trimmed = trim_params(s);
-        n->SetUserPropBuffer(trimmed.data());
-      }
-      DebugPrint(_T("   node script ok\n"));
-    }
-    else if (blk_type() == DAG_NODE_MATER && in)
-    {
-      DebugPrint(_T("   node material...\n"));
-      int num = blk_len() / 2;
-      if (num > 1)
-      {
-        mm = NewDefaultMultiMtl();
-        assert(mm);
-        multi_mat.push_back(mm);
-        mm->SetNumSubMtls(num);
-        for (int i = 0; i < num; ++i)
-        {
-          ushort id;
-          rd(&id, 2);
-          if (id < mat.size())
-          {
-            if (!mat[id].mtl)
-              make_mtl(mat[id], id, DagorMat2_CID);
-            if (mat[id].mtl)
-              mm->SetSubMtl(i, mat[id].mtl);
-          }
-        }
-        mm->SetName(n->GetName());
-        mtl = mm;
-      }
-      else if (num == 1)
-      {
-        ushort id;
-        rd(&id, 2);
-        if (id < mat.size())
-        {
-          if (!mat[id].mtl)
-            make_mtl(mat[id], id, DagorMat2_CID);
-          if (mat[id].mtl)
-            mtl = mat[id].mtl;
-        }
-      }
-      DebugPrint(_T("   node materials ok\n"));
-    }
-    else if (blk_type() == DAG_NODE_OBJ && in)
-    {
-      DebugPrint(_T("   obj mesh...\n"));
-      while (blk_rest() > 0)
-      {
-        bblk;
-        // These two blocks are the object, unlike FACEFLG, NORMALS and BONES further down, which
-        // annotate one that already exists and can each be dropped on their own. A count that does
-        // not fit is found part way through building the mesh, so dropping the block would leave the
-        // node holding half a mesh or none, and the scene would come back quietly missing geometry
-        // rather than missing a detail. A mesh that does not fit its block fails the import instead.
-        if (blk_type() == DAG_OBJ_BIGMESH || blk_type() == DAG_OBJ_MESH)
-        {
-          const MeshFormat fmt(blk_type() == DAG_OBJ_BIGMESH);
-          std::wstring err;
-          TriObject *tri = CreateNewTriObject();
-          bool ok = tri != nullptr;
-          if (!ok)
-            err = _T("cannot create the mesh object");
-          else
-          {
-            obj = tri;
-            Mesh &m = tri->mesh;
-            ok = read_mesh(m, h, fmt, err);
-            if (ok)
-            {
-              if (need_rescale)
-                for (int i = 0; i < m.numVerts; ++i)
-                  m.verts[i] *= master_scale;
-              if (n->GetNodeTM(0).Parity())
-                flip_normals(m);
-            }
-          }
-
-          // obj already holds the mesh, so the refusal has to be carried by the reader's own answer
-          // rather than by whether it named a reason: one that returned false without naming one
-          // would otherwise leave a part built mesh on the node, unlogged
-          if (!ok)
-          {
-            DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Error, _T("%s: '%s': %s, import aborted\r\n"), scene_name.data(),
-              n->GetName(), err.c_str());
-            DagorLogWindow::show();
-            goto read_err;
-          }
-        }
-        else if (blk_type() == DAG_OBJ_BONES)
-        {
-          ushort numb = 0;
-          rd(&numb, 2);
-
-          // A block that does not add up costs its own skin and not the whole scene: eblk skips the
-          // rest of it either way, the way the FACEFLG, NORMALS and LIGHT blocks of this loop
-          // already behave. A block with no bones carries no skin and no weight matrix at all.
-          if (numb)
-          {
-            // rd() reads the file and stops only at EOF, so the bones and the vertex count behind
-            // them have to be measured against what the block still holds. blk_rest() has already
-            // gone negative if the two bytes above came from outside it.
-            if (blk_rest() < int(numb * sizeof(DagBone)) + 4)
-            {
-              DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning,
-                L"%s: '%s': the table of %d bones does not fit its block, skinning skipped\r\n", scene_name.data(), n->GetName(),
-                numb);
-              DagorLogWindow::show();
-            }
-            else
-            {
-              skin_data.emplace_back();
-              SkinData &sd = skin_data.back();
-              sd.skinNode = n;
-              sd.numb = numb;
-              sd.bones.SetCount(numb);
-              rd(&sd.bones[0], numb * sizeof(DagBone));
-
-              rd(&sd.numvert, 4);
-
-              // the numb by numvert matrix of floats has to fit in what is left of the block too,
-              // which also keeps numvert * numb inside an int
-              const int maxvert = blk_rest() / int(numb * sizeof(float));
-              if (sd.numvert < 0 || sd.numvert > maxvert)
-              {
-                DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning,
-                  L"%s: '%s': the weight matrix of %d vertices does not fit its block, skinning skipped\r\n", scene_name.data(),
-                  n->GetName(), sd.numvert);
-                DagorLogWindow::show();
-                skin_data.pop_back();
-              }
-              else if (sd.numvert)
-              {
-                sd.wt.SetCount(sd.numvert * numb);
-                rd(&sd.wt[0], sd.wt.Count() * sizeof(float));
-              }
-            }
-          }
-        }
-        else if (blk_type() == DAG_OBJ_SPLINES)
-        {
-          SplineShape *shape = new SplineShape;
-          assert(shape);
-          obj = shape;
-          BezierShape &shp = shape->shape;
-          int numspl;
-          rd(&numspl, 4);
-          for (; numspl > 0; --numspl)
-          {
-            Spline3D &s = *shp.NewSpline();
-            assert(&s);
-            char flg;
-            rd(&flg, 1);
-            int numk;
-            rd(&numk, 4);
-            for (; numk > 0; --numk)
-            {
-              char ktype;
-              rd(&ktype, 1);
-              Point3 i, p, o;
-              rd(&i, 12);
-              rd(&p, 12);
-              rd(&o, 12);
-              if (need_rescale)
-              {
-                i *= master_scale;
-                p *= master_scale;
-                o *= master_scale;
-              }
-              SplineKnot k(KTYPE_BEZIER_CORNER, LTYPE_CURVE, p, i, o);
-              s.AddKnot(k);
-            }
-            s.SetClosed(flg & DAG_SPLINE_CLOSED ? 1 : 0);
-            s.ComputeBezPoints();
-          }
-          shp.UpdateSels();
-          shp.InvalidateGeomCache();
-          shp.InvalidateCapCache();
-        }
-        else if (blk_type() == DAG_OBJ_LIGHT)
-        {
-          DagLight dl;
-          DagLight2 dl2;
-          rd(&dl, sizeof(dl));
-          Color c(dl.r, dl.g, dl.b);
-          if (blk_rest() == sizeof(DagLight2))
-          {
-            rd(&dl2, sizeof(dl2));
-          }
-          else
-          {
-            dl2.mult = MaxVal(c);
-            dl2.type = DAG_LIGHT_OMNI;
-            dl2.hotspot = 0;
-            dl2.falloff = 0;
-          }
-          TimeValue time = ip->GetTime();
-          GenLight &lt = *(GenLight *)ip->CreateInstance(LIGHT_CLASS_ID,
-            Class_ID((dl2.type == DAG_LIGHT_SPOT ? FSPOT_LIGHT_CLASS_ID
-                                                 : (dl2.type == DAG_LIGHT_DIR ? DIR_LIGHT_CLASS_ID : OMNI_LIGHT_CLASS_ID)),
-              0));
-          assert(&lt);
-          float mc = dl2.mult;
-          lt.SetIntensity(time, mc);
-          if (mc == 0)
-            mc = 1;
-          lt.SetRGBColor(time, Point3((float *)(c / mc)));
-          if (dl2.type != DAG_LIGHT_OMNI)
-          {
-            lt.SetHotspot(time, dl2.hotspot);
-            lt.SetFallsize(time, dl2.falloff);
-          }
-          lt.SetAtten(time, ATTEN_START, dl.range);
-          lt.SetAtten(time, ATTEN_END, dl.range);
-          lt.SetUseAtten(TRUE);
-          lt.SetDecayType(dl.decay);
-          lt.SetDecayRadius(time, dl.drad);
-          lt.SetShadow(nflg & DAG_NF_CASTSHADOW ? 1 : 0);
-          lt.SetUseLight(TRUE);
-          lt.Enable(TRUE);
-          obj = &lt;
-        }
-        else if (blk_type() == DAG_OBJ_FACEFLG && obj && obj->IsSubClassOf(Class_ID(TRIOBJ_CLASS_ID, 0)))
-        {
-          TriObject *tri = (TriObject *)obj;
-          Mesh &m = tri->mesh;
-          if (n->GetNodeTM(0).Parity())
-            flip_normals(m);
-          if (m.numFaces == blk_rest())
-          {
-            for (int i = 0; i < m.numFaces; ++i)
-            {
-              Face &f = m.faces[i];
-              char ef;
-              rd(&ef, 1);
-              f.flags &= ~(EDGE_ALL | FACE_HIDDEN);
-              if (ef & DAG_FACEFLG_EDGE2)
-                f.flags |= EDGE_A;
-              if (ef & DAG_FACEFLG_EDGE1)
-                f.flags |= EDGE_B;
-              if (ef & DAG_FACEFLG_EDGE0)
-                f.flags |= EDGE_C;
-              if (ef & DAG_FACEFLG_HIDDEN)
-                f.flags |= FACE_HIDDEN;
-            }
-          }
-          if (n->GetNodeTM(0).Parity())
-            flip_normals(m);
-        }
-        else if (blk_type() == DAG_OBJ_NORMALS && obj && obj->IsSubClassOf(Class_ID(TRIOBJ_CLASS_ID, 0)))
-        {
-          Mesh &m = ((TriObject *)obj)->mesh;
-
-          if (!m.GetSpecifiedNormals())
-          {
-            m.SpecifyNormals();
-          }
-          MeshNormalSpec *normalSpec = m.GetSpecifiedNormals();
-          if (normalSpec)
-          {
-            int numNormals;
-            rd(&numNormals, 4);
-
-            const int rest = blk_rest();
-
-            if (numNormals > 0 && rest == int64_t(numNormals) * 12 + int64_t(m.numFaces) * 12)
-            {
-              std::vector<Point3> normals(numNormals);
-              rd(normals.data(), numNormals * 12);
-
-              std::vector<int> indices(m.numFaces * 3);
-              rd(indices.data(), sizeof(int) * indices.size());
-
-              const auto bad = std::ranges::find_if(indices, [numNormals](int id) { return id < 0 || id >= numNormals; });
-              if (bad != indices.end())
-              {
-                DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning,
-                  L"%s: '%s': face %d points outside the %d normals, normals skipped\r\n", scene_name.data(), n->GetName(),
-                  int(bad - indices.begin()) / 3, numNormals);
-                DagorLogWindow::show();
-              }
-              else
-              {
-                normalSpec->SetParent(&m);
-                normalSpec->CheckNormals();
-                normalSpec->SetNumNormals(numNormals);
-
-                normalSpec->SetAllExplicit(true);
-
-                std::copy(normals.begin(), normals.end(), normalSpec->GetNormalArray());
-
-                for (int i = 0; i < m.numFaces; i++)
-                {
-                  normalSpec->SetNormalIndex(i, 0, indices[i * 3]);
-                  normalSpec->SetNormalIndex(i, 1, indices[i * 3 + 2]);
-                  normalSpec->SetNormalIndex(i, 2, indices[i * 3 + 1]);
-                }
-              }
-            }
-          }
-        }
-
-        eblk;
-      }
-      DebugPrint(_T("   obj mesh ok\n"));
-    }
-    else if (blk_type() == DAG_NODE_CHILDREN)
-    {
-      while (blk_rest() > 0)
-      {
-        bblk;
-        if (blk_type() == DAG_NODE)
-        {
-          if (!load_node(n, h, ii, ip, skin_data, node_id))
-            goto read_err;
-        }
-        else if (blk_type() == DAG_MATER)
-          goto read_err;
-        eblk;
-      }
-    }
-    eblk;
-  }
-
-  if (in)
-  {
-    if (!obj)
-    {
-      obj = (Object *)ii->Create(GEOMOBJECT_CLASS_ID, Dummy_CID);
-      assert(obj);
-    }
-    in->Reference(obj);
-    pnode->AttachChild(n, 0);
-  }
-  if (mtl)
-    n->SetMtl(mtl);
-  return 1;
-read_err:
-  DebugPrint(_T("read error in load_node() at %X of %s\n"), ftell(h), scene_name.data());
-  if (obj)
-    obj->DeleteMe();
-  return 0;
 }
+
+static constexpr int MAX_NODE_DEPTH = 1000;
+
+namespace
+{
+struct ImportCtx
+{
+  ImpInterface *ii;
+  Interface *ip;
+  std::vector<SkinData> skin_data;
+  Tab<NodeId> node_id;
+  INode *failed = nullptr; // the innermost node that did not load
+  const float master_scale = get_master_scale();
+  const bool need_rescale = fabs(master_scale - 1.f) > 1e-4f;
+};
+
+// Reads the DAG_NODE block the reader stands in and builds the node of it. A node that fails to
+// load is left as a dummy under its parent and its object is discarded, so that whoever catches
+// the error finds a consistent scene.
+class NodeLoader
+{
+public:
+  NodeLoader(ImportCtx &import_ctx, DagReader &reader, INode *parent_node, int node_depth) :
+    ctx(import_ctx), r(reader), parent(parent_node), depth(node_depth)
+  {
+    if (parent)
+    {
+      in = ctx.ii->CreateNode();
+      assert(in);
+      ctx.ii->AddNodeToScene(in);
+      n = in->GetINode();
+    }
+    else
+      n = ctx.ip->GetRootNode();
+    assert(n);
+  }
+
+  NodeLoader(const NodeLoader &) = delete;
+  NodeLoader &operator=(const NodeLoader &) = delete;
+
+  ~NodeLoader()
+  {
+    if (done)
+      return;
+    if (in && !ctx.failed)
+      ctx.failed = n;
+    if (obj)
+      obj->DeleteMe();
+    if (in)
+      attach(makeDummy());
+  }
+
+  void load()
+  {
+    readBlocks();
+    if (in)
+    {
+      if (!obj)
+        obj = makeDummy();
+      attach(obj);
+    }
+    if (mtl)
+      n->SetMtl(mtl);
+    done = true;
+  }
+
+private:
+  Object *makeDummy() const
+  {
+    Object *dummy = (Object *)ctx.ii->Create(GEOMOBJECT_CLASS_ID, Dummy_CID);
+    assert(dummy);
+    return dummy;
+  }
+
+  void attach(Object *o)
+  {
+    in->Reference(o);
+    parent->AttachChild(n, 0);
+  }
+
+  void setObject(Object *o)
+  {
+    if (obj)
+      obj->DeleteMe();
+    obj = o;
+  }
+
+  TriObject *triObject() const
+  {
+    return obj && obj->IsSubClassOf(Class_ID(TRIOBJ_CLASS_ID, 0)) ? static_cast<TriObject *>(obj) : nullptr;
+  }
+
+  bool mirrored() const { return n->GetNodeTM(0).Parity(); }
+
+  void readBlocks()
+  {
+    while (r.rest() > 0)
+    {
+      DagReader::Block block(r);
+      DebugPrint(_T("load_node %d\n"), r.type());
+
+      switch (r.type())
+      {
+        case DAG_NODE_DATA: readData(); break;
+        case DAG_NODE_TM:
+          if (in)
+            readTransform();
+          break;
+        case DAG_NODE_SCRIPT:
+          if (in)
+            readScript();
+          break;
+        case DAG_NODE_MATER:
+          if (in)
+            readMaterials();
+          break;
+        case DAG_NODE_OBJ:
+          if (in)
+            readObject();
+          break;
+        case DAG_NODE_CHILDREN: readChildren(); break;
+      }
+    }
+  }
+
+  void readData()
+  {
+    const auto d = r.get<DagNodeData>();
+    n->SetRenderable(d.flg & DAG_NF_RENDERABLE ? 1 : 0);
+    n->SetCastShadows(d.flg & DAG_NF_CASTSHADOW ? 1 : 0);
+    n->SetRcvShadows(d.flg & DAG_NF_RCVSHADOW ? 1 : 0);
+    NodeId id(d.id, n);
+    ctx.node_id.Append(1, &id);
+    flags = d.flg;
+
+    const int name_len = r.rest();
+    if (name_len > 0 && in)
+    {
+      const std::wstring name = r.string(name_len);
+      in->SetName(name.data(), DagImp::useLegacyImport);
+      DebugPrint(_T("node <%s>\n"), name.data());
+    }
+  }
+
+  void readTransform()
+  {
+    Matrix3 tm;
+    r.field(tm.GetAddr(), 4 * sizeof(MRow), L"the transform");
+    tm.SetNotIdent();
+    if (ctx.need_rescale)
+      tm.SetTrans(tm.GetTrans() * ctx.master_scale);
+    if (parent->IsRootNode())
+      adj_wtm(tm);
+    in->SetTransform(0, tm);
+  }
+
+  void readScript()
+  {
+    const int len = r.rest();
+    if (len <= 0)
+      return;
+    const std::wstring trimmed = trim_params(r.string(len));
+    n->SetUserPropBuffer(trimmed.data());
+  }
+
+  Mtl *material(ushort id)
+  {
+    if (id >= mat.size())
+      return nullptr;
+    if (!mat[id].mtl)
+      make_mtl(mat[id], id, DagorMat2_CID);
+    return mat[id].mtl;
+  }
+
+  void readMaterials()
+  {
+    const auto ids = r.getArray<ushort>(r.restItems(sizeof(ushort)), L"material ids");
+    if (ids.size() > 1)
+    {
+      MultiMtl *mm = NewDefaultMultiMtl();
+      assert(mm);
+      multi_mat.push_back(mm);
+      mm->SetNumSubMtls(int(ids.size()));
+      for (int i = 0; i < int(ids.size()); ++i)
+        if (Mtl *sub = material(ids[i]))
+          mm->SetSubMtl(i, sub);
+      mm->SetName(n->GetName());
+      mtl = mm;
+    }
+    else if (ids.size() == 1)
+    {
+      if (Mtl *single = material(ids[0]))
+        mtl = single;
+    }
+  }
+
+  void readObject()
+  {
+    while (r.rest() > 0)
+    {
+      DagReader::Block block(r);
+      switch (r.type())
+      {
+        // These two blocks are the object, unlike FACEFLG, NORMALS and BONES, which annotate one
+        // that already exists and can each be dropped on their own. A count that does not fit is
+        // found part way through building the mesh, so dropping the block would leave the node
+        // holding half a mesh or none, and the scene would come back quietly missing geometry
+        // rather than missing a detail. A mesh that does not fit its block fails the import instead.
+        case DAG_OBJ_BIGMESH: readMesh<BigMesh>(); break;
+        case DAG_OBJ_MESH: readMesh<NarrowMesh>(); break;
+        case DAG_OBJ_BONES: readBones(); break;
+        case DAG_OBJ_SPLINES: readSplines(); break;
+        case DAG_OBJ_LIGHT: readLight(); break;
+        case DAG_OBJ_FACEFLG:
+          if (TriObject *tri = triObject())
+            readFaceFlags(*tri);
+          break;
+        case DAG_OBJ_NORMALS:
+          if (TriObject *tri = triObject())
+            readNormals(*tri);
+          break;
+      }
+    }
+  }
+
+  template <class Fmt>
+  void readMesh()
+  {
+    TriObject *tri = CreateNewTriObject();
+    if (!tri)
+      reject(L"cannot create the mesh object");
+    setObject(tri);
+
+    Mesh &m = tri->mesh;
+    read_mesh<Fmt>(r, m);
+    if (ctx.need_rescale)
+      for (int i = 0; i < m.numVerts; ++i)
+        m.verts[i] *= ctx.master_scale;
+    if (mirrored())
+      flip_normals(m);
+  }
+
+  // A block that does not add up costs its own skin and not the whole scene: the block is skipped
+  // either way, the way the FACEFLG and NORMALS blocks already behave. A block with no bones carries
+  // no skin and no weight matrix at all.
+  void readBones()
+  {
+    if (r.rest() < int(sizeof(ushort)))
+    {
+      log_import(DagorLogWindow::LogLevel::Warning, n, L"the bone block has no bone count, skinning skipped");
+      return;
+    }
+    const ushort numb = r.get<ushort>();
+    if (!numb)
+      return;
+
+    // the bones and the vertex count behind them have to be measured against what the block still holds
+    if (r.rest() < int(numb * sizeof(DagBone)) + 4)
+    {
+      log_import(DagorLogWindow::LogLevel::Warning, n, L"the table of {} bones does not fit its block, skinning skipped", numb);
+      return;
+    }
+
+    SkinData &sd = ctx.skin_data.emplace_back();
+    sd.skinNode = n;
+    sd.numb = numb;
+    sd.bones.SetCount(numb);
+    r.field(sd.bones.data(), numb * sizeof(DagBone), L"the bones");
+    sd.numvert = r.get<int>(L"the skin vertex count");
+
+    // the numb by numvert matrix of floats has to fit in what is left of the block too, which also
+    // keeps numvert * numb inside an int
+    const int maxvert = r.rest() / int(numb * sizeof(float));
+    if (sd.numvert < 0 || sd.numvert > maxvert)
+    {
+      log_import(DagorLogWindow::LogLevel::Warning, n, L"the weight matrix of {} vertices does not fit its block, skinning skipped",
+        sd.numvert);
+      ctx.skin_data.pop_back();
+      return;
+    }
+    if (sd.numvert)
+    {
+      sd.wt.SetCount(sd.numvert * numb);
+      r.field(sd.wt.data(), sd.wt.Count() * sizeof(float), L"the skin weights");
+    }
+  }
+
+  void readSplines()
+  {
+    SplineShape *shape = new SplineShape;
+    setObject(shape);
+    BezierShape &shp = shape->shape;
+
+    for (int numspl = r.get<int>(L"the spline count"); numspl > 0; --numspl)
+    {
+      Spline3D &s = *shp.NewSpline();
+      const char flg = r.get<char>(L"a spline header");
+      for (int numk = r.get<int>(L"a spline header"); numk > 0; --numk)
+      {
+        [[maybe_unused]] const auto ktype = r.get<char>(L"a spline knot");
+        Point3 i = r.get<Point3>(L"a spline knot");
+        Point3 p = r.get<Point3>(L"a spline knot");
+        Point3 o = r.get<Point3>(L"a spline knot");
+        if (ctx.need_rescale)
+        {
+          i *= ctx.master_scale;
+          p *= ctx.master_scale;
+          o *= ctx.master_scale;
+        }
+        s.AddKnot(SplineKnot(KTYPE_BEZIER_CORNER, LTYPE_CURVE, p, i, o));
+      }
+      s.SetClosed(flg & DAG_SPLINE_CLOSED ? 1 : 0);
+      s.ComputeBezPoints();
+    }
+    shp.UpdateSels();
+    shp.InvalidateGeomCache();
+    shp.InvalidateCapCache();
+  }
+
+  void readLight()
+  {
+    const auto dl = r.get<DagLight>(L"a light");
+    const Color c(dl.r, dl.g, dl.b);
+    DagLight2 dl2;
+    if (r.rest() == int(sizeof(DagLight2)))
+      dl2 = r.get<DagLight2>();
+    else
+    {
+      dl2.mult = MaxVal(c);
+      dl2.type = DAG_LIGHT_OMNI;
+      dl2.hotspot = 0;
+      dl2.falloff = 0;
+    }
+
+    const TimeValue time = ctx.ip->GetTime();
+    auto *lt = static_cast<GenLight *>(ctx.ip->CreateInstance(LIGHT_CLASS_ID, light_class(dl2.type)));
+    if (!lt)
+      reject(L"cannot create the light object");
+    float mc = dl2.mult;
+    lt->SetIntensity(time, mc);
+    if (mc == 0)
+      mc = 1;
+    lt->SetRGBColor(time, Point3((float *)(c / mc)));
+    if (dl2.type != DAG_LIGHT_OMNI)
+    {
+      lt->SetHotspot(time, dl2.hotspot);
+      lt->SetFallsize(time, dl2.falloff);
+    }
+    lt->SetAtten(time, ATTEN_START, dl.range);
+    lt->SetAtten(time, ATTEN_END, dl.range);
+    lt->SetUseAtten(TRUE);
+    lt->SetDecayType(dl.decay);
+    lt->SetDecayRadius(time, dl.drad);
+    lt->SetShadow(flags & DAG_NF_CASTSHADOW ? 1 : 0);
+    lt->SetUseLight(TRUE);
+    lt->Enable(TRUE);
+    setObject(lt);
+  }
+
+  void readFaceFlags(TriObject &tri)
+  {
+    Mesh &m = tri.mesh;
+    if (m.numFaces != r.rest())
+      return;
+
+    // a mirrored mesh was flipped on load, and FlipNormal() swaps the first two vertices of a face
+    // and with them its edges B and C
+    const bool flip = mirrored();
+    const DWORD edge1 = flip ? EDGE_C : EDGE_B;
+    const DWORD edge0 = flip ? EDGE_B : EDGE_C;
+    const auto ef = r.getArray<char>(m.numFaces, L"face flags");
+    for (int i = 0; i < m.numFaces; ++i)
+    {
+      Face &f = m.faces[i];
+      f.flags &= ~(EDGE_ALL | FACE_HIDDEN);
+      if (ef[i] & DAG_FACEFLG_EDGE2)
+        f.flags |= EDGE_A;
+      if (ef[i] & DAG_FACEFLG_EDGE1)
+        f.flags |= edge1;
+      if (ef[i] & DAG_FACEFLG_EDGE0)
+        f.flags |= edge0;
+      if (ef[i] & DAG_FACEFLG_HIDDEN)
+        f.flags |= FACE_HIDDEN;
+    }
+  }
+
+  void readNormals(TriObject &tri)
+  {
+    Mesh &m = tri.mesh;
+    if (!m.GetSpecifiedNormals())
+      m.SpecifyNormals();
+    MeshNormalSpec *normalSpec = m.GetSpecifiedNormals();
+    if (!normalSpec || r.rest() < int(sizeof(int)))
+      return;
+
+    const int numNormals = r.get<int>();
+    if (numNormals <= 0 || r.rest() != int64_t(numNormals) * 12 + int64_t(m.numFaces) * 12)
+      return;
+
+    const auto normals = r.getArray<Point3>(numNormals, L"normals");
+    const auto indices = r.getArray<int>(size_t(m.numFaces) * 3, L"normal indices");
+
+    const auto bad = std::ranges::find_if(indices, [numNormals](int id) { return id < 0 || id >= numNormals; });
+    if (bad != indices.end())
+    {
+      log_import(DagorLogWindow::LogLevel::Warning, n, L"face {} points outside the {} normals, normals skipped",
+        int(bad - indices.begin()) / 3, numNormals);
+      return;
+    }
+
+    normalSpec->SetParent(&m);
+    normalSpec->CheckNormals();
+    normalSpec->SetNumNormals(numNormals);
+    normalSpec->SetAllExplicit(true);
+    std::copy(normals.begin(), normals.end(), normalSpec->GetNormalArray());
+
+    for (int i = 0; i < m.numFaces; i++)
+    {
+      normalSpec->SetNormalIndex(i, 0, indices[i * 3]);
+      normalSpec->SetNormalIndex(i, 1, indices[i * 3 + 2]);
+      normalSpec->SetNormalIndex(i, 2, indices[i * 3 + 1]);
+    }
+  }
+
+  void readChildren()
+  {
+    while (r.rest() > 0)
+    {
+      DagReader::Block block(r);
+      if (r.type() == DAG_NODE)
+      {
+        if (depth >= MAX_NODE_DEPTH)
+          reject(L"the node hierarchy is deeper than {} levels", MAX_NODE_DEPTH);
+        NodeLoader(ctx, r, n, depth + 1).load();
+      }
+      else if (r.type() == DAG_MATER)
+        reject(L"a material block among the children of a node");
+    }
+  }
+
+  ImportCtx &ctx;
+  DagReader &r;
+  INode *parent;
+  const int depth;
+  ImpNode *in = nullptr;
+  INode *n = nullptr;
+  Object *obj = nullptr;
+  Mtl *mtl = nullptr;
+  int flags = 0;
+  bool done = false;
+};
+} // namespace
 
 static bool find_co_files(const fs::path &fname, std::vector<std::wstring> &fnames)
 {
@@ -2337,12 +2350,13 @@ static void logImportError(const fs::path &fname, const TSTR &layerName)
   DagorLogWindow::show();
 }
 
-void DagImp::makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii, Interface *ip, bool nomsg)
+bool DagImp::makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii, Interface *ip, bool nomsg)
 {
   static const int ext_length = 6; // ".lodNN"
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
 
+  bool imported = false;
   for (const fs::path &fn : fnames)
   {
     TSTR layerName = fn.stem().c_str();
@@ -2362,20 +2376,47 @@ void DagImp::makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii
 
     manager->SetCurrentLayer(layerName);
 
-    if (!doImportOne(fn.c_str(), ii, ip, nomsg))
+    if (doImportOne(fn.c_str(), ii, ip, nomsg))
+      imported = true;
+    else
       logImportError(fn, layerName);
   }
+  return imported;
 }
 
-void DagImp::makeHierLayer(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg)
+bool DagImp::makeHierLayer(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg)
 {
   TSTR layerName = fname.stem().c_str();
 
   ResolvedLayer resolved = resolveLayerNameCollision(layerName);
   layerName = resolved.name;
 
-  if (!doImportOne(fname.c_str(), ii, ip, nomsg))
-    logImportError(fname, layerName);
+  if (doImportOne(fname.c_str(), ii, ip, nomsg))
+    return true;
+
+  logImportError(fname, layerName);
+  return false;
+}
+
+static std::vector<fs::path> drop_namesakes(std::vector<fs::path> files)
+{
+  std::ranges::stable_sort(files, {}, [](const fs::path &f) { return std::distance(f.begin(), f.end()); });
+
+  std::vector<fs::path> kept;
+  kept.reserve(files.size());
+  for (fs::path &f : files)
+  {
+    auto it = std::ranges::find_if(kept, [&f](const fs::path &k) { return iequal(k.filename().native(), f.filename().native()); });
+    if (it == kept.end())
+    {
+      kept.push_back(std::move(f));
+      continue;
+    }
+    DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning, L"ignore duplicated \"%s\" (already have \"%s\")\r\n", f.c_str(),
+      it->c_str());
+    DagorLogWindow::show();
+  }
+  return kept;
 }
 
 int DagImp::doHierImport(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg)
@@ -2417,26 +2458,28 @@ int DagImp::doHierImport(const fs::path &fname, ImpInterface *ii, Interface *ip,
   {
     DagImp::useLegacyImport = false;
     if (IDOK != DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_IMPORT), NULL, (DLGPROC)ImportOptDlgProc, (LPARAM)IDOK))
-      return 1;
+      return IMPEXP_CANCEL;
   }
   if (DagImp::useLegacyImport)
-    return 0;
+    return doLegacyImport(fname.c_str(), ii, ip, nomsg);
 
   if (exact_match)
   {
     std::error_code ec;
     if (!fs::is_regular_file(fname, ec))
-      return 0;
-    makeHierLayer(fname, ii, ip, nomsg);
-    return 1;
+      return IMPEXP_FAIL;
+    return makeHierLayer(fname, ii, ip, nomsg) ? IMPEXP_SUCCESS : IMPEXP_FAIL;
   }
 
   // get proper list of files based on actual user's choice
   rex = filenameToRegex(fname.filename(), checked.dp, checked.lod, checked.destr, checked.dmg, checked.dm, basename_re, exact_match);
   files = files_include_re(glob(dirPath, searchInSubfolders), rex);
+  if (reimportExisting)
+    files = drop_namesakes(std::move(files));
 
   std::vector<fs::path> layer_files;
   layer_files.reserve(32);
+  bool imported = false;
 
   if (checked.lod)
     layer_files = files_include_re(files, lod_re);
@@ -2446,39 +2489,55 @@ int DagImp::doHierImport(const fs::path &fname, ImpInterface *ii, Interface *ip,
     layer_files.push_back(fname);
   }
   if (!layer_files.empty())
-    makeHierLayer(layer_files, ii, ip, nomsg);
+    imported |= makeHierLayer(layer_files, ii, ip, nomsg);
 
   layer_files = files_include_re(files, dm_re);
   if (!layer_files.empty())
-    makeHierLayer(layer_files.front(), ii, ip, nomsg);
+    imported |= makeHierLayer(layer_files.front(), ii, ip, nomsg);
 
   layer_files = files_include_re(files, dmg_re);
   if (!layer_files.empty())
-    makeHierLayer(layer_files, ii, ip, nomsg);
+    imported |= makeHierLayer(layer_files, ii, ip, nomsg);
 
   layer_files = files_include_re(files, destr_re);
   if (!layer_files.empty())
-    makeHierLayer(layer_files, ii, ip, nomsg);
+    imported |= makeHierLayer(layer_files, ii, ip, nomsg);
 
   for (int i = 0; i < 100; ++i)
   {
     std::wstring re = std::format(L"^{}_dp_{:02}\\.lod\\d\\d\\.dag$", basename_re, i);
     layer_files = files_include_re(files, re);
     if (!layer_files.empty())
-      makeHierLayer(layer_files, ii, ip, nomsg);
+      imported |= makeHierLayer(layer_files, ii, ip, nomsg);
 
     re = std::format(L"^{}_dp_{:02}_dmg\\.lod\\d\\d\\.dag$", basename_re, i);
     layer_files = files_include_re(files, re);
     if (!layer_files.empty())
-      makeHierLayer(layer_files, ii, ip, nomsg);
+      imported |= makeHierLayer(layer_files, ii, ip, nomsg);
 
     re = std::format(L"^{}_dp_{:02}_destr\\.lod\\d\\d\\.dag$", basename_re, i);
     layer_files = files_include_re(files, re);
     if (!layer_files.empty())
-      makeHierLayer(layer_files, ii, ip, nomsg);
+      imported |= makeHierLayer(layer_files, ii, ip, nomsg);
   }
 
-  return 1;
+  return imported ? IMPEXP_SUCCESS : IMPEXP_FAIL;
+}
+
+
+static void clear_scene_layers()
+{
+  ILayerManagerEx *manager = (ILayerManagerEx *)GetCOREInterface13()->GetLayerManager();
+  ILayer *root = manager->GetRootLayer();
+  for (int i = 0; i < manager->GetLayerCount();)
+  {
+    ILayer *layer = manager->GetLayer(i);
+    ILayer *parent = layer->GetParentLayer();
+    if (layer != root && (!parent || parent == root) && manager->DeleteLayerHierarchy(layer, true) > 0)
+      i = 0;
+    else
+      ++i;
+  }
 }
 
 
@@ -2496,8 +2555,8 @@ int DagImp::doLegacyImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, 
       (!nomsg && MessageBox(GetFocus(), buf.c_str(), _T("Import layered DAGs"), MB_YESNO | MB_ICONQUESTION) != IDYES))
     return doImportOne(fname, ii, ip, nomsg);
 
+  clear_scene_layers();
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
-  manager->Reset();
   for (size_t i = 0; i < fnames.size(); i += 2)
   {
     TSTR layer_nm(fnames[i + 1].data());
@@ -2506,7 +2565,6 @@ int DagImp::doLegacyImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, 
     if (!doImportOne(fnames[i].data(), ii, ip, nomsg))
       return 0;
   }
-  manager->SetCurrentLayer();
   return 1;
 }
 
@@ -2549,12 +2607,37 @@ int DagImp::doMaxscriptImport(const TSTR &fname, ImpInterface *ii, Interface *ip
   return doHierImport(fname.data(), ii, ip, nomsg);
 }
 
+namespace
+{
+class CurrentLayerKeeper
+{
+  ILayerManagerEx *manager = (ILayerManagerEx *)GetCOREInterface13()->GetLayerManager();
+  ILayer *layer = manager->GetCurrentLayer();
+  AnimHandle handle = layer ? Animatable::GetHandleByAnim(layer) : 0;
+
+public:
+  CurrentLayerKeeper() = default;
+  ~CurrentLayerKeeper()
+  {
+    if (!layer)
+      return;
+    if (Animatable::GetAnimByHandle(handle) != layer || manager->GetLayer(layer->GetName()) != layer)
+      layer = manager->GetRootLayer();
+    if (layer)
+      manager->SetCurrentLayer(layer);
+  }
+  CurrentLayerKeeper(const CurrentLayerKeeper &) = delete;
+  CurrentLayerKeeper &operator=(const CurrentLayerKeeper &) = delete;
+};
+} // namespace
+
 //
 // Main entry point for GetCOREInterface()->ImportFromFile()
 //
 int DagImp::DoImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOOL nomsg)
 {
   nomsg = nomsg || ip->GetQuietMode();
+  CurrentLayerKeeper currentLayerKeeper;
 
   if (useLegacyImport)
     return doLegacyImport(fname, ii, ip, nomsg);
@@ -2574,10 +2657,6 @@ int DagImp::DoImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOOL n
   util.filePath = fname;
   TabCtrl_SetCurSel(util.hTab, useLegacyImport ? 0 : 1);
   util.onTabChanged(util.hImpPanel);
-
-  // user selected the Legacy option
-  if (useLegacyImport)
-    return doLegacyImport(fname, ii, ip, nomsg);
 
   return res;
 }
@@ -2603,200 +2682,168 @@ bool DagImp::isNamesake(const fs::path &fname) const
 }
 
 
-#define rd(p, l)                \
-  {                             \
-    if (fread(p, l, 1, h) != 1) \
-      goto read_err;            \
+static void read_textures(DagReader &r)
+{
+  tex.resize(r.get<ushort>(L"the texture count"));
+  for (std::wstring &name : tex)
+    name = r.string(r.get<uchar>(L"a texture name length"));
+}
+
+static void read_material(DagReader &r)
+{
+  ImpMat m;
+  m.name = r.string(r.get<uchar>(L"a material name length"));
+  m.m = r.get<DagMater>(L"a material");
+  m.clsname = r.string(r.get<uchar>(L"a material class name length"));
+  m.script = r.string(r.rest());
+  mat.push_back(std::move(m));
+}
+
+// False if the file is not a DAG at all. Throws DagError if it is one that cannot be read.
+static bool read_dag(FILE *f, ImportCtx &ctx)
+{
+  uint id = 0;
+  if (fread(&id, sizeof id, 1, f) != 1)
+    reject(L"the file could not be read");
+  if (id != DAG_ID)
+    return false;
+
+  DagReader r(f);
+  DagReader::Block file_block(r);
+  if (r.type() != DAG_ID)
+    return false;
+
+  while (r.rest() > 0)
+  {
+    DagReader::Block block(r);
+    DebugPrint(_T("imp %d\n"), r.type());
+    if (r.type() == DAG_END)
+      break;
+
+    switch (r.type())
+    {
+      case DAG_TEXTURES: read_textures(r); break;
+      case DAG_MATER: read_material(r); break;
+      case DAG_NODE: NodeLoader(ctx, r, nullptr, 0).load(); break;
+    }
+  }
+  return true;
+}
+
+static INode *find_node(const Tab<NodeId> &node_id, int id)
+{
+  for (int i = 0; i < node_id.Count(); ++i)
+    if (node_id[i].id == id)
+      return node_id[i].node;
+  return nullptr;
+}
+
+static void apply_skin(const SkinData &sd, const Tab<NodeId> &node_id)
+{
+  using LogLevel = DagorLogWindow::LogLevel;
+  INode *node = sd.skinNode;
+
+  // dagfmt.h: "numv should be equal to number of mesh vertexes", and AddWeights() below indexes
+  // the node's object with it. The object cannot be judged while the bone block is read: a later
+  // block of the same node replaces it, and in->Reference() keeps the last one.
+  Object *nodeObj = node->GetObjectRef();
+  const int nodeVerts = (nodeObj && nodeObj->IsSubClassOf(Class_ID(TRIOBJ_CLASS_ID, 0))) ? ((TriObject *)nodeObj)->mesh.numVerts : 0;
+  if (sd.numvert != nodeVerts)
+  {
+    log_import(LogLevel::Warning, node, L"skin covers {} vertices but the object has {}, skinning skipped", sd.numvert, nodeVerts);
+    return;
   }
 
+  // a bone that is not in the scene takes its share of every vertex weight with it, and a skin
+  // that deforms wrong is worse than none, so the whole skin goes rather than that one bone
+  Tab<INode *> bn;
+  bn.SetCount(sd.numb);
+  for (int j = 0; j < sd.numb; ++j)
+  {
+    bn[j] = find_node(node_id, sd.bones[j].id);
+    if (!bn[j])
+    {
+      log_import(LogLevel::Warning, node, L"skin refers to missing bone {:04X}, skinning skipped", sd.bones[j].id);
+      return;
+    }
+  }
+
+  // the interface is taken before the modifier is attached, so a refusal leaves nothing on the node
+  Modifier *skinMod = (Modifier *)CreateInstance(OSM_CLASS_ID, SKIN_CLASSID);
+  ISkinImportData *iskinImport = skinMod ? (ISkinImportData *)skinMod->GetInterface(I_SKINIMPORTDATA) : NULL;
+  if (!iskinImport)
+  {
+    log_import(LogLevel::Warning, node, L"the skin modifier is unavailable, skinning skipped");
+    if (skinMod)
+      skinMod->MaybeAutoDelete();
+    return;
+  }
+  if (GetCOREInterface12()->AddModifier(*node, *skinMod) != Interface7::kRES_SUCCESS)
+  {
+    log_import(LogLevel::Warning, node, L"the skin modifier does not apply to the object, skinning skipped");
+    skinMod->MaybeAutoDelete();
+    return;
+  }
+
+  // AddWeights() indexes the bone table, so one bone the modifier refuses reopens the hole the
+  // resolution pass above closed, and the skin has to come off the node again
+  std::wstring skinErr;
+  for (int j = 0; j < sd.numb && skinErr.empty(); j++)
+    if (!iskinImport->AddBoneEx(bn[j], j + 1 == sd.numb))
+      skinErr = std::format(L"the skin modifier did not take bone {:04X}", sd.bones[j].id);
+
+  Tab<float> wt;
+  wt.SetCount(sd.numb);
+  for (int j = 0; j < sd.numvert && skinErr.empty(); j++)
+  {
+    for (int b = 0; b < sd.numb; b++)
+      wt[b] = sd.wt[b * sd.numvert + j];
+    if (!iskinImport->AddWeights(node, j, bn, wt))
+      skinErr = std::format(L"the skin modifier did not take the weights of vertex {}", j);
+  }
+
+  if (!skinErr.empty())
+  {
+    log_import(LogLevel::Warning, node, L"{}, skinning skipped", skinErr);
+    GetCOREInterface12()->DeleteModifier(*node, *skinMod);
+  }
+}
 
 int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOOL nomsg)
 {
   DebugPrint(_T("import...\n"));
 
   cleanup();
-  std::vector<SkinData> skin_data;
-  Tab<NodeId> node_id;
   scene_name = fs::path(fname).stem().c_str();
-  FILE *h = _tfopen(fname, _T("rb"));
-  if (!h)
-  {
+
+  const auto prompt = [&](int string_id) {
     if (!nomsg)
-      ip->DisplayTempPrompt(GetString(IDS_FILE_OPEN_ERR), ERRMSG_DELAY);
+      ip->DisplayTempPrompt(GetString(string_id), ERRMSG_DELAY);
     return 0;
-  }
+  };
+
+  std::unique_ptr<FILE, int (*)(FILE *)> file(_tfopen(fname, _T("rb")), fclose);
+  if (!file)
+    return prompt(IDS_FILE_OPEN_ERR);
+
+  ImportCtx ctx{ii, ip};
+  bool is_dag = false;
+  try
   {
-    int id;
-    rd(&id, 4);
-    if (id != DAG_ID)
-    {
-      fclose(h);
-      if (!nomsg)
-        ip->DisplayTempPrompt(GetString(IDS_INVALID_DAGFILE), ERRMSG_DELAY);
-      return 0;
-    }
+    is_dag = read_dag(file.get(), ctx);
   }
-
-  init_blk(h);
-  bblk;
-  DebugPrint(_T("imp_a\n"));
-  if (blk_type() != DAG_ID)
+  catch (const DagError &e)
   {
-    fclose(h);
-    if (!nomsg)
-      ip->DisplayTempPrompt(GetString(IDS_INVALID_DAGFILE), ERRMSG_DELAY);
-    return 0;
+    log_import(DagorLogWindow::LogLevel::Error, ctx.failed, L"{}, import aborted", e.what);
+    cleanup();
+    return prompt(IDS_FILE_READ_ERR);
   }
-  for (; blk_rest() > 0;)
-  {
-    bblk;
-    DebugPrint(_T("imp %d\n"), blk_type());
-    if (blk_type() == DAG_END)
-    {
-      eblk;
-      break;
-    }
-    if (blk_type() == DAG_TEXTURES)
-    {
-      int n = 0;
-      rd(&n, 2);
-      tex.resize(n);
-      for (int i = 0; i < n; ++i)
-      {
-        int l = 0;
-        rd(&l, 1);
+  file.reset();
+  if (!is_dag)
+    return prompt(IDS_INVALID_DAGFILE);
 
-        if (!read_char_string(l, h, tex[i]))
-          goto read_err;
-      }
-    }
-    else if (blk_type() == DAG_MATER)
-    {
-      ImpMat m;
-      int l = 0;
-      rd(&l, 1);
-      if (!read_char_string(l, h, m.name))
-        goto read_err;
-      rd(&m.m, sizeof(m.m));
-      l = 0;
-      rd(&l, 1);
-      if (!read_char_string(l, h, m.clsname))
-        goto read_err;
-      l = blk_rest();
-      if (!read_char_string(l, h, m.script))
-        goto read_err;
-      mat.push_back(m);
-    }
-    else if (blk_type() == DAG_NODE)
-    {
-      if (!load_node(NULL, h, ii, ip, skin_data, node_id))
-        goto read_err;
-    }
-    DebugPrint(_T("imp_b\n"));
-    eblk;
-  }
-  eblk;
-#undef rd
-#undef bblk
-#undef eblk
-  fclose(h);
-
-  for (size_t i = 0; i < skin_data.size(); i++)
-  {
-    SkinData &sd = skin_data[i];
-
-    // dagfmt.h: "numv should be equal to number of mesh vertexes", and AddWeights() below indexes
-    // the node's object with it. The object cannot be judged while the bone block is read: a later
-    // block of the same node replaces it, and in->Reference() keeps the last one.
-    Object *nodeObj = sd.skinNode->GetObjectRef();
-    const int nodeVerts = (nodeObj && nodeObj->IsSubClassOf(Class_ID(TRIOBJ_CLASS_ID, 0))) ? ((TriObject *)nodeObj)->mesh.numVerts : 0;
-    if (sd.numvert != nodeVerts)
-    {
-      DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning,
-        L"%s: '%s': skin covers %d vertices but the object has %d, skinning skipped\r\n", scene_name.data(), sd.skinNode->GetName(),
-        sd.numvert, nodeVerts);
-      DagorLogWindow::show();
-      continue;
-    }
-
-    // a bone that is not in the scene takes its share of every vertex weight with it, and a skin
-    // that deforms wrong is worse than none, so the whole skin goes rather than that one bone
-    Tab<INode *> bn;
-    bn.SetCount(sd.numb);
-    bool bonesResolved = true;
-    for (int j = 0; j < bn.Count(); j++)
-    {
-      bn[j] = NULL;
-      for (int k = 0; k < node_id.Count(); k++)
-        if (sd.bones[j].id == node_id[k].id)
-        {
-          bn[j] = node_id[k].node;
-          break;
-        }
-      if (!bn[j])
-      {
-        DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning,
-          L"%s: '%s': skin refers to missing bone %04X, skinning skipped\r\n", scene_name.data(), sd.skinNode->GetName(),
-          sd.bones[j].id);
-        DagorLogWindow::show();
-        bonesResolved = false;
-        break;
-      }
-    }
-    if (!bonesResolved)
-      continue;
-
-    // the interface is taken before the modifier is attached, so a refusal leaves nothing on the node
-    Modifier *skinMod = (Modifier *)CreateInstance(OSM_CLASS_ID, SKIN_CLASSID);
-    ISkinImportData *iskinImport = skinMod ? (ISkinImportData *)skinMod->GetInterface(I_SKINIMPORTDATA) : NULL;
-    if (!iskinImport)
-    {
-      DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning, L"%s: '%s': the skin modifier is unavailable, skinning skipped\r\n",
-        scene_name.data(), sd.skinNode->GetName());
-      DagorLogWindow::show();
-      if (skinMod)
-        skinMod->MaybeAutoDelete();
-      continue;
-    }
-    if (GetCOREInterface12()->AddModifier(*sd.skinNode, *skinMod) != Interface7::kRES_SUCCESS)
-    {
-      DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning,
-        L"%s: '%s': the skin modifier does not apply to the object, skinning skipped\r\n", scene_name.data(), sd.skinNode->GetName());
-      DagorLogWindow::show();
-      skinMod->MaybeAutoDelete();
-      continue;
-    }
-
-    // AddWeights() indexes the bone table, so one bone the modifier refuses reopens the hole the
-    // resolution pass above closed, and the skin has to come off the node again
-    bool skinFilled = true;
-    std::wstring skinErr;
-    for (int j = 0; j < bn.Count() && skinFilled; j++)
-    {
-      skinFilled = iskinImport->AddBoneEx(bn[j], j + 1 == sd.numb);
-      if (!skinFilled)
-        skinErr = std::format(L"the skin modifier did not take bone {:04X}", sd.bones[j].id);
-    }
-
-    Tab<float> wt;
-    wt.SetCount(sd.numb);
-    for (int j = 0; j < sd.numvert && skinFilled; j++)
-    {
-      for (int b = 0; b < sd.numb; b++)
-        wt[b] = sd.wt[b * sd.numvert + j];
-      skinFilled = iskinImport->AddWeights(sd.skinNode, j, bn, wt);
-      if (!skinFilled)
-        skinErr = std::format(L"the skin modifier did not take the weights of vertex {}", j);
-    }
-
-    if (!skinFilled)
-    {
-      DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning, L"%s: '%s': %s, skinning skipped\r\n", scene_name.data(),
-        sd.skinNode->GetName(), skinErr.c_str());
-      DagorLogWindow::show();
-      GetCOREInterface12()->DeleteModifier(*sd.skinNode, *skinMod);
-    }
-  }
+  for (const SkinData &sd : ctx.skin_data)
+    apply_skin(sd, ctx.node_id);
 
   DebugPrint(_T("clean up\n"));
   cleanup();
@@ -2807,13 +2854,6 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
   DagImp::importedFiles.insert(ImportedFile(fname));
 
   return 1;
-read_err:
-  DebugPrint(_T("read error at %X of %s\n"), ftell(h), scene_name.data());
-  fclose(h);
-  cleanup();
-  if (!nomsg)
-    ip->DisplayTempPrompt(GetString(IDS_FILE_READ_ERR), ERRMSG_DELAY);
-  return 0;
 }
 
 //==========================================================================//

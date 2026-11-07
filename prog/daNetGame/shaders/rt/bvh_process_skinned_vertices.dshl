@@ -237,7 +237,7 @@ shader bvh_process_skinned_vertices_batched
       BRANCH
       if (params.cor_offset != 0xFFFFFFFFu)
         input.corOffset = BGRA_SWIZZLE(
-          float4((loadBuffer(source, vertexStart + params.cor_offset) >> INPUT_ENCODING_OFFSET) & 255) / 255);
+          (float4((loadBuffer(source, vertexStart + params.cor_offset) >> INPUT_ENCODING_OFFSET) & 255) / 255));
       #endif
 
       ##if bvh_process_skinned_vertices_cloth == yes

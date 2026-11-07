@@ -593,7 +593,7 @@ function [pure] utf8CharToInt(str): int {
   if (n == 0 || n > 4)
     return 0 //too many chars
   let { prefix, prefixMask, mask } = firstOctet[n - 1]
-  let first = str[0] & 0xFF // constraint: char is signed on some platforms
+  let first = str[0] & 0xFF // char is signed on some platforms
   if ((first & prefixMask) != prefix)
     return 0 //bad code
   local res = first & mask

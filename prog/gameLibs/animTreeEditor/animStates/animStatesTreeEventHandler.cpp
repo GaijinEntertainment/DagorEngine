@@ -11,24 +11,6 @@
 #include <osApiWrappers/dag_clipboard.h>
 #include <assets/assetUtils.h>
 
-namespace ContextMenu
-{
-enum
-{
-  COPY_NODE_NAME = 0,
-  COPY_FILEPATH,
-  COPY_FOLDER_PATH,
-  COPY_RESOLVED_FOLDER_PATH,
-  REVEAL_IN_EXPLORER,
-  ADD,
-  ADD_STATE,
-  ADD_CHAN,
-  ADD_STATE_ALIAS,
-  ADD_MORPH,
-  DRAW_CHILDS_TREE,
-};
-}
-
 AnimStatesTreeEventHandler::AnimStatesTreeEventHandler(dag::Vector<AnimStatesData> &states, dag::Vector<AnimCtrlData> &ctrls,
   dag::Vector<String> &paths, ChildsDialog &dialog) :
   states(states), ctrls(ctrls), paths(paths), dialog(dialog)

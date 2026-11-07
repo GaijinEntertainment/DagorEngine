@@ -42,7 +42,7 @@ AddIncludes =
 
 Sources += stcode_main.stcode.gen.cpp ;
 
-if $(Platform) in macOS iOS ps5 {
+if $(Platform) in macOS iOS ps5 android {
   CPPopt += -O3 -ffast-math ;
 } else {
   CPPopt += -Ofast ;

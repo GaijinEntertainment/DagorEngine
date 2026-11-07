@@ -497,7 +497,7 @@ public:
 
       if (!effectDafxSetupDone && dafx_helper_globals::ctx)
       {
-        set_up_dafx_effect(dafx_helper_globals::ctx, effect, true, true, &particles_debug_tm, partices_default_transform == 0);
+        set_up_dafx_effect(dafx_helper_globals::ctx, effect, true, true, particles_debug_tm, partices_default_transform == 0);
         effectDafxSetupDone = true;
       }
 
@@ -1164,6 +1164,14 @@ public:
       ScriptHelpers::load_helpers(paramBlk);
       ScriptHelpers::rebuild_tree_list();
     }
+    updateParamWarnings();
+  }
+
+  void updateParamWarnings()
+  {
+    DataBlock paramBlk;
+    ScriptHelpers::save_helpers(paramBlk, nullptr);
+    ScriptHelpers::set_param_warnings(get_effect_param_warnings(className, paramBlk));
   }
 
   void reloadScript()
@@ -1391,6 +1399,7 @@ protected:
   void onScriptHelpersParamChange() override
   {
     setDirty();
+    updateParamWarnings();
     loadFxParams();
     if (dafx_helper_globals::ctx) // simulation rollback
     {
@@ -1510,7 +1519,7 @@ protected:
 
     if (dafx_helper_globals::ctx)
     {
-      set_up_dafx_effect(dafx_helper_globals::ctx, effect, true, true, &particles_debug_tm, partices_default_transform == 0);
+      set_up_dafx_effect(dafx_helper_globals::ctx, effect, true, true, particles_debug_tm, partices_default_transform == 0);
       effectDafxSetupDone = true;
     }
   }

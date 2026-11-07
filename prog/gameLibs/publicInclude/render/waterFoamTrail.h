@@ -17,26 +17,12 @@ namespace water_trail
 {
 struct Settings
 {
-  int texSize;
-  int cascadeCount;
-  float cascadeArea;
-  float cascadeAreaMul;
-  float cascadeAreaScale;
+  int tessFactor;
 
-  float fadeInTime;
   float fadeOutTime;
-  float forwardExpand;
-  float quadHeight;
-  float widthThreshold;
-  float tailFadeInLength;
-
-  int activeVertexCount;
-  int finalizedVertexCount;
-  int maxPointsPerSegment;
-
   char texName[64];
   bool useTrail;
-  bool useObstacle;
+
   bool enableGenMuls;
   float underwaterFoamWidth;
   float underwaterFoamAlphaMult;
@@ -50,13 +36,15 @@ void close();
 void enable_render(bool v);
 void update_render_settings(const Settings &s);
 
-int create_emitter(float width, float gen_mul, float alpha_mul, float foam_mul, float inscat_mul);
+int create_emitter(float width, float life_time, int node_count, float alpha_mul, float foam_mul, float inscat_mul,
+  float turbulence_mul, float wave_height);
 void destroy_emitter(int em);
-void emit_point(int em, const Point2 &pt, const Point2 &dir, float alpha, bool is_underwater = true);
-void emit_point_ex(int em, const Point2 &pt, const Point2 &dir, const Point2 &left, const Point2 &right, float alpha);
+void detach_emitter(int em);
+void emit_point(int em, const Point2 &pt, const Point2 &dir, float alpha, bool is_underwater = true, float velocity = 10.0f);
+void emit_point_ex(int em, const Point2 &pt, const Point2 &dir, const Point2 &left, const Point2 &right, float alpha, float velocity);
 void finalize_trail(int em);
 
-void before_render(float dt, const Point3 &origin, const Frustum &frustum);
+void before_render(float dt, const Point3 &origin, const Frustum &frustum, float water_level);
 bool render();
 
 const Settings &get_settings();

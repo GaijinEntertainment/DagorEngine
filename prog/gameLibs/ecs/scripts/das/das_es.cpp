@@ -1988,6 +1988,8 @@ bool stop_loading_queue(TInitDas init, void *user_data)
       return loaded;
     }
     logwarn("das: serialize: failed to load scripts from serialized data. Fallback to regular loading");
+    if (bind_dascript::initDeserializer)
+      bind_dascript::initDeserializer->failed = true;
     bind_dascript::serializationReading = false;
     bind_dascript::suppressSerialization = true;
   }
@@ -3509,6 +3511,8 @@ void bind_dascript::free_serializer_buffer(bool success)
 {
   const bool needWriteSerData = success && bind_dascript::initSerializer && !bind_dascript::initSerializer->failed &&
                                 !bind_dascript::serializationFileName.empty();
+  // a failed restore marks the reader failed: serializeScript for one script, stop_loading_queue for the whole load
+  const bool restoreFellBack = bind_dascript::initDeserializer && bind_dascript::initDeserializer->failed;
 
   bind_dascript::initSerializerStorage.reset();
   bind_dascript::initDeserializerStorage.reset();
@@ -3528,6 +3532,12 @@ void bind_dascript::free_serializer_buffer(bool success)
   {
     dd_erase(newFileName.c_str());
     debug("das: serialize: dropped '%s' (no changes)", newFileName.c_str());
+    // this run does not rewrite the stale cache, so drop it and let the next start write a fresh one
+    if (restoreFellBack)
+    {
+      const auto &filename = bind_dascript::deserializationFileName;
+      logwarn("das: serialize: removed stale '%s' (erased? %@)", filename.c_str(), dd_erase(filename.c_str()));
+    }
   }
 }
 

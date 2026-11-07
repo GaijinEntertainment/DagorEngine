@@ -116,9 +116,6 @@ macro RAYCAST_CLOUDS(code)
         #define CLOUDS_USE_SMART_UPSCALING 1
       ##endif
     ##endif
-    ##if clouds_use_fullres == yes
-      #define CLOUDS_FULLRES 1
-    ##endif
     #ifndef CLOUDS_CHECKER_TRACE
       #define CLOUDS_CHECKER_TRACE 0
     #endif
@@ -145,7 +142,7 @@ macro RAYCAST_CLOUDS(code)
      #define CAN_BE_IN_CLOUDS 1
 
      #ifndef INFINITE_SKIES
-      ##if clouds_infinite_skies == yes
+      ##if clouds_infinite_skies == yes && shader != clouds2_direct && shader != clouds_panorama && shader != clouds_alpha_panorama
         #define INFINITE_SKIES 1
       ##else
         #define INFINITE_SKIES 0
@@ -222,6 +219,7 @@ macro RAYCAST_CLOUDS(code)
   CLOSE_LAYER_EARLY_EXIT_STUB(code)
 
   INIT_BRUNETON_FOG(code)
+  USE_SCATTERING_TC_Z_PRECISE(code)
   BASE_USE_BRUNETON_FOG(code)
   CLOUDS_SUN_SKY_LIGHT_COLOR(code)
   (code) {
@@ -233,10 +231,11 @@ macro RAYCAST_CLOUDS(code)
   }
   hlsl(code) {
     struct SunLightingPixelHelper {half_octaves phase;};
-    SunLightingPixelHelper getSunHelper(float3 view)
+    SunLightingPixelHelper getSunHelper(float3 view, bool view_hits_ground)
     {
       float cos0 = dot(skies_primary_sun_light_dir.xyz, view.xzy);
-      half_octaves phase = henyey_greenstein_optimized_multiple_scattering(cos0);
+      float spikeMul = view_hits_ground ? 0 : 1;
+      half_octaves phase = henyey_greenstein_optimized_multiple_scattering(cos0, spikeMul);
       SunLightingPixelHelper ret;
       ret.phase = phase;
       return ret;
@@ -854,11 +853,7 @@ macro RAYCAST_CLOUDS(code)
 
     #ifndef STEPS_PER_SEQUENCE
       #if TEMPORAL_REPROJECTION
-        #if CLOUDS_FULLRES
-          #define STEPS_PER_SEQUENCE 64 // fullres clouds can utilize more steps, since it's not blurred as much
-        #else
-          #define STEPS_PER_SEQUENCE 32
-        #endif
+        #define STEPS_PER_SEQUENCE 32
       #elif JUST_CLOSE_SEQUENCE
         #define STEPS_PER_SEQUENCE closeSequenceSteps
       #else
@@ -1000,8 +995,9 @@ macro RAYCAST_CLOUDS(code)
 
     // returns false if there is nothing to trace
     bool calc_trace_init_distances(float max_trace_dist, float2 texcoord, uint2 screenpos, float3 view, float viewLen, float startStepSize,
-      out float start, out float end, out float infinite_end)
+      out float start, out float end, out float infinite_end, out bool hits_ground)
     {
+      hits_ground = false;
       float distanceToClouds0, distanceToClouds1;
       distance_to_clouds(-view, distanceToClouds0, distanceToClouds1);
 
@@ -1022,6 +1018,7 @@ macro RAYCAST_CLOUDS(code)
         return false;
 
       float distToGround = calc_dist_to_ground(texcoord, start, viewLen);
+      hits_ground = distToGround < INFINITE_TRACE_DIST;
 
       end = min(end, distToGround);
       #if CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
@@ -1346,13 +1343,14 @@ macro RAYCAST_CLOUDS(code)
       float3 view = viewVect*invViewLen;
 
       float start, end, infiniteEnd;
-      BRANCH if (!calc_trace_init_distances(actualTraceDist, texcoord, screenpos, view, viewLen, startStepSize, start, end, infiniteEnd))
+      bool hitsGround;
+      BRANCH if (!calc_trace_init_distances(actualTraceDist, texcoord, screenpos, view, viewLen, startStepSize, start, end, infiniteEnd, hitsGround))
         return get_clouds_ret(float4(0,0,0,1), infiniteEnd, 0); // use INF dist
 
       TraceConstParams cp;
       cp.view = view;
       cp.end = end;
-      cp.sunPixelHelper = getSunHelper(view);
+      cp.sunPixelHelper = getSunHelper(view, hitsGround);
       cp.scatteringTc = scatteringTc;
       cp.stepsPerSequence = stepsPerSequence;
       cp.randomOfs = get_random_offset(screenpos);

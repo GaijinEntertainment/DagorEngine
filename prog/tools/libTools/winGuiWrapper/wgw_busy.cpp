@@ -11,12 +11,16 @@
 
 namespace wingw
 {
-static HCURSOR hc_timer_cursor = 0;
+static HCURSOR get_wait_cursor()
+{
+  static HCURSOR cursor = LoadCursor(NULL, IDC_WAIT);
+  return cursor;
+}
 
 LRESULT CALLBACK hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-  if (GetCursor() != hc_timer_cursor)
-    SetCursor(hc_timer_cursor);
+  if (GetCursor() != get_wait_cursor())
+    SetCursor(get_wait_cursor());
 
   return 1;
 }
@@ -28,7 +32,7 @@ LRESULT CALLBACK hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
 class WinBusyProvider
 {
 public:
-  WinBusyProvider() : mBusyState(false) { wingw::hc_timer_cursor = LoadCursor(NULL, IDC_WAIT); }
+  WinBusyProvider() : mBusyState(false) {}
 
   ~WinBusyProvider()
   {
@@ -45,7 +49,7 @@ public:
 
       if (mBusyState)
       {
-        hmCursor = SetCursor(hc_timer_cursor);
+        hmCursor = SetCursor(get_wait_cursor());
 
         kHookHandle = SetWindowsHookEx(WH_KEYBOARD, (HOOKPROC)wingw::hook_proc, NULL, GetCurrentThreadId());
         mHookHandle = SetWindowsHookEx(WH_MOUSE, (HOOKPROC)wingw::hook_proc, NULL, GetCurrentThreadId());

@@ -36,6 +36,8 @@ static ShaderVariableInfo neural_rendering_control_mask_foliageVarId("neural_ren
 
 bool is_neural_rendering_active() { return neural_rendering_configured; }
 
+void destroy_neural_rendering_passthrough_node() { neural_rendering_passthrough_node = {}; }
+
 static bool is_dlss_nr_supported()
 {
   nv::Streamline *streamline = nullptr;
@@ -70,7 +72,7 @@ static dafg::NodeHandle make_neural_rendering_control_mask_node()
 
     const auto renderResolution = registry.getResolution<2>("main_view");
     registry.create("neural_rendering_control_mask")
-      .texture({TEXFMT_R8G8B8A8 | TEXCF_UNORDERED, renderResolution})
+      .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, renderResolution})
       .atStage(dafg::Stage::COMPUTE)
       .bindToShaderVar("neural_rendering_control_mask_target");
 

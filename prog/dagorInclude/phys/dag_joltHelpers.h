@@ -57,3 +57,25 @@ inline JPH::ObjectLayer make_objlayer(JPH::BroadPhaseLayer::Type bphl, unsigned 
 inline JPH::BroadPhaseLayer::Type objlayer_to_bphlayer(JPH::ObjectLayer l) { return l >> 12; }
 inline unsigned short objlayer_to_group_mask(JPH::ObjectLayer l) { return 0x3F & (l >> 6); }
 inline unsigned short objlayer_to_layer_mask(JPH::ObjectLayer l) { return 0x3F & l; }
+
+enum : uint16_t
+{
+  DefaultFilter = 1,
+  StaticFilter = 2,
+  KinematicFilter = 4,
+  DebrisFilter = 8,
+  AllFilter = 0x3F
+};
+
+namespace layers
+{
+enum : JPH::BroadPhaseLayer::Type
+{
+  STATIC,
+  DYNAMIC,
+  DEBRIS,   // Debris collides only with STATIC
+  PASSABLE, // Static bodies, such as bushes, that bodies pass through, except dynamic ones outside the default group (not debris)
+
+  NUM_LAYERS
+};
+}; // namespace layers

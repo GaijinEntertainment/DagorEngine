@@ -40,7 +40,6 @@ Sources =
   dagorFmodStudioAudioSys.cpp
   dsp.cpp
   nullAudio.cpp
-  userCreatedSound.cpp
   eventInstanceStealing.cpp
   visualLabels.cpp
   occlusion.cpp

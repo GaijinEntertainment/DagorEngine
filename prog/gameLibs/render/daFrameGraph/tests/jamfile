@@ -81,6 +81,7 @@ Sources =
   irGraphBuilder.cpp
   nodeStateDeltas.cpp
   nodeRemap.cpp
+  passColoring.cpp
   resourceScheduler.cpp
   heapLayout.cpp
   layoutUpdate.cpp

@@ -373,10 +373,21 @@ IrGraphBuilder::Changes IrGraphBuilder::build(intermediate::Graph &graph, multip
   irResourceRequestsChanged.resize(graph.resources.totalKeys(), false);
   if (multiplexing_extents_to_ir(extents) != old_mapping.multiplexingExtent())
     irResourceRequestsChanged.assign(irResourceRequestsChanged.size(), true);
-  for (auto resId : resource_requests_changed.trueKeys())
+  const auto markRequestsChanged = [&](ResNameId res_id) {
     for (auto midx : IdRange<intermediate::MultiplexingIndex>(mapping.multiplexingExtent()))
-      if (mapping.wasResMapped(resId, midx) && graph.resources.isMapped(mapping.mapRes(resId, midx)))
-        irResourceRequestsChanged.set(mapping.mapRes(resId, midx), true);
+      if (mapping.wasResMapped(res_id, midx) && graph.resources.isMapped(mapping.mapRes(res_id, midx)))
+        irResourceRequestsChanged.set(mapping.mapRes(res_id, midx), true);
+  };
+  for (auto resId : resource_requests_changed.trueKeys())
+    markRequestsChanged(resId);
+  for (auto nodeId : nodes_changed.trueKeys())
+    if (registry.nodes[nodeId].sideEffect == SideEffects::None)
+    {
+      for (const auto &[resId, _] : registry.nodes[nodeId].resourceRequests)
+        markRequestsChanged(nameResolver.resolve(resId));
+      for (const auto &[resId, _] : registry.nodes[nodeId].historyResourceReadRequests)
+        markRequestsChanged(nameResolver.resolve(resId));
+    }
 
   addNodeStatesToGraph(graph, mapping, extents, irNodesChanged);
 
@@ -462,7 +473,7 @@ auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uin
   };
 
   const auto isModifiedByRp = [](const NodeData &node, ResNameId res_id) {
-    if (const auto &rp = node.renderingRequirements)
+    if (const auto *rp = eastl::get_if<VirtualPassRequirements>(&node.renderingRequirements))
     {
       const auto attachComp = [res_id](const auto &attachment) { return attachment.nameId == res_id; };
       return eastl::find_if(rp->colorAttachments.begin(), rp->colorAttachments.end(), attachComp) != rp->colorAttachments.end() ||
@@ -1707,12 +1718,15 @@ struct StateFieldSetter
     to.pixelCombiner = from.pixelCombiner;
   }
 
-  void set(eastl::optional<intermediate::RenderPass> &to, const eastl::optional<VirtualPassRequirements> &from)
+  void set(intermediate::NodePass &to, const RenderingRequirements &from)
   {
-    if (!from.has_value())
-      return;
+    if (const auto *virtualPass = eastl::get_if<VirtualPassRequirements>(&from))
+      set(to, *virtualPass);
+  }
 
-    to.emplace();
+  void set(intermediate::NodePass &to, const VirtualPassRequirements &from)
+  {
+    auto &pass = to.emplace<intermediate::RenderPass>();
 
     const auto getAttachment = [this](VirtualSubresourceRef res) -> eastl::optional<intermediate::SubresourceRef> {
       if (res.nameId != ResNameId::Invalid)
@@ -1730,31 +1744,31 @@ struct StateFieldSetter
       return eastl::nullopt;
     };
 
-    to->colorAttachments.reserve(from->colorAttachments.size());
-    for (const auto &color : from->colorAttachments)
-      to->colorAttachments.push_back(getAttachment(color));
+    pass.colorAttachments.reserve(from.colorAttachments.size());
+    for (const auto &color : from.colorAttachments)
+      pass.colorAttachments.push_back(getAttachment(color));
 
-    to->depthAttachment = getAttachment(from->depthAttachment);
-    to->depthReadOnly = from->depthReadOnly;
+    pass.depthAttachment = getAttachment(from.depthAttachment);
+    pass.depthReadOnly = from.depthReadOnly;
 
-    to->resolves.reserve(from->resolves.size());
-    for (const auto &[src, dst] : from->resolves)
+    pass.resolves.reserve(from.resolves.size());
+    for (const auto &[src, dst] : from.resolves)
     {
-      to->resolves.emplace(mapping.mapRes(nameResolver.resolve(src), multiIndex),
+      pass.resolves.emplace(mapping.mapRes(nameResolver.resolve(src), multiIndex),
         mapping.mapRes(nameResolver.resolve(dst), multiIndex));
     }
 
-    if (from->colorAttachments.size() == 1)
+    if (from.colorAttachments.size() == 1)
     {
-      const auto resolvedResId = nameResolver.resolve(from->colorAttachments[0].nameId);
+      const auto resolvedResId = nameResolver.resolve(from.colorAttachments[0].nameId);
       const auto &createdResData = registry.resources[depData.renamingRepresentatives[resolvedResId]].createdResData;
       // may be an optional color attachment
-      to->isLegacyPass = createdResData.has_value() && eastl::holds_alternative<DriverDeferredTexture>(createdResData->creationInfo);
+      pass.isLegacyPass = createdResData.has_value() && eastl::holds_alternative<DriverDeferredTexture>(createdResData->creationInfo);
     }
     else
-      to->isLegacyPass = false;
+      pass.isLegacyPass = false;
 
-    to->vrsRateAttachment = getAttachment(from->vrsRateAttachment);
+    pass.vrsRateAttachment = getAttachment(from.vrsRateAttachment);
   }
 
   void set(intermediate::BindingsMap &to, const BindingsMap &from)
@@ -1838,8 +1852,8 @@ intermediate::RequiredNodeState IrGraphBuilder::calcNodeState(NodeNameId node_id
 
   const bool hasVertexSource =
     eastl::any_of(nodeData.vertexSources.begin(), nodeData.vertexSources.end(), [](const auto &vs) { return vs.has_value(); });
-  if (!nodeData.stateRequirements && !nodeData.renderingRequirements && nodeData.bindings.empty() &&
-      nodeData.shaderBlockLayers.objectLayer == -1 && nodeData.shaderBlockLayers.sceneLayer == -1 &&
+  if (!nodeData.stateRequirements && eastl::holds_alternative<eastl::monostate>(nodeData.renderingRequirements) &&
+      nodeData.bindings.empty() && nodeData.shaderBlockLayers.objectLayer == -1 && nodeData.shaderBlockLayers.sceneLayer == -1 &&
       nodeData.shaderBlockLayers.frameLayer == -1 && !hasVertexSource && !nodeData.indexSource)
     return {};
 

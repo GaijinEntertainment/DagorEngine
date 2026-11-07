@@ -353,14 +353,16 @@ void MainAssetSelector::assetBrowserFill()
     return;
 
   dag::Vector<DagorAsset *> assets;
+  dag::Vector<DagorAssetFolder *> subFolders;
+  const DagorAssetFolder *folder = nullptr;
   if (activeTab == ActiveTab::All)
-    mainAllAssetsTab.getFilteredAssetsFromTheCurrentFolder(assets);
+    folder = mainAllAssetsTab.getFilteredAssetsFromTheCurrentFolder(assets, subFolders);
   else if (activeTab == ActiveTab::Favorites)
-    favoritesTab->getFilteredAssetsFromTheCurrentFolder(assets);
+    folder = favoritesTab->getFilteredAssetsFromTheCurrentFolder(assets, subFolders);
   else if (activeTab == ActiveTab::RecentlyUsed)
     recentlyUsedTab->getFilteredAssetsFromTheCurrentFolder(assets);
 
-  assetBrowser.setAssets(make_span(assets), getSelectedAsset());
+  assetBrowser.setAssets(make_span(assets), make_span(subFolders), getSelectedAsset(), assetMgr, folder);
 }
 
 bool MainAssetSelector::assetBrowserIsOpen() const { return assetBrowserOpen; }
@@ -389,6 +391,14 @@ void MainAssetSelector::assetBrowserOnAssetSelected(DagorAsset *asset, bool)
     recentlyUsedTab->setSelectedAsset(asset);
 }
 
+void MainAssetSelector::assetBrowserOnFolderSelected(const DagorAssetFolder &folder)
+{
+  if (activeTab == ActiveTab::All)
+    mainAllAssetsTab.selectAssetFolder(folder);
+  else if (activeTab == ActiveTab::Favorites)
+    favoritesTab->setSelectedAssetFolder(folder);
+}
+
 void MainAssetSelector::assetBrowserOnContextMenu(DagorAsset *asset)
 {
   // Because the context menu click handlers work with the selected tree item we must ensure that the asset matches the selection.
@@ -402,12 +412,17 @@ void MainAssetSelector::assetBrowserOnContextMenu(DagorAsset *asset)
 void MainAssetSelector::saveAssetBrowserSettings(DataBlock &blk) const
 {
   blk.setInt("thumbnailImageSize", assetBrowser.getThumbnailImageSize());
+  blk.setBool("showTypesWithoutThumbnailSupport", assetBrowser.getShowTypesWithoutThumbnailSupport());
+  blk.setBool("showFolders", assetBrowser.getShowFolders());
   blk.setBool("open", assetBrowserOpen);
 }
 
 void MainAssetSelector::loadAssetBrowserSettings(DataBlock &blk)
 {
   assetBrowser.setThumbnailImageSize(blk.getInt("thumbnailImageSize", assetBrowser.getThumbnailImageSize()));
+  assetBrowser.setShowTypesWithoutThumbnailSupport(
+    blk.getBool("showTypesWithoutThumbnailSupport", assetBrowser.getShowTypesWithoutThumbnailSupport()));
+  assetBrowser.setShowFolders(blk.getBool("showFolders", assetBrowser.getShowFolders()));
   assetBrowserOpen = blk.getBool("open", assetBrowserOpen);
 }
 

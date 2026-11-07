@@ -20,7 +20,7 @@ static float default_time_to_live = 0.5f;
 
 static CollisionObject create_bullet_scaled_copy(const CollisionObject &obj, const Point3 &scale, CollisionObjectUserData *user_ptr);
 
-ScaledBulletInstance::ScaledBulletInstance(CICollisionObject original_obj, vec3f scl, const rendinst::RendInstDesc &in_desc,
+ScaledBulletInstance::ScaledBulletInstance(CollisionObject original_obj, vec3f scl, const rendinst::RendInstDesc &in_desc,
   float time_of_death) :
   timeOfDeath(time_of_death), desc(in_desc)
 {
@@ -107,10 +107,8 @@ void CollisionInstances::removeCollisionObject(const rendinst::RendInstDesc &des
     else
       ++it;
   }
-#ifndef ENABLE_APEX
   if (removed && bulletInstances.empty())
     remove_empty_ri_instance_list(*this);
-#endif
 }
 
 CollisionInstances::~CollisionInstances()
@@ -178,6 +176,8 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
   {
     setTm(normTm);
     cobj.body->setGroupAndLayerMask(EPL_STATIC, EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC));
+    if (originalObj.body->isPassableLayer())
+      cobj.body->setPassableLayer();
     if (add_instances_to_world)
       get_phys_world()->addBody(cobj.body, /*kinematic*/ false); // After initial tm setup
   }

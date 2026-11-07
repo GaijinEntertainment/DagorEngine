@@ -24,10 +24,6 @@ struct RAIIStackwalkOnLogerr
   das::Context *old;
 };
 
-static debug_log_callback_t orig_debug_log = nullptr;
-
-static int das_stackwalk_log_on_logerr(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line);
-
 void enable_das_stackwalk_log_on_logerr();
 
 typedef void (*DasExitFunctionPtr)(int);

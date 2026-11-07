@@ -20,6 +20,32 @@ public:
 
   void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override { processAssetBlk(a.props, a.getMgr(), refs); }
 
+  static void processNodeBlk(const DataBlock &b, int node_nid, int name_nid, int ent_nid, int spline_nid, int polygon_nid,
+    int point_nid, DagorAssetMgr &amgr, Tab<IDagorAssetRefProvider::Ref> &refs)
+  {
+    if (b.getBool("disabled", false))
+      return;
+
+    dblk::iterate_params_by_name_id_and_type(b, name_nid, DataBlock::TYPE_STRING,
+      [&](int param_idx) { add_asset_ref(refs, amgr, b.getStr(param_idx), false, false, -1, true); });
+
+    dblk::iterate_child_blocks(b, [&](const DataBlock &b2) {
+      if (b2.getBlockNameId() == ent_nid)
+        add_asset_ref(refs, amgr, b2.getStr("name", nullptr), false, false, -1, true);
+      else if (b2.getBlockNameId() == spline_nid || b2.getBlockNameId() == polygon_nid)
+      {
+        const char *splAssetName = b2.getStr("blkGenName", "");
+        dblk::iterate_child_blocks_by_name_id(b2, point_nid, [&](const DataBlock &b3) {
+          const char *splname = b3.getBool("useDefSplineGen", true) ? splAssetName : b3.getStr("blkGenName", "");
+          if (*splname)
+            add_asset_ref(refs, amgr, splname, false, false, amgr.getAssetTypeId("spline"), true);
+        });
+      }
+      else if (b2.getBlockNameId() == node_nid)
+        processNodeBlk(b2, node_nid, name_nid, ent_nid, spline_nid, polygon_nid, point_nid, amgr, refs);
+    });
+  }
+
   static void processAssetBlk(DataBlock &blk, DagorAssetMgr &amgr, Tab<IDagorAssetRefProvider::Ref> &refs)
   {
     int node_nid = blk.getNameId("node");
@@ -30,24 +56,8 @@ public:
     int point_nid = blk.getNameId("point");
 
     refs.clear();
-    dblk::iterate_blocks_by_name(blk, "node", [&](const DataBlock &b) {
-      dblk::iterate_params_by_name_id_and_type(b, name_nid, DataBlock::TYPE_STRING,
-        [&](int param_idx) { add_asset_ref(refs, amgr, b.getStr(param_idx), false, false, -1, true); });
-
-      dblk::iterate_child_blocks(b, [&](const DataBlock &b2) {
-        if (b2.getBlockNameId() == ent_nid)
-          add_asset_ref(refs, amgr, b2.getStr("name", nullptr), false, false, -1, true);
-        else if (b2.getBlockNameId() == spline_nid || b2.getBlockNameId() == polygon_nid)
-        {
-          const char *splAssetName = b2.getStr("blkGenName", "");
-          dblk::iterate_child_blocks_by_name_id(b2, point_nid, [&](const DataBlock &b3) {
-            const char *splname = b3.getBool("useDefSplineGen", true) ? splAssetName : b3.getStr("blkGenName", "");
-            if (*splname)
-              add_asset_ref(refs, amgr, splname, false, false, amgr.getAssetTypeId("spline"), true);
-          });
-        }
-      });
-    });
+    dblk::iterate_child_blocks_by_name(blk, "node",
+      [&](const DataBlock &b) { processNodeBlk(b, node_nid, name_nid, ent_nid, spline_nid, polygon_nid, point_nid, amgr, refs); });
   }
 };
 

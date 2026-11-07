@@ -209,7 +209,7 @@ function checkRecordingFinished() {
           if (cellData.singleBtn)
             checkConflictsBlk.addBlock(blkPropRemap?[cellData.actionProp] ?? cellData.actionProp).setParamsFrom(blk)
           else {
-            // constraint: a bare button blk loads as an axis binding claiming axis 0 of its device
+            // a bare button blk loads as an axis binding claiming axis 0 of its device
             checkConflictsBlk.removeBlock("mod")
             checkConflictsBlk.addNewBlock("mod").setParamsFrom(blk)
           }

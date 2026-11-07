@@ -191,17 +191,24 @@ public:
         !ReadDirectoryChangesW(fd.hFolder, fd.buf, fd.BUF_SZ, TRUE,
           FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
           &bytesret, NULL, NULL))
+      {
         continue;
-
-      if (interlocked_acquire_load(fd.terminateReq))
-        break;
+      }
+      else if (bytesret == 0)
+      {
+        logwarn("ChangesTracker: change list overflow in %s, some changes are lost", fd.folderPath.c_str());
+        continue;
+      }
 
       G_STATIC_ASSERT(IO_BUF_SZ >= fd.BUF_SZ * 3);
-      while (fd.io->getWriteAvailableSize() < fd.BUF_SZ * 3)
+      while (fd.io->getWriteAvailableSize() < fd.BUF_SZ * 3 && !interlocked_acquire_load(fd.terminateReq))
       {
         sleep_msec(10);
         logwarn("waited for ChangesTracker buffer processed, avail=%dK", fd.io->getWriteAvailableSize() >> 10);
       }
+
+      if (interlocked_acquire_load(fd.terminateReq))
+        break;
 
       int avail_sz = fd.io->getWriteAvailableSize();
       IGenSave *cwr = fd.io->startWrite();

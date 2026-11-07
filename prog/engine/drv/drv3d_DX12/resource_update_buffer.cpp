@@ -55,8 +55,8 @@ d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, Mip
     outline.depth, mipExtents.depth);
 
   auto subResInfo = calculate_texture_region_info(extent, image->getFormat());
-  auto memory = drv3d_dx12::get_device().allocateTemporaryUploadMemoryForUploadBuffer(subResInfo.totalByteSize,
-    D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+  auto memory = drv3d_dx12::get_device().allocateTemporaryUploadMemoryForUploadBuffer(subResInfo.totalAlignedByteSize,
+    TextureSubresourceInfo::placement_alignment);
   if (!memory)
   {
     logdbg("DX12: Out of memory for allocate_update_buffer_for_tex(_region)");
@@ -69,7 +69,7 @@ d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, Mip
   rubImp->uploadInfo.layout.Footprint = subResInfo.footprint;
   rubImp->uploadInfo.subresourceIndex = image->mipAndLayerIndexToStateIndex(mip, array).index();
   rubImp->uploadInfo.imageOffset = offset;
-  rubImp->slicePitch = subResInfo.footprint.RowPitch * subResInfo.rowCount;
+  rubImp->slicePitch = static_cast<uint32_t>(subResInfo.slicePitchSizeInBytes);
 
   return reinterpret_cast<d3d::ResUpdateBuffer *>(rubImp);
 }

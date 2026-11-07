@@ -23,10 +23,9 @@ struct Settings
 };
 
 Settings &settings();
-bool is_enabled();
-void set_enabled(bool on);
 void apply_settings();
 bool bind_probe();
 void after_render(BaseTexture *albedo_tex, BaseTexture *depth_tex, const IPoint2 &display_res);
+void imgui_tab(); // panel body only, the game owns the window it sits in
 void close();
 } // namespace render::pbr_validation

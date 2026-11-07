@@ -7,9 +7,26 @@ macro INIT_AND_USE_RT_HALF_RATE(code)
   hlsl(code) {
     #include "pcg_hash.hlsl"
 
-    uint rt_half_rate_offset(uint2 ray_index, uint frame_idx)
+    // Two threads for each 2x2 quad, each traces one pixel and skips one. The traced pixels are a random row, column
+    // or diagonal of the quad, so the skipped pixels make no fixed pattern.
+    void rt_half_rate_quad_pair(uint2 thread_index, uint frame_idx, out uint2 trace_index, out uint2 skip_index)
     {
-      return pcg3d_hash_16bit(uint3(ray_index, frame_idx)).x & 1;
+      uint pairIndex = thread_index.y & 1;
+      uint2 quadIndex = uint2(thread_index.x, thread_index.y >> 1);
+      uint pattern = pcg3d_hash_16bit(uint3(quadIndex, frame_idx)).x % 6;
+
+      // Offsets in the quad of the traced (xy) and skipped (zw) pixel, for each pattern and thread
+      static const uint4 OFFSETS[6][2] = {
+        {uint4(0, 0, 0, 1), uint4(1, 0, 1, 1)}, // top row
+        {uint4(0, 1, 0, 0), uint4(1, 1, 1, 0)}, // bottom row
+        {uint4(0, 0, 1, 0), uint4(0, 1, 1, 1)}, // left column
+        {uint4(1, 0, 0, 0), uint4(1, 1, 0, 1)}, // right column
+        {uint4(0, 0, 1, 0), uint4(1, 1, 0, 1)}, // main diagonal
+        {uint4(1, 0, 0, 0), uint4(0, 1, 1, 1)}, // anti diagonal
+      };
+      uint4 offsets = OFFSETS[pattern][pairIndex];
+      trace_index = quadIndex * 2 + offsets.xy;
+      skip_index = quadIndex * 2 + offsets.zw;
     }
 
     float rt_ray_energy_scale()

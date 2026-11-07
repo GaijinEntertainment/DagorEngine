@@ -24,6 +24,8 @@ public:
 
   virtual void resetKeys();
   virtual void syncRawState();
+  virtual bool injectKeyDown(int dkey, wchar_t wc);
+  virtual bool injectKeyUp(int dkey);
 
   virtual int getKeyCount() const;
   virtual const char *getKeyName(int idx) const;

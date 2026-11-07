@@ -105,6 +105,8 @@ public:
   void setRenderQuad(const BBox2 &b);
   void setLod0AreaSize(float size) { lod0AreaRadius = size; }
   void setLastLodExtension(float extension) { lastLodExtension = extension; }
+  void setCullPatchMarginCells(float cells) { cullPatchMarginCells = cells; }
+  float getCullPatchMarginCells() const { return cullPatchMarginCells; }
   float getLod0AreaSize() { return lod0AreaRadius; }
   void setGridLod0AdditionalTesselation(float additional_tesselation) { lod0TesselationAdditional = additional_tesselation; }
 
@@ -211,6 +213,7 @@ protected:
   float lod0TesselationAdditional;
   float lod0AreaRadius;
   float lastLodExtension;
+  float cullPatchMarginCells = 0.f;
 
   float roughnessBase;
   float cascadesRoughnessBase;

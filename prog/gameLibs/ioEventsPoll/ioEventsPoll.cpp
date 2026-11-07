@@ -358,6 +358,7 @@ private:
 
 private:
   EvLoop *loop;
+  WinCritSec loopMutex; // wakeup() from other threads vs loop teardown in run()
   ev_async wakeupEvent;
   ev_check delayedActionsWatcher;
   ev_timer timerWatcher;
@@ -403,14 +404,19 @@ void IOEventsPollLoopImpl::run()
 
   // cleanup
   delayedActions.perform();
-  ev_async_stop(loop, &wakeupEvent);
-  unsubscribe_io_all(loop, readSubscribers, EventFlag::READ);
-  unsubscribe_io_all(loop, writeSubscribers, EventFlag::WRITE);
-  unsubscribe_child_all(loop, childProcSubscribers);
-  ev_check_stop(loop, &delayedActionsWatcher);
-  ev_timer_stop(loop, &timerWatcher);
+  EvLoop *l;
+  {
+    WinAutoLock lock(loopMutex);
+    l = loop;
+    loop = nullptr;
+  }
+  ev_async_stop(l, &wakeupEvent);
+  unsubscribe_io_all(l, readSubscribers, EventFlag::READ);
+  unsubscribe_io_all(l, writeSubscribers, EventFlag::WRITE);
+  unsubscribe_child_all(l, childProcSubscribers);
+  ev_check_stop(l, &delayedActionsWatcher);
+  ev_timer_stop(l, &timerWatcher);
 
-  EvLoop *l = interlocked_exchange_ptr<EvLoop>(loop, nullptr);
   if (!useDefaultLoop)
     ev_loop_destroy(l);
   debug("[ioevents] IOEventsPollLoopImpl::%s finished", __FUNCTION__);
@@ -447,8 +453,9 @@ void IOEventsPollLoopImpl::stopSync()
 
 void IOEventsPollLoopImpl::wakeup()
 {
-  if (EvLoop *l = interlocked_acquire_load_ptr(loop))
-    ev_async_send(l, &wakeupEvent);
+  WinAutoLock lock(loopMutex);
+  if (loop)
+    ev_async_send(loop, &wakeupEvent);
 }
 
 void IOEventsPollLoopImpl::performDelayedActions(EvLoop *loop, ev_check *, int)

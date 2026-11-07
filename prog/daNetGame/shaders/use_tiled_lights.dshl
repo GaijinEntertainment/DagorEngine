@@ -8,13 +8,22 @@ buffer lights_list always_referenced;
 buffer z_binning_lookup always_referenced;
 float max_lights_distance = 500;
 
+// needs to be before USE_TILED_LIGHTS!
+macro INIT_AND_USE_SPOTLIGHT_SSSS(code)
+  bool use_spotlight_ssss = true;
+  if (dynamic_lights_count != lights_off)
+  {
+    INIT_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
+    USE_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
+  }
+endmacro
+
 macro INIT_TILED_LIGHTS(code)
   INIT_PHOTOMETRY_TEXTURES(code)
   INIT_CLUSTERED_LIGHTS(code)
   INIT_OMNI_LIGHTS_CB(code)
   INIT_SPOT_LIGHTS_CB(code)
   INIT_LIGHT_SHADOWS(code)
-  INIT_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
   INIT_COMMON_LIGHTS_SHADOWS_CB(code)
   INIT_POINT_LIGHTS_AO(code)
   (code) {
@@ -69,7 +78,7 @@ macro USE_TILED_LIGHTS_COMMON(code)
   USE_TILED_LIGHTS_HELPERS(code)
 endmacro
 
-macro USE_TILED_LIGHTS(code, force_disable_ssss, shadow_callback)
+macro USE_TILED_LIGHTS(code, shadow_callback)
   USE_TILED_LIGHTS_COMMON(code)
 
   if (dynamic_lights_count != lights_off)
@@ -90,7 +99,6 @@ macro USE_TILED_LIGHTS(code, force_disable_ssss, shadow_callback)
     USE_OMNI_LIGHTS_CB(code)
     USE_LIGHT_SHADOWS(code)
     USE_COMMON_LIGHTS_SHADOWS_CB(code)
-    USE_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
   }
 
   hlsl(code) {
@@ -101,7 +109,7 @@ macro USE_TILED_LIGHTS(code, force_disable_ssss, shadow_callback)
 ##if (dynamic_lights_count != lights_off)
     // defined below the includes above on purpose: they must only affect the code below
     #define SPOT_SHADOWS 1
-    ##if !force_disable_ssss && use_ssss == sun_and_dynamic_lights
+    ##if maybe(use_spotlight_ssss) && use_ssss == sun_and_dynamic_lights
       #define DYNAMIC_LIGHTS_SSS 1
       #define USE_SSSS 1
     ##endif
@@ -210,7 +218,7 @@ macro USE_TILED_LIGHTS(code, force_disable_ssss, shadow_callback)
 ##endif
 
 ##if (dynamic_lights_count != lights_omni_1)
-      ##if !force_disable_ssss && use_ssss == sun_and_dynamic_lights
+      ##if maybe(use_spotlight_ssss) && use_ssss == sun_and_dynamic_lights
         ctx.ssssWorldPos = ssss_calculate_world_pos(worldPos, gbuffer.normal);
       ##endif
 
@@ -233,8 +241,9 @@ macro USE_TILED_LIGHTS(code, force_disable_ssss, shadow_callback)
 endmacro
 
 macro INIT_AND_USE_TILED_LIGHTS_WITH_CALLBACK(code, shadow_callback)
+  INIT_AND_USE_SPOTLIGHT_SSSS(code)
   INIT_TILED_LIGHTS(code)
-  USE_TILED_LIGHTS(code, false, shadow_callback)
+  USE_TILED_LIGHTS(code, shadow_callback)
 endmacro
 
 macro INIT_AND_USE_TILED_LIGHTS(code)
@@ -257,5 +266,5 @@ macro INIT_AND_USE_TILED_LIGHTS_WITHOUT_SSSS(code)
     }
   }
   INIT_TILED_LIGHTS(code)
-  USE_TILED_LIGHTS(code, true, dummy_shadow_callback)
+  USE_TILED_LIGHTS(code, dummy_shadow_callback)
 endmacro

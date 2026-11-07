@@ -11,6 +11,7 @@
 #include <EASTL/functional.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <daECS/net/authority.h>
+#include <daECS/net/netbase.h> // SessionUrlKind
 #include <debug/dag_assert.h>
 
 class String;
@@ -44,11 +45,16 @@ ServerFlags get_server_flags();
 
 struct ConnectParams
 {
-  dag::Vector<eastl::string> serverUrls;
+  // SessionUrl {url, kind}. Game script entry points stay string-based:
+  // Quirrel/das connect_to_session(host_urls) and optional host_url_kinds.
+  // Kind defaults to Unknown when omitted (AM / enlisted / outerSpace today).
+  dag::Vector<SessionUrl> serverUrls;
   dag::Vector<uint8_t> encryptKey;
   dag::Vector<uint8_t> authKey;
   eastl::string sessionId;
   eastl::string relayStunRequestAddr; // if set, UDP punch to this relay addr is queued on connect
+
+  void addUrl(const char *url, SessionUrlKind kind = SessionUrlKind::Unknown) { serverUrls.emplace_back(url ? url : "", kind); }
 };
 
 } // namespace net

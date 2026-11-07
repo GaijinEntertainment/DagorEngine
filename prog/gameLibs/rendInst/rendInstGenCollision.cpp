@@ -1686,7 +1686,7 @@ DECL_ALIGN16(static float, v_SUBCELL_DIV_MAX[4]) = {
   SUBCELL_DIV - 0.01f, SUBCELL_DIV - 0.01f, SUBCELL_DIV - 0.01f, SUBCELL_DIV - 0.01f};
 
 static bool traceDownMultiRayCell(int layer_idx, int cell_idx, dag::Span<Trace> traces, dag::Span<rendinst::RendInstDesc> ri_desc,
-  bbox3f_cref ray_box, int ray_mat_id, uint8_t behaviorFlags, TraceDownMutiRayIgnoreCbType ignore_func)
+  bbox3f_cref ray_box, float subcell_margin, int ray_mat_id, uint8_t behaviorFlags, TraceDownMutiRayIgnoreCbType ignore_func)
 {
   const RendInstGenData *rgl = rendinst::rgLayer[layer_idx];
   const RendInstGenData::Cell &cell = rgl->cells[cell_idx];
@@ -1707,7 +1707,10 @@ static bool traceDownMultiRayCell(int layer_idx, int cell_idx, dag::Span<Trace> 
 
   bool haveCollision = false;
   // crt.bbox[0] and rayBox intersects, so we can merge them (isectBox2d = rayBox2d & cellBox2d)
-  vec4f rayBox2d = v_perm_xzac(ray_box.bmin, ray_box.bmax);
+  // the margin catches instances of a neighbor subcell that overhang into the ray, as in TraverseRayCell
+  bbox3f rayBoxExt = ray_box;
+  v_bbox3_extend(rayBoxExt, v_splats(subcell_margin));
+  vec4f rayBox2d = v_perm_xzac(rayBoxExt.bmin, rayBoxExt.bmax);
   vec4f cellBox2d = v_perm_xzac(crt.bbox[0].bmin, crt.bbox[0].bmax);
   vec4f isectBox2d = v_perm_xycd(v_max(rayBox2d, cellBox2d), v_min(rayBox2d, cellBox2d));
 
@@ -1860,7 +1863,11 @@ bool traceDownMultiRayNoCache(dag::Span<Trace> traces, bbox3f_cref ray_box, dag:
 
   FOR_EACH_PRIMARY_RG_LAYER_DO (rgl)
   {
-    vec4f worldBboxXZ = v_perm_xzac(ray_box.bmin, ray_box.bmax);
+    ScopedLockRead lock(rgl->rtData->riRwCs);
+    // the margin catches instances of a neighbor cell that overhang into the ray, as in rayTraverseRendinst
+    bbox3f rayBoxExt = ray_box;
+    v_bbox3_extend(rayBoxExt, v_splats(rgl->rtData->maxCellMargin));
+    vec4f worldBboxXZ = v_perm_xzac(rayBoxExt.bmin, rayBoxExt.bmax);
     vec4f regionV = v_sub(worldBboxXZ, rgl->world0Vxz);
     regionV = v_max(v_mul(regionV, rgl->invGridCellSzV), v_zero());
     regionV = v_min(regionV, rgl->lastCellXZXZ);
@@ -1868,15 +1875,15 @@ bool traceDownMultiRayNoCache(dag::Span<Trace> traces, bbox3f_cref ray_box, dag:
     DECL_ALIGN16(int, regions[4]);
     v_sti(regions, regionI);
 
-    ScopedLockRead lock(rgl->rtData->riRwCs);
     rgl->rtData->loadedCellsBBox.clip(regions[0], regions[1], regions[2], regions[3]);
+    const float subcellMargin = rgl->rtData->maxSubcellMargin;
 
     int cellXStride = rgl->cellNumW - (regions[2] - regions[0] + 1);
     for (int z = regions[1], cellI = regions[1] * rgl->cellNumW + regions[0]; z <= regions[3]; z++, cellI += cellXStride)
     {
       for (int x = regions[0]; x <= regions[2]; x++, cellI++)
       {
-        if (traceDownMultiRayCell(_layer, cellI, traces, ri_descs, ray_box, ray_mat_id, behaviorFlags, ignore_func))
+        if (traceDownMultiRayCell(_layer, cellI, traces, ri_descs, ray_box, subcellMargin, ray_mat_id, behaviorFlags, ignore_func))
           haveCollision = true;
       }
     }

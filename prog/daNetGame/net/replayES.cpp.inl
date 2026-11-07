@@ -328,7 +328,7 @@ static bool replay_console_handler(const char *argv[], int argc)
     return false;
   int found = 0;
   // Disable warning Expression 'found > 0' is always false.
-  // Why: because macro CONSOLE_CHECK_NAME_EX first check a found > 0, and then try execute cmd
+  // because macro CONSOLE_CHECK_NAME_EX first check a found > 0, and then try execute cmd
   CONSOLE_CHECK_NAME_EX("replay", "play", 2, 3, "play given replay", "<replay_file> [replay_start_time]") //-V547
   {
     replay_play(argv[1], argc > 2 ? std::atof(argv[2]) : 0.f, {});

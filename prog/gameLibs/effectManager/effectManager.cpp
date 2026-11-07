@@ -301,6 +301,8 @@ const char *AcesEffect::getName() const { return mgr->params.name.c_str(); }
 // It's just read from Manager's instance (which is fixed in memory, same as *this). No need for lock.
 float AcesEffect::lifeTime() const { return mgr->lifeTime(); }
 float EffectManager::lifeTime() const { return params.lifeTime; }
+bool AcesEffect::isParentVelocityLateralOnly() const { return mgr->isParentVelocityLateralOnly(); }
+bool EffectManager::isParentVelocityLateralOnly() const { return params.parentVelocityLateralOnly; }
 
 enum BuffCmdType
 {
@@ -748,6 +750,7 @@ EffectManager::EffectManager(const char *_name, const DataBlock *_blk, const cha
 
   params.distanceOffset = blk.getReal("sortDistanceOffset", 0.f);
   params.lifeTime = blk.getReal("lifeTime", 0.f);
+  params.parentVelocityLateralOnly = blk.getBool("parentVelocityLateralOnly", false);
   if (!sound_init)
   {
     params.soundEnableDistanceSq = blk.getReal("soundEnableDistance", -1.f);
@@ -839,8 +842,7 @@ void EffectManager::createFxRes(AcesEffect::FxId fx_id, bool is_player, const Po
     setFxLight(*fx);
   }
 
-  float distanceToCam = is_player ? 0 : length(viewPos - pos) * invMagnification;
-  BaseEffectEnabled dafxe = {true, distanceToCam};
+  BaseEffectEnabled dafxe = {.enabled = true, .isPlayer = is_player, .distanceToCam = length(viewPos - pos) * invMagnification};
   fx->obj->setParam(_MAKE4C('PFXE'), &dafxe);
   fx->obj->getParam(_MAKE4C('FXID'), &fx->iid);
 
@@ -1710,24 +1712,19 @@ void EffectManager::enableActiveQueryBuff(AcesEffect::FxId fx_id)
 void EffectManager::updateCmdBuff()
 {
   TIME_PROFILE(updateCmdBuff)
-  for (auto &cmd : effectCommandQueue)
-  {
-    G_FAST_ASSERT(cmd.mgr);
+  auto applyCmd = [](const BuffCommand &cmd) {
     EffectManager::BaseEffect *e = cmd.mgr->fxList.get(cmd.fxId);
     if (!e || (e->flags & AcesEffect::IS_MARK_AS_DELETED))
-      continue;
+      return;
     switch (cmd.type)
     {
       case FX_CMD_TM: cmd.mgr->setFxTm(*e, cmd.tm, false); break;
       case FX_CMD_EMM_TM: cmd.mgr->setFxTm(*e, cmd.tm, true); break;
       case FX_CMD_HIDE: cmd.mgr->setFxVisibility(*e, cmd.u, cmd.b); break;
       case FX_CMD_UNLOCK:
-      {
-        OSSpinlockScopedLock lock(&cmd.mgr->mgrSLock);
         e->flags &= ~AcesEffect::IS_LOCKED;
         updateCachedFlags(*e);
-      }
-      break;
+        break;
       case FX_CMD_FAKE_BRIGHTNESS_BACKGROUND_POS: cmd.mgr->setFxFakeBrightnessBackgroundPos(*e, cmd.p3); break;
       case FX_CMD_VELOCITY: cmd.mgr->setFxVelocity(*e, cmd.p3); break;
       case FX_CMD_VELOCITY_SCALE_MIN_MAX: cmd.mgr->setFxVelocityScaleMinMax(*e, cmd.p2); break;
@@ -1741,32 +1738,27 @@ void EffectManager::updateCmdBuff()
       case FX_CMD_GRAVITY_TM: cmd.mgr->setFxGravityTm(*e, cmd.m3); break;
       case FX_CMD_COLOR_MULT: cmd.mgr->setFxColorMult(*e, cmd.c4); break;
       case FX_CMD_SPLINE_GEN: cmd.mgr->setFxSplineGenControlPoints(*e, cmd.tm4); break;
-      case FX_CMD_STOP:
-      {
-        OSSpinlockScopedLock lock(&cmd.mgr->mgrSLock);
-        cmd.mgr->stopFx(*e);
-      }
-      break;
-      case FX_CMD_UNSET_EMITTER:
-      {
-        OSSpinlockScopedLock lock(&cmd.mgr->mgrSLock);
-        cmd.mgr->unsetFxEmitter(*e);
-      }
-      break;
+      case FX_CMD_STOP: cmd.mgr->stopFx(*e); break;
+      case FX_CMD_UNSET_EMITTER: cmd.mgr->unsetFxEmitter(*e); break;
       case FX_CMD_PAUSE_SOUND: cmd.mgr->pauseFxSoundExt(*e, cmd.b); break;
       case FX_CMD_ENABLE_ACTIVE_QUERY:
-      {
-        OSSpinlockScopedLock lock(&cmd.mgr->mgrSLock);
         e->flags |= AcesEffect::ACTIVE_QUERY_ENABLED;
         updateCachedFlags(*e);
-      }
-      break;
+        break;
       case FX_CMD_WARMUP: cmd.mgr->setFxWarmup(*e, cmd.p2.x, cmd.p2.y); break;
       default: G_FAST_ASSERT(0); break;
     }
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC
     cmd.imgr |= size_t(1) << (sizeof(size_t) * CHAR_BIT - 1); // to catch double cmd runs
 #endif
+  };
+  for (auto it = effectCommandQueue.begin(), itEnd = effectCommandQueue.end(); it != itEnd;)
+  {
+    EffectManager *mgr = it->mgr;
+    G_FAST_ASSERT(mgr);
+    OSSpinlockScopedLock lock(mgr->mgrSLock);
+    for (; it != itEnd && it->mgr == mgr; ++it)
+      applyCmd(*it);
   }
   // To consider: may be upper limit capacity here?
   effectCommandQueue.clear();

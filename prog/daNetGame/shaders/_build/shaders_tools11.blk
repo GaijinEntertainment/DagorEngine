@@ -32,6 +32,8 @@ Compile
     supports_barycentrics:i = 0
     sparkles_enable:i=1
     static_shadows_cascades:i=1
+    force_rtss_shadows:i=1 // the DNG render of daEditorX builds the rtss
+    rtss_sun_sweep:i=0
     particles_buffer_id:i=-1
     in_editor_assume:i=1
     hack_globtm_from_register:i = 0//not supported
@@ -85,6 +87,7 @@ Compile
     use_gui_glob_tm:i=0
     glass_rt_reflection:i=0
     allow_rt_glass_reflection:i=0
+    bvh_usable:i=0
     can_use_half_precision:i=0
     deform_occupied_tiles_bitvector:i=0
     need_character_microdetails_texture_check:i=1

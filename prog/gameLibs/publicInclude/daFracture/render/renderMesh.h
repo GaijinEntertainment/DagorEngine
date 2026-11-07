@@ -46,12 +46,13 @@ void upload_mesh_batch(const DestrContext &ctx, dag::Span<MeshUploadRequest> mes
 
 struct ShaderGeomLoadRequest
 {
-  DestrMesh *outMesh;
+  DestrMesh *outMesh = nullptr;
 
-  ShaderMatVdata *smvd;
-  const ShaderMesh *shaderMesh;
-  TMatrix tm;
-  PerInstRenderData instData;
+  ShaderMatVdata *smvd = nullptr;
+  const ShaderMesh *shaderMesh = nullptr;
+  TMatrix tm = TMatrix::IDENT;
+  PerInstRenderData instData = {};
+  bool invertWinding = false;
 };
 void add_destr_geometry(DestrContext &ctx, dag::Span<ShaderGeomLoadRequest> requests);
 

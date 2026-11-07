@@ -4,11 +4,19 @@ include "clouds_alt_fraction.dshl"
 include "writeToTex.dshl"
 float4 clouds_height_fractions = (1.25, 0, 3, -2);
 float4 clouds_layers_types = (0,1, 0, 0.5);
+float clouds_mushroom_amount = 0.7;//1 severs the tower at mid height instead of just thinning it
+float clouds_cumulonimbus_top = 0.85;//where cumulonimbus density starts to taper: also sets how tall it gets
 
 macro BASE_DENSITY_HEIGHT_GRADIENT(code)
   (code) {
     clouds_height_fractions@f4 = clouds_height_fractions;height_fraction_to_meters@f1 = (clouds_thickness2*1000,0,0,0);
     clouds_layers_types@f4 = clouds_layers_types;
+  }
+  if (clouds_height_alter == on) {
+    (code) {
+      clouds_mushroom_amount@f1 = clouds_mushroom_amount;
+      clouds_cumulonimbus_top@f1 = min(clouds_cumulonimbus_top, 0.99);//1 would divide by zero in the gradient
+    }
   }
   hlsl(code) {
   float bottomRounding(float heightFraction, float mn, float mx, float cloudType)
@@ -22,12 +30,14 @@ macro BASE_DENSITY_HEIGHT_GRADIENT(code)
   {
     return saturate((v-root0)*(root1-v)*1./(0.25*pow2(root1-root0)));
   }
+  ##if clouds_height_alter == on
   //'mushroom' or 'anvil'-like cumulonimbus clouds have thinner part
   float cumuloNimbusMushroomEffect(float heightFraction, float cloudType)
   {
-    float cumuloNimbusHole = polynom2_approx(cloudType, 0.7, 0.99);//not all cumulonimbus will be affected
-    return cumuloNimbusHole*pow2(polynom2_approx(heightFraction, 0.21, 0.68));//probably should be in meters
+    float cumuloNimbusHole = polynom2_approx(cloudType, 0.6, 1.4);
+    return clouds_mushroom_amount*cumuloNimbusHole*pow2(polynom2_approx(heightFraction, 0.21, 0.68));//probably should be in meters
   }
+  ##endif
   float getDensityHeightGradient(float heightFraction, float cloudType)//todo: sample from LUT?
   {
     //return lerp(getStratoDensity(heightFraction, 1-cloudType), getCumulusDensity(heightFraction, cloudType), pow(cloudType, 0.1));
@@ -38,7 +48,11 @@ macro BASE_DENSITY_HEIGHT_GRADIENT(code)
 
     float2 gradient_stratocumulus = float2(0.1, 0.3);
     float2 gradient_cumulus = float2(0.2, 1.0);
+    ##if clouds_height_alter == on
+    float2 gradient_cumulonimbus = float2(clouds_cumulonimbus_top, 1.0);
+    ##else
     float2 gradient_cumulonimbus = float2(0.75, 1.0);
+    ##endif
     float2 gradient = (gradient_stratocumulus * stratusFactor) + (gradient_cumulus * stratoCumulusFactor) + (gradient_cumulonimbus * cumulusFactor);
 
     // For now we hardcode the lower part of the gradient as [0.0, 0.1]. This
@@ -75,6 +89,9 @@ macro BASE_DENSITY_HEIGHT_GRADIENT(code)
     float heightFraction1 = saturate(heightFraction*clouds_height_fractions.x + clouds_height_fractions.y);
     heightFraction1 = lerp(heightFraction1, heightFraction, cumuloNimbusCloudStr);
     density_height_gradient1 = getDensityHeightGradient(heightFraction1, cloud_type1)*bottomRounding(heightFraction1, 8+cumuloNimbusCloudStr*8, 12+cumuloNimbusCloudStr*8, cloud_type1);
+    ##if clouds_height_alter == on
+    density_height_gradient1 *= 1-cumuloNimbusMushroomEffect(heightFraction1, cloud_type1);
+    ##endif
 
     float heightFraction2 = saturate(heightFraction*clouds_height_fractions.z + clouds_height_fractions.w);
     float cloud_type2 = remap_cloud_type(stratoCumuloTypeVariance, clouds_layers_types.zw);

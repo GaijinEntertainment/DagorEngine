@@ -1,6 +1,12 @@
 include "assert.dshl"
+include "macro_once_inc.dshl"
 
 int gbuff_dbg_mode = -1;
+
+// blended decals share their blend state and write mask with the debug MRT, so
+// they need a separate render state while a view reads that MRT
+int debug_gbuffer_decal_unblended_write = 0;
+interval debug_gbuffer_decal_unblended_write: no < 1, yes;
 
 macro USE_DBG_GBUFF_TEX_HELPERS(code)
   hlsl(code)
@@ -17,7 +23,9 @@ macro USE_DBG_GBUFF_TEX_HELPERS(code)
   }
 endmacro
 
+// shared gbuffer macros expand this themselves, so a shader may also ask for it directly
 macro INIT_AND_USE_DBG_GBUFF_TEX()
+  BEGIN_ONCE(init_and_use_dbg_gbuff_tex)
 
   if (debug_mode_enabled == yes)
   {
@@ -27,6 +35,7 @@ macro INIT_AND_USE_DBG_GBUFF_TEX()
   USE_DBG_GBUFF_TEX_HELPERS(ps)
   hlsl (ps)
   {
+  #if !VOXELIZE_ALBEDO_PASS
     void init_mipLevel(inout UnpackedGbuffer result, float mip_level)
     {
       ##if debug_mode_enabled == yes
@@ -61,5 +70,33 @@ macro INIT_AND_USE_DBG_GBUFF_TEX()
         }
       ##endif
     }
+    // world-space texture density in texels per meter, camera independent
+    void init_worldTexelDensity(inout UnpackedGbuffer result, float texels_per_meter)
+    {
+      ##if debug_mode_enabled == yes
+        #include "debug_gbuffer_tex_constants.hlsli"
+        if (gbuff_dbg_mode == GBUFF_DBG_MODE_WORLD_TEXEL_DENSITY)
+          init_debug_info(result,
+            clamp(log2(max(texels_per_meter, 1.0)), 0, DBG_WORLD_TEXEL_DENSITY_LOG2_MAX) / (DBG_WORLD_TEXEL_DENSITY_LOG2_MAX + 1));
+      ##endif
+    }
+    // world_pos may be any position with world-space screen derivatives (pointToEye works too)
+    void init_worldTexelDensity(inout UnpackedGbuffer result, Texture2D tex, float2 tc, float3 world_pos)
+    {
+      ##if debug_mode_enabled == yes
+        #include "debug_gbuffer_tex_constants.hlsli"
+        if (gbuff_dbg_mode == GBUFF_DBG_MODE_WORLD_TEXEL_DENSITY)
+        {
+          uint w, h, levels;
+          tex.GetDimensions(0, w, h, levels);
+          float2 dtx = ddx(tc) * w, dty = ddy(tc) * h;
+          float texelArea = abs(dtx.x * dty.y - dtx.y * dty.x);
+          float worldArea = length(cross(ddx(world_pos), ddy(world_pos)));
+          init_worldTexelDensity(result, sqrt(texelArea / max(worldArea, 1e-12)));
+        }
+      ##endif
+    }
+  #endif
   }
+  END_ONCE()
 endmacro

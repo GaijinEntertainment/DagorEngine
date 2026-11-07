@@ -55,6 +55,7 @@ static ObstaclesToAddMap obstaclesToAdd;
 static ska::flat_hash_set<dtObstacleRef> obstaclesToRemove;
 
 static ska::flat_hash_map<obstacle_handle_t, Obstacle> handle2obstacle;
+static eastl::vector<obstacle_handle_t> afterDestroyObstacles;
 
 void tilecache_init(dtTileCache *tc, const ska::flat_hash_set<uint32_t> &obstacle_res_name_hashes)
 {
@@ -73,6 +74,28 @@ bool tilecache_is_blocking(rendinst::riex_handle_t riex_handle) { return tilecac
 obstacle_handle_t tilecache_get_obstacle_handle(rendinst::riex_handle_t riex_handle)
 {
   return tilecache_ri_get_obstacle_handle(riex_handle);
+}
+
+bool tilecache_ri_after_destroy_obstacle_add(rendinst::riex_handle_t riex_handle, const TMatrix &tm)
+{
+  BBox3 oobb;
+  bool block = false;
+  if (!tileCache || !nextHandle || !tilecache_ri_get_after_destroy_obstacle(riex_handle, oobb, block))
+    return false;
+  // Recast rounds floor heights up and dtMarkBoxArea rounds the box top down, so the top floor needs one cell more
+  oobb.lim[1].y += tileCache->getParams()->ch;
+  const obstacle_handle_t handle = tilecache_obstacle_add(tm, oobb, ZERO<Point2>(), block);
+  if (!handle)
+    return false;
+  afterDestroyObstacles.push_back(handle);
+  return true;
+}
+
+void tilecache_ri_after_destroy_obstacles_remove()
+{
+  for (obstacle_handle_t handle : afterDestroyObstacles)
+    tilecache_obstacle_remove(handle);
+  afterDestroyObstacles.clear();
 }
 
 bool tilecache_is_loaded() { return tileCache && nextHandle; }
@@ -131,6 +154,7 @@ void tilecache_stop()
   tilecache_ri_stop();
   nextHandle = 0;
   clear_and_shrink(handle2obstacle); // release bucket array, not just elements
+  clear_and_shrink(afterDestroyObstacles);
 }
 
 static bool tilecache_step()

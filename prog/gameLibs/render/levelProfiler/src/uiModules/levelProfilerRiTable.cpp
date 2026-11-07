@@ -1,13 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <EASTL/sort.h>
+#include <EASTL/algorithm.h>
 #include "levelProfilerWidgets.h"
 #include "riModule.h"
 #include "levelProfilerRiTable.h"
+#include "levelProfilerValueColumn.h"
 #include "levelProfilerExporter.h"
 #include <riGen/riGenExtra.h>
-#include "generic/dag_enumerate.h"
-#include <cfloat>
+#include <math/dag_mathBase.h>
 
 namespace levelprofiler
 {
@@ -16,13 +17,12 @@ namespace
 struct RiLayout
 {
   int lodCount;
-  static constexpr int PER_LOD_METRIC_GROUPS = 4;
+  static constexpr int PER_LOD_METRIC_GROUPS = 3;
   static constexpr int HEAVY_SHADERS_START_LOD = 2;
   int dipsBase() const { return static_cast<int>(RiColumn::BASE_COUNT); }
   int trisBase() const { return dipsBase() + lodCount; }
   int distBase() const { return trisBase() + lodCount; }
-  int screenBase() const { return distBase() + lodCount; }
-  int shadersBase() const { return screenBase() + lodCount; }
+  int shadersBase() const { return distBase() + lodCount; }
   int shadersCount() const { return lodCount > HEAVY_SHADERS_START_LOD ? (lodCount - HEAVY_SHADERS_START_LOD) : 0; }
   int totalColumns() const { return static_cast<int>(RiColumn::BASE_COUNT) + lodCount * PER_LOD_METRIC_GROUPS + shadersCount(); }
 };
@@ -34,1269 +34,569 @@ inline RiLayout makeRiLayout() { return RiLayout{rendinst::RiExtraPool::MAX_LODS
 namespace UIConstants
 {
 
-static constexpr float COL_RI_NAME_WIDTH = 180.0f;
-static constexpr float COL_COUNT_WIDTH = 60.0f;
-static constexpr float COL_RADIUS_WIDTH = 80.0f;
-static constexpr float COL_DIPS_WIDTH = 60.0f;
-static constexpr float COL_TRIS_WIDTH = 60.0f;
-static constexpr float COL_DIST_WIDTH = 80.0f;
-static constexpr float COL_SCREEN_WIDTH = 80.0f;
 static constexpr float COL_SHADERS_WIDTH = 90.0f;
+static constexpr float COL_LOD_RATIO_WIDTH = 80.0f;
+static constexpr float COL_COLLISION_RATIO_WIDTH = 100.0f;
+static constexpr float COL_LOD_TRIS_SHARE_WIDTH = 120.0f;
+static constexpr float COL_COLLISION_SHARE_WIDTH = 130.0f;
+static constexpr float COL_DIST_SCREEN_WIDTH = 140.0f;
 
 // Slider speeds for numeric filters (tuned per value scale)
 static constexpr float COUNT_FILTER_SPEED = 1.0f;
+static constexpr float LOD_COUNT_FILTER_SPEED = 0.1f;
 static constexpr float RADIUS_FILTER_SPEED = 0.1f;
 static constexpr float DIPS_FILTER_SPEED = 1.0f;
 static constexpr float TRIS_FILTER_SPEED = 10.0f;
 static constexpr float DIST_FILTER_SPEED = 1.0f;
 static constexpr float SCREEN_FILTER_SPEED = 0.1f;
-static constexpr int LESS_THAN = -1;
-static constexpr int EQUAL = 0;
-static constexpr int GREATER_THAN = 1;
+static constexpr float SCREEN_PIXELS_FILTER_SPEED = 0.5f;
+static constexpr float RATIO_FILTER_SPEED = 0.5f;
 
 } // namespace UIConstants
 
-// --- LpRiTableColumn implementation ---
-
-LpRiTableColumn::LpRiTableColumn(const char *name, RiColumn column_type, float width, ImGuiTableColumnFlags flags) :
-  LpProfilerTableColumn(name, width, flags), columnType(column_type)
-{}
-
-int LpRiTableColumn::compareItems(const void *item1, const void *item2) const
+namespace
 {
-  const RiTableItem *riItem1 = static_cast<const RiTableItem *>(item1);
-  const RiTableItem *riItem2 = static_cast<const RiTableItem *>(item2);
+const ProfilerString HEAVY_SHADERS_NONE_VALUE = "None";
+constexpr int RATIO_VIEW = 1;
+constexpr int TRIS_BY_RATIO_VIEW = 3;
+// Pixels go before the share: an artist judges a LOD switch by its size in pixels.
+constexpr int DIST_PIXELS_BY_DIST_VIEW = 1;
+constexpr int DIST_PIXELS_BY_PIXELS_VIEW = 2;
+// The FOV mode of the game, not the table, decides whether the monitor aspect changes the screen size.
+constexpr const char *SCREEN_PART_DESCRIPTION =
+  "The screen size is for the table FOV on a 16:9 frame. With a Hor+ FOV, as in War Thunder and by default in DNG, the monitor "
+  "aspect does not change it; War Thunder makes it 1.3 times larger on a triple-head screen (3:1 and wider).";
+// The Screen parts of a Dist cell have a unit to tell them from the distance; the export header names the unit.
+constexpr LpValueFormat<float> SCREEN_PART_FORMAT{.ui = lp_format_percent, .exportText = lp_format_float};
+void format_pixels(char *text, int size, const float &value) { snprintf(text, size, "%.2f px", value); }
+constexpr LpValueFormat<float> SCREEN_PIXELS_PART_FORMAT{.ui = format_pixels, .exportText = lp_format_float};
 
-  if (!riItem1 || !riItem1->data || !riItem2 || !riItem2->data)
-    return UIConstants::EQUAL;
+using TrisAndRatioDesc = LpCompositeColumnDesc<RiTableItem, int, float>;
+using DistAndScreenColumn = LpCompositeColumn<RiTableItem, float, float>;
+using DistAndScreenDesc = LpCompositeColumnDesc<RiTableItem, float, float>;
 
-  const RiData *data1 = riItem1->data;
-  const RiData *data2 = riItem2->data;
+const ProfilerString &ri_name(const RiTableItem &item) { return item.data->name; }
 
-  switch (columnType)
-  {
-    case RiColumn::NAME: return data1->name.compare(data2->name);
-
-    case RiColumn::COUNT_ON_MAP: return data1->countOnMap - data2->countOnMap;
-
-    case RiColumn::BSPHERE_RAD:
-    {
-      float difference = data1->bSphereRadius - data2->bSphereRadius;
-      return (difference < 0.0f) ? UIConstants::LESS_THAN : (difference > 0.0f ? UIConstants::GREATER_THAN : UIConstants::EQUAL);
-    }
-
-    case RiColumn::BBOX_RAD:
-    {
-      float difference = data1->bBoxRadius - data2->bBoxRadius;
-      return (difference < 0.0f) ? UIConstants::LESS_THAN : (difference > 0.0f ? UIConstants::GREATER_THAN : UIConstants::EQUAL);
-    }
-
-    case RiColumn::PHYS_TRIS: return data1->collision.physTriangles - data2->collision.physTriangles;
-
-    case RiColumn::TRACE_TRIS: return data1->collision.traceTriangles - data2->collision.traceTriangles;
-
-    default: return UIConstants::EQUAL;
-  }
+const LodInfo *find_lod(const RiTableItem &item, int lod)
+{
+  return lod < static_cast<int>(item.data->lods.size()) ? &item.data->lods[lod] : nullptr;
 }
 
-ProfilerString LpRiTableColumn::getCellText(const void *item_data, int /* column_index */) const
+ProfilerString lod_column_name(int lod_index, const char *metric)
 {
-  const RiTableItem *currentItem = static_cast<const RiTableItem *>(item_data);
-  if (!currentItem || !currentItem->data)
-    return ProfilerString();
-
-  return getCellTextForItem(currentItem);
+  ProfilerString name;
+  name.sprintf("L%d %s", lod_index, metric);
+  return name;
 }
 
-void LpRiTableColumn::drawCell(const void *item_data) const
+ProfilerString screen_column_name(int lod_index, int fov)
 {
-  const RiTableItem *currentItem = static_cast<const RiTableItem *>(item_data);
-  if (!currentItem || !currentItem->data)
+  ProfilerString name;
+  name.sprintf("L%d Screen%% @%d", lod_index, fov);
+  return name;
+}
+
+ProfilerString screen_pixels_column_name(int lod_index, int fov, int height)
+{
+  ProfilerString name;
+  name.sprintf("L%d Screen px @%d/%d", lod_index, fov, height);
+  return name;
+}
+
+// Screen% is the share of the screen height that the longest bbox edge takes. With Hor+ the vertical extent of a 16:9 frame
+// at the distance d is 2 * d * tan(hfov / 2) * 9 / 16 for any monitor aspect.
+float screen_percent_scale(int fov) { return 100.0f / (2.0f * tanf(DegToRad(fov) * 0.5f) * 9.0f / 16.0f); }
+
+template <typename T>
+LpValueGetter<RiTableItem, T> ri_getter(T RiData::*field)
+{
+  return [field](const RiTableItem &item, T &value) {
+    value = item.data->*field;
+    return true;
+  };
+}
+
+LpValueGetter<RiTableItem, int> collision_getter(int CollisionInfo::*field)
+{
+  return [field](const RiTableItem &item, int &value) {
+    value = item.data->collision.*field;
+    return true;
+  };
+}
+
+template <typename T>
+LpValueGetter<RiTableItem, T> lod_getter(int lod, T LodInfo::*field)
+{
+  return [lod, field](const RiTableItem &item, T &value) {
+    const LodInfo *lodInfo = find_lod(item, lod);
+    if (lodInfo)
+      value = lodInfo->*field;
+    return lodInfo != nullptr;
+  };
+}
+
+float percent_of(int value, int reference) { return 100.0f * value / reference; }
+
+using HeavyShadersFilter = LpMultiCheckColumnFilter<RiTableItem, ProfilerString>;
+
+HeavyShadersFilter::ForEachKey heavy_shaders_of_lod(int lod)
+{
+  return [lod](const RiTableItem &item, const HeavyShadersFilter::KeyVisitor &visit) {
+    if (const LodInfo *lodInfo = find_lod(item, lod))
+      for (const LodInfo::HeavyShaderEntry &entry : lodInfo->heavyShaders)
+        if (!visit(entry.name))
+          return;
+  };
+}
+
+LpValueGetter<RiTableItem, float> lod_tris_ratio_getter(int lod)
+{
+  return [lod](const RiTableItem &item, float &value) {
+    const LodInfo *lodInfo = find_lod(item, lod);
+    if (!lodInfo || item.data->lods[lod - 1].totalFaces <= 0)
+      return false;
+    value = percent_of(lodInfo->totalFaces, item.data->lods[lod - 1].totalFaces);
+    return true;
+  };
+}
+
+LpValueGetter<RiTableItem, float> collision_ratio_getter(int CollisionInfo::*field)
+{
+  return [field](const RiTableItem &item, float &value) {
+    const LodInfo *lod0 = find_lod(item, 0);
+    if (!lod0 || lod0->totalFaces <= 0)
+      return false;
+    value = percent_of(item.data->collision.*field, lod0->totalFaces);
+    return true;
+  };
+}
+
+void draw_no_lod_tooltip(const RiTableItem &item, int lod)
+{
+  const int lodCount = item.data->lodCount;
+  ImGui::Text("No L%d: the asset has %d LOD%s", lod, lodCount, lodCount == 1 ? "" : "s");
+}
+
+void draw_lod_tris_tooltip(const RiTableItem &item, int lod)
+{
+  const LodInfo *lodInfo = find_lod(item, lod);
+  if (!lodInfo)
   {
-    ImGui::Text("N/A");
+    draw_no_lod_tooltip(item, lod);
     return;
   }
-
-  drawCellForItem(currentItem);
+  const LodInfo &previous = item.data->lods[lod - 1];
+  ImGui::Text("L%d Tris: %d", lod, lodInfo->totalFaces);
+  ImGui::Text("L%d Tris: %d", lod - 1, previous.totalFaces);
+  if (previous.totalFaces > 0)
+    ImGui::Text("L%d/L%d: %.2f%%", lod, lod - 1, percent_of(lodInfo->totalFaces, previous.totalFaces));
+  if (lodInfo->totalFaces >= previous.totalFaces)
+    ImGui::TextUnformatted("Not lighter than the previous LOD");
 }
 
-LpRiNameColumn::LpRiNameColumn(float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn("Name", RiColumn::NAME, width > 0 ? width : UIConstants::COL_RI_NAME_WIDTH,
-    flags | ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort)
+void draw_collision_tooltip(const RiTableItem &item, const char *kind, int CollisionInfo::*field)
+{
+  const int triangles = item.data->collision.*field;
+  const bool isTrace = field == &CollisionInfo::traceTriangles;
+  ImGui::Text("%s Tris: %d%s", kind, triangles, isTrace && triangles == 0 ? " (no trace collision)" : "");
+  const LodInfo *lod0 = find_lod(item, 0);
+  if (!lod0)
+  {
+    draw_no_lod_tooltip(item, 0);
+    return;
+  }
+  ImGui::Text("L0 Tris: %d", lod0->totalFaces);
+  if (lod0->totalFaces <= 0)
+    return;
+  ImGui::Text("%s/L0: %.2f%%", kind, percent_of(triangles, lod0->totalFaces));
+  if (triangles > lod0->totalFaces)
+    ImGui::TextUnformatted("Collision is heavier than the render mesh");
+}
+
+// The triangles and their share of a reference, as a number, a share, and both in one cell.
+LpColumnSetup tris_and_ratio_column(const LpValueColumnDesc<RiTableItem, int> &tris_desc,
+  const LpValueColumnDesc<RiTableItem, float> &ratio_desc, const TrisAndRatioDesc &both_desc, const char *ratio_short_name,
+  const char *ratio_title, const char *both_title)
+{
+  LpViewColumnBuilder builder;
+  const int trisFilterIndex = builder.addValueFilter(lp_range_filter(tris_desc, UIConstants::TRIS_FILTER_SPEED));
+  const int ratioFilterIndex = builder.addValueFilter(lp_range_filter(ratio_desc, UIConstants::RATIO_FILTER_SPEED));
+  builder.addView({"#", "Abs", "Triangles", lp_value_column(tris_desc), {trisFilterIndex}});
+  builder.addView({"%", ratio_short_name, ratio_title, lp_value_column(ratio_desc), {ratioFilterIndex}});
+  ProfilerString byTris, byRatio;
+  byTris.sprintf("%s, sorted by the triangles", both_title);
+  byRatio.sprintf("%s, sorted by the share", both_title);
+  builder.addViews(lp_composite_views(both_desc, "#%", byTris.c_str(), byRatio.c_str(), trisFilterIndex, ratioFilterIndex));
+  return builder.build();
+}
+
+LpColumnSetup collision_column(const char *kind, int CollisionInfo::*field)
+{
+  ProfilerString absName, ratioName, trisAndRatioName;
+  absName.sprintf("%s Tris", kind);
+  ratioName.sprintf("%s/L0 Tris", kind);
+  trisAndRatioName.sprintf("%s Tris (/L0)", kind);
+  LpCellTooltip<RiTableItem> tooltip = [kind, field](const RiTableItem &item) { draw_collision_tooltip(item, kind, field); };
+  LpValueColumnDesc<RiTableItem, int> absDesc{
+    absName.c_str(), LP_NARROW_COLUMN_WIDTH, collision_getter(field), LP_INT_FORMAT, tooltip};
+  LpValueColumnDesc<RiTableItem, float> ratioDesc{
+    ratioName.c_str(), UIConstants::COL_COLLISION_RATIO_WIDTH, collision_ratio_getter(field), LP_PERCENT_FORMAT, tooltip, tooltip};
+  TrisAndRatioDesc trisAndRatioDesc{trisAndRatioName.c_str(), UIConstants::COL_COLLISION_SHARE_WIDTH,
+    {absName.c_str(), absDesc.getter, LP_INT_FORMAT}, {ratioName.c_str(), ratioDesc.getter, LP_PERCENT_FORMAT}, tooltip, tooltip};
+  return tris_and_ratio_column(absDesc, ratioDesc, trisAndRatioDesc, "L0", "Share of the L0 triangles",
+    "Triangles and share of the L0 triangles");
+}
+} // namespace
+
+LpRiNameColumn::LpRiNameColumn() :
+  LpRiTableColumn("Name", LP_NAME_COLUMN_WIDTH,
+    ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort | ImGuiTableColumnFlags_NoHide)
 {}
 
-ProfilerString LpRiNameColumn::getCellTextForItem(const RiTableItem *item) const { return item->data->name; }
+ProfilerString LpRiNameColumn::getRowCellText(const RiTableItem &item) const { return item.data->name; }
 
-void LpRiNameColumn::drawCellForItem(const RiTableItem *item) const
+int LpRiNameColumn::compareRows(const RiTableItem &item1, const RiTableItem &item2) const
+{
+  return item1.data->name.compare(item2.data->name);
+}
+
+void LpRiNameColumn::drawRowCell(const RiTableItem &item) const
 {
   const float nameX = ImGui::GetCursorScreenPos().x;
-  ImGui::Selectable(item->data->name.c_str(), item->isSelected, ImGuiSelectableFlags_SpanAllColumns);
-  if (!item->isUpdating)
+  ImGui::Selectable(item.data->name.c_str(), item.isSelected, ImGuiSelectableFlags_SpanAllColumns);
+  if (!item.isUpdating)
     return;
 
   // Row selection and the row context menu both query the last submitted item, so the marker is
   // painted rather than submitted: any widget here would take that role from the Selectable.
-  const ImVec2 markerPos(nameX + ImGui::CalcTextSize(item->data->name.c_str()).x + 6.0f, ImGui::GetItemRectMin().y);
+  const ImVec2 markerPos(nameX + ImGui::CalcTextSize(item.data->name.c_str()).x + 6.0f, ImGui::GetItemRectMin().y);
   ImGui::GetWindowDrawList()->AddText(markerPos, ImGui::GetColorU32(ImGuiCol_TextDisabled), "(updating)");
 }
 
-LpRiCountColumn::LpRiCountColumn(float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn("Count", RiColumn::COUNT_ON_MAP, width > 0 ? width : UIConstants::COL_COUNT_WIDTH,
-    flags | ImGuiTableColumnFlags_WidthFixed)
-{}
-
-ProfilerString LpRiCountColumn::getCellTextForItem(const RiTableItem *item) const { return eastl::to_string(item->data->countOnMap); }
-
-void LpRiCountColumn::drawCellForItem(const RiTableItem *item) const { ImGui::Text("%d", item->data->countOnMap); }
-
-LpRiBSphereColumn::LpRiBSphereColumn(float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn("BSphere Rad", RiColumn::BSPHERE_RAD, width > 0 ? width : UIConstants::COL_RADIUS_WIDTH,
-    flags | ImGuiTableColumnFlags_WidthFixed)
-{}
-
-ProfilerString LpRiBSphereColumn::getCellTextForItem(const RiTableItem *item) const
-{
-  return eastl::to_string(static_cast<int>(item->data->bSphereRadius * 10.0f)) + "." +
-         eastl::to_string(static_cast<int>(item->data->bSphereRadius * 10.0f) % 10);
-}
-
-void LpRiBSphereColumn::drawCellForItem(const RiTableItem *item) const { ImGui::Text("%.1f", item->data->bSphereRadius); }
-
-LpRiBBoxColumn::LpRiBBoxColumn(float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn("BBox Rad", RiColumn::BBOX_RAD, width > 0 ? width : UIConstants::COL_RADIUS_WIDTH,
-    flags | ImGuiTableColumnFlags_WidthFixed)
-{}
-
-ProfilerString LpRiBBoxColumn::getCellTextForItem(const RiTableItem *item) const
-{
-  return eastl::to_string(static_cast<int>(item->data->bBoxRadius * 10.0f)) + "." +
-         eastl::to_string(static_cast<int>(item->data->bBoxRadius * 10.0f) % 10);
-}
-
-void LpRiBBoxColumn::drawCellForItem(const RiTableItem *item) const { ImGui::Text("%.1f", item->data->bBoxRadius); }
-
-LpRiLodDipsColumn::LpRiLodDipsColumn(int lod_index, float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn((ProfilerString("L") + eastl::to_string(lod_index) + " Dips").c_str(), RiColumn::NONE,
-    width > 0 ? width : UIConstants::COL_DIPS_WIDTH, flags | ImGuiTableColumnFlags_WidthFixed),
+LpRiHeavyShadersColumn::LpRiHeavyShadersColumn(int lod_index) :
+  LpLongTextColumn(lod_column_name(lod_index, "Shaders").c_str(), UIConstants::COL_SHADERS_WIDTH, ImGuiTableColumnFlags_WidthFixed),
   lodIndex(lod_index)
 {}
 
-ProfilerString LpRiLodDipsColumn::getCellTextForItem(const RiTableItem *item) const
+bool LpRiHeavyShadersColumn::rowHasValue(const RiTableItem &item) const
 {
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
-    return ProfilerString();
-  return eastl::to_string(item->data->lods[lodIndex].drawCalls);
+  const LodInfo *lodInfo = find_lod(item, lodIndex);
+  return lodInfo && !lodInfo->heavyShaders.empty();
 }
 
-void LpRiLodDipsColumn::drawCellForItem(const RiTableItem *item) const
+ProfilerString LpRiHeavyShadersColumn::getRowCellText(const RiTableItem &item) const
 {
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
-    return;
-  ImGui::Text("%d", item->data->lods[lodIndex].drawCalls);
-}
-
-int LpRiLodDipsColumn::compareItems(const void *item1, const void *item2) const
-{
-  const RiTableItem *riItem1 = static_cast<const RiTableItem *>(item1);
-  const RiTableItem *riItem2 = static_cast<const RiTableItem *>(item2);
-  if (!riItem1 || !riItem2 || !riItem1->data || !riItem2->data)
-    return UIConstants::EQUAL;
-  int dips1 = (lodIndex < static_cast<int>(riItem1->data->lods.size())) ? riItem1->data->lods[lodIndex].drawCalls : 0;
-  int dips2 = (lodIndex < static_cast<int>(riItem2->data->lods.size())) ? riItem2->data->lods[lodIndex].drawCalls : 0;
-  return dips1 - dips2;
-}
-
-LpRiLodTrisColumn::LpRiLodTrisColumn(int lod_index, float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn((ProfilerString("L") + eastl::to_string(lod_index) + " Tris").c_str(), RiColumn::NONE,
-    width > 0 ? width : UIConstants::COL_TRIS_WIDTH, flags | ImGuiTableColumnFlags_WidthFixed),
-  lodIndex(lod_index)
-{}
-
-ProfilerString LpRiLodTrisColumn::getCellTextForItem(const RiTableItem *item) const
-{
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
-    return ProfilerString();
-  return eastl::to_string(item->data->lods[lodIndex].totalFaces);
-}
-
-void LpRiLodTrisColumn::drawCellForItem(const RiTableItem *item) const
-{
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
-    return;
-  ImGui::Text("%d", item->data->lods[lodIndex].totalFaces);
-}
-
-int LpRiLodTrisColumn::compareItems(const void *item1, const void *item2) const
-{
-  const RiTableItem *riItem1 = static_cast<const RiTableItem *>(item1);
-  const RiTableItem *riItem2 = static_cast<const RiTableItem *>(item2);
-  if (!riItem1 || !riItem2 || !riItem1->data || !riItem2->data)
-    return UIConstants::EQUAL;
-  int tris1 = (lodIndex < static_cast<int>(riItem1->data->lods.size())) ? riItem1->data->lods[lodIndex].totalFaces : 0;
-  int tris2 = (lodIndex < static_cast<int>(riItem2->data->lods.size())) ? riItem2->data->lods[lodIndex].totalFaces : 0;
-  return tris1 - tris2;
-}
-
-LpRiPhysTrisColumn::LpRiPhysTrisColumn(float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn("Phys Tris", RiColumn::PHYS_TRIS, width > 0 ? width : UIConstants::COL_TRIS_WIDTH,
-    flags | ImGuiTableColumnFlags_WidthFixed)
-{}
-
-ProfilerString LpRiPhysTrisColumn::getCellTextForItem(const RiTableItem *item) const
-{
-  return eastl::to_string(item->data->collision.physTriangles);
-}
-
-void LpRiPhysTrisColumn::drawCellForItem(const RiTableItem *item) const { ImGui::Text("%d", item->data->collision.physTriangles); }
-
-LpRiTraceTrisColumn::LpRiTraceTrisColumn(float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn("Trace Tris", RiColumn::TRACE_TRIS, width > 0 ? width : UIConstants::COL_TRIS_WIDTH,
-    flags | ImGuiTableColumnFlags_WidthFixed)
-{}
-
-ProfilerString LpRiTraceTrisColumn::getCellTextForItem(const RiTableItem *item) const
-{
-  return eastl::to_string(item->data->collision.traceTriangles);
-}
-
-void LpRiTraceTrisColumn::drawCellForItem(const RiTableItem *item) const { ImGui::Text("%d", item->data->collision.traceTriangles); }
-
-LpRiLodDistColumn::LpRiLodDistColumn(int lod_index, float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn((ProfilerString("L") + eastl::to_string(lod_index) + " Dist").c_str(), RiColumn::NONE,
-    width > 0 ? width : UIConstants::COL_DIST_WIDTH, flags | ImGuiTableColumnFlags_WidthFixed),
-  lodIndex(lod_index)
-{}
-
-ProfilerString LpRiLodDistColumn::getCellTextForItem(const RiTableItem *item) const
-{
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
-    return ProfilerString();
-  return eastl::to_string(static_cast<int>(item->data->lods[lodIndex].lodDistance));
-}
-
-void LpRiLodDistColumn::drawCellForItem(const RiTableItem *item) const
-{
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
-    return;
-  ImGui::Text("%.0f", item->data->lods[lodIndex].lodDistance);
-}
-
-int LpRiLodDistColumn::compareItems(const void *item1, const void *item2) const
-{
-  const RiTableItem *riItem1 = static_cast<const RiTableItem *>(item1);
-  const RiTableItem *riItem2 = static_cast<const RiTableItem *>(item2);
-  if (!riItem1 || !riItem2 || !riItem1->data || !riItem2->data)
-    return UIConstants::EQUAL;
-  float dist1 = (lodIndex < static_cast<int>(riItem1->data->lods.size())) ? riItem1->data->lods[lodIndex].lodDistance : 0.0f;
-  float dist2 = (lodIndex < static_cast<int>(riItem2->data->lods.size())) ? riItem2->data->lods[lodIndex].lodDistance : 0.0f;
-  float diff = dist1 - dist2;
-  return diff < 0.0f ? UIConstants::LESS_THAN : (diff > 0.0f ? UIConstants::GREATER_THAN : UIConstants::EQUAL);
-}
-
-LpRiLodScreenColumn::LpRiLodScreenColumn(int lod_index, float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn((ProfilerString("L") + eastl::to_string(lod_index) + " Screen%").c_str(), RiColumn::NONE,
-    width > 0 ? width : UIConstants::COL_SCREEN_WIDTH, flags | ImGuiTableColumnFlags_WidthFixed),
-  lodIndex(lod_index)
-{}
-
-ProfilerString LpRiLodScreenColumn::getCellTextForItem(const RiTableItem *item) const
-{
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
-    return ProfilerString();
-  return eastl::to_string(static_cast<int>(item->data->lods[lodIndex].screenPercent * 10.0f)) + "." +
-         eastl::to_string(static_cast<int>(item->data->lods[lodIndex].screenPercent * 10.0f) % 10);
-}
-
-void LpRiLodScreenColumn::drawCellForItem(const RiTableItem *item) const
-{
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
-    return;
-  ImGui::Text("%.1f", item->data->lods[lodIndex].screenPercent);
-}
-
-int LpRiLodScreenColumn::compareItems(const void *item1, const void *item2) const
-{
-  const RiTableItem *riItem1 = static_cast<const RiTableItem *>(item1);
-  const RiTableItem *riItem2 = static_cast<const RiTableItem *>(item2);
-  if (!riItem1 || !riItem2 || !riItem1->data || !riItem2->data)
-    return UIConstants::EQUAL;
-  float scr1 = (lodIndex < static_cast<int>(riItem1->data->lods.size())) ? riItem1->data->lods[lodIndex].screenPercent : 0.0f;
-  float scr2 = (lodIndex < static_cast<int>(riItem2->data->lods.size())) ? riItem2->data->lods[lodIndex].screenPercent : 0.0f;
-  float diff = scr1 - scr2;
-  return diff < 0.0f ? UIConstants::LESS_THAN : (diff > 0.0f ? UIConstants::GREATER_THAN : UIConstants::EQUAL);
-}
-
-LpRiHeavyShadersColumn::LpRiHeavyShadersColumn(int lod_index, float width, ImGuiTableColumnFlags flags) :
-  LpRiTableColumn((ProfilerString("L") + eastl::to_string(lod_index) + " Shaders").c_str(), RiColumn::NONE,
-    width > 0 ? width : UIConstants::COL_SHADERS_WIDTH, flags | ImGuiTableColumnFlags_WidthFixed),
-  lodIndex(lod_index)
-{}
-
-ProfilerString LpRiHeavyShadersColumn::getCellTextForItem(const RiTableItem *item) const
-{
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
+  if (!rowHasValue(item))
     return ProfilerString();
 
-  const auto &heavyShaders = item->data->lods[lodIndex].heavyShaders;
-  if (heavyShaders.empty())
-    return ProfilerString();
-  eastl::vector<ProfilerString> names;
-  names.reserve(heavyShaders.size());
-  for (auto &e : heavyShaders)
-    names.push_back(e.name);
-  eastl::sort(names.begin(), names.end());
+  const auto &heavyShaders = find_lod(item, lodIndex)->heavyShaders;
   ProfilerString result;
-  bool first = true;
-  for (auto &n : names)
+  result.reserve(heavyShaders.size() * LP_LIST_ENTRY_RESERVE_SIZE);
+  for (const LodInfo::HeavyShaderEntry &entry : heavyShaders)
   {
-    int cnt = 0;
-    for (auto &e : heavyShaders)
-      if (e.name == n)
-      {
-        cnt = e.count;
-        break;
-      }
-    if (!first)
-      result += ",\n";
-    first = false;
-    result += n;
-    if (cnt > 1)
-    {
-      result += " ";
-      result += eastl::to_string(cnt);
-    }
+    if (!result.empty())
+      result += ", ";
+    // One element is the usual case, so only a shader on several mesh elements shows the count.
+    lp_append_name_count(result, entry.name.c_str(), entry.count, 2);
   }
   return result;
 }
 
-void LpRiHeavyShadersColumn::drawCellForItem(const RiTableItem *item) const
+int LpRiHeavyShadersColumn::compareRows(const RiTableItem &item1, const RiTableItem &item2) const
 {
-  if (lodIndex >= static_cast<int>(item->data->lods.size()))
-    return;
-
-  const auto &heavyShaders = item->data->lods[lodIndex].heavyShaders;
-  if (heavyShaders.empty())
-    return;
-  ProfilerString text = getCellTextForItem(item);
-  ImGui::Text("%s", text.c_str());
+  return lp_compare3(find_lod(item1, lodIndex)->heavyShaders.size(), find_lod(item2, lodIndex)->heavyShaders.size());
 }
 
-int LpRiHeavyShadersColumn::compareItems(const void *item1, const void *item2) const
+// The Screen% or Screen px range of one LOD, with the FOV and screen height fields of the table.
+class LpRiScreenFilter final : public ILpColumnFilter
 {
-  const RiTableItem *riItem1 = static_cast<const RiTableItem *>(item1);
-  const RiTableItem *riItem2 = static_cast<const RiTableItem *>(item2);
-  if (!riItem1 || !riItem2 || !riItem1->data || !riItem2->data)
-    return UIConstants::EQUAL;
-  size_t count1 = (lodIndex < static_cast<int>(riItem1->data->lods.size())) ? riItem1->data->lods[lodIndex].heavyShaders.size() : 0;
-  size_t count2 = (lodIndex < static_cast<int>(riItem2->data->lods.size())) ? riItem2->data->lods[lodIndex].heavyShaders.size() : 0;
-  return static_cast<int>(count1) - static_cast<int>(count2);
-}
+public:
+  LpRiScreenFilter(LpRiTable &owner, LpValueGetter<RiTableItem, float> getter, const ProfilerString &label, float speed) :
+    table(owner), range(eastl::move(getter), label, LP_FLOAT_FORMAT.rangeMinFormat, LP_FLOAT_FORMAT.rangeMaxFormat, speed)
+  {}
+
+  bool isActive() const override { return range.isActive(); }
+  void reset() override { range.reset(); }
+  bool pass(const void *item) const override { return range.pass(item); }
+
+  bool drawPopup() override
+  {
+    const bool changed = range.drawPopup();
+    ImGui::Separator();
+    int fov = table.getScreenFov();
+    if (ImGui::DragInt("FOV (hor, 16:9)", &fov, 1.0f, LpRiTable::MIN_SCREEN_FOV, LpRiTable::MAX_SCREEN_FOV, "%d",
+          ImGuiSliderFlags_AlwaysClamp))
+      table.setScreenFov(fov);
+    int height = table.getScreenHeight();
+    if (ImGui::DragInt("Height, px", &height, 1.0f, LpRiTable::MIN_SCREEN_HEIGHT, LpRiTable::MAX_SCREEN_HEIGHT, "%d",
+          ImGuiSliderFlags_AlwaysClamp))
+      table.setScreenHeight(height);
+    return changed;
+  }
+
+  void beginRebind() override { range.beginRebind(); }
+  void rebindItem(const void *item) override { range.rebindItem(item); }
+  void endRebind() override { range.endRebind(); }
+
+  void scale(float factor) { range.scale(factor); }
+
+private:
+  LpRiTable &table;
+  LpRangeColumnFilter<RiTableItem, float> range;
+};
 
 // --- LpRiTable implementation ---
 
-LpRiTable::LpRiTable(RIModule *ri_module_ptr) : LpProfilerTable("RI Assets", makeRiLayout().totalColumns()), riModule(ri_module_ptr)
+LpRiTable::LpRiTable(RIModule *ri_module_ptr) :
+  LpTypedTable("RI Assets", makeRiLayout().totalColumns(), ri_name), riModule(ri_module_ptr)
 {
   RiLayout layout = makeRiLayout();
   const int lodCount = layout.lodCount;
+  screenPercentScale = screen_percent_scale(screenFov);
 
-  createColumn<LpRiNameColumn>(*RiColumn::NAME);
-  createColumn<LpRiCountColumn>(*RiColumn::COUNT_ON_MAP);
-  createColumn<LpRiBSphereColumn>(*RiColumn::BSPHERE_RAD);
-  createColumn<LpRiBBoxColumn>(*RiColumn::BBOX_RAD);
-  createColumn<LpRiPhysTrisColumn>(*RiColumn::PHYS_TRIS);
-  createColumn<LpRiTraceTrisColumn>(*RiColumn::TRACE_TRIS);
+  using IntDesc = LpValueColumnDesc<RiTableItem, int>;
+  using FloatDesc = LpValueColumnDesc<RiTableItem, float>;
+  addColumn(*RiColumn::NAME, nameColumnSetup(eastl::make_unique<LpRiNameColumn>(), "Search RI names..."));
+  addColumn(*RiColumn::COUNT_ON_MAP,
+    lp_range_column(IntDesc{"Count", LP_NARROW_COLUMN_WIDTH, ri_getter(&RiData::countOnMap), LP_INT_FORMAT},
+      UIConstants::COUNT_FILTER_SPEED));
+  addColumn(*RiColumn::BSPHERE_RAD,
+    lp_range_column(FloatDesc{"BSphere Rad", LP_MEDIUM_COLUMN_WIDTH, ri_getter(&RiData::bSphereRadius), LP_DISTANCE_FORMAT},
+      UIConstants::RADIUS_FILTER_SPEED));
+  addColumn(*RiColumn::BBOX_RAD,
+    lp_range_column(FloatDesc{"BBox Rad", LP_MEDIUM_COLUMN_WIDTH, ri_getter(&RiData::bBoxRadius), LP_DISTANCE_FORMAT},
+      UIConstants::RADIUS_FILTER_SPEED));
+  addColumn(*RiColumn::LOD_COUNT, lp_range_column(IntDesc{"LODs", LP_NARROW_COLUMN_WIDTH, ri_getter(&RiData::lodCount), LP_INT_FORMAT},
+                                    UIConstants::LOD_COUNT_FILTER_SPEED));
+  addColumn(*RiColumn::PHYS_TRIS, collision_column("Phys", &CollisionInfo::physTriangles));
+  addColumn(*RiColumn::TRACE_TRIS, collision_column("Trace", &CollisionInfo::traceTriangles));
 
   for (int lod = 0; lod < lodCount; ++lod)
-    createColumn<LpRiLodDipsColumn>(layout.dipsBase() + lod, lod);
-  for (int lod = 0; lod < lodCount; ++lod)
-    createColumn<LpRiLodTrisColumn>(layout.trisBase() + lod, lod);
-  for (int lod = 0; lod < lodCount; ++lod)
-    createColumn<LpRiLodDistColumn>(layout.distBase() + lod, lod);
-  for (int lod = 0; lod < lodCount; ++lod)
-    createColumn<LpRiLodScreenColumn>(layout.screenBase() + lod, lod);
-  for (int lod = RiLayout::HEAVY_SHADERS_START_LOD; lod < lodCount; ++lod)
-    createColumn<LpRiHeavyShadersColumn>(layout.shadersBase() + (lod - RiLayout::HEAVY_SHADERS_START_LOD), lod);
-
-  setSortItemsCallback(sort_table_items_callback, this);
-  setItemSelectedCallback(on_item_selected, this);
-
-  eastl::vector<LpColumnFilterSpec> specs;
-  specs.reserve(static_cast<size_t>(RiColumn::BASE_COUNT) + lodCount * 5);
-
-  // Base columns
-  specs.push_back(LpColumnFilterSpec{*RiColumn::NAME, "##RiNameFilter",
-    makeDelegate<LpRiTable, &LpRiTable::drawNameFilterContent>(this), "##RiNameSearch", "Search RI names...",
-    makeSearchDelegate<LpRiTable, &LpRiTable::onNameSearchChange, &LpRiTable::onNameSearchCommit>(this)});
-  specs.push_back(
-    LpColumnFilterSpec{*RiColumn::COUNT_ON_MAP, "##RiCountFilter", makeDelegate<LpRiTable, &LpRiTable::drawCountFilterContent>(this)});
-  specs.push_back(LpColumnFilterSpec{
-    *RiColumn::BSPHERE_RAD, "##RiBSphereFilter", makeDelegate<LpRiTable, &LpRiTable::drawBSphereFilterContent>(this)});
-  specs.push_back(
-    LpColumnFilterSpec{*RiColumn::BBOX_RAD, "##RiBBoxFilter", makeDelegate<LpRiTable, &LpRiTable::drawBBoxFilterContent>(this)});
-  specs.push_back(LpColumnFilterSpec{
-    *RiColumn::PHYS_TRIS, "##RiPhysTrisFilter", makeDelegate<LpRiTable, &LpRiTable::drawPhysTrisFilterContent>(this)});
-  specs.push_back(LpColumnFilterSpec{
-    *RiColumn::TRACE_TRIS, "##RiTraceTrisFilter", makeDelegate<LpRiTable, &LpRiTable::drawTraceTrisFilterContent>(this)});
-
-  // LOD metric groups using persistent context objects (lodPopupContexts)
-  lodPopupContexts.clear();
-  lodPopupContexts.reserve(lodCount * 5);
-  lodPopupIdStorage.clear();
-  lodPopupIdStorage.reserve(lodCount * 4 + (lodCount - RiLayout::HEAVY_SHADERS_START_LOD));
-  struct LodThunk
   {
-    static void invoke(void *ud)
+    const LpCellTooltip<RiTableItem> noLodTooltip = [lod](const RiTableItem &item) { draw_no_lod_tooltip(item, lod); };
+    addColumn(layout.dipsBase() + lod, lp_range_column(IntDesc{lod_column_name(lod, "Dips").c_str(), LP_NARROW_COLUMN_WIDTH,
+                                                         lod_getter(lod, &LodInfo::drawCalls), LP_INT_FORMAT, {}, noLodTooltip},
+                                         UIConstants::DIPS_FILTER_SPEED));
+
+    const ProfilerString trisName = lod_column_name(lod, "Tris");
+    IntDesc trisDesc{trisName.c_str(), LP_NARROW_COLUMN_WIDTH, lod_getter(lod, &LodInfo::totalFaces), LP_INT_FORMAT, {}, noLodTooltip};
+    if (lod == 0)
+      addColumn(layout.trisBase(), lp_range_column(trisDesc, UIConstants::TRIS_FILTER_SPEED));
+    else
     {
-      auto *ctx = static_cast<LpRiTable::LodPopupCtx *>(ud);
-      if (!ctx || !ctx->table)
-        return;
-      switch (ctx->type)
-      {
-        case 0: ctx->table->drawLodDipsFilterContent(ctx->lod); break;
-        case 1: ctx->table->drawLodTrisFilterContent(ctx->lod); break;
-        case 2: ctx->table->drawLodDistFilterContent(ctx->lod); break;
-        case 3: ctx->table->drawLodScreenFilterContent(ctx->lod); break;
-        case 4: ctx->table->drawHeavyShadersFilterContent(ctx->lod); break;
-        default: break;
-      }
+      const LpCellTooltip<RiTableItem> trisTooltip = [lod](const RiTableItem &item) { draw_lod_tris_tooltip(item, lod); };
+      trisDesc.tooltip = trisDesc.emptyTooltip = trisTooltip;
+      ProfilerString ratioName, trisAndRatioName;
+      ratioName.sprintf("L%d/L%d Tris", lod, lod - 1);
+      trisAndRatioName.sprintf("L%d Tris (/L%d)", lod, lod - 1);
+      FloatDesc ratioDesc{
+        ratioName.c_str(), UIConstants::COL_LOD_RATIO_WIDTH, lod_tris_ratio_getter(lod), LP_PERCENT_FORMAT, trisTooltip, trisTooltip};
+      TrisAndRatioDesc trisAndRatioDesc{trisAndRatioName.c_str(), UIConstants::COL_LOD_TRIS_SHARE_WIDTH,
+        {trisName.c_str(), trisDesc.getter, LP_INT_FORMAT}, {ratioName.c_str(), ratioDesc.getter, LP_PERCENT_FORMAT}, trisTooltip,
+        trisTooltip};
+      addColumn(layout.trisBase() + lod,
+        tris_and_ratio_column(trisDesc, ratioDesc, trisAndRatioDesc, "Prev", "Share of the previous LOD triangles",
+          "Triangles and share of the previous LOD triangles"));
     }
-  };
-  for (int lod = 0; lod < lodCount; ++lod)
-  {
-    lodPopupContexts.push_back({this, lod, 0});
-    int dipsCol = layout.dipsBase() + lod;
-    lodPopupIdStorage.emplace_back();
-    lodPopupIdStorage.back().sprintf("##RiLodDipsFilter_%d", lod);
-    specs.push_back(
-      LpColumnFilterSpec{dipsCol, lodPopupIdStorage.back().c_str(), LpCallbackDelegate{&LodThunk::invoke, &lodPopupContexts.back()}});
 
-    lodPopupContexts.push_back({this, lod, 1});
-    int trisCol = layout.trisBase() + lod;
-    lodPopupIdStorage.emplace_back();
-    lodPopupIdStorage.back().sprintf("##RiLodTrisFilter_%d", lod);
-    specs.push_back(
-      LpColumnFilterSpec{trisCol, lodPopupIdStorage.back().c_str(), LpCallbackDelegate{&LodThunk::invoke, &lodPopupContexts.back()}});
+    auto screenGetter = [this, lod](float (LpRiTable::*metric)(const LodInfo &) const) -> LpValueGetter<RiTableItem, float> {
+      return [this, lod, metric](const RiTableItem &item, float &value) {
+        const LodInfo *lodInfo = find_lod(item, lod);
+        if (lodInfo)
+          value = (this->*metric)(*lodInfo);
+        return lodInfo != nullptr;
+      };
+    };
+    LpValueGetter<RiTableItem, float> percentGetter = screenGetter(&LpRiTable::getScreenPercent);
+    LpValueGetter<RiTableItem, float> pixelGetter = screenGetter(&LpRiTable::getScreenPixels);
 
-    lodPopupContexts.push_back({this, lod, 2});
-    int distCol = layout.distBase() + lod;
-    lodPopupIdStorage.emplace_back();
-    lodPopupIdStorage.back().sprintf("##RiLodDistFilter_%d", lod);
-    specs.push_back(
-      LpColumnFilterSpec{distCol, lodPopupIdStorage.back().c_str(), LpCallbackDelegate{&LodThunk::invoke, &lodPopupContexts.back()}});
+    LpCellTooltip<RiTableItem> distTooltip = [this, lod](const RiTableItem &item) {
+      const LodInfo &lodInfo = *find_lod(item, lod);
+      ImGui::Text("L%d Dist: %.2f m", lod, lodInfo.lodDistance);
+      ImGui::Text("L%d Screen%% @%d: %.2f%%", lod, screenFov, getScreenPercent(lodInfo));
+      ImGui::Text("L%d Screen px @%d/%d: %.2f", lod, screenFov, screenHeight, getScreenPixels(lodInfo));
+      ImGui::Text("BBox Rad: %.2f m", item.data->bBoxRadius);
+    };
+    const ProfilerString distName = lod_column_name(lod, "Dist");
+    const ProfilerString distAndScreenName = lod_column_name(lod, "Dist (+Screen%)");
+    const ProfilerString distAndPixelsName = lod_column_name(lod, "Dist (+Screen px)");
+    FloatDesc distDesc{
+      distName.c_str(), LP_MEDIUM_COLUMN_WIDTH, lod_getter(lod, &LodInfo::lodDistance), LP_DISTANCE_FORMAT, distTooltip, noLodTooltip};
+    const ProfilerString screenName = screen_column_name(lod, screenFov);
+    const ProfilerString screenPixelsName = screen_pixels_column_name(lod, screenFov, screenHeight);
+    DistAndScreenDesc distAndScreenDesc{distAndScreenName.c_str(), UIConstants::COL_DIST_SCREEN_WIDTH,
+      {distName.c_str(), distDesc.getter, LP_DISTANCE_FORMAT}, {screenName.c_str(), percentGetter, SCREEN_PART_FORMAT}, distTooltip,
+      noLodTooltip};
+    LpViewColumnBuilder distBuilder;
+    const int distFilterIndex = distBuilder.addValueFilter(lp_range_filter(distDesc, UIConstants::DIST_FILTER_SPEED));
+    auto distScreenFilter =
+      eastl::make_unique<LpRiScreenFilter>(*this, percentGetter, lod_column_name(lod, "Screen%"), UIConstants::SCREEN_FILTER_SPEED);
+    ScreenLod screenLod{.distScreenFilter = distScreenFilter.get()};
+    const int screenPercentFilterIndex = distBuilder.addValueFilter(eastl::move(distScreenFilter));
+    auto distScreenViews =
+      lp_composite_views(distAndScreenDesc, "DS", "Distance and share of the screen height, sorted by the distance",
+        "Distance and share of the screen height, sorted by the share", distFilterIndex, screenPercentFilterIndex);
+    screenLod.distScreenColumns[0] = static_cast<DistAndScreenColumn *>(distScreenViews.first.column.get());
+    screenLod.distScreenColumns[1] = static_cast<DistAndScreenColumn *>(distScreenViews.second.column.get());
 
-    lodPopupContexts.push_back({this, lod, 3});
-    int screenCol = layout.screenBase() + lod;
-    lodPopupIdStorage.emplace_back();
-    lodPopupIdStorage.back().sprintf("##RiLodScreenFilter_%d", lod);
-    specs.push_back(LpColumnFilterSpec{
-      screenCol, lodPopupIdStorage.back().c_str(), LpCallbackDelegate{&LodThunk::invoke, &lodPopupContexts.back()}});
+    DistAndScreenDesc distAndPixelsDesc{distAndPixelsName.c_str(), UIConstants::COL_DIST_SCREEN_WIDTH,
+      {distName.c_str(), distDesc.getter, LP_DISTANCE_FORMAT}, {screenPixelsName.c_str(), pixelGetter, SCREEN_PIXELS_PART_FORMAT},
+      distTooltip, noLodTooltip};
+    auto distPixelsFilter = eastl::make_unique<LpRiScreenFilter>(*this, pixelGetter, lod_column_name(lod, "Screen px"),
+      UIConstants::SCREEN_PIXELS_FILTER_SPEED);
+    screenLod.distPixelsFilter = distPixelsFilter.get();
+    const int screenPixelsFilterIndex = distBuilder.addValueFilter(eastl::move(distPixelsFilter));
+    auto distPixelsViews =
+      lp_composite_views(distAndPixelsDesc, "DP", "Distance and pixels of the screen height, sorted by the distance",
+        "Distance and pixels of the screen height, sorted by the pixels", distFilterIndex, screenPixelsFilterIndex);
+    for (LpColumnViewDesc *view : {&distScreenViews.first, &distScreenViews.second, &distPixelsViews.first, &distPixelsViews.second})
+      view->description = SCREEN_PART_DESCRIPTION;
+    screenLod.distPixelsColumns[0] = static_cast<DistAndScreenColumn *>(distPixelsViews.first.column.get());
+    screenLod.distPixelsColumns[1] = static_cast<DistAndScreenColumn *>(distPixelsViews.second.column.get());
+    screenLods.push_back(screenLod);
+
+    distBuilder.addView({"#", "Dist", "Distance", lp_value_column(distDesc), {distFilterIndex}});
+    distBuilder.addViews(eastl::move(distPixelsViews));
+    distBuilder.addViews(eastl::move(distScreenViews));
+    addColumn(layout.distBase() + lod, distBuilder.build());
   }
   for (int lod = RiLayout::HEAVY_SHADERS_START_LOD; lod < lodCount; ++lod)
-  {
-    lodPopupContexts.push_back({this, lod, 4});
-    int shadersCol = layout.shadersBase() + (lod - RiLayout::HEAVY_SHADERS_START_LOD);
-    lodPopupIdStorage.emplace_back();
-    lodPopupIdStorage.back().sprintf("##RiLodHeavyShadersFilter_%d", lod);
-    specs.push_back(LpColumnFilterSpec{
-      shadersCol, lodPopupIdStorage.back().c_str(), LpCallbackDelegate{&LodThunk::invoke, &lodPopupContexts.back()}});
-  }
+    addColumn(layout.shadersBase() + (lod - RiLayout::HEAVY_SHADERS_START_LOD),
+      {eastl::make_unique<LpRiHeavyShadersColumn>(lod), eastl::make_unique<HeavyShadersFilter>(heavy_shaders_of_lod(lod),
+                                                          HEAVY_SHADERS_NONE_VALUE, MultiSelectLabelFuncs::ProfilerStringLabel)});
 
-  registerColumnFilters(specs);
+  const int dipsGroup = addColumnGroup("LOD Dips", layout.dipsBase(), lodCount);
+  const int trisGroup = addColumnGroup("LOD Tris", layout.trisBase(), lodCount);
+  const int distGroup = addColumnGroup("LOD Dist", layout.distBase(), lodCount);
+  const int shadersGroup =
+    addColumnGroup("Heavy Shaders", layout.shadersBase(), layout.shadersCount(), RiLayout::HEAVY_SHADERS_START_LOD);
+  lodColumnGroupIds = {dipsGroup, trisGroup, distGroup, shadersGroup};
+  for (int group : lodColumnGroupIds)
+    setColumnGroupActiveCount(group, 0);
+
+  addPreset({.name = "Geometry",
+    .tooltip = "Which assets have heavy geometry? An asset without LODs, a LOD1 almost equal to LOD0?",
+    .columns = {*RiColumn::COUNT_ON_MAP, *RiColumn::BBOX_RAD, *RiColumn::LOD_COUNT},
+    .groups = {trisGroup},
+    .views = {{.group = trisGroup, .view = TRIS_BY_RATIO_VIEW}},
+    .sortColumn = layout.trisBase(),
+    .sortDirection = ImGuiSortDirection_Descending});
+  addPreset({.name = "LOD tuning",
+    .tooltip = "Are the LOD distances correct? Does a LOD switch too late or too early?",
+    .columns = {*RiColumn::COUNT_ON_MAP, *RiColumn::BBOX_RAD, *RiColumn::LOD_COUNT},
+    .groups = {trisGroup, distGroup},
+    .views = {{.group = trisGroup, .view = RATIO_VIEW}, {.group = distGroup, .view = DIST_PIXELS_BY_PIXELS_VIEW}},
+    .sortColumn = layout.trisBase() + 1,
+    .sortDirection = ImGuiSortDirection_Descending});
+  addPreset({.name = "Materials",
+    .tooltip = "Which assets have expensive materials: many dips on far LODs, layered shaders at a distance?",
+    .columns = {*RiColumn::COUNT_ON_MAP},
+    .groups = {dipsGroup, shadersGroup},
+    .sortColumn = layout.dipsBase(),
+    .sortDirection = ImGuiSortDirection_Descending});
+  addPreset({.name = "Collision",
+    .tooltip = "Is the collision too complex? Is there no trace collision?",
+    .columns = {*RiColumn::COUNT_ON_MAP, *RiColumn::BSPHERE_RAD, *RiColumn::BBOX_RAD, *RiColumn::PHYS_TRIS, *RiColumn::TRACE_TRIS},
+    .views = {{.column = *RiColumn::PHYS_TRIS, .view = TRIS_BY_RATIO_VIEW},
+      {.column = *RiColumn::TRACE_TRIS, .view = TRIS_BY_RATIO_VIEW}},
+    .sortColumn = *RiColumn::PHYS_TRIS,
+    .sortDirection = ImGuiSortDirection_Descending});
+  addPreset({.name = "All",
+    .tooltip = "All columns, for example for a full export.",
+    .allColumns = true,
+    .views = {{.group = distGroup, .view = DIST_PIXELS_BY_DIST_VIEW}},
+    .sortColumn = *RiColumn::NAME,
+    .sortDirection = ImGuiSortDirection_Ascending});
+
+  setCopyMenuTopColumns({*RiColumn::NAME});
 }
-
-LpRiTable::~LpRiTable() {}
-
-void LpRiTable::onNameSearchChange(const char *text) { nameFilter.setSearchText(text); }
-void LpRiTable::onNameSearchCommit() {}
-
-// Group columns for easier visibility management
-eastl::vector<LpProfilerTable::ColumnGroup> LpRiTable::getColumnGroups() const
-{
-  eastl::vector<ColumnGroup> groups;
-  RiLayout layout = makeRiLayout();
-  int lodCountTotal = layout.lodCount;
-  int activeLodCount = (currentMaxUsedLod > 0 && currentMaxUsedLod <= lodCountTotal) ? currentMaxUsedLod : lodCountTotal;
-
-
-  auto pushLodGroup = [&](const char *name, int baseIndex) {
-    ColumnGroup grp;
-    grp.name = name;
-    for (int lod = 0; lod < activeLodCount; ++lod)
-      grp.columnIndices.push_back(baseIndex + lod);
-    groups.push_back(eastl::move(grp));
-  };
-
-  pushLodGroup("LOD Dips", layout.dipsBase());
-  pushLodGroup("LOD Tris", layout.trisBase());
-  pushLodGroup("LOD Dist", layout.distBase());
-  pushLodGroup("LOD Screen", layout.screenBase());
-
-  // Heavy shaders group (if any)
-  if (activeLodCount > RiLayout::HEAVY_SHADERS_START_LOD)
-  {
-    ColumnGroup shadersGroup;
-    shadersGroup.name = "Heavy Shaders";
-    for (int lod = RiLayout::HEAVY_SHADERS_START_LOD; lod < activeLodCount; ++lod)
-      shadersGroup.columnIndices.push_back(layout.shadersBase() + (lod - RiLayout::HEAVY_SHADERS_START_LOD));
-    groups.push_back(eastl::move(shadersGroup));
-  }
-
-  return groups;
-}
-
-void LpRiTable::setSelectedRi(const ProfilerString &ri_name) { selectedRiName = ri_name; }
 
 void LpRiTable::drawContent()
 {
   if (!riModule)
     return;
 
-  if (isSortActive())
-    sortFilteredRiItems();
+  LpProfilerTable::drawContent();
+}
 
-  syncDynamicColumns(); // Ensure dynamic columns reflect current LOD usage
+void LpRiTable::setScreenFov(int fov)
+{
+  fov = eastl::clamp(fov, MIN_SCREEN_FOV, MAX_SCREEN_FOV);
+  if (fov == screenFov)
+    return;
+  const float oldScale = screenPercentScale;
+  screenFov = fov;
+  screenPercentScale = screen_percent_scale(fov);
+  // Each Screen% and Screen px changes by the same factor, so the scaled ranges keep the filter of the user.
+  const float factor = screenPercentScale / oldScale;
+  for (const ScreenLod &screenLod : screenLods)
+  {
+    screenLod.distScreenFilter->scale(factor);
+    screenLod.distPixelsFilter->scale(factor);
+  }
+  updateScreenColumnNames();
+  markRowsDirty();
+}
 
-  const auto &riData = riModule->getRiData();
+void LpRiTable::setScreenHeight(int height)
+{
+  height = eastl::clamp(height, MIN_SCREEN_HEIGHT, MAX_SCREEN_HEIGHT);
+  if (height == screenHeight)
+    return;
+  const float factor = static_cast<float>(height) / screenHeight;
+  screenHeight = height;
+  for (const ScreenLod &screenLod : screenLods)
+    screenLod.distPixelsFilter->scale(factor);
+  updateScreenColumnNames();
+  markRowsDirty();
+}
+
+void LpRiTable::updateScreenColumnNames()
+{
+  for (int lod = 0; lod < static_cast<int>(screenLods.size()); ++lod)
+  {
+    for (DistAndScreenColumn *column : screenLods[lod].distScreenColumns)
+      column->setSecondName(screen_column_name(lod, screenFov).c_str());
+    for (DistAndScreenColumn *column : screenLods[lod].distPixelsColumns)
+      column->setSecondName(screen_pixels_column_name(lod, screenFov, screenHeight).c_str());
+  }
+}
+
+bool LpRiTable::pollItemsChanged()
+{
+  if (!riModule)
+    return false;
+
+  // Only the count filter and the Count sort read countOnMap; the count cell reads it live.
+  if (unsigned counts = riModule->getRiCountsGeneration(); counts != countsGeneration)
+  {
+    countsGeneration = counts;
+    if (isFilterActive(*RiColumn::COUNT_ON_MAP) || isSortedBy(*RiColumn::COUNT_ON_MAP))
+      markRowsDirty();
+  }
 
   unsigned dataGeneration = riModule->getRiDataGeneration();
-  if (!rangeFiltersInitialized || dataGeneration != lastFiltersGeneration)
-  {
-    refreshRangeFilters();
-    lastFiltersGeneration = dataGeneration;
-  }
-
-  if (sortedRiOrder.size() != riData.size())
-  {
-    sortedRiOrder.clear();
-    sortedRiOrder.reserve(riData.size());
-    for (size_t i = 0; i < riData.size(); ++i)
-      sortedRiOrder.push_back(static_cast<int>(i));
-  }
-
-  eastl::vector<RiTableItem> tableItems;
-  tableItems.reserve(sortedRiOrder.size());
-  for (int idx : sortedRiOrder)
-  {
-    if (idx < 0 || static_cast<size_t>(idx) >= riData.size())
-      continue;
-    const RiData &riRef = riData[static_cast<size_t>(idx)];
-    if (!passesFilters(riRef))
-      continue;
-    bool isSelected = (selectedRiName == riRef.name);
-    tableItems.emplace_back(riRef, isSelected, riModule && riModule->isCollecting());
-  }
-
-  filteredCount = tableItems.size();
-
-  for (auto [rowIndex, item] : enumerate(tableItems))
-  {
-    beginRow();
-    for (int columnIndex = 0; columnIndex < columnsCount; ++columnIndex)
-    {
-      if (!setColumn(columnIndex))
-        continue;
-      if (LpProfilerTableColumn *column = getColumn(columnIndex))
-      {
-        ImGui::PushID(currentRowIndex * columnsCount + columnIndex);
-        column->drawCell(&item);
-        if (columnIndex == 0 && ImGui::IsItemClicked())
-        {
-          setSelectedRi(item.data->name);
-          if (itemSelectedCallback)
-            itemSelectedCallback(currentRowIndex, &item, itemSelectedCallbackUserData);
-        }
-        drawRowContextMenu(currentRowIndex, columnIndex, &item);
-        ImGui::PopID();
-      }
-    }
-    endRow();
-  }
-}
-
-
-bool LpRiTable::areAllColumnsEffectivelyVisible() const
-{
-  for (int i = 0; i < static_cast<int>(RiColumn::BASE_COUNT) && i < columnsCount; ++i)
-    if (!columnVisibility[i])
-      return false;
-
-  RiLayout layout = makeRiLayout();
-  int activeLodCount = currentMaxUsedLod > 0 ? currentMaxUsedLod : layout.lodCount;
-
-  for (int lod = 0; lod < activeLodCount; ++lod)
-    if (!columnVisibility[layout.dipsBase() + lod] || !columnVisibility[layout.trisBase() + lod] ||
-        !columnVisibility[layout.distBase() + lod] || !columnVisibility[layout.screenBase() + lod])
-      return false;
-
-  if (activeLodCount > RiLayout::HEAVY_SHADERS_START_LOD)
-    for (int lod = RiLayout::HEAVY_SHADERS_START_LOD; lod < activeLodCount; ++lod)
-      if (!columnVisibility[layout.shadersBase() + (lod - RiLayout::HEAVY_SHADERS_START_LOD)])
-        return false;
-
+  if (dataGeneration == itemsGeneration)
+    return false;
+  itemsGeneration = dataGeneration;
   return true;
 }
 
-void LpRiTable::handleSelection() {}
-
-void LpRiTable::sortFilteredRiItems()
+void LpRiTable::rebuildItems()
 {
-  if (!riModule)
-    return;
   const auto &riData = riModule->getRiData();
-  if (!sortSpecs || sortSpecs->SpecsCount == 0 || riData.empty())
-    return;
-
-  if (sortedRiOrder.size() != riData.size())
+  items.clear();
+  items.reserve(riData.size());
+  int maxCollectedLodCount = 0;
+  for (const RiData &riRef : riData)
   {
-    sortedRiOrder.clear();
-    sortedRiOrder.reserve(riData.size());
-    for (size_t i = 0; i < riData.size(); ++i)
-      sortedRiOrder.push_back(static_cast<int>(i));
+    items.emplace_back(riRef);
+    maxCollectedLodCount = eastl::max(maxCollectedLodCount, static_cast<int>(riRef.lods.size()));
   }
-
-  auto compareIndices = [this, &riData](int aIdx, int bIdx) -> bool {
-    const RiData &a = riData[static_cast<size_t>(aIdx)];
-    const RiData &b = riData[static_cast<size_t>(bIdx)];
-    for (int i = 0; i < sortSpecs->SpecsCount; ++i)
-    {
-      const ImGuiTableColumnSortSpecs *spec = &sortSpecs->Specs[i];
-      int columnIndex = spec->ColumnIndex;
-      int delta = 0;
-      if (columnIndex >= 0 && columnIndex < columnsCount)
-      {
-        if (auto *column = getColumn(columnIndex))
-        {
-          RiTableItem itemA(a);
-          RiTableItem itemB(b);
-          delta = column->compareItems(&itemA, &itemB);
-        }
-      }
-      if (delta != 0)
-        return spec->SortDirection == ImGuiSortDirection_Ascending ? (delta < 0) : (delta > 0);
-    }
-    return aIdx < bIdx;
-  };
-
-  eastl::stable_sort(sortedRiOrder.begin(), sortedRiOrder.end(), compareIndices);
+  for (int group : lodColumnGroupIds)
+    setColumnGroupActiveCount(group, maxCollectedLodCount);
 }
 
-void LpRiTable::buildFilteredIndexOrder(eastl::vector<int> &out) const
-{
-  out.clear();
-  if (!riModule)
-    return;
-  const auto &riData = riModule->getRiData();
-  if (riData.empty())
-    return;
-  if (sortedRiOrder.size() != riData.size())
-  {
-    for (auto [dataIndex, riRef] : enumerate(riData))
-    {
-      if (passesFilters(riRef))
-        out.push_back(static_cast<int>(dataIndex));
-    }
-    return;
-  }
-  for (int idx : sortedRiOrder)
-  {
-    if (idx < 0 || static_cast<size_t>(idx) >= riData.size())
-      continue;
-    const RiData &riRef = riData[static_cast<size_t>(idx)];
-    if (!passesFilters(riRef))
-      continue;
-    out.push_back(idx);
-  }
-}
-
-bool LpRiTable::isFilterActive(ColumnIndex column) const
-{
-  RiLayout layout = makeRiLayout();
-  int dipsBase = layout.dipsBase();
-  int trisBase = layout.trisBase();
-  int distBase = layout.distBase();
-  int lodCount = layout.lodCount;
-  switch (static_cast<int>(column))
-  {
-    case *RiColumn::NAME: return nameFilter.isActive();
-    case *RiColumn::COUNT_ON_MAP: return countRangeFilter.isUsingMin() || countRangeFilter.isUsingMax();
-    case *RiColumn::BSPHERE_RAD: return bSphereRadiusRangeFilter.isUsingMin() || bSphereRadiusRangeFilter.isUsingMax();
-    case *RiColumn::BBOX_RAD: return bBoxRadiusRangeFilter.isUsingMin() || bBoxRadiusRangeFilter.isUsingMax();
-    case *RiColumn::PHYS_TRIS: return physTrisRangeFilter.isUsingMin() || physTrisRangeFilter.isUsingMax();
-    case *RiColumn::TRACE_TRIS: return traceTrisRangeFilter.isUsingMin() || traceTrisRangeFilter.isUsingMax();
-    default:
-      if (column >= dipsBase && column < dipsBase + lodCount)
-      {
-        int lod = static_cast<int>(column) - dipsBase;
-        return lod < static_cast<int>(lodDipsRangeFilters.size()) &&
-               (lodDipsRangeFilters[lod].isUsingMin() || lodDipsRangeFilters[lod].isUsingMax());
-      }
-      if (column >= trisBase && column < trisBase + lodCount)
-      {
-        int lod = static_cast<int>(column) - trisBase;
-        return lod < static_cast<int>(lodTrisRangeFilters.size()) &&
-               (lodTrisRangeFilters[lod].isUsingMin() || lodTrisRangeFilters[lod].isUsingMax());
-      }
-      if (column >= distBase && column < distBase + lodCount)
-      {
-        int lod = static_cast<int>(column) - distBase;
-        return lod < static_cast<int>(lodDistRangeFilters.size()) &&
-               (lodDistRangeFilters[lod].isUsingMin() || lodDistRangeFilters[lod].isUsingMax());
-      }
-
-      int screenBase = layout.screenBase();
-      if (column >= screenBase && column < screenBase + lodCount)
-      {
-        int lod = static_cast<int>(column) - screenBase;
-        return lod < static_cast<int>(lodScreenRangeFilters.size()) &&
-               (lodScreenRangeFilters[lod].isUsingMin() || lodScreenRangeFilters[lod].isUsingMax());
-      }
-
-      int shadersBase = layout.shadersBase();
-      int shadersCount = layout.shadersCount();
-      if (shadersCount > 0 && column >= shadersBase && column < shadersBase + shadersCount)
-      {
-        int lod = (static_cast<int>(column) - shadersBase) + RiLayout::HEAVY_SHADERS_START_LOD;
-        int filterIndex = lod - RiLayout::HEAVY_SHADERS_START_LOD;
-        return filterIndex < static_cast<int>(heavyShaderFilters.size()) && !heavyShaderFilters[filterIndex].getOffList().empty();
-      }
-      return false;
-  }
-}
-
-void LpRiTable::clearAllFilters()
-{
-  nameFilter.reset();
-  if (auto *w = getSearchWidget(*RiColumn::NAME))
-    w->clear();
-  countRangeFilter.reset();
-  bSphereRadiusRangeFilter.reset();
-  bBoxRadiusRangeFilter.reset();
-  physTrisRangeFilter.reset();
-  traceTrisRangeFilter.reset();
-  for (auto &f : lodDipsRangeFilters)
-    f.reset();
-  for (auto &f : lodTrisRangeFilters)
-    f.reset();
-  for (auto &f : lodDistRangeFilters)
-    f.reset();
-  for (auto &f : lodScreenRangeFilters)
-    f.reset();
-  for (auto &f : heavyShaderFilters)
-    f.reset();
-}
-
-void LpRiTable::clearColumnFilter(ColumnIndex column)
-{
-  RiLayout layout = makeRiLayout();
-  int dipsBase = layout.dipsBase();
-  int trisBase = layout.trisBase();
-  int distBase = layout.distBase();
-  int lodCount = layout.lodCount;
-  switch (static_cast<int>(column))
-  {
-    case *RiColumn::NAME:
-      nameFilter.reset();
-      if (auto *w = getSearchWidget(column))
-        w->clear();
-      break;
-    case *RiColumn::COUNT_ON_MAP: countRangeFilter.reset(); break;
-    case *RiColumn::BSPHERE_RAD: bSphereRadiusRangeFilter.reset(); break;
-    case *RiColumn::BBOX_RAD: bBoxRadiusRangeFilter.reset(); break;
-    case *RiColumn::PHYS_TRIS: physTrisRangeFilter.reset(); break;
-    case *RiColumn::TRACE_TRIS: traceTrisRangeFilter.reset(); break;
-    default:
-      if (column >= dipsBase && column < dipsBase + lodCount)
-      {
-        int lod = static_cast<int>(column) - dipsBase;
-        if (lod < static_cast<int>(lodDipsRangeFilters.size()))
-          lodDipsRangeFilters[lod].reset();
-      }
-      else if (column >= trisBase && column < trisBase + lodCount)
-      {
-        int lod = static_cast<int>(column) - trisBase;
-        if (lod < static_cast<int>(lodTrisRangeFilters.size()))
-          lodTrisRangeFilters[lod].reset();
-      }
-      else if (column >= distBase && column < distBase + lodCount)
-      {
-        int lod = static_cast<int>(column) - distBase;
-        if (lod < static_cast<int>(lodDistRangeFilters.size()))
-          lodDistRangeFilters[lod].reset();
-      }
-      else
-      {
-        int screenBase = layout.screenBase();
-        if (column >= screenBase && column < screenBase + lodCount)
-        {
-          int lod = static_cast<int>(column) - screenBase;
-          if (lod < static_cast<int>(lodScreenRangeFilters.size()))
-            lodScreenRangeFilters[lod].reset();
-        }
-        else
-        {
-          int shadersBase = layout.shadersBase();
-          int shadersCount = layout.shadersCount();
-          if (shadersCount > 0 && column >= shadersBase && column < shadersBase + shadersCount)
-          {
-            int lod = (static_cast<int>(column) - shadersBase) + RiLayout::HEAVY_SHADERS_START_LOD;
-            int filterIndex = lod - RiLayout::HEAVY_SHADERS_START_LOD;
-            if (filterIndex < static_cast<int>(heavyShaderFilters.size()))
-            {
-              heavyShaderFilters[filterIndex].reset();
-            }
-          }
-        }
-      }
-      break;
-  }
-}
-
-void LpRiTable::drawNameFilterContent()
-{
-  if (nameFilter.drawInline()) {}
-}
-
-void LpRiTable::drawCountFilterContent()
-{
-  LpRangeFilterController<int> countCtrl(&countRangeFilter);
-  drawRangeFilter<int>("CountRange", "Count", countCtrl, "Min: %d", "Max: %d", UIConstants::COUNT_FILTER_SPEED);
-}
-
-void LpRiTable::drawBSphereFilterContent()
-{
-  LpRangeFilterController<float> bsCtrl(&bSphereRadiusRangeFilter);
-  drawRangeFilter<float>("BSphereRange", "BSphere Rad", bsCtrl, "Min: %.1f", "Max: %.1f", UIConstants::RADIUS_FILTER_SPEED);
-}
-
-void LpRiTable::drawBBoxFilterContent()
-{
-  LpRangeFilterController<float> bbCtrl(&bBoxRadiusRangeFilter);
-  drawRangeFilter<float>("BBoxRange", "BBox Rad", bbCtrl, "Min: %.1f", "Max: %.1f", UIConstants::RADIUS_FILTER_SPEED);
-}
-
-void LpRiTable::drawLodDipsFilterContent(int lod_index)
-{
-  if (lod_index >= 0 && lod_index < static_cast<int>(lodDipsRangeFilters.size()))
-  {
-    char idBuf[32];
-    char labelBuf[32];
-    snprintf(idBuf, sizeof(idBuf), "LodDipsSingle%d", lod_index);
-    snprintf(labelBuf, sizeof(labelBuf), "LOD %d Dips", lod_index);
-    LpRangeFilterController<int> dipsCtrl(&lodDipsRangeFilters[lod_index]);
-    drawRangeFilter<int>(idBuf, labelBuf, dipsCtrl, "Min: %d", "Max: %d", UIConstants::DIPS_FILTER_SPEED);
-  }
-}
-
-void LpRiTable::drawLodTrisFilterContent(int lod_index)
-{
-  if (lod_index >= 0 && lod_index < static_cast<int>(lodTrisRangeFilters.size()))
-  {
-    char idBuf[32];
-    char labelBuf[32];
-    snprintf(idBuf, sizeof(idBuf), "LodTrisSingle%d", lod_index);
-    snprintf(labelBuf, sizeof(labelBuf), "LOD %d Tris", lod_index);
-    LpRangeFilterController<int> trisCtrl(&lodTrisRangeFilters[lod_index]);
-    drawRangeFilter<int>(idBuf, labelBuf, trisCtrl, "Min: %d", "Max: %d", UIConstants::TRIS_FILTER_SPEED);
-  }
-}
-
-void LpRiTable::drawPhysTrisFilterContent()
-{
-  LpRangeFilterController<int> physCtrl(&physTrisRangeFilter);
-  drawRangeFilter<int>("PhysTrisRange", "Phys Tris", physCtrl, "Min: %d", "Max: %d", UIConstants::TRIS_FILTER_SPEED);
-}
-
-void LpRiTable::drawTraceTrisFilterContent()
-{
-  LpRangeFilterController<int> traceCtrl(&traceTrisRangeFilter);
-  drawRangeFilter<int>("TraceTrisRange", "Trace Tris", traceCtrl, "Min: %d", "Max: %d", UIConstants::TRIS_FILTER_SPEED);
-}
-
-void LpRiTable::drawLodDistFilterContent(int lod_index)
-{
-  if (lod_index >= 0 && lod_index < static_cast<int>(lodDistRangeFilters.size()))
-  {
-    char idBuf[32];
-    char labelBuf[32];
-    snprintf(idBuf, sizeof(idBuf), "LodDistSingle%d", lod_index);
-    snprintf(labelBuf, sizeof(labelBuf), "LOD %d Dist", lod_index);
-    LpRangeFilterController<int> distCtrl(&lodDistRangeFilters[lod_index]);
-    drawRangeFilter<int>(idBuf, labelBuf, distCtrl, "Min: %d", "Max: %d", UIConstants::DIST_FILTER_SPEED);
-  }
-}
-
-void LpRiTable::drawLodScreenFilterContent(int lod_index)
-{
-  if (lod_index >= 0 && lod_index < static_cast<int>(lodScreenRangeFilters.size()))
-  {
-    char idBuf[32];
-    char labelBuf[32];
-    snprintf(idBuf, sizeof(idBuf), "LodScreenSingle%d", lod_index);
-    snprintf(labelBuf, sizeof(labelBuf), "LOD %d Screen%%", lod_index);
-    LpRangeFilterController<float> screenCtrl(&lodScreenRangeFilters[lod_index]);
-    drawRangeFilter<float>(idBuf, labelBuf, screenCtrl, "Min: %.1f", "Max: %.1f", UIConstants::SCREEN_FILTER_SPEED);
-  }
-}
-
-void LpRiTable::drawHeavyShadersFilterContent(int lod_index)
-{
-  if (!riModule)
-    return;
-  if (lod_index < RiLayout::HEAVY_SHADERS_START_LOD)
-    return;
-  int filterIndex = lod_index - RiLayout::HEAVY_SHADERS_START_LOD;
-  if (filterIndex < 0 || filterIndex >= static_cast<int>(heavyShaderFilters.size()))
-    return;
-
-  const ProfilerString EMPTY_SENTINEL = "None";
-  eastl::hash_set<ProfilerString> uniqueSet;
-  const auto &riData = riModule->getRiData();
-  bool hasEmpty = false;
-  for (const auto &d : riData)
-  {
-    if (lod_index < static_cast<int>(d.lods.size()))
-    {
-      const auto &lod = d.lods[lod_index];
-      if (lod.heavyShaders.empty())
-        hasEmpty = true;
-      for (const auto &entry : lod.heavyShaders)
-        uniqueSet.insert(entry.name);
-    }
-    else
-      hasEmpty = true; // missing LOD treated as empty
-  }
-  eastl::vector<ProfilerString> uniqueList;
-  uniqueList.reserve(uniqueSet.size() + (hasEmpty ? 1 : 0));
-  for (const auto &s : uniqueSet)
-    uniqueList.push_back(s);
-  eastl::sort(uniqueList.begin(), uniqueList.end());
-  if (hasEmpty)
-    uniqueList.push_back(EMPTY_SENTINEL);
-
-  bool changed = false;
-  LpMultiSelectWidget<ProfilerString> widget(MultiSelectLabelFuncs::ProfilerStringLabel);
-  widget.Draw(uniqueList, heavyShaderFilters[filterIndex], changed);
-}
-
-void LpRiTable::refreshRangeFilters()
-{
-  if (!riModule)
-    return;
-  const auto &riData = riModule->getRiData();
-  if (riData.empty())
-  {
-    rangeFiltersInitialized = true;
-    return;
-  }
-  // Determine bounds
-  int minCount = riData[0].countOnMap, maxCount = riData[0].countOnMap;
-  int minPhys = riData[0].collision.physTriangles, maxPhys = riData[0].collision.physTriangles;
-  int minTrace = riData[0].collision.traceTriangles, maxTrace = riData[0].collision.traceTriangles;
-  // Lod bounds vectors sized per MAX_LODS
-  RiLayout layout = makeRiLayout();
-  int lodCount = layout.lodCount;
-  eastl::vector<int> minDips(lodCount, INT_MAX), maxDips(lodCount, 0);
-  eastl::vector<int> minTris(lodCount, INT_MAX), maxTris(lodCount, 0);
-  eastl::vector<int> minDist(lodCount, INT_MAX), maxDist(lodCount, 0);
-  eastl::vector<float> minScreen(lodCount, FLT_MAX), maxScreen(lodCount, 0.0f);
-  for (const auto &d : riData)
-  {
-    if (d.countOnMap < minCount)
-      minCount = d.countOnMap;
-    if (d.countOnMap > maxCount)
-      maxCount = d.countOnMap;
-    if (d.collision.physTriangles < minPhys)
-      minPhys = d.collision.physTriangles;
-    if (d.collision.physTriangles > maxPhys)
-      maxPhys = d.collision.physTriangles;
-    if (d.collision.traceTriangles < minTrace)
-      minTrace = d.collision.traceTriangles;
-    if (d.collision.traceTriangles > maxTrace)
-      maxTrace = d.collision.traceTriangles;
-
-    size_t maxLodIndex = eastl::min(d.lods.size(), static_cast<size_t>(lodCount));
-    for (size_t lodIndex = 0; lodIndex < maxLodIndex; ++lodIndex)
-    {
-      const auto &lod = d.lods[lodIndex];
-      if (lod.drawCalls < minDips[lodIndex])
-        minDips[lodIndex] = lod.drawCalls;
-      if (lod.drawCalls > maxDips[lodIndex])
-        maxDips[lodIndex] = lod.drawCalls;
-      if (lod.totalFaces < minTris[lodIndex])
-        minTris[lodIndex] = lod.totalFaces;
-      if (lod.totalFaces > maxTris[lodIndex])
-        maxTris[lodIndex] = lod.totalFaces;
-      int lodDistInt = static_cast<int>(lod.lodDistance);
-      if (lodDistInt < minDist[lodIndex])
-        minDist[lodIndex] = lodDistInt;
-      if (lodDistInt > maxDist[lodIndex])
-        maxDist[lodIndex] = lodDistInt;
-      if (lod.screenPercent < minScreen[lodIndex])
-        minScreen[lodIndex] = lod.screenPercent;
-      if (lod.screenPercent > maxScreen[lodIndex])
-        maxScreen[lodIndex] = lod.screenPercent;
-    }
-  }
-  countRangeFilter.rebind(minCount, maxCount);
-  physTrisRangeFilter.rebind(minPhys, maxPhys);
-  traceTrisRangeFilter.rebind(minTrace, maxTrace);
-  lodDipsRangeFilters.resize(lodCount);
-  lodTrisRangeFilters.resize(lodCount);
-  lodDistRangeFilters.resize(lodCount);
-  lodScreenRangeFilters.resize(lodCount);
-  int heavyCount = (lodCount > RiLayout::HEAVY_SHADERS_START_LOD) ? (lodCount - RiLayout::HEAVY_SHADERS_START_LOD) : 0;
-  heavyShaderFilters.resize(heavyCount);
-
-  float minBSphere = FLT_MAX, maxBSphere = 0.0f;
-  float minBBox = FLT_MAX, maxBBox = 0.0f;
-  for (const auto &d : riData)
-  {
-    if (d.bSphereRadius < minBSphere)
-      minBSphere = d.bSphereRadius;
-    if (d.bSphereRadius > maxBSphere)
-      maxBSphere = d.bSphereRadius;
-    if (d.bBoxRadius < minBBox)
-      minBBox = d.bBoxRadius;
-    if (d.bBoxRadius > maxBBox)
-      maxBBox = d.bBoxRadius;
-  }
-  if (minBSphere == FLT_MAX)
-    minBSphere = 0.0f;
-  if (minBBox == FLT_MAX)
-    minBBox = 0.0f;
-  bSphereRadiusRangeFilter.rebind(minBSphere, maxBSphere);
-  bBoxRadiusRangeFilter.rebind(minBBox, maxBBox);
-  for (int i = 0; i < lodCount; ++i)
-  {
-    int dipsMin = (minDips[i] == INT_MAX) ? 0 : minDips[i];
-    int dipsMax = maxDips[i];
-    int trisMin = (minTris[i] == INT_MAX) ? 0 : minTris[i];
-    int trisMax = maxTris[i];
-    int distMin = (minDist[i] == INT_MAX) ? 0 : minDist[i];
-    int distMax = maxDist[i];
-    lodDipsRangeFilters[i].rebind(dipsMin, dipsMax);
-    lodTrisRangeFilters[i].rebind(trisMin, trisMax);
-    lodDistRangeFilters[i].rebind(distMin, distMax);
-    float scrMin = (minScreen[i] == FLT_MAX) ? 0.0f : minScreen[i];
-    float scrMax = maxScreen[i];
-    lodScreenRangeFilters[i].rebind(scrMin, scrMax);
-  }
-  rangeFiltersInitialized = true;
-}
-
-bool LpRiTable::passesFilters(const RiData &data_ref) const
-{
-  if (!baseFiltersPass(data_ref))
-    return false;
-  return dynamicFiltersPass(data_ref);
-}
-
-bool LpRiTable::baseFiltersPass(const RiData &data_ref) const
-{
-  if (nameFilter.isActive() && !nameFilter.pass(data_ref.name))
-    return false;
-  if (!countRangeFilter.pass(data_ref.countOnMap))
-    return false;
-  if (!bSphereRadiusRangeFilter.pass(data_ref.bSphereRadius))
-    return false;
-  if (!bBoxRadiusRangeFilter.pass(data_ref.bBoxRadius))
-    return false;
-  if (!physTrisRangeFilter.pass(data_ref.collision.physTriangles))
-    return false;
-  if (!traceTrisRangeFilter.pass(data_ref.collision.traceTriangles))
-    return false;
-  return true;
-}
-
-bool LpRiTable::dynamicFiltersPass(const RiData &data_ref) const
-{
-  RiLayout layout = makeRiLayout();
-  // Per LOD metrics and heavy shaders
-  size_t lodsSize = data_ref.lods.size();
-  size_t maxFilterIndex = eastl::min(lodsSize, lodDipsRangeFilters.size());
-  for (size_t lodIndex = 0; lodIndex < maxFilterIndex; ++lodIndex)
-  {
-    const auto &lod = data_ref.lods[lodIndex];
-    if (!lodDipsRangeFilters[lodIndex].pass(lod.drawCalls))
-      return false;
-    if (!lodTrisRangeFilters[lodIndex].pass(lod.totalFaces))
-      return false;
-    int lodDistInt = static_cast<int>(lod.lodDistance);
-    if (lodIndex < lodDistRangeFilters.size() && !lodDistRangeFilters[lodIndex].pass(lodDistInt))
-      return false;
-    if (lodIndex < lodScreenRangeFilters.size() && !lodScreenRangeFilters[lodIndex].pass(lod.screenPercent))
-      return false;
-
-    if (static_cast<int>(lodIndex) >= RiLayout::HEAVY_SHADERS_START_LOD)
-    {
-      int filterIndex = static_cast<int>(lodIndex) - RiLayout::HEAVY_SHADERS_START_LOD;
-      if (filterIndex < static_cast<int>(heavyShaderFilters.size()))
-      {
-        if (!lod.heavyShaders.empty())
-        {
-          for (const auto &entry : lod.heavyShaders)
-            if (!heavyShaderFilters[filterIndex].pass(entry.name))
-              return false;
-        }
-        else
-        {
-          static const ProfilerString EMPTY_SENTINEL = "None";
-          if (!heavyShaderFilters[filterIndex].pass(EMPTY_SENTINEL))
-            return false;
-        }
-      }
-    }
-  }
-  // Treat missing higher LODs as empty (for heavy shader filtering only)
-  static const ProfilerString EMPTY_SENTINEL = "None";
-  for (int lod = static_cast<int>(lodsSize); lod < layout.lodCount; ++lod)
-  {
-    if (lod < RiLayout::HEAVY_SHADERS_START_LOD)
-      continue;
-    int filterIndex = lod - RiLayout::HEAVY_SHADERS_START_LOD;
-    if (filterIndex < static_cast<int>(heavyShaderFilters.size()))
-      if (!heavyShaderFilters[filterIndex].pass(EMPTY_SENTINEL))
-        return false;
-  }
-  return true;
-}
-
-void LpRiTable::syncDynamicColumns()
-{
-  if (!riModule)
-    return;
-  RiLayout layout = makeRiLayout();
-  const int lodCount = layout.lodCount;
-  const auto &riDataRef = riModule->getRiData();
-  int maxUsedLod = 0;
-  for (const auto &d : riDataRef)
-  {
-    int lodSize = static_cast<int>(d.lods.size());
-    if (lodSize > maxUsedLod)
-      maxUsedLod = lodSize;
-  }
-  int prevMaxUsedLod = currentMaxUsedLod;
-  if (maxUsedLod != prevMaxUsedLod)
-  {
-    auto colVisOk = [this](int colIdx) {
-      return columnVisibility.size() == static_cast<size_t>(columnsCount) ? columnVisibility[colIdx] : true;
-    };
-    auto enableLodColumns = [&](int lod) {
-      int dipsIdx = layout.dipsBase() + lod;
-      if (colVisOk(dipsIdx))
-        ImGui::TableSetColumnEnabled(dipsIdx, true);
-      int trisIdx = layout.trisBase() + lod;
-      if (colVisOk(trisIdx))
-        ImGui::TableSetColumnEnabled(trisIdx, true);
-      int distIdx = layout.distBase() + lod;
-      if (colVisOk(distIdx))
-        ImGui::TableSetColumnEnabled(distIdx, true);
-      int screenIdx = layout.screenBase() + lod;
-      if (colVisOk(screenIdx))
-        ImGui::TableSetColumnEnabled(screenIdx, true);
-      if (lod >= RiLayout::HEAVY_SHADERS_START_LOD)
-      {
-        int shaderIdx = layout.shadersBase() + (lod - RiLayout::HEAVY_SHADERS_START_LOD);
-        if (colVisOk(shaderIdx))
-          ImGui::TableSetColumnEnabled(shaderIdx, true);
-      }
-    };
-    auto disableLodColumns = [&](int lod) {
-      int dipsIdx = layout.dipsBase() + lod;
-      ImGui::TableSetColumnEnabled(dipsIdx, false);
-      int trisIdx = layout.trisBase() + lod;
-      ImGui::TableSetColumnEnabled(trisIdx, false);
-      int distIdx = layout.distBase() + lod;
-      ImGui::TableSetColumnEnabled(distIdx, false);
-      int screenIdx = layout.screenBase() + lod;
-      ImGui::TableSetColumnEnabled(screenIdx, false);
-      if (lod >= RiLayout::HEAVY_SHADERS_START_LOD)
-      {
-        int shaderIdx = layout.shadersBase() + (lod - RiLayout::HEAVY_SHADERS_START_LOD);
-        ImGui::TableSetColumnEnabled(shaderIdx, false);
-      }
-    };
-    if (maxUsedLod > prevMaxUsedLod)
-      for (int lod = prevMaxUsedLod; lod < maxUsedLod; ++lod)
-        enableLodColumns(lod);
-    else if (maxUsedLod < prevMaxUsedLod)
-      for (int lod = maxUsedLod; lod < prevMaxUsedLod; ++lod)
-        disableLodColumns(lod);
-    for (int lod = maxUsedLod; lod < lodCount; ++lod)
-      disableLodColumns(lod);
-    currentMaxUsedLod = maxUsedLod;
-  }
-  // Always ensure columns beyond current usage are disabled
-  for (int lod = maxUsedLod; lod < lodCount; ++lod)
-  {
-    int dipsIdx = layout.dipsBase() + lod;
-    ImGui::TableSetColumnEnabled(dipsIdx, false);
-    int trisIdx = layout.trisBase() + lod;
-    ImGui::TableSetColumnEnabled(trisIdx, false);
-    int distIdx = layout.distBase() + lod;
-    ImGui::TableSetColumnEnabled(distIdx, false);
-    int screenIdx = layout.screenBase() + lod;
-    ImGui::TableSetColumnEnabled(screenIdx, false);
-    if (lod >= RiLayout::HEAVY_SHADERS_START_LOD)
-    {
-      int shaderIdx = layout.shadersBase() + (lod - RiLayout::HEAVY_SHADERS_START_LOD);
-      ImGui::TableSetColumnEnabled(shaderIdx, false);
-    }
-  }
-}
-
-eastl::vector<ProfilerString> LpRiTable::getCustomCopyMenuItems(const void * /* item_data */) const { return {}; }
-
-ProfilerString LpRiTable::generateCustomCopyText(const void * /* item_data */, const ProfilerString & /* menu_item */) const
-{
-  return ProfilerString();
-}
-
-ProfilerString LpRiTable::generateLodDetailsText(const RiTableItem * /* item */) const { return ProfilerString(); }
-
-ProfilerString LpRiTable::generateFullRowText(const RiTableItem * /* item */) const { return ProfilerString(); }
-
-int LpRiTable::compareRiItems(const void *item1, const void *item2, const ImGuiTableSortSpecs *sort_specs) const
-{
-  if (!item1 || !item2 || !sort_specs || sort_specs->SpecsCount == 0)
-    return UIConstants::EQUAL;
-  const RiTableItem *riItem1 = static_cast<const RiTableItem *>(item1);
-  const RiTableItem *riItem2 = static_cast<const RiTableItem *>(item2);
-  if (!riItem1->data || !riItem2->data)
-    return UIConstants::EQUAL;
-  for (int i = 0; i < sort_specs->SpecsCount; ++i)
-  {
-    const ImGuiTableColumnSortSpecs *spec = &sort_specs->Specs[i];
-    int colIdx = spec->ColumnIndex;
-    if (colIdx < 0 || colIdx >= columnsCount)
-      continue;
-    if (auto *column = getColumn(colIdx))
-    {
-      int delta = column->compareItems(item1, item2);
-      if (delta != 0)
-        return spec->SortDirection == ImGuiSortDirection_Ascending ? delta : -delta;
-    }
-  }
-  return riItem1->data->name.compare(riItem2->data->name);
-}
-
-int LpRiTable::sort_table_items_callback(const ImGuiTableSortSpecs *sort_specs, const void *a, const void *b, void *user_data)
-{
-  LpRiTable *table = static_cast<LpRiTable *>(user_data);
-  if (!table)
-    return UIConstants::EQUAL;
-  return table->compareRiItems(a, b, sort_specs);
-}
-
-void LpRiTable::on_item_selected(int /* index */, void *item_data, void *user_data)
-{
-  RiTableItem *item = static_cast<RiTableItem *>(item_data);
-  LpRiTable *table = static_cast<LpRiTable *>(user_data);
-
-  if (item && item->data && table)
-  {
-    table->setSelectedRi(item->data->name);
-  }
-}
+void LpRiTable::prepareItemForDraw(RiTableItem &item) { item.isUpdating = riModule->isCollecting(); }
 
 } // namespace levelprofiler

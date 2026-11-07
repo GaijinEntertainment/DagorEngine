@@ -68,8 +68,8 @@ struct DecCreationCounterOnDestroy
 
 
 /*static*/
-Scene::SceneId SceneManager::recordScene(ecs::SceneManager *smgr, uint32_t load_type, const char *path, int import_depth,
-  eastl::vector<Scene::SceneId> &loadRecordIds, const TMatrix *rootTransform)
+Scene::SceneId SceneManager::recordScene(ecs::SceneManager *smgr, uint32_t load_type, bool is_system_owned, const char *path,
+  int import_depth, eastl::vector<Scene::SceneId> &loadRecordIds, const TMatrix *rootTransform)
 {
   auto &scene = smgr->scene;
   Scene::SceneId parent = Scene::SceneRecord::NO_PARENT;
@@ -81,11 +81,12 @@ Scene::SceneId SceneManager::recordScene(ecs::SceneManager *smgr, uint32_t load_
     if (Scene::SceneRecord *parentRecord = scene.getSceneRecordById(parent))
     {
       parentRecord->orderedEntries.push_back(Scene::SceneRecord::OrderedEntry{.sid = newId, .isEntity = false});
+      G_ASSERT(is_system_owned == parentRecord->isSystemOwned);
     }
   }
   loadRecordIds.push_back(newId);
 
-  Scene::SceneRecord newRecord{path, import_depth, load_type, parent, newId};
+  Scene::SceneRecord newRecord{path, import_depth, load_type, parent, newId, is_system_owned};
 
   Scene::SceneRecord *record = nullptr;
   if (auto it = eastl::find_if(scene.allScenes.begin(), scene.allScenes.end(), [&](auto &&val) { return val.id == parent; });
@@ -114,20 +115,21 @@ Scene::SceneId SceneManager::recordScene(ecs::SceneManager *smgr, uint32_t load_
 void SceneManager::loadScene(ecs::SceneManager *smgr, const DataBlock &blk, const char *path, unsigned *ent_cnt_ptr, int import_depth,
   uint32_t load_type)
 {
+  bool is_system_owned = blk.getBool("system_owned_scene", false);
   eastl::vector<Scene::SceneId> loadRecordIds;
-  loadSceneInternal(smgr, blk, path, ent_cnt_ptr, import_depth, load_type, loadRecordIds);
+  loadSceneInternal(smgr, blk, path, ent_cnt_ptr, import_depth, load_type, is_system_owned, loadRecordIds);
 }
 
 /*static*/
 Scene::SceneId SceneManager::loadSceneInternal(ecs::SceneManager *smgr, const DataBlock &blk, const char *path, unsigned *ent_cnt_ptr,
-  int import_depth, uint32_t load_type, eastl::vector<Scene::SceneId> &loadRecordIds)
+  int import_depth, uint32_t load_type, bool is_system_owned, eastl::vector<Scene::SceneId> &loadRecordIds)
 {
   Scene::SceneId newSceneId = Scene::C_INVALID_SCENE_ID;
   eastl::vector<Scene::SceneId> allLoadedSceneIds;
 
   if (smgr)
   {
-    newSceneId = recordScene(smgr, load_type, path, import_depth, loadRecordIds, nullptr);
+    newSceneId = recordScene(smgr, load_type, is_system_owned, path, import_depth, loadRecordIds, nullptr);
     allLoadedSceneIds.push_back(loadRecordIds.back());
   }
 
@@ -162,7 +164,7 @@ Scene::SceneId SceneManager::loadSceneInternal(ecs::SceneManager *smgr, const Da
     {
       if (begin)
       {
-        recordScene(smgr, load_type, scene_blk, import_depth + 1, loadRecordIds, tm);
+        recordScene(smgr, load_type, is_system_owned, scene_blk, import_depth + 1, loadRecordIds, tm);
         allLoadedSceneIds.push_back(loadRecordIds.back());
       }
       else if (!loadRecordIds.empty())
@@ -202,10 +204,11 @@ Scene::SceneId SceneManager::loadSceneInternal(ecs::SceneManager *smgr, const Da
 Scene::SceneId SceneManager::addImportScene(Scene::SceneId parent_id, const DataBlock &scene_blk, const char *scene_path)
 {
   Scene::SceneId newSceneId = Scene::C_INVALID_SCENE_ID;
+  bool is_system_owned = scene_blk.getBool("system_owned_scene", false);
 
   if (const Scene::SceneRecord *record = scene.getSceneRecordById(parent_id))
   {
-    if (record->loadType != Scene::LoadType::IMPORT)
+    if (record->loadType != Scene::LoadType::IMPORT || record->isSystemOwned != is_system_owned)
     {
       return newSceneId;
     }
@@ -214,7 +217,8 @@ Scene::SceneId SceneManager::addImportScene(Scene::SceneId parent_id, const Data
     scene.setTargetSceneId(parent_id);
 
     eastl::vector<Scene::SceneId> loadRecordIds{parent_id};
-    newSceneId = loadSceneInternal(this, scene_blk, scene_path, nullptr, record->importDepth + 1, Scene::IMPORT, loadRecordIds);
+    newSceneId =
+      loadSceneInternal(this, scene_blk, scene_path, nullptr, record->importDepth + 1, Scene::IMPORT, is_system_owned, loadRecordIds);
 
     scene.setNewChangesApplied(parent_id);
 
@@ -303,7 +307,7 @@ BBox3 SceneManager::getSceneWbb(Scene::SceneId id) const
   return {};
 }
 
-void SceneManager::setNewParent(Scene::SceneId id, Scene::SceneId new_parent_id)
+bool SceneManager::setNewParent(Scene::SceneId id, Scene::SceneId new_parent_id)
 {
   // validate operation
   // scene cannot be its own descendant/parent and must be valid
@@ -311,16 +315,16 @@ void SceneManager::setNewParent(Scene::SceneId id, Scene::SceneId new_parent_id)
     const Scene::SceneRecord *recordToMove = scene.getSceneRecordById(id);
     const Scene::SceneRecord *newParentRecord = scene.getSceneRecordById(new_parent_id);
     if (!recordToMove || !newParentRecord || id == new_parent_id || recordToMove->loadType != Scene::LoadType::IMPORT ||
-        newParentRecord->loadType != Scene::LoadType::IMPORT)
+        newParentRecord->loadType != Scene::LoadType::IMPORT || recordToMove->isSystemOwned != newParentRecord->isSystemOwned)
     {
-      return;
+      return false;
     }
 
     while (newParentRecord)
     {
       if (newParentRecord->parent == id)
       {
-        return;
+        return false;
       }
 
       newParentRecord = scene.getSceneRecordById(newParentRecord->parent);
@@ -332,7 +336,7 @@ void SceneManager::setNewParent(Scene::SceneId id, Scene::SceneId new_parent_id)
 
   if (hierarchyToMove.empty())
   {
-    return;
+    return false;
   }
 
   if (Scene::SceneRecord *oldParent = scene.getSceneRecordById(hierarchyToMove[0].parent))
@@ -363,6 +367,7 @@ void SceneManager::setNewParent(Scene::SceneId id, Scene::SceneId new_parent_id)
   getActiveScene().setNewChangesApplied(new_parent_id);
   getActiveScene().setNewChangesApplied(id);
   g_entity_mgr->broadcastEvent(EventOnSceneParentChanged{id});
+  return true;
 }
 
 uint32_t SceneManager::getSceneOrder(Scene::SceneId scene_id) const
@@ -389,7 +394,7 @@ uint32_t SceneManager::getSceneOrder(Scene::SceneId scene_id) const
 void SceneManager::setSceneOrder(Scene::SceneId id, uint32_t order)
 {
   const Scene::SceneRecord *recordToMove = scene.getSceneRecordById(id);
-  if (!recordToMove->hasParent() || recordToMove->loadType != Scene::LoadType::IMPORT)
+  if (!recordToMove || !recordToMove->hasParent() || recordToMove->loadType != Scene::LoadType::IMPORT)
   {
     return;
   }
@@ -399,6 +404,10 @@ void SceneManager::setSceneOrder(Scene::SceneId id, uint32_t order)
   {
     return;
   }
+
+  const auto orderedPos = parent->orderedEntries.begin() + eastl::min<size_t>(order, parent->orderedEntries.size());
+  const uint32_t sceneOrder =
+    eastl::count_if(parent->orderedEntries.begin(), orderedPos, [id](auto &&val) { return !val.isEntity && val.sid != id; });
 
   const Scene::SceneId parentId = parent->id;
   Scene::ScenesList hierarchyToMove;
@@ -414,7 +423,7 @@ void SceneManager::setSceneOrder(Scene::SceneId id, uint32_t order)
   {
     if (it->importDepth == childImportDepth)
     {
-      if (currOrder == order)
+      if (currOrder == sceneOrder)
       {
         break;
       }
@@ -432,8 +441,7 @@ void SceneManager::setSceneOrder(Scene::SceneId id, uint32_t order)
   {
     recordIt->sid = Scene::C_INVALID_SCENE_ID;
   }
-  parent->orderedEntries.insert(parent->orderedEntries.begin() + order,
-    Scene::SceneRecord::OrderedEntry{.sid = id, .isEntity = false});
+  parent->orderedEntries.insert(orderedPos, Scene::SceneRecord::OrderedEntry{.sid = id, .isEntity = false});
   eastl::erase_if(parent->orderedEntries, [](auto &&val) { return val.sid == Scene::C_INVALID_SCENE_ID && !val.isEntity; });
 
   getActiveScene().setNewChangesApplied(parent->id);
@@ -471,7 +479,8 @@ void SceneManager::setEntityOrder(EntityId eid, uint32_t order)
 
       Scene::SceneRecord::OrderedEntry copy{*it};
       it->eid = INVALID_ENTITY_ID;
-      srecord->orderedEntries.insert(srecord->orderedEntries.begin() + order, copy);
+      srecord->orderedEntries.insert(srecord->orderedEntries.begin() + eastl::min<size_t>(order, srecord->orderedEntries.size()),
+        copy);
       eastl::erase_if(srecord->orderedEntries, [](auto &&val) { return val.eid == INVALID_ENTITY_ID && val.isEntity; });
 
       getActiveScene().setNewChangesApplied(srecord->id);
@@ -496,7 +505,12 @@ void SceneManager::setEntityParent(Scene::SceneId new_parent_id, const ska::flat
     eastl::string templateName;
     if (!erec)
     {
-      templateName = g_entity_mgr->getEntityTemplateName(id);
+      const char *entityTemplateName = g_entity_mgr->getEntityTemplateName(id);
+      if (!entityTemplateName)
+      {
+        continue;
+      }
+      templateName = entityTemplateName;
       const ecs::ComponentsMap &compMap = g_entity_mgr->getTemplateDB().getTemplateByName(templateName)->getComponentsMap();
       for (const auto &[compId, childComp] : compMap)
       {
@@ -505,8 +519,8 @@ void SceneManager::setEntityParent(Scene::SceneId new_parent_id, const ska::flat
     }
     else
     {
-      clist = erec->clist;
-      templateName = erec->templateName;
+      clist = eastl::move(erec->clist);
+      templateName = eastl::move(erec->templateName);
     }
 
     scene.eraseEntityRecord(id);
@@ -562,6 +576,8 @@ void SceneManager::removeScene(Scene::SceneId id, const OnEntityDeleteCallback &
         }
         deletedIds.push_back(toReleaseIt->id);
         idGenerator.release(toReleaseIt->id);
+        if (toReleaseIt->id == scene.getTargetSceneId())
+          scene.setTargetSceneId(Scene::C_INVALID_SCENE_ID);
       }
     }
 
@@ -576,6 +592,34 @@ void SceneManager::removeScene(Scene::SceneId id, const OnEntityDeleteCallback &
       g_entity_mgr->broadcastEvent(EventOnSceneDestroyed{deletedId});
     }
   }
+}
+
+void SceneManager::clearNonSystemScenes()
+{
+  eastl::vector<Scene::SceneId> deletedIds;
+
+  for (const Scene::SceneRecord &record : scene.allScenes)
+  {
+    if (record.isSystemOwned)
+      continue;
+
+    for (const EntityId eid : record.entities)
+    {
+      g_entity_mgr->destroyEntity(eid);
+
+      scene.entities.erase(eid);
+    }
+
+    deletedIds.push_back(record.id);
+    idGenerator.release(record.id);
+  }
+
+  eastl::erase_if(scene.allScenes, [](const Scene::SceneRecord &record) { return !record.isSystemOwned; });
+
+  scene.setTargetSceneId(Scene::C_INVALID_SCENE_ID);
+
+  for (const Scene::SceneId sid : deletedIds)
+    g_entity_mgr->broadcastEvent(EventOnSceneDestroyed{sid});
 }
 
 void SceneManager::recalculateWbbs()
@@ -623,8 +667,8 @@ BBox3 SceneManager::calculatetSceneWbb(Scene::SceneId id)
         BBox3 animBB = animChar->getSceneInstance()->getLocalBoundingBox();
         if (g_entity_mgr->getOr(entityId, ECS_HASH("animchar__turnDir"), false))
         {
-          Point3 lim0 = it->wbb.lim[0];
-          Point3 lim1 = it->wbb.lim[1];
+          Point3 lim0 = animBB.lim[0];
+          Point3 lim1 = animBB.lim[1];
 
           animBB.lim[0] = Point3(-lim1.z, lim0.y, lim0.x);
           animBB.lim[1] = Point3(-lim0.z, lim1.y, lim1.x);

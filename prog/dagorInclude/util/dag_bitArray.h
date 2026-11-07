@@ -387,10 +387,13 @@ public:
     return old;
   }
 
-  /** fills n bits from at with v.
-   * same as Bitarray::fill(at,at+n-1,v)
+  /** Fills n bits from at with v. Does nothing for n <= 0.
    */
-  void set(int at, int n, unsigned v) { fill(at, at + n - 1, v); }
+  void set(int at, int n, unsigned v)
+  {
+    if (n > 0)
+      fill(at, at + n - 1, v);
+  }
   /*
   // insert n element before at element of array
   // returns number of first added element or -1 at error

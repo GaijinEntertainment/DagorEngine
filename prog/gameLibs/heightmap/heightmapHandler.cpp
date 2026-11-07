@@ -78,8 +78,11 @@ void HeightmapHandler::setVars() const
 {
   if (!renderData)
     return;
-  Color4 c = mirror ? Color4(-(128 << 20), -(128 << 20), 128 << 20, 128 << 20)
-                    : Color4(worldBox2[0].x, worldBox2[0].y, worldBox2[1].x, worldBox2[1].y);
+  Point4 mirroredWorldBoxXZ = Point4(worldBox2[0].x, worldBox2[0].y, worldBox2[1].x, worldBox2[1].y);
+  mirroredWorldBoxXZ.x -= v_extract_z(mirrorXZPosNeg);
+  mirroredWorldBoxXZ.y -= v_extract_w(mirrorXZPosNeg);
+  mirroredWorldBoxXZ.z += v_extract_x(mirrorXZPosNeg);
+  mirroredWorldBoxXZ.w += v_extract_y(mirrorXZPosNeg);
 
   ShaderGlobal::set_texture(hmapMainVarId, renderData->heightmap);
   ShaderGlobal::set_texture(tex_hmap_lowVarId, renderData->heightmap);
@@ -91,7 +94,7 @@ void HeightmapHandler::setVars() const
   ShaderGlobal::set_float4(world_to_hmap_highVarId,
     Color4(1.0f / worldSize.x, 1.0f / worldSize.y, -worldPosOfs.x / worldSize.x, -worldPosOfs.y / worldSize.y));
 
-  ShaderGlobal::set_float4(heightmap_regionVarId, c);
+  ShaderGlobal::set_float4(heightmap_regionVarId, mirroredWorldBoxXZ);
   ShaderGlobal::set_float4(heightmap_scaleVarId, Color4(hScale, hMin, hScale, hMin));
   ShaderGlobal::set_float4(tex_hmap_inv_sizesVarId,
     Color4(1.0f / hmapWidth.x, 1.0f / hmapWidth.y, 1.0f / hmapWidth.x, 1.0f / hmapWidth.y));
@@ -153,7 +156,7 @@ bool HeightmapHandler::loadDump(IGenLoad &loadCb, bool load_render_data, float w
     return false;
 
   if (load_render_data)
-    initRender(!mirror, water_level, shore_error_meters, metrics_min_calc_level, metrics_max_calc_level);
+    initRender(!anyMirror, water_level, shore_error_meters, metrics_min_calc_level, metrics_max_calc_level);
   return true;
 }
 
@@ -509,7 +512,7 @@ void cull_lod_grid3(const MetricsErrors &errors, LodGridCullData &cull_data, con
   const HeightmapHandler &h, vec3f vp, const vec4f *bbox2, const HeightmapMetricsQuality &q)
 {
   cull_lod_grid3(errors, cull_data, frustum, use_occlusion, h.worldBox[0].y, h.worldBox[1].y, h.worldBox2,
-    h.getMaxUpwardDisplacement(), h.getMaxDownwardDisplacement(), h.isMirror(), vp, bbox2, q);
+    h.getMaxUpwardDisplacement(), h.getMaxDownwardDisplacement(), h.mirrorXZPosNeg, vp, bbox2, q);
 }
 
 void frustumCulling(const MetricsErrors &errors, LodGridCullData &cull_data, const Point3 &world_pos, const Frustum &frustum,
@@ -553,15 +556,31 @@ void HeightmapHandler::renderOnePatch(const Frustum &frustum)
   renderer.renderOnePatch(leftTop, rightBottom.x - leftTop.x);
 }
 
-void HeightmapHandler::setMirroring(bool _mirror)
+void HeightmapHandler::setMirroring(float x_pos_meters, float x_neg_meters, float z_pos_meters, float z_neg_meters)
 {
-  mirror = _mirror;
+  anyMirror = x_pos_meters != 0.f || x_neg_meters != 0.f || z_pos_meters != 0.f || z_neg_meters != 0.f;
+  mirrorXZPosNeg = v_make_vec4f(x_pos_meters, z_pos_meters, x_neg_meters, z_neg_meters);
 
+  initMirroringSampler();
+}
+
+void HeightmapHandler::setMirroring(bool mirror)
+{
+  if (mirror)
+    setMirroring((128 << 20), (128 << 20), (128 << 20), (128 << 20));
+  else
+    setMirroring(0, 0, 0, 0);
+}
+
+void HeightmapHandler::initMirroringSampler()
+{
+  // If hmap has partial mirroring then it must be a main hmap. Then hmap should fade underwater so sampler
+  // discrepancies should not be visible.
   if (renderData)
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w =
-      mirror ? d3d::AddressMode::Mirror : d3d::AddressMode::Clamp;
+      hasMirroring() ? d3d::AddressMode::Mirror : d3d::AddressMode::Clamp;
     renderData->heightmapSampler = d3d::request_sampler(smpInfo);
   }
 }

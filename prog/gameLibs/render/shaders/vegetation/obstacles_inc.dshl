@@ -35,6 +35,22 @@ macro INIT_OBSTACLES_PREV(code)
   }
 endmacro
 
+macro USE_OBSTACLES_GRID(code)
+  hlsl(code)
+  {
+    uint2 get_obstacles_cell_range(float3 world_pos)
+    {
+      if (obstacles.indirection_wd == 0)
+        return 0;
+      float2 cellPos = (world_pos.xz - obstacles.indirection_lt) / obstacles.indirection_cell;
+      uint2 coord = clamp(uint2(cellPos), 0U, obstacles.indirection_wd - 1);
+      uint packedRange = structuredBufferAt(obstacle_indices, coord.x + coord.y * obstacles.indirection_wd);
+      uint start = packedRange >> OBSTACLE_OFFSET_BIT_SHIFT;
+      return uint2(start, start + (packedRange & ((1U << OBSTACLE_OFFSET_BIT_SHIFT) - 1)));
+    }
+  }
+endmacro
+
 macro USE_OBSTACLES(code)
   hlsl(code)
   {

@@ -151,7 +151,7 @@ void CompositeEditorPanel::fillChildrenGroup(PropPanel::ContainerPropertyControl
     extensible->setIntValue((1 << PropPanel::EXT_BUTTON_INSERT) | (1 << PropPanel::EXT_BUTTON_REMOVE));
 
     const char *name = treeDataSubNode.getName();
-    const bool canEditAssetName = treeDataSubNode.canEditAssetName(/*isRootNode = */ false);
+    const bool canEditAssetName = treeDataSubNode.canEditAssetName(/*isRootNode = */ false) && !treeDataSubNode.isDisabled();
     extensible->createButton(ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST + nodeIndex, name, canEditAssetName);
     extensible->setDropTargetHandler(dropTargetHandler);
   }
@@ -345,6 +345,18 @@ void CompositeEditorPanel::fillGlobalParametersGroup(PropPanel::ContainerPropert
   }
 }
 
+// A disabled group does not disable its child controls, so disable each one.
+static void disable_controls(PropPanel::ContainerPropertyControl &container)
+{
+  for (unsigned i = 0; i < container.getChildCount(); ++i)
+    if (PropPanel::PropertyControlBase *control = container.getByIndex(i))
+    {
+      control->setEnabled(false);
+      if (PropPanel::ContainerPropertyControl *subContainer = control->getContainer())
+        disable_controls(*subContainer);
+    }
+}
+
 static bool hasNestedComposites(unsigned dataBlockId)
 {
   IObjEntity *entity = get_app().getCompositeEditor().getSubEntityByDataBlockId(dataBlockId);
@@ -406,13 +418,17 @@ void CompositeEditorPanel::fillParametersGroup(PropPanel::ContainerPropertyContr
 }
 
 void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeDataNode,
-  PropPanel::IDropTargetHandler *dropTargetHandler, bool isRootNode)
+  PropPanel::IDropTargetHandler *dropTargetHandler, bool isRootNode, bool readOnly)
 {
   if (treeDataNode.isEntBlock())
   {
     PropPanel::ContainerPropertyControl *grpEntity = createGroup(ID_COMPOSITE_EDITOR_ENTITY_GRP, "Entity");
     if (grpEntity)
+    {
       fillEntityGroup(*grpEntity, treeDataNode, dropTargetHandler);
+      if (readOnly)
+        disable_controls(*grpEntity);
+    }
   }
   else
   {
@@ -421,6 +437,8 @@ void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeD
     {
       grpEntities->setBoolValue(entitiesMinimized);
       fillEntitiesGroup(*grpEntities, treeDataNode, dropTargetHandler, treeDataNode.canEditRandomEntities(isRootNode));
+      if (readOnly)
+        disable_controls(*grpEntities);
     }
 
     PropPanel::ContainerPropertyControl *grpChildren = createGroup(ID_COMPOSITE_EDITOR_CHILDREN_GRP, "Children");
@@ -428,6 +446,8 @@ void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeD
     {
       grpChildren->setBoolValue(childrenMinimized);
       fillChildrenGroup(*grpChildren, treeDataNode, dropTargetHandler, treeDataNode.canEditChildren());
+      if (readOnly)
+        disable_controls(*grpChildren);
     }
 
     PropPanel::ContainerPropertyControl *grpParameters = createGroup(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_GRP, "Node transforms");
@@ -435,6 +455,11 @@ void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeD
     {
       grpParameters->setBoolValue(parametersMinimized);
       fillParametersGroup(*grpParameters, treeDataNode, !isRootNode);
+      if (readOnly)
+      {
+        disable_controls(*grpParameters);
+        grpParameters->setEnabledById(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_COPY, true);
+      }
     }
   }
 
@@ -446,7 +471,7 @@ void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeD
     if (isRootNode)
     {
       grpComposit->createCheckBox(ID_COMPOSITE_EDITOR_COMPOSIT_AUTO_INST_SEED, "Auto-reseed enabled",
-        treeDataNode.params.getBool("autoInstSeed", true));
+        treeDataNode.params.getBool("autoInstSeed", true), !readOnly);
       grpComposit->setTooltipId(ID_COMPOSITE_EDITOR_COMPOSIT_AUTO_INST_SEED,
         "The per-instance seed of the sub-entities is a hash of the composit\nposition, so moving a composit in daEditorX "
         "reseeds all of them.\nTurn it off and daEditorX gives each placed object a per-inst seed\nof its own instead: a huge "
@@ -458,7 +483,7 @@ void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeD
     grpComposit->createButton(ID_COMPOSITE_EDITOR_COMPOSIT_RESET_TO_FILE, "Reset to file", true, false);
   }
 
-  if (!get_app().getCompositeEditor().areMultipleNodesSelected())
+  if (!readOnly && !get_app().getCompositeEditor().areMultipleNodesSelected())
   {
     if (treeDataNode.isCompositeAsset())
     {
@@ -495,7 +520,7 @@ void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeD
         revertBtn->setTooltip("Revert all modifications to the original version");
     }
   }
-  if (!compositeEditor.areMultipleNodesSelected() && treeDataNode.isCompositeAsset())
+  if (!compositeEditor.areMultipleNodesSelected() && compositeEditor.canEnterSubCompositeEditing(&treeDataNode))
     createButton(ID_COMPOSITE_EDITOR_EDIT_SUB_COMPOSITE, "Edit sub-composite in place");
 
   createButton(ID_COMPOSITE_EDITOR_DELETE_NODE, "Delete node", !isRootNode);
@@ -523,7 +548,7 @@ int CompositeEditorPanel::saveState(DataBlock &datablk, bool by_name)
 }
 
 void CompositeEditorPanel::fill(const CompositeEditorTreeData &treeData, const CompositeEditorTreeDataNode *selectedTreeDataNode,
-  PropPanel::IDropTargetHandler *dropTargetHandler)
+  PropPanel::IDropTargetHandler *dropTargetHandler, bool readOnly)
 {
   panelState.reset();
   saveState(panelState);
@@ -544,7 +569,7 @@ void CompositeEditorPanel::fill(const CompositeEditorTreeData &treeData, const C
     }
     else
       editedTreeDataNodeBlockId = IDataBlockIdHolder::invalid_id;
-    fillInternal(*selectedTreeDataNode, dropTargetHandler, isRootNode);
+    fillInternal(*selectedTreeDataNode, dropTargetHandler, isRootNode, readOnly);
   }
 
   loadState(panelState);
@@ -1126,6 +1151,8 @@ CompositeEditorRefreshType CompositeEditorPanel::onClick(CompositeEditorTreeData
   else if (pcb_id >= ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST && pcb_id <= ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_LAST)
   {
     const int childIndex = pcb_id - ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST;
+    if (treeDataNode.nodes[childIndex]->isDisabled())
+      return CompositeEditorRefreshType::Nothing;
 
     const char *oldAssetName = treeDataNode.nodes[childIndex]->getAssetName();
     const char *assetName = DAEDITOR3.selectAsset(oldAssetName, "Select asset", DAEDITOR3.getGenObjAssetTypes());

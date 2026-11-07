@@ -4,13 +4,18 @@
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_input.h>
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_interface_ex.h>
+#include <EditorCore/ec_testSystem.h>
 #include <EditorCore/ec_wndGlobal.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <gui/dag_imgui.h>
 #include <ioSys/dag_dataBlock.h>
 #include <libTools/util/strUtil.h>
 #include <osApiWrappers/dag_clipboard.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_progGlobals.h>
+#include <perfMon/dag_statDrv.h>
+#include <shaders/dag_shaders.h>
 #include <startup/dag_globalSettings.h>
 #include <propPanel/commonWindow/dialogManager.h>
 #include <propPanel/commonWindow/dialogWindow.h>
@@ -696,6 +701,27 @@ void editor_core_render_dag_imgui_windows()
         }
 
   imgui_perform_registered(/*with_menu_bar = */ false);
+}
+
+void editor_core_update_and_render_imgui(int client_rect_width, int client_rect_height)
+{
+  TIME_D3D_PROFILE(imgui);
+
+  IMainWindowImguiRenderingService *renderingService =
+    IEditorCoreEngine::get()->queryEditorInterface<IMainWindowImguiRenderingService>();
+  G_ASSERT_RETURN(renderingService, );
+
+  renderingService->beforeUpdateImgui();
+  imgui_update(client_rect_width, client_rect_height);
+  renderingService->updateImgui();
+
+  editor_core_render_dag_imgui_windows();
+  editor_core_test_runtime_end_frame();
+  imgui_endframe();
+  // UI code can release the GPU lock while it builds, so another thread can have changed the render state.
+  ShaderElement::invalidate_cached_state_block();
+  d3d::set_render_target();
+  imgui_render();
 }
 
 void editor_core_save_imgui_color_editor_options(DataBlock &dst_blk)

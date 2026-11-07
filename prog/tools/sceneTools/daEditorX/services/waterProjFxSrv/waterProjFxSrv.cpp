@@ -55,7 +55,7 @@ bool WaterProjFxSrvRenderHelper::render_geometry()
   d3d::settm(TM_WORLD, TMatrix::IDENT);
 
   if (hmap)
-    hmap->renderGeometry(IRenderingService::STG_RENDER_LAND_DECALS);
+    hmap->renderGeometry(IRenderingService::STG_RENDER_WATER_DECALS);
 
   return true;
 }

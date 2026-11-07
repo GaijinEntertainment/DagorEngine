@@ -47,6 +47,7 @@ struct thrdslot {
   uint32_t id;
   BIT(running);
   BIT(idle);
+  BIT(processing);
 };
 
 struct curl_thrdpool {
@@ -112,11 +113,13 @@ static CURL_THREAD_RETURN_T CURL_STDCALL thrdslot_run(void *arg)
         break;
       tslot->starttime = curlx_now();
       tslot->idle = FALSE;
+      tslot->processing = TRUE;
       Curl_mutex_release(&tpool->lock);
 
       tpool->fn_process(item);
 
       Curl_mutex_acquire(&tpool->lock);
+      tslot->processing = FALSE;
       tslot->work_description = NULL;
       tpool->fn_return(item, tpool->aborted ? NULL : tpool->fn_user_data);
     }
@@ -354,13 +357,24 @@ out:
   return result;
 }
 
+static bool thrdpool_has_waitable(struct curl_thrdpool *tpool, bool join)
+{
+  struct Curl_llist_node *e;
+  for(e = Curl_llist_head(&tpool->slots); e; e = Curl_node_next(e)) {
+    struct thrdslot *tslot = Curl_node_elem(e);
+    if(join || !tslot->processing)
+      return TRUE;
+  }
+  return FALSE;
+}
+
 void Curl_thrdpool_destroy(struct curl_thrdpool *tpool, bool join)
 {
   Curl_mutex_acquire(&tpool->lock);
 
   tpool->aborted = TRUE;
 
-  while(join && Curl_llist_count(&tpool->slots)) {
+  while(thrdpool_has_waitable(tpool, join)) {
     thrdpool_wake_all(tpool);
     Curl_cond_wait(&tpool->await, &tpool->lock);
   }

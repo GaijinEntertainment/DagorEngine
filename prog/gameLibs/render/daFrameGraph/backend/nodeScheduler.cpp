@@ -48,38 +48,51 @@ auto NodeScheduler::schedule(const intermediate::Graph &graph, const PassColorin
       if (pass_coloring[nodeId] != pass_coloring[pred])
         ++passInDegree[pass_coloring[pred]];
 
+  struct FrontierEntry
+  {
+    uint64_t stabilityRank;
+    priority_t priority;
+    intermediate::MultiplexingIndex multiplexingIndex;
+    PassColor color;
+    intermediate::NodeIndex idx;
+  };
+
+  const auto makeEntry = [&graph, &pass_coloring, &prev_positions](intermediate::NodeIndex idx) {
+    uint64_t prevPos = UINT32_MAX;
+    if (prev_positions.isMapped(idx) && prev_positions[idx] != intermediate::NODE_NOT_MAPPED)
+      prevPos = eastl::to_underlying(prev_positions[idx]);
+    const auto &node = graph.nodes[idx];
+    return FrontierEntry{
+      .stabilityRank = (prevPos << 32) | (UINT32_MAX - eastl::to_underlying(idx)),
+      .priority = node.priority,
+      .multiplexingIndex = node.multiplexingIndex,
+      .color = pass_coloring[idx],
+      .idx = idx,
+    };
+  };
+
   // The frontier contains all nodes with in-degree 0
-  dag::Vector<intermediate::NodeIndex, framemem_allocator> frontier;
+  dag::Vector<FrontierEntry, framemem_allocator> frontier;
   frontier.reserve(graph.nodes.totalKeys());
-  frontier.push_back(graph.nodes.backKey());
+  frontier.push_back(makeEntry(graph.nodes.backKey()));
 
   eastl::underlying_type_t<intermediate::NodeIndex> timer = graph.nodes.used() - 1;
   PassColor lastColor = pass_coloring.back();
 
-  dag::Vector<uint64_t, framemem_allocator> stabilityRank(graph.nodes.totalKeys(), 0);
-  for (auto idx : graph.nodes.keys())
-  {
-    uint64_t prevPos = UINT32_MAX;
-    if (prev_positions.isMapped(idx) && prev_positions[idx] != intermediate::NODE_NOT_MAPPED)
-      prevPos = eastl::to_underlying(prev_positions[idx]);
-    stabilityRank[eastl::to_underlying(idx)] = (prevPos << 32) | (UINT32_MAX - eastl::to_underlying(idx));
-  }
+  auto orderComp = [&lastColor, &passInDegree](const FrontierEntry &l, const FrontierEntry &r) {
+    if (l.multiplexingIndex != r.multiplexingIndex)
+      return l.multiplexingIndex < r.multiplexingIndex;
 
-  auto orderComp = [&graph, &lastColor, &pass_coloring, &passInDegree, &stabilityRank](intermediate::NodeIndex l,
-                     intermediate::NodeIndex r) {
-    if (graph.nodes[l].multiplexingIndex != graph.nodes[r].multiplexingIndex)
-      return graph.nodes[l].multiplexingIndex < graph.nodes[r].multiplexingIndex;
+    if ((l.color == lastColor) != (r.color == lastColor))
+      return (l.color == lastColor) < (r.color == lastColor);
 
-    if ((pass_coloring[l] == lastColor) != (pass_coloring[r] == lastColor))
-      return (pass_coloring[l] == lastColor) < (pass_coloring[r] == lastColor);
+    if (passInDegree[l.color] != passInDegree[r.color])
+      return passInDegree[l.color] > passInDegree[r.color];
 
-    if (passInDegree[pass_coloring[l]] != passInDegree[pass_coloring[r]])
-      return passInDegree[pass_coloring[l]] > passInDegree[pass_coloring[r]];
+    if (l.priority != r.priority)
+      return l.priority < r.priority;
 
-    if (graph.nodes[l].priority != graph.nodes[r].priority)
-      return graph.nodes[l].priority < graph.nodes[r].priority;
-
-    return stabilityRank[eastl::to_underlying(l)] < stabilityRank[eastl::to_underlying(r)];
+    return l.stabilityRank < r.stabilityRank;
   };
 
   // The core property of the pass coloring is that if we condense the
@@ -97,7 +110,7 @@ auto NodeScheduler::schedule(const intermediate::Graph &graph, const PassColorin
     // This can be a bit slow, but the way orderComp works changes on
     // every iteration, so we can't really cache anything :/
     const auto it = eastl::max_element(frontier.begin(), frontier.end(), orderComp);
-    const auto curr = *it;
+    const auto curr = it->idx;
 
     frontier.erase_unsorted(it);
     G_FAST_ASSERT(inDegree[curr] == 0 && result[curr] == NOT_VISITED);
@@ -114,7 +127,7 @@ auto NodeScheduler::schedule(const intermediate::Graph &graph, const PassColorin
         --passInDegree[pass_coloring[pred]];
 
       if (--inDegree[pred] == 0)
-        frontier.push_back(pred);
+        frontier.push_back(makeEntry(pred));
     }
   }
 

@@ -15,7 +15,7 @@ class CollisionResource;
 class ICollisionDumpBuilder
 {
 public:
-  // constraint: one instance cooks once; the add entries accumulate with no reset
+  // one instance cooks once; the add entries accumulate with no reset
   virtual void destroy() = 0;
 
   // optional primitives: a caller reaches one only with its supportMask bit set, so a builder that sets the bit overrides the entry

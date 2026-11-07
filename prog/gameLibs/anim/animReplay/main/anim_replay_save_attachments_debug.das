@@ -7,9 +7,9 @@ def get_initial_equip_from_slots(var initial_equip : Object; slots : Object)
   for slot in slots
     assume slotObj = *get_ecs_object(slot.value)
     let equipEid = *get_Eid(slotObj, "item")
-    if equipEid == INVALID_ENTITY_ID
-      continue
     let equipTemplate = getEntityTemplateName(equipEid)
+    if empty(equipTemplate)
+      continue
     let equipName = split_template(equipTemplate)[0]
     set(initial_equip, equipName, slot.key)
 

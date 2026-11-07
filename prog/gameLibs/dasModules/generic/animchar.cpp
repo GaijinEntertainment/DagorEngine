@@ -1546,6 +1546,13 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_resetFastPhysWtmOfs)>(*this, lib, "animchar_resetFastPhysWtmOfs",
       das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::resetFastPhysWtmOfs));
 
+    das::addExtern<DAS_BIND_FUN(animchar_fast_phys_set_clip_friction)>(*this, lib, "animchar_fast_phys_set_clip_friction",
+      das::SideEffects::modifyExternal, "bind_dascript::animchar_fast_phys_set_clip_friction");
+    das::addExtern<DAS_BIND_FUN(animchar_fast_phys_set_clip_boxes)>(*this, lib, "animchar_fast_phys_set_clip_boxes",
+      das::SideEffects::modifyExternal, "bind_dascript::animchar_fast_phys_set_clip_boxes");
+    das::addExtern<DAS_BIND_FUN(animchar_fast_phys_set_clip_capsules)>(*this, lib, "animchar_fast_phys_set_clip_capsules",
+      das::SideEffects::modifyExternal, "bind_dascript::animchar_fast_phys_set_clip_capsules");
+
     das::addExtern<DAS_BIND_FUN(animchar_render_prepareSphere)>(*this, lib, "animchar_render_prepareSphere", das::SideEffects::none,
       "bind_dascript::animchar_render_prepareSphere");
     das::addExtern<DAS_BIND_FUN(animchar_render_calcWorldBox), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,

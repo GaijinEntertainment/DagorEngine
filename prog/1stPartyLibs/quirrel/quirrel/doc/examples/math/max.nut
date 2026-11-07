@@ -7,8 +7,9 @@ println("max(-1.5, 2) =", max(-1.5, 2))
 println("type(max(5, 8.0)) =", type(max(5, 8.0)))
 println("type(max(8, 5.0)) =", type(max(8, 5.0)))
 
+let x = 1
 try {
-  max(1)
+  max(x)
 } catch (e) {
-  println("max(1) throws:", e)
+  println("max(x) throws:", e)
 }

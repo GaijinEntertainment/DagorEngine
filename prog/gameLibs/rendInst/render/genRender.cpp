@@ -22,6 +22,7 @@
 #include "debug/collisionVisualization.h"
 
 #include <3d/dag_quadIndexBuffer.h>
+#include <3d/dag_lockSbuffer.h>
 #include <stdio.h>
 #include <shaders/dag_shaderBlock.h>
 #include <math/dag_frustum.h>
@@ -34,6 +35,7 @@
 #include <memory/dag_framemem.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <scene/dag_occlusion.h>
 #include <shaders/dag_overrideStates.h>
@@ -41,6 +43,7 @@
 #include <gpuObjects/gpuObjects.h>
 #include <math/dag_mathUtils.h>
 #include <render/debugMesh.h>
+#include <render/globTMVars.h>
 #include <3d/dag_resPtr.h>
 #include <math/dag_half.h>
 #include <3d/dag_multidrawContext.h>
@@ -66,6 +69,7 @@ int globalRendinstRenderTypeVarId = -1;
 int globalTranspVarId = -1;
 
 static int drawOrderVarId = -1;
+static int materialWriteVarId = -1;
 int useRiGpuInstancingVarId = -1;
 
 static int invLod0RangeVarId = -1;
@@ -213,6 +217,31 @@ void update_voxel_baker_textures()
   d3d::stretch_rect(rt.getColor(1).tex, ShaderGlobal::get_tex_ptr_fast(voxel_baker_last_rt1_varid));
   d3d::stretch_rect(rt.getColor(2).tex, ShaderGlobal::get_tex_ptr_fast(voxel_baker_last_rt2_varid));
   d3d::stretch_rect(rt.getColor(3).tex, ShaderGlobal::get_tex_ptr_fast(voxel_baker_last_rt3_varid));
+}
+
+void set_voxel_depth_projection()
+{
+  if (ri_voxel_depth_projection_varid == -1)
+    return;
+  TMatrix4 gtm;
+  d3d::getglobtm(gtm);
+  ::set_globtm_to_shader(gtm);
+
+  const Point3 a0(gtm.m[0][0], gtm.m[1][0], gtm.m[2][0]);
+  const Point3 a1(gtm.m[0][1], gtm.m[1][1], gtm.m[2][1]);
+  const Point3 a3(gtm.m[0][3], gtm.m[1][3], gtm.m[2][3]);
+  const Point3 u = a1 % a3, v = a3 % a0, w = a0 % a1;
+
+  float k = a0 * u;
+  Point3 c = gtm.m[3][0] * u + gtm.m[3][1] * v + gtm.m[3][3] * w;
+
+  // scale is free: renormalize so fp32 stays in range, and orient away from the camera
+  float s = 1.0f / max(fabsf(k), max(fabsf(c.x), max(fabsf(c.y), fabsf(c.z))));
+  if (k < 0.0f || (k < 1e-8f && a3 * c < 0.0f))
+    s = -s;
+  k *= s;
+  c *= s;
+  ShaderGlobal::set_float4(ri_voxel_depth_projection_varid, c, k);
 }
 
 bool useRiDepthPrepass(bool use)
@@ -444,6 +473,10 @@ static void allocatePaletteVB()
       rendinst::render::rotationPaletteTmVb = d3d::buffers::create_persistent_sr_tbuf(vecsCnt, TEXFMT_A32B32G32R32F,
         "rotationPaletteTmVb", d3d::buffers::Init::No, RESTAG_RENDINST);
     d3d_err(rendinst::render::rotationPaletteTmVb);
+    // the no-palette impostor preshadow reads identity slot 0, which only pools with a palette fill
+    if (auto lockedBuf = lock_sbuffer<float>(rendinst::render::rotationPaletteTmVb, 0, 12, VBLOCK_WRITEONLY))
+      for (int j = 0; j < 12; ++j)
+        lockedBuf[j] = TMatrix::IDENT.getcol(j % 4)[j / 4];
   }
 }
 
@@ -620,6 +653,7 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
   ShaderGlobal::get_int_by_name("ri_vertex_data_no", rendinst::render::ri_vertex_data_no);
 
   drawOrderVarId = get_shader_glob_var_id("draw_order", true);
+  materialWriteVarId = get_shader_glob_var_id("material_write_no_edit", true);
   rendinst::render::rendinstShadowTexVarId = ::get_shader_glob_var_id("rendinst_shadow_tex", true);
   rendinst::render::rendinstRenderPassVarId = ::get_shader_glob_var_id("rendinst_render_pass");
   rendinst::render::gpuObjectDecalVarId = ::get_shader_glob_var_id("gpu_object_decal", true);
@@ -1292,7 +1326,7 @@ void RendInstGenData::renderOptimizationDepthPrepass(const RiGenVisibility &visi
   rendinst::render::startRenderInstancing();
 
   rendinst::render::RiGenRenderer renderer(renderPass, {}, true, false, rendinst::render::depth_prepass_for_impostors,
-    rendinst::render::depth_prepass_for_cells, perInstDataDwords, drawOrderVarId);
+    rendinst::render::depth_prepass_for_cells, perInstDataDwords, drawOrderVarId, materialWriteVarId);
 
   if (rendinst::render::per_instance_visibility)
     renderer.addInstanceVisibleObjects(*rtData, visibility);
@@ -1475,7 +1509,8 @@ void RendInstGenData::renderPreparedOpaque(rendinst::RenderPass render_pass, ren
   ShaderGlobal::set_float(globalTranspVarId, 1.f); // Force not-transparent branch.
 
   rendinst::render::RiGenRenderer renderer(render_pass, layer_flags, false, depth_optimized,
-    rendinst::render::depth_prepass_for_impostors, rendinst::render::depth_prepass_for_cells, perInstDataDwords, drawOrderVarId);
+    rendinst::render::depth_prepass_for_impostors, rendinst::render::depth_prepass_for_cells, perInstDataDwords, drawOrderVarId,
+    materialWriteVarId);
 
   rendinst::render::startRenderInstancing();
 
@@ -1915,7 +1950,7 @@ void rendinst::render::log_riex_number(const RiGenVisibility *visibility)
     riList.emplace_back(poolCnt, eastl::move(info));
   }
   eastl::sort(riList.begin(), riList.end(), [](auto &l, auto &r) { return l.first > r.first; });
-  for (auto riInfo : riList)
+  for (const auto &riInfo : riList)
     debug("%s", riInfo.second.c_str());
 
   eastl::string riInfo;

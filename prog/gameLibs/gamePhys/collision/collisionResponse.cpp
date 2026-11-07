@@ -142,7 +142,8 @@ void daphys::cache_solved_contacts(dag::ConstSpan<gamephys::SeqImpulseInfo> coll
   const size_t max_count)
 {
   // sort by applied impulse
-  Tab<ContactSortPair> sortedContacts;
+  Tab<ContactSortPair> sortedContacts(framemem_ptr());
+  sortedContacts.reserve(collisions.size());
   for (size_t i = 0; i < collisions.size(); ++i)
   {
     const gamephys::SeqImpulseInfo &info = collisions[i];
@@ -341,46 +342,40 @@ void daphys::convert_contacts_to_solver_data(const DPoint3 &pos, const Quat &ori
   }
 }
 
-void daphys::apply_cached_contacts(const DPoint3 &pos, const Quat &ori, DPoint3 &vel, DPoint3 &omega,
-  dag::ConstSpan<gamephys::CachedContact> cached_contacts, Tab<gamephys::SeqImpulseInfo> &collisions, double inv_mass,
-  const DPoint3 &inv_moi, const daphys::ResolveContactParams &params)
+void daphys::apply_cached_contacts(DPoint3 &vel, DPoint3 &omega, dag::ConstSpan<gamephys::CachedContact> cached_contacts,
+  Tab<gamephys::SeqImpulseInfo> &collisions, double inv_mass, const DPoint3 &inv_moi, const daphys::ResolveContactParams &params)
 {
   if (params.warmstartingFactor <= 0.f || cached_contacts.empty())
     return;
 
-  collisions.reserve(collisions.size() + cached_contacts.size());
-  const Point3 posFlt = Point3::xyz(pos);
-  const Quat invOrient = inverse(ori);
-  constexpr float breakingThreshold = 0.1f;
+  // Seed the matching contact of this tick instead of adding a row for the cached one: such a row
+  // was cached again next to the fresh contact, and on a jammed body the impulses grew each tick
+  constexpr double breakingThresholdSq = 0.1 * 0.1;
+  constexpr double minNormalCos = 0.95;
   for (const gamephys::CachedContact &contact : cached_contacts)
   {
-    const Point3 wpos = posFlt + ori * contact.localPos;
-    const Point3 deltaPos = wpos - contact.wpos;
-    if (lengthSq(deltaPos) >= sqr(breakingThreshold))
+    const DPoint3 localPos = dpoint3(contact.localPos);
+    const DPoint3 wnorm = dpoint3(contact.wnorm);
+    gamephys::SeqImpulseInfo *match = nullptr;
+    double bestDistSq = breakingThresholdSq;
+    for (gamephys::SeqImpulseInfo &info : collisions)
+    {
+      if (info.appliedImpulse > 0.0 || info.axis1 * wnorm < minNormalCos)
+        continue;
+      const double distSq = lengthSq(info.pos - localPos);
+      if (distSq < bestDistSq)
+      {
+        bestDistSq = distSq;
+        match = &info;
+      }
+    }
+    if (!match)
       continue;
-    const double newDepth = deltaPos * contact.wnorm;
     // apply part of the impulse instantly
     const double lambda = contact.appliedImpulse * params.warmstartingFactor;
-
-    DPoint3 localNorm = normalize(dpoint3(invOrient * contact.wnorm));
-    DPoint3 localPos = dpoint3(contact.localPos);
-    gamephys::SeqImpulseInfo &info = collisions.push_back();
-    info.pos = localPos;
-    info.wpos = contact.wpos;
-    info.axis1 = contact.wnorm;
-    info.w1 = localPos % localNorm;
-    info.b = inv_mass + info.w1 * hadamard_product(info.w1, inv_moi);
-    info.depth = newDepth;
-    info.appliedImpulse = lambda;
-    info.type = gamephys::SeqImpulseInfo::TYPE_COLLISION;
-    info.bounce = 0.0;
-    info.friction = -1.0;
-
-    DPoint3 curAddVel = dpoint3(contact.wnorm) * lambda * inv_mass;
-    DPoint3 deltaOmega = info.w1 * lambda;
-    DPoint3 curAddOmega = hadamard_product(deltaOmega, inv_moi);
-    vel += curAddVel;
-    omega += curAddOmega;
+    match->appliedImpulse = match->fullAppliedImpulse = lambda; // it reaches vel, so the per-tick total the damage reads counts it
+    vel += match->axis1 * lambda * inv_mass;
+    omega += hadamard_product(match->w1 * lambda, inv_moi);
   }
 }
 
@@ -609,7 +604,7 @@ bool daphys::validate_contacts(dag::ConstSpan<gamephys::CollisionContactData> co
     float threshold = 1000.f;
     if (contactDist > sqr(bounding_rad * 4.f + threshold))
     {
-      logerr("daphys::validate_contacts: wpos %@ too far from %@ dist=%.2f bounding rad=%.2 with %s at %@", c.wpos, pos, contactDist,
+      logerr("daphys::validate_contacts: wpos %@ too far from %@ dist=%.2f bounding rad=%.2f with %s at %@", c.wpos, pos, contactDist,
         bounding_rad, rendinst::getRIGenResName(c.riDesc), pos);
       valid = false;
     }

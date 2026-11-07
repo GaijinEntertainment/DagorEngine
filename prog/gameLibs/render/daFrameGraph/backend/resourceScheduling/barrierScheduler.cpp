@@ -5,6 +5,7 @@
 #include <common/resourceUsage.h>
 #include <debug/backendDebug.h>
 
+#include <drv/3d/dag_driverDesc.h>
 #include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
 #include <dag/dag_vectorSet.h>
@@ -59,12 +60,18 @@ uint32_t BarrierScheduler::execution_rank(const Event &event)
 static ResolveRole find_resolve_role(const intermediate::Graph &graph, intermediate::NodeIndex node_idx,
   intermediate::ResourceIndex res_idx)
 {
-  if (!graph.nodeStates.isMapped(node_idx) || !graph.nodeStates[node_idx].pass)
+  const auto *renderPass =
+    graph.nodeStates.isMapped(node_idx) ? eastl::get_if<intermediate::RenderPass>(&graph.nodeStates[node_idx].pass) : nullptr;
+  if (!renderPass)
     return ResolveRole::None;
-  const auto &pass = *graph.nodeStates[node_idx].pass;
+  const auto &pass = *renderPass;
   const bool depth = pass.depthAttachment && pass.depthAttachment->resource == res_idx;
   if (pass.resolves.find(res_idx) != pass.resolves.end())
-    return depth ? ResolveRole::DepthSource : ResolveRole::ColorSource;
+  {
+    if (!depth)
+      return ResolveRole::ColorSource;
+    return d3d::get_driver_desc().caps.hasRenderPassDepthResolve ? ResolveRole::DepthSource : ResolveRole::None;
+  }
   if (!pass.depthAttachment)
     return ResolveRole::None;
   const auto depthResolve = pass.resolves.find(pass.depthAttachment->resource);
@@ -454,6 +461,16 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
           uint32_t eventAfterPreviousNode = *gracePoints.lower_bound(prev.nodeIndex + 1);
           uint32_t eventBeforeCurrentNode = *(gracePoints.upper_bound(curr.nodeIndex) - 1);
 
+          if ((barrier & RB_FLUSH_UAV) != 0 && prev.frame == curr.frame && eventAfterPreviousNode > eventBeforeCurrentNode)
+          {
+            const auto currNode = static_cast<intermediate::NodeIndex>(curr.nodeIndex);
+            if (graph.nodeStates.isMapped(currNode) && !eastl::holds_alternative<eastl::monostate>(graph.nodeStates[currNode].pass))
+              continue;
+            eventAfterPreviousNode = eventBeforeCurrentNode = curr.nodeIndex;
+          }
+          else if ((barrier & RB_FLUSH_UAV) != 0 && prev.frame == curr.frame)
+            eventAfterPreviousNode = eventBeforeCurrentNode;
+
           if (prev.frame == curr.frame && eventAfterPreviousNode > eventBeforeCurrentNode)
           {
             if (verbose)
@@ -467,7 +484,9 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
                 graph.nodeNames[static_cast<intermediate::NodeIndex>(curr.nodeIndex)].c_str(), graph.resourceNames[resIdx].c_str());
 
             // Fall back to a single barrier placed as soon as possible.
-            eventAfterPreviousNode = eventBeforeCurrentNode = prev.nodeIndex + 1;
+            const auto nextUsedNodeIdx = graph.nodes.getNextUsed(static_cast<intermediate::NodeIndex>(prev.nodeIndex));
+            G_ASSERT(graph.nodes.isMapped(nextUsedNodeIdx));
+            eventAfterPreviousNode = eventBeforeCurrentNode = eastl::to_underlying(nextUsedNodeIdx);
           }
 
           G_ASSERT(prev.frame != curr.frame || eventAfterPreviousNode <= eventBeforeCurrentNode);
@@ -500,7 +519,8 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
             // place a regular barrier at the end of prev frame.
             cacheBarrier(graph.nodes.totalKeys(), RB_NONE);
           }
-          else if (eventAfterPreviousNode == eventBeforeCurrentNode || resource.getResType() == ResourceType::Buffer || untracked)
+          else if (eventAfterPreviousNode == eventBeforeCurrentNode || resource.getResType() == ResourceType::Buffer || untracked ||
+                   (barrier & RB_FLUSH_UAV) != 0)
           {
             cacheBarrier(eventAfterPreviousNode, RB_NONE);
           }

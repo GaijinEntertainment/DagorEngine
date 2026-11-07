@@ -30,7 +30,7 @@ struct RiExtraPool
   void *collHandle = nullptr;
   uint8_t hideMask = 0;
   uint8_t destrPhysResLodMask = 0;
-  uint8_t scaleDebris : 1, isDestroyedPhysResExist : 1, isDynamicRendinst : 1;
+  uint8_t scaleDebris : 1, isDestroyedPhysResExist : 1, isDestroyedPhysNetSynced : 1, isDynamicRendinst : 1;
   int tsIndex = -1;
 
   vec4f bsphXYZR = v_make_vec4f(0, 0, 0, 1);
@@ -50,6 +50,7 @@ struct RiExtraPool
   unsigned killsNearEffects : 1, hasTransitionLod : 1;
   unsigned isGrassify : 1;
   unsigned underwaterOnly : 1;
+  unsigned startHidden : 1;
   struct ElemMask
   {
     uint32_t atest, cullN, tessellation, plod;
@@ -107,6 +108,7 @@ struct RiExtraPool
   int destroyedRiIdx = -1;
   int destrDepth = 0;
   DynamicPhysObjectData *destroyedPhysRes = nullptr;
+  dag::Vector<uint16_t> destrLodPools;
   float scaleForPrepasses = 1.0f;
   int destrFxType = -1;
   int destrCompositeFxId = -1;
@@ -147,6 +149,7 @@ struct RiExtraPool
   RiExtraPool() :
     scaleDebris(false),
     isDestroyedPhysResExist(false),
+    isDestroyedPhysNetSynced(false),
     isDynamicRendinst(false),
     riPoolRefLayer(0),
     useShadow(false),
@@ -166,7 +169,8 @@ struct RiExtraPool
     killsNearEffects(false),
     hasTransitionLod(false),
     destrStopsBullets(true),
-    underwaterOnly(false)
+    underwaterOnly(false),
+    startHidden(false)
   {
     memset(distSqLOD, 0, sizeof(distSqLOD));
     memset(elemMask, 0, sizeof(elemMask));
@@ -216,11 +220,7 @@ struct RiExtraPool
     return riHP[idx].isInvincible();
   }
   void setupDestrPhysResLodMask(const char *res_nm_for_debug);
-  void updateDestrModelReqLod(unsigned ri_lod) const
-  {
-    if (unsigned destr_lod = ri_lod < 2 ? (destrPhysResLodMask >> (ri_lod * 4)) & 0xF : 0)
-      updateModelReqLod(destroyedPhysRes, destr_lod - 1);
-  }
+  void updateDestrModelReqLod(unsigned ri_lod) const;
   static void updateModelReqLod(DynamicPhysObjectData *physRes, unsigned lod);
 
   struct NodeIdxAndTs

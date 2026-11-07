@@ -64,6 +64,8 @@ int combined_shadows_has_caustics;
 float4 tank_cockpit__bsphere = float4(0., 0., 0., 0.);
 float tank_cockpit_fake_ambient_light_strength = 0.25;
 
+float cockpit_no_lighting = 0.0;
+
 macro COMMON_RESOLVE_SIMPLE(code)
   (code) {
     leaves_ss_profile_gamb@f4 = (leaves_ss_profile.x, leaves_ss_profile.y, leaves_ss_profile.z, grass_ambient_ss_shadow);
@@ -115,6 +117,7 @@ define_macro_if_not_defined USE_GBUFFER_MODIFIER(code)
 endmacro
 
 macro COMMON_RESOLVE_EXTENDED(code)
+  USE_SCATTERING_TC_Z_PRECISE(code)
   COMMON_RESOLVE_SIMPLE(code)
 
   GI_DEMO(code)
@@ -169,6 +172,7 @@ macro COMMON_RESOLVE_EXTENDED(code)
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
     tank_cockpit_fake_ambient_light_strength@f1 = tank_cockpit_fake_ambient_light_strength;
     tank_cockpit__bsphere@f4 = tank_cockpit__bsphere;
+    cockpit_no_lighting@f1 = cockpit_no_lighting;
   }
 
   USE_VOLFOG_DITHERING_NOISE(code)
@@ -210,13 +214,12 @@ macro COMMON_RESOLVE_EXTENDED(code)
       DAGI_NO_SCREEN_ENCODING(code)
     } else if (gi_quality == colored)
     {
-      hlsl {
+      hlsl(code) {
         #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
       }
       DAGI_IRRADIANCE_GRID_SAMPLE(code)
       DAGI_NO_SCREEN_ENCODING(code)
-      READ_WORLD_SDF_MATH(code)
-      PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
+      DAGI_SURFACE_CACHE_READ(code)
     } else
     {
       SAMPLE_IRRADIANCE_SP(code)
@@ -459,6 +462,11 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       if (distToTankCockpitSq < tank_cockpit__bsphere.w)
       {
         enviLight = 0;
+        ##if (gi_quality != off)
+          half3 giDiffuse;
+          decode_gi_colors(texelFetch(current_ambient, screenpos, 0). GI_ENCODED_ATTR, texelFetch(specular_tex, screenpos, 0). GI_ENCODED_ATTR, giDiffuse, giSpecular);
+          giSpecular = unpack_hdr(giSpecular);
+        ##endif
         fake_light_strength = tank_cockpit_fake_ambient_light_strength;
       }
       else
@@ -538,7 +546,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         ##elif (gi_quality == colored)
           float3 backRadiance;
           BRANCH
-          if (dagi_get_voxels_lit_scene_radiance_at(worldPos.xyz, -gbuffer.normal, backRadiance))
+          if (dagi_surface_cache_get(worldPos.xyz, -gbuffer.normal, backRadiance))
             giBackAmbient = backRadiance;
           else
           {
@@ -571,6 +579,11 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       float2 jitteredVolfogTc = get_volfog_dithered_screen_tc(screenpos.xy, curViewTc);
       apply_volfog_with_scattering(result.rgb, curViewTc, jitteredVolfogTc, view, dist, w);
+
+      FLATTEN
+      if (gbuffer.isHeroCockpit && cockpit_no_lighting > 0.0)
+        result.rgb = 0;
+
       return half4(pack_hdr(result),1);
     }
   }

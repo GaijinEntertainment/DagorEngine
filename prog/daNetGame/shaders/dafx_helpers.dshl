@@ -195,15 +195,18 @@ if (shader != dafx_modfx_bboard_render_fom)
   }
   hlsl (vs)
   {
-    float3 ambient_calculating(float3 wpos, float3 world_view_pos, float3 sky_color, float4 screenPos)
+    float3 dafx_directional_gi_ambient(float3 wpos, float3 world_view_pos, float3 sky_color, float4 screenPos, float3 ambient_dir, bool directional, float3 view_dir_norm, float view_dir_dist)
     {
-      float3 pointToEye = world_view_pos - wpos;
-      float3 ambientDir = normalize(pointToEye);
-      //float3 ambient = get_directional_volumetric_ambient(world_view_pos, saturate(screenPos.xy/max(1e-6, screenPos.w) * float2(0.5,-0.5) + 0.5), max(0, screenPos.w), wpos, ambientDir, -ambientDir, length(pointToEye));
-      //float3 ambient = get_undirectional_volumetric_ambient(world_view_pos.xyz, saturate(screenPos.xy/max(1e-6, screenPos.w) * float2(0.5,-0.5) + 0.5), max(0, screenPos.w), wpos, -ambientDir*0, length(pointToEye)*0);
-      float3 ambient = get_phased_volumetric_ambient(world_view_pos.xyz, saturate(screenPos.xy/max(1e-6, screenPos.w) * float2(0.5,-0.5) + 0.5), max(0, screenPos.w), wpos, ambientDir, 0.66, -ambientDir, length(pointToEye));
-      ambient *= skylight_gi_weight_atten;
-      return ambient;
+      float2 screen_tc = saturate(screenPos.xy/max(1e-6, screenPos.w) * float2(0.5,-0.5) + 0.5);
+      float linear_depth = max(0, screenPos.w);
+    ##if dafx_directional_ambient == on
+      // unphased probe along ambient_dir: by SH1 linearity the lerp of the up and down samples, like the sky path
+      BRANCH
+      if (directional)
+        return get_directional_volumetric_ambient(world_view_pos.xyz, screen_tc, linear_depth, wpos, ambient_dir, -view_dir_norm, view_dir_dist) * skylight_gi_weight_atten;
+    ##endif
+      // phased eye probe, so fx without the knob keep their look
+      return get_phased_volumetric_ambient(world_view_pos.xyz, screen_tc, linear_depth, wpos, ambient_dir, 0.66, -view_dir_norm, view_dir_dist) * skylight_gi_weight_atten;
     }
   }
 }

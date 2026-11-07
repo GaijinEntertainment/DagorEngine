@@ -85,9 +85,8 @@ value, copy it to a new `let` inside the body.
 
 `switch` is disabled by default. With no directive, `switch`, `case` and
 `default` are ordinary identifiers, and `switch (x) { ... }` fails to compile.
-The `#allow-switch-statement` compiler directive turns the keywords on for the
-enclosing block; the setting reverts at the closing brace. A leading
-`#default:allow-switch-statement` sets it for the whole compilation unit. See
+The `#allow-switch-statement` compiler directive at the top of a file turns
+the keywords on for that file. See
 [Compiler directives](page:language/directives).
 
 ```nut

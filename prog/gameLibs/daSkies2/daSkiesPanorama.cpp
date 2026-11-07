@@ -17,6 +17,7 @@
 #include <drv/3d/dag_lock.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_adjpow2.h>
+#include <memory/dag_framemem.h>
 #include <dag_noise/dag_uint_noise.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/scopeRenderTarget.h>
@@ -459,7 +460,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
   }
   else
   {
-    Tab<TEXTUREID> waitTex{};
+    Tab<TEXTUREID> waitTex(framemem_ptr());
     getCloudsTextureResourceDependencies(waitTex);
     mark_managed_textures_important(waitTex);
     if (!::prefetch_and_check_managed_textures_loaded(waitTex, true) || !clouds || !clouds->isLightRendered() || !isScatteringReady())
@@ -652,6 +653,9 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
 
     cloudsLayersHeightsBarrier();
     bool needDepthOut = renderDownsampledDepth && !isPanoramaDepthTexReady;
+    if (needDepthOut && !cloudsDepthPanoramaTex)
+      createPanoramaDepthTex();
+    needDepthOut = needDepthOut && cloudsDepthPanoramaTex;
     ShaderGlobal::set_int(clouds_panorama_depth_outVarId, needDepthOut ? 1 : 0);
     G_ASSERT(strataTextureLoaded);
     {
@@ -659,12 +663,8 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
       int x, y, w, h;
       panoramaTC(x, y, w, h, cloudsPanoramaTex[targetPanorama]);
       if (needDepthOut)
-      {
-        if (!cloudsDepthPanoramaTex)
-          createPanoramaDepthTex();
         updateSubpixelWithDepth(cloudsPanoramaTex[targetPanorama], cloudsDepthPanoramaTex, cloudsDepthDownsampledPanoramaTex, x, y, w,
           h);
-      }
       else
         updateSubpixel(cloudsPanoramaTex[targetPanorama], x, y, w, h);
     }
@@ -672,13 +672,11 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
     {
       TIME_D3D_PROFILE(panoramaPatch);
       ShaderGlobal::set_float4(panoramaTCVarId, 0, 0, 0, 0);
-      if (needDepthOut)
-      {
-        if (!cloudsDepthPanoramaPatchTex)
-          createDepthPanoramaPatchTex();
+      if (needDepthOut && !cloudsDepthPanoramaPatchTex)
+        createDepthPanoramaPatchTex();
+      if (needDepthOut && cloudsDepthPanoramaPatchTex)
         updateSubpixelWithDepth(cloudsPanoramaPatchTex[targetPanorama], cloudsDepthPanoramaPatchTex,
           cloudsDepthDownsampledPanoramaPatchTex, 0, 0, 0, 0);
-      }
       else
         updateSubpixel(cloudsPanoramaPatchTex[targetPanorama], 0, 0, 0, 0);
     }
@@ -782,13 +780,21 @@ void DaSkies::createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_n
   depth.close();
   downsampled_depth.close();
 
-  depth = dag::create_tex(NULL, w, h, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED | TEXCF_GENERATEMIPS,
-    panoramaDepthTexMipNumber + 1, depth_name, RESTAG_DASKIES2);
+  depth = dag::create_tex(NULL, w, h, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_GENERATEMIPS, panoramaDepthTexMipNumber + 1, depth_name,
+    RESTAG_DASKIES2);
 
   uint16_t downsampledW = w >> panoramaDepthTexMipNumber;
   uint16_t downsampledH = h >> panoramaDepthTexMipNumber;
-  downsampled_depth = dag::create_tex(NULL, downsampledW, downsampledH, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED, 1,
-    downsampled_depth_name, RESTAG_DASKIES2);
+  downsampled_depth =
+    dag::create_tex(NULL, downsampledW, downsampledH, TEXCF_RTARGET | TEXFMT_R32F, 1, downsampled_depth_name, RESTAG_DASKIES2);
+  if (!depth || !downsampled_depth)
+  {
+    logwarn("%s: device can't create panorama depth textures. Panorama depth output is disabled", depth_name);
+    depth.close();
+    downsampled_depth.close();
+    renderDownsampledDepth = false;
+    return;
+  }
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = addru;
   smpInfo.address_mode_v = addrv;

@@ -63,6 +63,7 @@ Sources =
   grassTranslucency.cpp
   globTMVars.cpp
   viewVecs.cpp
+  viewportEllipse.cpp
   set_reprojection.cpp
   reprojectionTm.cpp
   priorityManagedShadervar.cpp

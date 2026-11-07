@@ -82,4 +82,8 @@ private:
 };
 
 
+// Ignores the handler and the content of a non-string description: scripts make both again on each rebuild
+bool are_combos_equivalent(const dag::Vector<eastl::unique_ptr<HotkeyCombo>> &a, const dag::Vector<eastl::unique_ptr<HotkeyCombo>> &b);
+
+
 } // namespace darg

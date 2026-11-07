@@ -1,0 +1,7 @@
+# every daCSG layer target includes this after defaults.jam
+AddIncludes +=
+  $(Root)/prog
+  $(Root)/prog/gameLibs/daCSG
+;
+
+include $(Root)/prog/gameLibs/daCSG/fp-options.jam ;

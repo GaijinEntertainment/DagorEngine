@@ -122,17 +122,8 @@ static void check_children_count_limit(int n_children, const Sqrat::Object &chil
 }
 
 
-static void report_invalid_child_desc_type(SQObjectType tp, const Sqrat::Array &arr, int idx, const Sqrat::Object &parent_builder)
-{
-  String closureName;
-  get_closure_full_name(parent_builder, closureName);
-  String errMsg(32, "Invalid component description type = %s (%X) (ascendant component: %s)", sq_objtypestr(tp), tp,
-    closureName.c_str());
-  darg_assert_trace_var(errMsg, arr, idx);
-}
-
-
-static void report_invalid_child_desc_type(SQObjectType tp, const Sqrat::Object &parent, const Sqrat::Object &key,
+template <typename Key>
+static void report_invalid_child_desc_type(SQObjectType tp, const Sqrat::Object &parent, const Key &key,
   const Sqrat::Object &parent_builder)
 {
   String closureName;

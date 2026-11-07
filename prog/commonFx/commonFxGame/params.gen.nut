@@ -67,6 +67,7 @@ glob_tools_text.append("#include <fx/effectClassTools.h>\n\n")
 
 class BaseParam {
   paramName = null
+  desc = null
 
   function createDecl(_name, _decl) {
     error("bug: BaseParam::createDecl() called")
@@ -79,8 +80,16 @@ class BaseParam {
 
   function generateTunedParamText() { return "/* FIXME: no code! */" }
 
+  function generateTunedDescText(text, indent) {
+    if (this.desc == null)
+      return
+    let literal = this.desc.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
+    text.append($"{indent}ScriptHelpers::set_tuned_element_desc(*elems.back(), \"{literal}\");\n")
+  }
+
   function generateTunedMemberText(text) {
     text.append("".concat("  elems.push_back(", this.generateTunedParamText(), ");\n"))
+    this.generateTunedDescText(text, "  ")
   }
 }
 
@@ -482,6 +491,7 @@ class EnumParam (BaseParam) {
 
     text.append("\n")
     text.append("    elems.push_back(ScriptHelpers::create_tuned_enum_param(\""+this.paramName+"\", enumEntries));\n")
+    this.generateTunedDescText(text, "    ")
     text.append("  }\n")
   }
 }
@@ -599,7 +609,10 @@ function declare_struct(name, version, list) {
       continue
     }
 
-    s.addMember(glob_types[etype].createDecl(decl.name, decl))
+    let member = glob_types[etype].createDecl(decl.name, decl)
+    if ("desc" in decl)
+      member.desc = decl.desc
+    s.addMember(member)
   }
 
   s.generateDeclText(glob_decl_text)

@@ -141,6 +141,25 @@
               ]
             },
             {
+              "Id": "7455e37d-324d-497f-81f4-58db01efa969",
+              "Command": "FlipPresent",
+              "ExclusiveMode": true,
+              "Items": [
+                {
+                  "Id": "bb6083fe-a81a-46ee-b844-a08c9036faaa",
+                  "Command": ""
+                },
+                {
+                  "Id": "b69fb1cf-cd5d-43e3-9c52-4debee535596",
+                  "Command": "-config:directx/flipPresent:b=no"
+                },
+                {
+                  "Id": "10b9d614-50da-47e5-9d62-ae1cddb38006",
+                  "Command": "-config:directx/flipPresent:b=yes"
+                }
+              ]
+            },
+            {
               "Id": "0a27e94d-f621-4713-b865-d310e019e6e9",
               "Command": "ForceDx10",
               "ExclusiveMode": true,

@@ -20,7 +20,7 @@ AddIncludes +=
 ;
 CPPopt += -DQUIRREL_HOST_HEADER=dagor_quirrel_host.h ;
 CPPopt += -DUSE_SQRAT_CONFIG ;
-if $(Config) in rel irel { CPPopt += -DSQ_STORE_DOC_OBJECTS=0 ; }
+if $(Config) in rel irel { CPPopt += -DSQ_STORE_DOC_OBJECTS=0 -DSQ_RUNTIME_TYPE_CHECK=0 ; }
 
 if $(UseQuirrel) != yes { return ; }
 

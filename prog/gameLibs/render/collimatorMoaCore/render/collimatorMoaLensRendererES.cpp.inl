@@ -7,6 +7,8 @@
 #include <ecs/anim/anim.h>
 #include <ecs/render/resPtr.h>
 #include <ecs/render/shaderVar.h>
+#include <ecs/render/shaders.h>
+#include <ecs/render/updateStageRender.h>
 #include <render/collimatorMoaCore/render.h>
 
 #include <3d/dag_resPtr.h>
@@ -20,6 +22,10 @@ template <typename Callable>
 inline void setup_collimator_moa_render_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
 inline void setup_collimator_moa_lens_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
+template <typename Callable>
+inline void update_collimator_moa_lens_axis_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
+template <typename Callable>
+inline void setup_collimator_moa_image_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 namespace
 {
@@ -101,8 +107,63 @@ static LensRelemData get_lens_relem_data(const AnimV20::AnimcharRendComponent &a
   return res;
 }
 
+ECS_TAG(render)
+ECS_AFTER(animchar_before_render_es, collimator_moa_update_lens_eids_es)
+static void collimator_moa_update_lens_axis_es(const UpdateStageInfoBeforeRender &, ecs::EntityManager &manager,
+  const ecs::EntityId collimator_moa_render__gun_mod_eid, const int collimator_moa_render__rigid_id,
+  const int collimator_moa_render__relem_id)
+{
+  if (!collimator_moa_render__gun_mod_eid || collimator_moa_render__rigid_id < 0 || collimator_moa_render__relem_id < 0)
+    return;
+
+  update_collimator_moa_lens_axis_ecs_query(manager, collimator_moa_render__gun_mod_eid,
+    [&](const AnimV20::AnimcharRendComponent &animchar_render, const Point3 &gunmod__collimator_moa_local_forward,
+      Point3 &gunmod__collimator_moa_lens_axis) {
+      const LensRelemData relemData =
+        get_lens_relem_data(animchar_render, collimator_moa_render__rigid_id, collimator_moa_render__relem_id);
+      if (relemData)
+        gunmod__collimator_moa_lens_axis = normalize(*relemData.wtm % gunmod__collimator_moa_local_forward);
+    });
+}
+
 namespace collimator_moa
 {
+static void setup_image_render(ecs::EntityId image_eid)
+{
+  setup_collimator_moa_image_ecs_query(*g_entity_mgr, image_eid,
+    [&](const Point4 &collimator_moa_image__color, const float collimator_moa_image__border_min,
+      const float collimator_moa_image__border_scale, const bool collimator_moa_image__use_noise,
+      const float collimator_moa_image__noise_min_intensity, const float collimator_moa_image__light_noise_thinness,
+      const float collimator_moa_image__light_noise_intensity_scale, const float collimator_moa_image__static_noise_uv_scale,
+      const float collimator_moa_image__static_noise_add, const float collimator_moa_image__static_noise_scale,
+      const float collimator_moa_image__dynamic_noise_uv_scale, const float collimator_moa_image__dynamic_noise_sub_scale,
+      const float collimator_moa_image__dynamic_noise_scale, const float collimator_moa_image__dynamic_noise_add,
+      const Point2 &collimator_moa_image__dynamic_noise_speed) {
+      ShaderGlobal::set_float4(var::dcm_color, collimator_moa_image__color);
+      ShaderGlobal::set_float(var::dcm_border_min, collimator_moa_image__border_min);
+      ShaderGlobal::set_float(var::dcm_border_scale, collimator_moa_image__border_scale);
+
+      ShaderGlobal::set_float(var::dcm_use_noise, collimator_moa_image__use_noise ? 1.0f : 0.0f);
+      if (collimator_moa_image__use_noise)
+      {
+        ShaderGlobal::set_float(var::dcm_noise_min_intensity, collimator_moa_image__noise_min_intensity);
+
+        ShaderGlobal::set_float(var::dcm_light_noise_thinness, collimator_moa_image__light_noise_thinness);
+        ShaderGlobal::set_float(var::dcm_light_noise_intensity_scale, collimator_moa_image__light_noise_intensity_scale);
+
+        ShaderGlobal::set_float(var::dcm_static_noise_uv_scale, collimator_moa_image__static_noise_uv_scale);
+        ShaderGlobal::set_float(var::dcm_static_noise_add, collimator_moa_image__static_noise_add);
+        ShaderGlobal::set_float(var::dcm_static_noise_scale, collimator_moa_image__static_noise_scale);
+
+        ShaderGlobal::set_float(var::dcm_dynamic_noise_uv_scale, collimator_moa_image__dynamic_noise_uv_scale);
+        ShaderGlobal::set_float(var::dcm_dynamic_noise_sub_scale, collimator_moa_image__dynamic_noise_sub_scale);
+        ShaderGlobal::set_float(var::dcm_dynamic_noise_scale, collimator_moa_image__dynamic_noise_scale);
+        ShaderGlobal::set_float(var::dcm_dynamic_noise_add, collimator_moa_image__dynamic_noise_add);
+        ShaderGlobal::set_float4(var::dcm_dynamic_noise_speed, collimator_moa_image__dynamic_noise_speed);
+      }
+    });
+}
+
 static LensRelemData setup_render()
 {
   LensRelemData relemData;
@@ -112,27 +173,21 @@ static LensRelemData setup_render()
       if (collimator_moa_render__gun_mod_eid)
       {
         setup_collimator_moa_lens_ecs_query(*g_entity_mgr, collimator_moa_render__gun_mod_eid,
-          [&](const AnimV20::AnimcharRendComponent &animchar_render, const float gunmod__collimator_moa_parallax_plane_dist,
-            const Point4 &gunmod__collimator_moa_color, const float gunmod__collimator_moa_border_min,
-            const float gunmod__collimator_moa_border_scale, const bool gunmod__collimator_moa_use_noise,
-            const float gunmod__collimator_moa_noise_min_intensity, const float gunmod__collimator_moa_light_noise_thinness,
-            const float gunmod__collimator_moa_light_noise_intensity_scale, const float gunmod__collimator_moa_static_noise_uv_scale,
-            const float gunmod__collimator_moa_static_noise_add, const float gunmod__collimator_moa_static_noise_scale,
-            const float gunmod__collimator_moa_dynamic_noise_uv_scale, const float gunmod__collimator_moa_dynamic_noise_sub_scale,
-            const float gunmod__collimator_moa_dynamic_noise_scale, const float gunmod__collimator_moa_dynamic_noise_add,
-            const Point2 &gunmod__collimator_moa_dynamic_noise_speed, const float gunmod__collimator_moa_reticle_offset_y,
-            const Point4 &gunmod__collimator_lens_color) {
+          [&](const AnimV20::AnimcharRendComponent &animchar_render, const Point3 &gunmod__collimator_moa_local_forward,
+            const Point3 &gunmod__collimator_moa_local_right, const Point3 &gunmod__collimator_moa_lens_axis,
+            const float gunmod__collimator_moa_parallax_plane_dist, const Point4 &gunmod__collimator_lens_color) {
             relemData = get_lens_relem_data(animchar_render, collimator_moa_render__rigid_id, collimator_moa_render__relem_id);
 
             if (!relemData)
               return;
 
-            const TMatrix *wtm = relemData.wtm;
-            const Point3 lensRight = normalize(-wtm->col[0]);
-            const Point3 lensUp = normalize(wtm->col[2]);
-            const Point3 lensForward = normalize(-wtm->col[1]);
+            const TMatrix &wtm = *relemData.wtm;
+            const Point3 localUp = gunmod__collimator_moa_local_right % gunmod__collimator_moa_local_forward;
+            const Point3 &lensForward = gunmod__collimator_moa_lens_axis;
+            const Point3 lensRight = normalize(wtm % gunmod__collimator_moa_local_right);
+            const Point3 lensUp = normalize(wtm % localUp);
 
-            const Point3 &eyeToLensCenter = wtm->col[3] + gunmod__collimator_moa_reticle_offset_y * lensUp;
+            const Point3 &eyeToLensCenter = wtm.col[3];
             const float calibrationRangeMeters = collimator_moa_render__calibration_range_cm * 0.01;
             const Point3 eyeToLenseAlignedOrigin = eyeToLensCenter - calibrationRangeMeters * lensForward;
 
@@ -144,29 +199,7 @@ static LensRelemData setup_render()
             ShaderGlobal::set_float4(var::dcm_eye_to_lens_aligned_origin, eyeToLenseAlignedOrigin);
             ShaderGlobal::set_float4(var::dcm_eye_to_plane_origin, eyeToPlaneOrigin);
 
-            ShaderGlobal::set_float4(var::dcm_color, gunmod__collimator_moa_color);
             ShaderGlobal::set_float4(var::dcm_lens_color_tint, gunmod__collimator_lens_color);
-            ShaderGlobal::set_float(var::dcm_border_min, gunmod__collimator_moa_border_min);
-            ShaderGlobal::set_float(var::dcm_border_scale, gunmod__collimator_moa_border_scale);
-
-            ShaderGlobal::set_float(var::dcm_use_noise, gunmod__collimator_moa_use_noise ? 1.0f : 0.0f);
-            if (gunmod__collimator_moa_use_noise)
-            {
-              ShaderGlobal::set_float(var::dcm_noise_min_intensity, gunmod__collimator_moa_noise_min_intensity);
-
-              ShaderGlobal::set_float(var::dcm_light_noise_thinness, gunmod__collimator_moa_light_noise_thinness);
-              ShaderGlobal::set_float(var::dcm_light_noise_intensity_scale, gunmod__collimator_moa_light_noise_intensity_scale);
-
-              ShaderGlobal::set_float(var::dcm_static_noise_uv_scale, gunmod__collimator_moa_static_noise_uv_scale);
-              ShaderGlobal::set_float(var::dcm_static_noise_add, gunmod__collimator_moa_static_noise_add);
-              ShaderGlobal::set_float(var::dcm_static_noise_scale, gunmod__collimator_moa_static_noise_scale);
-
-              ShaderGlobal::set_float(var::dcm_dynamic_noise_uv_scale, gunmod__collimator_moa_dynamic_noise_uv_scale);
-              ShaderGlobal::set_float(var::dcm_dynamic_noise_sub_scale, gunmod__collimator_moa_dynamic_noise_sub_scale);
-              ShaderGlobal::set_float(var::dcm_dynamic_noise_scale, gunmod__collimator_moa_dynamic_noise_scale);
-              ShaderGlobal::set_float(var::dcm_dynamic_noise_add, gunmod__collimator_moa_dynamic_noise_add);
-              ShaderGlobal::set_float4(var::dcm_dynamic_noise_speed, gunmod__collimator_moa_dynamic_noise_speed);
-            }
           });
       }
     });
@@ -177,22 +210,24 @@ void render(const IPoint2 &display_resolution)
 {
   render_collimator_moa_lens_ecs_query(*g_entity_mgr,
     [&](const int collimator_moa_render__active_shapes_count, const int collimator_moa_render__shapes_buf_reg_count,
-      const UniqueBufWithShaderVar &collimator_moa_render__current_shapes_buf) {
+      const UniqueBufWithShaderVar &collimator_moa_render__current_shapes_buf,
+      const ecs::EntityId &collimator_moa_render__active_image_eid, const ShadersECS &collimator_moa_render__lens_shader) {
       const LensRelemData relemData = setup_render();
-      if (relemData && collimator_moa_render__current_shapes_buf)
+      if (relemData && collimator_moa_render__current_shapes_buf && collimator_moa_render__lens_shader)
       {
         ShaderGlobal::set_int(var::dcm_render_mode, RENDER_LENS);
 
         ShaderGlobal::set_int(var::dcm_shapes_count, collimator_moa_render__active_shapes_count);
         ShaderGlobal::set_int(var::dcm_shapes_buf_reg_count, collimator_moa_render__shapes_buf_reg_count);
         ShaderGlobal::set_buffer(var::dcm_shapes_buf, collimator_moa_render__current_shapes_buf);
+        setup_image_render(collimator_moa_render__active_image_eid);
 
         IPoint2 res = display_resolution;
         ShaderGlobal::set_float4(var::dcm_inv_screen_size, safeinv(float(res.x)), safeinv(float(res.y)), 0.0f, 0.0f);
 
         d3d::settm(TM_WORLD, *relemData.wtm);
         relemData.relem->vertexData->setToDriver();
-        relemData.relem->render();
+        relemData.relem->renderWithElem(*collimator_moa_render__lens_shader.shElem);
         d3d::settm(TM_WORLD, TMatrix::IDENT);
 
         ShaderGlobal::set_int(var::dcm_render_mode, DONT_RENDER);

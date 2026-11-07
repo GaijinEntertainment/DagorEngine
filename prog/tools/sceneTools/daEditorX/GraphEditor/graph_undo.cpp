@@ -2,6 +2,11 @@
 
 #include "graph_undo.h"
 #include "graph_document.h"
+#include "graph_panel.h"
+#include "graph_subgraph_window.h"
+#include "graph_tab.h"
+
+#include <EASTL/algorithm.h>
 
 UndoCreateNode::UndoCreateNode(GraphDocument &document, GraphData::Node node_snapshot, int node_index) :
   doc(document), node(eastl::move(node_snapshot)), nodeIndex(node_index)
@@ -296,3 +301,144 @@ void UndoBlockResize::redo()
 size_t UndoBlockResize::size() { return sizeof(*this) + (oldSizes.size() + newSizes.size()) * sizeof(BlockSize); }
 
 void UndoBlockResize::get_description(String &s) { s = "Resize block"; }
+
+UndoInstancePins::UndoInstancePins(GraphDocument &document, int node_id, InstancePins before_pins, InstancePins after_pins,
+  GraphSelection before_selection, GraphSelection after_selection) :
+  doc(document),
+  nodeId(node_id),
+  before(eastl::move(before_pins)),
+  after(eastl::move(after_pins)),
+  beforeSelection(eastl::move(before_selection)),
+  afterSelection(eastl::move(after_selection))
+{}
+
+void UndoInstancePins::restore(bool /*save_redo_data*/)
+{
+  doc.applyInstancePins(nodeId, before);
+  if (beforeSelection != afterSelection)
+  {
+    doc.applySelection(beforeSelection);
+  }
+}
+
+void UndoInstancePins::redo()
+{
+  doc.applyInstancePins(nodeId, after);
+  if (beforeSelection != afterSelection)
+  {
+    doc.applySelection(afterSelection);
+  }
+}
+
+size_t UndoInstancePins::size()
+{
+  return sizeof(*this) + (before.pins.size() + after.pins.size()) * sizeof(GraphData::Pin) +
+         (before.edges.size() + after.edges.size()) * (sizeof(GraphData::Edge) + sizeof(int)) +
+         (beforeSelection.nodes.size() + beforeSelection.links.size() + afterSelection.nodes.size() + afterSelection.links.size()) *
+           sizeof(int);
+}
+
+void UndoInstancePins::get_description(String &s) { s = "Update subgraph instance"; }
+
+UndoGraphPath::UndoGraphPath(GraphDocument &document, eastl::string old_path, void *old_token, eastl::string new_path,
+  void *new_token) :
+  doc(document), oldPath(eastl::move(old_path)), oldToken(old_token), newPath(eastl::move(new_path)), newToken(new_token)
+{}
+
+void UndoGraphPath::restore(bool /*save_redo_data*/)
+{
+  doc.activateTab();
+  doc.applyGraphPath(oldPath, oldToken);
+}
+
+void UndoGraphPath::redo()
+{
+  doc.activateTab();
+  doc.applyGraphPath(newPath, newToken);
+}
+
+void UndoGraphPath::get_description(String &s) { s.printf(0, "Save graph as %s", graph_file_stem(newPath.c_str()).c_str()); }
+
+HeldSurfaces::HeldSurfaces(GraphPanel &graph_panel, GraphTab &root_tab, SubgraphWindow *top_window) :
+  panel(graph_panel), root(root_tab), top(top_window)
+{
+  panel.registerHeld(*this);
+}
+
+HeldSurfaces::~HeldSurfaces()
+{
+  for (HeldWindow &h : held)
+  {
+    panel.bury(eastl::move(h.window));
+  }
+  if (heldRoot)
+  {
+    panel.buryTab(eastl::move(heldRoot));
+  }
+  panel.unregisterHeld(*this);
+}
+
+void HeldSurfaces::appendTabs(eastl::vector<GraphTab *> &out) const
+{
+  if (heldRoot)
+  {
+    out.push_back(heldRoot.get());
+    for (const eastl::unique_ptr<SubgraphWindow> &w : heldRoot->getSubgraphWindows())
+    {
+      out.push_back(&w->getTab());
+    }
+  }
+  for (const HeldWindow &h : held)
+  {
+    out.push_back(&h.window->getTab());
+  }
+}
+
+String HeldSurfaces::entryName(bool closing) const
+{
+  const eastl::string name = top ? top->getStem() : ownerTab().getName();
+  return String(0, "%s %s %s", closing ? "Close" : "Open", top ? "subgraph" : "graph", name.c_str());
+}
+
+bool HeldSurfaces::holdsTab(const void *token) const
+{
+  eastl::vector<GraphTab *> tabs;
+  appendTabs(tabs);
+  return eastl::any_of(tabs.begin(), tabs.end(), [token](const GraphTab *t) { return t->hasUndoToken(token); });
+}
+
+size_t HeldSurfaces::approxSize() const
+{
+  auto tabSize = [](GraphTab &t) {
+    const GraphData &gd = t.getDocument().getGraphData();
+    size_t sz = sizeof(GraphTab) + gd.edges.size() * sizeof(GraphData::Edge);
+    for (const GraphData::Node &n : gd.nodes)
+    {
+      sz += approx_node_size(n);
+    }
+    return sz;
+  };
+  eastl::vector<GraphTab *> tabs;
+  appendTabs(tabs);
+  size_t sz = 0;
+  for (GraphTab *t : tabs)
+  {
+    sz += tabSize(*t);
+  }
+  return sz;
+}
+
+GraphTab &HeldSurfaces::ownerTab() const { return top ? top->getTab() : root; }
+
+UndoSurfaceLifetime::UndoSurfaceLifetime(eastl::shared_ptr<HeldSurfaces> held_surfaces, bool closing_surfaces) :
+  surfaces(eastl::move(held_surfaces)), closing(closing_surfaces)
+{
+  // An applied open holds nothing; only its undo hands the surfaces over, to the redo side the next edit drops.
+  heldSize = sizeof(*this) + (closing ? surfaces->approxSize() : 0);
+}
+
+void UndoSurfaceLifetime::restore(bool /*save_redo_data*/) { surfaces->panel.queueSurfaceMove(surfaces, !closing); }
+
+void UndoSurfaceLifetime::redo() { surfaces->panel.queueSurfaceMove(surfaces, closing); }
+
+void UndoSurfaceLifetime::get_description(String &s) { s = surfaces->entryName(closing); }

@@ -2448,6 +2448,14 @@ protected:
       DECLARE_INT_SLIDER(clouds_form, turbulenceFreq, 1, 16, 1),
       DECLARE_FLOAT_SLIDER(clouds_form, turbulenceStrength, 0., 12.0, 0.25, 0.01),
 
+      DECLARE_FLOAT_SLIDER(clouds_form, density_alter_strength, 0, 1.0, 1.0, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_form, anvil_amount, 0, 1.0, 1.0, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_form, mushroom_amount, 0, 1.0, 0.7, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_form, anvil_spread, 0, 1.0, 0.4, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_form, anvil_flare_from, 0, 0.99, 0.68, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_form, anvil_flare_pow, 0.1, 4.0, 1.0, 0.05),
+      DECLARE_FLOAT_SLIDER(clouds_form, cumulonimbus_top, 0.0, 0.99, 0.85, 0.01),
+
       DECLARE_FLOAT_SLIDER(clouds_form, extinction, 0.5, 6.0, 0.75, 0.01), // this is 0.06 multiplier clouds real extinction is within
                                                                            // 0.04-0.24, which is
       DECLARE_FLOAT_SLIDER(clouds_form, layers[0].density, 0.5, 2.0, 1.0, 0.01),

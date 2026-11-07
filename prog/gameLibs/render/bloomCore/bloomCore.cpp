@@ -27,8 +27,8 @@ static eastl::string gen_downsample_target_tex_name(uint32_t mip_to_gen)
   return eastl::string("raw_bloom_mip_") + eastl::to_string(mip_to_gen);
 }
 
-void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, float mips_count_f, bool use_esram,
-  RenderCallback cb)
+void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, const char *input_tex_name,
+  float mips_count_f, bool use_esram, RenderCallback cb)
 {
   nodes.clear();
 
@@ -60,29 +60,23 @@ void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandl
   for (uint32_t mip = 0; mip < uint32_t(mips_count_f); ++mip)
   {
     const eastl::string downsampleNodeName = eastl::string("bloom_downsample_") + eastl::to_string(mip);
-    nodes.push_back(ns.registerNode(downsampleNodeName.c_str(), DAFG_PP_NODE_SRC, [mip, cb, use_esram](dafg::Registry registry) {
-      const bool firstMip = mip == 0;
-      if (firstMip)
-      {
-        registry.read(dafg::NamedSlot("bloom_input_tex")).texture().atStage(dafg::Stage::PS).bindToShaderVar("blur_src_tex");
-      }
-      else
-      {
-        const eastl::string sourceTexName = gen_downsample_source_tex_name(mip);
+    const eastl::string sourceTexName = mip == 0 ? eastl::string(input_tex_name) : gen_downsample_source_tex_name(mip);
+    nodes.push_back(
+      ns.registerNode(downsampleNodeName.c_str(), DAFG_PP_NODE_SRC, [mip, sourceTexName, cb, use_esram](dafg::Registry registry) {
+        const bool firstMip = mip == 0;
         registry.read(sourceTexName.c_str()).texture().atStage(dafg::Stage::PS).bindToShaderVar("blur_src_tex");
-      }
-      const eastl::string targetTexName = gen_downsample_target_tex_name(mip);
-      registry.create(targetTexName.c_str())
-        .texture({TEXCF_RTARGET | TEXFMT_R11G11B10F | (use_esram ? TEXCF_ESRAM_ONLY : 0U),
-          registry.getResolution<2>("post_fx", 0.25f / (1 << mip))});
-      registry.requestRenderPass().color({targetTexName.c_str()});
+        const eastl::string targetTexName = gen_downsample_target_tex_name(mip);
+        registry.create(targetTexName.c_str())
+          .texture({TEXCF_RTARGET | TEXFMT_R11G11B10F | (use_esram ? TEXCF_ESRAM_ONLY : 0U),
+            registry.getResolution<2>("post_fx", 0.25f / (1 << mip))});
+        registry.requestRenderPass().color({targetTexName.c_str()});
 
-      const char *shaderName = firstMip ? "bloom_downsample_hq" : "bloom_downsample_lq";
-      const char *samplerName = firstMip ? "downsample_hq_sampler" : "downsample_lq_sampler";
-      registry.read(samplerName).blob<d3d::SamplerHandle>().bindToShaderVar("blur_src_tex_samplerstate");
+        const char *shaderName = firstMip ? "bloom_downsample_hq" : "bloom_downsample_lq";
+        const char *samplerName = firstMip ? "downsample_hq_sampler" : "downsample_lq_sampler";
+        registry.read(samplerName).blob<d3d::SamplerHandle>().bindToShaderVar("blur_src_tex_samplerstate");
 
-      return [renderer = PostFxRenderer(shaderName), cb] { cb([&renderer]() { renderer.render(); }); };
-    }));
+        return [renderer = PostFxRenderer(shaderName), cb] { cb([&renderer]() { renderer.render(); }); };
+      }));
     for (uint32_t blur_axis = 0; blur_axis < 2; ++blur_axis)
     {
       const bool horizontal = blur_axis == 0;

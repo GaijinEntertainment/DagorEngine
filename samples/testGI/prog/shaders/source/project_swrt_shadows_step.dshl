@@ -1,1 +1,1 @@
-// constraint: daSWRT includes this file; with no PROJECT_STEP_SWRT_SHADOW_OFFSET its default step applies
+// daSWRT includes this file; with no PROJECT_STEP_SWRT_SHADOW_OFFSET its default step applies

@@ -111,7 +111,7 @@ static void shuffled_morton_sort(ProcessedPointCloudLods &point_cloud_lods)
   std::mt19937 randomGen(rd());
   for (int lod = point_cloud_lods.lodPointCounts.size() - 1; lod >= 0; --lod)
   {
-    const auto mortonComp = [&](plod::ProcessedVertex a, plod::ProcessedVertex b) {
+    const auto mortonComp = [&](const plod::ProcessedVertex &a, const plod::ProcessedVertex &b) {
       return getMortonCode(a.position, min, max) < getMortonCode(b.position, min, max);
     };
 

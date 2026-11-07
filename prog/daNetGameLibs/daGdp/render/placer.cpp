@@ -2,6 +2,7 @@
 
 #include <util/dag_convar.h>
 #include <3d/dag_lockSbuffer.h>
+#include <render/daFrameGraph/daFG.h>
 #include "placer.h"
 #include "../shaders/dagdp_common.hlsli"
 
@@ -241,5 +242,22 @@ bool init_common_placer_buffers(const CommonPlacerBufferInit &init, eastl::strin
 }
 
 float get_frustum_culling_bias() { return frustum_culling_bias.get(); }
+
+void request_place_stage_buffers(dafg::Registry registry, const ViewInfo &view_info, bool is_optimistic)
+{
+  const auto ns = registry.root() / "dagdp" / view_info.uniqueName.c_str();
+
+  ns.read(is_optimistic ? "dyn_allocs_stage0" : "dyn_allocs_stage1")
+    .buffer()
+    .atStage(dafg::Stage::COMPUTE)
+    .bindToShaderVar("dagdp__dyn_allocs");
+
+  ns.modify(is_optimistic ? "dyn_counters_stage0" : "dyn_counters_stage1")
+    .buffer()
+    .atStage(dafg::Stage::COMPUTE)
+    .bindToShaderVar("dagdp__dyn_counters");
+
+  ns.modify("instance_data").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp__instance_data");
+}
 
 } // namespace dagdp

@@ -15,27 +15,16 @@
 #include <util/dag_string.h>
 
 
-static debug_log_callback_t original_log_callback = nullptr;
-static int fail_test_on_err(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void fail_test_on_err(void *, LogMessage &msg)
 {
-  static const int D3DE_TAG = _MAKE4C('D3DE');
-
-  if (original_log_callback)
-    original_log_callback(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
-
-  if (lev_tag > LOGLEVEL_ERR && lev_tag != D3DE_TAG)
-    return 1;
-
   String s;
-  if (ctx_file)
-    s.printf(0, "[E] %s,%d: ", ctx_file, ctx_line);
+  if (msg.ctxFile)
+    s.printf(0, "[E] %s,%d: ", msg.ctxFile, msg.ctxLine);
   else
     s.printf(0, "[E] ");
-  s.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+  s.avprintf(0, msg.fmt, (const DagorSafeArg *)msg.arg, msg.anum);
 
   FAIL(s);
-
-  return 1;
 }
 
 #if _TARGET_PC_WIN
@@ -55,7 +44,7 @@ static int fail_test_on_err(int lev_tag, const char *fmt, const void *arg, int a
   d3d::init_driver();                                      \
   ::dagor_init_video("daFGtests", 0, nullptr, "");         \
   ::startup_game(RESTART_ALL);                             \
-  original_log_callback = debug_set_log_callback(&fail_test_on_err);
+  debug_add_log_handler(&fail_test_on_err, nullptr, {.levelMask = LOGMASK_ERRORS, .tags = {LOGTAG_D3D_ERROR}});
 
 #define CUSTOM_UNITTEST_SHUTDOWN_CODE \
   d3d::release_driver();              \

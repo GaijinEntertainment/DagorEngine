@@ -88,13 +88,10 @@ def find_console_hint_entities(str : string;
         if ((str == "") ||
             (isEid && find("{eid}", str) != -1) ||
             (isName && find(getEntityTemplateName(eid), str) != -1))
-          if transform != null
-            let pos = (*transform)[3]
-            let camDistanceSq = distance_sq(camPos, pos)
-            if camDistanceSq > threshold_cam_distance_sq
-              entities |> emplace(FindConsoleHintEntityResult(eid = eid, camDistanceSq = camDistanceSq, pos = pos))
-          else
-            entities |> emplace(FindConsoleHintEntityResult(eid = eid, pos = float3(VERY_BIG_NUMBER)))
+          let pos = transform != null ? (*transform)[3] : float3(VERY_BIG_NUMBER)
+          let camDistanceSq = distance_sq(camPos, pos)
+          if camDistanceSq > threshold_cam_distance_sq
+            entities |> emplace(FindConsoleHintEntityResult(eid = eid, camDistanceSq = camDistanceSq, pos = pos))
         return false
 
       return true
@@ -136,10 +133,10 @@ def add_hints_for_argument_default(inputs : array<string>;
   if length(inputs) != arg_index + 2
     return
   let cmdText = build_command_up_to_argument(inputs, arg_index)
-  let argsText = build_args_description(args_description, arg_index - 1)
+  let argsText = arg_index == 0 ? args_description : build_args_description(args_description, arg_index - 1)
   if length(hints) < hints_count
     hints |> add_hint(cmdText,
-                      max(0, min_args - arg_index - 1), max(0, max_args - arg_index - 1), argsText)
+                      max(0, min_args - arg_index), max(0, max_args - arg_index), argsText)
 
 
 def add_hints_for_argument_template_name(inputs : array<string>;

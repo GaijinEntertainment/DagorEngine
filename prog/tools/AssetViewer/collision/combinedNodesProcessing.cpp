@@ -146,7 +146,7 @@ void CombinedNodesProcessing::renderCombinedNodes(bool is_faded, bool draw_solid
 
   for (int i = 0; i < nodes.size(); ++i)
   {
-    drawCombinedNode(combined_settings[i], nodes[i], is_faded, E3DCOLOR(colors[(i) % (sizeof(colors) / sizeof(colors[0]))]));
+    drawCombinedNode(combined_settings[i], nodes[i], is_faded, collision_node_color(i));
   }
 
   drawCombinedNode(selectedSettings, selectedNode);

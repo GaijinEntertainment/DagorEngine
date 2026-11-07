@@ -1,0 +1,8 @@
+ERROR: an async function cannot be pure: each call starts a new task
+testData/diagnostics/async_pure_rejected.nut:1:6
+
+async function [pure] load(x) {
+      ^
+  return x
+
+

@@ -372,9 +372,9 @@ static const SQRegFunctionFromStr base_funcs[] = {
     { base_newthread, "newthread(func: function): thread" },
     { base_suspend, "suspend(...): any" },
     { builtin_array_ctor, "array(size: int, [default_value]): array" },
-    { base_type, "pure type(obj): string" },
+    { base_type, "pure fastcall type(obj): string" },
     { base_callee, "callee(): function" },
-    { base_freeze, "freeze(obj): any" },
+    { base_freeze, "pure freeze(obj): any" },
     { base_deduplicate_object, "deduplicate_object(obj: table|array|null): table|array|null" },
     { base_getobjflags, "getobjflags(obj): int" },
     { NULL, NULL }
@@ -394,7 +394,7 @@ SQRESULT sq_registerbaselib(HSQUIRRELVM v)
 
 
 static const SQRegFunctionFromStr types_funcs[] = {
-    { base_classof, "pure classof(obj): class" },
+    { base_classof, "pure fastcall classof(obj): class" },
     { NULL, NULL }
 };
 
@@ -547,7 +547,8 @@ static SQInteger container_update(HSQUIRRELVM v)
 
         sq_pushnull(v);
         while (SQ_SUCCEEDED(sq_next(v, arg))) {
-            sq_newslot(v, 1, false);
+            if (SQ_FAILED(sq_newslot(v, 1, false)))
+                return SQ_ERROR;
         }
         sq_pop(v, 1); // pops the iterator
     }
@@ -589,103 +590,84 @@ static SQInteger container_merge(HSQUIRRELVM v)
 }
 
 
-static SQInteger container_each(HSQUIRRELVM v)
+static bool call_scan_callback(SQPreparedCall &cb, SQInteger nArgs, const SQObjectPtr &val,
+                               const SQObjectPtr &key, const SQObjectPtr &container, SQObjectPtr &res)
+{
+    SQObjectPtr *args = cb.Args();
+    args[0].Null();
+    if (nArgs >= 2)
+        args[1] = val;
+    if (nArgs >= 3)
+        args[2] = key;
+    if (nArgs >= 4)
+        args[3] = container;
+    return cb.Call(res);
+}
+
+enum ContainerFind { FIND_NOTHING, FIND_KEY, FIND_VALUE };
+
+static SQInteger container_scan(HSQUIRRELVM v, ContainerFind find)
 {
     const SQObjectPtr o = stack_get(v,1);
     const SQObjectPtr closure = stack_get(v, 2);
     SQInteger nArgs = get_allowed_args_count(closure, 4);
+    SQPreparedCall cb(v, closure, nArgs, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
     SQObjectPtr tmp;
+
+    if (sq_isarray(o)) {
+        SQArray *arr = _array(o);
+        const SQObjectFlags frozen = sq_objflags(o) & SQOBJ_FLAG_IMMUTABLE;
+        SQObjectPtr key;
+        v->PushNull();
+        SQInteger slot = sq_gettop(v);
+        for (SQInteger i = 0; arr->Get(i, stack_get(v, slot)); i++) {
+            key = i;
+            key._flags |= frozen;
+            stack_get(v, slot)._flags |= frozen;
+            if (!call_scan_callback(cb, nArgs, stack_get(v, slot), key, o, tmp))
+                return SQ_ERROR;
+            if (find != FIND_NOTHING && !v->IsFalse(tmp)) {
+                v->Push(find == FIND_KEY ? key : stack_get(v, slot));
+                return 1;
+            }
+            // constraint: release before the next weakref read
+            stack_get(v, slot).Null();
+        }
+        v->Pop(1);
+        return 0;
+    }
 
     sq_pushnull(v);
     while (SQ_SUCCEEDED(sq_next(v, 1))) {
         SQInteger iterTop = sq_gettop(v);
-        v->PushNull();
-        if (nArgs >= 2)
-            v->Push(stack_get(v, iterTop));
-        if (nArgs >= 3)
-            v->Push(stack_get(v, iterTop-1));
-        if (nArgs >= 4)
-            v->Push(o);
-
-        bool callRes = v->Call(closure, nArgs, v->_top-nArgs, tmp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
-        v->Pop(2+nArgs);
-        if (!callRes)
+        if (!call_scan_callback(cb, nArgs, stack_get(v, iterTop), stack_get(v, iterTop-1), o, tmp))
             return SQ_ERROR;
+        if (find != FIND_NOTHING && !v->IsFalse(tmp)) {
+            v->Push(stack_get(v, find == FIND_KEY ? iterTop-1 : iterTop));
+            return 1;
+        }
+        v->Pop(2);
     }
     sq_pop(v, 1); // pops the iterator
-
     return 0;
 }
 
+static SQInteger container_each(HSQUIRRELVM v)
+{
+    return container_scan(v, FIND_NOTHING);
+}
 
 static SQInteger container_findindex(HSQUIRRELVM v)
 {
-    const SQObjectPtr o = stack_get(v,1);
-    const SQObjectPtr closure = stack_get(v, 2);
-    SQInteger nArgs = get_allowed_args_count(closure, 4);
-    SQObjectPtr tmp;
-
-    sq_pushnull(v);
-    while (SQ_SUCCEEDED(sq_next(v, 1))) {
-        SQInteger iterTop = sq_gettop(v);
-        v->PushNull();
-        if (nArgs >= 2)
-            v->Push(stack_get(v, iterTop));
-        if (nArgs >= 3)
-            v->Push(stack_get(v, iterTop-1));
-        if (nArgs >= 4)
-            v->Push(o);
-
-        bool callRes = v->Call(closure, nArgs, v->_top-nArgs, tmp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
-        if (!callRes)
-            return SQ_ERROR;
-
-        if (!v->IsFalse(tmp)) {
-            v->Push(stack_get(v, iterTop-1));
-            return 1;
-        }
-        v->Pop(2+nArgs);
-    }
-    sq_pop(v, 1); // pops the iterator
-
-    return 0;
+    return container_scan(v, FIND_KEY);
 }
 
 static SQInteger container_findvalue(HSQUIRRELVM v)
 {
     if (sq_gettop(v) > 3)
         return sq_throwerror(v, "Too many arguments for findvalue()");
-
-    const SQObjectPtr o = stack_get(v,1);
-    const SQObjectPtr closure = stack_get(v, 2);
-    SQInteger nArgs = get_allowed_args_count(closure, 4);
-    SQObjectPtr tmp;
-
-    sq_pushnull(v);
-    while (SQ_SUCCEEDED(sq_next(v, 1))) {
-        SQInteger iterTop = sq_gettop(v);
-
-        v->PushNull();
-        if (nArgs >= 2)
-            v->Push(stack_get(v, iterTop));
-        if (nArgs >= 3)
-            v->Push(stack_get(v, iterTop-1));
-        if (nArgs >= 4)
-            v->Push(o);
-
-        bool callRes = v->Call(closure, nArgs, v->_top-nArgs, tmp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
-        if (!callRes)
-            return SQ_ERROR;
-
-        if (!v->IsFalse(tmp)) {
-            v->Push(stack_get(v, iterTop));
-            return 1;
-        }
-        v->Pop(2+nArgs);
-    }
-    sq_pop(v, 1); // pops the iterator
-
-    return sq_gettop(v) > 2 ? 1 : 0;
+    SQInteger res = container_scan(v, FIND_VALUE);
+    return res != 0 ? res : (sq_gettop(v) > 2 ? 1 : 0);
 }
 
 static SQInteger container_hasindex(HSQUIRRELVM v)
@@ -771,6 +753,7 @@ static SQInteger table_filter(HSQUIRRELVM v)
     SQTable *tbl = _table(o);
     const SQObjectPtr closure = stack_get(v, 2);
     SQInteger nArgs = get_allowed_args_count(closure, 4);
+    SQPreparedCall cb(v, closure, nArgs, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
 
     SQObjectPtr ret(SQTable::Create(_ss(v),0));
     SQObjectPtr temp;
@@ -779,16 +762,7 @@ static SQInteger table_filter(HSQUIRRELVM v)
     while((nitr = tbl->Next(false, itr, key, val)) != -1) {
         itr = (SQInteger)nitr;
 
-        v->PushNull();
-        if (nArgs >= 2)
-            v->Push(val);
-        if (nArgs >= 3)
-            v->Push(key);
-        if (nArgs >= 4)
-            v->Push(o);
-
-        bool callRes = v->Call(closure, nArgs, v->_top - nArgs, temp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
-        v->Pop(nArgs);
+        bool callRes = call_scan_callback(cb, nArgs, val, key, o, temp);
         if (!callRes)
             return SQ_ERROR;
 
@@ -899,7 +873,7 @@ static SQInteger array_to_table(HSQUIRRELVM v)
     SQObject &o = stack_get(v, 1);
     SQArray *arr = _array(o);
     SQInteger count = arr->Size();
-    SQTable *result = SQTable::Create(_ss(v), count);
+    SQTable *result = SQTable::Create(_ss(v), count ? count + 1 : 0);
 
     if (count == 0)
     {
@@ -942,6 +916,7 @@ static SQInteger __map_table(SQTable *dest, SQTable *src, HSQUIRRELVM v) {
     const SQObjectPtr closure = stack_get(v, 2);
 
     SQInteger nArgs = get_allowed_args_count(closure, 4);
+    SQPreparedCall cb(v, closure, nArgs, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
     SQObjectPtr itr, key, val;
     SQInteger nitr;
     SQObjectPtr temp;
@@ -949,16 +924,7 @@ static SQInteger __map_table(SQTable *dest, SQTable *src, HSQUIRRELVM v) {
     while ((nitr = src->Next(false, itr, key, val)) != -1) {
         itr = (SQInteger)nitr;
 
-        v->PushNull();
-        if (nArgs >= 2)
-            v->Push(val);
-        if (nArgs >= 3)
-            v->Push(key);
-        if (nArgs >= 4)
-            v->Push(srcObj);
-
-        bool callRes = v->Call(closure, nArgs, v->_top - nArgs, temp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
-        v->Pop(nArgs);
+        bool callRes = call_scan_callback(cb, nArgs, val, key, srcObj, temp);
         if (!callRes) {
             if (sq_isnull(v->_lasterror))
                 continue;
@@ -975,7 +941,8 @@ static SQInteger __map_table(SQTable *dest, SQTable *src, HSQUIRRELVM v) {
 static SQInteger table_map(HSQUIRRELVM v)
 {
     SQObject &o = stack_get(v, 1);
-    SQObjectPtr ret(SQTable::Create(_ss(v), _table(o)->CountUsed()));
+    SQInteger count = _table(o)->CountUsed();
+    SQObjectPtr ret(SQTable::Create(_ss(v), count ? count + 1 : 0));
     if(SQ_FAILED(__map_table(_table(ret), _table(o), v)))
         return SQ_ERROR;
     v->Push(ret);
@@ -993,6 +960,7 @@ static SQInteger table_reduce(HSQUIRRELVM v)
     SQObjectPtr accum;
 
     SQInteger nArgs = get_allowed_args_count(closure, 5);
+    SQPreparedCall cb(v, closure, nArgs, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
 
     if (sq_gettop(v) > 2) {
         accum = stack_get(v, 3);
@@ -1008,18 +976,18 @@ static SQInteger table_reduce(HSQUIRRELVM v)
             accum = val;
             gotAccum = true;
         } else {
-            v->PushNull();
+            SQObjectPtr *args = cb.Args();
+            args[0].Null();
             if (nArgs >= 2)
-                v->Push(accum);
+                args[1] = accum;
             if (nArgs >= 3)
-                v->Push(val);
+                args[2] = val;
             if (nArgs >= 4)
-                v->Push(key);
+                args[3] = key;
             if (nArgs >= 5)
-                v->Push(o);
+                args[4] = o;
 
-            bool callRes = v->Call(closure, nArgs, v->_top - nArgs, accum, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
-            v->Pop(nArgs);
+            bool callRes = cb.Call(accum);
             if (!callRes)
                 return SQ_ERROR;
         }
@@ -1090,14 +1058,14 @@ const SQRegFunction SQSharedState::_table_default_type_methods_funcz[]={
     {"rawset",container_rawset,3, "t"},
     {"rawdelete",table_rawdelete,2, "t"},
     {"rawin",container_rawexists,2, "t", NULL, true},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"tostring",default_type_method_tostring,1, "."},
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"tostring",default_type_method_tostring,1, ".", NULL, false, true},
     {"clear",obj_clear,1, "."},
-    {"map",table_map,2, "tc"},
-    {"filter",table_filter,2, "tc"},
-    {"reduce",table_reduce, -2, "tc"},
-    {"getfuncinfos",delegable_getfuncinfos,1, "t"},
-    {"getarity",delegable_getarity,1, "t"},
+    {"map",table_map,2, "tc", NULL, false, true},
+    {"filter",table_filter,2, "tc", NULL, false, true},
+    {"reduce",table_reduce, -2, "tc", NULL, false, true},
+    {"getfuncinfos",delegable_getfuncinfos,1, "t", NULL, false, true},
+    {"getarity",delegable_getarity,1, "t", NULL, false, true},
     {"each",container_each,2, "tc"},
     {"findindex",container_findindex,2, "tc", NULL, true},
     {"findvalue",container_findvalue,-2, "tc.", NULL, true},
@@ -1105,12 +1073,12 @@ const SQRegFunction SQSharedState::_table_default_type_methods_funcz[]={
     {"values",table_values,1, "t", NULL, true},
     {"__update",container_update, -2, "t|yt|y|x", NULL, false},
     {"__merge",container_merge, -2, "t|yt|y|x", NULL, true},
-    {"topairs",table_to_pairs, 1, "t" },
+    {"topairs",table_to_pairs, 1, "t", NULL, false, true},
     {"replace_with",table_replace_with, 2, "tt" },
     {"hasindex",container_hasindex,2, "t.", NULL, true},
     {"hasvalue",container_hasvalue,2, "t.", NULL, true},
-    {"clone",obj_clone, 1, "." },
-    {"is_frozen",obj_is_frozen, 1, "." },
+    {"clone",obj_clone, 1, ".", NULL, false, true},
+    {"is_frozen",obj_is_frozen, 1, ".", NULL, false, true},
     {"swap",swap, 3, "t.." },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
@@ -1234,19 +1202,20 @@ static SQInteger __map_array(SQArray *dest,SQArray *src,HSQUIRRELVM v, bool appe
     const SQObjectPtr closure = stack_get(v, 2);
 
     SQInteger nArgs = get_allowed_args_count(closure, 4);
+    SQPreparedCall cb(v, closure, nArgs, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
     for(SQInteger n = 0; n < size; n++) {
         if (!src->Get(n,temp))
             break;
-        v->PushNull();
+        SQObjectPtr *args = cb.Args();
+        args[0].Null();
         if (nArgs >= 2)
-            v->Push(temp);
+            args[1] = temp;
         if (nArgs >= 3)
-            v->Push(SQObjectPtr(n));
+            args[2] = SQObjectPtr(n);
         if (nArgs >= 4)
-            v->Push(srcObj);
+            args[3] = srcObj;
 
-        bool callRes = v->Call(closure, nArgs, v->_top - nArgs, temp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
-        v->Pop(nArgs);
+        bool callRes = cb.Call(temp);
         if (!callRes) {
             if (append && sq_isnull(v->_lasterror)) {
                 continue;
@@ -1309,21 +1278,22 @@ static SQInteger array_reduce(HSQUIRRELVM v)
 
     if (size > iterStart) {
         SQObjectPtr other;
+        SQPreparedCall cb(v, closure, nArgs, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
         for (SQInteger n = iterStart; n < size; n++) {
             if (!a->Get(n,other))
                 break;
-            v->PushNull();
+            SQObjectPtr *args = cb.Args();
+            args[0].Null();
             if (nArgs >= 2)
-                v->Push(accum);
+                args[1] = accum;
             if (nArgs >= 3)
-                v->Push(other);
+                args[2] = other;
             if (nArgs >= 4)
-                v->Push(SQObjectPtr(n));
+                args[3] = SQObjectPtr(n);
             if (nArgs >= 5)
-                v->Push(o);
+                args[4] = o;
 
-            bool callRes = v->Call(closure, nArgs, v->_top - nArgs, accum, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
-            v->Pop(nArgs);
+            bool callRes = cb.Call(accum);
             if (!callRes)
                 return SQ_ERROR;
         }
@@ -1338,6 +1308,7 @@ static SQInteger array_filter(HSQUIRRELVM v)
     SQArray *a = _array(o);
     const SQObjectPtr closure = stack_get(v, 2);
     SQInteger nArgs = get_allowed_args_count(closure, 4);
+    SQPreparedCall cb(v, closure, nArgs, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
 
     SQObjectPtr ret(SQArray::Create(_ss(v),0));
     SQInteger size = a->Size();
@@ -1346,16 +1317,16 @@ static SQInteger array_filter(HSQUIRRELVM v)
     for(SQInteger n = 0; n < size; n++) {
         if (!a->Get(n,val))
             break;
-        v->PushNull();
+        SQObjectPtr *args = cb.Args();
+        args[0].Null();
         if (nArgs >= 2)
-            v->Push(val);
+            args[1] = val;
         if (nArgs >= 3)
-            v->Push(SQObjectPtr(n));
+            args[2] = SQObjectPtr(n);
         if (nArgs >= 4)
-            v->Push(o);
+            args[3] = o;
 
-        bool callRes = v->Call(closure, nArgs, v->_top - nArgs, temp, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
-        v->Pop(nArgs);
+        bool callRes = cb.Call(temp);
         if (!callRes)
             return SQ_ERROR;
 
@@ -1413,23 +1384,36 @@ static SQInteger array_contains(HSQUIRRELVM v)
 }
 
 
-static bool _sort_compare(HSQUIRRELVM v, SQArray *arr, SQObjectPtr &a, SQObjectPtr &b,
-                          const SQObjectPtr &func, SQInteger &ret)
+// keys: compare keys[i] for the indexes i that the array holds
+// cmpfn: compare the values with it; neither: compare the values
+struct SQSortCmp
 {
+    SQPreparedCall *cmpfn;
+    const SQObjectPtr *keys;
+};
+
+// swap, not negate: _cmp sees swapped-comparator calls
+// a run-time flag made sort() 8% slower
+template <bool Desc>
+static bool _sort_compare(HSQUIRRELVM v, SQArray *arr, SQObjectPtr &x, SQObjectPtr &y, const SQSortCmp &c, SQInteger &ret)
+{
+    SQObjectPtr &a = Desc ? y : x;
+    SQObjectPtr &b = Desc ? x : y;
+    if (c.keys)
+        return v->ObjCmp(c.keys[_integer(a)], c.keys[_integer(b)], ret);
     SQObjectPtr *valptr = arr->_values._vals;
     SQUnsignedInteger precallsize = arr->_values.size();
-    if (sq_isnull(func)) {
+    if (!c.cmpfn) {
         if (!v->ObjCmp(a,b,ret))
             return false;
     }
     else {
-        SQInteger top = sq_gettop(v);
-        v->PushNull();
-        v->Push(a);
-        v->Push(b);
+        SQObjectPtr *args = c.cmpfn->Args();
+        args[0].Null();
+        args[1] = a;
+        args[2] = b;
         SQObjectPtr out;
-        bool callSucceeded = v->Call(func, 3, v->_top-3, out, false);
-        if (!callSucceeded) {
+        if (!c.cmpfn->Call(out)) {
             if (!sq_isstring( v->_lasterror))
                 v->Raise_Error("compare func failed");
             return false;
@@ -1439,7 +1423,6 @@ static bool _sort_compare(HSQUIRRELVM v, SQArray *arr, SQObjectPtr &a, SQObjectP
             return false;
         }
         ret = tointeger(out);
-        sq_settop(v, top);
     }
     if (precallsize != arr->_values.size() || valptr != arr->_values._vals) { //-V560
         v->Raise_Error("array resized during sort operation");
@@ -1448,63 +1431,144 @@ static bool _sort_compare(HSQUIRRELVM v, SQArray *arr, SQObjectPtr &a, SQObjectP
     return true;
 }
 
-static bool _hsort_sift_down(HSQUIRRELVM v,SQArray *arr, SQInteger root, SQInteger bottom, const SQObjectPtr &func)
+#define SQ_SORT_BLOCK_SIZE 32
+
+// raw moves: the reference counts stay
+static inline void _sort_raw_move(SQObjectPtr *dst, const SQObjectPtr *src, SQInteger n)
 {
-    SQInteger maxChild;
-    SQInteger done = 0;
+    memmove((SQObject *)dst, (const SQObject *)src, n * sizeof(SQObject));
+}
+
+static inline void _sort_raw_null(SQObjectPtr *p, SQInteger n)
+{
+    memset((SQObject *)p, 0, n * sizeof(SQObject));
+}
+
+static void _sort_reverse(SQObjectPtr *a, SQInteger lo, SQInteger hi)
+{
+    for (hi--; lo < hi; lo++, hi--)
+        _Swap(a[lo], a[hi]);
+}
+
+template <bool Desc>
+static bool _sort_block(HSQUIRRELVM v, SQArray *arr, SQObjectPtr *a, SQInteger lo, SQInteger hi, const SQSortCmp &c)
+{
     SQInteger ret;
-    SQInteger root2;
-    while (((root2 = root * 2) <= bottom) && (!done))
-    {
-        if (root2 == bottom) {
-            maxChild = root2;
-        }
-        else {
-            if(!_sort_compare(v,arr,arr->_values[root2],arr->_values[root2 + 1],func,ret))
-                return false;
-            if (ret > 0) {
-                maxChild = root2;
-            }
-            else {
-                maxChild = root2 + 1;
-            }
-        }
-
-        if(!_sort_compare(v,arr,arr->_values[root],arr->_values[maxChild],func,ret))
+    SQInteger run = lo + 1;
+    if (run < hi) {
+        if (!_sort_compare<Desc>(v, arr, a[run], a[lo], c, ret))
             return false;
-        if (ret < 0) {
-            if (root == maxChild) {
-                v->Raise_Error("inconsistent compare function");
-                return false; // We'd be swapping ourselve. The compare function is incorrect
-            }
-
-            _Swap(arr->_values[root],arr->_values[maxChild]);
-            root = maxChild;
+        bool descending = ret < 0;
+        run++;
+        while (run < hi) {
+            if (!_sort_compare<Desc>(v, arr, a[run], a[run - 1], c, ret))
+                return false;
+            if (descending ? ret >= 0 : ret < 0)
+                break;
+            run++;
         }
-        else {
-            done = 1;
+        if (descending)
+            _sort_reverse(a, lo, run);
+    }
+    for (SQInteger i = run; i < hi; i++) {
+        SQInteger left = lo, right = i;
+        while (left < right) {
+            SQInteger mid = left + ((right - left) >> 1);
+            if (!_sort_compare<Desc>(v, arr, a[i], a[mid], c, ret))
+                return false;
+            if (ret < 0)
+                right = mid;
+            else
+                left = mid + 1;
+        }
+        if (left < i) {
+            SQObject t = a[i];
+            _sort_raw_move(a + left + 1, a + left, i - left);
+            *(SQObject *)(a + left) = t;
         }
     }
     return true;
 }
 
-static bool _hsort(HSQUIRRELVM v,SQObjectPtr &arr, SQInteger SQ_UNUSED_ARG(l), SQInteger SQ_UNUSED_ARG(r),const SQObjectPtr &func)
+// on the VM stack: the collector sees it
+struct SQSortBuffer
 {
-    SQArray *a = _array(arr);
-    SQInteger i;
-    SQInteger array_size = a->Size();
-    for (i = (array_size / 2); i >= 0; i--) {
-        if(!_hsort_sift_down(v,a, i, array_size - 1,func)) return false;
-    }
+    HSQUIRRELVM v;
+    SQObjectPtr *buf = nullptr;
+    SQInteger size;
 
-    for (i = array_size-1; i >= 1; i--)
+    SQSortBuffer(HSQUIRRELVM vm, SQInteger n) : v(vm), size(n) {}
+    SQObjectPtr *get()
     {
-        _Swap(a->_values[0],a->_values[i]);
-        if(!_hsort_sift_down(v,a, 0, i-1,func)) return false;
+        if (!buf) {
+            SQArray *tmp = SQArray::Create(_ss(v), size);
+            v->Push(SQObjectPtr(tmp));
+            buf = tmp->_values._vals;
+        }
+        return buf;
+    }
+};
+
+template <bool Desc>
+static bool _sort_merge(HSQUIRRELVM v, SQArray *arr, SQInteger lo, SQInteger mid, SQInteger hi,
+                        const SQSortCmp &c, SQSortBuffer &sb)
+{
+    SQObjectPtr *a = arr->_values._vals;
+    SQInteger ret;
+    if (!_sort_compare<Desc>(v, arr, a[mid], a[mid - 1], c, ret))
+        return false;
+    if (ret >= 0)
+        return true;
+    SQInteger L = mid - lo, R = hi - mid;
+    assert(R <= L && R <= sb.size);
+    SQObjectPtr *buf = sb.get();
+    if (!_sort_compare<Desc>(v, arr, a[hi - 1], a[lo], c, ret))
+        return false;
+    _sort_raw_move(buf, a + mid, R);
+    if (ret < 0) {
+        _sort_raw_move(a + lo + R, a + lo, L);
+        _sort_raw_move(a + lo, buf, R);
+        _sort_raw_null(buf, R);
+        return true;
+    }
+    _sort_raw_null(a + mid, R);
+    SQInteger i = R - 1, j = mid - 1, k = hi - 1;
+    while (i >= 0 && j >= lo) {
+        if (!_sort_compare<Desc>(v, arr, buf[i], a[j], c, ret)) {
+            SQObjectPtr *cur = arr->_values._vals;
+            for (SQInteger m = arr->Size(); i >= 0; i--, k--)
+                if (k < m)
+                    cur[k] = std::move(buf[i]);
+            return false;
+        }
+        a[k--] = std::move(ret < 0 ? a[j--] : buf[i--]);
+    }
+    for (; i >= 0; i--, k--)
+        a[k] = std::move(buf[i]);
+    return true;
+}
+
+template <bool Desc>
+static bool _msort(HSQUIRRELVM v, SQArray *arr, const SQSortCmp &c)
+{
+    SQInteger n = arr->Size();
+    for (SQInteger lo = 0; lo < n; lo += SQ_SORT_BLOCK_SIZE) {
+        SQInteger hi = lo + SQ_SORT_BLOCK_SIZE < n ? lo + SQ_SORT_BLOCK_SIZE : n;
+        if (!_sort_block<Desc>(v, arr, arr->_values._vals, lo, hi, c))
+            return false;
+    }
+    SQSortBuffer sb(v, n / 2);
+    for (SQInteger width = SQ_SORT_BLOCK_SIZE; width < n; width *= 2) {
+        for (SQInteger lo = 0; lo + width < n; lo += 2 * width) {
+            SQInteger hi = lo + 2 * width < n ? lo + 2 * width : n;
+            if (!_sort_merge<Desc>(v, arr, lo, lo + width, hi, c, sb))
+                return false;
+        }
     }
     return true;
 }
 
+template <bool Desc>
 static SQInteger array_sort(HSQUIRRELVM v)
 {
     SQObjectPtr func;
@@ -1514,11 +1578,76 @@ static SQInteger array_sort(HSQUIRRELVM v)
     if (_array(o)->Size() > 1) {
         if(sq_gettop(v) == 2)
             func = stack_get(v, 2);
-        if(!_hsort(v, o, 0, _array(o)->Size()-1, func))
+        SQPreparedCall cmpfn(v, func, 3, SQFalse);
+        if(!_msort<Desc>(v, _array(o), SQSortCmp{sq_isnull(func) ? nullptr : &cmpfn, nullptr}))
             return SQ_ERROR;
 
     }
     sq_settop(v,1);
+    return 1;
+}
+
+template <bool Desc>
+static SQInteger array_sortby(HSQUIRRELVM v)
+{
+    const SQObjectPtr o = stack_get(v, 1);
+    SQ_CHECK_IMMUTABLE_OBJ(o);
+    SQArray *arr = _array(o);
+    SQInteger n = arr->Size();
+    if (n > 1) {
+        const SQObjectPtr keyfn = stack_get(v, 2);
+        SQInteger nArgs = get_allowed_args_count(keyfn, 4);
+        SQPreparedCall cb(v, keyfn, nArgs, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
+        // one block, no merge buffer: no allocation
+        // metamethod: no stack growth for key calls
+        bool onStack = n <= SQ_SORT_BLOCK_SIZE && !v->_nmetamethodscall;
+        SQInteger base = v->_top;
+        SQArray *keys = nullptr, *perm = nullptr;
+        if (onStack) {
+            for (SQInteger i = 0; i < n; i++)
+                v->PushNull();
+            for (SQInteger i = 0; i < n; i++)
+                v->Push(SQObjectPtr(i));
+        }
+        else {
+            keys = SQArray::Create(_ss(v), n);
+            v->Push(SQObjectPtr(keys));
+            perm = SQArray::Create(_ss(v), n);
+            v->Push(SQObjectPtr(perm));
+            for (SQInteger i = 0; i < n; i++)
+                perm->_values[i] = SQObjectPtr(i);
+        }
+        for (SQInteger i = 0; i < n; i++) {
+            SQObjectPtr *args = cb.Args();
+            args[0].Null();
+            if (nArgs >= 2)
+                args[1] = SQObjectPtr(_realval(arr->_values[i]));
+            if (nArgs >= 3)
+                args[2] = SQObjectPtr(i);
+            if (nArgs >= 4)
+                args[3] = o;
+            SQObjectPtr key;
+            bool callRes = cb.Call(key);
+            if (!callRes)
+                return SQ_ERROR;
+            if (arr->Size() != n)
+                return sq_throwerror(v, "array resized during sort operation");
+            (onStack ? v->_stack._vals[base + i] : keys->_values[i]) = std::move(key); //-V522
+        }
+        // a _cmp metamethod can not grow the stack
+        SQObjectPtr *kv = onStack ? &v->_stack._vals[base] : keys->_values._vals; //-V522
+        SQObjectPtr *pv = onStack ? kv + n : perm->_values._vals; //-V522
+        SQSortCmp c{nullptr, kv};
+        if (!(onStack ? _sort_block<Desc>(v, nullptr, pv, 0, n, c) : _msort<Desc>(v, perm, c)))
+            return SQ_ERROR;
+        if (arr->Size() != n)
+            return sq_throwerror(v, "array resized during sort operation");
+        for (SQInteger i = 0; i < n; i++)
+            pv[i] = std::move(arr->_values[_integer(pv[i])]);
+        for (SQInteger i = 0; i < n; i++)
+            arr->_values[i] = std::move(pv[i]);
+    }
+    sq_settop(v, 1);
     return 1;
 }
 
@@ -1584,22 +1713,25 @@ const SQRegFunction SQSharedState::_array_default_type_methods_funcz[]={
     {"append",array_append,-2, "a."},
     {"extend",array_extend,-2, "aa"},
     {"pop",array_pop,1, "a"},
-    {"top",array_top,1, "a"},
+    {"top",array_top,1, "a", NULL, false, true},
     {"insert",array_insert,3, "an."},
     {"remove",array_remove,2, "an"},
     {"resize",array_resize,-2, "an"},
     {"reverse",array_reverse,1, "a"},
-    {"sort",array_sort,-1, "ac"},
-    {"slice",array_slice,-1, "ann"},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"tostring",default_type_method_tostring,1, "."},
+    {"sort",array_sort<false>,-1, "ac"},
+    {"sortby",array_sortby<false>,2, "ac"},
+    {"sort_reversed",array_sort<true>,-1, "ac"},
+    {"sortby_reversed",array_sortby<true>,2, "ac"},
+    {"slice",array_slice,-1, "ann", NULL, false, true},
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"tostring",default_type_method_tostring,1, ".", NULL, false, true},
     {"clear",obj_clear,1, "."},
-    {"map",array_map,2, "ac"},
+    {"map",array_map,2, "ac", NULL, false, true},
     {"apply",array_apply,2, "ac"},
-    {"reduce",array_reduce,-2, "ac."},
-    {"filter",array_filter,2, "ac"},
+    {"reduce",array_reduce,-2, "ac.", NULL, false, true},
+    {"filter",array_filter,2, "ac", NULL, false, true},
     {"indexof",array_indexof,2, "a.", NULL, true},
-    {"contains",array_contains,2, "a."},
+    {"contains",array_contains,2, "a.", NULL, false, true},
     {"each",container_each,2, "ac"},
     {"findindex",container_findindex,2, "ac", NULL, true},
     {"findvalue",container_findvalue,-2, "ac.", NULL, true},
@@ -1608,8 +1740,8 @@ const SQRegFunction SQSharedState::_array_default_type_methods_funcz[]={
     {"replace_with",array_replace_with,2, "aa"},
     {"hasindex",array_hasindex,2, "an", NULL, true},
     {"hasvalue",array_contains,2, "a.", NULL, true},
-    {"clone",obj_clone, 1, "." },
-    {"is_frozen",obj_is_frozen, 1, "." },
+    {"clone",obj_clone, 1, ".", NULL, false, true},
+    {"is_frozen",obj_is_frozen, 1, ".", NULL, false, true},
     {"swap",swap, 3, "ann" },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
@@ -1866,6 +1998,7 @@ static SQInteger string_join(HSQUIRRELVM v)
 
     if (sq_gettop(v) == 3)
         flt = stack_get(v, 3);
+    SQPreparedCall cb(v, flt, 2, SQ_BASELIB_INVOKE_CB_ERR_HANDLER);
 
     SQInteger res_len = 0;
     for (SQInteger i=0; i<arr->Size(); ++i) {
@@ -1874,14 +2007,13 @@ static SQInteger string_join(HSQUIRRELVM v)
             if (sq_isnull(item) || (sq_isstring(item) && !_string(item)->_len))
                 continue;
         } else if (sq_isclosure(flt) || sq_isnativeclosure(flt)) {
-            sq_push(v, 1);
-            sq_pushobject(v, item);
-
-            if (SQ_FAILED(sq_call(v,2,SQTrue,SQ_BASELIB_INVOKE_CB_ERR_HANDLER)))
+            // the filter sees the separator as 'this'
+            SQObjectPtr *args = cb.Args();
+            args[0] = stack_get(v, 1);
+            args[1] = item;
+            if (!cb.Call(tmp))
                 return SQ_ERROR;
-            bool use = !SQVM::IsFalse(v->GetUp(-1));
-            v->Pop();
-            if (!use)
+            if (SQVM::IsFalse(tmp))
                 continue;
         }
 
@@ -2017,7 +2149,7 @@ IMPL_STRING_FUNC(startswith)
 IMPL_STRING_FUNC(endswith)
 
 #undef IMPL_STRING_FUNC
-#define _DECL_FUNC(name,nparams,pmask) {#name,_baselib_string_##name,nparams,pmask}
+#define _DECL_FUNC(name,nparams,pmask) {#name,_baselib_string_##name,nparams,pmask,NULL,true}
 
 const SQRegFunction SQSharedState::_string_default_type_methods_funcz[]={
     {"constructor",builtin_string_ctor,2, NULL},
@@ -2037,12 +2169,12 @@ const SQRegFunction SQSharedState::_string_default_type_methods_funcz[]={
     {"join",string_join, -2, "s a b|c", NULL, true},
     {"concat",string_concat, -2, "s.", NULL, true},
     {"split",string_split, -1, "s s", NULL, true},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"clone",obj_clone, 1, "." },
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"clone",obj_clone, 1, ".", NULL, false, true},
     _DECL_FUNC(strip,1,"s"),
     _DECL_FUNC(lstrip,1,"s"),
     _DECL_FUNC(rstrip,1,"s"),
-    _DECL_FUNC(split_by_chars,-2,"ssb"),
+    {"split_by_chars",_baselib_string_split_by_chars,-2,"ssb",NULL,false,true},
     _DECL_FUNC(escape,1,"s"),
     _DECL_FUNC(startswith,2,"ss"),
     _DECL_FUNC(endswith,2,"ss"),
@@ -2174,8 +2306,8 @@ const SQRegFunction SQSharedState::_integer_default_type_methods_funcz[]={
     {"tofloat",default_type_method_tofloat,1, "n|b", NULL, true},
     {"tostring",default_type_method_tostring,1, ".", NULL, true},
     {"tochar",number_type_method_tochar,1, "n|b", NULL, true},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"clone",obj_clone, 1, "." },
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"clone",obj_clone, 1, ".", NULL, false, true},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2186,8 +2318,8 @@ const SQRegFunction SQSharedState::_float_default_type_methods_funcz[]={
     {"tofloat",default_type_method_tofloat,1, "n|b", NULL, true},
     {"tostring",default_type_method_tostring,1, ".", NULL, true},
     {"tochar",number_type_method_tochar,1, "n|b", NULL, true},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"clone",obj_clone, 1, "." },
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"clone",obj_clone, 1, ".", NULL, false, true},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2198,8 +2330,8 @@ const SQRegFunction SQSharedState::_bool_default_type_methods_funcz[]={
     {"tofloat",default_type_method_tofloat,1, "n|b", NULL, true},
     {"tostring",default_type_method_tostring,1, ".", NULL, true},
     {"tochar",number_type_method_tochar,1, "n|b", NULL, true},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"clone",obj_clone, 1, "." },
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"clone",obj_clone, 1, ".", NULL, false, true},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2279,7 +2411,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
 
         for(SQInteger n = 0; n < nparams; n++) {
             _array(params)->Set(n, f->_parameters[n]);
-            _array(typecheck)->Set(n, SQObjectPtr(int(f->_param_type_masks[n])));
+            _array(typecheck)->Set(n, SQObjectPtr(int(f->GetParamTypeMask(n))));
         }
         for(SQInteger j = 0; j < f->_ndefaultparams; j++) {
             _array(defparams)->Set((SQInteger)j,_closure(o)->_defaultparams[j]);
@@ -2288,7 +2420,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SET_SLOT(pure, bool(f->_purefunction));
         SET_SLOT(nodiscard, bool(f->_nodiscard));
         SET_SLOT(fastcall, false);  // script closures are never fastcall
-        SET_SLOT(name, f->_name);
+        SET_SLOT(name, f->GetName());
         SET_SLOT(freevars, f->_noutervalues);
         SET_SLOT(src, f->_sourcename);
         SET_SLOT(line, SQInteger(f->_lineinfos->_first_line));
@@ -2298,7 +2430,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SET_SLOT(varargs, bool(f->_varparams));
         SET_SLOT(typecheck, typecheck);
         SET_SLOT(return_type_mask, SQObjectPtr(int(f->_result_type_mask)));
-        SET_SLOT(varargs_type_mask, SQObjectPtr(int(f->_varparams ? f->_param_type_masks[f->_nparameters - 1] : 0)));
+        SET_SLOT(varargs_type_mask, SQObjectPtr(int(f->_varparams ? f->GetParamTypeMask(f->_nparameters - 1) : 0)));
 
         SQObjectPtr docObject;
         if (SQString *doc = _ss(v)->GetDocString(sq_getdocstring_id(o)))
@@ -2486,13 +2618,13 @@ const SQRegFunction SQSharedState::_closure_default_type_methods_funcz[]={
     {"pcall",closure_pcall,-1, "c"},
     {"acall",closure_acall,2, "ca"},
     {"pacall",closure_pacall,2, "ca"},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"tostring",default_type_method_tostring,1, "."},
-    {"bindenv",closure_bindenv,2, "c x|y|t"},
-    {"getfuncinfos",closure_getfuncinfos,1, "c"},
-    {"getarity",closure_getarity,1, "c"},
-    {"getfreevar",closure_getfreevar,2, "ci"},
-    {"clone",obj_clone, 1, "." },
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"tostring",default_type_method_tostring,1, ".", NULL, false, true},
+    {"bindenv",closure_bindenv,2, "c x|y|t", NULL, false, true},
+    {"getfuncinfos",closure_getfuncinfos,1, "c", NULL, false, true},
+    {"getarity",closure_getarity,1, "c", NULL, false, true},
+    {"getfreevar",closure_getfreevar,2, "ci", NULL, false, true},
+    {"clone",obj_clone, 1, ".", NULL, false, true},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2509,10 +2641,10 @@ static SQInteger generator_getstatus(HSQUIRRELVM v)
 }
 
 const SQRegFunction SQSharedState::_generator_default_type_methods_funcz[]={
-    {"getstatus",generator_getstatus,1, "g"},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"tostring",default_type_method_tostring,1, "."},
-    {"clone",obj_clone, 1, "." },
+    {"getstatus",generator_getstatus,1, "g", NULL, false, true},
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"tostring",default_type_method_tostring,1, ".", NULL, false, true},
+    {"clone",obj_clone, 1, ".", NULL, false, true},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2670,11 +2802,11 @@ const SQRegFunction SQSharedState::_thread_default_type_methods_funcz[] = {
     {"call", thread_call, -1, "v"},
     {"wakeup", thread_wakeup, -1, "v"},
     {"wakeupthrow", thread_wakeupthrow, -2, "v.b"},
-    {"getstatus", thread_getstatus, 1, "v"},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"getstackinfos",thread_getstackinfos,2, "vn"},
-    {"tostring",default_type_method_tostring,1, "."},
-    {"clone",obj_clone, 1, "." },
+    {"getstatus", thread_getstatus, 1, "v", NULL, false, true},
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"getstackinfos",thread_getstackinfos,2, "vn", NULL, false, true},
+    {"tostring",default_type_method_tostring,1, ".", NULL, false, true},
+    {"clone",obj_clone, 1, ".", NULL, false, true},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
@@ -2734,23 +2866,23 @@ const SQRegFunction SQSharedState::_class_default_type_methods_funcz[] = {
     {"rawget",container_rawget,2, "y", NULL, true},
     {"rawset",container_rawset,3, "y"},
     {"rawin",container_rawexists,2, "y", NULL, true},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"tostring",default_type_method_tostring,1, "."},
-    {"instance",class_instance,1, "y"},
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"tostring",default_type_method_tostring,1, ".", NULL, false, true},
+    {"instance",class_instance,1, "y", NULL, false, true},
     {"getbase",class_getbase,1, "y", NULL, true},
     {"newmember",class_newmember,-3, "y"},
-    {"getfuncinfos",class_getfuncinfos,1, "y"},
-    {"getarity",class_getarity,1, "y"},
+    {"getfuncinfos",class_getfuncinfos,1, "y", NULL, false, true},
+    {"getarity",class_getarity,1, "y", NULL, false, true},
     {"call",closure_call,-1, "y"},
     {"pcall",closure_pcall,-1, "y"},
     {"acall",closure_acall,2, "ya"},
     {"pacall",closure_pacall,2, "ya"},
     {"__update",container_update, -2, "t|yt|y|x", NULL, false},
     {"__merge",container_merge, -2, "t|yt|y|x", NULL, true},
-    {"getmetamethod",get_class_metamethod, 2, "ys"},
+    {"getmetamethod",get_class_metamethod, 2, "ys", NULL, false, true},
     {"hasindex",container_hasindex,2, "y.", NULL, true},
     {"clone",obj_clone, 1, "." },
-    {"is_frozen",obj_is_frozen, 1, "." },
+    {"is_frozen",obj_is_frozen, 1, ".", NULL, false, true},
     {"lock",class_lock, 1, "y" },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
@@ -2768,14 +2900,14 @@ const SQRegFunction SQSharedState::_instance_default_type_methods_funcz[] = {
     {"rawget",container_rawget,2, "x", NULL, true},
     {"rawset",container_rawset,3, "x"},
     {"rawin",container_rawexists,2, "x", NULL, true},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"tostring",default_type_method_tostring,1, "."},
-    {"getfuncinfos",delegable_getfuncinfos,1, "x"},
-    {"getarity",delegable_getarity,1, "x"},
-    {"getmetamethod",get_class_metamethod, 2, "xs"},
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"tostring",default_type_method_tostring,1, ".", NULL, false, true},
+    {"getfuncinfos",delegable_getfuncinfos,1, "x", NULL, false, true},
+    {"getarity",delegable_getarity,1, "x", NULL, false, true},
+    {"getmetamethod",get_class_metamethod, 2, "xs", NULL, false, true},
     {"hasindex",container_hasindex,2, "x.", NULL, true},
-    {"clone",obj_clone, 1, "." },
-    {"is_frozen",obj_is_frozen, 1, "." },
+    {"clone",obj_clone, 1, ".", NULL, false, true},
+    {"is_frozen",obj_is_frozen, 1, ".", NULL, false, true},
     {"swap",swap, 3, "x.." },
     {NULL,(SQFUNCTION)0,0,NULL}
 };
@@ -2789,17 +2921,17 @@ static SQInteger weakref_ref(HSQUIRRELVM v)
 
 const SQRegFunction SQSharedState::_weakref_default_type_methods_funcz[] = {
     {"constructor",builtin_weakref_ctor, 2, NULL},
-    {"ref",weakref_ref,1, "r"},
-    {"weakref",obj_type_method_weakref,1, NULL },
-    {"tostring",default_type_method_tostring,1, "."},
-    {"clone",obj_clone, 1, "." },
+    {"ref",weakref_ref,1, "r", NULL, false, true},
+    {"weakref",obj_type_method_weakref,1, NULL, NULL, false, true},
+    {"tostring",default_type_method_tostring,1, ".", NULL, false, true},
+    {"clone",obj_clone, 1, ".", NULL, false, true},
     {NULL,(SQFUNCTION)0,0,NULL}
 };
 
 const SQRegFunction SQSharedState::_userdata_default_type_methods_funcz[] = {
-    {"getfuncinfos",delegable_getfuncinfos,1, "u"},
-    {"getarity",delegable_getarity,1, "u"},
+    {"getfuncinfos",delegable_getfuncinfos,1, "u", NULL, false, true},
+    {"getarity",delegable_getarity,1, "u", NULL, false, true},
     {"clone",obj_clone, 1, "." },
-    {"is_frozen",obj_is_frozen, 1, "." },
+    {"is_frozen",obj_is_frozen, 1, ".", NULL, false, true},
     {NULL,(SQFUNCTION)0,0,NULL}
 };

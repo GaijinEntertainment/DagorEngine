@@ -1393,7 +1393,7 @@ static void finish_async_interframe_jobs(Context &ctx)
 {
   if (ctx.asyncCpuDefragJob.cid)
   {
-    threadpool::wait(&ctx.asyncCpuDefragJob);
+    threadpool::barrier_active_wait_for_job(&ctx.asyncCpuDefragJob, threadpool::PRIO_LOW, ctx.asyncCpuDefragJob.queuePos);
     ctx.asyncCpuDefragJob.cid = ContextId();
   }
 }
@@ -1407,7 +1407,11 @@ void start_async_interframe_jobs(ContextId cid, bool tp_wake_up)
     if (ctx.updateInProgress || ctx.asyncPrepareJob.cid)
       return;
     ctx.asyncCpuDefragJob.cid = cid;
-    start_job(ctx.cfg, ctx.asyncCpuDefragJob, tp_wake_up);
+    if (ctx.cfg.use_async_thread)
+      threadpool::add(&ctx.asyncCpuDefragJob, threadpool::PRIO_LOW, ctx.asyncCpuDefragJob.queuePos,
+        tp_wake_up ? threadpool::AddFlags::WakeOnAdd : threadpool::AddFlags::None);
+    else
+      ctx.asyncCpuDefragJob.doJob();
   }
 }
 
@@ -1428,7 +1432,6 @@ void swap_command_queue(Context &ctx)
 
   SW(createInstance);
   SW(destroyInstance);
-  SW(resetInstance);
 
   SW(instancePos);
   SW(instanceStatus);
@@ -1447,7 +1450,6 @@ void exec_command_queue(Context &ctx)
 {
   ctx.stats.queue[0].createInstance += ctx.commandQueue.createInstance.size();
   ctx.stats.queue[0].destroyInstance += ctx.commandQueue.destroyInstance.size();
-  ctx.stats.queue[0].resetInstance += ctx.commandQueue.resetInstance.size();
   ctx.stats.queue[0].setInstancePos += ctx.commandQueue.instancePos.size();
   ctx.stats.queue[0].setInstanceStatus += ctx.commandQueue.instanceStatus.size();
   ctx.stats.queue[0].setInstanceEmissionRate += ctx.commandQueue.instanceEmissionRate.size();
@@ -1456,7 +1458,6 @@ void exec_command_queue(Context &ctx)
   ctx.stats.queue[0].setInstanceValueTotalSize += ctx.commandQueue.instanceValueData.size();
 
   create_instances_from_queue(ctx);
-  reset_instance_from_queue(ctx);
   set_instance_pos_from_queue(ctx);
   set_instance_emission_rate_from_queue(ctx);
   set_instance_value_from_queue(ctx);
@@ -1471,7 +1472,6 @@ void clear_command_queue(Context &ctx)
 {
   ctx.commandQueue.createInstance.clear();
   ctx.commandQueue.destroyInstance.clear();
-  ctx.commandQueue.resetInstance.clear();
   ctx.commandQueue.instanceValue.clear();
   ctx.commandQueue.instanceValueDirect.clear();
   ctx.commandQueue.instanceValueFromSystemScaled.clear();
@@ -1891,8 +1891,7 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
   static eastl::array<int, Config::max_simulation_lods> gpuElemTotalSimLodsPadding = {};
   format_lod_list(out_s, ctx.stats.gpuElemTotalSimLods, gpuElemTotalSimLodsPadding);
 
-  out_s.append_sprintf("queue create: %3d / destroy: %3d / reset: %3d\n", s.queue[1].createInstance, s.queue[1].destroyInstance,
-    s.queue[1].resetInstance);
+  out_s.append_sprintf("queue create: %3d / destroy: %3d\n", s.queue[1].createInstance, s.queue[1].destroyInstance);
 
   out_s.append_sprintf("queue pos: %3d / status: %3d / em_rate: %3d / val: %3d / val_total_size: %4d \n", s.queue[1].setInstancePos,
     s.queue[1].setInstanceStatus, s.queue[1].setInstanceEmissionRate, s.queue[1].setInstanceValue,

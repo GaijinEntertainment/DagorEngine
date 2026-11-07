@@ -1,6 +1,14 @@
 include "shader_global.dshl"
 include "gbuffer.dshl"
-include "tonemapHelpers/lottesSCurve.dshl"
+include "neural_rendering_transfer_inc.dshl"
+include "project_neural_rendering_tonemap.dshl"
+
+// Project hook: frame gain for NR passes.
+define_macro_if_not_defined USE_NEURAL_RENDERING_GAIN(code)
+  hlsl(code) {
+    #define neural_rendering_gain(frame, tc) 1
+  }
+endmacro
 
 texture neural_rendering_source_frame;
 texture neural_rendering_sdr_target;
@@ -12,60 +20,12 @@ float4 neural_rendering_control_mask_default = (1, 1, 1, 1);
 float4 neural_rendering_control_mask_skin = (1, 1, 1, 1);
 float4 neural_rendering_control_mask_foliage = (1, 1, 1, 1);
 
-int neural_rendering_curve = 0;
-interval neural_rendering_curve : aces<1, lottes;
-assume_if_not_assumed neural_rendering_curve = lottes;
-
-macro NEURAL_RENDERING_TRANSFER(code)
-  if (neural_rendering_curve == lottes)
-  {
-    LOTTES_TONEMAP_PARAMS(code)
-  }
-  hlsl(code) {
-    #include <pixelPacking/ColorSpaceUtility.hlsl>
-
-    // DLSS-NR needs the wrapper to round-trip untouched pixels without a color shift, so each curve
-    // comes with its exact inverse.
-    ##if neural_rendering_curve == aces
-    // Narkowicz ACES fit, a rational quadratic, so the inverse is closed form.
-    float3 neural_rendering_apply_curve(float3 x)
-    {
-      return saturate((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14));
-    }
-
-    float3 neural_rendering_invert_curve(float3 y)
-    {
-      return (0.03 - 0.59 * y - sqrt(max(0, -1.0127 * y * y + 1.3702 * y + 0.0009))) / (4.86 * y - 5.02);
-    }
-    ##else
-    float3 neural_rendering_apply_curve(float3 x)
-    {
-      return saturate(applyLottesCurveDirect(x));
-    }
-
-    float3 neural_rendering_invert_curve(float3 y)
-    {
-      return applyLottesCurveDirectInverse(y);
-    }
-    ##endif
-
-    float3 neural_rendering_encode(float3 linear_hdr)
-    {
-      return ApplySRGBCurve(neural_rendering_apply_curve(linear_hdr));
-    }
-
-    float3 neural_rendering_decode(float3 srgb_sdr)
-    {
-      return neural_rendering_invert_curve(RemoveSRGBCurve(srgb_sdr));
-    }
-  }
-endmacro
-
 shader neural_rendering_tonemap
 {
   if (!hardware.pc || compatibility_mode == compatibility_mode_on) { dont_render; }
 
   NEURAL_RENDERING_TRANSFER(cs)
+  USE_NEURAL_RENDERING_GAIN(cs)
 
   (cs) {
     sourceFrame@tex2d = neural_rendering_source_frame;
@@ -80,7 +40,9 @@ shader neural_rendering_tonemap
       if (any(dtId >= uint2(targetResolution)))
         return;
 
-      texture2DAt(sdrTarget, dtId) = float4(neural_rendering_encode(texture2DAt(sourceFrame, dtId).rgb), 1);
+      float3 frame = texture2DAt(sourceFrame, dtId).rgb;
+      frame *= neural_rendering_gain(frame, (float2(dtId) + 0.5) / float2(targetResolution));
+      texture2DAt(sdrTarget, dtId) = float4(neural_rendering_encode(frame), 1);
     }
   }
 
@@ -91,7 +53,8 @@ shader neural_rendering_inverse_tonemap
 {
   if (!hardware.pc || compatibility_mode == compatibility_mode_on) { dont_render; }
 
-  NEURAL_RENDERING_TRANSFER(cs)
+  NEURAL_RENDERING_HIGHLIGHT_MASK(cs)
+  USE_NEURAL_RENDERING_GAIN(cs)
 
   (cs) {
     sourceFrame@tex2d = neural_rendering_source_frame;
@@ -101,15 +64,6 @@ shader neural_rendering_inverse_tonemap
   }
 
   hlsl(cs) {
-    // The SDR shoulder loses superbright energy NR never saw, so take it back from the pre-NR HDR frame
-    // where the pixel is both superbright and compressed (DLSS-NR guide, 9.2).
-    float neural_rendering_highlight_mask(float3 original_hdr)
-    {
-      float preserve = smoothstep(1.0, 8.0, luminance(original_hdr));
-      float shoulder = smoothstep(0.75, 0.99, luminance(neural_rendering_apply_curve(original_hdr)));
-      return preserve * shoulder;
-    }
-
     [numthreads(8, 8, 1)]
     void main(uint2 dtId : SV_DispatchThreadID)
     {
@@ -117,6 +71,7 @@ shader neural_rendering_inverse_tonemap
         return;
 
       float3 originalHdr = texture2DAt(sourceFrame, dtId).rgb;
+      originalHdr *= neural_rendering_gain(originalHdr, (float2(dtId) + 0.5) / float2(targetResolution));
       float3 recoveredHdr = neural_rendering_decode(texture2DAt(outputFrame, dtId).rgb);
       texture2DAt(targetFrame, dtId) = float4(lerp(recoveredHdr, originalHdr, neural_rendering_highlight_mask(originalHdr)), 1);
     }

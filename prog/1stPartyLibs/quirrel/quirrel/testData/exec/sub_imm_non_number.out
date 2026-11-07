@@ -1,0 +1,13 @@
+error: arith op - between 'string' and 'integer'
+error: arith op - between 'string' and 'integer'
+error: arith op - between 'string' and 'integer'
+extra1
+error: arith op - between 'array' and 'integer'
+sub 1
+sub 1
+add 1
+sub 2
+error: arith op - between 'null' and 'integer'
+error: arith op - between 'null' and 'integer'
+6 10 -2147483640 1.5 3.5
+-0 -0

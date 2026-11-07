@@ -237,7 +237,35 @@ let ecsTypes = {
   }
   CompObject = class {
     name = "CompObject"
-    getAll = @() {}
+    data = null
+    constructor() {
+      this.data = {}
+    }
+    function _get(key) {
+      if (key in this.data)
+        return this.data[key]
+      throw null
+    }
+    function _set(key, val) {
+      this.data[key] <- val
+    }
+    function _newslot(key, val) {
+      this.data[key] <- val
+    }
+    function _nexti(prev) {
+      let keys = this.data.keys()
+      let i = prev == null ? 0 : (keys.indexof(prev) ?? keys.len()) + 1
+      return i < keys.len() ? keys[i] : null
+    }
+    function remove(key) {
+      if (key not in this.data)
+        return false
+      this.data.$rawdelete(key)
+      return true
+    }
+    len = @() this.data.len()
+    isReadOnly = @() false
+    getAll = @() clone this.data
   }
   CompEidList = class {
     name = "CompEidList"
@@ -245,7 +273,16 @@ let ecsTypes = {
   }
   CompStringList =  class {
     name = "CompStringList"
-    getAll = @() []
+    data = null
+    constructor() {
+      this.data = []
+    }
+    function append(val) {
+      this.data.append(val)
+      return this
+    }
+    len = @() this.data.len()
+    getAll = @() clone this.data
   }
   CompFloatList =  class {
     name = "CompFloatList"
@@ -270,6 +307,8 @@ let ecsTypes = {
 }
 
 let UNUSED = @(...) null
+local stubQueryHandler = null
+local stubTemplates = {}
 
 //------------------------------------------------------------------------------
 // query filter_string parser + validator; mirrors the native filter parser
@@ -688,9 +727,9 @@ return ecsTypes.__merge({
   EventComponentsAppear
   EventEntityDestroyed
   EventEntityRecreated
-  set_callback_timer = @(func, time, repeat=false) assert(type(func) =="function" && type(time) == "float" && type(repeat) == "bool", @() $"incorrect set_call_back_timer, repeat={type(repeat)}, func={type(func)}, time={type(time)}")
+  set_callback_timer = @(func, time, repeat=false) assert(type(func) =="function" && (type(time) == "float" || type(time) == "integer") && type(repeat) == "bool", @() $"incorrect set_callback_timer, repeat={type(repeat)}, func={type(func)}, time={type(time)}")
   set_callback_timer_rt = @(_cb, _time, _bool) null
-  clear_callback_timer = @(func) assert(type(func) == "function")
+  clear_callback_timer = @(func) assert(func == null || type(func) == "function")
   clear_timer = @(obj) assert("eid" in obj && "id" in obj)
   set_timer = kwarg(function(eid, id, interval, repeat=false) {
     UNUSED(interval, eid, repeat)
@@ -706,6 +745,12 @@ return ecsTypes.__merge({
   get_component_name_by_idx = @(_idx) null
   calc_hash = @(str) assert(type(str)=="string")
   calc_hash_int = @(str) assert(type(str)=="string")
+  set_stub_query_handler = function(perform) {
+    stubQueryHandler = perform
+  }
+  set_stub_templates = function(templates) {
+    stubTemplates = templates
+  }
   SqQuery = class {
     name = null
     components = null
@@ -734,6 +779,7 @@ return ecsTypes.__merge({
         assert(type(filterstringArg) == "string", $"query '{this.name}' perform last optional argument (filterstring) should be string")
         assertValidQueryFilter($"query '{this.name}' perform", this.components, filterstringArg)
       }
+      return stubQueryHandler?(this.components, isSingleEid ? vargv[0] : null, callbackArg)
     }
     _call = function(...){
       // vargv[0] is the call environment, user arguments start at vargv[1]
@@ -748,6 +794,7 @@ return ecsTypes.__merge({
         assert(type(filterstringArg) == "string", $"query '{this.name}' perform last optional argument (filterstring) should be string")
         assertValidQueryFilter($"query '{this.name}' perform", this.components, filterstringArg)
       }
+      return stubQueryHandler?(this.components, isSingleEid ? vargv[1] : null, callbackArg)
     }
   }
   register_entity_system = function(name,events,comps,params=null){
@@ -823,7 +870,11 @@ return ecsTypes.__merge({
       assert(type(filter)=="string")
       assertValidQueryFilter("g_entity_mgr.performFilteredQuery", comps, filter)
     }
-    getTemplateDB = @() {getTemplateByName = @(name) assert(type(name)=="string")}
+    getTemplateDB = @() {getTemplateByName = function(name) {
+        assert(type(name)=="string")
+        return stubTemplates?[name]
+      },
+      buildTemplateByName = @(name) assert(type(name)=="string")}
     broadcastEvent = @(_event) null
     createEntity = @(_tpl, _comps, _onCreate = @(_eid) null) null
     createEntitySync = @(_tpl, _comps) null

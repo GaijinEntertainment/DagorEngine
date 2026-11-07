@@ -651,7 +651,9 @@ void ContactSolver::solveVelocityConstraints(Tab<Constraint> &constraints, doubl
       const double linProjB = (stateB.velocity + stateB.addVelocity) * c.J[2];
       const double angProjB = (stateB.omega + stateB.addOmega) * c.J[3];
 
-      const double relVelAfterContact = max(c.J[0] * (stateB.velocity - stateA.velocity) * c.bouncing, 0.0);
+      // the approach speed along the normal from both sides: J[0] is zero for a static A (the ground), so
+      // a difference of the velocities through it never bounced anything off the ground
+      const double relVelAfterContact = max(-(c.J[0] * stateA.velocity + c.J[2] * stateB.velocity) * c.bouncing, 0.0);
 
       const double bias = c.bias * c.beta * invDt + relVelAfterContact;
       const double nu = (bias - (linProjA + angProjA + linProjB + angProjB)) * invDt;

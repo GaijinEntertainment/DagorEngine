@@ -1,4 +1,4 @@
 deep_hash([1,2,3], 1) == hash([1,2,3]) = true
 deep_hash([1,2,3]) == deep_hash([1,2,4]) = false
 deep_hash({a={x=1}}) == deep_hash({a={x=2}}) = false
-deep_hash(5, 201) throws: hashing depth must be between 1 and 200
+deep_hash(5, depth) throws: hashing depth must be between 1 and 200

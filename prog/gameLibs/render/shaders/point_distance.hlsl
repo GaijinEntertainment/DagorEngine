@@ -174,7 +174,7 @@
   bool closestPointOnEdgeRegion(float num, float len, float area) { return num >= 0 && num <= len && area <= 0 && len > 0; }
 
   // Closest point to p on triangle ABC by Ericson's Voronoi regions (RTCD 5.1.5), slivers included.
-  // constraint: dag_swBLAS_leaf.h closestPointOnTriVec picks the same regions, but answers a sliver by its nearest edge
+  // dag_swBLAS_leaf.h closestPointOnTriVec picks the same regions, but answers a sliver by its nearest edge
   float3 closestPointOnTriangleBarycentric(float3 p, float3 A, float3 B, float3 C)
   {
     float3 AB = B - A, AC = C - A, BC = C - B;

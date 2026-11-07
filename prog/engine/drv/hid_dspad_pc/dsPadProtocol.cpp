@@ -9,7 +9,7 @@
 
 namespace HumanInput
 {
-namespace sonypad
+namespace dspad
 {
 
 const char *model_name(Model model)
@@ -19,7 +19,7 @@ const char *model_name(Model model)
     case Model::DUALSENSE: return "DualSense";
     case Model::DUALSENSE_EDGE: return "DualSense Edge";
     case Model::DUALSHOCK4: return "DualShock 4";
-    default: return "Unknown Sony pad";
+    default: return "Unknown dsPad";
   }
 }
 
@@ -85,7 +85,7 @@ static uint32_t decode_buttons(const uint8_t *b, bool edge)
   return r;
 }
 
-static void decode_touch(const uint8_t *p, JoystickTouchpadState::Point &t)
+static void decode_touch(const uint8_t *p, TouchPoint &t)
 {
   t.down = (p[0] & 0x80) == 0;
   t.contactId = p[0] & 0x7F;
@@ -101,6 +101,18 @@ static void decode_sensors(const uint8_t *gyro, const uint8_t *accel, InputSampl
     out.gyroRaw[i] = load_s16(gyro + i * 2);
     out.accelRaw[i] = load_s16(accel + i * 2);
   }
+}
+
+static TriggerEffectState decode_trigger_effect(uint8_t type, uint8_t status)
+{
+  // rows: effect type nibble, columns: status nibble
+  static const TriggerEffectState states[][3] = {
+    {TRIGGER_EFFECT_STATE_OFF, TRIGGER_EFFECT_STATE_OFF, TRIGGER_EFFECT_STATE_OFF},
+    {TRIGGER_EFFECT_STATE_FEEDBACK_STANDBY, TRIGGER_EFFECT_STATE_FEEDBACK_ACTIVE, TRIGGER_EFFECT_STATE_FEEDBACK_ACTIVE},
+    {TRIGGER_EFFECT_STATE_WEAPON_STANDBY, TRIGGER_EFFECT_STATE_WEAPON_PULLING, TRIGGER_EFFECT_STATE_WEAPON_FIRED},
+    {TRIGGER_EFFECT_STATE_VIBRATION_STANDBY, TRIGGER_EFFECT_STATE_VIBRATION_ACTIVE, TRIGGER_EFFECT_STATE_VIBRATION_ACTIVE},
+  };
+  return type < countof(states) ? states[type][min<int>(status, 2)] : TRIGGER_EFFECT_STATE_OFF;
 }
 
 // p points at the first payload byte after the transport header (x axis)
@@ -119,6 +131,8 @@ static void parse_dualsense_payload(const uint8_t *p, bool edge, InputSample &ou
   decode_touch(p + 32, out.touch[0]);
   decode_touch(p + 36, out.touch[1]);
   out.hasTouch = true;
+  out.triggerEffect.state[TRIGGER_EFFECT_INDEX_R2] = decode_trigger_effect(p[47] & 0x0F, p[41] >> 4);
+  out.triggerEffect.state[TRIGGER_EFFECT_INDEX_L2] = decode_trigger_effect(p[47] >> 4, p[42] >> 4);
   out.hasStatus = true;
   out.batteryLevel = min(p[52] & 0x0F, 10);
   switch (p[52] >> 4)
@@ -432,26 +446,15 @@ enum
   DS_FLAG1_LIGHTBAR = 0x04,
   DS_FLAG1_PLAYER_LEDS = 0x10,
   DS_FLAG2_LIGHTBAR_SETUP = 0x02,
-  DS_FLAG2_COMPATIBLE_VIBRATION2 = 0x04,
   DS_LIGHTBAR_SETUP_LIGHT_OUT = 0x02,
 };
 
-static void fill_dualsense_common(const OutputState &st, bool rumble_v2, uint8_t *c)
+static void fill_dualsense_common(const OutputState &st, uint8_t *c)
 {
-  c[DS_OUT_FLAG0] |= DS_FLAG0_HAPTICS_SELECT;
-  if (rumble_v2)
-  {
-    c[DS_OUT_FLAG2] |= DS_FLAG2_COMPATIBLE_VIBRATION2;
-    c[DS_OUT_MOTOR_LEFT] = st.rumbleLeft;
-    c[DS_OUT_MOTOR_RIGHT] = st.rumbleRight;
-  }
-  else
-  {
-    // the first firmware drives the haptics twice as hard in the compatible mode
-    c[DS_OUT_FLAG0] |= DS_FLAG0_COMPATIBLE_VIBRATION;
-    c[DS_OUT_MOTOR_LEFT] = st.rumbleLeft >> 1;
-    c[DS_OUT_MOTOR_RIGHT] = st.rumbleRight >> 1;
-  }
+  // the compatible mode the PS5 driver sets
+  c[DS_OUT_FLAG0] |= DS_FLAG0_HAPTICS_SELECT | DS_FLAG0_COMPATIBLE_VIBRATION;
+  c[DS_OUT_MOTOR_LEFT] = st.rumbleLeft;
+  c[DS_OUT_MOTOR_RIGHT] = st.rumbleRight;
   if (st.lightbarSet)
   {
     c[DS_OUT_FLAG1] |= DS_FLAG1_LIGHTBAR;
@@ -496,7 +499,7 @@ static void fill_dualshock4_common(const OutputState &st, uint8_t *c)
     memcpy(c + 5, st.lightbar, 3);
 }
 
-int build_output_report(Model model, bool bluetooth, bool rumble_v2, const OutputState &st, uint8_t &bt_seq, uint8_t *out, int cap)
+int build_output_report(Model model, bool bluetooth, const OutputState &st, uint8_t &bt_seq, uint8_t *out, int cap)
 {
   if (model == Model::UNKNOWN)
     return 0;
@@ -526,17 +529,17 @@ int build_output_report(Model model, bool bluetooth, bool rumble_v2, const Outpu
     out[1] = uint8_t(bt_seq << 4); // high nibble counts reports, low nibble is a zero tag
     out[2] = DS_OUTPUT_TAG;
     bt_seq = (bt_seq + 1) & 0x0F;
-    fill_dualsense_common(st, rumble_v2, out + 3);
+    fill_dualsense_common(st, out + 3);
   }
   else
   {
     out[0] = DS_OUTPUT_REPORT_USB;
-    fill_dualsense_common(st, rumble_v2, out + 1);
+    fill_dualsense_common(st, out + 1);
   }
   if (bluetooth)
     store_le32(out + len - 4, report_crc32(CRC32_SEED_OUTPUT, out, len - 4));
   return len;
 }
 
-} // namespace sonypad
+} // namespace dspad
 } // namespace HumanInput

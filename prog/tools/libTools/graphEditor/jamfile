@@ -5,6 +5,7 @@ TargetType  = lib ;
 Target      = tools/libTools/graphEditor.lib ;
 
 AddIncludes =
+  $(Root)/prog
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/3rdPartyLibs/imgui-node-editor
 ;
@@ -13,6 +14,16 @@ Sources =
   graph_data.cpp
   graph_subgraph_expand.cpp
   graph_subgraph_extract.cpp
+  graph_ir.cpp
+  graph_das_gen.cpp
+  graph_compile.cpp
+  graph_dead_paths.cpp
+  graph_resolutions.cpp
+;
+
+UseProgLibs +=
+  gameLibs/textureGen/graph
+  gameLibs/textureGen/registry
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

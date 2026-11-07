@@ -1211,6 +1211,12 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
     if (opts.showDegenerativeTriangles)
       customColor = E3DCOLOR_MAKE(0, 255, 0, alpha);
 
+    const auto withAlpha = [alpha](unsigned int c) {
+      E3DCOLOR color(c);
+      color.a = alpha;
+      return color;
+    };
+
     // The one home of the color rule: a mode override wins, then the material color, then the legacy color.
     // Only a mesh node holds several materials, so only it colors per face.
     auto nodeColoring = [&](E3DCOLOR legacy, bool per_face) -> NodeColoring {
@@ -1227,7 +1233,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
 
     if (node.type == COLLISION_NODE_TYPE_BOX)
     {
-      E3DCOLOR color = nodeColoring(E3DCOLOR_MAKE(255, 255, 255, alpha), false).color;
+      E3DCOLOR color = nodeColoring(withAlpha(collision_box_node_color), false).color;
       BBox3 nodeBBox = collision_res.getNodeBBox(i);
       if (opts.drawSolid)
         draw_debug_solid_cube(nodeBBox, TMatrix::IDENT, color);
@@ -1237,7 +1243,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
     }
     else if (node.type == COLLISION_NODE_TYPE_SPHERE)
     {
-      E3DCOLOR color = nodeColoring(E3DCOLOR_MAKE(255, 255, 0, alpha), false).color;
+      E3DCOLOR color = nodeColoring(withAlpha(collision_sphere_node_color), false).color;
       BSphere3 nodeBSphere = collision_res.getNodeBSphere(i);
       if (opts.drawSolid)
         draw_debug_solid_sphere(nodeBSphere.c, nodeBSphere.r, TMatrix::IDENT, color);
@@ -1247,7 +1253,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
     }
     else if (node.type == COLLISION_NODE_TYPE_CAPSULE)
     {
-      E3DCOLOR color = nodeColoring(E3DCOLOR_MAKE(255, 0, 255, alpha), false).color;
+      E3DCOLOR color = nodeColoring(withAlpha(collision_capsule_node_color), false).color;
       Capsule nodeCapsule;
       // Fails for the zero-vert marker and leaves the capsule unassigned: nothing to draw.
       if (collision_res.getNodeCapsule(i, nodeCapsule))
@@ -1267,7 +1273,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
 
       set_cached_debug_lines_wtm(nodeTm);
 
-      E3DCOLOR legacy = E3DCOLOR(colors[i % (sizeof(colors) / sizeof(colors[0]))]);
+      E3DCOLOR legacy = collision_node_color(i);
       legacy.a = alpha;
       draw_collision_mesh(collision_res, i, nodeTm, nodeColoring(legacy, true), degenerativeIndices, opts, ssParams);
     }
@@ -1275,7 +1281,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
     {
       set_cached_debug_lines_wtm(TMatrix::IDENT);
 
-      NodeColoring coloring = nodeColoring(E3DCOLOR(colors[i % (sizeof(colors) / sizeof(colors[0]))]), false);
+      NodeColoring coloring = nodeColoring(collision_node_color(i), false);
 
       const TMatrix &nTm = collision_res.getNodeTm(i);
       bool haveInvalidVertices = false;

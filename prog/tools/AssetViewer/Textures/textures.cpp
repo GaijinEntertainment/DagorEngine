@@ -51,6 +51,19 @@ enum
   TEX_COLOL_MODE_TOO_BRIGHT,
 };
 
+// The texture can be allocated above its loaded level, and then its top mips are empty.
+static int get_first_loaded_mip(TEXTUREID tex_id, BaseTexture &texture)
+{
+  const int loadedLevel = get_managed_res_loaded_lev(tex_id);
+  if (loadedLevel <= 1)
+    return 0;
+
+  TextureInfo ti;
+  texture.getinfo(ti);
+  const int allocatedLevel = get_log2i(max(ti.w, ti.h));
+  return max(allocatedLevel - loadedLevel, 0);
+}
+
 //=============================================================================
 TexturesPlugin::TexturesPlugin()
 {
@@ -221,7 +234,7 @@ bool TexturesPlugin::end()
   if (spEditor)
     spEditor->destroyPanel();
   if (texture)
-    texture->texmiplevel(-1, 0);
+    texture->texmiplevel(get_first_loaded_mip(texId, *texture), -1);
   texture = NULL;
   ::release_managed_tex(texId);
   texId = BAD_TEXTUREID;
@@ -313,7 +326,8 @@ void TexturesPlugin::renderObjects()
   TextureInfo ti;
   texture->getinfo(ti);
   int miplevBias = int(get_log2i(max(max(ti.w, ti.h), ti.d))) - int(texReqLev);
-  int minmiplev = max(miplevBias + viewMipLevel, 0);
+  const int firstLoadedMip = get_first_loaded_mip(texId, *texture);
+  int minmiplev = max(miplevBias + max(viewMipLevel, 0), firstLoadedMip);
   int maxmiplev = viewMipLevel < 0 ? miplevBias + currentTI.mipLevels - 1 : minmiplev;
 
   texture->texmiplevel(minmiplev, maxmiplev);
@@ -395,7 +409,7 @@ void TexturesPlugin::renderObjects()
       tex_h = currentTI.h * (forceStretch ? k : texScale);
       for (int i = max(viewMipLevel, 0); i < currentTI.mipLevels; i++)
       {
-        texture->texmiplevel(max(miplevBias + i, 0), max(miplevBias + i, 0));
+        texture->texmiplevel(max(miplevBias + i, firstLoadedMip), max(miplevBias + i, firstLoadedMip));
         x1 = x0 + max(tex_w >> i, 1);
         y1 = y0 + max(tex_h >> i, 1);
         StdGuiRender::render_rect_t(x0, y0, x1, y1, tc0, tc1);

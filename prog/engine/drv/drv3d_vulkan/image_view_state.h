@@ -122,7 +122,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
   inline void setMipCount(uint8_t u) { mipmapRange = u - MIPMAP_RANGE_OFFSET; }
   inline uint8_t getMipCount() const { return MIPMAP_RANGE_OFFSET + mipmapRange; }
   ValueRange<uint8_t> getMipRange() const { return {getMipBase(), uint8_t(getMipBase() + getMipCount())}; }
-  inline void setArrayBase(uint8_t u) { arrayOffset = u; }
+  inline void setArrayBase(uint16_t u) { arrayOffset = u; }
   inline uint16_t getArrayBase() const { return arrayOffset; }
   inline void setArrayCount(uint16_t u) { arrayRange = u - ARRAY_RANGE_OFFSET; }
   inline uint16_t getArrayCount() const { return ARRAY_RANGE_OFFSET + (uint32_t)arrayRange; }

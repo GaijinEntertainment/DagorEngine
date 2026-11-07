@@ -148,21 +148,19 @@ public:
     // currentMirrorScaleState.x = currentMirrorScaleState.z = 1;
     // d3d::set_ps_const1(lmesh_ps_const__mirror_scale, currentMirrorScaleState.x, currentMirrorScaleState.z, 0, 0);
   }
-  inline void setBase() const
+  inline void setBase(d3d::SamplerHandle clamp_sampler) const
   {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-    d3d::SamplerHandle clampSampler = d3d::request_sampler(smpInfo);
     d3d::settex(lmesh_sampler__land_detail_map, map1);
-    d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_map, clampSampler);
+    d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_map, clamp_sampler);
     ShaderGlobal::set_int(var::num_detail_textures, numDetailTextures);
     // d3d::set_vs_const(lmesh_vs_const__mul_offset_base+8, (const float*)detMapTcSet, 1);
   }
-  inline void set(bool grass_mask, dag::ConstSpan<LCTexturesLoaded> lc, bool water_decals, Sbuffer *physmatIdsBuf = NULL) const
+  inline void set(bool grass_mask, dag::ConstSpan<LCTexturesLoaded> lc, bool water_decals, Sbuffer *physmatIdsBuf,
+    d3d::SamplerHandle clamp_sampler) const
   {
     if (!water_decals)
-      setBase();
-    uint32_t physmats[4 * 7];
+      setBase(clamp_sampler);
+    uint32_t physmats[4 * 7] = {}; // the whole array is uploaded, also the slots with no landclass
     // fixme: fill with nulls or leave samplers untouched?
     if ((trivial || grass_mask) && !water_decals)
     {

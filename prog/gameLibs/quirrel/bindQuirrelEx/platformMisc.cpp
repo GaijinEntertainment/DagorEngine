@@ -115,6 +115,7 @@ static Sqrat::Table make_platform_exports(HSQUIRRELVM vm)
     .Func("get_console_model_revision", sq_get_console_model_revision)
     .Func("get_default_lang", get_default_lang)
     .Func("is_gdk_used", is_gdk_used)
+    .Func("is_running_on_handheld", is_running_on_handheld)
     /**/;
 #define SET_CONST(n) tbl.SetValue(#n, SQInteger((int)ConsoleModel::n));
   /// @const UNKNOWN

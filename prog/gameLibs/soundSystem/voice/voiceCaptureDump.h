@@ -12,7 +12,7 @@ namespace voicechat
 // preroll, and the output. A dump ends at the seconds asked for, where the capture stream ends, or where its output
 // rate leaves the processor's set, whichever is first.
 // It holds no denoise or preprocess switch, so a replay needs the switches the session ran with.
-// constraint: the capture thread makes the recording calls; write may then run on any one thread
+// the capture thread makes the recording calls; write may then run on any one thread
 class CaptureDump
 {
 public:

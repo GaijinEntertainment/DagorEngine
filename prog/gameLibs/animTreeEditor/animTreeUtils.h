@@ -11,7 +11,9 @@
 #include <math/dag_TMatrix.h>
 #include <generic/dag_span.h>
 #include <propPanel/c_common.h>
+#include <util/dag_string.h>
 #include <EASTL/string_view.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 
 namespace PropPanel
 {
@@ -33,6 +35,8 @@ bool is_include_ctrl(const AnimCtrlData &data);
 
 const AnimParamData *find_param_by_name(dag::ConstSpan<AnimParamData> params, const char *name);
 AnimParamData *find_param_by_name(dag::Vector<AnimParamData> &params, const char *name);
+// Skips comment params, whose pid is -1.
+int get_last_ctrl_field_pid(dag::ConstSpan<AnimParamData> params);
 template <typename T>
 T *find_data_by_handle(dag::Vector<T> &data_vec, PropPanel::TLeafHandle handle)
 {
@@ -108,6 +112,9 @@ String get_default_varname_from_name(const dag::Vector<AnimParamData> &params, P
 void set_varname_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
 void update_varname_dependent_fields(AnimParamData &param, dag::Vector<AnimParamData> &params,
   PropPanel::ContainerPropertyControl *panel);
+void set_key_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
+// Returns the key_start value before removal
+SimpleString remove_key_params_if_default(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
 
 void remove_param_if_default_float(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
   float default_value = 0.f);
@@ -159,8 +166,21 @@ DataBlock get_props_from_include_leaf(dag::ConstSpan<String> paths, const DagorA
   PropPanel::TLeafHandle include_leaf, String &full_path, bool only_includes = false);
 DataBlock get_props_from_include_state_data(dag::ConstSpan<String> paths, dag::ConstSpan<AnimCtrlData> ctrls, const DagorAsset &asset,
   PropPanel::ContainerPropertyControl *ctrls_tree, const AnimStatesData &state_data, String &full_path, bool only_includes = false);
-DataBlock *get_props_from_include_leaf_ctrl_node(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props,
-  PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle include_leaf);
+// An include can have several AnimBlendCtrl blocks, the runtime reads the ones with use=true in file order.
+// The editor searches all of them, whatever their use is.
+void get_ctrl_blocks(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props, PropPanel::ContainerPropertyControl *tree,
+  PropPanel::TLeafHandle include_leaf, dag::Vector<DataBlock *> &out_blocks);
+DataBlock *find_ctrl_settings(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props, PropPanel::ContainerPropertyControl *tree,
+  PropPanel::TLeafHandle include_leaf, const String &name, bool should_exist = true);
+DataBlock *find_ctrl_animate_and_proc_block(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props,
+  PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle include_leaf, const String &name);
+DataBlock *find_ctrl_owner_block(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props, PropPanel::ContainerPropertyControl *tree,
+  PropPanel::TLeafHandle include_leaf, const String &name);
+DataBlock *get_ctrl_block_to_add(dag::ConstSpan<AnimCtrlData> ctrls, DataBlock &props, PropPanel::ContainerPropertyControl *tree,
+  PropPanel::TLeafHandle include_leaf);
+// Block with the @include of the inner include with this name, or the block to add a new inner include to
+DataBlock *get_inner_include_block(dag::ConstSpan<AnimCtrlData> ctrls, dag::ConstSpan<String> paths, DataBlock &props,
+  PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle include_leaf, const String &name);
 
 struct CtrlChildSearchResult
 {
@@ -171,6 +191,29 @@ struct CtrlChildSearchResult
 };
 
 eastl::string_view name_without_node_mask_suffix(eastl::string_view str);
+
+// Child lookup by name for a whole tree fill: a caption scan per child reference is quadratic.
+// Captions, controllers and blend nodes must not change while the index is in use.
+class ChildNameIndex
+{
+public:
+  ChildNameIndex(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<AnimCtrlData> controllers,
+    dag::ConstSpan<BlendNodeData> blend_nodes);
+  ChildNameIndex(const ChildNameIndex &) = delete;
+  ChildNameIndex &operator=(const ChildNameIndex &) = delete;
+  CtrlChildSearchResult find(PropPanel::TLeafHandle parent_handle, const char *name) const;
+
+private:
+  using NameToIdx = ska::flat_hash_map<eastl::string_view, int>;
+
+  PropPanel::ContainerPropertyControl *ctrlsTree;
+  dag::ConstSpan<AnimCtrlData> ctrls;
+  dag::ConstSpan<BlendNodeData> blendNodes;
+  dag::Vector<String> captions;
+  NameToIdx ctrlIdxByName;
+  NameToIdx nodeIdxByName;
+};
+
 CtrlChildSearchResult find_child_idx_and_icon_by_name(PropPanel::ContainerPropertyControl *ctrls_tree,
   PropPanel::ContainerPropertyControl *nodes_tree, PropPanel::TLeafHandle parent_handle, dag::ConstSpan<AnimCtrlData> controllers,
   dag::ConstSpan<BlendNodeData> blend_nodes, const char *name);
@@ -182,8 +225,10 @@ int find_state_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, Pro
   dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name);
 int find_init_fifo3_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel::TLeafHandle parent_handle,
   dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name);
-int add_ctrl_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data,
-  dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name);
+int find_child_idx_by_name(const ChildNameIndex &child_index, PropPanel::TLeafHandle parent_handle, const char *name);
+int find_state_child_idx_by_name(const ChildNameIndex &child_index, PropPanel::TLeafHandle parent_handle, const char *name);
+int find_init_fifo3_child_idx_by_name(const ChildNameIndex &child_index, PropPanel::TLeafHandle parent_handle, const char *name);
+int add_ctrl_child_idx_by_name(const ChildNameIndex &child_index, AnimCtrlData &data, const char *name);
 void check_ctrl_child_idx(int idx, const char *ctrl_name, const char *child_name, bool is_optional = false);
 void check_state_child_idx(int idx, const char *state_name, const char *child_name);
 void check_init_anim_state_child_idx(int idx, const char *block_name, const char *child_name);
@@ -221,4 +266,4 @@ void move_childs(dag::Vector<int> &childs, int from, int to);
 bool is_comp_op_needs_p1(const char *op);
 
 Tab<String> collect_random_switch_names(PropPanel::ContainerPropertyControl *prop_panel, dag::ConstSpan<AnimCtrlData> controllers,
-  const DataBlock *settings, const char *current_selection);
+  dag::ConstSpan<String> used_names, const char *current_selection);

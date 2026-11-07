@@ -334,8 +334,7 @@ shader skies_render_screen
   (ps) {
     skies_world_view_pos@f3 = skies_world_view_pos;
     skies_panoramic_scattering@f1 = (skies_panoramic_scattering);
-    mu_horizon@f2 = (1-rRG*rRG, -sqrt(1-rRG*rRG),0,0);
-    //mu_horizon@f1 = (-sqrt(1-Rh*Rh),0,0,0);
+    mu_horizon@f1 = (-sqrt(1-rRG*rRG));
     //skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
     zn_zfar_inv@f1 = (1.0/zn_zfar.y);
   }
@@ -475,7 +474,7 @@ shader skies_render_screen
         float miePhase = MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, primaryNu)*RayleighPhaseFunction(primaryNu);
         float4 skyInscatter = sample_skies_scattering_color_tc(skiesLutTC, view, miePhase);
       #endif
-      float mu_hor = -sqrt(mu_horizon.x);//we have to keep sqrt in shader, otherwise results differ
+      float mu_hor = mu_horizon;
       float eps = 0.0015;
       bool lerpColors = abs(view.y-mu_hor) < eps;
       float3 viewBelow = float3(normalize(view.xz)*sqrt(1- pow2(mu_hor - eps)), mu_hor - eps).xzy;

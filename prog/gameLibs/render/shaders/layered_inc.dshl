@@ -1,4 +1,5 @@
 include "get_mix_weight_inc.dshl"
+include "debug_gbuffer_tex.dshl"
 include "parallax_shadow.dshl"
 
 macro WEIGHT_BLENDING(stage)
@@ -57,21 +58,22 @@ macro INIT_LAYERED(always_use_normal_details)
   texture normal = material.texture[2];
   texture tex1 = material.texture[3];
   texture tex2 = material.texture[5];
-  if (always_use_normal_details || (normal != NULL && compatibility_mode == compatibility_mode_off))
+  bool use_normal_details = always_use_normal_details || (normal != NULL && compatibility_mode == compatibility_mode_off);
+  if (use_normal_details)
   {
     texture normal1 = material.texture[4];
     texture normal2 = material.texture[6];
   }
 endmacro
 
-macro USE_LAYERED_PS(always_use_normal_details)
+macro USE_LAYERED_PS()
   (ps) {
     diffuse_tex@staticSmp = tex;
     normal_tex@staticSmp = normal;
     diffuse_tex1@staticTex = tex1;
     diffuse_tex2@staticTex = tex2;
   }
-  if (always_use_normal_details || (normal != NULL && compatibility_mode == compatibility_mode_off))
+  if (use_normal_details)
   {
     (ps) {
       normal_tex1@staticTex = normal1;
@@ -164,8 +166,10 @@ macro LAYERED_VS_FUNCTIONS()
 
     void apply_atlas_transform(in float3 instance_init_pos, inout float2 uv12_xy)
     {
+      if (all(get_atlas_tileSize__interval().xy >= 1))
+        return;
       //apply atlas random tile selection (changes only uv12.xy)
-      //atlas_tile_size = whole tex size / one tile size
+      //atlas_tile_size = one tile size / whole tex size
       //atlas_tiles_interval - each objects has an interval of allowed tiles (first_tile & tiles_count)
       //if atlas has an offset (if atlas is just a part of texture), then atlas_first_tile should take into consideration this fact
       float2 uv_inside_tile = frac(uv12_xy / get_atlas_tileSize__interval().xy) * get_atlas_tileSize__interval().xy;
@@ -204,6 +208,7 @@ macro LAYERED_HEIGHTMAP_PS()
 endmacro
 
 macro LAYERED_PS(is_normal_pass, use_parallax_shadow)
+  INIT_AND_USE_DBG_GBUFF_TEX()
   if (compatibility_mode == compatibility_mode_off && use_parallax_shadow && rendinst_render_pass == rendinst_render_pass_normal)
   {
     hlsl(ps) {
@@ -238,8 +243,8 @@ macro LAYERED_PS(is_normal_pass, use_parallax_shadow)
     #endif
     static const float modulation_detail2_alpha_inv_weight = 0.85;
 
-    #ifdef FORCE_EARLY_DEPTH_STENCIL
-      FORCE_EARLY_DEPTH_STENCIL
+    #ifdef USE_EARLY_DEPTH_STENCIL
+      USE_EARLY_DEPTH_STENCIL
     #endif
 
     #ifndef IS_DYNAMIC
@@ -364,6 +369,7 @@ macro LAYERED_PS(is_normal_pass, use_parallax_shadow)
         init_shadow(gbuffer, shadow);
 
         init_albedo(gbuffer, diffuseColor.rgb);
+        init_worldTexelDensity(gbuffer, get_diffuse_tex().tex, input.uv12.xy, input.pointToEye.xyz);
         init_dynamic(gbuffer, IS_DYNAMIC);
 
         float4 screenpos = GET_SCREEN_POS(input.pos);

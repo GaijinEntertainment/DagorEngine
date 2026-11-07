@@ -21,7 +21,7 @@ class Di8JoystickClassDriver final : public IGenJoystickClassDrv, public IWndPro
 public:
   using Di8DeviceList = Tab<Di8JoystickDevice *>;
 
-  Di8JoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads);
+  Di8JoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_dspads);
   ~Di8JoystickClassDriver();
 
   bool init();

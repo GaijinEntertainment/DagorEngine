@@ -1,0 +1,5 @@
+Forbid implicit type methods
+OK: 'rawget' is field in table
+OK: 'keys' is built-in method of table. Exception: "the index 'keys' (type='string') does not exist"
+OK: 'rawget' is built-in method of table accessed via '$'
+OK: Safe access of built-in method 'keys' in both '$' and regular cases succeseded

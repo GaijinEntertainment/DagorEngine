@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/daFrameGraph/daFG.h>
+#include <render/denoiser/denoiser_api.h>
 #include <ecs/render/updateStageRender.h>
 #include <render/cascadeShadows.h>
 #include <render/rendererFeatures.h>
@@ -27,6 +28,7 @@ dafg::NodeHandle makeTransparentEcsNode()
     read_prev_frame_tex(registry);
     registry.read("glass_depth_for_merge").texture().atStage(dafg::Stage::POST_RASTER).bindToShaderVar("glass_hole_mask").optional();
     registry.read("glass_target").texture().atStage(dafg::Stage::POST_RASTER).bindToShaderVar("glass_rt_reflection").optional();
+    denoiser::read_shadow_output(registry);
 
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
     return [cameraHndl, strmCtxHndl](const dafg::multiplexing::Index &multiplexing_index) {

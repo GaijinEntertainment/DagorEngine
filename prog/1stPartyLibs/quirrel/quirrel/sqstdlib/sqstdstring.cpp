@@ -360,7 +360,7 @@ static const SQRegFunctionFromStr stringlib_funcs[] = {
     { _string_strip, "pure fastcall strip(str: string): string" },
     { _string_lstrip, "pure fastcall lstrip(str: string): string" },
     { _string_rstrip, "pure fastcall rstrip(str: string): string" },
-    { _string_split_by_chars, "split_by_chars(str: string, separators: string, [skip_empty: bool]): array" },
+    { _string_split_by_chars, "nodiscard split_by_chars(str: string, separators: string, [skip_empty: bool]): array" },
     { _string_escape, "pure escape(str: string): string" },
     { _string_startswith, "pure fastcall startswith(str: string, prefix: string): bool" },
     { _string_endswith, "pure fastcall endswith(str: string, suffix: string): bool" },

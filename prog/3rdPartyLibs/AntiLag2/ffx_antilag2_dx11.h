@@ -161,9 +161,12 @@ namespace AntiLag2DX11 {
                 data.uiVersion = 1;
                 data.eMode = enabled ? 1 : 2;
                 data.maxFPS = maxFPS;
-                static const char params[] = "delag_next_osd_supported_in_dxxp = 1";
-                data.sControlStr = params;
-                data.uiControlStrLength = _countof( params ) - 1;
+                /** Gaijin
+                 * Do not send the control string: amdxx64.dll over-reads its
+                 * own heap copy of the value out of bounds.
+                 */
+                data.sControlStr = nullptr;
+                data.uiControlStrLength = 0;
 
                 // Only call the function with non-null arguments when setting state.
                 // Make sure not to set the state every frame.

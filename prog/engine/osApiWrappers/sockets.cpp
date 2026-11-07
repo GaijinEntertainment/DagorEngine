@@ -287,7 +287,7 @@ int os_socket_set_option(os_socket_t s, OsSocketOption option, intptr_t value)
 
 int os_socket_read_select(os_socket_t s, int time_sec, int time_usec)
 {
-#if !(_TARGET_PC_WIN | _TARGET_XBOX | _TARGET_C3) // constraint: their FD_SET does not index by s
+#if !(_TARGET_PC_WIN | _TARGET_XBOX | _TARGET_C3) // their FD_SET does not index by s
   ASSURE(unsigned(s) < FD_SETSIZE, LOCAL_EINVAL, -1);
 #endif
   fd_set receiveSet;

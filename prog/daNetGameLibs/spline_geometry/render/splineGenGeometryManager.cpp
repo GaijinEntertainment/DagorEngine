@@ -288,43 +288,37 @@ void SplineGenGeometryManager::addInstancesToBVH(bvh::ContextId context_id)
 
   TIME_D3D_PROFILE(spline_gen_geometry_add_to_bvh);
 
-  eastl::vector<uint32_t> totalInstanceIds;
-  totalInstanceIds.reserve(usedSpots.size() + inactiveSpots.size());
-  totalInstanceIds.insert(totalInstanceIds.end(), usedSpots.begin(), usedSpots.end());
-  totalInstanceIds.insert(totalInstanceIds.end(), inactiveSpots.begin(), inactiveSpots.end());
-
-  eastl::vector<eastl::pair<uint32_t, bvh::MeshInfo>> bvhMeshes;
-  bvhMeshes.reserve(totalInstanceIds.size());
   int instanceVertexCount = getInstanceVertexCount();
   Sbuffer *curVertexBuffer = vertexBuffer[currentBufferIndex].getBuf();
 
-  for (InstanceId instanceId : totalInstanceIds)
-  {
-    bvh::MeshInfo meshInfo;
-    meshInfo.indices = ibPtr.lock()->indexBuffer.getBuf();
-    meshInfo.indexCount = getInstanceTriangleCount() * 3;
-    meshInfo.startIndex = 0;
-    meshInfo.vertices = curVertexBuffer;
-    meshInfo.vertexCount = instanceVertexCount;
-    meshInfo.startVertex = 0;
-    meshInfo.vertexSize = sizeof(SplineGenVertex);
-    meshInfo.baseVertex = instanceId * instanceVertexCount;
-    meshInfo.positionOffset = offsetof(SplineGenVertex, worldPos);
-    meshInfo.positionFormat = VSDT_FLOAT3;
-    meshInfo.texcoordOffset = offsetof(SplineGenVertex, texcoord);
-    meshInfo.texcoordFormat = VSDT_FLOAT2;
-    meshInfo.normalOffset = offsetof(SplineGenVertex, normal);
-    meshInfo.posMul = Point4::ONE;
-    meshInfo.posAdd = Point4::ZERO;
-    meshInfo.albedoTextureId = diffuseTex.getTexId();
+  bvh::MeshInfo meshInfo;
+  meshInfo.indices = ibPtr.lock()->indexBuffer.getBuf();
+  meshInfo.indexCount = getInstanceTriangleCount() * 3;
+  meshInfo.startIndex = 0;
+  meshInfo.vertices = nullptr; // SplineGenVertexProcessor will use the VB provided by the callback
+  meshInfo.vertexCount = instanceVertexCount;
+  meshInfo.startVertex = 0;
+  meshInfo.vertexSize = sizeof(SplineGenVertex);
+  meshInfo.baseVertex = 0;
+  meshInfo.positionOffset = offsetof(SplineGenVertex, worldPos);
+  meshInfo.positionFormat = VSDT_FLOAT3;
+  meshInfo.texcoordOffset = offsetof(SplineGenVertex, texcoord);
+  meshInfo.texcoordFormat = VSDT_FLOAT2;
+  meshInfo.normalOffset = offsetof(SplineGenVertex, normal);
+  meshInfo.posMul = Point4::ONE;
+  meshInfo.posAdd = Point4::ZERO;
+  meshInfo.albedoTextureId = diffuseTex.getTexId();
 
-    bvhMeshes.push_back(eastl::make_pair(instanceId, meshInfo));
-  }
-
-  bvh::gather_splinegen_instances(context_id, curVertexBuffer, bvhMeshes, instanceVertexCount, bvhId);
+  bvh::gather_splinegen_instances(context_id, curVertexBuffer, meshInfo, usedSpots, inactiveSpots, bvhId);
 }
 
 void SplineGenGeometryManager::removeBVHContext() { bvhContextId = nullptr; }
+
+void SplineGenGeometryManager::removePendingBVHObjectAdd()
+{
+  if (bvhContextId)
+    bvh::remove_spline_gen_pending_object_add(bvhContextId, bvhId);
+}
 
 void SplineGenGeometryManager::uploadCameraCullData()
 {
@@ -488,19 +482,14 @@ uint32_t SplineGenGeometryManager::getInstanceVertexCount() const { return (slic
 
 void SplineGenGeometryManager::allocateBuffers()
 {
-  bool neededInBVH = is_bvh_enabled();
+  bool neededInBVH = is_bvh_enabled() && is_bvh_dyn_models_enabled();
   if (!needsAllocation && needsVertexGeneration == (vertex_gen_phase_exists || neededInBVH))
     return;
 
   needsVertexGeneration = vertex_gen_phase_exists || neededInBVH;
 
-  // Queued BVH object builds hold raw pointers to the current vertex buffers, so drop them
-  // before the buffers are replaced or closed below.
-  if (bvhContextId)
-    bvh::remove_spline_gen_instances(bvhContextId);
-
   String buffName;
-  buffName = String(0, "%i_splineGen_instancingStagingBuffer", templateName.c_str());
+  buffName = String(0, "%s_splineGen_instancingStagingBuffer", templateName.c_str());
   instancingStagingBuffer = dag::create_sbuffer(sizeof(SplineGenInstance), getAllocatedInstanceCount(),
     SBCF_MISC_STRUCTURED | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_DYNAMIC, 0, buffName);
 

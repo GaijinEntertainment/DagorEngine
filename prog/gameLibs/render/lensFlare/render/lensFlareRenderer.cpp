@@ -389,6 +389,8 @@ void LensFlareRenderer::prepareConfigBuffers(const eastl::vector<LensFlareConfig
     VBLOCK_WRITEONLY);
   vertexPositionsBuf->updateData(0, sizeof(float) * 2 * vertexPositionsBufferContent.size(), vertexPositionsBufferContent.data(),
     VBLOCK_WRITEONLY);
+  if (indexBufferContent.size() & 1) // Make sure buffer size is divisble by 4
+    indexBufferContent.push_back(indexBufferContent.back());
   flareIB->updateData(0, data_size(indexBufferContent), indexBufferContent.data(), VBLOCK_WRITEONLY);
   flareVB->updateData(0, data_size(vertexBufferContent), vertexBufferContent.data(), VBLOCK_WRITEONLY);
   if (auto bufferData = lock_sbuffer<LensFlareVisibilityHistoryData>(lensFlareVisibilityHistoryBuf.getBuf(), 0,

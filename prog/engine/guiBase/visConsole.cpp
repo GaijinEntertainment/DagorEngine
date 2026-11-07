@@ -317,14 +317,14 @@ bool DefaultDagorVisualConsoleDriver::processKey(int btn_id, int wchar, bool han
 
       case HumanInput::DKEY_U:
       {
-        if (controlPressed)
+        if (!controlPressed)
+          onDefKey();
+        else if (editPos > 0)
         {
           erase_items(editText, 0, editPos);
           editPos = 0;
           onCommandModified();
         }
-        else
-          onDefKey();
       }
       break;
 

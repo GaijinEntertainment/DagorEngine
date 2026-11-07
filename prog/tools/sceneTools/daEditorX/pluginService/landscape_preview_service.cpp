@@ -367,15 +367,39 @@ private:
     {
       ShaderGlobal::set_texture(prev_downsampled_far_depth_texVarId, BAD_TEXTUREID);
     }
-    // Drop our stub heightmap binding so stubHeightmapTex.close() releases cleanly.
-    if (tex_hmap_lowVarId >= 0)
-    {
-      ShaderGlobal::set_texture(tex_hmap_lowVarId, BAD_TEXTUREID);
-    }
-    if (tex_hmap_highVarId >= 0)
-    {
-      ShaderGlobal::set_texture(tex_hmap_highVarId, BAD_TEXTUREID);
-    }
+  }
+
+  struct HeightmapGlobals
+  {
+    TEXTUREID texLow, texHigh;
+    d3d::SamplerHandle texLowSampler;
+    Color4 worldToHmapLow, worldToHmapHigh, invSizes, region, scale;
+  };
+
+  HeightmapGlobals saveHeightmapGlobals() const
+  {
+    HeightmapGlobals g;
+    g.texLow = ShaderGlobal::get_tex(tex_hmap_lowVarId);
+    g.texHigh = ShaderGlobal::get_tex(tex_hmap_highVarId);
+    g.texLowSampler = ShaderGlobal::get_sampler(tex_hmap_low_samplerstateVarId);
+    g.worldToHmapLow = ShaderGlobal::get_float4(world_to_hmap_lowVarId);
+    g.worldToHmapHigh = ShaderGlobal::get_float4(world_to_hmap_highVarId);
+    g.invSizes = ShaderGlobal::get_float4(tex_hmap_inv_sizesVarId);
+    g.region = ShaderGlobal::get_float4(heightmap_regionVarId);
+    g.scale = ShaderGlobal::get_float4(heightmap_scaleVarId);
+    return g;
+  }
+
+  void restoreHeightmapGlobals(const HeightmapGlobals &g)
+  {
+    ShaderGlobal::set_texture(tex_hmap_lowVarId, g.texLow);
+    ShaderGlobal::set_texture(tex_hmap_highVarId, g.texHigh);
+    ShaderGlobal::set_sampler(tex_hmap_low_samplerstateVarId, g.texLowSampler);
+    ShaderGlobal::set_float4(world_to_hmap_lowVarId, g.worldToHmapLow);
+    ShaderGlobal::set_float4(world_to_hmap_highVarId, g.worldToHmapHigh);
+    ShaderGlobal::set_float4(tex_hmap_inv_sizesVarId, g.invSizes);
+    ShaderGlobal::set_float4(heightmap_regionVarId, g.region);
+    ShaderGlobal::set_float4(heightmap_scaleVarId, g.scale);
   }
 
   void ensureStubHeightmap()
@@ -399,6 +423,7 @@ private:
     tex_hmap_highVarId = get_shader_variable_id("tex_hmap_high", true);
     world_to_hmap_highVarId = get_shader_variable_id("world_to_hmap_high", true);
     heightmap_regionVarId = get_shader_variable_id("heightmap_region", true);
+    tex_hmap_low_samplerstateVarId = get_shader_variable_id("tex_hmap_low_samplerstate", true);
     from_sun_directionVarId = get_shader_variable_id("from_sun_direction", true);
     sun_light_colorVarId = get_shader_variable_id("sun_light_color", true);
     amb_light_colorVarId = get_shader_variable_id("amb_light_color", true);
@@ -501,7 +526,6 @@ private:
       ShaderGlobal::set_texture(tex_hmap_highVarId, boundHmapId);
     }
 
-    static int tex_hmap_low_samplerstateVarId = get_shader_variable_id("tex_hmap_low_samplerstate", true);
     if (tex_hmap_low_samplerstateVarId >= 0)
     {
       d3d::SamplerInfo smpInfo;
@@ -631,6 +655,7 @@ private:
     Driver3dPerspective prevPersp;
     const bool hadPrevPersp = d3d::getpersp(prevPersp);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+    const HeightmapGlobals hostHmapGlobals = saveHeightmapGlobals();
 
     // Set our view/proj. Camera aspect matches the backing alloc size; the
     // panel crops a centered UV sub-rect of the result to fit its own aspect.
@@ -832,6 +857,7 @@ private:
     {
       ShaderGlobal::set_texture(prev_downsampled_far_depth_texVarId, prevDsPrevFarDepthTex);
     }
+    restoreHeightmapGlobals(hostHmapGlobals);
 
     // Restore previous state
     d3d::set_render_target(prevRt);
@@ -908,6 +934,7 @@ private:
   int tex_hmap_highVarId = -1;
   int world_to_hmap_highVarId = -1;
   int heightmap_regionVarId = -1;
+  int tex_hmap_low_samplerstateVarId = -1;
   int from_sun_directionVarId = -1;
   int sun_light_colorVarId = -1;
   int amb_light_colorVarId = -1;

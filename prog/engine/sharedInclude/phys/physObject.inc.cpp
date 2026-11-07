@@ -33,10 +33,10 @@ void DynamicPhysObject::resetTm(const TMatrix &tm)
 
 template <>
 void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWorld *world, const TMatrix &tm, uint16_t fgroup,
-  uint16_t fmask)
+  uint16_t fmask, bool add_to_world)
 {
   if (phys_obj_data->physRes && world)
-    physSys = new PhysSystemInstance(phys_obj_data->physRes, world, &tm, &ud, fgroup, fmask);
+    physSys = new PhysSystemInstance(phys_obj_data->physRes, world, tm, &ud, fgroup, fmask, add_to_world);
   if (phys_obj_data->nodeTree)
     nodeTree.reset(GeomNodeTree::make(*phys_obj_data->nodeTree));
 
@@ -117,14 +117,14 @@ void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWor
 
 template <>
 DynamicPhysObject *DynamicPhysObject::create(const DynamicPhysObjectData *data, PhysWorld *world, const TMatrix &tm, uint16_t fgroup,
-  uint16_t fmask)
+  uint16_t fmask, bool add_to_world)
 {
   if (!data || !world)
     return NULL;
 
   DynamicPhysObject *obj = new (midmem) DynamicPhysObject;
   obj->data = data;
-  obj->init(data, world, tm, fgroup, fmask);
+  obj->init(data, world, tm, fgroup, fmask, add_to_world);
 
   return obj;
 }

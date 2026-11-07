@@ -4,13 +4,13 @@
 #include "driver.h"
 #include "mirrored_ring_memory.h"
 
-#include <atomic>
 #include <EASTL/numeric.h>
 #include <EASTL/numeric_limits.h>
 #include <EASTL/span.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_addressWait.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <osApiWrappers/dag_lockProfiler.h>
 #include <perfMon/dag_statDrv.h>
 #include <debug/dag_debug.h>
@@ -1740,10 +1740,12 @@ protected:
 // With c++20 atomics have wait, notify_one and notify_all to wait on value changes
 // this does this by polling with gradually giving up more cpu cycles to the system.
 // Makes use of WaitOnAddress/WakeByAddressSingle/WakeByAddressAll (win10+, DX12 requirement)
-template <typename T>
-inline void wait(std::atomic<T> &adr, T value, std::memory_order order = std::memory_order_seq_cst)
+// A is a dag::Atomic* type; the optional order is forwarded to load() as a dag::memory_order tag
+template <typename A, typename... MO>
+inline void wait(A &adr, typename A::ValueType value, MO... order)
 {
-  G_STATIC_ASSERT(sizeof(std::atomic<T>) == sizeof(T));
+  using T = typename A::ValueType;
+  G_STATIC_ASSERT(sizeof(A) == sizeof(T));
   // https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitonaddress
   // Note: WaitOnAddress is guaranteed to return when the address is signaled, but it is also allowed to return for other reasons.
   // For this reason, after WaitOnAddress returns the caller should compare the new value with the original undesired value to
@@ -1751,7 +1753,7 @@ inline void wait(std::atomic<T> &adr, T value, std::memory_order order = std::me
   // - Low memory conditions
   // - A previous wake on the same address was abandoned
   // - Executing code on a checked build of the operating system
-  while (adr.load(order) == value) // to prevent spurious wake ups
+  while (adr.load(order...) == value) // to prevent spurious wake ups
   {
     if constexpr (sizeof(T) == sizeof(uint32_t))
       os_wait_on_address(reinterpret_cast<volatile unsigned *>(&adr), reinterpret_cast<unsigned *>(&value));
@@ -1763,14 +1765,14 @@ inline void wait(std::atomic<T> &adr, T value, std::memory_order order = std::me
   }
 }
 
-template <typename T>
-inline void notify_one(std::atomic<T> &adr)
+template <typename A>
+inline void notify_one(A &adr)
 {
   os_wake_on_address_one(reinterpret_cast<volatile unsigned *>(&adr));
 }
 
-template <typename T>
-inline void notify_all(std::atomic<T> &adr)
+template <typename A>
+inline void notify_all(A &adr)
 {
   os_wake_on_address_all(reinterpret_cast<volatile unsigned *>(&adr));
 }
@@ -1831,13 +1833,13 @@ private:
   size_t consumerWakeThreshold{0};
   // Memory allocation/reservation counter, memory allocated but not committed is in flight and
   // still be written to by someone
-  alignas(false_sharing_avoidance_alignment) std::atomic<size_t> allocationCount{0};
+  alignas(false_sharing_avoidance_alignment) dag::AtomicInteger<size_t> allocationCount{0};
   // Memory committed counter, this is how much memory is ready for consumption
-  alignas(false_sharing_avoidance_alignment) std::atomic<size_t> committedCount{0};
+  alignas(false_sharing_avoidance_alignment) dag::AtomicInteger<size_t> committedCount{0};
   // Free memory counter, consumer adds memory that it consumed to this
-  alignas(false_sharing_avoidance_alignment) std::atomic<size_t> freeCount{0};
+  alignas(false_sharing_avoidance_alignment) dag::AtomicInteger<size_t> freeCount{0};
   // if a consumer enters the wait queue this will be greater than zero, producers will then notify the consumers on next commit
-  alignas(false_sharing_avoidance_alignment) std::atomic<size_t> consumerWaiting{0};
+  alignas(false_sharing_avoidance_alignment) dag::AtomicInteger<size_t> consumerWaiting{0};
   // Fallback storage: ring plus a tail appendix, used when the mirror can not
   // be created.
   alignas(false_sharing_avoidance_alignment) eastl::unique_ptr<DataStoreType[]> store;
@@ -1877,11 +1879,11 @@ private:
   {
     G_FAST_ASSERT(sz < size);
 
-    auto currentAllocationCount = allocationCount.load(std::memory_order_acquire);
+    auto currentAllocationCount = allocationCount.load(dag::memory_order_acquire);
     // start with relaxed load. as freePos won't decrease, thus we can only get false-negative
     // which will be fixed with next loop iteration
     // optimizes happy path
-    auto freePos = freeCount.load(std::memory_order_relaxed);
+    auto freePos = freeCount.load(dag::memory_order_relaxed);
     for (;;)
     {
       if (DAGOR_LIKELY(calculateFreeSize(currentAllocationCount, freePos) >= sz))
@@ -1897,7 +1899,7 @@ private:
       {
         waitForFree(freePos);
       }
-      freePos = freeCount.load(std::memory_order_acquire);
+      freePos = freeCount.load(dag::memory_order_acquire);
     }
     return currentAllocationCount;
   }
@@ -1916,11 +1918,11 @@ private:
     }
     if (ConsumerNotificationPolicy::WhenWaiting == notification_policy)
     {
-      if (0 == consumerWaiting.load(std::memory_order_relaxed))
+      if (0 == consumerWaiting.load(dag::memory_order_relaxed))
       {
         return;
       }
-      if (consumerWakeThreshold > 0 && nextCommited - freeCount.load(std::memory_order_relaxed) < consumerWakeThreshold)
+      if (consumerWakeThreshold > 0 && nextCommited - freeCount.load(dag::memory_order_relaxed) < consumerWakeThreshold)
       {
         return;
       }
@@ -1944,12 +1946,12 @@ private:
 
   __forceinline VisitableRange getVisitableRange() const
   {
-    return {freeCount.load(std::memory_order_relaxed), committedCount.load(std::memory_order_acquire)};
+    return {freeCount.load(dag::memory_order_relaxed), committedCount.load(dag::memory_order_acquire)};
   }
 
   __forceinline void updateFree(const VisitableRange &at)
   {
-    freeCount.store(at.from, std::memory_order_release);
+    freeCount.store(at.from, dag::memory_order_release);
     notify_all(freeCount);
   }
 
@@ -1974,9 +1976,9 @@ public:
     {
       range += destroyAt(&data[range.index(size)]);
     }
-    committedCount.store(0, std::memory_order_relaxed);
-    allocationCount.store(0, std::memory_order_relaxed);
-    freeCount.store(0, std::memory_order_relaxed);
+    committedCount.store(0, dag::memory_order_relaxed);
+    allocationCount.store(0, dag::memory_order_relaxed);
+    freeCount.store(0, dag::memory_order_relaxed);
   }
 
   // Requires the ring to be empty; a resize while objects are still in flight is
@@ -1985,11 +1987,11 @@ public:
   // a wrapping object can always be stored contiguously.
   void resize(size_t ring_size, bool allow_mirror = true, size_t consumer_wake_threshold = 0)
   {
-    G_ASSERTF(allocationCount == freeCount && committedCount == freeCount, "You can not resize a "
-                                                                           "ring buffer with "
-                                                                           "active objects in "
-                                                                           "it");
-    if (allocationCount != freeCount || committedCount != freeCount)
+    G_ASSERTF(allocationCount.load() == freeCount.load() && committedCount.load() == freeCount.load(), "You can not resize a "
+                                                                                                       "ring buffer with "
+                                                                                                       "active objects in "
+                                                                                                       "it");
+    if (allocationCount.load() != freeCount.load() || committedCount.load() != freeCount.load())
     {
       return;
     }
@@ -2090,9 +2092,9 @@ public:
     static desc_id_t dx12WaitDesc = add_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, IsWait, "DX12_waitToVisit");
     ScopeLockProfiler<da_profiler::NoDesc> lp(dx12WaitDesc);
 #endif
-    ++consumerWaiting;
-    wait(committedCount, freeCount.load(std::memory_order_relaxed));
-    --consumerWaiting;
+    consumerWaiting.fetch_add(1);
+    wait(committedCount, freeCount.load(dag::memory_order_relaxed));
+    consumerWaiting.fetch_sub(1);
   }
 
   size_t getRingSize() const { return size; }
@@ -2102,14 +2104,14 @@ public:
   /// Waits until there are no commands pending for execution.
   void waitUntilEmpty()
   {
-    auto currentFreeCount = freeCount.load(std::memory_order_relaxed);
-    while (currentFreeCount != committedCount.load(std::memory_order_relaxed))
+    auto currentFreeCount = freeCount.load(dag::memory_order_relaxed);
+    while (currentFreeCount != committedCount.load(dag::memory_order_relaxed))
     {
       // ensure the consumers are not waiting while we are waiting on consumers to making progress, otherwise we deadlock waiting for
       // consumers that are waiting to be notified
       notify_one(committedCount);
       wait(freeCount, currentFreeCount);
-      currentFreeCount = freeCount.load(std::memory_order_relaxed);
+      currentFreeCount = freeCount.load(dag::memory_order_relaxed);
     }
   }
 

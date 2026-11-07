@@ -14,6 +14,8 @@
 #include <Jolt/Physics/Collision/CollisionDispatch.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
 #include <math/dag_TMatrix.h>
 #include <math/dag_bounds3.h>
@@ -181,6 +183,10 @@ public:
 
   // Should be called after setCollision() to set layer mask for all collision elements.
   void setGroupAndLayerMask(unsigned int group, unsigned int mask);
+  // After setGroupAndLayerMask(): bodies pass through a "passable" static body,
+  // except dynamic ones outside the default group (not debris)
+  void setPassableLayer();
+  bool isPassableLayer() const;
   unsigned int getInteractionLayer() const { return layerMask; }
   unsigned int getGroupMask() const { return groupMask; }
 
@@ -394,6 +400,8 @@ public:
   void setMaxSubSteps(int num_sub_steps) { maxSubSteps = num_sub_steps; }
   void setFixedTimeStep(float fts) { fixedTimeStep = fts; }
 
+  float getLastSimDt() const { return lastSimDt; }
+
   static JPH::PhysicsSystem *getScene() { return jolt_api::physicsSystem; }
 
   void shapeQuery(const PhysBody *body, const TMatrix &from, const TMatrix &to, dag::ConstSpan<PhysBody *> bodies,
@@ -443,7 +451,7 @@ public:
     // float C::addSingleResult(const C::contact_data_t &cp, C::obj_user_data_t *objA, C::obj_user_data_t *objB, <ANY> *objInfo)
     // void  C::visualDebugForSingleResult(const PhysBody *bodyA, const PhysBody *bodyB, const C::contact_data_t &c)
     // bool  C::needsCollision(C::obj_user_data_t *objB, bool b_is_static)
-    // constraint: C must not move either body during the test; AddHit reads each body transform once
+    // C must not move either body during the test; AddHit reads each body transform once
     C &c;
     const PhysBody *pbA, *pb2;
     const PhysBody *curPbB = nullptr;
@@ -452,6 +460,10 @@ public:
     bool haveInvTmA = false, haveCurB = false;
 
     ContactResultCB(C &_c, const PhysBody *pb_a, const PhysBody *pb_b = nullptr) : c(_c), pbA(pb_a), pb2(pb_b) {}
+    // shape A is a free shape at tm_a, not a body: no user data and no body to read the transform from
+    ContactResultCB(C &_c, const JPH::Mat44 &tm_a, const PhysBody *pb_b = nullptr) :
+      c(_c), pbA(nullptr), pb2(pb_b), invTmA(tm_a.Inversed()), haveInvTmA(true)
+    {}
     void AddHit(const JPH::CollideShapeResult &cp) override
     {
       const JPH::BodyID idB = pb2 ? pb2->bodyId : cp.mBodyID2;
@@ -462,13 +474,13 @@ public:
         invTmB = body_api().GetWorldTransform(idB).Inversed();
         haveCurB = true;
       }
-      if (!haveInvTmA)
+      if (pbA && !haveInvTmA)
       {
         invTmA = body_api().GetWorldTransform(pbA->bodyId).Inversed();
         haveInvTmA = true;
       }
       auto *pbB = curPbB;
-      void *userPtrA = pbA->getUserData();
+      void *userPtrA = pbA ? pbA->getUserData() : nullptr;
       void *userPtrB = pbB ? pbB->getUserData() : nullptr;
 
       typename C::contact_data_t cdata;
@@ -508,6 +520,31 @@ public:
         body_api().GetCenterOfMassTransform(shapeB->bodyId), {}, {}, defCollideShapeStg, cb);
   }
 
+  // Contact tests over a free shape at tm: a caller that probes with a changing size needs no body and no shape rebuild.
+  template <typename C>
+  static void contactTest(const PhysCollision &shape, const TMatrix &tm, C &contact_cb, int filter_grp = 1u, int filter_mask = 0xFFFFu)
+  {
+    with_stack_shape(shape, [&](const JPH::Shape *s) {
+      const JPH::Mat44 jtm = to_rigid_jMat44(tm);
+      ContactResultCB<C> cb(contact_cb, jtm);
+      phys_sys().GetNarrowPhaseQuery().CollideShape(s, JPH::Vec3::sReplicate(1.0f), jtm.PreTranslated(s->GetCenterOfMass()),
+        defCollideShapeStg, JPH::Vec3::sZero(), cb, {}, PhysBody::ObjFilter(filter_grp, filter_mask), cb);
+    });
+  }
+  template <typename C>
+  static void contactTestPair(const PhysCollision &shape, const TMatrix &tm, const PhysBody *shapeB, C &contact_cb,
+    int filter_grp = 1u, int filter_mask = 0xFFFFu)
+  {
+    if (!needsCollision(shapeB, contact_cb, filter_grp, filter_mask))
+      return;
+    with_stack_shape(shape, [&](const JPH::Shape *s) {
+      const JPH::Mat44 jtm = to_rigid_jMat44(tm);
+      ContactResultCB<C> cb(contact_cb, jtm, shapeB);
+      JPH::CollisionDispatch::sCollideShapeVsShape(s, shapeB->getShape(), JPH::Vec3::sReplicate(1.0f), JPH::Vec3::sReplicate(1.0f),
+        jtm.PreTranslated(s->GetCenterOfMass()), body_api().GetCenterOfMassTransform(shapeB->bodyId), {}, {}, defCollideShapeStg, cb);
+    });
+  }
+
   template <typename C, typename UDT = typename C::obj_user_data_t>
   static bool needsCollision(const PhysBody *bodyB, C &c, int filter_grp = 1, int filter_mask = 0xFFFFu)
   {
@@ -519,6 +556,7 @@ public:
 protected:
   int maxSubSteps = 3;
   float fixedTimeStep = 1.f / 60.f;
+  float lastSimDt = 0.f;
 
   dag::RelocatableFixedVector<Material, 1> materials;
 
@@ -532,6 +570,50 @@ protected:
   static bool convex_shape_sweep_test(const JPH::Shape *shape, const Point3 &from, const Point3 &to,
     JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector> &closestCb, PhysShapeQueryResult &out,
     const JPH::ObjectLayerFilter &obj_filter, const JPH::BodyFilter &body_filter);
+
+  // A body pose carries no scale, so a probe tm is reduced the same way (see PhysBody::setTm)
+  static JPH::Mat44 to_rigid_jMat44(const TMatrix &tm)
+  {
+    return JPH::Mat44::sRotationTranslation(to_jQuat(tm), to_jVec3(tm.getcol(3)));
+  }
+  // Runs f(const JPH::Shape *) over a stack shape built from a PhysCollision, so a one-off query makes no heap shape
+  template <typename F>
+  static void with_stack_shape(const PhysCollision &shape, F &&f)
+  {
+    switch (shape.collType)
+    {
+      case PhysCollision::TYPE_SPHERE:
+      {
+        JPH::SphereShape s(static_cast<const PhysSphereCollision &>(shape).getRadius());
+        return f(&s);
+      }
+      case PhysCollision::TYPE_BOX:
+      {
+        auto ext = static_cast<const PhysBoxCollision &>(shape).getSize();
+        JPH::BoxShape s(to_jVec3(ext / 2), jolt_api::min_convex_rad_for_box(ext));
+        return f(&s);
+      }
+      case PhysCollision::TYPE_CAPSULE:
+      {
+        auto &c = static_cast<const PhysCapsuleCollision &>(shape);
+        if (c.getCylinderHeight() <= 0.f) // JPH::CapsuleShape rejects a zero cylinder; the body path makes a sphere too
+        {
+          JPH::SphereShape s(c.getRadius());
+          return f(&s);
+        }
+        JPH::CapsuleShape s(c.getCylinderHeight() * 0.5f, c.getRadius());
+        if (c.getDirIdx() == 1)
+          return f(&s);
+        s.SetEmbedded(); // the wrapper refs a stack shape; embedded keeps its release from deleting it
+        // the same quaternions as PhysBody::create_jolt_collision_shape, so a body and a probe collide bit-identically
+        constexpr float h = 0.70710678118654752440f;
+        const JPH::Quat rot = c.getDirIdx() == 0 ? JPH::Quat(0, 0, h, h) : JPH::Quat(h, 0, 0, h);
+        JPH::RotatedTranslatedShape rts(JPH::Vec3::sZero(), rot, &s);
+        return f(&rts);
+      }
+      default: G_ASSERTF(0, "unsupported collType=%d in %s", shape.collType, __FUNCTION__);
+    }
+  }
 
   static JPH::ShapeCastSettings defShapeCastStg;
   static JPH::CollideShapeSettings defCollideShapeStg;

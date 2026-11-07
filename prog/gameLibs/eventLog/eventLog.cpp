@@ -92,34 +92,26 @@ static Configuration *config = NULL;
 static sockets::SocketAddr<OSAF_IPV4> udp_addr;
 static InitOnDemand<sockets::Socket, false> udp_socket;
 
-static volatile debug_log_callback_t orig_debug_log;
-static int netlog_handler(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static LogHandlerId netlog_handler_id = LogHandlerId::Invalid;
+static void netlog_handler(void *, LogMessage &msg)
 {
-  if (lev_tag == _MAKE4C('nEvt'))
-  {
-    stackhelp::CallStackCaptureStore<32> stack;
-    stackhelp::ext::CallStackCaptureStore extStack;
-    stack.capture();
-    extStack.capture();
+  stackhelp::CallStackCaptureStore<32> stack;
+  stackhelp::ext::CallStackCaptureStore extStack;
+  stack.capture();
+  extStack.capture();
 
-    String s;
-    if (ctx_file)
-      s.printf(0, "%s,%d: ", ctx_file, ctx_line);
-    s.aprintf(0, "%s:", event_log::get_net_assert_version());
-    s.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
-    s.aprintf(256, "\nST:\n%s", get_call_stack_str(stack, extStack));
+  String s;
+  if (msg.ctxFile)
+    s.printf(0, "%s,%d: ", msg.ctxFile, msg.ctxLine);
+  s.aprintf(0, "%s:", event_log::get_net_assert_version());
+  s.avprintf(0, msg.fmt, (const DagorSafeArg *)msg.arg, msg.anum);
+  s.aprintf(256, "\nST:\n%s", get_call_stack_str(stack, extStack));
 
-    static constexpr int MAX_UDP_LENGTH = 900;
-    if (s.length() > MAX_UDP_LENGTH)
-      event_log::send_http("assert", s.str(), s.length());
-    else
-      event_log::send_udp("assert", s.str(), s.length());
-  }
-
-  if (const debug_log_callback_t cb = interlocked_relaxed_load_ptr(orig_debug_log))
-    cb(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
-
-  return 1;
+  static constexpr int MAX_UDP_LENGTH = 900;
+  if (s.length() > MAX_UDP_LENGTH)
+    event_log::send_http("assert", s.str(), s.length());
+  else
+    event_log::send_udp("assert", s.str(), s.length());
 }
 
 static void on_resolved(const sockets::SocketAddr<OSAF_IPV4> &addr)
@@ -207,11 +199,8 @@ bool init(EventLogInitParams const &init_params)
   if (!id.empty())
     defaults::meta["system_id"] = id.c_str();
 
-  if (init_params.use_net_assert_log)
-  {
-    const debug_log_callback_t prevCb = debug_set_log_callback(netlog_handler);
-    interlocked_exchange_ptr(orig_debug_log, prevCb);
-  }
+  if (init_params.use_net_assert_log && netlog_handler_id == LogHandlerId::Invalid)
+    netlog_handler_id = debug_add_log_handler(&netlog_handler, nullptr, {.levelMask = 0, .tags = {LOGTAG_NET_EVENT}});
 
   return true;
 }
@@ -222,6 +211,8 @@ void shutdown()
   if (!is_enabled())
     return;
 
+  debug_remove_log_handler(netlog_handler_id);
+  netlog_handler_id = LogHandlerId::Invalid;
   udp_socket.demandDestroy();
   del_it(config);
   os_sockets_shutdown();

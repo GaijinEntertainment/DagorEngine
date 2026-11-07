@@ -18,7 +18,6 @@
 #include <debug/dag_textMarks.h>
 #include <math/dag_color.h>
 #include <math/dag_mathUtils.h>
-#include <util/dag_convar.h>
 #include <util/dag_globDef.h>
 #include <gui/dag_imgui.h>
 #include <imgui/imgui.h>
@@ -26,8 +25,6 @@
 
 namespace render::pbr_validation
 {
-CONSOLE_BOOL_VAL("render", show_pbr_validation, false);
-
 static Settings g_settings;
 static int mode_var_id = -1;
 static int albedo_range_var_id = -1;
@@ -138,9 +135,6 @@ static const char *material_type_name(int m)
 }
 
 Settings &settings() { return g_settings; }
-
-bool is_enabled() { return show_pbr_validation.get(); }
-void set_enabled(bool on) { show_pbr_validation.set(on); }
 
 void apply_settings()
 {
@@ -601,19 +595,8 @@ void close()
 static void after_device_reset(bool) { close(); }
 REGISTER_D3D_AFTER_RESET_FUNC(after_device_reset);
 
-static void imgui_window()
+void imgui_tab()
 {
-  bool enabled = is_enabled();
-  if (ImGui::Checkbox("Enable PBR validation overlay", &enabled))
-    set_enabled(enabled);
-  if (!enabled)
-  {
-    ImGui::TextDisabled("Enable the overlay to see validation results");
-    return;
-  }
-
-  ImGui::Separator();
-
   const char *modeNames[] = {"Albedo", "Smoothness", "All checks"};
   ImGui::Combo("Validation mode", &g_settings.mode, modeNames, (int)countof(modeNames));
   ImGui::SliderFloat("Overlay opacity", &g_settings.overlayOpacity, 0.0f, 1.0f, "%.2f");
@@ -672,7 +655,6 @@ static void imgui_window()
   }
 }
 
-REGISTER_IMGUI_WINDOW("Debug", "PBR Validation", imgui_window);
 } // namespace render::pbr_validation
 
 #else
@@ -681,11 +663,10 @@ namespace render::pbr_validation
 {
 static Settings g_settings;
 Settings &settings() { return g_settings; }
-bool is_enabled() { return false; }
-void set_enabled(bool) {}
 void apply_settings() {}
 bool bind_probe() { return true; }
 void after_render(BaseTexture *, BaseTexture *, const IPoint2 &) {}
+void imgui_tab() {}
 void close() {}
 } // namespace render::pbr_validation
 

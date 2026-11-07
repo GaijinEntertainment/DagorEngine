@@ -50,8 +50,8 @@ BhvTextAreaEdit bhv_text_area_edit;
 
 
 BhvTextAreaEdit::BhvTextAreaEdit() :
-  Behavior(0,
-    F_HANDLE_KEYBOARD | F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_HANDLE_JOYSTICK | F_FOCUS_ON_CLICK | F_CAN_HANDLE_CLICKS | F_DISPLAY_IME)
+  Behavior(0, F_HANDLE_KEYBOARD | F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_HANDLE_JOYSTICK | F_FOCUS_ON_CLICK | F_CAN_HANDLE_CLICKS |
+                F_DISPLAY_IME | F_USES_TOUCH_MARGIN)
 {}
 
 
@@ -276,8 +276,8 @@ void BhvTextAreaEdit::scroll_cursor_into_view(darg::Element *elem, EditableText 
 }
 
 
-int BhvTextAreaEdit::pointingEvent(ElementTree *etree, Element *elem, InputDevice /*device*/, InputEvent event, int /*pointer_id*/,
-  int /*button_id*/, Point2 pos, int accum_res)
+int BhvTextAreaEdit::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int /*pointer_id*/, int /*button_id*/, Point2 pos, int accum_res)
 {
   if (event == INP_EV_MOUSE_WHEEL || event == INP_EV_POINTER_MOVE)
     return 0;
@@ -285,12 +285,12 @@ int BhvTextAreaEdit::pointingEvent(ElementTree *etree, Element *elem, InputDevic
   if (elem->rendObjType != rendobj_textarea_id)
     return 0;
 
-  if (event == INP_EV_RELEASE && elem->hitTest(pos))
+  if (event == INP_EV_RELEASE && elem->hitTestWithTouchMargin(pos, device))
     return R_PROCESSED;
 
   KbFocus &kbFocus = etree->guiScene->kbFocus;
 
-  if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTest(pos) &&
+  if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTestWithTouchMargin(pos, device) &&
       (!kbFocus.hasCapturedFocus() || kbFocus.focus == elem))
   {
     if (kbFocus.focus != elem) // keep capture mode if already set
@@ -1212,6 +1212,9 @@ void BhvTextAreaEdit::on_ime_finish(void *ud, const char *str, int cursor, int s
 
 void BhvTextAreaEdit::open_ime(Element *elem)
 {
+  if (!GuiScene::get_from_elem(elem)->isScreenKeyboardWanted())
+    return;
+
   EditableText *etext = elem->props.storage.RawGetSlotValue<EditableText *>(elem->csk->editableText, nullptr);
   if (!etext)
   {

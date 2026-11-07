@@ -373,7 +373,6 @@ SubgraphWindow::DrawResult SubgraphWindow::draw(const SubgraphWindowFrame &frame
   const float rounding = scaled(WINDOW_ROUNDING);
 
   ImGui::SetCursorScreenPos(winMin);
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
   const eastl::string childId(eastl::string::CtorSprintf(), "subgraph_window_%d", tab->getId());
   const bool visible = ImGui::BeginChild(childId.c_str(), fit.size, ImGuiChildFlags_None, CANVAS_CHILD_FLAGS);
   if (visible)
@@ -500,7 +499,6 @@ SubgraphWindow::DrawResult SubgraphWindow::draw(const SubgraphWindowFrame &frame
     result.focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
   }
   ImGui::EndChild();
-  ImGui::PopStyleVar();
   return result;
 }
 
@@ -685,7 +683,6 @@ SubgraphStackResult draw_subgraph_stack(const ImRect &stack, const ImVec2 &canva
     ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
   // Children, so the canvas under them takes no hover; NoFocus items keep ImGui's focus on the surface the keys go to.
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
   ImGui::SetCursorScreenPos(stack.Min);
   const bool stackVisible = ImGui::BeginChild("subgraph_stack", stack.GetSize(), ImGuiChildFlags_None, CANVAS_CHILD_FLAGS);
   bool stackHovered = false;
@@ -752,7 +749,6 @@ SubgraphStackResult draw_subgraph_stack(const ImRect &stack, const ImVec2 &canva
     }
     ImGui::EndChild();
   }
-  ImGui::PopStyleVar();
   return result;
 }
 

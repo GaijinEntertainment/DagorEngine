@@ -8,7 +8,7 @@ ATTENTION!
 this is bad code as it couples everything needed in deferrent games in one
 
 */
-SQ_DEF_AUTO_BINDING_MODULE_EX(connectivity, "connectivity", sq::VM_UI_ALL)
+SQ_DEF_AUTO_BINDING_MODULE_EX(connectivity, "connectivity", sq::VM_UI)
 {
   using namespace ui;
   Sqrat::Table tbl(vm);

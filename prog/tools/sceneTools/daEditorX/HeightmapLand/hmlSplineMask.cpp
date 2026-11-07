@@ -237,7 +237,7 @@ bool HmapLandPlugin::rebuildSplinesLoftBitmask(int layer, BBox2 &out_dirty_box)
         for (int fi = 0, fie = mesh.getFace().size(); fi < fie; fi++)
         {
           const Face &f = mesh.getFace()[fi];
-          // constraint: verts holds this node alone, so a corner past it reads past the end
+          // verts holds this node alone, so a corner past it reads past the end
           if (f.v[0] >= verts.size() || f.v[1] >= verts.size() || f.v[2] >= verts.size())
           {
             ++droppedFaces;

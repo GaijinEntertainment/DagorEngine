@@ -1,21 +1,24 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/ptgi.h>
+#include <render/ptgi/ptgi_api.h>
 
 namespace ptgi
 {
 
-void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &) {}
-void get_required_transient_texture_descriptors(denoiser::TexInfoMap &) {}
-
 void initialize(bool) {}
 void teardown() {}
 
-void turn_off() {}
+void set_second_chance_history(bool) {}
 
-void render(bvh::ContextId, const TMatrix4 &, Texture *, bool, const denoiser::TexMap &, Quality, bool, bool) {}
+denoiser::ParamsHandle<FrameParams> create_frame_params(dafg::Registry registry)
+{
+  return registry.createBlob<FrameParams>("ptgi_frame_params").handle();
+}
+
+void register_nodes(const NodeParams &, dag::Vector<dafg::NodeHandle> &) {}
 
 bool is_validation_layer_enabled() { return false; }
+bool is_second_chance_history_enabled() { return false; }
 void render_validation_layer() {}
 
 } // namespace ptgi

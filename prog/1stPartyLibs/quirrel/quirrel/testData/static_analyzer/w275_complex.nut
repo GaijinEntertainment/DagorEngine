@@ -1,9 +1,9 @@
+#allow-switch-statement
+
 if (__name__ == "__analysis__")
   return
 
 // No warnings here - the switch statement is large, but breaks are in every branch
-
-#allow-switch-statement
 
 function foo(_a, _b) {}
 function bar() {}

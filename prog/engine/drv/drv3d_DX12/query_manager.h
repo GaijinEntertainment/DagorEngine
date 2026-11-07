@@ -4,9 +4,9 @@
 #include "driver.h"
 #include "pipeline.h"
 
-#include <atomic>
 #include <generic/dag_concurrentElementPool.h>
 #include <generic/dag_objectPool.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <generic/dag_reverseView.h>
 #include <generic/dag_span.h>
@@ -49,12 +49,12 @@ protected:
     ISSUED,
     FINALIZED,
   };
-  std::atomic<State> state{State::FINALIZED};
+  dag::AtomicPod<State> state{State::FINALIZED};
   ResultType result{};
 
 public:
-  bool isIssued() const { return state.load(std::memory_order_acquire) == State::ISSUED; }
-  bool isFinalized() const { return state.load(std::memory_order_acquire) == State::FINALIZED; }
+  bool isIssued() const { return state.load(dag::memory_order_acquire) == State::ISSUED; }
+  bool isFinalized() const { return state.load(dag::memory_order_acquire) == State::FINALIZED; }
 
   ResultType getValue() const { return result; }
 };
@@ -74,11 +74,11 @@ private:
   uint64_t packed = 0;
 
 public:
-  void setIssued() { state.store(State::ISSUED, std::memory_order_relaxed); }
+  void setIssued() { state.store(State::ISSUED, dag::memory_order_relaxed); }
   void update(uint64_t value)
   {
     result = value;
-    state.store(State::FINALIZED, std::memory_order_release);
+    state.store(State::FINALIZED, dag::memory_order_release);
   }
 
   uint64_t getRaw() const { return packed; }
@@ -102,10 +102,10 @@ public:
   void setIssued()
   {
     resetValue();
-    [[maybe_unused]] State prevState = state.exchange(State::ISSUED, std::memory_order_acq_rel);
+    [[maybe_unused]] State prevState = state.exchange(State::ISSUED, dag::memory_order_acq_rel);
     G_ASSERT(prevState == State::FINALIZED);
   }
-  void setFinalized() { state.store(State::FINALIZED, std::memory_order_release); }
+  void setFinalized() { state.store(State::FINALIZED, dag::memory_order_release); }
 
   void accumulate(ResultType value)
   {

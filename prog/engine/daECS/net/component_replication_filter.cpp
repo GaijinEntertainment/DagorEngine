@@ -53,7 +53,7 @@ void reset_replicate_component_filters()
 const char *get_component_filter_name(replicate_component_filter_index_t fit)
 {
   auto it = eastl::find_if(replicate_component_filter_map.begin(), replicate_component_filter_map.end(),
-    [fit](auto a) { return a.second == fit; });
+    [fit](const auto &a) { return a.second == fit; });
   return it == replicate_component_filter_map.end() ? nullptr : it->first.c_str();
 }
 

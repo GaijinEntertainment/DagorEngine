@@ -243,7 +243,7 @@ static uint32_t get_argument_value(const DispatchAutoResolutionArg &arg, const d
 {
   return eastl::visit(
     [&](const auto &res) {
-      auto scaledResolution = scale_by(res, arg.multiplier);
+      auto scaledResolution = scale_by(res, arg.multiplier, arg.roundUp);
       return *static_cast<const uint32_t *>(arg.projector(&scaledResolution));
     },
     provider.resolutions[arg.autoResTypeId]);
@@ -276,7 +276,7 @@ static bool is_valid_argument(const T &arg)
 static void validate_depth_read_test_only(const ShaderElement &elem, dafg::InternalRegistry &registry, NodeNameId node_id)
 {
   const auto &nodeData = registry.nodes[node_id];
-  const auto &reqs = nodeData.renderingRequirements;
+  const auto *reqs = eastl::get_if<VirtualPassRequirements>(&nodeData.renderingRequirements);
   if (!reqs || !reqs->depthReadTestOnly)
     return;
 
@@ -518,9 +518,9 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, No
         },
         args.stride, args.drawCount);
       if constexpr (eastl::is_same_v<T, DrawRequirements::MultiIndirectNonIndexedArgs>)
-        d3d::multi_draw_indirect(get_d3d_primitive(args.primitive), *buffer, offset, count, stride);
+        d3d::multi_draw_indirect(get_d3d_primitive(args.primitive), *buffer, count, stride, offset);
       else if constexpr (eastl::is_same_v<T, DrawRequirements::MultiIndirectIndexedArgs>)
-        d3d::multi_draw_indexed_indirect(get_d3d_primitive(args.primitive), *buffer, offset, count, stride);
+        d3d::multi_draw_indexed_indirect(get_d3d_primitive(args.primitive), *buffer, count, stride, offset);
     }
   };
 }
@@ -638,6 +638,18 @@ NodeTracker::Changes NodeTracker::updateNodeDeclarations()
 
   for (auto nodeId : deferredDeclarationQueue)
     updateNodeDeclaration(nodeId);
+
+  // A name that two nodes introduce loses its created data when the other node goes away or renames into it
+  dag::Vector<NodeNameId, Alloc> lostCreatedData;
+  for (auto &&[nodeId, node] : registry.nodes.enumerate())
+    if (node.declare && eastl::any_of(node.createdResources.begin(), node.createdResources.end(),
+                          [this](ResNameId res_id) { return !registry.resources[res_id].createdResData; }))
+      lostCreatedData.push_back(nodeId);
+  for (auto nodeId : lostCreatedData)
+  {
+    updateNodeDeclaration(nodeId);
+    deferredDeclarationQueue.insert(nodeId);
+  }
 
   NodeTracker::Changes result;
   auto &[nodeChanged, resChanged] = result;

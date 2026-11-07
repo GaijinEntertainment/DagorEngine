@@ -6,21 +6,28 @@
 
 struct DaBuildProgressShm
 {
-  volatile int gen;   // even = stable, odd = write in progress
-  volatile int phase; // build phase 0 = none, 1 = tex packs, 2 = grp packs
+  volatile int gen;     // even = stable, odd = write in progress
+  volatile int padding; // used to be phase, keeps field offsets
   volatile int packDone;
   volatile int packTotal;
   volatile int assetDone;
   volatile int assetTotal;
 
-  void writePack(int phase_, int done, int total, int a_done = 0, int a_total = 0)
+  void beginPackProgress()
   {
     interlocked_increment(gen);
-    interlocked_relaxed_store(phase, phase_);
+    interlocked_relaxed_store(packDone, 0);
+    interlocked_relaxed_store(packTotal, -1); // not started
+    interlocked_relaxed_store(assetDone, 0);
+    interlocked_relaxed_store(assetTotal, 0);
+    interlocked_increment(gen);
+  }
+
+  void writePack(int done, int total)
+  {
+    interlocked_increment(gen);
     interlocked_relaxed_store(packDone, done);
     interlocked_relaxed_store(packTotal, total);
-    interlocked_relaxed_store(assetDone, a_done);
-    interlocked_relaxed_store(assetTotal, a_total);
     interlocked_increment(gen);
   }
 
@@ -36,7 +43,7 @@ struct DaBuildProgressShm
 
   void addAssetDone(int inc) { interlocked_add(assetDone, inc); }
 
-  void readSnap(int &ph, int &pd, int &pt, int &ad, int &at) const
+  void readSnap(int &pd, int &pt, int &ad, int &at) const
   {
     int g1, g2;
     do
@@ -45,7 +52,6 @@ struct DaBuildProgressShm
       {
         g1 = interlocked_acquire_load(gen);
       } while (g1 & 1);
-      ph = interlocked_relaxed_load(phase);
       pd = interlocked_relaxed_load(packDone);
       pt = interlocked_relaxed_load(packTotal);
       ad = interlocked_relaxed_load(assetDone);

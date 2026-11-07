@@ -57,7 +57,9 @@ struct MinimapInputTouchData
 };
 
 
-BhvMinimapInput::BhvMinimapInput() : Behavior(STAGE_ACT, F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_INTERNALLY_HANDLE_GAMEPAD_R_STICK) {}
+BhvMinimapInput::BhvMinimapInput() :
+  Behavior(STAGE_ACT, F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_HANDLE_TOUCHPAD_PAIR | F_INTERNALLY_HANDLE_GAMEPAD_R_STICK)
+{}
 
 
 void BhvMinimapInput::initActions()
@@ -124,6 +126,35 @@ static void keep_cursor_world_pos(Element *elem, MinimapState &mmState, short mx
 }
 
 
+static void pan_by(Element *elem, MinimapState &mmState, const Point2 &screen_delta)
+{
+  const float visRadius = mmState.getVisibleRadius();
+  TMatrix itm;
+  mmState.calcItmFromView(itm, visRadius);
+  const Point2 d(screen_delta.x * visRadius * 2 / elem->screenCoord.size.x, screen_delta.y * visRadius * 2 / elem->screenCoord.size.y);
+  const Point3 worldDelta = mmState.isSquare ? itm % Point3(-d.y, 0, -d.x) : itm % Point3(-d.x, 0, d.y);
+  mmState.panWolrdPos = mmState.ctx->clampPan(mmState.panWolrdPos + worldDelta, visRadius);
+}
+
+
+// two pointers move and scale the map: the world point under their center follows it, the scale follows their distance
+static void move_and_scale(Element *elem, MinimapState &mmState, const Point2 (&prev)[2], const Point2 (&cur)[2])
+{
+  const Point2 prevCenter = (prev[0] + prev[1]) * 0.5f;
+  const Point2 centerDelta = (cur[0] + cur[1]) * 0.5f - prevCenter;
+  const float prevDist = length(prev[1] - prev[0]), curDist = length(cur[1] - cur[0]);
+  if (prevDist > 20 && curDist > 20 && prevDist != curDist)
+  {
+    const float oldVisRadius = mmState.getVisibleRadius();
+    const float visRadius = mmState.setVisibleRadius(oldVisRadius * prevDist / curDist);
+    g_entity_mgr->broadcastEvent(EventMinimapZoomed());
+    keep_cursor_world_pos(elem, mmState, prevCenter.x, prevCenter.y, oldVisRadius, visRadius);
+  }
+  if (centerDelta != Point2(0, 0))
+    pan_by(elem, mmState, centerDelta);
+}
+
+
 static int get_mouse_pan_button(const darg::Element *elem, const BhvMinimapInput::CachedStringsMap &cstr)
 {
   static constexpr int def_btn = 0;
@@ -134,8 +165,15 @@ static int get_mouse_pan_button(const darg::Element *elem, const BhvMinimapInput
 }
 
 
-int BhvMinimapInput::pointingEvent(
-  ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id, Point2 pos, int accum_res)
+int BhvMinimapInput::pointingEvent(ElementTree *,
+  Element *elem,
+  InputDevice device,
+  TouchSource /*touch_src*/,
+  InputEvent event,
+  int pointer_id,
+  int button_id,
+  Point2 pos,
+  int accum_res)
 {
   auto strings = cstr.resolveVm(elem->getVM());
   G_ASSERT_RETURN(strings, 0);
@@ -197,47 +235,20 @@ int BhvMinimapInput::pointingEvent(
     if (itTouch == touchData->touches.end())
       return 0;
 
-    float visRadius = mmState->getVisibleRadius();
-    TMatrix itm;
-    mmState->calcItmFromView(itm, visRadius);
-
     auto idx = eastl::distance(touchData->touches.begin(), itTouch);
     G_ASSERTF_RETURN(idx == 0 || idx == 1, R_PROCESSED, "Distance = %d", int(idx));
 
-    const size_t nTouches = touchData->touches.size();
-
     if (!(accum_res & R_PROCESSED))
     {
-      // zoom
-      if (nTouches == 2)
+      if (touchData->touches.size() == 2)
       {
-        Point2 prevScreen[2] = {touchData->touches[0].curPos, touchData->touches[1].curPos};
-        Point2 curScreen[2] = {touchData->touches[0].curPos, touchData->touches[1].curPos};
+        const Point2 prevScreen[2] = {touchData->touches[0].curPos, touchData->touches[1].curPos};
+        Point2 curScreen[2] = {prevScreen[0], prevScreen[1]};
         curScreen[idx] = pos;
-        float prevDist = length(curScreen[1] - curScreen[0]);
-        float curDist = length(prevScreen[1] - prevScreen[0]);
-        if (prevDist > 20 && curDist > 20)
-        {
-          mmState->setVisibleRadius(visRadius * curDist / prevDist);
-          visRadius = mmState->getVisibleRadius();
-
-          g_entity_mgr->broadcastEvent(EventMinimapZoomed());
-        }
+        move_and_scale(elem, *mmState, prevScreen, curScreen);
       }
-
-      // move
-      if (itTouch->deviceId != DEVID_MOUSE || (itTouch->buttonId == get_mouse_pan_button(elem, cstr)))
-      {
-        Point2 screenDelta = pos - itTouch->curPos;
-        Point2 d(screenDelta.x * visRadius * 2 / elem->screenCoord.size.x, screenDelta.y * visRadius * 2 / elem->screenCoord.size.y);
-        Point3 worldDelta;
-        if (mmState->isSquare)
-          worldDelta = itm % Point3(-d.y, 0, -d.x);
-        else
-          worldDelta = itm % Point3(-d.x, 0, d.y);
-
-        mmState->panWolrdPos = mmState->ctx->clampPan(mmState->panWolrdPos + worldDelta / nTouches, visRadius);
-      }
+      else if (itTouch->deviceId != DEVID_MOUSE || (itTouch->buttonId == get_mouse_pan_button(elem, cstr)))
+        pan_by(elem, *mmState, pos - itTouch->curPos);
     }
 
     itTouch->curPos = pos;
@@ -310,7 +321,7 @@ int BhvMinimapInput::update(UpdateStage /*stage*/, Element *elem, float dt)
   return 0;
 }
 
-SQ_DEF_AUTO_BINDING_MODULE_EX(bind_minimap, "bhvMinimap", sq::VM_UI_ALL)
+SQ_DEF_AUTO_BINDING_MODULE_EX(bind_minimap, "bhvMinimap", sq::VM_UI)
 {
   Sqrat::Table tbl = ecs::sq::EventsBind<EventMinimapZoomed>::bindall(vm);
 

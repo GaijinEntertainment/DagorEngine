@@ -259,11 +259,13 @@ public:
   Tab<RequestInfo> requests;
   os_socket_t listenSocket;
   uint16_t listenPort;
+  os_socket_addr wakeAddr;
 
   HttpServer(Config *cfg) :
     DaThread("HttpServer", DaThread::DEFAULT_STACK_SZ / 2, 0, WORKER_THREADS_AFFINITY_MASK),
     listenSocket(OS_SOCKET_INVALID),
     listenPort(0),
+    wakeAddr(),
     requests(midmem)
   {
     stripStackInMinidump();
@@ -314,9 +316,15 @@ public:
       debug("listen failed");
       goto ctor_fail;
     }
-    os_socket_set_option(listenSocket, OSO_NONBLOCK, 1); // constraint: a blocked accept may never wake
+    os_socket_set_option(listenSocket, OSO_NONBLOCK, 1); // a blocked accept may never wake
 
     listenPort = port;
+    wakeAddr = adr;
+    if (strcmp(bindAddr, "0.0.0.0") == 0)
+    {
+      os_socket_addr_from_string(OSAF_IPV4, "127.0.0.1", &wakeAddr, sizeof(wakeAddr));
+      os_socket_addr_set_port(&wakeAddr, sizeof(wakeAddr), port);
+    }
 
     debug("%s started on %s:%d", __FUNCTION__, bindAddr, port);
     debug_flush(false);
@@ -336,8 +344,9 @@ public:
       return;
 
     interlocked_release_store(terminating, 1);
-    // wake up thread (plaform specific way)
-#if !(_TARGET_PC_WIN | _TARGET_XBOX | _TARGET_C3)
+#if _TARGET_PC_WIN | _TARGET_XBOX | _TARGET_C3
+    wakeThread(); // shutdown() does not wake the select() there
+#else
     ::shutdown(listenSocket, SHUT_RDWR);
 #endif
     // close only after the wait: the thread selects and accepts on the handle until it ends
@@ -362,6 +371,16 @@ public:
   }
 
   bool isValid() const { return listenSocket != OS_SOCKET_INVALID; }
+
+  // a connection to the listen socket makes it readable, so the select() of the thread returns at once
+  void wakeThread()
+  {
+    os_socket_t s = os_socket_create(OSAF_IPV4, OST_TCP);
+    if (s == OS_SOCKET_INVALID)
+      return;
+    os_socket_connect(s, &wakeAddr, sizeof(wakeAddr));
+    os_socket_close(s);
+  }
 
   void generateIndex(SocketType conn, char *req, int)
   {
@@ -550,7 +569,7 @@ public:
 
     constexpr int sz = 16 << 10;
     char stackTmp[sz];
-    os_socket_set_option(conn, OSO_NONBLOCK, 0); // constraint: some OSes copy it from listenSocket
+    os_socket_set_option(conn, OSO_NONBLOCK, 0); // some OSes copy it from listenSocket
     os_socket_set_recv_timeout(conn, RECEIVE_TIMEOUT_MSEC / 1000);
     int readed = os_socket_recvfrom(conn, stackTmp, sz - 1);
     if (readed < 16 || isThreadTerminating())
@@ -738,7 +757,7 @@ void text_response(SocketType conn, const char *text, int len)
 {
   G_ASSERT(text || len > 0);
 
-  if (len < 0)
+  if (text && len < 0)
     len = (int)strlen(text);
 
   char header[256];

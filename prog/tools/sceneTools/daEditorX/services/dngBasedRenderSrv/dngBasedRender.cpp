@@ -9,7 +9,6 @@
 #include <de3_landmesh.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
-#include <EditorCore/ec_testSystem.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_camera_elem.h>
 #include <EditorCore/ec_wndPublic.h>
@@ -29,6 +28,8 @@
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_renderStateId.h>
+#include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderVariableInfo.h>
 #include <3d/dag_render.h>
 #include <3d/dag_gpuConfig.h>
 #include <drv/3d/dag_viewScissor.h>
@@ -70,6 +71,8 @@
 #include "render/skies.h"
 #include "render/world/wrDispatcher.h"
 #include "render/world/shadowsManager.h"
+#include "render/world/gbufferConsts.h"
+#include "render/rendererFeatures.h"
 #include <render/grass/grassRender.h>
 #include <render/dynmodelRenderer.h>
 #include "camera/sceneCam.h"
@@ -84,6 +87,7 @@
 #include <ecs/weather/skiesSettings.h>
 #include <ecs/render/updateStageRender.h>
 #include <render/debugGbuffer.h>
+#include <render/deferredRenderer.h>
 #include <render/hdrRender.h>
 #include <render/tdrGpu.h>
 #include <render/antialiasing.h>
@@ -362,7 +366,7 @@ public:
 
     d3d::set_render_target();
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 0, 0);
-    renderUI(clientRectWidth, clientRectHeight);
+    editor_core_update_and_render_imgui(clientRectWidth, clientRectHeight);
   }
 
   bool canPresentAndReset() override { return !present_suppressed || PropPanel::is_any_modal_dialog_open(); }
@@ -493,6 +497,7 @@ public:
 
     d3d::get_render_target(rt);
     d3d::getview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
+    const int prevTargetW = targetW, prevTargetH = targetH;
     updateBackBufSize(viewportW, viewportH);
 
     TMatrix viewTm;
@@ -570,6 +575,10 @@ public:
     d3d::stretch_rect(getRenderBuffer(), rt.getColor(0).tex, NULL, &r);
     d3d::set_srgb_backbuffer_write(false);
 
+    // renderViewportFrame() requests its size after before_draw_scene() applied the pending size, so the previous size
+    // is requested here, otherwise the next viewport frame would render at the screenshot size.
+    updateBackBufSize(prevTargetW, prevTargetH);
+
     d3d_err(d3d::set_render_target(rt));
     d3d::setview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
   }
@@ -598,25 +607,6 @@ public:
     for (auto *srv : rendSrv)
       srv->renderGeometry(IRenderingService::STG_BEFORE_RENDER);
     force_in_editorVarId.set_int(0);
-  }
-
-  void renderUI(int client_rect_width, int client_rect_height)
-  {
-    TIME_D3D_PROFILE(imgui);
-
-    // Maybe just add a updateImgui call to IEditorCoreEngine?
-    IMainWindowImguiRenderingService *renderingService =
-      IEditorCoreEngine::get()->queryEditorInterface<IMainWindowImguiRenderingService>();
-    G_ASSERT_RETURN(renderingService, );
-
-    renderingService->beforeUpdateImgui();
-    imgui_update(client_rect_width, client_rect_height);
-    renderingService->updateImgui();
-
-    editor_core_render_dag_imgui_windows();
-    editor_core_test_runtime_end_frame();
-    imgui_endframe();
-    imgui_render();
   }
 
   void initDngBasedRender() { dng_based_render::init_dng_framework(); }
@@ -663,6 +653,7 @@ public:
   int dbgShowType;
   UniqueTex nullTex;
   UniqueTex earthSizeTex;
+  eastl::unique_ptr<DeferredRenderTarget> isolatedTarget;
 
   DngBasedRenderService() : dynScene(NULL)
   {
@@ -749,6 +740,7 @@ public:
   }
   void term() override
   {
+    isolatedTarget.reset();
     earthSizeTex.close();
     dagor_select_game_scene(nullptr);
     del_it(dynScene);
@@ -1086,6 +1078,104 @@ public:
     d3d::settm(TM_VIEW, oldViewTm);
   }
 
+  bool canRenderIsolated() const override
+  {
+    // renderIsolated() supports only the full gbuffer.
+    return renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED) && shader_exists(NO_MOTION_GBUFFER_RESOLVE_SHADER);
+  }
+
+  TexPtr renderIsolated(int width, int height, const TMatrix &view_itm, const Driver3dPerspective &persp,
+    dag::FunctionRef<void(const Point3 &world_offset)> render_opaque) override
+  {
+    if (!dng_based_render::scene_ready_for_render() || !canRenderIsolated() || width <= 0 || height <= 0)
+      return {};
+
+    d3d::GpuAutoLock gpuLock;
+
+    if (!isolatedTarget)
+    {
+      // WorldRenderer uses this resolve for its own views outside the main view, for example the envi probe cube.
+      isolatedTarget = eastl::make_unique<DeferredRenderTarget>(NO_MOTION_GBUFFER_RESOLVE_SHADER, "isolated", width, height,
+        DeferredRT::StereoMode::MonoOrMultipass, 0, NO_MOTION_GBUFFER_RT_COUNT, FULL_GBUFFER_FORMATS.data(), TEXFMT_DEPTH32);
+    }
+    else if (isolatedTarget->getWidth() != width || isolatedTarget->getHeight() != height)
+    {
+      isolatedTarget->changeResolution(width, height);
+    }
+
+    // The game shaders have no shader that applies only the tonemap LUT, so the result has no tonemap.
+    TexPtr result = dag::create_tex(nullptr, width, height, TEXFMT_A8R8G8B8 | TEXCF_RTARGET | TEXCF_SRGBWRITE, 1, "isolated_render");
+    if (!result)
+      return {};
+
+    static ShaderVariableInfo worldViewPosVarId("world_view_pos", true);
+    static ShaderVariableInfo znZfarVarId("zn_zfar", true);
+    static ShaderVariableInfo globtmInvVarId("globtm_inv", true);
+
+    SCOPE_VIEW_PROJ_MATRIX;
+    SCOPE_RENDER_TARGET;
+
+    // renderOneDynModelInstance() draws relative to grs_cur_view.pos.
+    const DagorCurView prevCurView = ::grs_cur_view;
+
+    // resolve() writes this for the thumbnail camera. Without daGI2 the main view does not write it again,
+    // but the tiled spot lights read it.
+    const TMatrix4 prevGlobtmInv = globtmInvVarId.get_float4x4();
+
+    // resolve() reads the static shadow and the depth above map (and GI, when on) at each pixel's world position.
+    // Do the rendering far above the viewport camera, so no scene object shadows or covers it.
+    const Point3 worldOffset(0, prevCurView.pos.y + ISOLATED_RENDER_HEIGHT - view_itm.getcol(3).y, 0);
+    TMatrix offsetViewItm = view_itm;
+    offsetViewItm.setcol(3, view_itm.getcol(3) + worldOffset);
+    const TMatrix viewTm = orthonormalized_inverse(offsetViewItm);
+    TMatrix4 projTm;
+    d3d::calcproj(persp, projTm);
+    d3d::settm(TM_VIEW, viewTm);
+    d3d::settm(TM_PROJ, &projTm);
+    ::grs_cur_view.tm = viewTm;
+    ::grs_cur_view.itm = offsetViewItm;
+    ::grs_cur_view.pos = offsetViewItm.getcol(3);
+    STATE_GUARD(worldViewPosVarId.set_float4(VALUE), Color4::xyz1(offsetViewItm.getcol(3)), worldViewPosVarId.get_float4());
+    STATE_GUARD(znZfarVarId.set_float4(VALUE), Color4(persp.zn, persp.zf, 0, 0), znZfarVarId.get_float4());
+    FRAME_LAYER_GUARD(globalFrameBlockId);
+
+    isolatedTarget->setRt();
+    d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
+
+    // The main render can leave TM_WORLD set.
+    mat44f prevWorldTm;
+    d3d::gettm(TM_WORLD, prevWorldTm);
+    d3d::settm(TM_WORLD, TMatrix::IDENT);
+    render_opaque(worldOffset);
+    d3d::settm(TM_WORLD, prevWorldTm);
+
+    // resolve() samples the gbuffer that render_opaque() just wrote, and outside the frame graph no barrier is added.
+    isolatedTarget->resourceBarrier(RB_RO_SRV | RB_STAGE_PIXEL);
+
+    ShaderElement::invalidate_cached_state_block();
+    // Turn off the eye adaptation, so all thumbnails get the same brightness, regardless of what the viewport shows.
+    g_entity_mgr->broadcastEventImmediate(RenderSetExposure{false});
+    // resolve() writes alpha 1 only where the gbuffer has depth, so the result needs no separate alpha mask.
+    isolatedTarget->resolve(result.get(), viewTm, projTm, nullptr, ShadingResolver::ClearTarget::Yes);
+    g_entity_mgr->broadcastEventImmediate(RenderSetExposure{true});
+
+    // depth_gbuf keeps a raw pointer to the isolated depth, which a resize or term() frees.
+    isolatedTarget->resetVar();
+
+    ::grs_cur_view = prevCurView;
+    globtmInvVarId.set_float4x4(prevGlobtmInv);
+
+    return result;
+  }
+
+  bool isEnvironmentLightingReady() override
+  {
+    if (!dng_based_render::scene_ready_for_render())
+      return false;
+    ISkiesService *skiesSrv = EDITORCORE->queryEditorInterface<ISkiesService>();
+    return !skiesSrv || skiesSrv->isLightingConverged();
+  }
+
   void onGrassCreated(const DataBlock *settings) override
   {
     if (settings)
@@ -1093,6 +1183,10 @@ public:
   }
 
   static void render_viewport_frame(ViewportWindow *vpw);
+
+  // Above the scene objects. At this height a float position has a step of about 1 mm, so an asset of a few cm loses
+  // detail.
+  static constexpr float ISOLATED_RENDER_HEIGHT = 10000.0f;
 };
 
 static DngBasedRenderService srv;

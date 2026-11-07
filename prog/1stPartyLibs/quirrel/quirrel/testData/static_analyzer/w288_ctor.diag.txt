@@ -1,0 +1,212 @@
+WARNING: w288 (param-count) Function 'constructor' (1..1 parameters) is called with the wrong number of arguments (0).
+testData/static_analyzer/w288_ctor.nut:30:9
+
+let _a = Squad()
+         ^------
+let _b = Squad(4)
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:5:2
+
+class Squad {
+  constructor(_n) {}
+  ^-----------------
+}
+
+
+WARNING: w288 (param-count) Function 'constructor' (1..2 parameters) is called with the wrong number of arguments (0).
+testData/static_analyzer/w288_ctor.nut:32:9
+
+let _b = Squad(4)
+let _c = Team()
+         ^-----
+let _d = Team(4)
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:9:2
+
+let Team = class {
+  constructor(_n, _name = "") {}
+  ^-----------------------------
+}
+
+
+WARNING: w288 (param-count) Function 'constructor' (1..2 parameters) is called with the wrong number of arguments (3).
+testData/static_analyzer/w288_ctor.nut:34:9
+
+let _d = Team(4)
+let _e = Team(4, "red", 1)
+         ^----------------
+let _use = Use(1, 2)
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:9:2
+
+let Team = class {
+  constructor(_n, _name = "") {}
+  ^-----------------------------
+}
+
+
+WARNING: w288 (param-count) Function 'constructor' (1..1 parameters) is called with the wrong number of arguments (2).
+testData/static_analyzer/w288_ctor.nut:35:11
+
+let _e = Team(4, "red", 1)
+let _use = Use(1, 2)
+           ^--------
+let _f = Plain()
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:12:23
+
+local Shared = class { constructor(_a) {} }
+                       ^-----------------
+local Use = Shared
+
+
+WARNING: w288 (param-count) Function 'constructor' (1..1 parameters) is called with the wrong number of arguments (0).
+testData/static_analyzer/w288_ctor.nut:37:9
+
+let _f = Plain()
+let _g = Unit()
+         ^-----
+let _h = Unit(4)
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:5:2
+
+class Squad {
+  constructor(_n) {}
+  ^-----------------
+}
+
+
+WARNING: w288 (param-count) Function 'constructor' (1..1 parameters) is called with the wrong number of arguments (0).
+testData/static_analyzer/w288_ctor.nut:39:9
+
+let _h = Unit(4)
+let _j = Corps()
+         ^------
+let _k = Solo(4)
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:5:2
+
+class Squad {
+  constructor(_n) {}
+  ^-----------------
+}
+
+
+WARNING: w288 (param-count) Function 'constructor' (0..0 parameters) is called with the wrong number of arguments (1).
+testData/static_analyzer/w288_ctor.nut:40:9
+
+let _j = Corps()
+let _k = Solo(4)
+         ^------
+let _i = Self(4)
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:18:20
+
+class Corps(Unit) {}
+class Solo(Squad) { constructor() {} }
+                    ^---------------
+local Self = class(Team) {}
+
+
+WARNING: w288 (param-count) Function 'constructor' (1..2 parameters) is called with the wrong number of arguments (0).
+testData/static_analyzer/w288_ctor.nut:42:9
+
+let _i = Self(4)
+let _m = Self()
+         ^-----
+let _o = Late(4, "red")
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:9:2
+
+let Team = class {
+  constructor(_n, _name = "") {}
+  ^-----------------------------
+}
+
+
+WARNING: w288 (param-count) Function 'constructor' (1..2 parameters) is called with the wrong number of arguments (0).
+testData/static_analyzer/w288_ctor.nut:44:9
+
+let _o = Late(4, "red")
+let _p = Late()
+         ^-----
+let _ip = InPlace()
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:9:2
+
+let Team = class {
+  constructor(_n, _name = "") {}
+  ^-----------------------------
+}
+
+
+WARNING: w288 (param-count) Function 'constructor' (1..1 parameters) is called with the wrong number of arguments (0).
+testData/static_analyzer/w288_ctor.nut:45:10
+
+let _p = Late()
+let _ip = InPlace()
+          ^--------
+let _r = Again()
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:24:22
+
+Base = Squad
+class InPlace(class { constructor(_n) {} }) {}
+                      ^-----------------
+local Again = class(Squad) {}
+
+
+WARNING: w288 (param-count) Function 'constructor' (1..1 parameters) is called with the wrong number of arguments (0).
+testData/static_analyzer/w288_ctor.nut:55:4
+
+    Loop()
+    Stay()
+    ^-----
+  }
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:5:2
+
+class Squad {
+  constructor(_n) {}
+  ^-----------------
+}
+
+
+WARNING: w288 (param-count) Function 'constructor' (2..2 parameters) is called with the wrong number of arguments (1).
+testData/static_analyzer/w288_ctor.nut:73:14
+
+let _shared = Shared(1)
+              ^--------
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_ctor.nut:14:17
+
+local Use = Shared
+Shared = class { constructor(_a, _b) {} }
+                 ^---------------------
+class Plain {}
+
+

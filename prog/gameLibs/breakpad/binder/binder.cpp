@@ -9,7 +9,7 @@
 #include <client/windows/handler/exception_handler.h>
 #include <windows.h>
 #include <memory/dag_framemem.h>
-#if !_M_ARM64
+#if !_M_ARM64 && !_M_ARM64EC
 #include <MinHook.h>
 #endif
 #elif _TARGET_PC_LINUX
@@ -27,79 +27,8 @@
 #include <util/dag_string.h>
 #include <folders/folders.h>
 
-extern "C" const char *dagor_exe_build_date;
-extern "C" const char *dagor_exe_build_time;
-
-
 namespace breakpad
 {
-
-Product::Product(bool with_defaults)
-{
-  if (!with_defaults)
-    return;
-
-  version = "0.0.0.0";
-  name = "Unknown";
-
-  const int n = 6;
-  char signParseBuf[8][n];
-  sscanf(dagor_exe_build_date, "%s %s %s", signParseBuf[1], signParseBuf[2], signParseBuf[0]);
-
-  sscanf(dagor_exe_build_time, "%2s:%2s:%2s", signParseBuf[3], signParseBuf[4], signParseBuf[5]);
-
-  for (int i = 0; i < n; i++)
-    build.append(signParseBuf[i]);
-
-  started.printf(32, "%llu", time(NULL));
-
-#if (DAGOR_DBGLEVEL == 1)
-  channel = "dev";
-#elif (DAGOR_DBGLEVEL == 0)
-  channel = "rel";
-#elif (DAGOR_DBGLEVEL == -1)
-  channel = "irel";
-#elif (DAGOR_DBGLEVEL == 2)
-  channel = "dbg";
-#else
-  channel = "Unknown";
-#endif
-
-  if (::dgs_argv && *::dgs_argv) // Otherwise we have no defaults to use
-  {
-    String &exe = commandLine.push_back();
-    exe = ::dgs_argv[0];
-#if _TARGET_PC_WIN
-    char utf8buf[MAX_PATH * 3] = {'\0'};
-    wchar_t exePathW[MAX_PATH] = {L'\0'};
-    if (::GetModuleFileNameW(NULL, exePathW, countof(exePathW)))
-      exe = wcs_to_utf8(exePathW, utf8buf, countof(utf8buf));
-#elif _TARGET_PC_LINUX
-    char buf[MAX_PATH] = {'\0'};
-    int sz = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
-    if (sz > 0 && sz < sizeof(buf))
-      exe = buf;
-#endif
-
-
-    for (int i = 1; i < ::dgs_argc; ++i)
-    {
-      String &arg = commandLine.push_back();
-      char *space = strchr(::dgs_argv[i], ' ');
-      if (space)
-        arg += "\\\"";
-#if _TARGET_PC_WIN
-      Tab<char> buf;
-      arg += acp_to_utf8(::dgs_argv[i], buf);
-#else
-      arg += ::dgs_argv[i];
-#endif
-      if (space)
-        arg += "\\\"";
-    }
-  }
-}
-
 
 typedef google_breakpad::ExceptionHandler ExHndl;
 
@@ -107,7 +36,7 @@ static ExHndl *handler = NULL;
 static Context *context = NULL;
 
 #if _TARGET_PC_WIN
-#if !_M_ARM64
+#if !_M_ARM64 && !_M_ARM64EC
 static bool mh_initialized = false;
 #endif
 
@@ -125,7 +54,7 @@ static BOOL WINAPI no_fastfail_IsProcessorFeaturePresent(DWORD pf)
 }
 static void setup_crt_hooks()
 {
-#if !_M_ARM64
+#if !_M_ARM64 && !_M_ARM64EC
   if (auto result = MH_Initialize(); result != MH_OK && result != MH_ERROR_ALREADY_INITIALIZED)
   {
     logerr("Breakpad could not initialize minhook, result=%d", result);
@@ -203,7 +132,7 @@ void shutdown()
 {
   del_it(handler);
   del_it(context);
-#if _TARGET_PC_WIN && !_M_ARM64
+#if _TARGET_PC_WIN && !_M_ARM64 && !_M_ARM64EC
   if (mh_initialized)
   {
     MH_Uninitialize();

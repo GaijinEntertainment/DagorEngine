@@ -1,0 +1,35 @@
+plain: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+typed params: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+typed params, wrong type: error: parameter 1 of '(sort_comparator_shapes.nut:31)' has an invalid type 'string' ; expected: 'integer'
+typed params, wrong second: error: parameter 2 of '(sort_comparator_shapes.nut:32)' has an invalid type 'string' ; expected: 'integer'
+bound env: ok 11,10,9,8,7,6,5,4,3,3,2,1,0
+default param: ok 11,10,9,8,7,6,5,4,3,3,2,1,0
+default param, last: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+one param: error: wrong number of parameters passed to '(sort_comparator_shapes.nut:39)' testData/exec/sort_comparator_shapes.nut:39 (3 passed, 2 required)
+three params: error: wrong number of parameters passed to '(sort_comparator_shapes.nut:40)' testData/exec/sort_comparator_shapes.nut:40 (3 passed, 4 required)
+vararg: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+vararg with a named param: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+generator: error: numeric value expected as return value of the compare function
+throws: error: boom
+throws null: error: compare func failed
+returns string: error: numeric value expected as return value of the compare function
+returns float: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+nested sort: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+deep recursion in comparator: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+resize: error: array resized during sort operation
+  called: true
+  called: true
+closure with outers: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+native closure, sorted again: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+not callable: error: parameter 1 of 'sort' has an invalid type 'integer' ; expected: 'function|function'
+  hook saw the calls: true
+  hook saw the calls: true
+under a debug hook: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+  hook saw the later calls: true
+  hook saw the later calls: true
+comparator sets a debug hook: ok 0,1,2,3,3,4,5,6,7,8,9,10,11
+reversed: ok 11,10,9,8,7,6,5,4,3,3,2,1,0
+reversed, typed params, wrong type: error: parameter 2 of '(sort_comparator_shapes.nut:77)' has an invalid type 'string' ; expected: 'integer'
+reversed, one param: error: wrong number of parameters passed to '(sort_comparator_shapes.nut:78)' testData/exec/sort_comparator_shapes.nut:78 (3 passed, 2 required)
+reversed, throws: error: boom
+nested sorts: Native stack overflow at depth 48

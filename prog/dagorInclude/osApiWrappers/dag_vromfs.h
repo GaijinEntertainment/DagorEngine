@@ -72,6 +72,7 @@ struct VirtualRomFsDataBase
   uint32_t version = 0;
   uint16_t flags = 0;
   bool firstPriority = true;
+  bool isPack = false;
 };
 
 struct VirtualRomFsData : public VirtualRomFsDataBase
@@ -99,8 +100,16 @@ struct VirtualRomFsPack : public VirtualRomFsData
   int _resv;
   PATCHABLE_DATA64(void *, ptr);
 
-  bool isValid() const { return (void *)files.map.data() >= (void *)(this + 1) && ptr; }
-  const char *getFilePath() const { return isValid() && _resv == 0 ? ((const char *)&files) + hdrSz : NULL; }
+  bool isValid() const { return isPack && (void *)files.map.data() >= (void *)(this + 1) && ptr; }
+  const char *getFilePath() const
+  {
+    if (!isValid() || (_resv != 0 && _resv != 'FILE'))
+      return NULL;
+    return _resv ? (const char *)(getFileSlot() + 1) : ((const char *)&files) + hdrSz;
+  }
+  //! the file kept open by open_vromfs_pack(..., keep_file=true), else NULL; the slot points to it and its lock
+  void *getFile() const { return isValid() && _resv == 'FILE' ? *(void **)*getFileSlot() : NULL; }
+  void **getFileSlot() const { return (void **)(((const char *)&files) + ((hdrSz + 7) & ~7)); }
   BackedData *getBackedData() { return isValid() && _resv == 'BCKD' ? (BackedData *)ptr : NULL; }
 
 
@@ -147,6 +156,8 @@ struct VromfsDumpBodySections
   dag::ConstSpan<uint8_t> attributes;
   dag::ConstSpan<uint8_t> data;
   int filesCount = 0;
+  //! true when the tables keep the file data offset, which open_vromfs_pack() needs
+  bool hasPackHeader = false;
 };
 
 KRNLIMP bool dissect_vromfs_dump_body(const VromfsDumpSections &sections, VromfsDumpBodySections &result);
@@ -210,6 +221,9 @@ KRNLIMP VirtualRomFsData *load_vromfs_dump_from_mem(dag::ConstSpan<char> data, I
 
 //! sets (or clears) the shared mem storage used by load_vromfs_dump()/load_vromfs_dump_from_mem()
 KRNLIMP void set_vromfs_shared_mem_storage(GlobalSharedMemStorage *sm);
+//! returns the storage set by set_vromfs_shared_mem_storage(), or null before it is set;
+//! its owner can terminate the storage while it stays set here
+KRNLIMP GlobalSharedMemStorage *get_vromfs_shared_mem_storage();
 
 //! releases a VirtualRomFsData* returned by load_vromfs_dump()/load_vromfs_dump_from_mem():
 //! frees it (via mem->free() if mem is given, else using delete; mem must match what it was loaded with),
@@ -225,8 +239,11 @@ KRNLIMP VirtualRomFsData *make_non_intrusive_vromfs(dag::ConstSpan<char> dump, I
 KRNLIMP VirtualRomFsData *make_non_intrusive_vromfs(const VromfsDumpSections &sections, const VromfsDumpBodySections &body_sections,
   IMemAlloc *mem, unsigned *out_hdr_sz = nullptr);
 
-//! opens vromfs dump from file into memory (to be released with close_vromfs_pack)
-KRNLIMP VirtualRomFsPack *open_vromfs_pack(const char *fname, IMemAlloc *mem, int file_flags = 0);
+//! opens vromfs dump from file into memory (to be released with close_vromfs_pack);
+//! with keep_file=true the file stays open until close as a normal open file (not renamed while mounted on Windows);
+//! df_open() of an entry reuses it while no other entry holds it (one that holds it at close leaves it open), else it opens
+//! getFilePath() as without keep_file; FastSeqReadCB opens getFilePath() too
+KRNLIMP VirtualRomFsPack *open_vromfs_pack(const char *fname, IMemAlloc *mem, int file_flags = 0, bool keep_file = false);
 //! opens vromfs dump from file into memory (to be released with close_vromfs_pack)
 //! vromfs is backed by optional cache_vrom and user-specific callback to retrieve file (e.g. from CDN)
 KRNLIMP VirtualRomFsPack *open_backed_vromfs_pack(const char *fname, IMemAlloc *mem, VirtualRomFsPack *cache_vrom,

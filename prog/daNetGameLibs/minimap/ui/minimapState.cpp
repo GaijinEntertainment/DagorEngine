@@ -166,7 +166,7 @@ Point2 MinimapState::worldToMap(const Point3 &world_pos)
 }
 
 
-SQ_DEF_AUTO_BINDING_MODULE_EX(bind_minimap_classes, "minimap", sq::VM_UI_ALL)
+SQ_DEF_AUTO_BINDING_MODULE_EX(bind_minimap_classes, "minimap", sq::VM_UI)
 {
   Sqrat::Table exports(vm);
 

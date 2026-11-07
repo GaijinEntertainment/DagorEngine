@@ -3,7 +3,6 @@ include "clustered/lights_cb.dshl"
 include "viewVecVS.dshl"
 include "camera_in_camera.dshl"
 
-float pixel_scale;
 float4x4 globtm_inv;
 int has_conservative_rasterization = 0;
 interval has_conservative_rasterization : no < 1, yes;
@@ -25,7 +24,20 @@ shader spot_lights_tiles, omni_lights_tiles
 
   (vs) {
     globtm@f44 = globtm;
-    tile_scale@f1 = (pixel_scale * 16, 0, 0, 0);
+    inv_screen_size@f2 = screen_pos_to_texcoord;
+  }
+
+  hlsl(vs) {
+    #include <tiled_light_consts.hlsli>
+
+    float4 clip_to_tile_grid(float4 clip_pos)
+    {
+      float2 screenSize = round(rcp(inv_screen_size));
+      float2 gridScale = screenSize / (TILE_EDGE * ceil(screenSize / TILE_EDGE));
+      clip_pos.x = (clip_pos.x + clip_pos.w) * gridScale.x - clip_pos.w;
+      clip_pos.y = clip_pos.w - (clip_pos.w - clip_pos.y) * gridScale.y;
+      return clip_pos;
+    }
   }
 
   hlsl {
@@ -44,6 +56,12 @@ shader spot_lights_tiles, omni_lights_tiles
           nointerpolation float3 box1   : TEXCOORD4;
           nointerpolation float3 box2   : TEXCOORD5;
         #endif
+      ##endif
+      ##if shader == omni_lights_tiles
+        nointerpolation float4 lightClipRadius : TEXCOORD6;
+        nointerpolation float3 clipGradX : TEXCOORD7;
+        nointerpolation float3 clipGradY : TEXCOORD8;
+        nointerpolation float3 clipGradW : TEXCOORD9;
       ##endif
     };
 
@@ -127,7 +145,7 @@ shader spot_lights_tiles, omni_lights_tiles
         ##if has_conservative_rasterization == no
           float4 worldPosProjected = mul(float4(worldPos, 1), globtm);
           worldPosProjected /= worldPosProjected.w;
-          worldPosProjected.xy -= tile_scale;
+          worldPosProjected.xy -= TILE_EDGE * inv_screen_size;
           float4 worldPosPosShifted = mul(worldPosProjected, globtm_inv);
           worldPosPosShifted /= worldPosPosShifted.w;
           float noConservativeRasterizationExpansion = distance(worldPos, worldPosPosShifted.xyz);
@@ -146,9 +164,9 @@ shader spot_lights_tiles, omni_lights_tiles
         ##endif
 
         VsOutput output;
-        output.pos = mul(float4(worldPos, 1), globtm);
+        output.pos = clip_to_tile_grid(mul(float4(worldPos, 1), globtm));
         output.pos.z = max(0.0000001, output.pos.z);
-        output.index = instanceId + 256;
+        output.index = instanceId + OMNI_DWORDS_PER_TILE * BITS_IN_UINT;
         output.cone = float4(light.lightDirectionAngleOffset.xyz, pow2(halfCos));
         output.sourceToEye.xyz = sourceToEye;
         output.sourceToEye.w = pow2(radius) - dot(sourceToEye, sourceToEye);
@@ -161,9 +179,41 @@ shader spot_lights_tiles, omni_lights_tiles
   {
     INIT_AND_USE_PHOTOMETRY_TEXTURES(vs)
     INIT_AND_USE_OMNI_LIGHTS_CB(vs)
+    if (has_conservative_rasterization == no)
+    {
+      hlsl(vs) {
+        float get_no_conservative_rasterization_expansion(float3 world_pos)
+        {
+          float w = mul(float4(world_pos, 1), globtm).w;
+          if (w <= 0)
+            return 0;
+          float3 gradX = float3(globtm[0].x, globtm[1].x, globtm[2].x);
+          float3 gradY = float3(globtm[0].y, globtm[1].y, globtm[2].y);
+          float3 gradW = float3(globtm[0].w, globtm[1].w, globtm[2].w);
+          float gradWLenSq = max(dot(gradW, gradW), 1e-12);
+          float projScaleXSq = max(dot(gradX, gradX) - pow2(dot(gradX, gradW)) / gradWLenSq, 1e-20);
+          float projScaleYSq = max(dot(gradY, gradY) - pow2(dot(gradY, gradW)) / gradWLenSq, 1e-20);
+          float2 halfTileNdc = TILE_EDGE * inv_screen_size;
+          return w * sqrt(pow2(halfTileNdc.x) / projScaleXSq + pow2(halfTileNdc.y) / projScaleYSq);
+        }
+      }
+    }
     hlsl(vs)
     {
-      #include "spheres_vertices.hlsl"
+      static const float MIN_INV_BOX_AXIS_LEN_SQ = 1e-12;
+      // Must stay below znear: the proxy parts closer than this can light no visible pixel.
+      static const float OMNI_TILES_MIN_CLIP_W = 1e-4;
+
+      // One row per cube face (-x, +x, -y, +y, -z, +z), two triangles each.
+      static const uint OMNI_TILES_CUBE_CORNERS[OMNI_TILES_CUBE_VERTICES] = {
+        0, 2, 6, 0, 6, 4,
+        1, 5, 7, 1, 7, 3,
+        0, 4, 5, 0, 5, 1,
+        2, 3, 7, 2, 7, 6,
+        0, 1, 3, 0, 3, 2,
+        4, 6, 7, 4, 7, 5
+      };
+
       VsOutput omni_lights_tiles_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
       {
         RenderOmniLight light = omni_lights_cb[instanceId];
@@ -171,54 +221,81 @@ shader spot_lights_tiles, omni_lights_tiles
 
         VsOutput output;
         float radius = light.posRadius.w;
-        ##if has_conservative_rasterization == no
-          float worstZ = mul(float4(light.posRadius.xyz, 1), globtm).z + light.posRadius.w;
-          const float ENLARGE_GEOMETRY = 2;
-          radius += ENLARGE_GEOMETRY * worstZ * tile_scale;
-        ##endif
-        float3 worldPos = get_sphere_vertex_pos(vertexId) * radius + light.posRadius.xyz;
+        float3 proxyCenter = light.posRadius.xyz;
+        float3x3 proxyHalfAxes = float3x3(radius, 0, 0, 0, radius, 0, 0, 0, radius);
+        float3x3 proxyAxisDirs = float3x3(1, 0, 0, 0, 1, 0, 0, 0, 1);
+        bool proxyEmpty = false;
 
         #if !NO_OMNI_LIGHT_FADE
           float3 boxPos = float3(light.boxR0.w, light.boxR1.w, light.boxR2.w);
+          float3x3 boxInvAxes = float3x3(light.boxR0.x, light.boxR1.x, light.boxR2.x,
+                                         light.boxR0.y, light.boxR1.y, light.boxR2.y,
+                                         light.boxR0.z, light.boxR1.z, light.boxR2.z);
+          float3 invAxesLenSq = float3(dot(boxInvAxes[0], boxInvAxes[0]), dot(boxInvAxes[1], boxInvAxes[1]),
+                                       dot(boxInvAxes[2], boxInvAxes[2]));
+          bool hasBox = dot(boxPos, boxPos) > 0 && all(invAxesLenSq >= MIN_INV_BOX_AXIS_LEN_SQ);
 
           ##if use_downsampled_depth_in_tiled_lights != no
-            output.boxPos = 0;
+            output.boxPos = hasBox ? boxPos - world_view_pos : 0;
             output.box0 = light.boxR0.xyz;
             output.box1 = light.boxR1.xyz;
             output.box2 = light.boxR2.xyz;
           ##endif
 
           BRANCH
-          if (dot(boxPos, boxPos) > 0) // we don't want to check lenght of every component of matrix, so check box pos only
+          if (hasBox)
           {
-            float3 boxDiff = worldPos - boxPos;
-            // transpose
-            float3 boxX = float3(light.boxR0.x, light.boxR1.x, light.boxR2.x);
-            float3 boxY = float3(light.boxR0.y, light.boxR1.y, light.boxR2.y);
-            float3 boxZ = float3(light.boxR0.z, light.boxR1.z, light.boxR2.z);
-
-            // default restriction box have size of 100000 meters
-            #define MIN_VALUE 1e-12
-
-            boxX /= max(dot(boxX, boxX), MIN_VALUE);
-            boxY /= max(dot(boxY, boxY), MIN_VALUE);
-            boxZ /= max(dot(boxZ, boxZ), MIN_VALUE);
-
-            half3 posInBox = 2 * (light.boxR0.xyz * boxDiff.x + light.boxR1.xyz * boxDiff.y + light.boxR2.xyz * boxDiff.z);
-            worldPos =  boxPos + 0.5 * (clamp(posInBox.x, -BOX_RANGE, BOX_RANGE) * boxX +
-                                        clamp(posInBox.y, -BOX_RANGE, BOX_RANGE) * boxY +
-                                        clamp(posInBox.z, -BOX_RANGE, BOX_RANGE) * boxZ);
-
-            ##if use_downsampled_depth_in_tiled_lights != no
-              output.boxPos = boxPos - world_view_pos;
-            ##endif
+            float3 lightCenterInBox = 2 * mul(boxInvAxes, light.posRadius.xyz - boxPos);
+            float3 sphereHalfSizeInBox = 2 * light.posRadius.w * sqrt(invAxesLenSq);
+            float3 lo = max(lightCenterInBox - sphereHalfSizeInBox, -BOX_RANGE);
+            float3 hi = min(lightCenterInBox + sphereHalfSizeInBox, BOX_RANGE);
+            proxyEmpty = any(lo > hi);
+            float3 midInBox = 0.5 * (lo + hi);
+            float3 halfSizeInBox = 0.5 * (hi - lo);
+            float3x3 halfBoxAxes = 0.5 * float3x3(boxInvAxes[0] / invAxesLenSq.x, boxInvAxes[1] / invAxesLenSq.y,
+                                                  boxInvAxes[2] / invAxesLenSq.z);
+            UNROLL
+            for (uint axis = 0; axis < 3; ++axis)
+            {
+              float3 boxAxisDir = boxInvAxes[axis] * rsqrt(invAxesLenSq[axis]);
+              proxyHalfAxes[axis] = boxAxisDir * (halfSizeInBox[axis] * length(halfBoxAxes[axis]));
+              proxyAxisDirs[axis] = boxAxisDir;
+            }
+            proxyCenter = boxPos + mul(midInBox, halfBoxAxes);
           }
         #endif
 
-        output.pos = mul(float4(worldPos, 1), globtm);
-        output.pos.z = max(0.0000001, output.pos.z);
+        // With the z below nothing clips at the near plane, so drop a sphere wholly between the eye and it (z > w with reverse Z):
+        // it lights no visible pixel, and the PS tests only the side planes of a tile.
+        float4 lightCenterClip = mul(float4(light.posRadius.xyz, 1), globtm);
+        float3 nearPlaneNormal = float3(globtm[0].z - globtm[0].w, globtm[1].z - globtm[1].w, globtm[2].z - globtm[2].w);
+        proxyEmpty = proxyEmpty || lightCenterClip.z - lightCenterClip.w > OMNI_TILES_NEAR_CULL_RADIUS_SCALE * light.posRadius.w * length(nearPlaneNormal);
+
+        uint corner = OMNI_TILES_CUBE_CORNERS[vertexId];
+        // Bits 0, 1, 2 of the corner index give the x, y, z side of the corner: 0 is -1, 1 is +1.
+        float3 cubePos = float3(corner & 1, (corner >> 1) & 1, (corner >> 2) & 1) * 2 - 1;
+        float3 worldPos = proxyCenter + mul(cubePos, proxyHalfAxes);
+        ##if has_conservative_rasterization == no
+          worldPos += get_no_conservative_rasterization_expansion(worldPos) * mul(cubePos, proxyAxisDirs);
+        ##endif
+
+        output.pos = proxyEmpty ? float4(-2, -2, 0, 1) : clip_to_tile_grid(mul(float4(worldPos, 1), globtm));
+        // The pass has no depth test: this z leaves only the clip plane w = OMNI_TILES_MIN_CLIP_W, so the near and far
+        // planes do not cut the proxy, and the clip plane does not go through the eye, where clipping depends on the GPU.
+        output.pos.z = 0.5 * (output.pos.w - OMNI_TILES_MIN_CLIP_W);
         output.index = instanceId;
         float3 sourceToEye = world_view_pos - light.posRadius.xyz;
+        float3 gradX = float3(globtm[0].x, globtm[1].x, globtm[2].x);
+        float3 gradY = float3(globtm[0].y, globtm[1].y, globtm[2].y);
+        float3 gradW = float3(globtm[0].w, globtm[1].w, globtm[2].w);
+        // The eye has clip xyw = 0 in perspective, so the eye-relative form keeps the precision far from the origin.
+        // In ortho w = 1 at the eye, so only the full transform works there.
+        float3 lightClipXYW = dot(gradW, gradW) > 0 ? -float3(dot(sourceToEye, gradX), dot(sourceToEye, gradY), dot(sourceToEye, gradW))
+                                                    : lightCenterClip.xyw;
+        output.lightClipRadius = float4(lightClipXYW, light.posRadius.w);
+        output.clipGradX = gradX;
+        output.clipGradY = gradY;
+        output.clipGradW = gradW;
         output.sourceToEye.xyz = sourceToEye;
         output.sourceToEye.w = pow2(light.posRadius.w) - dot(sourceToEye, sourceToEye);
         return output;
@@ -304,15 +381,95 @@ shader spot_lights_tiles, omni_lights_tiles
       return depth_min_max.x < t2 + EPS && depth_min_max.y > t1 - EPS;
     }
 
+##if shader == omni_lights_tiles
+    float4 dot_with_planes(float3 v, float3 plane_dirs[4])
+    {
+      return float4(dot(v, plane_dirs[0]), dot(v, plane_dirs[1]), dot(v, plane_dirs[2]), dot(v, plane_dirs[3]));
+    }
+
+    bool is_sphere_in_tile(VsOutput input, float2 ndc_min, float2 ndc_max)
+    {
+      float3 lightClipXYW = input.lightClipRadius.xyz;
+      float lightRadius = input.lightClipRadius.w;
+
+      float4 planeNdc = float4(ndc_min.x, ndc_max.x, ndc_min.y, ndc_max.y);
+      float4 planeInsideSign = float4(1.0, -1.0, 1.0, -1.0);
+      float4 planeValue = planeInsideSign * (lightClipXYW.xxyy - planeNdc * lightClipXYW.z);
+      float3 planeNormals[4] = {input.clipGradX - planeNdc.x * input.clipGradW, -(input.clipGradX - planeNdc.y * input.clipGradW),
+                                input.clipGradY - planeNdc.z * input.clipGradW, -(input.clipGradY - planeNdc.w * input.clipGradW)};
+      float3 planeDirs[4];
+      float4 centerToPlaneDist;
+      UNROLL
+      for (uint plane = 0; plane < 4; ++plane)
+      {
+        float invNormalLen = rsqrt(max(dot(planeNormals[plane], planeNormals[plane]), 1e-20));
+        planeDirs[plane] = planeNormals[plane] * invNormalLen;
+        centerToPlaneDist[plane] = planeValue[plane] * invNormalLen;
+      }
+
+      bool isSphereOutsideAnyPlane = any(centerToPlaneDist < -lightRadius);
+      BRANCH
+      if (isSphereOutsideAnyPlane)
+        return false;
+
+      bool isCenterInTilePyramid = all(centerToPlaneDist >= 0);
+      BRANCH
+      if (isCenterInTilePyramid)
+        return true;
+
+      float insideEps = 1e-3 * lightRadius;
+      bool doesSphereTouchPyramid = false;
+
+      UNROLL
+      for (uint face = 0; face < 4; ++face)
+      {
+        float3 centerToProjection = -centerToPlaneDist[face] * planeDirs[face];
+        float4 projectionToPlaneDist = centerToPlaneDist + dot_with_planes(centerToProjection, planeDirs);
+        bool isClosestPointOnFace = centerToPlaneDist[face] < 0 && all(projectionToPlaneDist >= -insideEps);
+        doesSphereTouchPyramid = doesSphereTouchPyramid || isClosestPointOnFace;
+      }
+
+      UNROLL
+      for (uint xPlane = 0; xPlane < 2; ++xPlane)
+        UNROLL
+        for (uint yPlane = 2; yPlane < 4; ++yPlane)
+        {
+          float cosEdge = dot(planeDirs[xPlane], planeDirs[yPlane]);
+          float sinEdgeSq = max(1.0 - cosEdge * cosEdge, 1e-6);
+          float stepAlongXNormal = (centerToPlaneDist[xPlane] - cosEdge * centerToPlaneDist[yPlane]) / sinEdgeSq;
+          float stepAlongYNormal = (centerToPlaneDist[yPlane] - cosEdge * centerToPlaneDist[xPlane]) / sinEdgeSq;
+          float3 centerToEdgePoint = -(stepAlongXNormal * planeDirs[xPlane] + stepAlongYNormal * planeDirs[yPlane]);
+          float4 edgePointToPlaneDist = centerToPlaneDist + dot_with_planes(centerToEdgePoint, planeDirs);
+          bool isClosestPointOnEdge = all(edgePointToPlaneDist >= -insideEps);
+          bool isEdgePointInSphere = dot(centerToEdgePoint, centerToEdgePoint) <= lightRadius * lightRadius;
+          doesSphereTouchPyramid = doesSphereTouchPyramid || (isClosestPointOnEdge && isEdgePointInSphere);
+        }
+
+      bool isPerspective = dot(input.clipGradW, input.clipGradW) > 0;
+      bool isApexInSphere = input.sourceToEye.w >= 0;
+      return doesSphereTouchPyramid || (isPerspective && isApexInSphere);
+    }
+
+##endif
+
     void light_tiles_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
-      float2 uv = screenpos.xy * screen_size.zw * TILE_EDGE;
-
-      DISCARD_IF_INVALID_VIEW_AREA_PS(uv);
       screenpos.xy = floor(screenpos.xy); // Get rid of the .5 for  the viewVec logic
 
+      float2 tileUvSize = screen_size.zw * TILE_EDGE;
+      DISCARD_IF_TILE_INVALID_VIEW_AREA_PS(screenpos.xy * tileUvSize, tileUvSize);
+
       uint2 tileIdx = screenpos.xy;
+      ##if shader == omni_lights_tiles
+        float2 tilePixMin = tileIdx * TILE_EDGE;
+        float2 tilePixMax = tilePixMin + TILE_EDGE;
+        float2 ndcMin = float2(tilePixMin.x, tilePixMax.y) * screen_size.zw * float2(2, -2) + float2(-1, 1);
+        float2 ndcMax = float2(tilePixMax.x, tilePixMin.y) * screen_size.zw * float2(2, -2) + float2(-1, 1);
+        BRANCH
+        if (!is_sphere_in_tile(input, ndcMin, ndcMax))
+          return;
+      ##endif
       uint2 depthTile = tileIdx;
       uint2 tiledGridSize = (screen_size.xy + TILE_EDGE - 1) / TILE_EDGE;
       depthTile = select(tileIdx * TILE_EDGE + TILE_EDGE - 1 < screen_size.xy, depthTile, depthTile - 1);
@@ -406,21 +563,13 @@ float max_lights_distance;
 float4 zbinning_view_pos;
 float4 zbinning_view_dir;
 
-shader tiled_lights_zbinning_omni_cs, tiled_lights_zbinning_spot_cs
+shader tiled_lights_zbinning_cs
 {
-  if (shader == tiled_lights_zbinning_omni_cs)
-  {
-    INIT_OMNI_LIGHTS_CB(cs)
-    USE_CLUSTERED_LIGHTS(cs)
-    USE_OMNI_LIGHTS_BOUNDS(cs)
-  }
-
-  if (shader == tiled_lights_zbinning_spot_cs)
-  {
-    INIT_SPOT_LIGHTS_CB(cs)
-    USE_CLUSTERED_LIGHTS(cs)
-    USE_SPOT_LIGHTS_BOUNDS(cs)
-  }
+  INIT_OMNI_LIGHTS_CB(cs)
+  INIT_SPOT_LIGHTS_CB(cs)
+  USE_CLUSTERED_LIGHTS(cs)
+  USE_OMNI_LIGHTS_BOUNDS(cs)
+  USE_SPOT_LIGHTS_BOUNDS(cs)
 
   (cs) {
     max_lights_distance@f1 = max_lights_distance;
@@ -436,19 +585,16 @@ shader tiled_lights_zbinning_omni_cs, tiled_lights_zbinning_spot_cs
 
     groupshared float4 lightData[Z_BINNING_LIGHTS_BLOCK_SIZE];
 
-    float4 get_light_cb_data(uint idx)
+    float4 get_light_cb_data(uint idx, bool is_spot)
     {
-      ##if shader == tiled_lights_zbinning_omni_cs
-        ##assert(idx < omniLightsCount, "omni_lights_cb OOB access. index = %f", idx);
-        return getOmniLightBoundingSphere(omni_lights_cb[idx]);
-      ##endif
-
-      ##if shader == tiled_lights_zbinning_spot_cs
+      BRANCH
+      if (is_spot)
+      {
         ##assert(idx < spotLightsCount, "spot_lights_cb OOB access. index = %f", idx);
         return getSpotLightBoundingSphere(spot_lights_cb[idx]);
-      ##endif
-
-      return float4(0.0f, 0.0f, 0.0f, 0.0f);
+      }
+      ##assert(idx < omniLightsCount, "omni_lights_cb OOB access. index = %f", idx);
+      return getOmniLightBoundingSphere(omni_lights_cb[idx]);
     };
 
     [numthreads(Z_BINNING_GROUP_SIZE, 1, 1)]
@@ -458,19 +604,16 @@ shader tiled_lights_zbinning_omni_cs, tiled_lights_zbinning_spot_cs
         uint3 group_id : SV_GroupID
     )
     {
-      uint startIndex = (uint)(Z_BINNING_LIGHTS_BLOCK_SIZE * group_id.y);
+      uint omniBlocksCount = (omniLightsCount + Z_BINNING_LIGHTS_BLOCK_SIZE - 1) / Z_BINNING_LIGHTS_BLOCK_SIZE;
+      bool isSpot = group_id.y >= omniBlocksCount;
+      uint blockIdx = isSpot ? group_id.y - omniBlocksCount : group_id.y;
+      uint lightsCount = isSpot ? spotLightsCount : omniLightsCount;
+
+      uint startIndex = (uint)(Z_BINNING_LIGHTS_BLOCK_SIZE * blockIdx);
       uint preloadLightIndex = startIndex + group_thread_id.x;
 
-      ##if shader == tiled_lights_zbinning_omni_cs
-        uint lightsCount = omniLightsCount;
-      ##endif
-
-      ##if shader == tiled_lights_zbinning_spot_cs
-        uint lightsCount = spotLightsCount;
-      ##endif
-
       if ((group_thread_id.x < (uint)Z_BINNING_LIGHTS_BLOCK_SIZE) && (preloadLightIndex < lightsCount))
-        lightData[group_thread_id.x] = get_light_cb_data(preloadLightIndex);
+        lightData[group_thread_id.x] = get_light_cb_data(preloadLightIndex, isSpot);
 
       GroupMemoryBarrierWithGroupSync();
 
@@ -480,15 +623,8 @@ shader tiled_lights_zbinning_omni_cs, tiled_lights_zbinning_spot_cs
       uint binLocalIdx = dispatch_thread_id.x;
       float distScale = (float)Z_BINS_COUNT / max_lights_distance;
 
-      ##if shader == tiled_lights_zbinning_omni_cs
-        uint binLUTIdx = binLocalIdx;
-        const uint maxLightsCount = (uint)MAX_CLUSTERED_OMNI_LIGHTS;
-      ##endif
-
-      ##if shader == tiled_lights_zbinning_spot_cs
-        uint binLUTIdx = binLocalIdx + (uint)Z_BINS_COUNT;
-        const uint maxLightsCount = (uint)MAX_CLUSTERED_SPOT_LIGHTS;
-      ##endif
+      uint binLUTIdx = isSpot ? binLocalIdx + (uint)Z_BINS_COUNT : binLocalIdx;
+      uint maxLightsCount = isSpot ? (uint)MAX_CLUSTERED_SPOT_LIGHTS : (uint)MAX_CLUSTERED_OMNI_LIGHTS;
 
       uint beginIdx = maxLightsCount;
       uint endIdx = 0;

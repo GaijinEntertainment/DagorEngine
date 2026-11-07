@@ -1,11 +1,10 @@
 include "dagi_albedo_scene_common.dshl"
+include "dagi_surface_cache_common.dshl"
 include "project_light_point.dshl"
 include "project_base_albedo.dshl"
 include "heightmap_common.dshl"
 
 macro PROJECT_WORLD_SDF(code)
-  DAGI_WRITE_VOXEL_LIT_SCENE_INIT(code)
-  DAGI_WRITE_VOXEL_LIT_SCENE_WRITE(code)
   INIT_WORLD_HEIGHTMAP_BASE(code)
   USE_HEIGHTMAP_COMMON_BASE(code)
   hlsl(code) {
@@ -28,6 +27,7 @@ macro PROJECT_WORLD_SDF_CLEAR(code)
   DAGI_ALBEDO_SAMPLE(code)
 
   PROJECT_LIGHT_POINT_VOXELIZE(code)//currently no dynamic lights!
+  DAGI_SURFACE_CACHE_WRITE(code)
   INIT_SKY_DIFFUSE_BASE(code)
   USE_SKY_DIFFUSE_BASE(code)
   hlsl(code) {
@@ -36,14 +36,13 @@ macro PROJECT_WORLD_SDF_CLEAR(code)
       #if PROJECT_DAGI_HMAP_ALBEDO
       float3 worldNormal = getNormalLod(calcTcLow(worldPos.xz), 0);
       radiance = project_get_lit_color_at_voxelize(worldPos, worldNormal, getProjectAlbedoAt(worldPos), 1, GetSkySHDiffuseSimple(worldNormal));
-      alpha = 32./256;
+      alpha = 1;
       #endif
     }
     void project_world_sdf_clear(int3 world_sdf_coord, int sdf_clip, float3 radiance = 0, float alpha = 0)
     {
-      //fixme: if multiple is 1/N we clear too much (each voxel N*N times)
-      dagi_lit_scene_voxels_clear(world_sdf_coord + 0.5, sdf_clip, radiance, alpha);
+      dagi_surface_cache_clear_voxel(world_sdf_coord, sdf_clip, world_sdf_raster_voxel_size(), radiance, alpha);
     }
   }
 endmacro
-include "dagi_lit_scene_voxels_rasterizer.dshl"
+include "dagi_surface_cache_rasterizer.dshl"

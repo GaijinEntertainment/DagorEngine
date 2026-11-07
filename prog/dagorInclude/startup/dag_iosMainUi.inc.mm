@@ -14,6 +14,7 @@
 #include <osApiWrappers/dag_dbgStr.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_iosWindowScene.h>
+#include <osApiWrappers/dag_hinge.h>
 #include <drv/hid/dag_hiCreate.h>
 #include <drv/hid/dag_hiKeybIds.h>
 #include <util/dag_string.h>
@@ -61,7 +62,7 @@ static apple_events_callback g_onApplicationDidBecomeActiveFunc = NULL;
 static apple_openurl_with_annotation_callback g_onOpenUrlAppWithAnnotationFunc = NULL;
 static apple_register_remote_token_callback g_onRegisterRemoteToken = NULL;
 
-static void (*on_editfield_finish_cb)(const char *str, int cursor_pos) = NULL;
+static void (*on_editfield_finish_cb)(const char *str, int cursor, int status) = NULL;
 
 NSString *const kGCMMessageIDKey = @"gcm.message_id";
 
@@ -137,11 +138,20 @@ void setUIInterfaceOrientationFromActiveWindow()
   }
 }
 
+// On ProMotion (120Hz) devices the display link callback saturates the main thread, starving UIKit of time to render
+// system keyboard key press/release animations (keys look visually stuck), so the frame rate is capped while it is visible
+static bool g_ios_screen_keyboard_fps_cap = false;
+
+static void apply_display_link_fps()
+{
+  if (g_displayLink)
+    g_displayLink.preferredFramesPerSecond = (g_ios_screen_keyboard_fps_cap && g_ios_fps_limit > 30) ? 30 : g_ios_fps_limit;
+}
+
 void setFPSLimit(int lim)
 {
   g_ios_fps_limit = lim ? lim : 120;
-  if (g_displayLink)
-    g_displayLink.preferredFramesPerSecond = g_ios_fps_limit;
+  apply_display_link_fps();
 }
 
 void setWaitForUIEvents(bool wait)
@@ -279,13 +289,8 @@ NSString *appName;
 
   [coordinator
     animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext> context) {
-      // Stuff you used to do in willRotateToInterfaceOrientation would go here.
-      // If you don't need anything special, you can set this block to nil.
-      // if (size.width > size.height) {} else {};
     }
     completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
-      // Stuff you used to do in didRotateFromInterfaceOrientation would go here.
-      // If not needed, set to nil.
       setUIInterfaceOrientationFromActiveWindow();
     }];
 }
@@ -321,7 +326,6 @@ NSString *appName;
   UIBarButtonItem *editDoneButton;
   BOOL kbdVisible;
   NSInteger maxChars;
-  CGFloat kbdHeight;
   int mousePtrIdx;
 }
 #else
@@ -340,12 +344,12 @@ NSString *appName;
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event;
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event;
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event;
-- (void)showKeyboard;
-- (void)showKeyboard_IME:(NSString *)text withHint:(NSString *)hint withIMEFlag:(NSInteger)ime_flag withKBFlag:(NSInteger)edit_flag withCursorPos:(NSInteger)cursor_pos withSecureMask:(BOOL)is_secure withMaxChars:(NSInteger)max_chars;
+- (BOOL)showKeyboard;
+- (void)showKeyboardRaw;
+- (BOOL)showKeyboardIME:(const HumanInput::ScreenKeyboardParamsIOS &)params;
 - (void)hideKeyboard;
 - (void)initializeKeyboard;
 - (void)clearPointers;
-- (void)updateTextForCallback;
 #endif
 
 @property(readonly) BOOL kbdVisible;
@@ -479,11 +483,24 @@ NSString *appName;
   return kbdVisible;
 }
 
+- (void)dealloc
+{
+  editField.delegate = nil;
+  [editField removeTarget:self action:NULL forControlEvents:UIControlEventAllEvents];
+  [editBG removeTarget:self action:NULL forControlEvents:UIControlEventAllEvents];
+  editDoneButton.target = nil;
+  [editField release];
+  [editToolbar release];
+  [editBG release];
+  [editDoneButton release];
+  [super dealloc];
+}
+
 - (void)initializeKeyboard
 {
   const CGSize screenSize = ios_get_screen().bounds.size;
 
-  editField = [[[UITextField alloc] initWithFrame:CGRectMake(0, 0, screenSize.width * EDIT_FIELD_WIDTH_SCALE, EDIT_FIELD_HEIGHT)] autorelease];
+  editField = [[UITextField alloc] initWithFrame:CGRectMake(0, 0, screenSize.width * EDIT_FIELD_WIDTH_SCALE, EDIT_FIELD_HEIGHT)];
   editField.delegate = self;
   editField.text = @" ";
   editField.font = [UIFont systemFontOfSize:14.0];
@@ -495,31 +512,27 @@ NSString *appName;
   editField.returnKeyType = UIReturnKeyDefault;
   editField.secureTextEntry = NO;
   editField.borderStyle = UITextBorderStyleRoundedRect;
+  [editField addTarget:self action:@selector(editFieldChanged) forControlEvents:UIControlEventEditingChanged];
 
-  editToolbar = [[[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, screenSize.width, EDIT_FIELD_HEIGHT)] autorelease];
-  editDoneButton = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone
-                                                              target:self
-                                                              action:@selector(doneClicked)] autorelease];
+  editToolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, screenSize.width, EDIT_FIELD_HEIGHT)];
+  editDoneButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone
+                                                                 target:self
+                                                                 action:@selector(doneClicked)];
   UIBarButtonItem *flexibleSpace = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
                                                                                   target:nil
                                                                                   action:nil] autorelease];
   editToolbar.items = @[ flexibleSpace, editDoneButton ];
   [editToolbar sizeToFit];
+  editToolbar.translatesAutoresizingMaskIntoConstraints = NO;
 
-  editBG = [[[UIButton alloc] initWithFrame:CGRectMake(0, 0, screenSize.width, screenSize.height)] autorelease];
+  editBG = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, screenSize.width, screenSize.height)];
   [editBG addTarget:self action:@selector(hideKeyboard) forControlEvents:UIControlEventTouchUpInside];
   editBG.backgroundColor = [UIColor blackColor];
   editBG.alpha = .4;
   kbdVisible = NO;
 
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                        selector:@selector(keyboardWillShow:)
-                                        name:UIKeyboardWillShowNotification
-                                        object:nil];
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                        selector:@selector(keyboardWillChangeFrame:)
-                                        name:UIKeyboardWillChangeFrameNotification
-                                        object:nil];
+  if (@available(iOS 17.0, *))
+    self.keyboardLayoutGuide.followsUndockedKeyboard = YES;
 }
 
 - (void)doneClicked
@@ -527,61 +540,185 @@ NSString *appName;
   [self hideKeyboard];
 }
 
-- (void)updateTextForCallback
+static NSUInteger utf16_index_from_codepoints(NSString *s, NSInteger cp)
 {
-  if (on_editfield_finish_cb)
+  const NSUInteger len = s.length;
+  NSUInteger i = 0;
+  for (; cp > 0 && i < len; cp--)
+    i += (CFStringIsSurrogateHighCharacter([s characterAtIndex:i]) && i + 1 < len) ? 2 : 1;
+  return i;
+}
+
+static NSInteger codepoints_from_utf16_index(NSString *s, NSUInteger idx)
+{
+  const NSUInteger len = s.length;
+  NSInteger cp = 0;
+  for (NSUInteger i = 0; i < idx && i < len; cp++)
+    i += (CFStringIsSurrogateHighCharacter([s characterAtIndex:i]) && i + 1 < len) ? 2 : 1;
+  return cp;
+}
+
+static NSInteger codepoints_count(NSString *s) { return codepoints_from_utf16_index(s, s.length); }
+
+static NSString *truncate_to_codepoints(NSString *s, NSInteger max_cp)
+{
+  NSUInteger idx = utf16_index_from_codepoints(s, max_cp);
+  if (idx >= s.length)
+    return s;
+  idx = [s rangeOfComposedCharacterSequenceAtIndex:idx].location;
+  return [s substringToIndex:idx];
+}
+
+static UITextContentType content_type_to_uikit(HumanInput::ScreenKeyboardParamsIOS::ContentType type)
+{
+  switch (type)
   {
-    UITextRange *selectedRange = editField.selectedTextRange;
-    NSInteger cursorPosition = [editField offsetFromPosition:editField.beginningOfDocument toPosition:selectedRange.start];
-    NSString *text = editField.text;
-    if (maxChars > 0 && [text length] > maxChars) {
-      text = [text substringToIndex:maxChars];
-    }
-    on_editfield_finish_cb([text UTF8String], cursorPosition);
+    case HumanInput::ScreenKeyboardParamsIOS::CONTENT_PASSWORD: return UITextContentTypePassword;
+    case HumanInput::ScreenKeyboardParamsIOS::CONTENT_EMAIL: return UITextContentTypeEmailAddress;
+    default: return nil;
   }
 }
 
-- (void)showKeyboard_IME:(NSString *)text
-                withHint:(NSString *)hint
-             withIMEFlag:(NSInteger)ime_flag
-              withKBFlag:(NSInteger)edit_flag
-           withCursorPos:(NSInteger)cursor_pos
-          withSecureMask:(BOOL)is_secure
-            withMaxChars:(NSInteger)max_chars
+- (NSRange)editFieldSelectionUtf16
 {
-  if (max_chars > 0 && [text length] > max_chars) {
-    editField.text = [text substringToIndex:max_chars];
-  } else {
-    editField.text = text;
+  const NSUInteger len = editField.text.length;
+  UITextRange *sel = editField.selectedTextRange;
+  if (!sel)
+    return NSMakeRange(len, 0);
+  const NSInteger from = [editField offsetFromPosition:editField.beginningOfDocument toPosition:sel.start];
+  const NSInteger to = [editField offsetFromPosition:editField.beginningOfDocument toPosition:sel.end];
+  const NSUInteger start = (NSUInteger)MIN(MAX(from, (NSInteger)0), (NSInteger)len);
+  const NSUInteger end = (NSUInteger)MIN(MAX(to, (NSInteger)start), (NSInteger)len);
+  return NSMakeRange(start, end - start);
+}
+
+- (void)setEditFieldCursorUtf16:(NSUInteger)pos
+{
+  pos = MIN(pos, editField.text.length);
+  if (UITextPosition *p = [editField positionFromPosition:editField.beginningOfDocument offset:(NSInteger)pos])
+    editField.selectedTextRange = [editField textRangeFromPosition:p toPosition:p];
+}
+
+- (void)finishEditWithStatus:(int)status
+{
+  if (!on_editfield_finish_cb)
+    return;
+
+  NSString *text = editField.text ?: @"";
+  NSInteger cursor = codepoints_from_utf16_index(text, [self editFieldSelectionUtf16].location);
+  if (maxChars > 0)
+  {
+    text = truncate_to_codepoints(text, maxChars);
+    cursor = MIN(cursor, codepoints_count(text));
   }
+  const char *utf8 = text.UTF8String;
+  if (!utf8)
+    logwarn("iOS: IME text can't be converted to UTF-8");
+  on_editfield_finish_cb(utf8 ? utf8 : "", (int)cursor, status);
+}
+
+- (BOOL)showKeyboardIME:(const HumanInput::ScreenKeyboardParamsIOS &)params
+{
+  NSString *text = (params.text ? [NSString stringWithUTF8String:params.text] : nil) ?: @"";
+  NSString *hint = (params.hint && *params.hint) ? [NSString stringWithUTF8String:params.hint] : nil;
+  maxChars = params.maxChars;
+  if (maxChars > 0)
+    text = truncate_to_codepoints(text, maxChars);
+
+  editField.secureTextEntry = params.secure;
+  editField.keyboardType = (UIKeyboardType)params.keyboardType;
+  editField.returnKeyType = (UIReturnKeyType)params.returnKeyType;
+  editField.autocapitalizationType = (UITextAutocapitalizationType)params.autocapitalizationType;
+  editField.textContentType = content_type_to_uikit(params.contentType);
+  editField.text = text;
   editField.placeholder = hint;
-  editField.keyboardType = (UIKeyboardType)edit_flag;
-  editField.returnKeyType = (UIReturnKeyType)ime_flag;
-  editField.secureTextEntry = is_secure;
-  maxChars = max_chars;
+  if (editField.isFirstResponder)
+    [editField reloadInputViews];
 
-  [self showKeyboard];
+  if (![self showKeyboard])
+    return NO;
 
-  //set cursor postion should be done after becomeFirstResponder
-  UITextPosition *newPosition = [editField positionFromPosition:editField.beginningOfDocument inDirection:UITextLayoutDirectionRight offset:cursor_pos];
-  if (newPosition)
-  {
-    UITextRange *newRange = [editField textRangeFromPosition:newPosition toPosition:newPosition];
-    editField.selectedTextRange = newRange;
-  }
+  const NSUInteger cursor = params.cursorPos < 0 ? text.length : utf16_index_from_codepoints(text, params.cursorPos);
+  [self setEditFieldCursorUtf16:cursor];
+  NSString *expectedText = text;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (kbdVisible && editField.isFirstResponder && [editField.text isEqualToString:expectedText])
+      [self setEditFieldCursorUtf16:cursor];
+  });
+  return YES;
 }
 
-- (void)keyboardWillShow:(NSNotification *)notification
+- (void)showKeyboardRaw
 {
-  NSValue *keyboardFrameValue = [[notification userInfo] objectForKey:UIKeyboardFrameEndUserInfoKey];
-  kbdHeight = [keyboardFrameValue CGRectValue].size.height;
-  [self layoutKeyboardControls];
+  if (!kbdVisible)
+  {
+    on_editfield_finish_cb = NULL;
+    editField.secureTextEntry = NO;
+    editField.keyboardType = UIKeyboardTypeDefault;
+    editField.returnKeyType = UIReturnKeyDefault;
+    editField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    editField.textContentType = nil;
+    editField.placeholder = nil;
+    editField.text = @" ";
+  }
+  [self showKeyboard];
 }
 
-- (void)keyboardWillChangeFrame:(NSNotification *)notification
+- (BOOL)showKeyboard
 {
   if (kbdVisible)
-    [self keyboardWillShow:notification];
+    return YES;
+  if (self.window == nil)
+    return NO;
+
+  [self addSubview:editBG];
+  [self addSubview:editToolbar];
+  [self addSubview:editField];
+  UILayoutGuide *kbdGuide = self.keyboardLayoutGuide;
+  [NSLayoutConstraint activateConstraints:@[
+    [editToolbar.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+    [editToolbar.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+    [editToolbar.bottomAnchor constraintEqualToAnchor:kbdGuide.topAnchor],
+    [editToolbar.heightAnchor constraintEqualToConstant:editToolbar.frame.size.height],
+  ]];
+  kbdVisible = YES;
+  [UIView performWithoutAnimation:^{
+    [self setNeedsLayout];
+    [self layoutIfNeeded];
+  }];
+
+  if (![editField becomeFirstResponder])
+  {
+    logwarn("iOS: edit field can't become first responder, screen keyboard is not shown");
+    kbdVisible = NO;
+    [self removeKeyboardControls];
+    return NO;
+  }
+
+  g_ios_screen_keyboard_fps_cap = true;
+  apply_display_link_fps();
+  return YES;
+}
+
+- (void)removeKeyboardControls
+{
+  [editField removeFromSuperview];
+  [editToolbar removeFromSuperview];
+  [editBG removeFromSuperview];
+}
+
+- (void)hideKeyboard
+{
+  if (!kbdVisible)
+    return;
+
+  kbdVisible = NO;
+  [self finishEditWithStatus:HumanInput::IME_STATUS_CLOSED];
+  [editField resignFirstResponder];
+  [self removeKeyboardControls];
+
+  g_ios_screen_keyboard_fps_cap = false;
+  apply_display_link_fps();
 }
 
 static CGFloat toolbar_items_min_x(UIToolbar *toolbar, UIView *space, CGFloat fallback)
@@ -604,32 +741,22 @@ static CGFloat toolbar_items_min_x(UIToolbar *toolbar, UIView *space, CGFloat fa
 
 - (void)layoutKeyboardControls
 {
-  UIViewController *root = getMainController();
-  if (root == nil || editField == nil)
-    return;
+  const CGRect bounds = self.bounds;
+  const UIEdgeInsets safeInsets = self.safeAreaInsets;
 
-  const CGRect bounds = root.view.bounds;
-  const UIEdgeInsets safeInsets = root.view.safeAreaInsets;
+  editBG.frame = bounds;
+  [editToolbar layoutIfNeeded];
+  const CGRect editToolbarFrame = editToolbar.frame;
 
-  [UIView performWithoutAnimation:^{
-    editBG.frame = bounds;
-
-    CGRect editToolbarFrame = editToolbar.frame;
-    editToolbarFrame.origin.y = bounds.size.height - kbdHeight - editToolbarFrame.size.height;
-    editToolbarFrame.size.width = bounds.size.width;
-    editToolbar.frame = editToolbarFrame;
-    [editToolbar layoutIfNeeded];
-
-    const CGFloat fieldAreaLeft = safeInsets.left + EDIT_FIELD_MARGIN;
-    const CGFloat fieldAreaRight =
-      toolbar_items_min_x(editToolbar, root.view, bounds.size.width - safeInsets.right) - EDIT_FIELD_MARGIN;
-    CGRect editFieldFrame = editField.frame;
-    editFieldFrame.size.width = fmin(bounds.size.width * EDIT_FIELD_WIDTH_SCALE - safeInsets.left - safeInsets.right,
-      fieldAreaRight - fieldAreaLeft);
-    editFieldFrame.origin.x = fieldAreaLeft + (fieldAreaRight - fieldAreaLeft - editFieldFrame.size.width) / 2;
-    editFieldFrame.origin.y = bounds.size.height - kbdHeight - editFieldFrame.size.height;
-    editField.frame = editFieldFrame;
-  }];
+  const CGFloat fieldAreaLeft = safeInsets.left + EDIT_FIELD_MARGIN;
+  const CGFloat fieldAreaRight = toolbar_items_min_x(editToolbar, self, bounds.size.width - safeInsets.right) - EDIT_FIELD_MARGIN;
+  CGRect editFieldFrame;
+  editFieldFrame.size.width = fmax(0.0,
+    fmin(bounds.size.width * EDIT_FIELD_WIDTH_SCALE - safeInsets.left - safeInsets.right, fieldAreaRight - fieldAreaLeft));
+  editFieldFrame.size.height = EDIT_FIELD_HEIGHT;
+  editFieldFrame.origin.x = fieldAreaLeft + (fieldAreaRight - fieldAreaLeft - editFieldFrame.size.width) / 2;
+  editFieldFrame.origin.y = CGRectGetMidY(editToolbarFrame) - editFieldFrame.size.height / 2;
+  editField.frame = editFieldFrame;
 }
 
 - (void)layoutSubviews
@@ -637,43 +764,6 @@ static CGFloat toolbar_items_min_x(UIToolbar *toolbar, UIView *space, CGFloat fa
   [super layoutSubviews];
   if (kbdVisible)
     [self layoutKeyboardControls];
-}
-
-- (void)showKeyboard
-{
-  UIViewController *root = getMainController();
-  if (root != nil && !kbdVisible)
-  {
-    editBG.frame = root.view.bounds;
-    [root.view addSubview:editBG];
-    [root.view addSubview:editToolbar];
-    [root.view addSubview:editField];
-    [editField becomeFirstResponder];
-    kbdVisible = YES;
-
-    // On ProMotion (120Hz) devices the display link callback saturates the main thread,
-    // starving UIKit of time to render system keyboard key press/release animations
-    // (keys look visually stuck). Cap the frame rate while the keyboard is visible.
-    if (g_displayLink && g_ios_fps_limit > 30)
-      g_displayLink.preferredFramesPerSecond = 30;
-  }
-}
-
-- (void)hideKeyboard
-{
-  if (kbdVisible)
-  {
-    kbdVisible = NO;
-    [self updateTextForCallback];
-    [editField resignFirstResponder];
-    [editField removeFromSuperview];
-    [editToolbar removeFromSuperview];
-    [editBG removeFromSuperview];
-
-    // restore frame rate capped in showKeyboard
-    if (g_displayLink)
-      g_displayLink.preferredFramesPerSecond = g_ios_fps_limit;
-  }
 }
 
 - (BOOL)textField:(UITextField *)_textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
@@ -694,16 +784,68 @@ static CGFloat toolbar_items_min_x(UIToolbar *toolbar, UIView *space, CGFloat fa
     }
     return NO;
   }
+
+  if (_textField.markedTextRange)
+    return YES;
+
+  NSString *text = _textField.text ?: @"";
+  BOOL applyManually = NO;
+  if (_textField.secureTextEntry)
+  {
+    const NSRange sel = [self editFieldSelectionUtf16];
+    if (range.location == 0 && range.length == text.length && !NSEqualRanges(sel, range))
+    {
+      range = sel;
+      if (string.length == 0 && range.length == 0 && range.location > 0) // backspace
+        range = [text rangeOfComposedCharacterSequenceAtIndex:range.location - 1];
+    }
+    applyManually = YES;
+  }
+  if (NSMaxRange(range) > text.length)
+    return NO;
+
   if (maxChars > 0)
   {
-    if (range.length + range.location > maxChars)
-      return NO;
-
-    NSInteger newLength = [_textField.text length] + [string length] - range.length;
-    return newLength <= maxChars;
+    const NSInteger allowed = maxChars - (codepoints_count(text) - codepoints_count([text substringWithRange:range]));
+    if (codepoints_count(string) > allowed)
+    {
+      if (allowed <= 0)
+        return NO;
+      string = truncate_to_codepoints(string, allowed);
+      applyManually = YES;
+    }
   }
-  return YES;
 
+  if (!applyManually)
+    return YES;
+  _textField.text = [text stringByReplacingCharactersInRange:range withString:string];
+  [self setEditFieldCursorUtf16:range.location + string.length];
+  return NO;
+}
+
+- (void)editFieldChanged
+{
+  if (!on_editfield_finish_cb || maxChars <= 0 || editField.markedTextRange)
+    return;
+  NSString *text = editField.text ?: @"";
+  const NSInteger excess = codepoints_count(text) - maxChars;
+  if (excess <= 0)
+    return;
+
+  const NSUInteger cursor = [self editFieldSelectionUtf16].location;
+  NSUInteger start = cursor;
+  NSInteger removed = 0;
+  while (removed < excess && start > 0)
+  {
+    const NSRange r = [text rangeOfComposedCharacterSequenceAtIndex:start - 1];
+    removed += codepoints_count([text substringWithRange:r]);
+    start = r.location;
+  }
+  NSString *result = [text stringByReplacingCharactersInRange:NSMakeRange(start, cursor - start) withString:@""];
+  if (removed < excess)
+    result = truncate_to_codepoints(result, maxChars);
+  editField.text = result;
+  [self setEditFieldCursorUtf16:start];
 }
 
 - (BOOL)textFieldShouldReturn:(UITextField *)_textField
@@ -737,25 +879,59 @@ GCEventViewController *get_EventViewController() { return eventViewControler; }
 
 #if _TARGET_IOS
 
+static DagorView *get_main_dagor_view()
+{
+  if (UIViewController *mainviewctrl = getMainController())
+    if ([mainviewctrl.view isKindOfClass:[DagorView class]])
+      return (DagorView *)mainviewctrl.view;
+  return nil;
+}
+
 void HumanInput::showScreenKeyboard(bool show)
 {
-  if (DagorViewCtrl *mainviewctrl = (DagorViewCtrl*)getMainController())
-    if (DagorView *view = (DagorView *)mainviewctrl.view)
-    {
-      if (show)
-        [view showKeyboard];
-      else
-        [view hideKeyboard];
-    }
+  if (DagorView *view = get_main_dagor_view())
+  {
+    if (show)
+      [view showKeyboardRaw];
+    else
+      [view hideKeyboard];
+  }
 }
-void HumanInput::showScreenKeyboardIME_iOS(const char *text, const char *hint, unsigned int ime_flag, unsigned int edit_flag, int cursor_pos, bool is_secure, int max_chars, void(on_finish_cb)(const char *str, int cursorPos))
+
+bool HumanInput::showScreenKeyboardIME_iOS(const ScreenKeyboardParamsIOS &params,
+  void (*on_finish_cb)(const char *str, int cursor, int status))
 {
-  if (DagorViewCtrl *mainviewctrl = (DagorViewCtrl*)getMainController())
-    if (DagorView *view = (DagorView *)mainviewctrl.view)
-    {
-      on_editfield_finish_cb = on_finish_cb;
-      [view showKeyboard_IME:[NSString stringWithUTF8String:text] withHint:[NSString stringWithUTF8String:hint] withIMEFlag:(NSInteger)ime_flag withKBFlag:(NSInteger)edit_flag withCursorPos:(NSInteger)cursor_pos withSecureMask:(BOOL)is_secure withMaxChars:(NSInteger)max_chars];
-    }
+  DagorView *view = get_main_dagor_view();
+  if (!view)
+    return false;
+  if (view.kbdVisible && on_editfield_finish_cb)
+  {
+    logwarn("iOS: IME is already shown, close it before showing a new one");
+    return false;
+  }
+  on_editfield_finish_cb = on_finish_cb;
+  if ([view showKeyboardIME:params])
+    return true;
+  on_editfield_finish_cb = NULL;
+  return false;
+}
+#endif
+
+#if _TARGET_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED >= 270100
+API_AVAILABLE(ios(27.1)) static HingeState to_hinge_state(UIHinge *hinge)
+{
+  HingeState state;
+  if (!hinge) // the interaction left a hierarchy that gives hinge updates
+    return state;
+  state.angle = hinge.angle;
+  switch (hinge.status)
+  {
+    case UIHingeStatusClosed: state.status = HingeStatus::CLOSED; break;
+    case UIHingeStatusPartiallyOpen: state.status = HingeStatus::PARTIALLY_OPEN; break;
+    case UIHingeStatusFullyOpen: state.status = HingeStatus::FULLY_OPEN; break;
+    default: state.status = HingeStatus::UNKNOWN; break;
+  }
+  return state;
 }
 #endif
 
@@ -780,6 +956,18 @@ UIWindow *createIOSDagorWindow(UIView *drawView, float scale)
 
   mainwnd.rootViewController = mainviewctrl;
   storedMainViewCtrl = mainviewctrl;
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 270100
+  if (@available(iOS 27.1, *))
+  {
+    UIHingeInteraction *hinge =
+      [[UIHingeInteraction alloc] initWithUpdateHandler:^(UIHingeInteraction *, UIHingeInteractionUpdate *update) {
+        set_hinge_state(to_hinge_state(update.hinge));
+      }];
+    [mainview addInteraction:hinge];
+    [hinge release];
+  }
+#endif
 
 #elif _TARGET_TVOS
   mainview.eventViewController = [[DagorViewCtrl alloc] initWithView:mainview];

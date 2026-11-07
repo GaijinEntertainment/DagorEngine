@@ -3,6 +3,10 @@
 #include "device_queue.h"
 #include "device.h"
 
+#if _TARGET_PC_WIN
+#include <flipStallNudge.h>
+#endif
+
 using namespace drv3d_dx12;
 
 #if _TARGET_XBOX
@@ -170,7 +174,8 @@ bool should_trigger_timeout_error(int msGpuWaitingTime)
 } // namespace
 #endif
 
-bool drv3d_dx12::wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what)
+bool drv3d_dx12::wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what,
+  bool flip_nudge)
 {
 #if LOCK_PROFILER_ENABLED
   using namespace da_profiler;
@@ -191,7 +196,17 @@ bool drv3d_dx12::wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &
     MAX_WAIT_TIME_MS = INFINITE;
 #endif
 
-  auto result = WaitForSingleObject(event, MAX_WAIT_TIME_MS);
+  auto wait = [&](DWORD timeout_ms) {
+#if _TARGET_PC_WIN
+    if (flip_nudge)
+      return wait_with_flip_nudge(event, timeout_ms, "frame progress");
+#else
+    G_UNUSED(flip_nudge);
+#endif
+    return WaitForSingleObject(event, timeout_ms);
+  };
+
+  auto result = wait(MAX_WAIT_TIME_MS);
   int msGpuWaitingTime = 0;
   uint32_t workerWaitAttempts = 0;
   static constexpr uint32_t MAX_WORKER_WAIT_ATTEMPTS = 10;
@@ -202,7 +217,7 @@ bool drv3d_dx12::wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &
     {
       logdbg("DX12: Worker is taking longer than %uMS to arrive at progress %llu, waiting again (attempt %u of %u)...",
         MAX_WAIT_TIME_MS, progress, workerWaitAttempts, MAX_WORKER_WAIT_ATTEMPTS);
-      result = WaitForSingleObject(event, MAX_WAIT_TIME_MS);
+      result = wait(MAX_WAIT_TIME_MS);
       continue;
     }
 #if _TARGET_PC_WIN
@@ -230,7 +245,7 @@ bool drv3d_dx12::wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &
     logdbg("DX12: While waiting for frame progress %u (GPU progress %u, CPU progress %u) - %s, WaitForSingleObject(%p, "
            "MAX_WAIT_OBJECT_TIMEOUT_MS) returned WAIT_TIMEOUT (GPU waiting time %u ms), continue",
       progress, qs.checkFrameProgress(), cpuFrameProgress, what, event, msGpuWaitingTime);
-    result = WaitForSingleObject(event, MAX_WAIT_OBJECT_TIMEOUT_MS);
+    result = wait(MAX_WAIT_OBJECT_TIMEOUT_MS);
     if (cpuFrameProgress >= progress) // Hangs on the CPU side must be handled by the watchdog
       msGpuWaitingTime += MAX_WAIT_OBJECT_TIMEOUT_MS;
   }

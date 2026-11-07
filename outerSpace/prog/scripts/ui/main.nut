@@ -4,13 +4,10 @@ from "%darg/ui_imports.nut" import *
 from "%scripts/ui/widgets/simpleComponents.nut" import normalCursor
 from "%scripts/ui/widgets/msgbox.nut" import msgboxComponent, hasMsgBoxes
 import "console" as console
-from "frp" import warn_on_deprecated_methods
-from "dagor.system" import DBGLEVEL
 from "screencap" import take_screenshot_nogui, take_screenshot
 import "%darg/helpers/inspector.nut" as inspectorToggle
 
 //set_subscriber_validation( DBGLEVEL>0)
-warn_on_deprecated_methods( DBGLEVEL>0)
 
 let ecs = require_optional("ecs")
 // ES registered by a module loaded before this wipe would be deleted by it,

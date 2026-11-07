@@ -10,15 +10,13 @@
 #include <shaders/dag_refinedBlock.h>
 #include <render/daFrameGraph/daFG.h>
 #include <math/dag_hlsl_floatx.h>
-#include <frustumCulling/frustumPlanes.h>
 #include <render/world/frameGraphHelpers.h>
 #include "../../shaders/dagdp_common.hlsli"
 #include "../../shaders/dagdp_common_placer.hlsli"
 #include "../block.h"
 #include "../globalManager.h"
+#include "../placer.h"
 #include "grid3d.h"
-
-using TmpName = eastl::fixed_string<char, 256>;
 
 namespace var
 {
@@ -29,35 +27,13 @@ static ShaderVariableInfo renderable_indices("dagdp_grid3d__renderable_indices")
 static ShaderVariableInfo variants("dagdp_grid3d__variants");
 static ShaderVariableInfo tiles("dagdp_grid3d__tiles");
 static ShaderVariableInfo volumes("dagdp_grid3d__volumes");
+static ShaderVariableInfo placers_data("dagdp_grid3d__placers");
 
 static ShaderVariableInfo num_renderables("dagdp_grid3d__num_renderables");
 static ShaderVariableInfo num_placeables("dagdp_grid3d__num_placeables");
-static ShaderVariableInfo tiles_start_offset("dagdp_grid3d__tiles_start_offset");
 
 static ShaderVariableInfo max_placeable_bounding_radius("dagdp_grid3d__max_placeable_bounding_radius");
-static ShaderVariableInfo tile_pos_delta("dagdp_grid3d__tile_pos_delta");
-static ShaderVariableInfo instance_pos_delta("dagdp_grid3d__instance_pos_delta");
 static ShaderVariableInfo debug_frustum_culling_bias("dagdp_grid3d__debug_frustum_culling_bias");
-
-static ShaderVariableInfo prng_seed_jitter_x("dagdp_grid3d__prng_seed_jitter_x");
-static ShaderVariableInfo prng_seed_jitter_y("dagdp_grid3d__prng_seed_jitter_y");
-static ShaderVariableInfo prng_seed_jitter_z("dagdp_grid3d__prng_seed_jitter_z");
-static ShaderVariableInfo prng_seed_placeable("dagdp_grid3d__prng_seed_placeable");
-static ShaderVariableInfo prng_seed_slope("dagdp_grid3d__prng_seed_slope");
-static ShaderVariableInfo prng_seed_occlusion("dagdp_grid3d__prng_seed_occlusion");
-static ShaderVariableInfo prng_seed_scale("dagdp_grid3d__prng_seed_scale");
-static ShaderVariableInfo prng_seed_yaw("dagdp_grid3d__prng_seed_yaw");
-static ShaderVariableInfo prng_seed_pitch("dagdp_grid3d__prng_seed_pitch");
-static ShaderVariableInfo prng_seed_roll("dagdp_grid3d__prng_seed_roll");
-
-static ShaderVariableInfo variant_index("dagdp_grid3d__variant_index");
-static ShaderVariableInfo grid_jitter("dagdp_grid3d__grid_jitter");
-static ShaderVariableInfo dist_based_scale_range("dagdp_grid3d__dist_based_scale_range");
-static ShaderVariableInfo dist_based_center("dagdp_grid3d__dist_based_center");
-
-static ShaderVariableInfo viewport_pos("dagdp_grid3d__viewport_pos");
-static ShaderVariableInfo viewport_max_distance("dagdp_grid3d__viewport_max_distance");
-static ShaderVariableInfo viewport_index("dagdp_grid3d__viewport_index");
 } // namespace var
 
 namespace dagdp
@@ -82,27 +58,15 @@ struct Grid3dPersistentData
   CommonPlacerBuffers commonBuffers;
   UniqueBuf tileBuffer;
   UniqueBuf volumesBuffer;
+  UniqueBuf placerDataBuffer;
+  UniqueBuf viewportDataBuffer;
 
   Grid3dConstants constants{};
 };
 
 struct Grid3dGatheredInfo
 {
-  struct PerPlacer
-  {
-    uint32_t placerIndex;
-    uint32_t tileStartIndex;
-    uint32_t tileEndIndex;
-  };
-
-  struct PerViewport
-  {
-    uint32_t placerStartIndex;
-    uint32_t placerEndIndex;
-  };
-
-  dag::RelocatableFixedVector<PerPlacer, 16> perPlacer;
-  dag::RelocatableFixedVector<PerViewport, DAGDP_MAX_VIEWPORTS> perViewport;
+  uint32_t totalTiles = 0;
   bool isValid = false;
 };
 
@@ -110,15 +74,11 @@ struct ViewportEnd
 {
   uint32_t volumes;
   uint32_t tiles;
-  uint32_t placers;
 };
 using ViewportEnds = dag::RelocatableFixedVector<ViewportEnd, DAGDP_MAX_VIEWPORTS>;
 
-static void truncate_gathered_info(Grid3dGatheredInfo &gathered_info,
-  Grid3dVolumes &volumes,
-  Grid3dTiles &tiles,
-  const ViewportEnds &viewport_ends,
-  const Grid3dConstants &constants)
+static void truncate_gathered_info(
+  Grid3dVolumes &volumes, Grid3dTiles &tiles, const ViewportEnds &viewport_ends, const Grid3dConstants &constants)
 {
   const uint32_t requiredTiles = tiles.size();
   const uint32_t requiredVolumes = volumes.size();
@@ -136,20 +96,30 @@ static void truncate_gathered_info(Grid3dGatheredInfo &gathered_info,
   const bool any = fittingViewportsEnd > 0;
   const uint32_t volumeEnd = any ? viewport_ends[fittingViewportsEnd - 1].volumes : 0;
   const uint32_t tileEnd = any ? viewport_ends[fittingViewportsEnd - 1].tiles : 0;
-  const uint32_t placerEnd = any ? viewport_ends[fittingViewportsEnd - 1].placers : 0;
 
   volumes.resize(volumeEnd);
   tiles.resize(tileEnd);
-  gathered_info.perPlacer.resize(placerEnd);
-
-  // make the rest of the viewports that don't fit no-op
-  for (uint32_t i = fittingViewportsEnd; i < gathered_info.perViewport.size(); ++i)
-    gathered_info.perViewport[i] = Grid3dGatheredInfo::PerViewport{placerEnd, placerEnd};
 
   RequiredLimits required;
   required.max3dTiles = requiredTiles;
   required.maxVolumes = requiredVolumes;
   GlobalManager::updateRequiredLimits(required);
+}
+
+static Grid3dPlacerGpuData make_grid3d_placer_gpu_data(const Grid3dPlacer &placer)
+{
+  Grid3dPlacerGpuData result{};
+  result.prngSeed = static_cast<uint32_t>(placer.prngSeed);
+  result.tilePosDelta = placer.worldStep;
+  result.gridJitter = placer.gridJitter;
+  return result;
+}
+
+static Grid3dViewportGpuData make_grid3d_viewport_gpu_data(const Viewport &viewport, const Grid3dConstants &constants)
+{
+  Grid3dViewportGpuData result{};
+  fill_viewport_gpu_data(result, viewport, constants.viewInfo.maxDrawDistance);
+  return result;
 }
 
 static dafg::NodeHandle create_place_node(
@@ -160,39 +130,18 @@ static dafg::NodeHandle create_place_node(
   return ns.registerNode(name.c_str(), DAFG_PP_NODE_SRC, [persistentData, is_optimistic](dafg::Registry registry) {
     const auto &constants = persistentData->constants;
     view_multiplex(registry, constants.viewInfo.kind);
-
-    (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
-      .modify("instance_data")
-      .buffer()
-      .atStage(dafg::Stage::COMPUTE)
-      .bindToShaderVar("dagdp__instance_data");
+    request_place_stage_buffers(registry, constants.viewInfo, is_optimistic);
 
     ComputeShader placeShader = ComputeShader(is_optimistic ? "dagdp_grid3d_place_stage0" : "dagdp_grid3d_place_stage1");
 
-    (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
-      .read(is_optimistic ? "dyn_allocs_stage0" : "dyn_allocs_stage1")
-      .buffer()
-      .atStage(dafg::Stage::COMPUTE)
-      .bindToShaderVar("dagdp__dyn_allocs");
-
-    (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
-      .modify(is_optimistic ? "dyn_counters_stage0" : "dyn_counters_stage1")
-      .buffer()
-      .atStage(dafg::Stage::COMPUTE)
-      .bindToShaderVar("dagdp__dyn_counters");
-
     registry.modify("grid3d_tiles").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_grid3d__tiles");
     registry.modify("grid3d_volumes").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_grid3d__volumes");
+    registry.read("grid3d_viewports").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_grid3d__viewports");
 
-    eastl::fixed_string<char, 32> viewResourceName;
-    viewResourceName.append_sprintf("view@%s", constants.viewInfo.uniqueName.c_str());
-    const auto viewHandle = registry.readBlob<ViewPerFrameData>(viewResourceName.c_str()).handle();
     const auto gatheredInfoHandle = registry.readBlob<Grid3dGatheredInfo>("gatheredInfo").handle();
 
-    return [persistentData, viewHandle, gatheredInfoHandle, shader = eastl::move(placeShader)] {
+    return [persistentData, gatheredInfoHandle, shader = eastl::move(placeShader)] {
       const auto &constants = persistentData->constants;
-      const auto &view = viewHandle.ref();
-      G_ASSERT(view.viewports.size() <= constants.viewInfo.maxViewports);
       const auto &gatheredInfo = gatheredInfoHandle.ref();
       if (!gatheredInfo.isValid)
         return;
@@ -204,6 +153,7 @@ static dafg::NodeHandle create_place_node(
       ShaderGlobal::set_buffer(var::placeable_weights, persistentData->commonBuffers.placeableWeightsBuffer.getBufId());
       ShaderGlobal::set_buffer(var::renderable_indices, persistentData->commonBuffers.renderableIndicesBuffer.getBufId());
       ShaderGlobal::set_buffer(var::variants, persistentData->commonBuffers.variantsBuffer.getBufId());
+      ShaderGlobal::set_buffer(var::placers_data, persistentData->placerDataBuffer.getBufId());
 
       ShaderGlobal::set_int(var::num_renderables, constants.numRenderables);
       ShaderGlobal::set_int(var::num_placeables, constants.numPlaceables);
@@ -211,49 +161,11 @@ static dafg::NodeHandle create_place_node(
       ShaderGlobal::set_float(var::max_placeable_bounding_radius, constants.maxPlaceableBoundingRadius);
       ShaderGlobal::set_float(var::debug_frustum_culling_bias, get_frustum_culling_bias());
 
-      // TODO: the way culling variables are bound right now (see frustum.dshl), we need a dispatch per viewport.
-      // Otherwise they could be merged into a single dispatch.
-      for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)
+      if (gatheredInfo.totalTiles > 0)
       {
-        const auto &viewport = view.viewports[viewportIndex];
-        const auto &perViewport = gatheredInfo.perViewport[viewportIndex];
-        ScopeFrustumPlanesShaderVars scopedFrustumVars(viewport.frustum);
-
-        for (uint32_t pp = perViewport.placerStartIndex, ppe = perViewport.placerEndIndex; pp < ppe; pp++)
-        {
-          const auto &perPlacer = gatheredInfo.perPlacer[pp];
-          const auto &placer = constants.placers[perPlacer.placerIndex];
-
-          const float tileWorldSize = placer.worldStep * GRID3D_TILE_SIZE;
-          ShaderGlobal::set_float(var::tile_pos_delta, tileWorldSize);
-          ShaderGlobal::set_float(var::instance_pos_delta, placer.worldStep);
-
-          ShaderGlobal::set_int(var::prng_seed_jitter_x, placer.prngSeed + 0x4272ECD4u);
-          ShaderGlobal::set_int(var::prng_seed_jitter_y, placer.prngSeed + 0x54F2A367u);
-          ShaderGlobal::set_int(var::prng_seed_jitter_z, placer.prngSeed + 0x86E5A4D2u);
-          ShaderGlobal::set_int(var::prng_seed_placeable, placer.prngSeed + 0x08C2592Cu);
-          ShaderGlobal::set_int(var::prng_seed_scale, placer.prngSeed + 0xDF3069FFu);
-          ShaderGlobal::set_int(var::prng_seed_slope, placer.prngSeed + 0x3C1385DBu);
-          ShaderGlobal::set_int(var::prng_seed_occlusion, placer.prngSeed + 0x93C0FB91u);
-          ShaderGlobal::set_int(var::prng_seed_yaw, placer.prngSeed + 0x71F23960u);
-          ShaderGlobal::set_int(var::prng_seed_pitch, placer.prngSeed + 0xDEB40CF0u);
-          ShaderGlobal::set_int(var::prng_seed_roll, placer.prngSeed + 0xF6A38A81u);
-
-          ShaderGlobal::set_int(var::variant_index, perPlacer.placerIndex);
-          ShaderGlobal::set_float4(var::dist_based_scale_range, placer.distBasedScale, placer.distBasedRange, 0);
-          ShaderGlobal::set_float4(var::dist_based_center, placer.distBasedCenter);
-          ShaderGlobal::set_float(var::grid_jitter, placer.gridJitter);
-
-          ShaderGlobal::set_float4(var::viewport_pos, viewport.worldPos);
-          ShaderGlobal::set_float(var::viewport_max_distance,
-            min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance) * get_global_range_scale());
-          ShaderGlobal::set_int(var::viewport_index, viewportIndex);
-          ShaderGlobal::set_int(var::tiles_start_offset, perPlacer.tileStartIndex);
-
-          bool res = shader.dispatchGroups(perPlacer.tileEndIndex - perPlacer.tileStartIndex, 1, 1);
-          G_ASSERT(res);
-          G_UNUSED(res);
-        }
+        const bool res = shader.dispatchGroups(gatheredInfo.totalTiles, 1, 1);
+        G_ASSERT(res);
+        G_UNUSED(res);
       }
 
       ShaderGlobal::set_buffer(var::draw_ranges, BAD_D3DRESID);
@@ -261,6 +173,7 @@ static dafg::NodeHandle create_place_node(
       ShaderGlobal::set_buffer(var::placeable_weights, BAD_D3DRESID);
       ShaderGlobal::set_buffer(var::renderable_indices, BAD_D3DRESID);
       ShaderGlobal::set_buffer(var::variants, BAD_D3DRESID);
+      ShaderGlobal::set_buffer(var::placers_data, BAD_D3DRESID);
     };
   });
 }
@@ -326,6 +239,29 @@ void create_grid3d_nodes(const ViewInfo &view_info,
     debug("[FRAMEMEM] - For tiles '%s': %d", bufferName.c_str(), constants.maxTiles);
   }
 
+  {
+    TmpName bufferName(TmpName::CtorSprintf(), "%s_viewports", bufferNamePrefix.c_str());
+    persistentData->viewportDataBuffer = dag::buffers::create_one_frame_cb(
+      dag::buffers::cb_array_reg_count<Grid3dViewportGpuData>(DAGDP_MAX_VIEWPORTS), bufferName.c_str());
+    debug("[FRAMEMEM] - For viewports '%s': %d", bufferName.c_str(), constants.viewInfo.maxViewports);
+  }
+
+  {
+    TmpName bufferName(TmpName::CtorSprintf(), "%s_placers", bufferNamePrefix.c_str());
+    dag::RelocatableFixedVector<Grid3dPlacerGpuData, 16, true, framemem_allocator> placersGpuData;
+    for (const auto &placer : constants.placers)
+      placersGpuData.push_back(make_grid3d_placer_gpu_data(placer));
+
+    persistentData->placerDataBuffer =
+      dag::buffers::create_persistent_sr_structured(sizeof(Grid3dPlacerGpuData), constants.placers.size(), bufferName.c_str());
+
+    if (!persistentData->placerDataBuffer->updateData(0, data_size(placersGpuData), placersGpuData.data(), VBLOCK_WRITEONLY))
+    {
+      logerr("daGdp: could not update buffer %s", bufferName.c_str());
+      return;
+    }
+  }
+
   constants.passBlock =
     get_dagdp_view_block(constants.viewInfo.uniqueName.c_str())
       .refineBlock(TmpName(TmpName::CtorSprintf(), "dagdp_grid3d_pass@%s", constants.viewInfo.uniqueName.c_str()).c_str());
@@ -343,6 +279,8 @@ void create_grid3d_nodes(const ViewInfo &view_info,
       .atStage(dafg::Stage::TRANSFER);
     registry.registerBuffer("grid3d_volumes", [persistentData](auto) { return ManagedBufView(persistentData->volumesBuffer); })
       .atStage(dafg::Stage::TRANSFER);
+    registry.registerBuffer("grid3d_viewports", [persistentData](auto) { return ManagedBufView(persistentData->viewportDataBuffer); })
+      .atStage(dafg::Stage::TRANSFER);
 
     return [persistentData, viewHandle, gatheredInfoHandle] {
       const auto &constants = persistentData->constants;
@@ -359,7 +297,6 @@ void create_grid3d_nodes(const ViewInfo &view_info,
       for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)
       {
         const uint32_t volumeStartIndex = volumes.size();
-        const uint32_t placerStartIndex = gatheredInfo.perPlacer.size();
         const auto &viewport = view.viewports[viewportIndex];
 
         // gather active volumes
@@ -411,19 +348,25 @@ void create_grid3d_nodes(const ViewInfo &view_info,
                     tiles[ti].volumeRange = packVolumeRange(vs, ve);
                   }
                   else
-                    tiles.emplace_back(Grid3dTile{int3{x, y, z}, packVolumeRange(volumeIndex, volumeIndex + 1u)});
+                    tiles.emplace_back(
+                      Grid3dTile{int3{x, y, z}, packVolumeRange(volumeIndex, volumeIndex + 1u), placerIndex | (viewportIndex << 16)});
                 }
           }
-
-          if (tiles.size() > tileStartIndex)
-            gatheredInfo.perPlacer.emplace_back(Grid3dGatheredInfo::PerPlacer{placerIndex, tileStartIndex, tiles.size()});
         }
 
-        gatheredInfo.perViewport.emplace_back(Grid3dGatheredInfo::PerViewport{placerStartIndex, gatheredInfo.perPlacer.size()});
-        viewportEnds.emplace_back(ViewportEnd{volumes.size(), tiles.size(), gatheredInfo.perPlacer.size()});
+        viewportEnds.emplace_back(ViewportEnd{volumes.size(), tiles.size()});
       }
 
-      truncate_gathered_info(gatheredInfo, volumes, tiles, viewportEnds, constants);
+      truncate_gathered_info(volumes, tiles, viewportEnds, constants);
+      gatheredInfo.totalTiles = tiles.size();
+
+      dag::RelocatableFixedVector<Grid3dViewportGpuData, DAGDP_MAX_VIEWPORTS, true, framemem_allocator> viewportGpuData;
+      for (const auto &viewport : view.viewports)
+        viewportGpuData.push_back(make_grid3d_viewport_gpu_data(viewport, constants));
+
+      if (!update_frame_mem(make_span_const(viewportGpuData), persistentData->viewportDataBuffer.getBuf(),
+            constants.viewInfo.maxViewports, "3d viewports"))
+        return;
 
       if (!update_frame_mem(make_span_const(tiles), persistentData->tileBuffer.getBuf(), constants.maxTiles, "3d tiles"))
         return;

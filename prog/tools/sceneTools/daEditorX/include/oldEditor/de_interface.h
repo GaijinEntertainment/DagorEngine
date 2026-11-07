@@ -259,6 +259,8 @@ public:
 
   virtual bool spawnEvent(unsigned event_huid, void *userData) = 0;
 
+  virtual int getToolbarScalePercent() const = 0;
+
 protected:
   int dagorEdInterfaceVer;
 

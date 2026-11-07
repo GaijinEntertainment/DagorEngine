@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <webui/dargMcpPlugin.h>
+#include "dargMcpTools_api.h"
 #include <webui/helpers.h>
 #include <debug/dag_debug.h>
 #include <json/json.h>
@@ -15,12 +16,11 @@
 #include <squirrel.h>
 #include <daRg/dag_guiScene.h>
 #include <daRg/dag_inputIds.h>
-#include <drv/hid/dag_hiKeybIds.h>
 #include <drv/hid/dag_hiMouseIds.h>
 #include <quirrel/sqPrintCollector.h>
-#include <math.h>
 
 using namespace webui;
+using namespace webui::mcp;
 using namespace darg;
 
 
@@ -33,114 +33,20 @@ void webui::set_darg_mcp_scene_provider(darg::IGuiScene *(*provider)()) { scene_
 
 static const int JSONRPC_INVALID_REQUEST = -32600;
 static const int JSONRPC_METHOD_NOT_FOUND = -32601;
-static const int JSONRPC_INVALID_PARAMS = -32602;
 static const int JSONRPC_PARSE_ERROR = -32700;
 
 
-static void set_error(Json::Value &response, int code, const eastl::string &message)
+static dag::ConstSpan<Tool> game_tools;
+
+void webui::set_darg_mcp_game_tools(dag::ConstSpan<Tool> tools) { game_tools = tools; }
+
+static const Tool *find_game_tool(const eastl::string &name)
 {
-  response["error"]["code"] = code;
-  response["error"]["message"] = message;
+  for (const Tool &tool : game_tools)
+    if (name == tool.name)
+      return &tool;
+  return nullptr;
 }
-
-
-// jsoncpp asserts on a type mismatch (asString on a number, asInt on a string),
-// so tool arguments are read only through these checked accessors. The first
-// bad field records a JSON-RPC "Invalid params" error and clears ok; a tool
-// reads all its fields, then checks ok before it acts.
-struct ToolArgs
-{
-  const Json::Value &args; // object or null (isObject() accepts both); operator[] asserts on any other type
-  Json::Value &response;
-  eastl::string path; // prefix of field names in messages, e.g. "actions[2]."
-  bool ok = true;
-
-  ToolArgs(const Json::Value &args_, Json::Value &response_, const char *path_ = "") : args(args_), response(response_), path(path_) {}
-
-  void fail(const char *name, const char *problem)
-  {
-    if (ok)
-      set_error(response, JSONRPC_INVALID_PARAMS, "Invalid params: '" + path + name + "' " + problem);
-    ok = false;
-  }
-
-  const Json::Value *lookup(const char *name, bool required)
-  {
-    const Json::Value &v = args[name];
-    if (!v.isNull())
-      return &v;
-    if (required)
-      fail(name, "is required");
-    return nullptr;
-  }
-
-  int readInt(const char *name, int def, bool required)
-  {
-    const Json::Value *v = lookup(name, required);
-    if (!v)
-      return def;
-    if (!v->isInt() && !v->isUInt() && !v->isDouble())
-    {
-      fail(name, "must be an integer");
-      return def;
-    }
-    // a real with no fractional part, such as the 50.0 a float computation serializes to, is an integer
-    double d = v->asDouble();
-    if (d != floor(d))
-    {
-      fail(name, "must be an integer");
-      return def;
-    }
-    // asInt silently wraps an int64 or uint64 value; the double comparison rejects it
-    if (d < Json::Value::minInt || d > Json::Value::maxInt)
-    {
-      fail(name, "is out of the 32-bit integer range");
-      return def;
-    }
-    return int(d);
-  }
-  int getInt(const char *name, int def) { return readInt(name, def, false); }
-  int requireInt(const char *name) { return readInt(name, 0, true); }
-
-  bool getBool(const char *name, bool def)
-  {
-    const Json::Value *v = lookup(name, false);
-    if (!v)
-      return def;
-    if (!v->isBool())
-    {
-      fail(name, "must be a boolean");
-      return def;
-    }
-    return v->asBool();
-  }
-
-  eastl::string readString(const char *name, const char *def, bool required)
-  {
-    const Json::Value *v = lookup(name, required);
-    if (!v)
-      return def;
-    if (!v->isString())
-    {
-      fail(name, "must be a string");
-      return def;
-    }
-    return v->asString();
-  }
-  eastl::string getString(const char *name, const char *def) { return readString(name, def, false); }
-  eastl::string requireString(const char *name) { return readString(name, "", true); }
-
-  const Json::Value *requireArray(const char *name)
-  {
-    const Json::Value *v = lookup(name, true);
-    if (v && !v->isArray())
-    {
-      fail(name, "must be an array");
-      return nullptr;
-    }
-    return v;
-  }
-};
 
 
 static int resolve_mouse_button(const char *name)
@@ -151,85 +57,6 @@ static int resolve_mouse_button(const char *name)
     return HumanInput::DBUTTON_RIGHT;
   if (strcmp(name, "middle") == 0)
     return HumanInput::DBUTTON_MIDDLE;
-  return -1;
-}
-
-
-static int resolve_key_name(const char *name)
-{
-  if (!name || !*name)
-    return -1;
-
-  // Single character: letter or digit
-  if (name[1] == '\0')
-  {
-    char c = name[0];
-    if (c >= 'a' && c <= 'z')
-    {
-      static const int letter_keys[] = {HumanInput::DKEY_A, HumanInput::DKEY_B, HumanInput::DKEY_C, HumanInput::DKEY_D,
-        HumanInput::DKEY_E, HumanInput::DKEY_F, HumanInput::DKEY_G, HumanInput::DKEY_H, HumanInput::DKEY_I, HumanInput::DKEY_J,
-        HumanInput::DKEY_K, HumanInput::DKEY_L, HumanInput::DKEY_M, HumanInput::DKEY_N, HumanInput::DKEY_O, HumanInput::DKEY_P,
-        HumanInput::DKEY_Q, HumanInput::DKEY_R, HumanInput::DKEY_S, HumanInput::DKEY_T, HumanInput::DKEY_U, HumanInput::DKEY_V,
-        HumanInput::DKEY_W, HumanInput::DKEY_X, HumanInput::DKEY_Y, HumanInput::DKEY_Z};
-      return letter_keys[c - 'a'];
-    }
-    if (c >= '0' && c <= '9')
-    {
-      if (c == '0')
-        return HumanInput::DKEY_0;
-      return HumanInput::DKEY_1 + (c - '1');
-    }
-  }
-
-  struct KeyMapping
-  {
-    const char *name;
-    int key;
-  };
-  static const KeyMapping mappings[] = {
-    {"enter", HumanInput::DKEY_RETURN},
-    {"tab", HumanInput::DKEY_TAB},
-    {"escape", HumanInput::DKEY_ESCAPE},
-    {"esc", HumanInput::DKEY_ESCAPE},
-    {"backspace", HumanInput::DKEY_BACK},
-    {"delete", HumanInput::DKEY_DELETE},
-    {"space", HumanInput::DKEY_SPACE},
-    {"up", HumanInput::DKEY_UP},
-    {"down", HumanInput::DKEY_DOWN},
-    {"left", HumanInput::DKEY_LEFT},
-    {"right", HumanInput::DKEY_RIGHT},
-    {"home", HumanInput::DKEY_HOME},
-    {"end", HumanInput::DKEY_END},
-    {"pageup", HumanInput::DKEY_PRIOR},
-    {"pagedown", HumanInput::DKEY_NEXT},
-    {"insert", HumanInput::DKEY_INSERT},
-    {"f1", HumanInput::DKEY_F1},
-    {"f2", HumanInput::DKEY_F2},
-    {"f3", HumanInput::DKEY_F3},
-    {"f4", HumanInput::DKEY_F4},
-    {"f5", HumanInput::DKEY_F5},
-    {"f6", HumanInput::DKEY_F6},
-    {"f7", HumanInput::DKEY_F7},
-    {"f8", HumanInput::DKEY_F8},
-    {"f9", HumanInput::DKEY_F9},
-    {"f10", HumanInput::DKEY_F10},
-    {"f11", HumanInput::DKEY_F11},
-    {"f12", HumanInput::DKEY_F12},
-    {"ctrl", HumanInput::DKEY_LCONTROL},
-    {"lctrl", HumanInput::DKEY_LCONTROL},
-    {"rctrl", HumanInput::DKEY_RCONTROL},
-    {"shift", HumanInput::DKEY_LSHIFT},
-    {"lshift", HumanInput::DKEY_LSHIFT},
-    {"rshift", HumanInput::DKEY_RSHIFT},
-    {"alt", HumanInput::DKEY_LALT},
-    {"lalt", HumanInput::DKEY_LALT},
-    {"ralt", HumanInput::DKEY_RALT},
-  };
-
-  for (const auto &m : mappings)
-    if (strcmp(name, m.name) == 0)
-      return m.key;
-
   return -1;
 }
 
@@ -254,180 +81,109 @@ static void handle_initialize(const Json::Value & /*request*/, Json::Value &resp
 }
 
 
+static Json::Value &add_tool(Json::Value &tools, const char *name, const char *description)
+{
+  Json::Value &tool = tools.append(Json::Value());
+  tool["name"] = name;
+  set_schema(tool, description);
+  return tool;
+}
+
 static void handle_tools_list(Json::Value &response)
 {
   Json::Value tools(Json::arrayValue);
 
-  {
-    Json::Value getErrorTool;
-    getErrorTool["name"] = "get_last_error";
-    getErrorTool["description"] = "Returns the last error message and script call stack, or \"[NO_ERROR]\" string";
-    getErrorTool["inputSchema"]["type"] = "object";
-    getErrorTool["inputSchema"]["properties"] = Json::Value(Json::objectValue);
-    tools.append(getErrorTool);
-  }
+  add_tool(tools, "get_last_error", "Returns the last error message and script call stack, or \"[NO_ERROR]\" string");
+
+  add_param(
+    add_tool(tools, "run_ui_script", "Opens and executes the given UI script in the application or reloads if it is being run now"),
+    "filename", "string", "Path to the UI script file to execute", true);
 
   {
-    Json::Value runScriptTool;
-    runScriptTool["name"] = "run_ui_script";
-    runScriptTool["description"] = "Opens and executes the given UI script in the application or reloads if it is being run now";
-    runScriptTool["inputSchema"]["type"] = "object";
-    runScriptTool["inputSchema"]["properties"]["filename"]["type"] = "string";
-    runScriptTool["inputSchema"]["properties"]["filename"]["description"] = "Path to the UI script file to execute";
-    runScriptTool["inputSchema"]["required"] = Json::Value(Json::arrayValue);
-    runScriptTool["inputSchema"]["required"].append("filename");
-    tools.append(runScriptTool);
-  }
-
-  {
-    Json::Value screenshotTool;
-    screenshotTool["name"] = "make_screenshot";
-    screenshotTool["description"] =
+    Json::Value &tool = add_tool(tools, "make_screenshot",
       "Captures a screenshot and returns it as a base64-encoded PNG image. "
       "By default also returns the UI element tree with exact screen bounding boxes [x,y wxh] for every element. "
-      "Use these bounding boxes to compute click positions for mouse_click.";
-    screenshotTool["inputSchema"]["type"] = "object";
-    screenshotTool["inputSchema"]["properties"]["scene_tree"]["type"] = "boolean";
-    screenshotTool["inputSchema"]["properties"]["scene_tree"]["description"] =
-      "Return the UI element tree with exact coordinates. Default: true. Set to false to save bandwidth if not needed.";
-    screenshotTool["inputSchema"]["properties"]["scene_tree_max_depth"]["type"] = "integer";
-    screenshotTool["inputSchema"]["properties"]["scene_tree_max_depth"]["description"] = "Max tree depth (default: 50)";
-    screenshotTool["inputSchema"]["properties"]["scene_tree_max_elements"]["type"] = "integer";
-    screenshotTool["inputSchema"]["properties"]["scene_tree_max_elements"]["description"] =
-      "Max number of elements to report (default: 2000)";
-    screenshotTool["inputSchema"]["properties"]["scene_tree_filter"]["type"] = "string";
-    screenshotTool["inputSchema"]["properties"]["scene_tree_filter"]["description"] =
-      "Only show branches containing elements with this text (case-insensitive)";
-    tools.append(screenshotTool);
+      "Use these bounding boxes to compute click positions for mouse_click.");
+    add_param(tool, "scene_tree", "boolean",
+      "Return the UI element tree with exact coordinates. Default: true. Set to false to save bandwidth if not needed.");
+    add_param(tool, "scene_tree_max_depth", "integer", "Max tree depth (default: 50)");
+    add_param(tool, "scene_tree_max_elements", "integer", "Max number of elements to report (default: 2000)");
+    add_param(tool, "scene_tree_filter", "string", "Only show branches containing elements with this text (case-insensitive)");
+  }
+
+  add_param(add_tool(tools, "check_quirrel_syntax",
+              "Compiles the provided string as a Quirrel script, returns error message if any or empty string in case of success.\n"
+              "To be used only for basic language syntax verification. No libraries available to use here."),
+    "source", "string", "Quirrel script source to check compilation", true);
+
+  {
+    Json::Value &tool = add_tool(tools, "mouse_click",
+      "Simulates a mouse click (press + release) at the given coordinates in the game's render resolution space "
+      "(same coordinate space as reported by make_screenshot). "
+      "By default returns the stack of UI elements at the click position so you can verify the click target.");
+    add_param(tool, "x", "integer", "X coordinate in render resolution space", true);
+    add_param(tool, "y", "integer", "Y coordinate in render resolution space", true);
+    add_param(tool, "button", "string", "Mouse button: \"left\" (default), \"right\", or \"middle\"");
+    add_param(tool, "return_hit_info", "boolean", "Return the stack of UI elements at the click position. Default: true.");
   }
 
   {
-    Json::Value checkSyntaxTool;
-    checkSyntaxTool["name"] = "check_quirrel_syntax";
-    checkSyntaxTool["description"] =
-      "Compiles the provided string as a Quirrel script, returns error message if any or empty string in case of success.\n"
-      "To be used only for basic language syntax verification. No libraries available to use here.";
-    checkSyntaxTool["inputSchema"]["type"] = "object";
-    checkSyntaxTool["inputSchema"]["properties"]["source"]["type"] = "string";
-    checkSyntaxTool["inputSchema"]["properties"]["source"]["description"] = "Quirrel script source to check compilation";
-    checkSyntaxTool["inputSchema"]["required"] = Json::Value(Json::arrayValue);
-    checkSyntaxTool["inputSchema"]["required"].append("source");
-    tools.append(checkSyntaxTool);
+    Json::Value &tool = add_tool(tools, "mouse_move",
+      "Moves the mouse pointer to the given coordinates in the game's render resolution space "
+      "(same coordinate space as reported by make_screenshot)");
+    add_param(tool, "x", "integer", "X coordinate in render resolution space", true);
+    add_param(tool, "y", "integer", "Y coordinate in render resolution space", true);
+  }
+
+  add_param(add_tool(tools, "send_keyboard_input",
+              "Sends a sequence of keyboard input actions.\n"
+              "Each action in the array is an object with a \"type\" field:\n"
+              "- {\"type\": \"text\", \"text\": \"Hello\"} - types each character as key press + release\n"
+              "- {\"type\": \"key\", \"key\": \"enter\"} - presses and releases a named key\n"
+              "- {\"type\": \"combo\", \"keys\": [\"ctrl\", \"a\"]} - presses keys in order, releases in reverse\n"
+              "A bad action anywhere in the batch is an Invalid params error and no key of the batch "
+              "is sent, so a corrected call repeats nothing.\n"
+              "Named keys: a-z, 0-9, enter, tab, escape/esc, backspace, delete, space, "
+              "up, down, left, right, home, end, pageup, pagedown, insert, f1-f12, "
+              "ctrl/lctrl/rctrl, shift/lshift/rshift, alt/lalt/ralt"),
+    "actions", "array", "Array of keyboard input actions", true);
+
+  {
+    Json::Value &tool = add_tool(tools, "get_scene_tree",
+      "Returns a compact text representation of the UI element tree.\n"
+      "Each line: [x,y wxh] ROBJ_TYPE key=\"k\"|key=N \"text\" {Behaviors} [hidden] -- source:line\n"
+      "Indentation encodes depth. Fields are omitted when empty.");
+    add_param(tool, "max_depth", "integer", "Max tree depth to report (default: 50)");
+    add_param(tool, "filter_text", "string", "Only show branches containing elements with matching text (case-insensitive substring)");
+    add_param(tool, "include_hidden", "boolean", "Include hidden/clipped-out elements (default: false)");
+    add_param(tool, "skip_non_visual", "boolean",
+      "Skip leaf elements with no render object, no text, and no behaviors (default: false)");
+    add_param(tool, "max_elements", "integer", "Max number of elements to report (default: 2000)");
   }
 
   {
-    Json::Value tool;
-    tool["name"] = "mouse_click";
-    tool["description"] = "Simulates a mouse click (press + release) at the given coordinates in the game's render resolution space "
-                          "(same coordinate space as reported by make_screenshot). "
-                          "By default returns the stack of UI elements at the click position so you can verify the click target.";
-    tool["inputSchema"]["type"] = "object";
-    tool["inputSchema"]["properties"]["x"]["type"] = "integer";
-    tool["inputSchema"]["properties"]["x"]["description"] = "X coordinate in render resolution space";
-    tool["inputSchema"]["properties"]["y"]["type"] = "integer";
-    tool["inputSchema"]["properties"]["y"]["description"] = "Y coordinate in render resolution space";
-    tool["inputSchema"]["properties"]["button"]["type"] = "string";
-    tool["inputSchema"]["properties"]["button"]["description"] = "Mouse button: \"left\" (default), \"right\", or \"middle\"";
-    tool["inputSchema"]["properties"]["return_hit_info"]["type"] = "boolean";
-    tool["inputSchema"]["properties"]["return_hit_info"]["description"] =
-      "Return the stack of UI elements at the click position. Default: true.";
-    tool["inputSchema"]["required"] = Json::Value(Json::arrayValue);
-    tool["inputSchema"]["required"].append("x");
-    tool["inputSchema"]["required"].append("y");
-    tools.append(tool);
+    Json::Value &tool = add_tool(tools, "find_elements_at",
+      "Hit-tests at a screen position and returns the stack of UI elements at that point (front to back).\n"
+      "Coordinates are in the same render resolution space as make_screenshot/mouse_click.\n"
+      "Each result shows: screen box, render object type, key, text, behaviors, source location.");
+    add_param(tool, "x", "integer", "X coordinate in render resolution space", true);
+    add_param(tool, "y", "integer", "Y coordinate in render resolution space", true);
   }
 
   {
-    Json::Value tool;
-    tool["name"] = "mouse_move";
-    tool["description"] = "Moves the mouse pointer to the given coordinates in the game's render resolution space "
-                          "(same coordinate space as reported by make_screenshot)";
-    tool["inputSchema"]["type"] = "object";
-    tool["inputSchema"]["properties"]["x"]["type"] = "integer";
-    tool["inputSchema"]["properties"]["x"]["description"] = "X coordinate in render resolution space";
-    tool["inputSchema"]["properties"]["y"]["type"] = "integer";
-    tool["inputSchema"]["properties"]["y"]["description"] = "Y coordinate in render resolution space";
-    tool["inputSchema"]["required"] = Json::Value(Json::arrayValue);
-    tool["inputSchema"]["required"].append("x");
-    tool["inputSchema"]["required"].append("y");
-    tools.append(tool);
+    Json::Value &tool = add_tool(tools, "find_elements_by_text",
+      "Searches all visible UI elements for text content matching the query.\n"
+      "Returns matching elements with their screen boxes, properties, and ancestor paths.");
+    add_param(tool, "text", "string", "Substring to search for in element text content", true);
+    add_param(tool, "case_sensitive", "boolean", "Case-sensitive matching (default: false)");
+    add_param(tool, "max_results", "integer", "Max number of results (default: 50)");
   }
 
+  for (const Tool &gameTool : game_tools)
   {
-    Json::Value tool;
-    tool["name"] = "send_keyboard_input";
-    tool["description"] = "Sends a sequence of keyboard input actions.\n"
-                          "Each action in the array is an object with a \"type\" field:\n"
-                          "- {\"type\": \"text\", \"text\": \"Hello\"} — types each character as key press + release\n"
-                          "- {\"type\": \"key\", \"key\": \"enter\"} — presses and releases a named key\n"
-                          "- {\"type\": \"combo\", \"keys\": [\"ctrl\", \"a\"]} — presses keys in order, releases in reverse\n"
-                          "A bad action anywhere in the batch is an Invalid params error and no key of the batch "
-                          "is sent, so a corrected call repeats nothing.\n"
-                          "Named keys: a-z, 0-9, enter, tab, escape/esc, backspace, delete, space, "
-                          "up, down, left, right, home, end, pageup, pagedown, insert, f1-f12, "
-                          "ctrl/lctrl/rctrl, shift/lshift/rshift, alt/lalt/ralt";
-    tool["inputSchema"]["type"] = "object";
-    tool["inputSchema"]["properties"]["actions"]["type"] = "array";
-    tool["inputSchema"]["properties"]["actions"]["description"] = "Array of keyboard input actions";
-    tool["inputSchema"]["required"] = Json::Value(Json::arrayValue);
-    tool["inputSchema"]["required"].append("actions");
-    tools.append(tool);
-  }
-
-  {
-    Json::Value tool;
-    tool["name"] = "get_scene_tree";
-    tool["description"] = "Returns a compact text representation of the UI element tree.\n"
-                          "Each line: [x,y wxh] ROBJ_TYPE \"text\" {Behaviors} [hidden] -- source:line\n"
-                          "Indentation encodes depth. Fields are omitted when empty.";
-    tool["inputSchema"]["type"] = "object";
-    tool["inputSchema"]["properties"]["max_depth"]["type"] = "integer";
-    tool["inputSchema"]["properties"]["max_depth"]["description"] = "Max tree depth to report (default: 50)";
-    tool["inputSchema"]["properties"]["filter_text"]["type"] = "string";
-    tool["inputSchema"]["properties"]["filter_text"]["description"] =
-      "Only show branches containing elements with matching text (case-insensitive substring)";
-    tool["inputSchema"]["properties"]["include_hidden"]["type"] = "boolean";
-    tool["inputSchema"]["properties"]["include_hidden"]["description"] = "Include hidden/clipped-out elements (default: false)";
-    tool["inputSchema"]["properties"]["skip_non_visual"]["type"] = "boolean";
-    tool["inputSchema"]["properties"]["skip_non_visual"]["description"] =
-      "Skip leaf elements with no render object, no text, and no behaviors (default: false)";
-    tool["inputSchema"]["properties"]["max_elements"]["type"] = "integer";
-    tool["inputSchema"]["properties"]["max_elements"]["description"] = "Max number of elements to report (default: 2000)";
-    tools.append(tool);
-  }
-
-  {
-    Json::Value tool;
-    tool["name"] = "find_elements_at";
-    tool["description"] = "Hit-tests at a screen position and returns the stack of UI elements at that point (front to back).\n"
-                          "Coordinates are in the same render resolution space as make_screenshot/mouse_click.\n"
-                          "Each result shows: screen box, render object type, text, behaviors, source location.";
-    tool["inputSchema"]["type"] = "object";
-    tool["inputSchema"]["properties"]["x"]["type"] = "integer";
-    tool["inputSchema"]["properties"]["x"]["description"] = "X coordinate in render resolution space";
-    tool["inputSchema"]["properties"]["y"]["type"] = "integer";
-    tool["inputSchema"]["properties"]["y"]["description"] = "Y coordinate in render resolution space";
-    tool["inputSchema"]["required"] = Json::Value(Json::arrayValue);
-    tool["inputSchema"]["required"].append("x");
-    tool["inputSchema"]["required"].append("y");
-    tools.append(tool);
-  }
-
-  {
-    Json::Value tool;
-    tool["name"] = "find_elements_by_text";
-    tool["description"] = "Searches all visible UI elements for text content matching the query.\n"
-                          "Returns matching elements with their screen boxes, properties, and ancestor paths.";
-    tool["inputSchema"]["type"] = "object";
-    tool["inputSchema"]["properties"]["text"]["type"] = "string";
-    tool["inputSchema"]["properties"]["text"]["description"] = "Substring to search for in element text content";
-    tool["inputSchema"]["properties"]["case_sensitive"]["type"] = "boolean";
-    tool["inputSchema"]["properties"]["case_sensitive"]["description"] = "Case-sensitive matching (default: false)";
-    tool["inputSchema"]["properties"]["max_results"]["type"] = "integer";
-    tool["inputSchema"]["properties"]["max_results"]["description"] = "Max number of results (default: 50)";
-    tool["inputSchema"]["required"] = Json::Value(Json::arrayValue);
-    tool["inputSchema"]["required"].append("text");
-    tools.append(tool);
+    Json::Value &tool = tools.append(Json::Value());
+    tool["name"] = gameTool.name;
+    gameTool.describe(tool);
   }
 
   response["result"]["tools"] = tools;
@@ -435,22 +191,12 @@ static void handle_tools_list(Json::Value &response)
 
 static void tool_get_last_error(Json::Value &response)
 {
-  Json::Value result;
-
   IGuiScene *scene = get_scene();
   if (!scene || !scene->getScriptVM())
-  {
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = "Error: no UI scene";
-  }
-  else
-  {
-    eastl::string errText;
-    bool isError = scene->getErrorText(errText);
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = isError ? errText.c_str() : "[NO_ERROR]";
-  }
-  response["result"] = result;
+    return set_text_result(response, "Error: no UI scene");
+
+  eastl::string errText;
+  set_text_result(response, scene->getErrorText(errText) ? errText : "[NO_ERROR]");
 }
 
 
@@ -460,23 +206,13 @@ static void tool_run_ui_script(ToolArgs &args, Json::Value &response)
   if (!args.ok)
     return;
 
-  Json::Value result;
-
   IGuiScene *scene = get_scene();
   if (!scene || !scene->getScriptVM())
-  {
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = "Error: no UI scene";
-  }
-  else
-  {
-    scene->reloadScript(filename.c_str());
-    eastl::string errText;
-    bool isError = scene->getErrorText(errText);
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = isError ? errText.c_str() : "Success: script loaded";
-  }
-  response["result"] = result;
+    return set_text_result(response, "Error: no UI scene");
+
+  scene->reloadScript(filename.c_str());
+  eastl::string errText;
+  set_text_result(response, scene->getErrorText(errText) ? errText : "Success: script loaded");
 }
 
 
@@ -577,33 +313,19 @@ static void tool_check_quirrel_syntax(ToolArgs &args, Json::Value &response)
   if (!args.ok)
     return;
 
-  Json::Value result;
-
   IGuiScene *scene = get_scene();
   if (!scene || !scene->getScriptVM())
+    return set_text_result(response, "ERROR: no script VM available");
+
+  HSQUIRRELVM vm = scene->getScriptVM();
+  SQPrintCollector printCollector(vm);
+  if (SQ_SUCCEEDED(sq_compile(vm, source.c_str(), source.length(), "test_script", true, nullptr)))
   {
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = "ERROR: no script VM available";
+    sq_pop(vm, 1); // pop closure
+    set_text_result(response, "SUCCESS: no errors");
   }
   else
-  {
-    HSQUIRRELVM vm = scene->getScriptVM();
-
-    SQPrintCollector printCollector(vm);
-
-    if (SQ_SUCCEEDED(sq_compile(vm, source.c_str(), source.length(), "test_script", true, nullptr)))
-    {
-      sq_pop(vm, 1); // pop closure
-      result["content"][0]["type"] = "text";
-      result["content"][0]["text"] = "SUCCESS: no errors";
-    }
-    else
-    {
-      result["content"][0]["type"] = "text";
-      result["content"][0]["text"] = printCollector.output.c_str();
-    }
-  }
-  response["result"] = result;
+    set_text_result(response, printCollector.output.c_str());
 }
 
 
@@ -616,16 +338,9 @@ static void tool_mouse_click(ToolArgs &args, Json::Value &response)
   if (!args.ok)
     return;
 
-  Json::Value result;
-
   IGuiScene *scene = get_scene();
   if (!scene)
-  {
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = "ERROR: no UI scene";
-    response["result"] = result;
-    return;
-  }
+    return set_text_result(response, "ERROR: no UI scene");
 
   int btnId = resolve_mouse_button(buttonName.c_str());
   if (btnId < 0)
@@ -638,21 +353,17 @@ static void tool_mouse_click(ToolArgs &args, Json::Value &response)
   scene->onMouseEvent(INP_EV_PRESS, btnId, short(x), short(y), 0);
   scene->onMouseEvent(INP_EV_RELEASE, btnId, short(x), short(y), 0);
 
-  result["content"][0]["type"] = "text";
-  result["content"][0]["text"] = "OK";
-
+  set_text_result(response, "OK");
   if (returnHitInfo)
   {
     eastl::string hitOut;
     scene->inspectElementsAtPos(hitOut, x, y);
     if (!hitOut.empty())
     {
-      result["content"][1]["type"] = "text";
-      result["content"][1]["text"] = hitOut.c_str();
+      response["result"]["content"][1]["type"] = "text";
+      response["result"]["content"][1]["text"] = hitOut.c_str();
     }
   }
-
-  response["result"] = result;
 }
 
 
@@ -663,32 +374,14 @@ static void tool_mouse_move(ToolArgs &args, Json::Value &response)
   if (!args.ok)
     return;
 
-  Json::Value result;
-
   IGuiScene *scene = get_scene();
   if (!scene)
-  {
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = "ERROR: no UI scene";
-    response["result"] = result;
-    return;
-  }
+    return set_text_result(response, "ERROR: no UI scene");
 
   scene->onMouseEvent(INP_EV_POINTER_MOVE, 0, short(x), short(y), 0);
-
-  result["content"][0]["type"] = "text";
-  result["content"][0]["text"] = "OK";
-  response["result"] = result;
+  set_text_result(response, "OK");
 }
 
-
-static void set_text_result(Json::Value &response, const eastl::string &text)
-{
-  Json::Value result;
-  result["content"][0]["type"] = "text";
-  result["content"][0]["text"] = text;
-  response["result"] = result;
-}
 
 // a "text" action carries its text; a "key" or "combo" action carries the resolved keys
 struct KeyboardAction
@@ -855,23 +548,13 @@ static void tool_get_scene_tree(ToolArgs &args, Json::Value &response)
   if (!args.ok)
     return;
 
-  Json::Value result;
-
   IGuiScene *scene = get_scene();
   if (!scene)
-  {
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = "ERROR: no UI scene";
-    response["result"] = result;
-    return;
-  }
+    return set_text_result(response, "ERROR: no UI scene");
 
   eastl::string out;
   scene->inspectSceneTree(out, maxDepth, filterText.empty() ? nullptr : filterText.c_str(), includeHidden, skipNonVisual, maxElements);
-
-  result["content"][0]["type"] = "text";
-  result["content"][0]["text"] = out.empty() ? "Empty scene" : out.c_str();
-  response["result"] = result;
+  set_text_result(response, out.empty() ? "Empty scene" : out);
 }
 
 
@@ -882,23 +565,13 @@ static void tool_find_elements_at(ToolArgs &args, Json::Value &response)
   if (!args.ok)
     return;
 
-  Json::Value result;
-
   IGuiScene *scene = get_scene();
   if (!scene)
-  {
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = "ERROR: no UI scene";
-    response["result"] = result;
-    return;
-  }
+    return set_text_result(response, "ERROR: no UI scene");
 
   eastl::string out;
   scene->inspectElementsAtPos(out, x, y);
-
-  result["content"][0]["type"] = "text";
-  result["content"][0]["text"] = out.c_str();
-  response["result"] = result;
+  set_text_result(response, out);
 }
 
 
@@ -910,23 +583,13 @@ static void tool_find_elements_by_text(ToolArgs &args, Json::Value &response)
   if (!args.ok)
     return;
 
-  Json::Value result;
-
   IGuiScene *scene = get_scene();
   if (!scene)
-  {
-    result["content"][0]["type"] = "text";
-    result["content"][0]["text"] = "ERROR: no UI scene";
-    response["result"] = result;
-    return;
-  }
+    return set_text_result(response, "ERROR: no UI scene");
 
   eastl::string out;
   scene->findElementsByText(out, text.c_str(), caseSensitive, maxResults);
-
-  result["content"][0]["type"] = "text";
-  result["content"][0]["text"] = out.c_str();
-  response["result"] = result;
+  set_text_result(response, out);
 }
 
 
@@ -960,7 +623,9 @@ static void handle_tool_call(const Json::Value &request, Json::Value &response)
   debug("MCP tool use call: %s", toolName.c_str());
 
   ToolArgs args(arguments, response);
-  if (toolName == "get_last_error")
+  if (const Tool *gameTool = find_game_tool(toolName))
+    gameTool->call(args);
+  else if (toolName == "get_last_error")
     tool_get_last_error(response);
   else if (toolName == "run_ui_script")
     tool_run_ui_script(args, response);

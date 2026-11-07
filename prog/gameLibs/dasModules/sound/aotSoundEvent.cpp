@@ -331,6 +331,7 @@ public:
     SND_BIND_FUN_EX(__occlusion_gpu__drop_instance, "drop_occlusion", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(occlusion_gpu__is_inside_active_range, "is_inside_active_occlusion_range", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(occlusion_gpu__set_blob_active_range, "set_blob_active_range", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__set_blob_detour_hint, "set_blob_detour_hint", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(occlusion_gpu__suspend_backend, "suspend_occlusion_backend", das::SideEffects::modifyExternal);
 
     SND_BIND_FUN(get_music_spectrum, das::SideEffects::modifyArgumentAndExternal);

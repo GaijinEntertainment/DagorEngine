@@ -37,6 +37,7 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
     table_iter_seed = sq_generate_seed();
     watchdog_last_alive_time_msec = 0;
     watchdog_threshold_msec = 0;
+    _constEvalPos = NULL;
 }
 
 
@@ -112,7 +113,7 @@ static SQClass *CreateBuiltInTypeClass(SQSharedState *ss, const char *name, cons
 
     // Lock manually
     assert(cls->_lockedTypeId == 0);
-    cls->_lockedTypeId = cls->currentHint();
+    cls->_lockedTypeId = cls->newLockedTypeId();
 
     return cls;
 }
@@ -121,6 +122,7 @@ void SQSharedState::Init()
 {
     _scratchpad=NULL;
     _scratchpadsize=0;
+    _classTypeIdCounter=0;
 #ifndef NO_GARBAGE_COLLECTOR
     _gc_chain=NULL;
 #endif
@@ -359,7 +361,7 @@ SQString *SQSharedState::GetNativeDeclString(SQDocStringId id) const
 
 const SQObjectPtr &SQSharedState::TypeName(SQObjectType type) const
 {
-    // constraint: OT_NULL is 0, with no type bit
+    // OT_NULL is 0, with no type bit
     return _typeNames[sq_log2(_RAW_TYPE(type) | _RT_NULL)];
 }
 

@@ -31,7 +31,6 @@
 #include <render/dynamicShadowRender.h>
 #include <render/lights/dynamicShadowRenderExtensions.h>
 #include <render/lights/shadowCastersFlags.h>
-#include <3d/dag_resPtr.h>
 
 class ShaderMaterial;
 class ShaderElement;
@@ -39,6 +38,13 @@ class ShadowSystem;
 class ComputeShaderElement;
 class Occlusion;
 class DistanceReadbackLights;
+
+struct CulledLights;
+struct CulledLightsDeleter
+{
+  void operator()(CulledLights *lights) const;
+};
+using CulledLightsPtr = eastl::unique_ptr<CulledLights, CulledLightsDeleter>;
 
 struct ClusteredLights
 {
@@ -55,7 +61,8 @@ struct ClusteredLights
 
   // initial_frame_light_count is total visible lights for frame. In 32 (words)
   // shadows_quality is size of dynamic shadow map. 0 means no shadows
-  void init(int initial_frame_light_count, uint32_t shadows_quality, bool use_tiled_lights, const char *name_suffix = "");
+  void init(int initial_frame_light_count, uint32_t shadows_quality, bool use_tiled_lights, const char *name_suffix = "",
+    eastl::optional<DynLightsFeatures> requested_features_override = {});
   void setMaxClusteredDist(const float max_clustered_dist);
   void setMaxShadowDist(const float max_shadow_dist);
   void changeShadowResolution(uint32_t shadows_quality, bool dynamic_shadow_32bit);
@@ -65,34 +72,31 @@ struct ClusteredLights
     float light_cutoff_dist_sq = 0.f);
   void prepareTiledLights(const bool clear_lights = true);
   void toggleTiledLights(bool use_tiled);
-  bool hasDeferredOmniLights() const;
-  bool hasDeferredSpotLights() const;
-  bool hasClusteredOmniLights() const;
-  bool hasClusteredSpotLights() const;
-  bool hasDeferredLights() const;
-  bool hasClusteredLights() const;
 
-  int getVisibleFarSpotsCount() const;
-  int getVisibleFarOmniCount() const;
   int getVisibleClusteredSpotsCount() const;
   int getVisibleClusteredOmniCount() const;
   int getVisibleSpotsCount() const;
   int getVisibleOmniCount() const;
 
   DynLightsOptimizationMode getLightsCountInterval() const;
-  bool cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskType spot_light_mask,
-    OmniLightMaskType omni_light_mask); // cull without any grid
+  // name must be unique among the sets of one ClusteredLights
+  static CulledLightsPtr createCulledLights(const char *name);
+  void cullOutOfFrustumLights(CulledLights &lights, mat44f_cref globtm, SpotLightMaskType spot_light_mask,
+    OmniLightMaskType omni_light_mask); // cull without any grid, binds the set
   void setShadowBias(float z_bias, float slope_z_bias, float shader_z_bias, float shader_slope_z_bias);
   void getShadowBias(float &z_bias, float &slope_z_bias, float &shader_z_bias, float &shader_slope_z_bias) const;
   void setRetainShadowSizeMul(float mul);
 
   void renderOtherLights();
   void fillAndSetInsideOfFrustumLightsBuffers();
-  void setEmptyOutOfFrustumLights();
-  void setOutOfFrustumLightsToShader();
+  void setEmptyOutOfFrustumLights(CulledLights &lights);
+  // binds a set culled or emptied this frame
+  void setOutOfFrustumLightsToShader(const CulledLights &lights);
   void setInsideOfFrustumLightsToShader() const;
 
   void selectBufferSlot(LightBufferSlot slot);
+  // For a view that renders no light shadows, which otherwise update these buffers
+  void updateLightShadowBuffers();
 
   void renderDebugSpotLights();
   void renderDebugOmniLights();
@@ -187,10 +191,6 @@ protected:
   Tab<TMatrix4> renderSpotLightsShadows;
   LightBufferSlot currentBufferSlot = LightBufferSlot::Main;
 
-  ReallocatableLightsConstBuffer<sizeof(RenderOmniLight) / 16, true> outOfFrustumOmniLightsCB;
-  ReallocatableLightsConstBuffer<sizeof(RenderSpotLight) / 16, true> outOfFrustumVisibleSpotLightsCB;
-  Point4 omniOOFBox[2], spotOOFBox[2];
-  UniqueBufWithShaderVar outOfFrustumLightsFullGridCB;
   eastl::unique_ptr<ComputeShaderElement> cull_out_of_frustum_lights_cs, clear_out_of_frustum_grid_cs;
   shaders::UniqueOverrideStateId depthBiasOverrideId;
   shaders::UniqueOverrideStateId depthBiasTwoSidedOverrideId;
@@ -199,11 +199,13 @@ protected:
 
   LightsRenderer lightsRenderer;
 
+  LightsManagerSharedStorage lightsManagerStorage DAG_TS_GUARDED_BY(lightLock);
   OmniLightsManager omniLights DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
   SpotLightsManager spotLights DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
 
   DynamicLightShadows dynamicLightShadows DAG_TS_GUARDED_BY(lightLock);
   eastl::optional<LightsVisibilityChecker> lightVisibilityChecker DAG_TS_GUARDED_BY(lightLock);
+  float lightsPartitionZFar DAG_TS_GUARDED_BY(lightLock) = 0.f;
 
   LightsPartition lightsPartition;
   LightsCounter lightsCounter;
@@ -211,14 +213,22 @@ protected:
   float closeSliceDist = 4, maxClusteredDist = 500;
   eastl::unique_ptr<ShadowSystem> lightShadows DAG_TS_PT_GUARDED_BY(lightLock);
   eastl::unique_ptr<DistanceReadbackLights> dstReadbackLights;
+  eastl::array<bool, LIGHTS_BUFFER_SLOTS> shadowsRendered = {};
   // Per slot: a cull invalidates every slot, each fill consumes only its own.
   eastl::array<bool, LIGHTS_BUFFER_SLOTS> buffersFilled = {};
   bool lightsInitialized = false;
   DynLightsFeatures dynLightsFeatures = DynLightsFeatures::CpuOnly;
+  int initialLightDensity = 0;
 
-  void initClustered(int initial_light_density);
+  bool isGpuCullingEnabled() const;
+  void dropPipelineSectionFeatures(DynLightsFeatures requested_section_bits,
+    DynLightsFeatures actual_section_features = DynLightsFeatures::CpuOnly);
+  bool hasPipelineSectionFeatures(DynLightsFeatures features_to_check) const;
+
+  void initPipelineSections(bool use_tiled_lights);
   void initTiledLights();
+  void bindTiledLightsShaderVars() const;
 
   eastl::unique_ptr<TiledLights> tiledLights;
-  ClusteredLightsGrid lightsGrid;
+  eastl::unique_ptr<ClusteredLightsGrid> lightsGrid;
 };

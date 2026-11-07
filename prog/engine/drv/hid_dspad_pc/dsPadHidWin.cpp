@@ -10,6 +10,7 @@
 #include <osApiWrappers/dag_unicode.h>
 #include <util/dag_globDef.h>
 #include <math/dag_mathBase.h>
+#include <generic/dag_tab.h>
 #include <string.h>
 
 #pragma comment(lib, "hid.lib")
@@ -17,7 +18,7 @@
 
 namespace HumanInput
 {
-namespace sonypad
+namespace dspad
 {
 
 // Bluetooth HID interfaces carry the HID service class uuid or the bthenum enumerator
@@ -42,7 +43,7 @@ static bool query_caps(HANDLE h, HidDeviceInfo &info)
   return true;
 }
 
-bool enumerate_hid_devices(Tab<HidDeviceInfo> &out)
+bool enumerate_hid_devices(HidDeviceList &out)
 {
   out.clear();
   GUID hidGuid;
@@ -50,7 +51,7 @@ bool enumerate_hid_devices(Tab<HidDeviceInfo> &out)
   ULONG len = 0;
   if (CM_Get_Device_Interface_List_SizeW(&len, &hidGuid, nullptr, CM_GET_DEVICE_INTERFACE_LIST_PRESENT) != CR_SUCCESS || len < 2)
     return false;
-  Tab<wchar_t> list;
+  dag::RelocatableFixedVector<wchar_t, 4096, true, MidmemAlloc, uint32_t, false> list;
   list.resize(len);
   if (CM_Get_Device_Interface_ListW(&hidGuid, nullptr, list.data(), len, CM_GET_DEVICE_INTERFACE_LIST_PRESENT) != CR_SUCCESS)
     return false;
@@ -123,7 +124,7 @@ static bool give_up_io(HANDLE handle, IoBlock *io, const char *what, const char 
   CancelIoEx(handle, &io->ov);
   if (wait_io(io->ov, IO_TIMEOUT_MS))
     return false;
-  debug("[HID][SONY] %s %s did not end in %u ms after the cancel, its block is left to the kernel", what, path, IO_TIMEOUT_MS);
+  debug("[HID][DSPAD] %s %s did not end in %u ms after the cancel, its block is left to the kernel", what, path, IO_TIMEOUT_MS);
   abandoned_blocks.push_back(io);
   return true;
 }
@@ -139,7 +140,7 @@ bool HidDevice::open(const HidDeviceInfo &dev_info)
     FILE_FLAG_OVERLAPPED, nullptr);
   if (h == INVALID_HANDLE_VALUE)
   {
-    debug("[HID][SONY] CreateFile(%s) failed, err=%u", info.path, GetLastError());
+    debug("[HID][DSPAD] CreateFile(%s) failed, err=%u", info.path, GetLastError());
     return false;
   }
   if (!query_caps(h, info))
@@ -181,7 +182,7 @@ bool HidDevice::armRead()
   const DWORD want = DWORD(clamp(info.inputReportLen, 1, IO_BUF_SIZE));
   if (!ReadFile(handle, readIo->buf, want, nullptr, &readIo->ov) && GetLastError() != ERROR_IO_PENDING)
   {
-    debug("[HID][SONY] ReadFile(%s) failed, err=%u", info.path, GetLastError());
+    debug("[HID][DSPAD] ReadFile(%s) failed, err=%u", info.path, GetLastError());
     return false;
   }
   readPending = true;
@@ -280,5 +281,5 @@ void HidWaitSet::wait(HidDevice *const *devices, int count, int timeout_ms)
   WaitForMultipleObjects(n, handles, FALSE, timeout_ms);
 }
 
-} // namespace sonypad
+} // namespace dspad
 } // namespace HumanInput

@@ -151,6 +151,7 @@ extern void update_float_exceptions();
 void DaThread::doThread()
 {
   applyThreadPriority();
+  disableThisThreadPriorityBoost();
 #if _TARGET_PC_WIN // Stack copy to be visible in micro-dumps (as stack is usually included)
   char threadName[sizeof(name)];
   memcpy(threadName, name, sizeof(threadName));
@@ -203,6 +204,14 @@ void DaThread::applyThreadPriority()
     DaThread::applyThisThreadPriority(priority, name);
 #endif
 }
+void DaThread::disableThisThreadPriorityBoost()
+{
+#if _TARGET_PC_WIN | _TARGET_XBOX
+  if (cpujobs::is_inited() && MAIN_THREAD_PRIORITY > cpujobs::DEFAULT_THREAD_PRIORITY)
+    G_VERIFYF(SetThreadPriorityBoost(GetCurrentThread(), TRUE), "%d", GetLastError());
+#endif
+}
+
 bool DaThread::applyThisThreadPriority(int priority, const char *name)
 {
 #if _TARGET_C1 | _TARGET_C2

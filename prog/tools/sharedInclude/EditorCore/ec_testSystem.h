@@ -1,15 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <osApiWrappers/dag_atomic.h>
-#include <osApiWrappers/dag_threads.h>
-#include <osApiWrappers/dag_critSec.h>
-#include <osApiWrappers/dag_events.h>
-
 #include <util/dag_string.h>
 #include <math/dag_Point2.h>
 
 #include <gui/dag_imgui.h>
+#include <generic/dag_functionRef.h>
 
 #include <EASTL/functional.h>
 #include <EASTL/unique_ptr.h>
@@ -19,6 +15,10 @@ class TestRuntime;
 class TestInput;
 class SqModules;
 typedef struct SQVM *HSQUIRRELVM;
+namespace Sqrat
+{
+class Object;
+}
 
 enum class TestState : int
 {
@@ -31,12 +31,22 @@ enum class TestState : int
 class TestCallback
 {
 public:
-  using TestFunc = eastl::function<void(TestRuntime &)>;
+  // Returns true when the test is done. See TestCallback::update().
+  using TestFunc = eastl::function<bool(TestRuntime &)>;
 
   TestCallback(TestFunc test_func);
   virtual ~TestCallback();
 
-  virtual void run(TestRuntime &rt);
+  // Called once when the test starts.
+  virtual void start(TestRuntime &rt);
+
+  // Called from TestRuntime::frameEnd() until it returns true, each time after the input steps that the test queued
+  // have finished, or also while they wait if canUpdateWithQueuedInput().
+  // Returns true when the test is done, but only after its queued input has run, or the test fails.
+  virtual bool update(TestRuntime &rt);
+
+  // True if update() can also run while queued input waits, so that it can see a test that ended before its input ran.
+  virtual bool canUpdateWithQueuedInput() const { return false; }
 
 private:
   TestFunc testFunc;
@@ -50,30 +60,32 @@ public:
   const String &name() const { return testName; }
   const String &getFilePath() const { return filePath; }
   int getSourceLine() const { return line; }
-  TestState lastState() const { return (TestState)interlocked_acquire_load(state); }
+  TestState lastState() const { return state; }
 
   void resetState();
-  void markPassed() { interlocked_release_store(state, (int)TestState::PASSED); }
-  void markFailed() { interlocked_release_store(state, (int)TestState::FAILED); }
+  void markPassed() { state = TestState::PASSED; }
+  void markFailed() { state = TestState::FAILED; }
 
   // Keeps only the first reason of a run, because later failures are usually caused by the first one.
   void markFailed(const char *reason);
 
-  // Empty if the test did not fail, or failed without a reason. Thread-safe.
-  String getFailReason() const;
+  // Empty if the test did not fail, or failed without a reason.
+  const String &getFailReason() const { return reasonText; }
 
-  // Clears the fail reason, sets state to running, then invokes the test function.
-  void run(TestRuntime &rt);
+  // Clears the fail reason, sets state to running, then starts the test callback.
+  void start(TestRuntime &rt);
+
+  // Returns true when the test is done. A running test that is done passes.
+  bool update(TestRuntime &rt);
+
+  bool canUpdateWithQueuedInput() const { return testCallback->canUpdateWithQueuedInput(); }
 
   static void register_script_class(HSQUIRRELVM vm);
 
 private:
   String testName;
   eastl::shared_ptr<TestCallback> testCallback;
-  volatile int state;
-
-  // The test thread writes the reason, the main thread reads it for the Tests tab.
-  mutable WinCritSec reasonMutex;
+  TestState state;
   String reasonText;
 
   String filePath;
@@ -82,35 +94,46 @@ private:
 
 // A test can end, or fail, while it holds a mouse button or a key. The test runtime releases it, so the next test and
 // the user do not get input they did not make.
+// Each call queues input steps and returns at once. The returned Future resolves when the steps have finished, a script
+// awaits it. A C++ test does not use the Future, TestCallback::update() is called again after the steps have finished.
 class TestInput
 {
 public:
   TestInput(TestRuntime &runtime);
 
   // Direct input event control
-  void mouseButtonDown(int button);
-  void mouseButtonUp(int button);
-  void mouseClick(int button);
-  void mouseClickModifier(int button, int modifier);
-  void mousePosition(Point2 at);
-  void mouseMove(Point2 from, Point2 to, float over_seconds = 1.0f);
-  void keyDown(int key);
-  void keyUp(int key);
-  void keyPress(int key);
-  void keyPressModifier(int key, int modifier);
-  void keyHeld(int key, float over_seconds = 1.0f);
-  void keyHeldModifier(int key, int modifier, float over_seconds = 1.0f);
-  void characterInput(const char *text, float between_seconds = 0.0f);
-  void mouseDrag(int button, Point2 from, Point2 to, float over_seconds = 1.0f);
+  Sqrat::Object mouseButtonDown(int button);
+  Sqrat::Object mouseButtonUp(int button);
+  Sqrat::Object mouseClick(int button);
+  Sqrat::Object mouseClickModifier(int button, int modifier);
+  Sqrat::Object mousePosition(Point2 at);
+  Sqrat::Object mouseMove(Point2 from, Point2 to, float over_seconds = 1.0f);
+  Sqrat::Object keyDown(int key);
+  Sqrat::Object keyUp(int key);
+  Sqrat::Object keyPress(int key);
+  Sqrat::Object keyPressModifier(int key, int modifier);
+  Sqrat::Object keyHeld(int key, float over_seconds = 1.0f);
+  Sqrat::Object keyHeldModifier(int key, int modifier, float over_seconds = 1.0f);
+  Sqrat::Object characterInput(const char *text, float between_seconds = 0.0f);
+  Sqrat::Object mouseDrag(int button, Point2 from, Point2 to, float over_seconds = 1.0f);
 
   // Query GUI item based input control (filepath/line is the call site for diagnostics).
-  // A path that is not found fails the running test when failOnInvalidInputQuery is set, then returns false.
-  bool mouseMoveItem(const char *path, float over_seconds = 1.0f, const char *filepath = nullptr, int line = 0);
-  bool mouseClickItem(const char *path, int button, const char *filepath = nullptr, int line = 0);
+  // The Future resolves to false in the same frame when the path is not found. That fails the running test when
+  // failOnInvalidInputQuery is set. A C++ test that needs to know if the item exists can call
+  // imgui_test_runtime_query_item() itself.
+  Sqrat::Object mouseMoveItem(const char *path, float over_seconds = 1.0f, const char *filepath = nullptr, int line = 0);
+  Sqrat::Object mouseClickItem(const char *path, int button, const char *filepath = nullptr, int line = 0);
 
   static void register_script_class(HSQUIRRELVM vm);
 
 private:
+  void queueMouseButton(int button, bool down);
+  void queueMousePosition(Point2 at);
+  void queueMouseLerp(Point2 from, Point2 to, float over_seconds);
+  void queueKey(int key, bool down);
+  void queueKeyWithModifier(int key, int modifier, bool down);
+  bool queueMouseMoveItem(const char *path, float over_seconds, const char *filepath, int line);
+
   TestRuntime &runtime;
 };
 
@@ -124,6 +147,8 @@ public:
   bool reloadScript();
 
   const String &getScriptFilename() const { return scriptFilename; }
+
+  HSQUIRRELVM getVM() const;
 
 private:
   TestRuntime &runtime;
@@ -178,6 +203,7 @@ private:
 #define EDITOR_CORE_MOUSE_MOVE_ITEM(input, path, over_seconds) (input).mouseMoveItem((path), (over_seconds), __FILE__, __LINE__)
 #define EDITOR_CORE_MOUSE_CLICK_ITEM(input, path, button)      (input).mouseClickItem((path), (button), __FILE__, __LINE__)
 
+// Not thread-safe. Call it, and its tests and input, only from the main thread.
 class TestRuntime
 {
 public:
@@ -191,12 +217,14 @@ public:
     String failReason;
   };
 
-  TestRuntime();
   ~TestRuntime();
 
   void start();
+
+  // Stops the runtime: a running test fails and does not continue, and the queued tests do not run.
   void stop();
-  bool isRunning() const { return interlocked_acquire_load(running); }
+
+  bool isRunning() const { return running; }
 
   TestCase &registerTest(const char *name, TestCallback::TestFunc test_func);
   TestCase &registerTestEx(const char *name, const eastl::shared_ptr<TestCallback> &test_callback, const char *filepath = nullptr,
@@ -210,29 +238,38 @@ public:
 
   bool enqueue(const char *name);
   int enqueueAll(TestFilter state, const char *name);
+
   // Removes all pending tests from the queue (currently running test finishes naturally).
   void clearQueue();
 
-  // Snapshot of every registered test's name, state, call site and fail reason. Thread-safe.
+  // Snapshot of every registered test's name, state, call site and fail reason.
   Tab<TestInfo> testInfos() const;
 
   TestInput &input() { return inputSystem; }
 
-  // Call from the main thread, between ImGui::NewFrame() and the first submitted widget.
+  // Call it between ImGui::NewFrame() and the first submitted widget.
   // It is the only place that releases the input a test holds and enables accepting user input again, thus a stopped
   // run needs this call too.
   void frameBegin(float dt);
 
-  // Call from the main thread, after the last widget is submitted and before imgui_endframe().
-  // A test runs only inside this call. It wakes a waiting test, then waits until the test yields again.
-  // If the test does not yield in time (see TIMEOUT_MSEC), it fails, the main thread stops waiting for it, and the test
-  // runs outside this call until it ends.
+  // Call it after the last widget is submitted and before imgui_endframe().
+  // A test runs only inside this call: it runs the queued input steps and resumes the script tasks.
+  // A script step that never ends, for example an endless loop, blocks the main thread.
   void frameEnd();
 
-  // Call from inside a TestCase function (test thread only).
-  // The main thread waits while a test runs, thus a test must not wait for the main thread other than with these calls.
-  void yieldFrame();
-  void yieldTime(float seconds);
+  // Queue a wait step, like the TestInput calls. yieldFrame() resumes the test in the next frameEnd(), yieldTime() in
+  // the first frameEnd() after the time.
+  Sqrat::Object yieldFrame();
+  Sqrat::Object yieldTime(float seconds);
+
+  // Used by TestInput. A step runs once per frameEnd() until it returns true, then the next step runs in the same call.
+  void queueInputStep(eastl::function<bool()> step);
+  void queueWaitFrame();
+  void queueWaitTime(float seconds);
+
+  // Calls queue_steps, then returns a Future that resolves to its result after the steps queued so far.
+  // Fails the running test if a script starts an input call before the previous one finished.
+  Sqrat::Object inputAction(dag::FunctionRef<bool() const> queue_steps);
 
   float lastFrameDelta() const { return frameDeltaSeconds; }
 
@@ -243,10 +280,11 @@ public:
 
   bool failOnInvalidInputQuery = true;
 
-  bool testsRunning() const { return interlocked_acquire_load(anyTestRunning); }
-  TestCase *currentlyRunningTest() { return interlocked_acquire_load_ptr(runningTest); }
-  int getRemainingCount();
-  int getTotalEnqueued() const { return interlocked_acquire_load(totalEnqueued); }
+  bool testsRunning() const { return getRemainingCount() > 0; }
+  bool hasQueuedInput() const { return !inputSteps.empty(); }
+  TestCase *currentlyRunningTest() { return runningTest; }
+  int getRemainingCount() const;
+  int getTotalEnqueued() const { return totalEnqueued; }
 
   ImGuiTestRuntimeOptions &options() { return debugOptions; }
 
@@ -257,58 +295,46 @@ public:
   static void register_script_class(HSQUIRRELVM vm);
 
 private:
-  void threadLoop();
-  void waitInputClear();
-  void waitNextFrame(WinAutoLock &frame_lock);
-
-  class TestThread final : public DaThread
+  enum class RunState
   {
-  public:
-    TestThread(TestRuntime &rt) : DaThread("TestThread", 256 << 10, 0, 0), runtime(rt) {}
-
-    void execute() override { runtime.threadLoop(); }
-
-  private:
-    TestRuntime &runtime;
+    Idle,
+    Running,
+    Finishing, // The test is done, its held input is being released.
   };
 
-  enum class TestThreadState
-  {
-    Idle,         // No test step runs or waits for frameEnd().
-    WaitingToRun, // The test waits until frameEnd() wakes it.
-    Running,      // A test step runs, frameEnd() waits until it yields.
-  };
+  void tick();
+  bool runInputSteps();
+  bool pumpScripts();
+  void finishRunningTest();
+  bool anyTestFailed() const;
+  bool callTest(TestCase &test, bool start);
 
-  TestThread thread{*this};
+  // ImGui gives key ownership back only on the frame after the key is not down, thus wait one more frame after the clear.
+  bool inputReleasePending() const { return inputClearPending || frameCount < (inputClearFrame + 2); }
 
   // ordered by registration, name-searchable
   Tab<eastl::unique_ptr<TestCase>> registry;
 
-  WinCritSec queueMutex;
   Tab<TestCase *> testQueue;
 
-  WinCritSec frameMutex;
   int frameCount = 0;
-  bool frameInProgress = false;
   float frameDeltaSeconds = 0.0f;
   int inputClearFrame = -1; // The frame in which frameBegin() cleared the input.
 
-  // The state and the flag are written under frameMutex, except in start(), which runs while no test thread exists.
-  // The two threads do not run in parallel, except when a test does not yield in time. Then they run in parallel until
-  // the test ends.
-  os_event_t testThreadCanRun, mainThreadCanRun;
-  TestThreadState testThreadState = TestThreadState::Idle;
-  bool mainThreadWaitTimedOut = false;
+  RunState runState = RunState::Idle;
+  bool hidingWindow = false;
+  bool ticking = false;
+  bool pumping = false;
 
-  volatile bool inputClearPending = false;
+  Tab<eastl::function<bool()>> inputSteps;
+  int inputStepWaitFrame = -1; // The frame in which the first input step returned false.
 
-  volatile bool running = false;
+  bool inputClearPending = false;
 
-  // Written under queueMutex; read lock-free via interlocked_acquire_load.
-  // runningTest is also cleared without the mutex after a test finishes (single writer).
-  volatile bool anyTestRunning = false;
-  volatile int totalEnqueued = 0;
-  TestCase *volatile runningTest = nullptr;
+  bool running = false;
+
+  int totalEnqueued = 0;
+  TestCase *runningTest = nullptr;
 
   ImGuiTestRuntimeOptions debugOptions{this, false, 0, false};
   bool drawFakeMousePointer = true;
@@ -333,7 +359,8 @@ void editor_core_test_runtime_begin_frame();
 void editor_core_test_runtime_end_frame();
 
 // Load script_path, start the runtime, enqueue all tests.
-// on_complete(any_failed) fires on the main thread when the run finishes. Instantly if the script registered no tests.
+// on_complete(any_failed) fires when the run finishes. Instantly if the script registered no tests.
+// TestRuntime::stop() during the run also fires it, with any_failed true unless all tests already ran and passed.
 // Returns false if the script failed to load; on_complete is not called in that case.
 bool editor_core_test_runtime_run_script(const char *script_path, eastl::function<void(bool any_failed)> on_complete);
 

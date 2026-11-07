@@ -32,10 +32,8 @@ static ecs::EntitySystemDesc bvh_out_of_scope_riex_dist_es_es_desc
 ,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc rtr_debug_es_comps[] =
 {
-//start of 3 rq components at [0]
-  {ECS_HASH("rtr_denoise_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtr_prepare_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtr_trace_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
+//start of 1 rq components at [0]
+  {ECS_HASH("rtr_nodes"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()}
 };
 static void rtr_debug_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
@@ -49,7 +47,7 @@ static ecs::EntitySystemDesc rtr_debug_es_es_desc
   ecs::EntitySystemOps(rtr_debug_es_all),
   empty_span(),
   empty_span(),
-  make_span(rtr_debug_es_comps+0, 3)/*rq*/,
+  make_span(rtr_debug_es_comps+0, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   (1<<UpdateStageInfoRenderDebug::STAGE)
@@ -157,34 +155,26 @@ static ecs::EntitySystemDesc bvh_render_mem_overlay_es_es_desc
   ecs::EventSetBuilder<RenderEventDebugGUI>::build(),
   0
 ,"dev,render",nullptr,"*");
-static constexpr ecs::ComponentDesc bvh_start_before_render_jobs_es_comps[] =
+static constexpr ecs::ComponentDesc bvh_wake_up_before_render_jobs_es_comps[] =
 {
-//start of 3 rw components at [0]
-  {ECS_HASH("bvh__frame_counter"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("bvh__prev_pos"), ecs::ComponentTypeInfo<Point3>()},
-  {ECS_HASH("bvh__accumulated_speed"), ecs::ComponentTypeInfo<float>()},
-//start of 1 rq components at [3]
+//start of 1 rq components at [0]
   {ECS_HASH("bvh__update_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
-static void bvh_start_before_render_jobs_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void bvh_wake_up_before_render_jobs_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
+  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    bvh_start_before_render_jobs_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(bvh_start_before_render_jobs_es_comps, "bvh__frame_counter", int)
-    , ECS_RW_COMP(bvh_start_before_render_jobs_es_comps, "bvh__prev_pos", Point3)
-    , ECS_RW_COMP(bvh_start_before_render_jobs_es_comps, "bvh__accumulated_speed", float)
-    );
-  while (++comp != compE);
+  bvh_wake_up_before_render_jobs_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
+        );
 }
-static ecs::EntitySystemDesc bvh_start_before_render_jobs_es_es_desc
+static ecs::EntitySystemDesc bvh_wake_up_before_render_jobs_es_es_desc
 (
-  "bvh_start_before_render_jobs_es",
+  "bvh_wake_up_before_render_jobs_es",
   "prog/daNetGame/render/world/bvhES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, bvh_start_before_render_jobs_es_all_events),
-  make_span(bvh_start_before_render_jobs_es_comps+0, 3)/*rw*/,
+  ecs::EntitySystemOps(nullptr, bvh_wake_up_before_render_jobs_es_all_events),
   empty_span(),
-  make_span(bvh_start_before_render_jobs_es_comps+3, 1)/*rq*/,
+  empty_span(),
+  make_span(bvh_wake_up_before_render_jobs_es_comps+0, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
@@ -261,11 +251,7 @@ static ecs::EntitySystemDesc rtr_ptgi_debug_view_recreate_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
 ,"dev,render");
-static constexpr ecs::ComponentDesc rt_set_resolution_es_comps[] =
-{
-//start of 1 rq components at [0]
-  {ECS_HASH("rt_persistent_textures"), ecs::ComponentTypeInfo<RTPersistentTexturesECS>()}
-};
+//static constexpr ecs::ComponentDesc rt_set_resolution_es_comps[] ={};
 static void rt_set_resolution_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_UNUSED(components);
@@ -280,7 +266,7 @@ static ecs::EntitySystemDesc rt_set_resolution_es_es_desc
   ecs::EntitySystemOps(nullptr, rt_set_resolution_es_all_events),
   empty_span(),
   empty_span(),
-  make_span(rt_set_resolution_es_comps+0, 1)/*rq*/,
+  empty_span(),
   empty_span(),
   ecs::EventSetBuilder<SetResolutionEvent>::build(),
   0
@@ -351,6 +337,26 @@ static ecs::EntitySystemDesc rtr_checkerboard_depth_convar_es_es_desc
   "rtr_checkerboard_depth_convar_es",
   "prog/daNetGame/render/world/bvhES.cpp.inl",
   ecs::EntitySystemOps(nullptr, rtr_checkerboard_depth_convar_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
+  0
+,"dev,render");
+//static constexpr ecs::ComponentDesc rtr_path_traced_convar_es_comps[] ={};
+static void rtr_path_traced_convar_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
+  rtr_path_traced_convar_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
+        );
+}
+static ecs::EntitySystemDesc rtr_path_traced_convar_es_es_desc
+(
+  "rtr_path_traced_convar_es",
+  "prog/daNetGame/render/world/bvhES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, rtr_path_traced_convar_es_all_events),
   empty_span(),
   empty_span(),
   empty_span(),
@@ -548,6 +554,40 @@ inline void get_bvh_rigen_oof_visibility_ecs_query(ecs::EntityManager &manager, 
     }
   );
 }
+static constexpr ecs::ComponentDesc bvh_start_ri_jobs_ecs_query_comps[] =
+{
+//start of 3 rw components at [0]
+  {ECS_HASH("bvh__frame_counter"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("bvh__prev_pos"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("bvh__accumulated_speed"), ecs::ComponentTypeInfo<float>()},
+//start of 1 rq components at [3]
+  {ECS_HASH("bvh__update_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
+};
+static ecs::CompileTimeQueryDesc bvh_start_ri_jobs_ecs_query_desc
+(
+  "bvh_start_ri_jobs_ecs_query",
+  make_span(bvh_start_ri_jobs_ecs_query_comps+0, 3)/*rw*/,
+  empty_span(),
+  make_span(bvh_start_ri_jobs_ecs_query_comps+3, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void bvh_start_ri_jobs_ecs_query(Callable function)
+{
+  perform_query(g_entity_mgr, bvh_start_ri_jobs_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RW_COMP(bvh_start_ri_jobs_ecs_query_comps, "bvh__frame_counter", int)
+            , ECS_RW_COMP(bvh_start_ri_jobs_ecs_query_comps, "bvh__prev_pos", Point3)
+            , ECS_RW_COMP(bvh_start_ri_jobs_ecs_query_comps, "bvh__accumulated_speed", float)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
 static constexpr ecs::ComponentDesc copy_animchar_visbits_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
@@ -640,28 +680,21 @@ inline void bvh_check_is_binocular_ecs_query(ecs::EntityManager &manager, Callab
 }
 static constexpr ecs::ComponentDesc recreate_bvh_nodes_ecs_query_comps[] =
 {
-//start of 16 rw components at [0]
+//start of 9 rw components at [0]
   {ECS_HASH("bvh__update_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("denoiser_prepare_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtsm_prepare_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtsm_trace_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtsm_denoise_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtr_prepare_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtr_trace_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtr_denoise_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("denoiser_nodes"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
+  {ECS_HASH("rtsm_nodes"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
+  {ECS_HASH("rtr_nodes"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
   {ECS_HASH("rttr_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtao_prepare_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtao_trace_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rtao_denoise_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("ptgi_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("rtao_nodes"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
+  {ECS_HASH("ptgi_nodes"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
   {ECS_HASH("water_rt_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("bvh_register_fom_shadows"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("rt_persistent_textures"), ecs::ComponentTypeInfo<RTPersistentTexturesECS>()}
+  {ECS_HASH("bvh_register_fom_shadows"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static ecs::CompileTimeQueryDesc recreate_bvh_nodes_ecs_query_desc
 (
   "recreate_bvh_nodes_ecs_query",
-  make_span(recreate_bvh_nodes_ecs_query_comps+0, 16)/*rw*/,
+  make_span(recreate_bvh_nodes_ecs_query_comps+0, 9)/*rw*/,
   empty_span(),
   empty_span(),
   empty_span());
@@ -675,21 +708,14 @@ inline void recreate_bvh_nodes_ecs_query(ecs::EntityManager &manager, Callable f
         {
           function(
               ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "bvh__update_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "denoiser_prepare_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtsm_prepare_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtsm_trace_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtsm_denoise_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtr_prepare_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtr_trace_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtr_denoise_node", dafg::NodeHandle)
+            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "denoiser_nodes", dag::Vector<dafg::NodeHandle>)
+            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtsm_nodes", dag::Vector<dafg::NodeHandle>)
+            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtr_nodes", dag::Vector<dafg::NodeHandle>)
             , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rttr_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtao_prepare_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtao_trace_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtao_denoise_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "ptgi_node", dafg::NodeHandle)
+            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtao_nodes", dag::Vector<dafg::NodeHandle>)
+            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "ptgi_nodes", dag::Vector<dafg::NodeHandle>)
             , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "water_rt_node", dafg::NodeHandle)
             , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "bvh_register_fom_shadows", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rt_persistent_textures", RTPersistentTexturesECS)
             );
 
         }while (++comp != compE);

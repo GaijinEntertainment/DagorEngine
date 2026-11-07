@@ -239,7 +239,7 @@ struct Wayland
       wp_fractional_scale_v1 *fractionalScaleV1;
     } wp;
 
-    // constraint: Wayland surface coordinates are logical, the game expects physical pixels
+    // Wayland surface coordinates are logical, the game expects physical pixels
     int32_t getScale120();
     int32_t toPhysical(int32_t logical);
     int32_t toLogical(int32_t physical);
@@ -280,9 +280,9 @@ struct Wayland
     struct InboundTransfer
     {
       String text;
-      wl_data_offer *offer;
-      int pipe[2];
-      bool completed;
+      wl_data_offer *offer = nullptr;
+      int pipe[2] = {-1, -1};
+      bool completed = false;
 
       void recive(wl_data_offer *from);
       void cleanup();

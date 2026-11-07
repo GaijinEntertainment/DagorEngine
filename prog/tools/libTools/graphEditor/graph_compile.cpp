@@ -1,0 +1,1956 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <graphEditor/graph_compile.h>
+#include <graphEditor/graph_dead_paths.h>
+#include <graphEditor/graph_resolutions.h>
+#include <graphEditor/graph_subgraph_expand.h>
+
+#include <ioSys/dag_dataBlock.h>
+#include <debug/dag_debug.h>
+#include <util/dag_string.h>
+#include <math/dag_Point2.h>
+#include <math/dag_Point3.h>
+#include <math/dag_Point4.h>
+
+#include <EASTL/algorithm.h>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/hash_set.h>
+#include <EASTL/hash_map.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+// Port of `generateHlslCode` from tools/graphEditor/mainNodes.js (~L2218-L2884).
+// The JS produces a text BLK fragment wrapped in /*MAIN_GRAPH_START*/ markers so it
+// can be embedded in a JSON file. The C++ pipeline never used that marker form -- it
+// emits the DataBlock directly.
+
+namespace
+{
+
+// ---------------- Lookup tables (mainNodes.js:2304-2329, :27-51, :22-25) ----------------
+
+const char *pin_type_to_blk_type(PinType t)
+{
+  switch (t)
+  {
+    case PinType::Bool: return "b";
+    case PinType::Int: return "i";
+    case PinType::Float: return "r";
+    case PinType::Float2: return "p2";
+    case PinType::Float3: return "p3";
+    case PinType::Float4: return "p4";
+    default: return "t"; // strings, textures, particles, custom types all encode as text
+  }
+}
+
+// Direct param emission for the params{} loop. Avoids the loadText round-trip
+// (BLK lexer + name-id allocation + setParamsFrom copy) that dominates the
+// per-node hot path; on a 1944-node graph the params loop runs tens of thousands
+// of times. Returns true when the param was set; false means the type didn't
+// have a fast path (string/texture etc.) and the caller should fall back to
+// loadText so BLK's quoting / escape rules still apply. Inputs `val` are
+// substitute() outputs -- numeric types arrive as "1.0" / "1.0, 2.0" forms.
+bool try_set_param_direct(DataBlock &blk, const char *name, PinType type, const char *val)
+{
+  if (!val)
+  {
+    val = "";
+  }
+  switch (type)
+  {
+    case PinType::Bool:
+    {
+      // BLK bool literals: yes/no/true/false/on/off/1/0 (case-insensitive).
+      const char *p = val;
+      while (*p == ' ' || *p == '\t')
+      {
+        ++p;
+      }
+      const bool b = (p[0] == 'y' || p[0] == 'Y' || p[0] == 't' || p[0] == 'T' || p[0] == '1' ||
+                      ((p[0] == 'o' || p[0] == 'O') && (p[1] == 'n' || p[1] == 'N')));
+      blk.setBool(name, b);
+      return true;
+    }
+    case PinType::Int: blk.setInt(name, atoi(val)); return true;
+    case PinType::Float: blk.setReal(name, static_cast<float>(atof(val))); return true;
+    case PinType::Float2:
+    {
+      float x = 0.0f, y = 0.0f;
+      if (sscanf(val, "%f , %f", &x, &y) != 2)
+      {
+        return false;
+      }
+      blk.setPoint2(name, Point2(x, y));
+      return true;
+    }
+    case PinType::Float3:
+    {
+      float x = 0.0f, y = 0.0f, z = 0.0f;
+      if (sscanf(val, "%f , %f , %f", &x, &y, &z) != 3)
+      {
+        return false;
+      }
+      blk.setPoint3(name, Point3(x, y, z));
+      return true;
+    }
+    case PinType::Float4:
+    {
+      float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f;
+      if (sscanf(val, "%f , %f , %f , %f", &x, &y, &z, &w) != 4)
+      {
+        return false;
+      }
+      blk.setPoint4(name, Point4(x, y, z, w));
+      return true;
+    }
+    default: return false; // strings, textures: keep BLK's quoting semantics
+  }
+}
+
+// GE_defaultValuesZero (mainNodes.js:27-38). Values consumed by substitute() when an
+// input pin is not connected and has no `data.def_val`.
+const char *default_value_zero(PinType t)
+{
+  switch (t)
+  {
+    case PinType::Int: return "0";
+    case PinType::Float: return "0.0";
+    case PinType::Float2: return "0.0, 0.0";
+    case PinType::Float3: return "0.0, 0.0, 0.0";
+    case PinType::Float4: return "0.0, 0.0, 0.0, 0.0";
+    case PinType::Texture2D: return "tex:const:0";
+    default: return "0";
+  }
+}
+
+// GE_defaultValuesOne (mainNodes.js:40-51).
+const char *default_value_one(PinType t)
+{
+  switch (t)
+  {
+    case PinType::Int: return "1";
+    case PinType::Float: return "1.0";
+    case PinType::Float2: return "1.0, 1.0";
+    case PinType::Float3: return "1.0, 1.0, 1.0";
+    case PinType::Float4: return "1.0, 1.0, 1.0, 1.0";
+    case PinType::Texture2D: return "tex:const:1";
+    default: return "1";
+  }
+}
+
+// GE_conversions (mainNodes.js:22-25, 2350-2360). The JS table has one row today:
+// ["int", "float", "$"]. The userData "$" is a template where "$" is replaced
+// with `expression`, so for every current rule the result equals `expression`
+// unchanged. If a future row uses non-trivial userData (e.g. "int_to_float($)"),
+// this needs to perform the substitution.
+eastl::string convert_type([[maybe_unused]] PinType from, [[maybe_unused]] PinType to, const char *expression)
+{
+  return eastl::string(expression);
+}
+
+// ---------------- Hash helpers (mainNodes.js:2364, graphEditor.js:3738) ----------------
+
+// 32-bit string hash from mainNodes.js:2364-2373. Used by elem_graph_hash for
+// the %graph_hash% substitution token.
+int32_t hash_code(const char *s, int32_t hash)
+{
+  if (!s)
+  {
+    return hash;
+  }
+  // Unsigned math: the JS wraps at 32 bits, and a signed shift overflow is UB.
+  uint32_t h = static_cast<uint32_t>(hash);
+  for (; *s; ++s)
+  {
+    h = (h << 5) - h + static_cast<unsigned char>(*s);
+  }
+  return static_cast<int32_t>(h);
+}
+
+// DJB2-style 16-bit truncated hash from graphEditor.js:3738. Used to mangle
+// shader_editor pin parameter names so they're unique BLK param keys.
+uint32_t fast_hash(const char *s)
+{
+  uint32_t hash = 5381u;
+  if (!s)
+  {
+    return hash;
+  }
+  for (; *s; ++s)
+  {
+    hash = ((hash * 33u) ^ static_cast<unsigned char>(*s)) & 0xFFFFu;
+  }
+  return hash;
+}
+
+// graphEditor.js:3749-3772. Replace any character not in [A-Za-z0-9_] with '_'.
+// Length-preserving.
+eastl::string make_safe_filename(const char *s)
+{
+  eastl::string out;
+  if (!s)
+  {
+    return out;
+  }
+  for (; *s; ++s)
+  {
+    unsigned char c = static_cast<unsigned char>(*s);
+    const bool ok = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+    out.push_back(ok ? static_cast<char>(c) : '_');
+  }
+  return out;
+}
+
+// ---------------- Per-compile sidecar (mainNodes.js:2228-2281 et al) ----------------
+
+// The JS mutates pin objects directly. In C++ we keep GraphData::Pin clean and stash
+// the per-compile state here. Indexed (nodeIdx, pinIdx) parallel to GraphData::nodes[].pins.
+struct PinFinalEntry
+{
+  int elem = 0;
+  int pin = 0;
+};
+
+struct PinCompileState
+{
+  eastl::vector<PinFinalEntry> finalList;
+  int connectElem = -1;
+  int connectPin = -1;
+  PinType connectFromType = PinType::Unknown;
+  PinType connectToType = PinType::Unknown;
+  bool connected = false;
+  bool final = false;
+  eastl::string customTextureName;
+};
+
+struct NodeSidecar
+{
+  eastl::vector<PinCompileState> pins;
+
+  // True when this node was eliminated by the bypass pass (descriptor `bypass:b = yes`
+  // and matching upstream propagatedStuff). Consumer pins have been re-routed past this
+  // node; emit + propagation must skip it. Mirrors JS `removeAllBypassNodes`
+  // (graphEditor.js:3214) which is called pre-compile and physically splices these
+  // nodes out of `editor.elems`/`editor.edges`.
+  bool bypassed = false;
+
+  // True when every fed input pin of this node arrives over a muted or otherwise dead edge
+  // (see compute_dead_paths). Unlike `bypassed` nothing is re-routed past it: the node and
+  // everything behind it produce no data, so the compile drops them entirely.
+  bool dead = false;
+
+  // Null for a node that produces no texture.
+  const NodeResolution *resolution = nullptr;
+
+  // nullptr when base_nodes.blk has no template by this uid.
+  const DataBlock *descriptor = nullptr;
+  // Effective per-pin data block: per-instance Pin::data when non-empty,
+  // otherwise descriptor pin's `data` sub-block. nullptr when neither exists.
+  // This is what the compile actually reads for blk_code / customParam /
+  // final / def_val / particleTexture / etc. Required for shader_editor
+  // sub-graph nodes whose descriptor isn't in base_nodes.blk -- their data
+  // comes only from the per-instance saved data.
+  eastl::vector<const DataBlock *> pinDataPtrs;
+};
+
+using NodeStates = eastl::vector<NodeSidecar>;
+
+// Sidecar access by (nodeIdx, pinIdx). Returns nullptr for out-of-range.
+PinCompileState *get_pin_state(NodeStates &states, int node_idx, int pin_idx)
+{
+  if (node_idx < 0 || node_idx >= static_cast<int>(states.size()))
+  {
+    return nullptr;
+  }
+  NodeSidecar &n = states[node_idx];
+  if (pin_idx < 0 || pin_idx >= static_cast<int>(n.pins.size()))
+  {
+    return nullptr;
+  }
+  return &n.pins[pin_idx];
+}
+
+const PinCompileState *get_pin_state(const NodeStates &states, int node_idx, int pin_idx)
+{
+  if (node_idx < 0 || node_idx >= static_cast<int>(states.size()))
+  {
+    return nullptr;
+  }
+  const NodeSidecar &n = states[node_idx];
+  if (pin_idx < 0 || pin_idx >= static_cast<int>(n.pins.size()))
+  {
+    return nullptr;
+  }
+  return &n.pins[pin_idx];
+}
+
+// Edges in GraphData are keyed by Node::id, not the position in nodes[]. The JS uses
+// the same indexed form (elemA / elemB are vector indices, since elems[] is sparse-but-
+// indexed-by-id in the JS object model). We need a stable id -> index map so we can
+// translate edges into sidecar indices.
+
+
+const DataBlock *find_pin_data(const DataBlock *desc_pin)
+{
+  if (!desc_pin)
+  {
+    return nullptr;
+  }
+  return desc_pin->getBlockByName("data");
+}
+
+// The raw stored value; an absent key is "". Only the texture properties fall back to the
+// descriptor default, through texture_property_value.
+eastl::string get_property(const GraphData::Node &n, const char *prop_name)
+{
+  const eastl::string *const v = find_property_value(n, prop_name);
+  return v ? *v : eastl::string();
+}
+
+// ---------------- Connectivity pass (mainNodes.js:2228-2281) ----------------
+
+void build_connectivity(const GraphData &g, const eastl::hash_map<int, int> &node_index, const DeadPaths &dead,
+  const PinConnectivity &conn, NodeStates &states)
+{
+  states.clear();
+  states.resize(g.nodes.size());
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+  {
+    states[i].pins.resize(g.nodes[i].pins.size());
+    for (int j = 0; j < static_cast<int>(g.nodes[i].pins.size()); ++j)
+    {
+      states[i].pins[j].connected = conn.connected[conn.pinBase[i] + j] != 0;
+    }
+  }
+
+  for_each_live_edge(g, dead, node_index, [&](const LiveEdge &e) {
+    const GraphData::Pin &pa = g.nodes[e.nodeA].pins[e.pinA];
+    const GraphData::Pin &pb = g.nodes[e.nodeB].pins[e.pinB];
+    PinCompileState *sa = get_pin_state(states, e.nodeA, e.pinA);
+    PinCompileState *sb = get_pin_state(states, e.nodeB, e.pinB);
+
+    // JS path 1 (mainNodes.js:2237-2258): pinA is an input. Wire sa -> b/pinB.
+    if (pa.role == PinRole::In)
+    {
+      sa->connectElem = e.nodeB;
+      sa->connectPin = e.pinB;
+      sa->connectFromType = pb.types.empty() ? PinType::Unknown : pb.types.front();
+      sa->connectToType = pa.types.empty() ? PinType::Unknown : pa.types.front();
+    }
+    // JS path 2 (mainNodes.js:2259-2280): pinB is an input. Wire sb -> a/pinA.
+    if (pb.role == PinRole::In)
+    {
+      sb->connectElem = e.nodeA;
+      sb->connectPin = e.pinA;
+      sb->connectFromType = pa.types.empty() ? PinType::Unknown : pa.types.front();
+      sb->connectToType = pb.types.empty() ? PinType::Unknown : pb.types.front();
+    }
+  });
+}
+
+// Second connectivity pass: walk edges again and apply the data.final propagation,
+// because final-tracking needs the *descriptor* data of the *input* pin (which lives
+// in base_nodes.blk). Done as a separate pass for clarity.
+void propagate_final(const GraphData &g, const eastl::hash_map<int, int> &node_index, const DeadPaths &dead,
+  const DataBlock &base_nodes_blk, NodeStates &states)
+{
+  for_each_live_edge(g, dead, node_index, [&](const LiveEdge &edge) {
+    const GraphData::Node &na = g.nodes[edge.nodeA];
+    const GraphData::Node &nb = g.nodes[edge.nodeB];
+    auto mark_final = [&](int input_node, int input_pin_idx, int upstream_node, int upstream_pin_idx) {
+      const DataBlock *descData = states[input_node].pinDataPtrs[input_pin_idx];
+      if (!descData || !descData->getBool("final", false))
+      {
+        return;
+      }
+      PinCompileState *upstream = get_pin_state(states, upstream_node, upstream_pin_idx);
+      if (!upstream)
+      {
+        return;
+      }
+      upstream->final = true;
+      PinFinalEntry entry;
+      entry.elem = input_node;
+      entry.pin = input_pin_idx;
+      upstream->finalList.push_back(entry);
+    };
+
+    if (na.pins[edge.pinA].role == PinRole::In)
+    {
+      mark_final(edge.nodeA, edge.pinA, edge.nodeB, edge.pinB);
+    }
+    if (nb.pins[edge.pinB].role == PinRole::In)
+    {
+      mark_final(edge.nodeB, edge.pinB, edge.nodeA, edge.pinA);
+    }
+  });
+}
+
+// ---------------- Substitute (mainNodes.js:2407-2468) ----------------
+
+eastl::string elem_graph_hash_impl(int elem_idx, const GraphData &g, const NodeStates &states, eastl::hash_set<int> &visited,
+  int32_t hash)
+{
+  if (elem_idx < 0 || elem_idx >= static_cast<int>(g.nodes.size()))
+  {
+    return eastl::string();
+  }
+  if (visited.count(elem_idx))
+  {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", hash);
+    return eastl::string(buf);
+  }
+  visited.insert(elem_idx);
+  const GraphData::Node &n = g.nodes[elem_idx];
+  // JS uses `hashCode(elem.descName + elem.uid, hash)` (mainNodes.js:2382). Our
+  // port keeps only the int id, so the seed key differs from JS but is stable
+  // within a graph -- `%graph_hash%` consumers only need uniqueness, not parity.
+  // Use templateUid (not descName) so renaming a template doesn't shift the hash
+  // of every graph that references it.
+  eastl::string seed = n.templateUid;
+  char idStr[32];
+  snprintf(idStr, sizeof(idStr), "%d", n.id);
+  seed.append(idStr);
+  hash = hash_code(seed.c_str(), hash);
+  for (const auto &pv : n.propertyValues)
+  {
+    eastl::string kv = pv.first;
+    kv.append("=");
+    kv.append(pv.second);
+    hash = hash_code(kv.c_str(), hash);
+  }
+  for (int i = 0; i < static_cast<int>(n.pins.size()); ++i)
+  {
+    if (n.pins[i].role != PinRole::In)
+    {
+      continue;
+    }
+    const PinCompileState *st = get_pin_state(states, elem_idx, i);
+    if (!st)
+    {
+      continue;
+    }
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%d", st->connectElem);
+    hash = hash_code(buf, hash);
+    if (st->connectElem >= 0)
+    {
+      snprintf(buf, sizeof(buf), "%d-%d", st->connectElem, st->connectPin);
+      hash = hash_code(buf, hash);
+      visited.insert(elem_idx); // re-insert defensively before recursing
+      eastl::string rec = elem_graph_hash_impl(st->connectElem, g, states, visited, hash);
+      // The JS sets `hash = getElemGraphHash(...)`, so accumulate by re-running through
+      // the returned string. Here we just keep going with the new hash returned via
+      // the recursive call by parsing it back. Simpler: re-seed hash from the string.
+      hash = hash_code(rec.c_str(), 0);
+    }
+  }
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%d", hash);
+  return eastl::string(buf);
+}
+
+void replace_all(eastl::string &s, const eastl::string &from, const eastl::string &to)
+{
+  if (from.empty())
+  {
+    return;
+  }
+  size_t pos = 0;
+  while ((pos = s.find(from, pos)) != eastl::string::npos)
+  {
+    s.replace(pos, from.size(), to);
+    pos += to.size();
+  }
+}
+
+// substitute($pin$, %prop%) the JS way: replace by pin name first, then property name.
+// For each pin: if connected, the replacement is the upstream output's register name
+// (customTextureName if assigned, else `_t_<id>_<pin>`), passed through convert_type.
+// If not connected: data.def_val on the descriptor pin, or default-zero/-one based on
+// data.def_1 flag.
+eastl::string substitute(const char *code, int elem_idx, const GraphData &g, const NodeStates &states, const DataBlock &base_nodes_blk)
+{
+  if (!code)
+  {
+    return eastl::string();
+  }
+  eastl::string out(code);
+  if (elem_idx < 0 || elem_idx >= static_cast<int>(g.nodes.size()))
+  {
+    return out;
+  }
+  const GraphData::Node &elem = g.nodes[elem_idx];
+
+  for (int i = 0; i < static_cast<int>(elem.pins.size()); ++i)
+  {
+    const GraphData::Pin &p = elem.pins[i];
+    eastl::string fromKey = "$";
+    fromKey.append(p.name);
+    fromKey.append("$");
+    if (out.find(fromKey) == eastl::string::npos)
+    {
+      continue;
+    }
+
+    eastl::string toVal;
+    const PinCompileState *st = get_pin_state(states, elem_idx, i);
+    if (st && st->connectFromType != PinType::Unknown && st->connectElem >= 0)
+    {
+      const PinCompileState *up = get_pin_state(states, st->connectElem, st->connectPin);
+      eastl::string upstreamName;
+      if (up && !up->customTextureName.empty())
+      {
+        upstreamName = up->customTextureName;
+      }
+      else
+      {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "_t_%d_%d", g.nodes[st->connectElem].id, st->connectPin);
+        upstreamName = buf;
+      }
+      toVal = convert_type(st->connectFromType, st->connectToType, upstreamName.c_str());
+    }
+    else
+    {
+      const DataBlock *descData = states[elem_idx].pinDataPtrs[i];
+      const char *defVal = descData ? descData->getStr("def_val", nullptr) : nullptr;
+      if (defVal && *defVal)
+      {
+        toVal = defVal;
+      }
+      else
+      {
+        const PinType t = p.types.empty() ? p.type : p.types.front();
+        const bool useOne = descData && descData->getBool("def_1", false);
+        toVal = useOne ? default_value_one(t) : default_value_zero(t);
+      }
+    }
+    replace_all(out, fromKey, toVal);
+  }
+
+  for (const auto &pv : elem.propertyValues)
+  {
+    eastl::string fromKey = "%";
+    fromKey.append(pv.first);
+    fromKey.append("%");
+    if (out.find(fromKey) == eastl::string::npos)
+    {
+      continue;
+    }
+    eastl::string toVal = pv.second;
+    if (toVal == "%this_elem_id%")
+    {
+      // JS uses `elem.uid + "-" + width + "-" + height + "-" + type`
+      // (mainNodes.js:2456); our port substitutes int id for uid.
+      char buf[128];
+      // A node that produces no texture never resolves, and its hash uses zero/empty for that.
+      const NodeResolution *const r = states[elem_idx].resolution;
+      snprintf(buf, sizeof(buf), "%d-%d-%d-%s", elem.id, r ? r->width : 0, r ? r->height : 0, r ? r->type.c_str() : "");
+      toVal = buf;
+    }
+    else if (toVal == "%graph_hash%")
+    {
+      eastl::hash_set<int> visited;
+      toVal = elem_graph_hash_impl(elem_idx, g, states, visited, 0);
+    }
+    replace_all(out, fromKey, toVal);
+  }
+
+  return out;
+}
+
+// Splice out bypass nodes from the compile view, re-routing each consumer pin past the
+// bypass node directly to its upstream source. Mirrors JS `removeAllBypassNodes` +
+// `deleteBypassKeepConnections_` (graphEditor.js:3100-3230), which run in the editor
+// *before* `generateHlslCode`. We can't mutate `GraphData` here (the editor needs the
+// nodes for display), so the bypass state lives on `NodeSidecar.bypassed` and we adjust
+// the cached `PinCompileState.connectElem/connectPin` of every downstream consumer.
+//
+// The JS guard: if the bypass node's propagatedStuff differs from the source's, leave it
+// in place (removing would silently change the data type the downstream sees). For the
+// `pass`/unary descriptor those should match by construction; the guard is mostly
+// defensive against weird configurations.
+void apply_bypass_removal(const GraphData &g, const DataBlock &base_nodes_blk, NodeStates &states)
+{
+  for (int b = 0; b < static_cast<int>(g.nodes.size()); ++b)
+  {
+    const DataBlock *desc = states[b].descriptor;
+    if (!desc || !desc->getBool("bypass", false))
+    {
+      continue;
+    }
+
+    // Find the single in-pin's source. JS `pass` descriptor has exactly one in-pin.
+    int srcElem = -1;
+    int srcPin = -1;
+    PinType srcType = PinType::Unknown;
+    for (int j = 0; j < static_cast<int>(g.nodes[b].pins.size()); ++j)
+    {
+      if (g.nodes[b].pins[j].role != PinRole::In)
+      {
+        continue;
+      }
+      const PinCompileState &s = states[b].pins[j];
+      if (s.connected && s.connectElem >= 0)
+      {
+        srcElem = s.connectElem;
+        srcPin = s.connectPin;
+        srcType = s.connectFromType;
+        break;
+      }
+    }
+    if (srcElem < 0)
+    {
+      continue; // floating input -- leave alone (JS does too: connectedIn === -1)
+    }
+
+    // Type-compat check: bypass's propagatedStuff vs source's. JS uses
+    // `JSON.stringify(propagatedStuff)` equality; we compare the same fields.
+    const NodeSidecar &sb = states[b];
+    const NodeSidecar &ss = states[srcElem];
+    if (sb.resolution && ss.resolution && !same_texture_result(*sb.resolution, *ss.resolution))
+    {
+      continue;
+    }
+
+    // Re-route every consumer pin reading from this bypass to the upstream source.
+    bool hadConsumer = false;
+    for (int c = 0; c < static_cast<int>(g.nodes.size()); ++c)
+    {
+      for (int j = 0; j < static_cast<int>(states[c].pins.size()); ++j)
+      {
+        PinCompileState &s = states[c].pins[j];
+        if (!s.connected || s.connectElem != b)
+        {
+          continue;
+        }
+        s.connectElem = srcElem;
+        s.connectPin = srcPin;
+        s.connectFromType = srcType;
+        hadConsumer = true;
+      }
+    }
+    if (!hadConsumer)
+    {
+      continue; // JS: connectedOut === -1, leave alone
+    }
+
+    // Transfer final + finalList from the bypass's out-pin to the upstream source's
+    // out-pin. propagate_final ran against the original edges, so any downstream
+    // `final` (e.g. "export texture" input) tagged the *bypass's* out-pin, not the
+    // upstream's. Without this, the upstream emits `_t_<id>_<j>` instead of the
+    // export filename. JS doesn't need this step -- it physically splices the bypass
+    // out of `editor.elems` before `propagateTypes`/compile, so propagate_final runs
+    // on the already-collapsed graph.
+    PinCompileState *srcOut = get_pin_state(states, srcElem, srcPin);
+    if (srcOut)
+    {
+      for (int j = 0; j < static_cast<int>(states[b].pins.size()); ++j)
+      {
+        PinCompileState &bypassOut = states[b].pins[j];
+        if (!bypassOut.final)
+        {
+          continue;
+        }
+        srcOut->final = true;
+        for (const PinFinalEntry &fe : bypassOut.finalList)
+        {
+          srcOut->finalList.push_back(fe);
+        }
+      }
+    }
+
+    states[b].bypassed = true;
+  }
+}
+
+// ---------------- Texture parameter helpers ----------------
+
+int texture_width(int elem_idx, const GraphData &g, const NodeStates &states)
+{
+  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].resolution)
+  {
+    return states[elem_idx].resolution->width;
+  }
+  return g.graphTextureWidth;
+}
+
+int texture_height(int elem_idx, const GraphData &g, const NodeStates &states)
+{
+  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].resolution)
+  {
+    return states[elem_idx].resolution->height;
+  }
+  return g.graphTextureHeight;
+}
+
+const char *texture_type(int elem_idx, const GraphData &g, const NodeStates &states)
+{
+  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].resolution)
+  {
+    return states[elem_idx].resolution->type.c_str();
+  }
+  return g.graphTextureType.c_str();
+}
+
+const char *texture_wrap(int elem_idx, const GraphData &g, const NodeStates &states)
+{
+  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].resolution)
+  {
+    return states[elem_idx].resolution->wrap.c_str();
+  }
+  return g.graphTextureWrap.c_str();
+}
+
+// ---------------- Per-node emission ----------------
+
+// makeInputName (mainNodes.js:2501-2527). For an output pin used as an input register,
+// look up special property-driven naming patterns; otherwise return _t_<id>_<pin>.
+eastl::string make_input_name(int elem_idx, int pin_idx, const GraphData &g, const NodeStates &states, const DataBlock &base_nodes_blk)
+{
+  const GraphData::Node &n = g.nodes[elem_idx];
+  const GraphData::Pin &p = n.pins[pin_idx];
+  (void)p;
+  const DataBlock *descData = states[elem_idx].pinDataPtrs[pin_idx];
+  if (descData)
+  {
+    if (descData->getBool("isTextureName", false))
+    {
+      return eastl::string("tex:") + get_property(n, "texture name");
+    }
+    if (descData->getBool("isGradient", false))
+    {
+      return eastl::string("tex:gradient:") + get_property(n, "gradient");
+    }
+    if (descData->getBool("isCurve", false))
+    {
+      return eastl::string("tex:curve:") + get_property(n, "curve");
+    }
+    if (descData->getBool("isColor", false))
+    {
+      return eastl::string("tex:color:") + get_property(n, "color");
+    }
+    if (descData->getBool("isRawTextureName", false))
+    {
+      // The combobox "texture width"/"texture height" values carry a leading "= "
+      // expression prefix that JS strips with .slice(2) (mainNodes.js:2515-2516); the
+      // remaining props are used verbatim.
+      eastl::string w = texture_property_value(n, states[elem_idx].descriptor, "texture width");
+      eastl::string h = texture_property_value(n, states[elem_idx].descriptor, "texture height");
+      if (w.size() >= 2)
+      {
+        w.erase(0, 2);
+      }
+      if (h.size() >= 2)
+      {
+        h.erase(0, 2);
+      }
+      eastl::string res("tex:");
+      res += "w:i=";
+      res += w;
+      res += ";h:i=";
+      res += h;
+      res += ";offset:i=";
+      res += get_property(n, "header (bytes)");
+      res += ";fmt:t=\"";
+      res += texture_property_value(n, states[elem_idx].descriptor, "texture type");
+      res += "\";ch_order:t=\"";
+      res += get_property(n, "channels order");
+      res += "\";name:t=";
+      res += get_property(n, "texture name");
+      return res;
+    }
+  }
+  const PinCompileState *st = get_pin_state(states, elem_idx, pin_idx);
+  if (st && !st->customTextureName.empty())
+  {
+    return st->customTextureName;
+  }
+  char buf[64];
+  snprintf(buf, sizeof(buf), "_t_%d_%d", n.id, pin_idx);
+  return eastl::string(buf);
+}
+
+// `final_buf` accumulates final:t / skip_saving:t entries to be flushed
+// onto `out` after the topo loop, matching the JS finalCode pattern (L2865).
+struct FinalAccumulator
+{
+  eastl::vector<eastl::string> finals;
+  eastl::vector<eastl::string> skipSavings;
+  // Counter for the "_t_0_temporary_reg_name_<N>" placeholder names used on a
+  // final-name collision. Lives on the accumulator (one per compile call) to
+  // match JS `var uniq_cnt = 0` reset-per-call semantics at mainNodes.js:2342 --
+  // a `static int` here drifts the suffix across repeated compiles of the same
+  // graph and breaks JS-vs-C++ output parity.
+  int dupCounter = 0;
+};
+
+// Per-pass override values for the multipass path (mainNodes.js:2819-2852). The
+// JS does this with `[[FIRST_PASS_INPUT_NAME]]` / `[[LAST_PASS_OUTPUT_NAME]]` /
+// `[[BLK_PARAM_n]]` string-template surgery on the emitted text; we emit the BLK
+// directly so we feed the resolved values straight into emission instead.
+struct PassOverrides
+{
+  const char *blockNameSuffix = "";      // "" / "_1st_pass" / "_2nd_pass"
+  bool useSecondPassParamValues = false; // pick data.second_pass_blk_code over data.blk_code
+  int multipassInputPinIdx = -1;         // pin with data.second_pass_in (override its input.reg)
+  eastl::string multipassInputReg;       // override reg name for that pin
+  eastl::string multipassInputWrap;      // override wrap for that pin (clamp/wrap)
+  bool overrideOutputReg = false;        // when true, all output{} blocks use outputRegOverride
+  eastl::string outputRegOverride;       // temp reg used for first-pass outputs
+  bool trackFinalsAndCustomName = true;  // single pass: yes. multipass: only the 1st pass tracks.
+};
+
+// Particle bypass forward declaration (defined later in the file). Emits one
+// `_bypass_<id>_<pin>` block per connected pin with data.particleTexture.
+void emit_particle_bypass(int elem_idx, int pin_idx, const GraphData &g, const NodeStates &states, const DataBlock &base_nodes_blk,
+  DataBlock &out);
+
+// Single-pass per-node emission. The dispatcher (emit_node_block) calls this once
+// for non-multipass nodes and twice with different overrides for multipass nodes.
+void emit_pass_block(int elem_idx, const GraphData &g, NodeStates &states, const DataBlock &base_nodes_blk, DataBlock &out,
+  FinalAccumulator &finals, eastl::hash_set<eastl::string> &uniq_finals, const PassOverrides &cfg)
+{
+  const GraphData::Node &elem = g.nodes[elem_idx];
+  const DataBlock *desc = states[elem_idx].descriptor;
+
+  const bool isShaderEditor = (elem.plugin == "shader_editor");
+  const char *nativeShader = desc ? desc->getStr("nativeShader", nullptr) : nullptr;
+
+  // JS uses `_node_<uid>_<i>` (mainNodes.js:2615); the C++ port names by id only.
+  char nodeNameBuf[96];
+  snprintf(nodeNameBuf, sizeof(nodeNameBuf), "_node_%d%s", elem.id, cfg.blockNameSuffix);
+  DataBlock *nb = out.addNewBlock(nodeNameBuf);
+
+  // blkPreCode pins (mainNodes.js:2620-2623). Re-parse the substituted text as
+  // BLK params and merge into the node block.
+  for (int j = 0; j < static_cast<int>(elem.pins.size()); ++j)
+  {
+    const GraphData::Pin &p = elem.pins[j];
+    (void)p;
+    const PinCompileState *st = get_pin_state(states, elem_idx, j);
+    if (!st || !st->connected)
+    {
+      continue;
+    }
+    const DataBlock *descData = states[elem_idx].pinDataPtrs[j];
+    if (!descData)
+    {
+      continue;
+    }
+    const char *preCode = descData->getStr("blkPreCode", nullptr);
+    if (!preCode || !*preCode)
+    {
+      continue;
+    }
+    eastl::string substituted = substitute(preCode, elem_idx, g, states, base_nodes_blk);
+    DataBlock preBlock;
+    if (preBlock.loadText(substituted.c_str(), static_cast<int>(substituted.size())))
+    {
+      nb->appendParamsFrom(&preBlock);
+    }
+  }
+
+  // shader:t = ...
+  if (isShaderEditor)
+  {
+    nb->setStr("shader", elem.descName.c_str());
+  }
+  else
+  {
+    eastl::string substituted = substitute(nativeShader, elem_idx, g, states, base_nodes_blk);
+    nb->setStr("shader", substituted.c_str());
+  }
+
+  // params {} block.
+  DataBlock *paramsBlk = nb->addNewBlock("params");
+  for (int j = 0; j < static_cast<int>(elem.pins.size()); ++j)
+  {
+    const GraphData::Pin &p = elem.pins[j];
+    const PinCompileState *st = get_pin_state(states, elem_idx, j);
+    const DataBlock *descData = states[elem_idx].pinDataPtrs[j];
+    if (!descData)
+    {
+      continue;
+    }
+
+    const char *customParam = descData->getStr("customParam", nullptr);
+    if (customParam && *customParam)
+    {
+      eastl::string substituted = substitute(customParam, elem_idx, g, states, base_nodes_blk);
+      DataBlock tmp;
+      if (tmp.loadText(substituted.c_str(), static_cast<int>(substituted.size())))
+      {
+        paramsBlk->appendParamsFrom(&tmp);
+      }
+    }
+
+    if (p.role != PinRole::In)
+    {
+      continue;
+    }
+    const char *blkCode = descData->getStr("blk_code", nullptr);
+    if (!blkCode || !*blkCode)
+    {
+      continue;
+    }
+
+    eastl::string paramName = p.name.c_str();
+    if (isShaderEditor)
+    {
+      eastl::string safe = make_safe_filename(p.name.c_str());
+      char hashBuf[32];
+      snprintf(hashBuf, sizeof(hashBuf), "%u", fast_hash(p.name.c_str()));
+      paramName = eastl::string("_") + safe + "_" + hashBuf;
+    }
+
+    // Pick the pass-appropriate value: when this pin has data.second_pass_blk_code
+    // AND we're emitting the second pass, use that; otherwise fall through to the
+    // existing first-pass / single-pass path.
+    eastl::string setVal;
+    const char *secondPassBlkCode = descData->getStr("second_pass_blk_code", nullptr);
+    if (cfg.useSecondPassParamValues && secondPassBlkCode && *secondPassBlkCode)
+    {
+      setVal = substitute(secondPassBlkCode, elem_idx, g, states, base_nodes_blk);
+    }
+    else if (st && st->connected && st->connectElem >= 0)
+    {
+      const DataBlock *upDescData = states[st->connectElem].pinDataPtrs[st->connectPin];
+      const char *upBlkCode = upDescData ? upDescData->getStr("blk_code", nullptr) : nullptr;
+      if (upBlkCode && *upBlkCode)
+      {
+        setVal = substitute(upBlkCode, st->connectElem, g, states, base_nodes_blk);
+      }
+      else
+      {
+        setVal = substitute(blkCode, elem_idx, g, states, base_nodes_blk);
+      }
+    }
+    else
+    {
+      setVal = substitute(blkCode, elem_idx, g, states, base_nodes_blk);
+    }
+
+    const PinType blkPinType = p.types.empty() ? p.type : p.types.front();
+    if (try_set_param_direct(*paramsBlk, paramName.c_str(), blkPinType, setVal.c_str()))
+    {
+      continue;
+    }
+
+    // Fallback: string/texture or numeric we couldn't parse -- run it through the
+    // BLK lexer so quoting and escapes behave like the JS-baseline output.
+    eastl::string line = paramName;
+    line.append(":");
+    line.append(pin_type_to_blk_type(blkPinType));
+    line.append("=");
+    line.append(setVal);
+    DataBlock tmp;
+    if (tmp.loadText(line.c_str(), static_cast<int>(line.size())))
+    {
+      paramsBlk->appendParamsFrom(&tmp);
+    }
+  }
+
+  // input {} blocks.
+  for (int j = 0; j < static_cast<int>(elem.pins.size()); ++j)
+  {
+    const GraphData::Pin &p = elem.pins[j];
+    if (p.role != PinRole::In)
+    {
+      continue;
+    }
+    const PinCompileState *st = get_pin_state(states, elem_idx, j);
+    const DataBlock *descData = states[elem_idx].pinDataPtrs[j];
+
+    // Multipass second_pass_in override (mainNodes.js:2701-2706): the input reg
+    // for this pin is parameterised by the pass.
+    if (j == cfg.multipassInputPinIdx)
+    {
+      DataBlock *inb = nb->addNewBlock("input");
+      inb->setStr("reg", cfg.multipassInputReg.c_str());
+      inb->setStr("wrap_mode", cfg.multipassInputWrap.c_str());
+      continue;
+    }
+
+    eastl::string inputName;
+    const char *wrapMode = "clamp";
+    const bool hasTexture2D = [&]() {
+      for (PinType t : p.types)
+      {
+        if (t == PinType::Texture2D)
+        {
+          return true;
+        }
+      }
+      return false;
+    }();
+    if (st && st->connected && st->connectToType == PinType::Texture2D)
+    {
+      inputName = make_input_name(st->connectElem, st->connectPin, g, states, base_nodes_blk);
+      // Match JS at mainNodes.js:2690 -- input wrap mode comes from the upstream
+      // node (not this one). connectElem is already the sidecar index.
+      wrapMode = texture_wrap(st->connectElem, g, states);
+    }
+    else if (st && !st->connected && hasTexture2D)
+    {
+      eastl::string placeholder = "$";
+      placeholder.append(p.name);
+      placeholder.append("$");
+      inputName = substitute(placeholder.c_str(), elem_idx, g, states, base_nodes_blk);
+    }
+
+    // Particle bypass reroute (mainNodes.js:2687-2688): when the descriptor pin
+    // has data.particleTexture set, the main block's input reads from the bypass
+    // output register (_p_<id>_<pin>) instead of the upstream texture.
+    if (descData && descData->getBool("particleTexture", false))
+    {
+      char buf[64];
+      snprintf(buf, sizeof(buf), "_p_%d_%d", elem.id, j);
+      inputName = buf;
+    }
+
+    if (inputName.empty())
+    {
+      continue;
+    }
+    DataBlock *inb = nb->addNewBlock("input");
+    inb->setStr("reg", inputName.c_str());
+    inb->setStr("wrap_mode", wrapMode);
+  }
+
+  // output {} blocks. Also assigns customTextureName, drives final/skip_saving.
+  for (int j = 0; j < static_cast<int>(elem.pins.size()); ++j)
+  {
+    const GraphData::Pin &p = elem.pins[j];
+    if (p.role != PinRole::Out)
+    {
+      continue;
+    }
+    bool isParticles = false;
+    bool isTexture = false;
+    for (PinType t : p.types)
+    {
+      if (t == PinType::Particles)
+      {
+        isParticles = true;
+      }
+      if (t == PinType::Texture2D)
+      {
+        isTexture = true;
+      }
+    }
+    if (!isParticles && !isTexture)
+    {
+      continue;
+    }
+
+    PinCompileState *st = get_pin_state(states, elem_idx, j);
+    if (!st)
+    {
+      continue;
+    }
+    const DataBlock *descData = states[elem_idx].pinDataPtrs[j];
+    const bool descFinal = descData && descData->getBool("final", false);
+    const bool final = st->final || descFinal;
+
+    char defaultOutBuf[64];
+    snprintf(defaultOutBuf, sizeof(defaultOutBuf), "_t_%d_%d", elem.id, j);
+    eastl::string outName = defaultOutBuf;
+
+    if (cfg.trackFinalsAndCustomName && st->final)
+    {
+      eastl::vector<eastl::string> outNames;
+      for (const PinFinalEntry &fe : st->finalList)
+      {
+        const GraphData::Node &finalNode = g.nodes[fe.elem];
+        eastl::string name = substitute("%texture name%", fe.elem, g, states, base_nodes_blk);
+        while (!name.empty() && (name.back() == ' ' || name.back() == '\t' || name.back() == '\n'))
+        {
+          name.pop_back();
+        }
+        eastl::string skipSaving = get_property(finalNode, "skip when exporting");
+        if (skipSaving == "true")
+        {
+          finals.skipSavings.push_back(name);
+        }
+
+        eastl::string fileFormat = substitute("%file format%", fe.elem, g, states, base_nodes_blk);
+        eastl::string channels = substitute("%channels%", fe.elem, g, states, base_nodes_blk);
+        if (name.find('%') != 0 && channels.find('%') != 0)
+        {
+          eastl::string exported = "export: ";
+          exported.append(name);
+          exported.append(fileFormat);
+          exported.append("; ");
+          exported.append(channels);
+          name = exported;
+        }
+
+        // JS mainNodes.js:2746-2750: when `%texture name%` didn't substitute (the
+        // `export entities` descriptor has no `texture name` property), fall back
+        // to `<blk name>:<names list>` with all whitespace stripped. The
+        // export-prefix branch above leaves `name` unchanged in this case because
+        // its guard requires `name` to not start with '%'.
+        if (name.find('%') == 0)
+        {
+          name = substitute("%blk name%:%names list%", fe.elem, g, states, base_nodes_blk);
+          while (!name.empty() && (name.front() == ' ' || name.front() == '\t' || name.front() == '\n'))
+          {
+            name.erase(name.begin());
+          }
+          while (!name.empty() && (name.back() == ' ' || name.back() == '\t' || name.back() == '\n'))
+          {
+            name.pop_back();
+          }
+          eastl::string stripped;
+          stripped.reserve(name.size());
+          for (char c : name)
+          {
+            if (c != ' ')
+            {
+              stripped.push_back(c);
+            }
+          }
+          name = stripped;
+        }
+
+        if (uniq_finals.count(name))
+        {
+          char dupBuf[64];
+          snprintf(dupBuf, sizeof(dupBuf), "_t_0_temporary_reg_name_%d", ++finals.dupCounter);
+          name = dupBuf;
+        }
+        else
+        {
+          uniq_finals.insert(name);
+        }
+        if (!name.empty())
+        {
+          outNames.push_back(name);
+        }
+      }
+      if (!outNames.empty())
+      {
+        outName.clear();
+        for (size_t k = 0; k < outNames.size(); ++k)
+        {
+          if (k > 0)
+          {
+            outName.append("$delimiter$");
+          }
+          outName.append(outNames[k]);
+        }
+      }
+    }
+    else if (!cfg.trackFinalsAndCustomName)
+    {
+      // The second multipass pass writes the real output reg: the name the first
+      // pass cached in customTextureName.
+      if (!st->customTextureName.empty())
+      {
+        outName = st->customTextureName;
+      }
+    }
+
+    if (cfg.trackFinalsAndCustomName)
+    {
+      st->customTextureName = outName;
+      const bool isTemporary = (outName.find("_t_0_temporary_reg_name_") == 0);
+      if (final && !isTemporary)
+      {
+        finals.finals.push_back(outName);
+      }
+    }
+
+    DataBlock *outb = nb->addNewBlock("output");
+    if (cfg.overrideOutputReg)
+    {
+      outb->setStr("reg", cfg.outputRegOverride.c_str());
+    }
+    else
+    {
+      outb->setStr("reg", outName.c_str());
+    }
+    outb->setStr("wrap_mode", texture_wrap(elem_idx, g, states));
+    outb->setStr("fmt", isParticles ? "particles" : texture_type(elem_idx, g, states));
+    if (descData && descData->getBool("is_uav", false))
+    {
+      outb->setBool("is_uav", true);
+    }
+  }
+
+  // shaderParticleInput + customBlkParams (mainNodes.js:2802-2810). Both come from pin
+  // data flags scanned across the elem's pins. shader_particle_input drives a fixed
+  // template; customBlkParams is itself a substitutable template string.
+  bool shaderParticleInput = false;
+  const char *customBlkParams = nullptr;
+  for (int j = 0; j < static_cast<int>(elem.pins.size()); ++j)
+  {
+    const PinCompileState *st = get_pin_state(states, elem_idx, j);
+    if (!st || !st->connected)
+    {
+      continue;
+    }
+    const DataBlock *descData = states[elem_idx].pinDataPtrs[j];
+    if (!descData)
+    {
+      continue;
+    }
+    if (elem.pins[j].role == PinRole::In && descData->getBool("shader_particle_input", false))
+    {
+      shaderParticleInput = true;
+    }
+    const char *cbp = descData->getStr("customBlkParams", nullptr);
+    if (cbp && *cbp)
+    {
+      customBlkParams = cbp;
+    }
+  }
+
+  auto mergeText = [&](const char *text) {
+    DataBlock tmp;
+    if (!tmp.loadText(text, static_cast<int>(strlen(text))))
+    {
+      return;
+    }
+    nb->appendParamsFrom(&tmp);
+    for (uint32_t k = 0; k < tmp.blockCount(); ++k)
+    {
+      const DataBlock *src = tmp.getBlock(k);
+      nb->addNewBlock(src, src->getBlockName());
+    }
+  };
+
+  if (shaderParticleInput)
+  {
+    eastl::string substituted =
+      substitute("particles{reg:t=\"$particles$\";} blending:t=\"%blend type%\";", elem_idx, g, states, base_nodes_blk);
+    mergeText(substituted.c_str());
+  }
+
+  if (customBlkParams)
+  {
+    eastl::string substituted = substitute(customBlkParams, elem_idx, g, states, base_nodes_blk);
+    mergeText(substituted.c_str());
+  }
+
+  nb->setInt("width", texture_width(elem_idx, g, states));
+  nb->setInt("height", texture_height(elem_idx, g, states));
+}
+
+void emit_node_block(int elem_idx, const GraphData &g, NodeStates &states, const DataBlock &base_nodes_blk, DataBlock &out,
+  FinalAccumulator &finals, eastl::hash_set<eastl::string> &uniq_finals)
+{
+  const GraphData::Node &elem = g.nodes[elem_idx];
+  const DataBlock *desc = states[elem_idx].descriptor;
+
+  const bool isShaderEditor = (elem.plugin == "shader_editor");
+  const char *nativeShader = desc ? desc->getStr("nativeShader", nullptr) : nullptr;
+  const bool hasShader = (isShaderEditor || (nativeShader && *nativeShader));
+  if (!hasShader || elem.pins.empty())
+  {
+    return;
+  }
+
+  // Particle-bypass pre-pass (mainNodes.js:2582-2611). One _bypass_<...> block
+  // per connected in-pin with data.particleTexture; the main block then reads
+  // from _p_<id>_<pin> instead of the upstream texture.
+  for (int j = 0; j < static_cast<int>(elem.pins.size()); ++j)
+  {
+    const GraphData::Pin &p = elem.pins[j];
+    if (p.role != PinRole::In)
+    {
+      continue;
+    }
+    const PinCompileState *st = get_pin_state(states, elem_idx, j);
+    if (!st || !st->connected)
+    {
+      continue;
+    }
+    const DataBlock *descData = states[elem_idx].pinDataPtrs[j];
+    if (!descData)
+    {
+      continue;
+    }
+    if (descData->getBool("particleTexture", false))
+    {
+      emit_particle_bypass(elem_idx, j, g, states, base_nodes_blk, out);
+    }
+  }
+
+  // Scan for multipass (mainNodes.js:2678-2679). Last pin with second_pass_in
+  // wins -- matches the JS loop.
+  int multipassPin = -1;
+  for (int j = 0; j < static_cast<int>(elem.pins.size()); ++j)
+  {
+    const GraphData::Pin &p = elem.pins[j];
+    if (p.role != PinRole::In)
+    {
+      continue;
+    }
+    const DataBlock *descData = states[elem_idx].pinDataPtrs[j];
+    if (descData && descData->getBool("second_pass_in", false))
+    {
+      multipassPin = j;
+    }
+  }
+
+  if (multipassPin < 0)
+  {
+    PassOverrides cfg;
+    emit_pass_block(elem_idx, g, states, base_nodes_blk, out, finals, uniq_finals, cfg);
+    return;
+  }
+
+  // Multipass split (mainNodes.js:2819-2852). Resolve the real upstream input
+  // for the second_pass_in pin (used as the first-pass input), assign a temp
+  // register for the first pass's output, then emit twice.
+  const GraphData::Pin &mpPin = elem.pins[multipassPin];
+  const PinCompileState *mpSt = get_pin_state(states, elem_idx, multipassPin);
+  eastl::string firstPassReg;
+  eastl::string firstPassWrap = "clamp";
+  if (mpSt && mpSt->connected && mpSt->connectElem >= 0)
+  {
+    firstPassReg = make_input_name(mpSt->connectElem, mpSt->connectPin, g, states, base_nodes_blk);
+    firstPassWrap = texture_wrap(mpSt->connectElem, g, states);
+  }
+  else
+  {
+    eastl::string placeholder = "$";
+    placeholder.append(mpPin.name);
+    placeholder.append("$");
+    firstPassReg = substitute(placeholder.c_str(), elem_idx, g, states, base_nodes_blk);
+  }
+
+  char tmpRegBuf[64];
+  snprintf(tmpRegBuf, sizeof(tmpRegBuf), "_2pass_tmp_reg_%d", elem.id);
+
+  // Emit in texgen-processing order: first pass writes the temp reg, second
+  // pass reads it. The first pass also owns finals/customTextureName tracking
+  // (computing the real outName) so the second pass's output block can read
+  // the cached customTextureName for the real final register.
+  PassOverrides first;
+  first.blockNameSuffix = "_1st_pass";
+  first.useSecondPassParamValues = false; // -V1048
+  first.multipassInputPinIdx = multipassPin;
+  first.multipassInputReg = firstPassReg;
+  first.multipassInputWrap = firstPassWrap;
+  first.overrideOutputReg = true;
+  first.outputRegOverride = tmpRegBuf;
+  first.trackFinalsAndCustomName = true; // -V1048
+  emit_pass_block(elem_idx, g, states, base_nodes_blk, out, finals, uniq_finals, first);
+
+  PassOverrides second;
+  second.blockNameSuffix = "_2nd_pass";
+  second.useSecondPassParamValues = true;
+  second.multipassInputPinIdx = multipassPin;
+  second.multipassInputReg = tmpRegBuf;
+  second.multipassInputWrap = firstPassWrap;
+  second.overrideOutputReg = false; // -V1048
+  second.trackFinalsAndCustomName = false;
+  emit_pass_block(elem_idx, g, states, base_nodes_blk, out, finals, uniq_finals, second);
+}
+
+// Particle-bypass block emission (mainNodes.js:2582-2611). One block per
+// connected in-pin with data.particleTexture. The block routes the upstream
+// texture through `data.particleShader` (default "unary") and emits its result
+// into a private register `_p_<id>_<pin>`. The main per-node block then reads
+// from that register instead of the original upstream.
+void emit_particle_bypass(int elem_idx, int pin_idx, const GraphData &g, const NodeStates &states, const DataBlock &base_nodes_blk,
+  DataBlock &out)
+{
+  const GraphData::Node &elem = g.nodes[elem_idx];
+  const GraphData::Pin &p = elem.pins[pin_idx];
+  (void)p;
+  const DataBlock *descData = states[elem_idx].pinDataPtrs[pin_idx];
+  const PinCompileState *st = get_pin_state(states, elem_idx, pin_idx);
+  if (!st || !st->connected)
+  {
+    return;
+  }
+
+  // JS: `_bypass_<uid>_<i>_<j>` at mainNodes.js:2588; the C++ port names by id and pin only.
+  char nameBuf[96];
+  snprintf(nameBuf, sizeof(nameBuf), "_bypass_%d_%d", elem.id, pin_idx);
+  DataBlock *bb = out.addNewBlock(nameBuf);
+
+  const char *particleShader = descData ? descData->getStr("particleShader", nullptr) : nullptr;
+  bb->setStr("shader", (particleShader && *particleShader) ? particleShader : "unary");
+
+  // Other pins' data.particleCode parsed as inline BLK params -- mirrors the
+  // customParam handling in emit_pass_block.
+  for (int k = 0; k < static_cast<int>(elem.pins.size()); ++k)
+  {
+    const GraphData::Pin &p2 = elem.pins[k];
+    if (p2.role != PinRole::In)
+    {
+      continue;
+    }
+    const PinCompileState *st2 = get_pin_state(states, elem_idx, k);
+    if (!st2 || !st2->connected)
+    {
+      continue;
+    }
+    const DataBlock *desc2Data = states[elem_idx].pinDataPtrs[k];
+    if (!desc2Data)
+    {
+      continue;
+    }
+    const char *particleCode = desc2Data->getStr("particleCode", nullptr);
+    if (!particleCode || !*particleCode)
+    {
+      continue;
+    }
+    eastl::string substituted = substitute(particleCode, elem_idx, g, states, base_nodes_blk);
+    DataBlock tmp;
+    if (tmp.loadText(substituted.c_str(), static_cast<int>(substituted.size())))
+    {
+      bb->appendParamsFrom(&tmp);
+    }
+  }
+
+  // Input is the real upstream texture (not the bypass output). Wrap mode is
+  // hardcoded to "clamp" per the JS.
+  eastl::string inputName = make_input_name(st->connectElem, st->connectPin, g, states, base_nodes_blk);
+  DataBlock *inb = bb->addNewBlock("input");
+  inb->setStr("reg", inputName.c_str());
+  inb->setStr("wrap_mode", "clamp");
+
+  // Output to the private bypass register.
+  char outRegBuf[64];
+  snprintf(outRegBuf, sizeof(outRegBuf), "_p_%d_%d", elem.id, pin_idx);
+  DataBlock *outb = bb->addNewBlock("output");
+  outb->setStr("reg", outRegBuf);
+  outb->setStr("wrap_mode", "clamp");
+  outb->setStr("fmt", texture_type(elem_idx, g, states));
+
+  bb->setInt("width", texture_width(elem_idx, g, states));
+  bb->setInt("height", texture_height(elem_idx, g, states));
+}
+
+// ---------------- Unemitted-node diagnosis ----------------
+
+// Every node left unprocessed has an unprocessed dependency, or the pass would have emitted it. The
+// ones worth naming are those actually on a loop, which means a strongly connected component with
+// more than one member (or a self-edge); the rest are merely starved behind one. Peeling the nodes
+// no blocked node reads is not the same test: two loops joined by a one-way path leave that path
+// unpeeled, and naming its nodes tells the user to cut an edge that breaks no loop.
+void describe_blocked_nodes(const GraphData &g, const NodeStates &states, const eastl::vector<bool> &processed, eastl::string &out_msg,
+  eastl::vector<int> *out_loop_node_ids)
+{
+  const int nodeCount = static_cast<int>(g.nodes.size());
+  eastl::vector<int> blocked;
+  eastl::vector<int> slotOf(nodeCount, -1); // node index -> position in `blocked`
+  for (int i = 0; i < nodeCount; ++i)
+  {
+    if (!processed[i])
+    {
+      slotOf[i] = static_cast<int>(blocked.size());
+      blocked.push_back(i);
+    }
+  }
+  if (blocked.empty())
+  {
+    return;
+  }
+
+  const int slotCount = static_cast<int>(blocked.size());
+  eastl::vector<eastl::vector<int>> deps(slotCount); // slot -> slots it takes input from
+  for (int s = 0; s < slotCount; ++s)
+  {
+    const GraphData::Node &n = g.nodes[blocked[s]];
+    for (int j = 0; j < static_cast<int>(n.pins.size()); ++j)
+    {
+      // Same readiness relation the topo-sort pass walks, so the two agree on what "waiting" means.
+      const PinCompileState *st = get_pin_state(states, blocked[s], j);
+      if (!st || n.pins[j].role != PinRole::In || st->connectFromType == PinType::Unknown || st->connectElem < 0 ||
+          st->connectElem >= nodeCount)
+      {
+        continue;
+      }
+      const int depSlot = slotOf[st->connectElem];
+      if (depSlot < 0)
+      {
+        continue;
+      }
+      deps[s].push_back(depSlot);
+    }
+  }
+
+  eastl::vector<uint8_t> onLoop(slotCount, 0);
+  eastl::vector<int> depth(slotCount, -1);
+  eastl::vector<int> low(slotCount, 0);
+  eastl::vector<uint8_t> onSccStack(slotCount, 0);
+  eastl::vector<int> sccStack;
+  struct Frame
+  {
+    int slot;
+    int nextDep;
+  };
+  eastl::vector<Frame> walk;
+  int nextDepth = 0;
+  for (int root = 0; root < slotCount; ++root)
+  {
+    if (depth[root] >= 0)
+    {
+      continue;
+    }
+    walk.push_back(Frame{root, 0});
+    depth[root] = low[root] = nextDepth++;
+    sccStack.push_back(root);
+    onSccStack[root] = 1;
+    while (!walk.empty())
+    {
+      Frame &frame = walk.back();
+      if (frame.nextDep < static_cast<int>(deps[frame.slot].size()))
+      {
+        const int w = deps[frame.slot][frame.nextDep++];
+        if (depth[w] < 0)
+        {
+          depth[w] = low[w] = nextDepth++;
+          sccStack.push_back(w);
+          onSccStack[w] = 1;
+          walk.push_back(Frame{w, 0});
+        }
+        else if (onSccStack[w])
+        {
+          low[frame.slot] = eastl::min(low[frame.slot], depth[w]);
+        }
+        continue;
+      }
+
+      const int s = frame.slot;
+      walk.pop_back();
+      if (!walk.empty())
+      {
+        low[walk.back().slot] = eastl::min(low[walk.back().slot], low[s]);
+      }
+      if (low[s] != depth[s])
+      {
+        continue; // not a component root yet
+      }
+      // Pop the component. A single member is on a loop only by feeding itself.
+      int members = 0;
+      for (;;)
+      {
+        const int w = sccStack.back();
+        sccStack.pop_back();
+        onSccStack[w] = 0;
+        onLoop[w] = 1;
+        ++members;
+        if (w == s)
+        {
+          break;
+        }
+      }
+      if (members == 1 && eastl::find(deps[s].begin(), deps[s].end(), s) == deps[s].end())
+      {
+        onLoop[s] = 0;
+      }
+    }
+  }
+
+  // Enough names to point at the loop; a loop this big needs the graph, not a longer line.
+  constexpr int MAX_LISTED = 8;
+  String names;
+  int listed = 0;
+  int starved = 0;
+  for (int s = 0; s < slotCount; ++s)
+  {
+    if (!onLoop[s])
+    {
+      ++starved;
+      continue;
+    }
+    ++listed;
+    const GraphData::Node &n = g.nodes[blocked[s]];
+    if (listed <= MAX_LISTED)
+    {
+      names.aprintf(0, "%s#%d (%s)", listed > 1 ? ", " : "", n.id, n.descName.c_str());
+    }
+    if (out_loop_node_ids)
+    {
+      out_loop_node_ids->push_back(n.id);
+    }
+  }
+  if (listed > MAX_LISTED)
+  {
+    names.aprintf(0, ", and %d more", listed - MAX_LISTED);
+  }
+
+  String msg;
+  msg.printf(0, "dependency loop through %s -- the compile drops these nodes", names.str());
+  if (starved > 0)
+  {
+    msg.aprintf(0, ", and %d node(s) behind them", starved);
+  }
+  msg.aprintf(0, ". Delete or mute one edge in the loop.");
+  out_msg = msg.str();
+}
+
+void record_name_sources(const DataBlock &main_graph_blk, int first_new_block, int node_idx, const GraphData &g,
+  const NodeStates &states, CompiledNameSources &out)
+{
+  const GraphData::Node &n = g.nodes[node_idx];
+  const int outputNameId = main_graph_blk.getNameId("output");
+  for (int b = first_new_block; b < static_cast<int>(main_graph_blk.blockCount()); ++b)
+  {
+    const DataBlock *block = main_graph_blk.getBlock(b);
+    out.emplace(eastl::string(block->getBlockName()), CompiledNameSource{n.id, -1});
+    // Texgen renames each output register to `<block>.<n>` (regs_name_mapping) and prints that name.
+    int outputIdx = 0;
+    for (int k = 0; k < static_cast<int>(block->blockCount()); ++k)
+    {
+      const DataBlock *sub = block->getBlock(k);
+      const char *reg = sub->getStr("reg", nullptr);
+      if (sub->getBlockNameId() != outputNameId || !reg)
+      {
+        continue;
+      }
+      int pinIdx = -1;
+      for (int j = 0; *reg && j < static_cast<int>(n.pins.size()); ++j)
+      {
+        const PinCompileState *st = get_pin_state(states, node_idx, j);
+        if (st && st->customTextureName == reg)
+        {
+          pinIdx = j;
+          break;
+        }
+      }
+      out.emplace(eastl::string(eastl::string::CtorSprintf(), "%s.%d", block->getBlockName(), outputIdx++),
+        CompiledNameSource{n.id, pinIdx});
+    }
+  }
+}
+
+} // namespace
+
+bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, const char *shader_includes_dir,
+  DataBlock &out_main_graph_blk, DataBlock &out_shader_list_blk,
+  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names, eastl::string *out_message,
+  GraphResolutions *out_node_resolutions, DeadPaths *out_dead, CompiledNameSources *out_name_sources,
+  eastl::vector<int> *out_loop_node_ids)
+{
+  out_main_graph_blk.reset();
+  out_shader_list_blk.reset();
+  out_pin_custom_texture_names.clear();
+  if (out_message)
+  {
+    out_message->clear();
+  }
+  if (out_name_sources)
+  {
+    out_name_sources->clear();
+  }
+  if (out_loop_node_ids)
+  {
+    out_loop_node_ids->clear();
+  }
+
+  eastl::hash_map<int, int> nodeIndex;
+  build_node_index(g, nodeIndex);
+
+  DeadPaths localDead;
+  DeadPaths &dead = out_dead ? *out_dead : localDead;
+  compute_dead_paths(g, nodeIndex, dead);
+
+  PinConnectivity connectivity;
+  build_pin_connectivity(g, dead, nodeIndex, connectivity);
+
+  NodeStates states;
+  build_connectivity(g, nodeIndex, dead, connectivity, states);
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+  {
+    states[i].dead = dead.isDeadNode(i);
+  }
+
+  // Pre-resolves the effective per-pin data block: prefer per-instance
+  // Pin::data (only populated for shader_editor sub-graph nodes whose
+  // descriptor isn't in base_nodes.blk), fall back to the descriptor's pin
+  // data sub-block. Compile call sites read from pinDataPtrs directly.
+  eastl::vector<const DataBlock *> nodeDescriptors(g.nodes.size(), nullptr);
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+  {
+    const GraphData::Node &n = g.nodes[i];
+    nodeDescriptors[i] = find_node_desc(&base_nodes_blk, n.templateUid.c_str());
+    states[i].descriptor = nodeDescriptors[i];
+    states[i].pinDataPtrs.resize(n.pins.size());
+    for (int j = 0; j < static_cast<int>(n.pins.size()); ++j)
+    {
+      const DataBlock &instData = n.pins[j].data;
+      if (instData.paramCount() > 0 || instData.blockCount() > 0)
+      {
+        states[i].pinDataPtrs[j] = &instData;
+      }
+      else
+      {
+        states[i].pinDataPtrs[j] = find_pin_data(find_pin_desc(states[i].descriptor, n.pins[j].name.c_str(), n.pins[j].role));
+      }
+    }
+  }
+
+  propagate_final(g, nodeIndex, dead, base_nodes_blk, states);
+
+  // the emitters reach this through `states`, which holds pointers into `resolutions`.
+  // It outlives them, and the out parameter takes a copy.
+  GraphResolutions resolutions;
+  compute_graph_resolutions(g, nodeDescriptors, nodeIndex, dead, connectivity, nullptr, resolutions);
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+  {
+    states[i].resolution = resolutions.byIndex(i);
+  }
+
+  // Pre-emit bypass splicing (graphEditor.js:3214/5648). Bypass descriptors (e.g.
+  // `pass`/unary) are removed and their consumers re-wired to the upstream source so
+  // the compile emits neither a `_node_<bypass>` block nor `_t_<bypass>_<j>`
+  // register references. Runs after propagation so the type-compat guard has values
+  // to compare; doesn't trigger another propagation pass because bypass eligibility
+  // requires matching propagatedStuff by construction.
+  apply_bypass_removal(g, base_nodes_blk, states);
+
+  // shader_editor include list (mainNodes.js:2289-2301). Dedup by descName. We
+  // can't just addStr("include", ...) on the DataBlock -- that creates a string
+  // param, not an include-directive expansion. Build the text form and parse it
+  // via loadText with a synthetic filename rooted at shader_includes_dir so the
+  // BLK parser resolves `_<descName>.blk` against that dir and inlines the
+  // referenced shader blocks.
+  {
+    eastl::hash_set<eastl::string> listed;
+    eastl::string includesText;
+    for (const GraphData::Node &n : g.nodes)
+    {
+      if (n.plugin != "shader_editor" || n.pins.empty())
+      {
+        continue;
+      }
+      if (listed.count(n.descName))
+      {
+        continue;
+      }
+      listed.insert(n.descName);
+      includesText.append("include _");
+      includesText.append(n.descName);
+      includesText.append(".blk\n");
+    }
+    if (!includesText.empty())
+    {
+      eastl::string syntheticFname = shader_includes_dir ? shader_includes_dir : "";
+      syntheticFname.append("shadersList.blk");
+      // Robust load suppresses "BLK parsed string for param 'X' is really long"
+      // warnings -- the shader_editor `_<descName>.blk` includes legitimately carry
+      // multi-KB DSHL shader sources as triple-quoted strings.
+      dblk::load_text(out_shader_list_blk, dag::ConstSpan<char>(includesText.c_str(), static_cast<int>(includesText.size())),
+        dblk::ReadFlag::ROBUST, syntheticFname.c_str());
+    }
+  }
+
+  // Topo-sort loop (mainNodes.js:2531-2863). For each unprocessed node whose `in`-role
+  // pins all point at already-processed nodes, emit the per-node block. Repeat to
+  // fixed point with a hard iteration guard.
+  eastl::vector<bool> processed(g.nodes.size(), false);
+  // Bypassed nodes never emit; pre-mark so they don't block their (re-routed) consumers.
+  // Dead nodes never emit either, and pre-marking them keeps a dead node from holding back a
+  // live consumer that still reads some other pin.
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+  {
+    if (states[i].bypassed || states[i].dead)
+    {
+      processed[i] = true;
+    }
+  }
+  FinalAccumulator finals;
+  eastl::hash_set<eastl::string> uniqFinals;
+  int iteration = 0;
+  bool changed = false;
+  bool hitIterationGuard = false;
+  do
+  {
+    changed = false;
+    for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+    {
+      if (processed[i])
+      {
+        continue;
+      }
+      const GraphData::Node &e = g.nodes[i];
+      bool allInProcessed = true;
+      for (int j = 0; j < static_cast<int>(e.pins.size()); ++j)
+      {
+        const PinCompileState *st = get_pin_state(states, i, j);
+        if (!st)
+        {
+          continue;
+        }
+        if (st->connectFromType != PinType::Unknown && e.pins[j].role == PinRole::In && st->connectElem >= 0 &&
+            !processed[st->connectElem])
+        {
+          allInProcessed = false;
+          break;
+        }
+      }
+      if (allInProcessed)
+      {
+        processed[i] = true;
+        changed = true;
+        const int firstBlock = static_cast<int>(out_main_graph_blk.blockCount());
+        emit_node_block(i, g, states, base_nodes_blk, out_main_graph_blk, finals, uniqFinals);
+        if (out_name_sources)
+        {
+          record_name_sources(out_main_graph_blk, firstBlock, i, g, states, *out_name_sources);
+        }
+      }
+    }
+    ++iteration;
+    if (iteration > MAX_GRAPH_CHAIN_PASSES)
+    {
+      debug("compile_graph_to_blks: topo-sort fixed-point loop hit %d-pass guard", MAX_GRAPH_CHAIN_PASSES);
+      hitIterationGuard = true;
+      break;
+    }
+  } while (changed);
+
+  int unresolved = 0;
+  if (hitIterationGuard)
+  {
+    for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+    {
+      if (!processed[i])
+      {
+        ++unresolved;
+      }
+    }
+  }
+
+  if (out_message)
+  {
+    if (hitIterationGuard)
+    {
+      String msg;
+      if (unresolved > 0)
+      {
+        // `processed` is a mid-convergence snapshot, so the count is all that can be claimed --
+        // naming nodes would name ones merely not reached yet.
+        msg.printf(0, "graph compile stopped: the topo-sort pass hit its %d-pass limit with %d node(s) unresolved",
+          MAX_GRAPH_CHAIN_PASSES, unresolved);
+      }
+      else
+      {
+        msg.printf(0,
+          "the topo-sort pass reached its %d-pass limit and every node still resolved; the graph has a dependency "
+          "chain that deep, so it stops compiling if it grows",
+          MAX_GRAPH_CHAIN_PASSES);
+      }
+      *out_message = msg.str();
+    }
+    else
+    {
+      describe_blocked_nodes(g, states, processed, *out_message, out_loop_node_ids);
+    }
+  }
+
+  // Snapshot PinCompileState::customTextureName into the output parameter so the
+  // caller can apply it onto GraphData::Pin::customTextureName from the main
+  // thread. The texture-preview panel (graph_tab.cpp) reads that Pin field
+  // without taking graphMutex; writing it from the worker thread (compile runs
+  // here, plugin.cpp:84) would race against those reads. Bypassed nodes get an
+  // empty inner vector since they never run emit_pass_block.
+  out_pin_custom_texture_names.resize(g.nodes.size());
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+  {
+    if (states[i].bypassed || states[i].dead)
+    {
+      continue;
+    }
+    const GraphData::Node &n = g.nodes[i];
+    out_pin_custom_texture_names[i].resize(n.pins.size());
+    for (int j = 0; j < static_cast<int>(n.pins.size()); ++j)
+    {
+      const PinCompileState *st = get_pin_state(states, i, j);
+      if (!st)
+      {
+        continue;
+      }
+      out_pin_custom_texture_names[i][j] = st->customTextureName;
+    }
+  }
+
+  for (const auto &s : finals.finals)
+  {
+    out_main_graph_blk.addStr("final", s.c_str());
+  }
+  for (const auto &s : finals.skipSavings)
+  {
+    out_main_graph_blk.addStr("skip_saving", s.c_str());
+  }
+
+  // The guard trips one pass after the last productive one, so a chain exactly as deep as the limit
+  // converges and still hits it -- that is not a failure. A loop never trips it at all: the pass
+  // stops changing and exits, returning true so the rest of the graph still emits.
+  if (out_node_resolutions)
+  {
+    *out_node_resolutions = resolutions;
+  }
+
+  return !hitIterationGuard || unresolved == 0;
+}
+
+void make_compiled_name_labels(const GraphData &compiled, const GraphData &shown, const eastl::hash_map<int, int> &node_instance,
+  const CompiledNameSources &sources, eastl::hash_map<eastl::string, eastl::string> &out_labels)
+{
+  out_labels.clear();
+  eastl::hash_map<int, int> compiledIndex;
+  build_node_index(compiled, compiledIndex);
+  eastl::hash_map<int, int> shownIndex;
+  build_node_index(shown, shownIndex);
+  for (const auto &kv : sources)
+  {
+    auto nodeIt = compiledIndex.find(kv.second.nodeId);
+    if (nodeIt == compiledIndex.end() || compiled.nodes[nodeIt->second].descName.empty())
+    {
+      continue;
+    }
+    const GraphData::Node &n = compiled.nodes[nodeIt->second];
+    eastl::string title = n.descName;
+    auto instanceIt = node_instance.find(n.id);
+    auto shownIt = instanceIt != node_instance.end() ? shownIndex.find(instanceIt->second) : shownIndex.end();
+    if (shownIt != shownIndex.end() && !shown.nodes[shownIt->second].descName.empty())
+    {
+      title = shown.nodes[shownIt->second].descName + "/" + title;
+    }
+    const int pin = kv.second.pinIdx;
+    if (pin >= 0 && pin < static_cast<int>(n.pins.size()) && !n.pins[pin].name.empty())
+    {
+      title += "." + n.pins[pin].name;
+    }
+    out_labels[kv.first] = "'" + title + "'";
+  }
+}
+
+void make_block_node_ids(const DataBlock &main_graph_blk, const CompiledNameSources &sources,
+  const eastl::hash_map<int, int> &node_instance, const eastl::hash_map<int, SubgraphNodeSource> &node_source,
+  eastl::hash_map<eastl::string, int> &out_node_ids, eastl::hash_map<eastl::string, SubgraphNodeSource> &out_sources)
+{
+  out_node_ids.clear();
+  out_sources.clear();
+  for (int b = 0; b < static_cast<int>(main_graph_blk.blockCount()); ++b)
+  {
+    const char *name = main_graph_blk.getBlock(b)->getBlockName();
+    auto source = sources.find_as(name);
+    if (source == sources.end())
+    {
+      continue;
+    }
+    auto instance = node_instance.find(source->second.nodeId);
+    out_node_ids[name] = instance != node_instance.end() ? instance->second : source->second.nodeId;
+    auto authored = node_source.find(source->second.nodeId);
+    if (authored != node_source.end())
+    {
+      out_sources[name] = authored->second;
+    }
+  }
+}

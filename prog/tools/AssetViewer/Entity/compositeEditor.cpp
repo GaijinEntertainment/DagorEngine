@@ -7,6 +7,7 @@
 #include "compositeEditorTree.h"
 #include "compositeEditorUndo.h"
 #include "entity_cm.h"
+#include "dataBlockCommentChecker.h"
 #include "dataBlockIncludeChecker.h"
 #include "saveAsCompositeDlg.h"
 #include <assets/asset.h>
@@ -36,6 +37,20 @@ using PropPanel::DragAndDropResult;
 using PropPanel::ROOT_MENU_ITEM;
 
 extern void rimgr_set_force_lod_no(int lod_no);
+
+// An ancestor in enabled_nodes counts as enabled, because it is about to be enabled.
+static bool has_disabled_ancestor(const CompositeEditorTreeDataNode &node, const CompositeEditorTreeDataNode &root,
+  const eastl::hash_set<const CompositeEditorTreeDataNode *> *enabled_nodes = nullptr)
+{
+  CompositeEditorTreeDataNode &searchIn = const_cast<CompositeEditorTreeDataNode &>(root);
+  int index;
+  for (const CompositeEditorTreeDataNode *parent = CompositeEditorTreeData::getTreeDataNodeParent(node, searchIn, index); parent;
+       parent = CompositeEditorTreeData::getTreeDataNodeParent(*parent, searchIn, index))
+    if (parent->isDisabled() && (!enabled_nodes || enabled_nodes->count(parent) == 0))
+      return true;
+
+  return false;
+}
 
 CompositeEditor::ReloadHelper::ReloadHelper(CompositeEditor &editor, const DagorAsset &asset,
   CompositeEditorRefreshType inRefreshType) :
@@ -182,9 +197,36 @@ bool CompositeEditor::end()
   return true;
 }
 
+
+bool CompositeEditor::isTreeDataNodeReadOnly(const CompositeEditorTreeDataNode &treeDataNode) const
+{
+  if (treeDataNode.isDisabled())
+    return true;
+
+  return has_disabled_ancestor(treeDataNode, treeData.rootNode);
+}
+
+bool CompositeEditor::isSelectionReadOnly() const
+{
+  if (selectedTreeDataNode && isTreeDataNodeReadOnly(*selectedTreeDataNode))
+    return true;
+
+  for (const CompositeEditorTreeDataNode *node : selectedTreeDataNodes)
+    if (node && isTreeDataNodeReadOnly(*node))
+      return true;
+
+  return false;
+}
+
+bool CompositeEditor::canEnterSubCompositeEditing(const CompositeEditorTreeDataNode *treeDataNode) const
+{
+  return treeDataNode && treeDataNode->isCompositeAsset() && !isTreeDataNodeReadOnly(*treeDataNode);
+}
+
 void CompositeEditor::enterSubCompositeEditing()
 {
-  G_ASSERT(selectedTreeDataNode && selectedTreeDataNode->isCompositeAsset());
+  if (!canEnterSubCompositeEditing(selectedTreeDataNode))
+    return;
 
   DagorAsset *subAsset = DAEDITOR3.getAssetByName(selectedTreeDataNode->getAssetName());
   if (!subAsset)
@@ -235,7 +277,8 @@ void CompositeEditor::saveSubCompositeEditing()
   G_ASSERT(isEditingSubComposite());
   if (!showSaveConfirmDialog(editedAsset->getName()))
     return;
-  saveComposit();
+  if (!saveComposit())
+    return;
   exitSubCompositeEditing();
 }
 
@@ -437,7 +480,7 @@ void CompositeEditor::fillCompositePropPanel()
   undoEditGesture.end();
 
   if (compositePropPanel)
-    compositePropPanel->fill(treeData, selectedTreeDataNode, childDropHandler.get());
+    compositePropPanel->fill(treeData, selectedTreeDataNode, childDropHandler.get(), isSelectionReadOnly());
 }
 
 const CompositeEditorTreeDataNode *CompositeEditor::getSelectedTreeDataNode() const
@@ -456,7 +499,7 @@ unsigned CompositeEditor::getSelectedTreeNodeDataBlockId() const
 bool CompositeEditor::canParentSelectedTreeDataNodes() const
 {
   const PropPanel::TreeBaseWindow *tree = compositeTreeView.get();
-  if (!tree)
+  if (!tree || isSelectionReadOnly())
     return false;
 
   dag::Vector<PropPanel::TLeafHandle> items;
@@ -574,7 +617,7 @@ void CompositeEditor::makeSelectedParentRelation()
 
 bool CompositeEditor::hasSelectedParentRelation() const
 {
-  if (selectedTreeDataNode == nullptr)
+  if (selectedTreeDataNode == nullptr || isSelectionReadOnly())
     return false;
 
   for (CompositeEditorTreeDataNode *node : selectedTreeDataNodes)
@@ -860,6 +903,15 @@ bool CompositeEditor::saveComposit()
       return false;
   }
 
+  if (DataBlockCommentChecker::doesBlkHaveComments(editedAsset->getSrcFilePath()))
+  {
+    const int dialogResult = wingw::message_box(wingw::MBS_EXCL | wingw::MBS_YESNO, "WARNING",
+      "The composit file contains comments. Saving will remove all comments. Continue?");
+
+    if (dialogResult != wingw::MB_ID_YES)
+      return false;
+  }
+
   // ReloadHelper would not work here because file change notifications do not arrive instantly (before the helper gets
   // out of the scope), so we disable file change tracking while saving.
   const_cast<DagorAssetMgr &>(get_app().getAssetMgr()).enableChangesTracker(false);
@@ -912,6 +964,9 @@ void CompositeEditor::createNode() { createNode(selectedTreeDataNode ? *selected
 
 void CompositeEditor::createNode(CompositeEditorTreeDataNode &parent, bool show_dialog)
 {
+  if (isTreeDataNodeReadOnly(parent) || isSelectionReadOnly())
+    return;
+
   SimpleString assetName;
   if (show_dialog)
   {
@@ -985,22 +1040,22 @@ void CompositeEditor::splitCompositeInternal(CompositeEditorTreeDataNode *treeDa
   const bool useTransformationMatrix = treeDataNode->getUseTransformationMatrix();
   if (useTransformationMatrix)
     tm = treeDataNode->getTransformationMatrix();
+  const bool disabled = treeDataNode->isDisabled();
 
   CompositeEditorTreeData subTreeData;
   subTreeData.convertAssetToTreeData(asset, &asset->props);
 
-  // save old child nodes before erase!
+  // save old child nodes and selection index before erase!
   dag::Vector<eastl::unique_ptr<CompositeEditorTreeDataNode>> oldChildNodes = eastl::move(treeDataNode->nodes);
+  int selectionIndex = -1;
+  if (startUndo && treeDataNode->dataBlockId != IDataBlockIdHolder::invalid_id)
+    selectionIndex = getSelectedTreeDataNodeIndex(treeDataNode->dataBlockId);
 
   // erase old composite node
   nodeParent->nodes.erase(nodeParent->nodes.begin() + nodeIndex);
+  if (selectionIndex > -1)
+    selectedTreeDataNodes.erase(selectedTreeDataNodes.begin() + selectionIndex);
   nodeParent->convertSingleRandomEntityNodeToRegularNode(nodeParent == &treeData.rootNode);
-  if (startUndo && treeDataNode->dataBlockId != IDataBlockIdHolder::invalid_id)
-  {
-    int idx = getSelectedTreeDataNodeIndex(treeDataNode->dataBlockId);
-    if (idx > -1)
-      selectedTreeDataNodes.erase(selectedTreeDataNodes.begin() + idx);
-  }
 
   // transform split nodes
   for (int i = 0; i < subTreeData.rootNode.nodeCount(); ++i)
@@ -1008,6 +1063,9 @@ void CompositeEditor::splitCompositeInternal(CompositeEditorTreeDataNode *treeDa
     const int at = nodeIndex + i;
     nodeParent->nodes.insert(nodeParent->nodes.begin() + at, std::move(subTreeData.rootNode.nodes[i]));
     CompositeEditorTreeDataNode *splitNode = nodeParent->nodes[at].get();
+    // The split result replaces the disabled node, so it must stay disabled.
+    if (splitNode && disabled && splitNode->isNodeBlock())
+      splitNode->params.setBool("disabled", true);
     if (splitNode && splitNode->canTransform())
     {
       TMatrix splitTm = TMatrix::IDENT;
@@ -1026,6 +1084,8 @@ void CompositeEditor::splitCompositeInternal(CompositeEditorTreeDataNode *treeDa
     CompositeEditorTreeDataNode *newParent = nodeParent->nodes[at].get();
     if (useTransformationMatrix)
       newParent->params.setTm("tm", tm);
+    if (disabled)
+      newParent->params.setBool("disabled", true);
     newParent->nodes = std::move(oldChildNodes);
   }
 
@@ -1057,6 +1117,9 @@ void CompositeEditor::splitSelectedCompositeNode(bool recursive)
 
 bool CompositeEditor::canSaveSelectedAsComposite()
 {
+  if (isSelectionReadOnly())
+    return false;
+
   int selectedCount = 0;
   bool siblings = true;
   CompositeEditorTreeDataNode *firstParent = nullptr;
@@ -1310,6 +1373,46 @@ void CompositeEditor::deleteSelectedNodes()
   updateAssetFromTree(CompositeEditorRefreshType::EntityAndCompositeEditor);
 }
 
+void CompositeEditor::setSelectedNodesDisabled(bool disable)
+{
+  dag::Vector<CompositeEditorTreeDataNode *> selNodes;
+  getSelectedTreeDataNodes(selNodes);
+
+  // Same rules as in onTvContextMenu().
+  if (disable && isSelectionReadOnly())
+    return;
+
+  const eastl::hash_set<CompositeEditorTreeDataNode *> selSet(selNodes.begin(), selNodes.end());
+  eastl::hash_set<const CompositeEditorTreeDataNode *> changeSet;
+
+  // Pre-order, so a selected disabled parent counts as enabled when its selected children are checked.
+  dag::Vector<CompositeEditorTreeDataNode *> nodesToChange;
+  CompositeEditorTreeData::traverseDepthFirst(treeData.rootNode, [&](CompositeEditorTreeDataNode &node, int) {
+    if (selSet.count(&node) && &node != &treeData.rootNode && node.isNodeBlock() && node.isDisabled() != disable &&
+        !has_disabled_ancestor(node, treeData.rootNode, &changeSet))
+    {
+      nodesToChange.push_back(&node);
+      changeSet.insert(&node);
+    }
+  });
+
+  if (nodesToChange.empty())
+    return;
+
+  beginUndo();
+  endUndo(disable ? "Composit Editor: Disabling node(s)" : "Composit Editor: Enabling node(s)");
+
+  for (CompositeEditorTreeDataNode *node : nodesToChange)
+  {
+    if (disable)
+      node->params.setBool("disabled", true);
+    else
+      node->params.removeParam("disabled");
+  }
+
+  updateAssetFromTree(CompositeEditorRefreshType::EntityAndCompositeEditor);
+}
+
 void CompositeEditor::onDelayedRefresh(const DagorAsset *asset, CompositeEditorRefreshType refreshType)
 {
   if (asset != editedAsset)
@@ -1465,7 +1568,7 @@ DragAndDropResult EntityTreeDropHandler::onDropTargetDirect(PropPanel::TLeafHand
 
   auto rootNodeHandle = compositeTreeView->getRoot();
   auto rootTreeDataNode = (CompositeEditorTreeDataNode *)compositeTreeView->getItemData(rootNodeHandle);
-  if (treeDataNode == rootTreeDataNode || !treeDataNode->canEditAssetName(false))
+  if (treeDataNode == rootTreeDataNode || !treeDataNode->canEditAssetName(false) || editor.isTreeDataNodeReadOnly(*treeDataNode))
     return DragAndDropResult::NOT_ALLOWED;
 
   const ImGuiPayload *dragAndDropPayload = PropPanel::acceptDragDropPayloadBeforeDelivery(ASSET_DRAG_AND_DROP_TYPE);
@@ -1516,7 +1619,7 @@ DragAndDropResult ChildEntityDragAndDropHandler::handleDropTarget(int pcb_id, Pr
   CompositeEditorPanel *compositePropPanel = editor.compositePropPanel.get();
   CompositeEditorTree *compositeTreeView = editor.compositeTreeView.get();
   CompositeEditorTreeDataNode *selectedTreeDataNode = editor.selectedTreeDataNode;
-  if (!compositePropPanel || !compositeTreeView || !selectedTreeDataNode)
+  if (!compositePropPanel || !compositeTreeView || !selectedTreeDataNode || editor.isSelectionReadOnly())
     return DragAndDropResult::NONE;
 
   // Only allow dropping into active composite edit buttons
@@ -1539,7 +1642,8 @@ DragAndDropResult ChildEntityDragAndDropHandler::handleDropTarget(int pcb_id, Pr
   else if (pcb_id >= ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST && pcb_id <= ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_LAST)
   {
     const int childIndex = pcb_id - ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST;
-    if (!selectedTreeDataNode->nodes[childIndex]->canEditAssetName(false))
+    const CompositeEditorTreeDataNode &childNode = *selectedTreeDataNode->nodes[childIndex];
+    if (!childNode.canEditAssetName(false) || childNode.isDisabled())
       return DragAndDropResult::NONE;
   }
   else if (pcb_id != ID_COMPOSITE_EDITOR_ENTITY_SELECTOR)
@@ -1716,6 +1820,16 @@ int CompositeEditor::onMenuItemClick(unsigned id)
     deleteSelectedNodes();
     return 0;
   }
+  else if (id == CM_COMPOSITE_EDITOR_DISABLE_NODES)
+  {
+    setSelectedNodesDisabled(true);
+    return 0;
+  }
+  else if (id == CM_COMPOSITE_EDITOR_ENABLE_NODES)
+  {
+    setSelectedNodesDisabled(false);
+    return 0;
+  }
   else if (id == CM_COMPOSITE_EDITOR_OPEN_ASSET)
   {
     G_ASSERT(selectedTreeDataNode);
@@ -1753,9 +1867,11 @@ int CompositeEditor::onMenuItemClick(unsigned id)
     if (!selectedTreeDataNode)
       return 0;
 
-    DagorAsset *asset = DAEDITOR3.getAssetByName(selectedTreeDataNode->getAssetName());
-    if (asset)
-      clipboard::set_clipboard_ansi_text(asset->getName());
+    const char *assetName = selectedTreeDataNode->getAssetName();
+    if (const DagorAsset *asset = DAEDITOR3.getAssetByName(assetName))
+      assetName = asset->getName();
+    if (assetName && *assetName)
+      clipboard::set_clipboard_ansi_text(assetName);
 
     return 0;
   }
@@ -1818,12 +1934,28 @@ bool CompositeEditor::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_windo
   if (isRootNodeSelected && isMultiSelection)
     return false;
 
+  dag::Vector<CompositeEditorTreeDataNode *> selNodes;
+  getSelectedTreeDataNodes(selNodes);
+  bool isReadOnly = false;
+  bool canEnable = false;
+  bool canDisable = false;
+  for (const CompositeEditorTreeDataNode *n : selNodes)
+  {
+    const bool parentDisabled = has_disabled_ancestor(*n, treeData.rootNode);
+    isReadOnly |= parentDisabled || n->isDisabled();
+    // Enabling a node under a disabled ancestor would be an edit that is not visible.
+    if (n->isNodeBlock() && !parentDisabled)
+      (n->isDisabled() ? canEnable : canDisable) = true;
+  }
+  if (isReadOnly)
+    canDisable = false;
+
   bool separateDelete = false;
 
   PropPanel::IMenu &menu = tree.createContextMenu();
   menu.setEventHandler(this);
 
-  if (!isMultiSelection)
+  if (!isMultiSelection && !isReadOnly)
   {
     if (selectedTreeDataNode->canEditChildren())
     {
@@ -1852,6 +1984,15 @@ bool CompositeEditor::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_windo
     const char *deleteTitle = isMultiSelection ? "Delete selected nodes\tDelete" : "Delete node\tDelete";
     menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_DELETE_NODE, deleteTitle);
 
+    if (canEnable || canDisable)
+    {
+      menu.addSeparator(ROOT_MENU_ITEM);
+      if (canDisable)
+        menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_DISABLE_NODES, "Disable selected");
+      if (canEnable)
+        menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_ENABLE_NODES, "Enable selected");
+    }
+
     if (selectedTreeDataNode->hasNameParameter() && !isMultiSelection)
     {
       menu.addSeparator(ROOT_MENU_ITEM);
@@ -1860,6 +2001,13 @@ bool CompositeEditor::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_windo
       menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_OPEN_ASSET, "Open asset");
       menu.addSeparator(ROOT_MENU_ITEM);
       menu.addItem(ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_REVEAL_ASSET_IN_EXPLORER, "Reveal in Explorer");
+
+      if (!DAEDITOR3.getAssetByName(selectedTreeDataNode->getAssetName()))
+      {
+        menu.setEnabledById(CM_COMPOSITE_EDITOR_COPY_ASSET_FILEPATH_TO_CLIPBOARD, false);
+        menu.setEnabledById(CM_COMPOSITE_EDITOR_OPEN_ASSET, false);
+        menu.setEnabledById(CM_COMPOSITE_EDITOR_REVEAL_ASSET_IN_EXPLORER, false);
+      }
     }
   }
 
@@ -2036,7 +2184,7 @@ bool CompositeEditor::getNodeParamsFromClipboard(DataBlock &block)
 
 void CompositeEditor::pasteParamsToSelectedNode()
 {
-  if (!selectedTreeDataNode)
+  if (!selectedTreeDataNode || isSelectionReadOnly())
     return;
 
   DataBlock block;
@@ -2053,7 +2201,7 @@ void CompositeEditor::pasteParamsToSelectedNode()
 
 void CompositeEditor::duplicateSelectedNodes()
 {
-  if (!selectedTreeDataNode)
+  if (!selectedTreeDataNode || isSelectionReadOnly())
     return;
 
   if (selectedTreeDataNodes.size() == 1 && isTreeDataNodeRootNode(selectedTreeDataNode))
@@ -2087,7 +2235,7 @@ void CompositeEditor::updateGizmo()
     return;
 
   gizmoClient.refreshAffectedNodes(selectedTreeDataNodes);
-  const bool canTransform = gizmoClient.hasAnyTransformableNode();
+  const bool canTransform = gizmoClient.hasAnyTransformableNode() && !isSelectionReadOnly();
   const IEditorCoreEngine::ModeType oldMode = IEditorCoreEngine::get()->getGizmoModeType();
   const IEditorCoreEngine::ModeType newMode = canTransform ? lastSelectedGizmoMode : IEditorCoreEngine::ModeType::MODE_None;
 

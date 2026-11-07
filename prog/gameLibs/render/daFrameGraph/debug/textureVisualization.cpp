@@ -144,7 +144,7 @@ static eastl::optional<IPoint2> get_applied_resolution(const dafg::AutoResolutio
   const bool historyHasPrevResolution =
     history && autoResType.dynamicResolutionCountdown == dafg::SCHEDULE_FRAME_WINDOW - 1 && prevAppliedResolutions.isMapped(autoResId);
   const IPoint2 resolutionValue = historyHasPrevResolution ? prevAppliedResolutions[autoResId] : values->lastAppliedDynamicResolution;
-  return dafg::scale_by(resolutionValue, resolution.multiplier);
+  return dafg::scale_by(resolutionValue, resolution.multiplier, resolution.roundUp);
 }
 
 static eastl::optional<IPoint2> get_creation_resolution(const dafg::CreatedResourceData &created_res_data,
@@ -279,8 +279,6 @@ static void update_shown_texture() { is_overlay_shown() ? update_overlay_texture
 
 void fg_texture_visualization_imgui_line(const dafg::InternalRegistry &registry)
 {
-  ImGui::SameLine();
-
   if (!selectedResourceIsATexture)
   {
     ImGui::TextColored((ImVec4)ImColor::HSV(0.f, 1.f, 1.f),

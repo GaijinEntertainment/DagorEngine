@@ -40,8 +40,9 @@ macro GI_VOLUMETRIC_IRRADIANCE_INIT(code)
     gi_froxels_sph0@tex = gi_froxels_sph0 hlsl {
       Texture3D<float3> gi_froxels_sph0@tex;
     };
-    gi_froxels_sph1@smp3d = gi_froxels_sph1;
+    gi_froxels_sph1@tex3d = gi_froxels_sph1;
     //sp_globtm@f44 = sp_globtm;
+    gi_froxels_sph1_samplerstate@sampler = global_linear_clamp_sampler;
   }
 endmacro
 

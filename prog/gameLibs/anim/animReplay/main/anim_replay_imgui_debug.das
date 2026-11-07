@@ -76,16 +76,16 @@ def select_animchar_widget(anim_replay__animchars : Array; var selected_idx : in
     if parentAnimcharIdx == null
       let initialPos = (*get_ecs_Point3List(*animcharData, "position"))[0]
       push(animcharsList, "{idx + 1}. {originalTemplate} at pos ({initialPos})")
+      push(animcharAttachesCount, 0)
     else
       let parentIdx = *parentAnimcharIdx
-      if empty(animcharAttachesCount)
-        resize_and_init(animcharAttachesCount, length(animcharsList), 0)
       if prevParentIdx > parentIdx
         logerr("Incorrect order of attachments in replay")
       prevParentIdx = parentIdx
       animcharAttachesCount[parentIdx]++
       push(animcharsList, "{parentIdx + 1}.{animcharAttachesCount[parentIdx]}. {originalTemplate}")
   push(animcharsList, "None")
+  selected_idx = min(selected_idx, length(animcharsList) - 1)
   imgui::SetNextItemWidth(imgui::GetContentRegionAvail().x)
   if !imgui::BeginCombo("##Selected character", animcharsList[selected_idx])
     return
@@ -199,7 +199,7 @@ def imgui_disableable_button(button_text : string;  button_condition : bool)
   return button_condition && isButtonPressed
 
 def to_enum(val : int; defVal : auto(E)) : E
-  for en in each_enum(defVal)
+  for en in each(defVal)
     if val == int(en)
       return en
   return defVal

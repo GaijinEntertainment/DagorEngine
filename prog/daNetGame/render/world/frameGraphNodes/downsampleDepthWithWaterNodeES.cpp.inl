@@ -6,15 +6,12 @@
 #include <render/downsampleDepth.h>
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_textureIDHolder.h>
-#include <memory/dag_framemem.h>
-#include <EASTL/fixed_string.h>
 #include "frameGraphNodes.h"
 #include <render/renderEvent.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/wrDispatcher.h>
 #define INSIDE_RENDERER 1
 #include "../private_worldRenderer.h"
-using SmallString = eastl::fixed_string<char, 42, false, framemem_allocator>;
 dafg::NodeHandle makeDownsampleDepthWithWaterNode()
 {
   return dafg::register_node("downsample_depth_with_water_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
@@ -23,10 +20,7 @@ dafg::NodeHandle makeDownsampleDepthWithWaterNode()
     bool makeCheckerboardDepth = wr.hasFeature(FeatureRenderFlags::UPSCALE_SAMPLING_TEX);
     const bool hasStencilTest = renderer_has_feature(CAMERA_IN_CAMERA);
     const uint32_t depthFormat = get_gbuffer_depth_format(hasStencilTest);
-    const char *depthNameBase = makeCheckerboardDepth ? "checkerboard_depth_with_water" : "far_downsampled_depth_with_water";
-    const char *stencilSuffix = hasStencilTest ? "_no_stencil" : "";
-    const SmallString depthName{SmallString::CtorSprintf{}, "%s%s", depthNameBase, stencilSuffix};
-    auto downsampledDepthHdnl = registry.create(depthName.c_str())
+    auto downsampledDepthHdnl = registry.create(get_half_res_depth_with_water_producer_name())
                                   .texture({depthFormat | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f)})
                                   .atStage(dafg::Stage::PS)
                                   .useAs(dafg::Usage::DEPTH_ATTACHMENT)

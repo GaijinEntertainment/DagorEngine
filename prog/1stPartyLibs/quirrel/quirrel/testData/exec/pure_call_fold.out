@@ -1,0 +1,34 @@
+body: 23
+default value: 26
+argument: 43
+constant expression argument: 44
+member of a constant: 45
+slot of a constant: 46
+operand of ??: 47
+scalar member of a container: 48
+container: runtime
+container is not frozen: changed
+not pure: runtime
+shadowed: runtime
+shadowed in a closure: runtime
+nullable: runtime
+argument that is not a constant: runtime
+ERROR: Compile-time call failed: parameter 1 of 'sqrt' has an invalid type 'string' ; expected: 'integer|float'
+ERROR: Compile-time call failed: parameter 1 of 'sqrt' has an invalid type 'string' ; expected: 'integer|float'
+ERROR: Compile-time call failed: parameter 1 of 'slice' has an invalid type 'string' ; expected: 'integer|float'
+ERROR: Compile-time call failed: parameter 1 of 'sqrt' has an invalid type 'string' ; expected: 'integer|float'
+ERROR: Compile-time call failed: parameter 1 of 'sqrt' has an invalid type 'string' ; expected: 'integer|float'
+compiled
+call in a pure function: 73
+missing slot: the index 'missing' (type='string') does not exist
+missing type method: the index 'nosuch' (type='string') does not exist
+_get(dyn)
+callee from _get: the index 'dyn' (type='string') does not exist
+_get(dyn)
+callee from _get: the index 'dyn' (type='string') does not exist
+this of a slot call: 7
+this of a field call: 7
+own name: ERROR: 'own' can mean this function or the constant/enum/import with the same name; rename one of them
+noisyBox runs
+compiled
+noisyBox runs

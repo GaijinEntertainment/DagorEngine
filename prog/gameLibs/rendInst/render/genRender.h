@@ -154,7 +154,7 @@ struct DistMulInputs
   float dynamicOfs = 0.f;
   float lodsShiftMul = 1.f;           // >= 1 pulls lod switches closer, keeps the draw distance
   float riExtraAddLodMul = 1.f;       // extra riExtra lod shortening (respawn camera in DNG)
-  float impostorsFarDistAddMul = 1.f; // stretches the trees far range (WT per-frame)
+  float impostorsFarDistAddMul = 1.f; // stretches the trees far range, set from graphics or level blk
   // per domain clamp bounds, also runtime inputs: legacy dx10 lowers the mins, the dev console raises the maxes
   DistMulBounds riGenBounds;
   DistMulBounds riExtraBounds;
@@ -185,6 +185,11 @@ extern void startRenderInstancing();
 extern void ensurePerDrawBufferExists(int layer);
 bool setBlock(int block_id, const UniqueBuf &buf);
 bool setPerDrawData(const UniqueBuf &buf);
+
+void update_voxel_baker_textures();
+void set_voxel_depth_projection();
+
+extern int ri_voxel_data_offset_varid;
 
 enum
 {

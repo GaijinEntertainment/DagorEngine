@@ -2,7 +2,6 @@
 
 #include "uiShared.h"
 #include "uiEvents.h"
-#include "userUi.h"
 #include "ui/overlay.h"
 #include "ui/bhv/bhvUiStateControl.h"
 
@@ -43,6 +42,16 @@
 
 #include <daEditorE/editorCommon/inGameEditor.h>
 #include <daEditorE/editorCommon/entityEditor.h>
+#include <util/dag_pull_console_proc.h>
+
+
+#define UI_ECS_EVENT ECS_REGISTER_EVENT
+UI_ECS_EVENTS
+#undef UI_ECS_EVENT
+
+
+PULL_CONSOLE_PROC(darg_console_handler)
+PULL_CONSOLE_PROC(ui_console_handler)
 
 
 namespace uishared
@@ -156,7 +165,6 @@ void term()
 static void apply_resolution_change()
 {
   overlay_ui::reload_scripts(true);
-  user_ui::reload_user_ui_script(true);
 
   if (HumanInput::IGenPointing *mouse = global_cls_drv_pnt->getDevice(0))
     mouse->setClipRect(0, 0, StdGuiRender::screen_width(), StdGuiRender::screen_height());
@@ -261,21 +269,15 @@ void update()
   const bool relativeDueToFreeCam = (isEditorFreeCam || isSceneFreeCam) && !BhvUiStateControl::overrideFreeCam;
   const bool setUiScenesActive = !relativeDueToFreeCam && !imGuiMustConsumeInput;
 
-  bool forcedUserUiCursorActive = false;
   bool forcedOverlayCursorActive = false;
 
-  const bool isUserUiCursorModeForced = user_ui::gui_scene && user_ui::gui_scene->getForcedCursorMode(forcedUserUiCursorActive);
   const bool isOverlayCursorModeForced =
     overlay_ui::gui_scene() && overlay_ui::gui_scene()->getForcedCursorMode(forcedOverlayCursorActive);
 
-  const bool isUiCursorModeForced =
-    (isOverlayCursorModeForced && forcedOverlayCursorActive) || (isUserUiCursorModeForced && forcedUserUiCursorActive);
+  const bool isUiCursorModeForced = isOverlayCursorModeForced && forcedOverlayCursorActive;
 
   if (overlay_ui::gui_scene())
-    overlay_ui::gui_scene()->setSceneInputActive(setUiScenesActive || (isOverlayCursorModeForced && forcedOverlayCursorActive));
-
-  if (user_ui::gui_scene)
-    user_ui::gui_scene->setSceneInputActive(setUiScenesActive || (isUserUiCursorModeForced && forcedUserUiCursorActive));
+    overlay_ui::gui_scene()->setSceneInputActive(setUiScenesActive || isUiCursorModeForced);
 
   if (HumanInput::IGenPointing *mouse = global_cls_drv_pnt ? global_cls_drv_pnt->getDevice(0) : nullptr)
   {
@@ -290,7 +292,7 @@ void update()
       return scene->hasInteractiveElements(darg::Behavior::F_HANDLE_MOUSE);
     };
 
-    const bool hasDargClickableGui = isSceneClickable(overlay_ui::gui_scene()) || isSceneClickable(user_ui::gui_scene.get());
+    const bool hasDargClickableGui = isSceneClickable(overlay_ui::gui_scene());
 
 
     const bool absoluteForImGui = imgui_get_state() == ImGuiState::ACTIVE;

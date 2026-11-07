@@ -45,8 +45,6 @@ static bool is_bullet_inited = false;
 Tab<PhysBody *> bullet::staticBodies(midmem);
 Tab<bullet::StaticCollision *> bullet::swcRegistry(inimem);
 
-float PhysWorld::lastSimDt = 0;
-
 static btDefaultCollisionConfiguration *collisionConfiguration = NULL;
 static btCollisionDispatcher *dispatcher = NULL;
 static btBroadphaseInterface *overlappingPairCache = NULL;
@@ -209,6 +207,7 @@ struct AddBodyToWorldAction final : public AfterPhysUpdateAction
 
 PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TMatrix &tm, const PhysBodyCreationData &s) : world(w)
 {
+  G_ASSERTF(s.centerOfMassOffset.lengthSq() == 0.f, "Bullet does not support centerOfMassOffset, body <%s>", s.debugName);
   btCollisionShape *shape =
     PhysBody::create_bt_collision_shape(coll, &minCollisionSz, &multTm, &multTmNonIdent, s.allowFastInaccurateCollTm);
   btTransform btWtm = to_btTransform(multTmNonIdent ? tm * multTm : tm);
@@ -1334,7 +1333,7 @@ PhysWorld::~PhysWorld()
 void PhysWorld::startSim(real dt, bool wake_up_thread /* = true */)
 {
   fetchSimRes(true);
-  lastSimDt = dt;
+  simRequestDt = dt;
   if (multithreadedUpdate)
     threadpool::add(this, threadpool::PRIO_DEFAULT, wake_up_thread);
   else
@@ -1352,11 +1351,15 @@ bool PhysWorld::fetchSimRes(bool wait, PhysBody *destroying_body)
 #endif
 #if TIME_PROFILER_ENABLED
     if (interlocked_acquire_load(done) && delayedActions.empty())
+    {
+      lastSimDt = simDt;
       return true;
+    }
     TIME_PROFILE(PhysWorld__fetchSimRes);
 #endif
     if (multithreadedUpdate)
       threadpool::wait(this);
+    lastSimDt = simDt;
     if (delayedActions.empty())
       return true;
     if (isControledByCurThread())
@@ -1392,10 +1395,14 @@ void PhysWorld::doJob()
 #endif
   {
 #if DAGOR_DBGLEVEL > 0
-    getScene()->stepSimulation(lastSimDt, max_sub_steps.get(), 1.f / fixed_time_step_hz.get());
+    const int mss = max_sub_steps.get();
+    const float fts = 1.f / fixed_time_step_hz.get();
 #else
-    getScene()->stepSimulation(lastSimDt, maxSubSteps, fixedTimeStep);
+    const int mss = maxSubSteps;
+    const float fts = fixedTimeStep;
 #endif
+    const int nsteps = getScene()->stepSimulation(simRequestDt, mss, fts);
+    simDt = mss ? min(nsteps, mss) * fts : (nsteps ? simRequestDt : 0.f);
   }
 #if PROFILE_PHYS
   int totalTime = get_time_usec(refTime);

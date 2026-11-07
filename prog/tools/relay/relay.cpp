@@ -47,7 +47,7 @@ static String relay_get_log_prefix()
 
 #define BUFFERING_BEFORE_UDP_PUNCH_WAIT_TIMEOUT 10000 // 10 sec
 #define RELAY_PONG_MIN_INTERVAL_MS              2000
-#define ECHO_PACKET_MARKER                      0xFFFF // constraint: daNet EchoNetPacket.marker
+#define ECHO_PACKET_MARKER                      0xFFFF // daNet EchoNetPacket.marker
 
 #if DAGOR_DBGLEVEL > 0
 static bool verbose_logs_enabled = false;

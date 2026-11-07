@@ -9,12 +9,6 @@
 namespace levelprofiler
 {
 
-using FilterDrawCallback = eastl::function<void()>;
-
-class RIModule;
-class TextureModule;
-struct TextureData;
-
 
 // === Base Filters ===
 
@@ -33,20 +27,6 @@ public:
   void reset() { offSet.clear(); }
 
 
-  void toggle(const Key &value)
-  {
-    auto iterator = offSet.find(value);
-    if (iterator == offSet.end())
-    {
-      offSet.insert(value);
-    }
-    else
-    {
-      offSet.erase(iterator);
-    }
-  }
-
-
   void invert(const eastl::vector<Key> &all_values)
   {
     eastl::hash_set<Key> tempSet;
@@ -60,8 +40,28 @@ public:
     offSet.swap(tempSet);
   }
 
-  const eastl::hash_set<Key> &getOffList() const { return offSet; }
-  eastl::hash_set<Key> &getOffList() { return offSet; }
+  void retainExcludedIn(const eastl::vector<Key> &all_values)
+  {
+    eastl::hash_set<Key> tempSet;
+    for (auto &value : all_values)
+    {
+      if (offSet.find(value) != offSet.end())
+      {
+        tempSet.insert(value);
+      }
+    }
+    offSet.swap(tempSet);
+  }
+
+  void setPassed(const Key &value, bool passed)
+  {
+    if (passed)
+      offSet.erase(value);
+    else
+      offSet.insert(value);
+  }
+
+  bool isActive() const { return !offSet.empty(); }
 
 private:
   eastl::hash_set<Key> offSet; // Stores values that are currently excluded by the filter.
@@ -97,7 +97,6 @@ public:
   bool pass(const ProfilerString &value) const;
 
   void setSearchText(const char *search_text);
-  const char *getSearchText() const;
 
 
   void addMask(const ProfilerString &mask, bool is_include);
@@ -105,9 +104,6 @@ public:
 
   void removeMask(int index);
   void clearMasks();
-  const eastl::vector<NameMask> &getMasks() const;
-
-  void drawPopup(const char *popup_id);
 
   bool isActive() const;
 
@@ -138,20 +134,6 @@ public:
   static_assert(eastl::is_arithmetic<T>::value, "LpRangeFilter requires arithmetic type");
 
   LpRangeFilter() = default;
-
-  // Initializes with default and absolute min/max values.
-  // If absolute_min_value or absolute_max_value are 0, they default to default_min_value and default_max_value respectively.
-  // This is a common pattern for when the absolute bounds are not known at construction or are the same as the defaults.
-  LpRangeFilter(T default_min_value, T default_max_value, T absolute_min_value = 0, T absolute_max_value = 0) :
-    useMin(false),
-    useMax(false),
-    minValue(default_min_value),
-    maxValue(default_max_value),
-    defaultMin(default_min_value),
-    defaultMax(default_max_value),
-    absoluteMin(absolute_min_value == 0 ? default_min_value : absolute_min_value),
-    absoluteMax(absolute_max_value == 0 ? default_max_value : absolute_max_value)
-  {}
 
   bool pass(T value) const
   {
@@ -201,16 +183,21 @@ public:
       maxValue = new_max_value;
   }
 
+  // For a value whose unit changes by a positive factor: the filter then passes the same rows, up to float rounding.
+  void scale(T factor)
+  {
+    minValue *= factor;
+    maxValue *= factor;
+    defaultMin *= factor;
+    defaultMax *= factor;
+    absoluteMin *= factor;
+    absoluteMax *= factor;
+  }
+
   void setRange(T new_min_value, T new_max_value)
   {
     minValue = new_min_value;
     maxValue = new_max_value;
-  }
-
-  void setAbsoluteBounds(T new_absolute_min, T new_absolute_max)
-  {
-    absoluteMin = new_absolute_min;
-    absoluteMax = new_absolute_max;
   }
 
   void setUseMin(bool should_use_min) { useMin = should_use_min; }
@@ -225,9 +212,7 @@ public:
 
   T getAbsoluteMax() const { return absoluteMax; }
 
-  bool isUsingMin() const { return useMin; }
-
-  bool isUsingMax() const { return useMax; }
+  bool isActive() const { return useMin || useMax; }
 
   T getDefaultMin() const { return defaultMin; }
 
@@ -284,149 +269,6 @@ public:
 private:
   const char *id;
   bool isClicked;
-};
-
-// === Master Filter Manager ===
-
-
-class TextureProfilerUI;
-
-// Helper structures for multiselect
-struct LpSelectionExternalStorage;
-
-class TextureFilterManager
-{
-public:
-  TextureFilterManager();
-  ~TextureFilterManager();
-
-  bool passesAllFilters(const ProfilerString &texture_name, const TextureData &texture_data, const TextureUsage *texture_usage_ptr);
-
-  void resetAllFilters();
-  // Recollect counterpart of resetAllFilters: moves the data-derived bounds onto the new data and
-  // keeps every user setting. resetAllFilters stays the explicit "reset filters" action.
-  void rebindFiltersToData();
-
-  // Which filters take their bounds from collected data, and from where. Both resetAllFilters
-  // and rebindFiltersToData drive the same four, so the choice lives in one place.
-  struct DataBounds
-  {
-    int mipMin = 0, mipMax = 0;
-    float sizeMin = 0.0f, sizeMax = 0.0f;
-    int usageMin = 0, usageMax = 0;
-    int instMin = 0, instMax = 0;
-  };
-  DataBounds gatherDataBounds() const;
-  void applyFilters();
-  bool isColumnFilterActive(ColumnIndex column_index) const;
-
-
-  // Both modules come from the owning TextureProfilerUI, which holds them. Call in UI right
-  // after filter creation: every filter path reads one or the other.
-  void setModules(TextureModule *texture_module, RIModule *ri_module);
-
-  CheckFilter<ProfilerString> &getFormatFilter() { return formatFilter; }
-  CheckFilter<int> &getWidthFilter() { return widthFilter; }
-  CheckFilter<int> &getHeightFilter() { return heightFilter; }
-
-  LpRangeFilter<float> &getSizeRangeFilter() { return sizeRangeFilter; }
-
-  LpRangeFilter<int> &getMipRangeFilter() { return mipRangeFilter; }
-  LpRangeFilter<int> &getLodsRangeFilter() { return lodsRangeFilter; }
-  LpRangeFilter<int> &getResolutionRangeFilter() { return resolutionRangeFilter; }
-  LpRangeFilter<int> &getTextureUsageRangeFilter() { return textureUsageRangeFilter; }
-  LpRangeFilter<int> &getAssetInstanceCountRangeFilter() { return assetInstanceCountRangeFilter; }
-
-  void setTextureUsageFilters(bool non_ri_flag, bool unique_flag, bool shared_flag);
-  bool getTextureUsageFilterNonRI() const { return isTextureUsageFilterNonRI; }
-  bool getTextureUsageFilterUnique() const { return isTextureUsageFilterUnique; }
-  bool getTextureUsageFilterShared() const { return isTextureUsageFilterShared; }
-
-
-  eastl::vector<ProfilerString> getUniqueFormats() const;
-
-
-  eastl::vector<int> getUniqueWidths() const;
-
-
-  eastl::vector<int> getUniqueHeights() const;
-
-  // Helper structure for string filter multi-select context
-  struct StringFilterContext
-  {
-    const eastl::vector<ProfilerString> *values = nullptr;
-    CheckFilter<ProfilerString> *filter = nullptr;
-  };
-
-  // Helper structure for integer filter multi-select context
-  struct IntFilterContext
-  {
-    const eastl::vector<int> *values = nullptr;
-    CheckFilter<int> *filter = nullptr;
-  };
-
-  // Adapter for updating string filter selection state
-  static void updateStringFilterSelection(LpSelectionExternalStorage *storage, int index, bool selected);
-
-  // Adapter for updating integer filter selection state
-  static void updateIntFilterSelection(LpSelectionExternalStorage *storage, int index, bool selected);
-
-  void drawMultiSelectFilter(const char *popup_name, eastl::vector<ProfilerString> &unique_values,
-    CheckFilter<ProfilerString> &filter_object, bool *changed);
-
-  void drawMultiSelectFilter(const char *popup_name, eastl::vector<int> &unique_values, CheckFilter<int> &filter_object, bool *changed,
-    bool use_custom_labels = false);
-
-  void setNameSearch(const char *search_text);
-  const char *getNameSearch() const;
-
-
-  void addNameMask(const ProfilerString &mask, bool is_include);
-
-
-  void removeNameMask(int index);
-  void clearNameMasks();
-  const eastl::vector<NameMask> &getNameMasks() const;
-  bool isNameFilterActive() const;
-
-  void setTextureUsageSearch(const char *search_text);
-  const char *getTextureUsageSearch() const;
-
-
-  void addTextureUsageMask(const ProfilerString &mask, bool is_include);
-
-
-  void removeTextureUsageMask(int index);
-  void clearTextureUsageMasks();
-  const eastl::vector<NameMask> &getTextureUsageMasks() const;
-  bool isTextureUsageFilterActive() const;
-
-  LpIncludeExcludeFilter &getNameFilterComponent() { return nameFilter; }
-
-  LpIncludeExcludeFilter &getTextureUsageFilterComponent() { return textureUsageFilter; }
-
-private:
-  // Both are set once by setModules and stay non-null for the manager's lifetime, so the
-  // filter paths dereference them without checking.
-  TextureModule *textureModule = nullptr;
-  RIModule *riModule = nullptr;
-  LpIncludeExcludeFilter nameFilter;
-  LpIncludeExcludeFilter textureUsageFilter;
-
-  CheckFilter<ProfilerString> formatFilter;
-  CheckFilter<int> widthFilter, heightFilter;
-
-  LpRangeFilter<float> sizeRangeFilter;
-
-  LpRangeFilter<int> lodsRangeFilter;
-  LpRangeFilter<int> resolutionRangeFilter;
-  LpRangeFilter<int> mipRangeFilter;
-  LpRangeFilter<int> textureUsageRangeFilter;
-  LpRangeFilter<int> assetInstanceCountRangeFilter;
-
-  bool isTextureUsageFilterNonRI = true;
-  bool isTextureUsageFilterUnique = true;
-  bool isTextureUsageFilterShared = true;
 };
 
 } // namespace levelprofiler

@@ -14,24 +14,10 @@ static bool (*dabuild_resolve_res_handle)(const char *resname, unsigned class_id
 static WinCritSec hooksMutex;
 static bool am_resolve_res_handle(const char *resname, unsigned class_id, int &out_res_id)
 {
-  bool assetFound = false;
-  if (!get_asset_manager())
-  {
-    LOGERR_ONCE("asset__manager not inited, but hooks setup. Something going wrong with entity creation");
+  if (!find_exportable_asset(resname))
     return false;
-  }
-  if (get_asset_manager()->findAsset(resname, get_exportable_types()))
-  {
-    assetFound = true;
-  }
-
-  if (assetFound)
-  {
-    WinAutoLock lock(hooksMutex); // this function can be called from any thread, so need to provide TS here
-    return dabuild_resolve_res_handle(resname, class_id, out_res_id);
-  }
-  else
-    return false;
+  WinAutoLock lock(hooksMutex); // this function can be called from any thread, so need to provide TS here
+  return dabuild_resolve_res_handle(resname, class_id, out_res_id);
 }
 
 void install_asset_manager_hooks()

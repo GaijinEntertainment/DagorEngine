@@ -193,7 +193,7 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
     int v = ctx.globVars().getVarInternalIndex(varNid);
 
     auto varMaybe =
-      is_service_var ? compileServiceVar(varNid, t, *value, array_size, index) : compileSingleVar(varNid, t, expr, array_size, index);
+      is_service_var ? compileServiceVar(varNid, vt, *value, array_size, index) : compileSingleVar(varNid, t, expr, array_size, index);
     if (!varMaybe)
       return -1;
     auto &var = *varMaybe;

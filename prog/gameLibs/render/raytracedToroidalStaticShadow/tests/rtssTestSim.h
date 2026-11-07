@@ -219,7 +219,7 @@ struct RtssSim
     IPoint4 paramsI;
     Point4 params, origin;
     sched.globals(paramsI, params, origin);
-    // constraint: one float ulp, x87 compares with no rounding to float
+    // one float ulp, x87 compares with no rounding to float
     if (length(DPoint3(origin.x, origin.y, origin.z) - camera) > length(camera) * 1.2e-7 || sched.cameraPos() != center())
       fail(RTSS_I11_STATS, "rtss_origin is not the camera, or cameraPos() is not the window center");
     if (params.z != float(curBit(0)))

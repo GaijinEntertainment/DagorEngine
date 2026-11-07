@@ -17,6 +17,7 @@ namespace detail
 int getTypeByName(const char *) { return -1; }
 void startEffect(int, const TMatrix &, AcesEffect **) {}
 void stopEffect(AcesEffect *) {}
+void unlockEffect(AcesEffect *) {}
 } // namespace detail
 } // namespace composite
 } // namespace rifx

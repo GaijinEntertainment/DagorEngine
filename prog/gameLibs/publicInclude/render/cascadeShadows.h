@@ -102,6 +102,7 @@ public:
     float cameraFov = -1;
     bool useFixedShadowCascade;
     bool snapAnchorToHero = false;
+    int snapAnchorToHeroMaxCascadeNo = eastl::numeric_limits<int>::max();
     float cascadeTransitionZoneWidth = 0.0f;
 
     bool operator==(const ModeSettings &rhs) const = default;
@@ -152,6 +153,7 @@ public:
   float getMaxDistance() const;
   float getCascadeDistance(int cascade_no) const;
   float getMaxShadowDistance() const;
+  float getCasterReach() const; // metres to the sun past any receiver that every cascade holds casters for
   const Frustum &getWholeCoveredFrustum() const;
   BaseTexture *getShadowsCascade() const;
   ManagedTexView getShadowsCascadeView() const;

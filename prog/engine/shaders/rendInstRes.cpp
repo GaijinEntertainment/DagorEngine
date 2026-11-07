@@ -429,6 +429,7 @@ void RenderableInstanceLodsResource::loadImpostorData(const char *name)
         Point2 scale = impostorBlk->getPoint2("scale", Point2{0, 0});
 
         params.preshadowEnabled = impostorBlk->getBool("preshadowEnabled", true) && !impostorPreshadowForceDisable;
+        params.cameraSpaceFoliageNormals = impostorBlk->getBool("cameraSpaceFoliageNormals", false);
         params.bottomGradient = impostorBlk->getReal("bottomGradient", 0.0);
         params.scale = Point4(scale.x, scale.y, 1.0f / scale.x, 1.0f / scale.y);
         params.boundingSphere = Point4(bsphCenter.x, bsphCenter.y, bsphCenter.z, bsphRad);

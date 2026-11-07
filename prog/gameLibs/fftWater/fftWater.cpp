@@ -289,6 +289,7 @@ public:
     if (saveParams)
       render->getRoughness(roughnessBase, cascadesRoughnessBase);
     Point2 waveDisplacementDistance = saveParams ? render->getWaveDisplacementDistance() : Point2(0, 0);
+    float cullPatchMarginCells = saveParams ? render->getCullPatchMarginCells() : 0.f;
 
     enforceRenderCascadeCount = enforce_render_cascade_count;
     numRenderCascades = renderCascadeCountValidation(numRenderCascades);
@@ -311,6 +312,7 @@ public:
       render->setFoamParams(foam);
       render->setRoughness(roughnessBase, cascadesRoughnessBase);
       render->setWaveDisplacementDistance(waveDisplacementDistance);
+      render->setCullPatchMarginCells(cullPatchMarginCells);
       renderCommon.shoreEnable(shoreEnable);
       renderCommon.setWaterLevel(minWaterLevel);
     }
@@ -466,14 +468,14 @@ public:
     del_it(physicsChop);
     del_it(chopWaterGenerator);
   }
-  void simulateAllAt(double time, bool is_chop)
+  void simulateAllAt(double time, bool is_chop, bool wake_up_pool = true)
   {
     lastTime = time;
     setCurrentTime(time);
     if (physics && !is_chop)
-      physics->increaseTime(time);
+      physics->increaseTime(time, wake_up_pool);
     if (physicsChop && is_chop)
-      physicsChop->increaseTime(time);
+      physicsChop->increaseTime(time, wake_up_pool);
 
 #if DAGOR_DBGLEVEL > 0
     if (physics && phys_tex_on)
@@ -539,8 +541,7 @@ public:
       return;
     // At dead calm wave == 0, so flat ocean keeps a zero-thickness box at the water level. This is correct (no waves to
     // contain); do not force a minimum here or elevated water bodies lose their tight culling bounds.
-    const float maxWaveHeight =
-      chopEnabled() && renderChop ? renderChop->getMaxWaveHeight() : (render ? render->getMaxWaveHeight() : 0.0f);
+    const float maxWaveHeight = getRenderMaxWaveHeight();
     waterHeightmap->waveCullingMargin = maxWaveHeight;
     heightmapCulling->setUpDisplacement(maxWaveHeight);
     heightmapCulling->setDownDisplacement(maxWaveHeight);
@@ -588,6 +589,11 @@ public:
     if (renderChop)
       return renderChop->getMaxHeight();
     return maxWaterLevel;
+  }
+  // Physics zeroes its wave height at calm water unless forced, but the render still draws its waves.
+  float getRenderMaxWaveHeight() const
+  {
+    return chopEnabled() && renderChop ? renderChop->getMaxWaveHeight() : (render ? render->getMaxWaveHeight() : 0.0f);
   }
   float getMaxWaveHeight() const
   {
@@ -1009,6 +1015,11 @@ void set_last_lod_extension(FFTWater *water, float extension)
   if (water && water->getRenderChop())
     water->getRenderChop()->setLastLodExtension(extension);
 }
+void set_cull_patch_margin_cells(FFTWater *water, float cells)
+{
+  if (water && water->getRender())
+    water->getRender()->setCullPatchMarginCells(cells);
+}
 void set_period(FFTWater *water, float period)
 {
   if (water)
@@ -1030,7 +1041,7 @@ void set_render_quad(FFTWater *water, const BBox2 &quad)
   if (water && water->getRenderChop())
     water->getRenderChop()->setRenderQuad(quad);
 }
-void simulate(FFTWater *water, double time)
+void simulate(FFTWater *water, double time, bool wake_up_pool)
 {
   if (!water)
     return;
@@ -1057,14 +1068,14 @@ void simulate(FFTWater *water, double time)
     }
     water->getChopWaterGen()->Update(water->getLastTime(), 0.0f, false);
   }
-  water->simulateAllAt(time, chopEnabled);
+  water->simulateAllAt(time, chopEnabled, wake_up_pool);
 }
 void before_render(const FFTWater *water, float scaled_dt)
 {
   if (water->getRender() || water->getRenderChop())
   {
     ShaderGlobal::set_int(chop_water_enabledVarId, water->chopEnabled() ? 1 : 0);
-    water->getRenderCommon().setGlobalShaderConsts(water->chopEnabled(), water->getMaxWaveHeight());
+    water->getRenderCommon().setGlobalShaderConsts(water->chopEnabled(), water->getMaxWaveHeight(), water->getRenderMaxWaveHeight());
   }
   if (water->chopEnabled())
   {
@@ -2004,7 +2015,7 @@ bool query_gpu_water_height(uint32_t query_handle, uint32_t &ref_query_result, c
   if (userRef.timeLife == 0.0f)
     userRef.hasResult = false;
 
-  if (userRef.hasResult && !isnan(userRef.depth))
+  if (userRef.hasResult && !check_nan(userRef.depth))
   {
     out_underwater = userRef.depth >= 0;
     float height = userRef.depth > 0 ? min(userRef.depth, max_height) : max(userRef.depth, -max_height);

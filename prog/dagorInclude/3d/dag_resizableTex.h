@@ -54,15 +54,6 @@ protected:
 public:
   void calcKey();
   void resize(int width, int height, int d = 1);
-  void dropAliases()
-  {
-#if !_TARGET_C1 && !_TARGET_C2
-    mAliases.clear();
-    currentKey = 0;
-    lastMResId = Helper<ManagedTex>::BAD_ID;
-    originalTexture = nullptr;
-#endif
-  }
 };
 
 class ResizableManagedTexWithShaderVar : public ManagedResWithShaderVar<ResizableManagedTex>

@@ -6,7 +6,10 @@
 #include <daRg/dag_inputIds.h>
 #include <daRg/dag_stringKeys.h>
 #include <daRg/dag_properties.h>
+#include <daRg/dag_scriptHandlers.h>
 
+#include "elementTree.h"
+#include "guiScene.h"
 #include "scriptUtil.h"
 #include "dargDebugUtils.h"
 
@@ -24,8 +27,8 @@ BhvWheelScroll::BhvWheelScroll() : Behavior(0, F_HANDLE_MOUSE | F_ALLOW_AUTO_SCR
 void BhvWheelScroll::onDetach(Element *elem, DetachMode) { elem->props.storage.RawDeleteSlot(elem->csk->wheelScrollRemainder); }
 
 
-int BhvWheelScroll::pointingEvent(ElementTree * /*etree*/, Element *elem, InputDevice /*device*/, InputEvent event, int /*pointer_id*/,
-  int data, Point2 pos, int accum_res)
+int BhvWheelScroll::pointingEvent(ElementTree *etree, Element *elem, InputDevice /*device*/, TouchSource /*touch_src*/,
+  InputEvent event, int /*pointer_id*/, int data, Point2 pos, int accum_res)
 {
   int result = 0;
 
@@ -50,7 +53,7 @@ int BhvWheelScroll::pointingEvent(ElementTree * /*etree*/, Element *elem, InputD
       G_VERIFY(get_closure_info(onWheelScroll, &nparams, &nfreevars));
 
       if (nparams == 2)
-        onWheelScroll(delta);
+        etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<float>(onWheelScroll, delta));
       else
         darg_assert_trace_var("onWheelScroll must have 1 param", scriptDesc, elem->csk->onWheelScroll);
     }

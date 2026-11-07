@@ -28,6 +28,7 @@
 struct ICrashFallback
 {
   virtual bool previousStartupFailed() = 0;
+  virtual bool alreadySetToAuto() = 0;
   virtual void beforeStartup() = 0;
   virtual void successfullyLoaded() = 0;
   virtual void setSettingToAuto() = 0;

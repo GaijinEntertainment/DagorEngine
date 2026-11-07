@@ -266,6 +266,22 @@ def get_sq_default_value(typ : TypeDecl?; stub_name = "")
 
   return "null"
 
+// the bindings push these types as dagor.math instances
+def get_sq_math_vector(typ : TypeDecl?)
+  if typ.baseType == Type.tInt2
+    return "IPoint2(0, 0)"
+  if typ.baseType == Type.tInt3
+    return "IPoint3(0, 0, 0)"
+  if typ.baseType == Type.tInt4
+    return "IPoint4(0, 0, 0, 0)"
+  if typ.baseType == Type.tFloat2
+    return "Point2(0, 0)"
+  if typ.baseType == Type.tFloat3
+    return "Point3(0, 0, 0)"
+  if typ.baseType == Type.tFloat4
+    return "Point4(0, 0, 0, 0)"
+  return ""
+
 def get_sq_type(typ : TypeDecl?)
   if typ == null
     return "null"
@@ -347,7 +363,8 @@ def get_func_stub(name : string; var fn : Function?)
       str |> write(describe(arg._type))
 
     str |> write("\r\n    return ")
-    str |> write(get_sq_default_value(fn.result, stubResType))
+    let vec = get_sq_math_vector(fn.result)
+    str |> write(empty(vec) ? get_sq_default_value(fn.result, stubResType) : "require(\"dagor.math\").{vec}")
     str |> write(" // ")
     str |> write(describe(fn.result))
     str |> write("\r\n  \}")

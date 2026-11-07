@@ -47,11 +47,12 @@ bool traceray_water_at_time(const Point3 &, const Point3 &, float, float &) { G_
 bool get_min_max_hmap_in_circle(const Point2 &, float, float &, float &) { G_ASSERT_RETURN(false, false); }
 void get_min_max_hmap_list_in_circle(const Point2 &, float, Tab<Point2> &) { G_ASSERT(0); };
 bool rayhit_normalized_lmesh(const Point3 &, const Point3 &, real) { G_ASSERT_RETURN(false, false); }
-int trace_bundle_all_hits(dag::ConstSpan<BundleSegment>, int, int, dag::Span<BundleHit>, dag::Span<BundleRange>, uint32_t, bool)
+int trace_bundle_all_hits(dag::ConstSpan<BundleSegment>, int, int, dag::Span<BundleHit>, dag::Span<BundleRange>, uint32_t, bool, float)
 {
   G_ASSERT_RETURN(false, 0);
 }
-bool bundle_segment_any_hit(const Point3 &, const Point3 &, int, int) { G_ASSERT_RETURN(false, false); }
+bool bundle_segment_any_hit(const Point3 &, const Point3 &, int, int, float) { G_ASSERT_RETURN(false, false); }
+bool bundle_box_under_ground(const BBox3 &, int, float) { G_ASSERT_RETURN(false, false); }
 bool rayhit_normalized(const Point3 &, const Point3 &, real, int, int, const TraceMeshFaces *, rendinst::riex_handle_t)
 {
   G_ASSERT_RETURN(false, false);
@@ -101,6 +102,9 @@ CollisionObject add_dynamic_cylinder_collision(const TMatrix &, float, float, vo
 }
 
 void destroy_dynamic_collision(CollisionObject) { G_ASSERT(0); }
+bool is_player_apex_body(const PhysBody *) { return false; }
+void set_player_apex_body(const CollisionObject &, bool) {}
+int get_player_apex_body_changes() { return 0; }
 bool test_pair_collision(dag::ConstSpan<CollisionObject>, uint64_t, const TMatrix &, dag::ConstSpan<CollisionObject>, uint64_t,
   const TMatrix &, Tab<gamephys::CollisionContactData> &, TestPairFlags, bool)
 {
@@ -112,6 +116,7 @@ bool test_collision_world(dag::ConstSpan<CollisionObject>, const TMatrix &, floa
   G_ASSERT_RETURN(false, false);
 }
 int update_ri_cache_in_volume_to_phys_world(const BBox3 &) { return 0; }
+void update_lmesh_cache_in_volume_to_phys_world(const BBox3 &) {}
 bool check_ri_collision_filtered(const rendinst::RendInstDesc &, const TMatrix &, const TMatrix &, int)
 {
   G_ASSERT_RETURN(false, false);
@@ -125,6 +130,33 @@ bool test_collision_ri(const CollisionObject &, const BSphere3 &, Tab<gamephys::
   G_ASSERT_RETURN(false, false);
 }
 bool test_collision_frt(const CollisionObject &, Tab<gamephys::CollisionContactData> &, int) { G_ASSERT_RETURN(false, false); }
+bool test_collision_frt(const PhysCollision &, const TMatrix &, Tab<gamephys::CollisionContactData> &, int)
+{
+  G_ASSERT_RETURN(false, false);
+}
+bool test_collision_lmesh(const PhysCollision &, const TMatrix &, float, int, Tab<gamephys::CollisionContactData> &, int)
+{
+  G_ASSERT_RETURN(false, false);
+}
+bool test_collision_ri(const PhysCollision &, const TMatrix &, const BSphere3 &, Tab<gamephys::CollisionContactData> &,
+  const TraceMeshFaces *, int)
+{
+  G_ASSERT_RETURN(false, false);
+}
+bool test_collision_ri(const PhysCollision &, const TMatrix &, const BSphere3 &, Tab<gamephys::CollisionContactData> &, bool, float,
+  const TraceMeshFaces *, int, bool)
+{
+  G_ASSERT_RETURN(false, false);
+}
+bool test_collision_world(const PhysCollision &, const TMatrix &, Tab<gamephys::CollisionContactData> &, int, dacoll::PhysLayer, int)
+{
+  G_ASSERT_RETURN(false, false);
+}
+bool test_pair_collision(const PhysCollision &, const TMatrix &, dag::ConstSpan<CollisionObject>, uint64_t, const TMatrix &,
+  Tab<gamephys::CollisionContactData> &, TestPairFlags, bool)
+{
+  G_ASSERT_RETURN(false, false);
+}
 bool test_sphere_collision_world(const Point3 &, float, int, Tab<gamephys::CollisionContactData> &, dacoll::PhysLayer, int)
 {
   G_ASSERT_RETURN(false, false);
@@ -144,6 +176,11 @@ void shape_query_ri(const PhysBody *, class TMatrix const &, class TMatrix const
 {
   G_ASSERT(0);
 }
+void shape_query_ri(const PhysCollision &, class TMatrix const &, class TMatrix const &, float, dacoll::ShapeQueryOutput &, int,
+  Tab<struct rendinst::RendInstDesc> *, struct TraceMeshFaces const *, RIFilterCB *)
+{
+  G_ASSERT(0);
+}
 void fetch_sim_res(bool) { G_ASSERT(0); }
 void set_vert_capsule_shape_size(const CollisionObject &, float, float) { G_ASSERT(0); }
 void set_collision_sphere_rad(const CollisionObject &, float) { G_ASSERT(0); }
@@ -154,6 +191,7 @@ void draw_collision_object(const CollisionObject &) { G_ASSERT(0); }
 int set_hmap_step(int) { G_ASSERT_RETURN(false, -1); }
 int get_hmap_step() { G_ASSERT_RETURN(false, -1); }
 void set_obj_motion(CollisionObject, const TMatrix &, const Point3 &, const Point3 &) { G_ASSERT(0); }
+void set_obj_active(CollisionObject &, bool, bool) { G_ASSERT(0); }
 PhysMat::MatID get_lmesh_mat_id_at_point(const Point2 &) { G_ASSERT_RETURN(false, PHYSMAT_INVALID); }
 static CollisionObject tmpObj;
 CollisionObject &get_reusable_sphere_collision() { G_ASSERT_RETURN(false, tmpObj); }

@@ -1073,6 +1073,9 @@ BBox2 get_str_bbox_u(const wchar_t *str, int len = -1, const StdGuiFontContext &
 BBox2 get_str_bbox_u_ex(const wchar_t *str, int len, const StdGuiFontContext &fctx, float max_w, bool left_align, int &out_start_idx,
   int &out_count, const wchar_t *break_sym = NULL, float ellipsis_resv_w = 0);
 
+//! kerning-pair adjustment between ch and next_ch, 0 if no pair or the font is fully dynamic
+int get_char_kerning_adjust(wchar_t ch, wchar_t next_ch, const StdGuiFontContext &fctx = get_stdgui_context()->curRenderFont);
+
 Point2 get_font_cell_size(const StdGuiFontContext &fctx = get_stdgui_context()->curRenderFont);
 int get_font_caps_ht(const StdGuiFontContext &fctx = get_stdgui_context()->curRenderFont);
 real get_font_line_spacing(const StdGuiFontContext &fctx = get_stdgui_context()->curRenderFont);

@@ -122,7 +122,7 @@ void DagExporter::saveMaterialsAndTextures(const PtrTab<MaterialData> &materials
   for (int materialId = 0; materialId < materials.size(); ++materialId)
   {
     MaterialData *curMaterial = materials[materialId];
-    DagExpMater material;
+    DagExpMater material = {}; // the reserved fields go to the file too
     material.name = curMaterial->matName;
     material.clsname = curMaterial->className;
     material.script = curMaterial->matScript;

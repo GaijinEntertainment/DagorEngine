@@ -20,9 +20,9 @@ geometry within an object's `.dag` file.
   - 2nd component: affects metalness.
   - The remaining components are required but have no effect.
 
-- `script:t="draw_order=1"` – Defines the draw order for decals. The default is
-  `0` for all decals. You can set it to `-1` (for decals that should always be
-  below others) or `1` (for decals that should always be on top).
+- `script:t="draw_order=1"` – Defines the draw order for decals. Any integer
+  from `-512` to `511` is valid: a decal with a lower value is drawn below a
+  decal with a higher value. The default for this shader is `-10`.
 
 ## Functionality
 
@@ -160,10 +160,11 @@ effect.
 <img src="_images/rendinst_modulate2x_diffuse_decal_15.jpg" width="48.5%" class="bg-primary">
 
 - `script:t="draw_order=1"` – Controls the draw order for specific decal
-  materials. It has three values:
-  - `-1`: "lower" draw order – rendered below all other decals.
-  - `0`: "middle" draw order – the default value for all decals.
-  - `1`: "upper" draw order – rendered above all other decals.
+  materials. It accepts any integer from `-512` to `511`, 1024 values in total:
+  - A lower value is rendered below decals with a higher value.
+  - A higher value is rendered above decals with a lower value.
+  - The default for this shader is `-10`. Values outside the range are not
+    supported.
 
 A single object can have many overlapping decals. For example, numbering each
 decal type shows how differently they can appear depending on the draw order:
@@ -189,19 +190,22 @@ Without specifying the draw order, you might encounter:
 - Or both issues simultaneously.
 
 ```{important}
-If you don't assign a draw order to any decal material, they default to `0`.
-However, in-game, the system may assign its own order because no clear hierarchy
-is defined. Therefore, it's important to specify at least the materials that
-should be lower than `0`. This ensures the rest will render above without issue.
+If you don't assign a draw order to any decal material, they use the shader
+default (`-10` for this shader). However, in-game, the system may assign its own
+order because no clear hierarchy is defined. Therefore, it's important to
+specify at least the materials that should be lower than the default. This
+ensures the rest will render above without issue.
 For best results, set a clear draw order and don't rely on chance.
 ```
 
-Typically, modulate decals should be set to `-1`, while wear decals can remain
-untouched. Wear often looks fresher than surrounding dirt and soot.
+Typically, modulate decals should get a value below the default, for example
+`-20`, while wear decals can keep the default. Wear often looks fresher than
+surrounding dirt and soot.
 
 However, if the wear needs to appear dirty, you can either set the wear decals
-to `-1`, leaving modulate decals untouched, or set the dirty modulate decals to
-`1` to preserve the overall layering scheme for modulate and diffuse decals.
+below the default (for example `-20`), leaving modulate decals untouched, or set
+the dirty modulate decals above the default (for example `-5`) to preserve the
+overall layering scheme for modulate and diffuse decals.
 
 ```{note}
 This parameter applies to all diffuse and modulate decals, not just this

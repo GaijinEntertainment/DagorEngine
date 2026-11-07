@@ -16,6 +16,7 @@
 
 
 extern ConVarB sw_occlusion;
+extern ConVarB sw_raster_merge_two_layer;
 extern ConVarB sort_transparent_riex_instances;
 
 void VisibilityReprojectJob::start(Occlusion *occl)
@@ -44,7 +45,7 @@ void OcclusionReadbackGPUJob::start(const VisibilityJobsContext *jc, Occlusion *
     threadpool::wait(jobs->visibilityReprojectJob);
     interlocked_release_store(jobs->visibilityReprojectJob->done, 0); // To be able wait one job instead of pair
   }
-  // Note: would be wake-up either by wake_up_all in `animchar_before_render_es` or `bvh_start_before_render_jobs_es`
+  // Note: would be wake-up either by wake_up_all in `animchar_before_render_es` or `bvh_wake_up_before_render_jobs_es`
   threadpool::add(this, prio, false);
 }
 
@@ -167,7 +168,7 @@ void VisibilityPrepareJob::start(const VisibilityJobsContext *jc,
   target = rendering_resolution;
   shadowCtx = shadow_ctx;
   occlusionMaskApplier = occlusion_mask_applier;
-  threadpool::add(this, VisibilityReprojectJob::prio);
+  threadpool::add(this, VisibilityReprojectJob::prio, /*wake_up*/ false); // startVisibility() wakes the pool for it
 }
 
 void VisibilityPrepareJob::doJob()
@@ -188,7 +189,7 @@ void VisibilityPrepareJob::prepareVisibility()
     if (sw_occlusion.get() && occlusionRasterizer)
     {
       occlusion->startSWOcclusion(persp.zn);
-      shouldFinalizeSwOcclusion = occlusionRasterizer->mergeRasterizationResults(*occlusion) > 0;
+      shouldFinalizeSwOcclusion = occlusionRasterizer->mergeRasterizationResults(*occlusion, sw_raster_merge_two_layer.get()) > 0;
       if (hasGpuDepth && !interlocked_acquire_load(jobs->visibilityReprojectJob->done)) // very likely that is true
       {
         TIME_PROFILE_DEV(wait_occlusion_gpu_readback_and_reproject);

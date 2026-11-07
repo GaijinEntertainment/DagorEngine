@@ -18,7 +18,9 @@ Sources =
 
 CPPopt = ;
 
-SourceES = nodeBasedShaderES.cpp.inl ;
+SourceES =
+  nodeBasedShaderES.cpp.inl
+  nodeBasedTextures.cpp.inl ;
 for s in $(SourceES) { GenESSourceFile $(s) ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

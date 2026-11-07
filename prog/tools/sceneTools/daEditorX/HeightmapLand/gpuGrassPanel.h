@@ -25,6 +25,7 @@ class GPUGrassPanel
 public:
   void fillPanel(IGPUGrassService *service, DataBlock *grass_blk, PropPanel::ContainerPropertyControl &panel);
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+  void onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel);
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel, const eastl::function<void()> &loadGPUGrassFromLevelBlk,
     const eastl::function<void()> &fillPanel);
 };

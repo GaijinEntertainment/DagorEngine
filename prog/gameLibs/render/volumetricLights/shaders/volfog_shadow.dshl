@@ -30,7 +30,7 @@ shader volfog_shadow_cs
     world_view_pos@f4 = (world_view_pos.x, world_view_pos.y, world_view_pos.z, time_phase(0,0));
     from_sun_direction@f3 = from_sun_direction;
 
-    prev_volfog_shadow@smp3d = prev_volfog_shadow;
+    prev_volfog_shadow@tex3d = prev_volfog_shadow;
     volfog_shadow_res@f4 = volfog_shadow_res;
     volfog_shadow_accumulation_factor@f1 = volfog_shadow_accumulation_factor;
 
@@ -42,6 +42,10 @@ shader volfog_shadow_cs
     }
 
     volfog_shadow_occlusion@tex2d = volfog_shadow_occlusion;
+  }
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(cs)
+  hlsl(cs) {
+    #define prev_volfog_shadow_samplerstate global_linear_clamp_sampler
   }
 
   hlsl(cs) {

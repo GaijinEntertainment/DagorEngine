@@ -908,7 +908,7 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
         debug("no GRP2 label (hdr: 0x%x 0x%x 0x%x 0x%x)", ghdr.label, ghdr.descOnlySize, ghdr.fullDataSize, ghdr.restFileSize);
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
 #if _TARGET_PC
-        // constraint: on PC a fatal handler truncates the quoted pack to repair it, and FastSeqReader denies write sharing
+        // on PC a fatal handler truncates the quoted pack to repair it, and FastSeqReader denies write sharing
         seq_cb.close();
 #endif
         DAG_FATAL("no GRP2 label in '%s'", fileName.str());

@@ -8,8 +8,8 @@
 #include <util/dag_simpleString.h>
 #include <scene/dag_physMat.h>
 
-// ri.dump_collres: the PhysMat table, then each RI-extra pool with a collision (pos-inst pools aside):
-// its name, instances and resource
+// ri.dump_collres: the PhysMat table, then each RI-extra pool with a collision: its name, instances and resource;
+// grid_only keeps the instances in the collision grid, and a tree pool's resource has COLLISION_RES_FLAG_RI_TREE
 static constexpr uint32_t COLLRES_DUMP_MAGIC = 0xD0C0B3A5u; // MSB set: the ri_collisions reader refuses it
 // bump on any change of the written layout; the MaterialData size is folded in
 static constexpr int COLLRES_DUMP_VERSION = 3 | int(sizeof(PhysMat::MaterialData) << 8);

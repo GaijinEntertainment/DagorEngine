@@ -22,6 +22,7 @@ struct GpuLatency
   virtual void startFrame(uint32_t frame_id) = 0;
   virtual void setMarker(uint32_t frame_id, lowlatency::LatencyMarkerType marker_type) = 0;
   virtual void setOptions(Mode mode, uint32_t frame_limit_us) = 0;
+  // Called at the wait point of every frame, also while the mode is Off
   virtual void sleep(uint32_t frame_id) = 0;
   virtual lowlatency::LatencyData getStatisticsSince(uint32_t frame_id, uint32_t max_count = 0) = 0;
 

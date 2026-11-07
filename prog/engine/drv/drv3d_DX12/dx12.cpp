@@ -54,8 +54,8 @@
 
 #if _TARGET_PC_WIN
 #include <osApiWrappers/dag_progGlobals.h>
+#include <flipStallNudge.h>
 #include "debug/global_state.h"
-#include <ska_hash_map/flat_hash_map2.hpp>
 #endif
 
 #if _TARGET_PC_WIN
@@ -294,14 +294,22 @@ struct ApiState
 
     windowState.closeWindow();
 #if _TARGET_PC_WIN
-    dxgiFactory.Reset();
-    slInterposer.reset();
-    debugState.teardown();
-    d3d12Env.teardown();
+    releasePreDeviceState();
 #endif
 
     isInitialized.driver = false;
   }
+
+#if _TARGET_PC_WIN
+  void releasePreDeviceState()
+  {
+    device.discardPendingDevice();
+    dxgiFactory.Reset();
+    slInterposer.reset();
+    debugState.teardown();
+    d3d12Env.teardown();
+  }
+#endif
 };
 
 extern ApiState api_state;
@@ -564,74 +572,14 @@ APISupport check_driver_version(const DXGI_ADAPTER_DESC1 &adapter_info, const Dr
   return APISupport::FULL_SUPPORT;
 }
 
-APISupport check_device_features(const ComPtr<D3DDevice> &device)
-{
-  // devices below feature level 12.0 are not required to support 6.0+/DXIL shaders, but we only
-  // ship those so we can only use devices with support for that.
-  auto sm = get_shader_model(device.Get());
-  if (sm.HighestShaderModel < D3D_SHADER_MODEL_6_0)
-  {
-    logdbg("DX12: Rejected, no HLSL shader model 6.0+ support (DXIL)");
-    return APISupport::NO_DEVICE_FOUND;
-  }
-
-  const auto minSmValue = ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("minShaderModel", D3D_SHADER_MODEL_6_5);
-
-  if (sm.HighestShaderModel < minSmValue)
-  {
-    logdbg("DX12: Rejected, HLSL shader model too low %02X vs %02X", sm.HighestShaderModel, minSmValue);
-    return APISupport::INSUFFICIENT_DEVICE;
-  }
-
-  D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
-  auto apiSupport = APISupport::FULL_SUPPORT;
-  if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options)) == S_OK)
-  {
-    if (options.ResourceBindingTier < D3D12_RESOURCE_BINDING_TIER_2)
-      return APISupport::INSUFFICIENT_DEVICE;
-
-    // I want to make it constexpr, but we don't have such map
-    // use string literals for keys, please
-    const ska::flat_hash_map<eastl::string_view, bool (*)(const D3D12_FEATURE_DATA_D3D12_OPTIONS &)> requiredFeaturesMap = {
-      // TODO: adapt it for D3D12_FEATURE_DATA_D3D12_OPTIONS<N > 0> when we need more features
-      // For example, add an extra class containing D3D12_FEATURE_DATA_D3D12_OPTIONS<0-12> and use hashmap for the class methods
-      {"TypedUAVLoadAdditionalFormats",
-        +[](const D3D12_FEATURE_DATA_D3D12_OPTIONS &opts) -> bool { return opts.TypedUAVLoadAdditionalFormats; }},
-    };
-
-    const DataBlock &requiredFeatures = *::dgs_get_settings()->getBlockByNameEx("directx")->getBlockByNameEx("dx12RequiredFeatures");
-    dblk::iterate_params_by_name(requiredFeatures, "requires",
-      [&apiSupport, &options, &requiredFeatures, &requiredFeaturesMap](int param_idx, auto, auto) {
-        eastl::string_view feature = requiredFeatures.getStr(param_idx);
-        if (auto it = requiredFeaturesMap.find(feature); it != requiredFeaturesMap.end())
-        {
-          // don't check further if we already have an error ...
-          if (apiSupport != APISupport::FULL_SUPPORT)
-            return;
-          const bool featureIsSupported = it->second(options);
-          if (!featureIsSupported)
-            apiSupport = APISupport::INSUFFICIENT_DEVICE;
-        }
-        else
-          // ... but validate it anyway
-          logdbg("Skipping unknown required DirectX feature: %s", feature.data());
-      });
-  }
-
-  if (apiSupport == APISupport::FULL_SUPPORT)
-    logdbg("DX12: Device fulfills requirements, DX12 is available!");
-  return apiSupport;
-}
-
-APISupport check_adapter(const Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL feature_level, const DataBlock *gpu_cfg,
-  const ComPtr<DXGIAdapter> &adapter, ProbedAdapterInfo &out_adapter)
+APISupport precheck_adapter(const ComPtr<DXGIAdapter> &adapter, const DataBlock *gpu_cfg, ProbedAdapterInfo &out_adapter)
 {
   DXGI_ADAPTER_DESC1 info;
   adapter->GetDesc1(&info);
 
   char strBuffer[sizeof(DXGI_ADAPTER_DESC1::Description) * 2 + 1];
-  const size_t size = wcstombs(strBuffer, info.Description, sizeof(strBuffer));
-  strBuffer[size] = '\0';
+  size_t converted = 0;
+  wcstombs_s(&converted, strBuffer, info.Description, _TRUNCATE);
   logdbg("DX12: Found device %s - 0x%08X - 0x%08X with flags 0x%08X LUID: %" PRIu64, strBuffer, info.VendorId, info.DeviceId,
     info.Flags, (uint64_t)info.AdapterLuid.HighPart << 32 | info.AdapterLuid.LowPart);
 
@@ -672,69 +620,19 @@ APISupport check_adapter(const Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVE
       default: break;
     }
   }
+  return APISupport::FULL_SUPPORT;
+}
+
+APISupport probe_adapter(const Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL feature_level, const DataBlock *gpu_cfg,
+  const ComPtr<DXGIAdapter> &adapter, ProbedAdapterInfo &out_adapter)
+{
+  if (const APISupport support = precheck_adapter(adapter, gpu_cfg, out_adapter); APISupport::FULL_SUPPORT != support)
+    return support;
 
   // create device may take a while, so reset watchdog timer.
   watchdog_kick();
 
-  ComPtr<D3DDevice> device;
-  if (auto hr = d3d12_env.D3D12CreateDevice(adapter.Get(), feature_level, COM_ARGS(&device)); FAILED(hr))
-  {
-    logdbg("DX12: Rejected, unable to create DX12 device, %s", dxgi_error_code_to_string(hr));
-    report_agility_sdk_error(hr);
-    return APISupport::NO_DEVICE_FOUND;
-  }
-
-  return check_device_features(device);
-}
-
-void check_and_add_adapter(const Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL feature_level, const DataBlock *gpu_driver_cfg,
-  ComPtr<DXGIAdapter> &&adapter, dag::Vector<Device::AdapterInfo> &adapter_list)
-{
-  Device::AdapterInfo info{};
-  adapter->GetDesc1(&info.info);
-
-  char strBuffer[sizeof(DXGI_ADAPTER_DESC1::Description) * 2 + 1];
-  const size_t size = wcstombs(strBuffer, info.info.Description, sizeof(strBuffer));
-  strBuffer[size] = '\0';
-  logdbg("DX12: Found device %s - 0x%08X - 0x%08X with flags 0x%08X LUID: %" PRIu64, strBuffer, info.info.VendorId, info.info.DeviceId,
-    info.info.Flags, (uint64_t)info.info.AdapterLuid.HighPart << 32 | info.info.AdapterLuid.LowPart);
-
-  // only accept non software devices we find
-  if (is_software_device(info.info))
-  {
-    logdbg("DX12: Rejected, because software device");
-    return;
-  }
-
-  if (gpu_driver_cfg)
-  {
-    auto version = get_driver_version_from_adapter(adapter.Get());
-    auto result = check_driver_version(info.info, version, *gpu_driver_cfg);
-    switch (result)
-    {
-      case APISupport::OUTDATED_DRIVER:
-        logdbg("DX12: Rejected, because inadequate gpu driver, the %s is outdated", version.toString().c_str());
-        return;
-      case APISupport::BLACKLISTED_DRIVER:
-        logdbg("DX12: Rejected, because inadequate gpu driver, the %s is blacklisted", version.toString().c_str());
-        return;
-      default: break;
-    }
-  }
-
-  // The probing create device may loads up driver dlls that may take a while, so reset watchdog timer.
-  watchdog_kick();
-
-  // checks but does not create a device yet
-  if (auto hr = d3d12_env.D3D12CreateDevice(adapter.Get(), feature_level, __uuidof(D3DDevice), nullptr); FAILED(hr))
-  {
-    logdbg("DX12: Rejected, because it failed DX12 support test, %s", dxgi_error_code_to_string(hr));
-    report_agility_sdk_error(hr);
-    return;
-  }
-
-  info.adapter = eastl::move(adapter);
-  adapter_list.push_back(eastl::move(info));
+  return api_state.device.create(d3d12_env, api_state.debugState, adapter, feature_level, true);
 }
 
 #if _TARGET_PC_WIN && (DAGOR_DBGLEVEL > 0)
@@ -771,15 +669,12 @@ void enable_experiments(const DataBlock *cfg)
 #else
 void enable_experiments(const DataBlock *) {}
 #endif
-} // namespace
 
-bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int ncmdshow, void *&mainwnd, void *hicon,
-  const char *title, Driver3dInitCallback *cb)
+bool setup_pre_device_state()
 {
-  STORE_RETURN_ADDRESS();
-  api_state.isInitialized.video = false;
+  if (api_state.dxgiFactory)
+    return true;
 
-  const DataBlock *videoCfg = ::dgs_get_settings()->getBlockByNameEx("video");
   const DataBlock *directxCfg = ::dgs_get_settings()->getBlockByNameEx("directx");
   const DataBlock *dxCfg = ::dgs_get_settings()->getBlockByNameEx("dx12");
 
@@ -798,18 +693,68 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     }
   }
 
+  {
+    debug::Configuration debugCfg;
+    debugCfg.applyDefaults();
+    debugCfg.applySettings(dxCfg);
+    debug::gpu_capture::nvidia::NSight::inject(debugCfg);
+  }
+
   if (!api_state.d3d12Env.setup())
   {
     api_state.lastErrorCode = E_FAIL;
+    api_state.releasePreDeviceState();
     return false;
   }
 
   // have to setup experimental stuff as soon as the env is loaded
   enable_experiments(dxCfg);
 
-  stereo_config_callback = cb;
-
   api_state.debugState.setup(dxCfg, api_state.d3d12Env);
+
+  api_state.slInterposer = StreamlineAdapter::loadInterposer();
+
+  logdbg("DX12: CreateDXGIFactory2 for DXGI 1.7 interface...");
+  // on cpu validation we also turn on DXGI validation
+  UINT flags = api_state.debugState.configuration().enableCPUValidation ? DXGI_CREATE_FACTORY_DEBUG : 0;
+  auto hr = api_state.d3d12Env.CreateDXGIFactory2(flags, COM_ARGS(&api_state.dxgiFactory));
+  if (FAILED(hr))
+  {
+    api_state.lastErrorCode = E_FAIL;
+    logdbg("DX12: Failed, %s", dxgi_error_code_to_string(hr));
+    api_state.releasePreDeviceState();
+    return false;
+  }
+
+  return true;
+}
+
+ComPtr<IDXGIOutput> get_output_monitor_from_settings()
+{
+  ComPtr<IDXGIOutput> output;
+  if (const char *displayName = get_monitor_name_from_settings(); displayName)
+  {
+    logdbg("DX12: IDXGIFactory1::EnumAdapters1 : 'displayName'=%s...", displayName);
+    output = get_output_monitor_by_name(api_state.dxgiFactory.Get(), displayName);
+  }
+  return output ? output : get_default_monitor(api_state.dxgiFactory.Get());
+}
+
+} // namespace
+
+bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int ncmdshow, void *&mainwnd, void *hicon,
+  const char *title, Driver3dInitCallback *cb)
+{
+  STORE_RETURN_ADDRESS();
+  api_state.isInitialized.video = false;
+
+  const DataBlock *videoCfg = ::dgs_get_settings()->getBlockByNameEx("video");
+  const DataBlock *dxCfg = ::dgs_get_settings()->getBlockByNameEx("dx12");
+
+  if (!setup_pre_device_state())
+    return false;
+
+  stereo_config_callback = cb;
 
   auto deviceCfg = get_device_config(dxCfg);
 
@@ -826,20 +771,6 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   {
     logdbg("DX12: ...bindless types validation enabled by config value...");
     deviceCfg.features.set(DeviceFeaturesConfig::VALIDATE_BINDLESS_TYPES);
-  }
-
-  api_state.slInterposer = StreamlineAdapter::loadInterposer();
-
-  logdbg("DX12: CreateDXGIFactory2 for DXGI 1.7 interface...");
-  // on cpu validation we also turn on DXGI validation
-  UINT flags = api_state.debugState.configuration().enableCPUValidation ? DXGI_CREATE_FACTORY_DEBUG : 0;
-  auto hr = api_state.d3d12Env.CreateDXGIFactory2(flags, COM_ARGS(&api_state.dxgiFactory));
-  if (FAILED(hr))
-  {
-    api_state.lastErrorCode = E_FAIL;
-    logdbg("DX12: Failed, %s", dxgi_error_code_to_string(hr));
-    api_state.releaseAll();
-    return false;
   }
 
   if (!create_output_window(hinst, wnd_proc, wcname, ncmdshow, mainwnd, hicon, title, cb))
@@ -868,7 +799,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     adapter->GetDesc1(&info);
     sci.output = eastl::move(output);
     if (api_state.device.init(api_state.d3d12Env, api_state.debugState, api_state.dxgiFactory, {eastl::move(adapter), info},
-          featureLevel, eastl::move(sci), deviceCfg))
+          featureLevel, sci, deviceCfg))
     {
       size_t converted = 0;
       wcstombs_s(&converted, api_state.deviceName, info.Description, _TRUNCATE);
@@ -904,59 +835,38 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
 
   if (!api_state.device.isInitialized())
   {
-    const DataBlock *gpuCfg = dxCfg->getBlockByName("gpuPreferences");
-    dag::Vector<Device::AdapterInfo> adapterList;
+    const auto prefFromReg = get_gpu_preference_from_registry();
+    logdbg("DX12: Enumeration preference from registry is: %u", prefFromReg);
 
+    DXGI_GPU_PREFERENCE gpuPreference = videoCfg->getBool("preferiGPU", false) ? DXGI_GPU_PREFERENCE_MINIMUM_POWER : prefFromReg;
+
+    switch (gpuPreference)
     {
-      DXGI_GPU_PREFERENCE gpuPreference =
-        videoCfg->getBool("preferiGPU", false) ? DXGI_GPU_PREFERENCE_MINIMUM_POWER : get_gpu_preference_from_registry();
-
-      switch (gpuPreference)
-      {
-        case DXGI_GPU_PREFERENCE_MINIMUM_POWER: //
-          logdbg("DX12: Enumerating available devices to prefer iGPU...");
-          break;
-        case DXGI_GPU_PREFERENCE_UNSPECIFIED: //
-          gpuPreference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
-          [[fallthrough]];
-        case DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE: //
-          logdbg("DX12: Enumerating available devices in performance order...");
-      }
-
-      for (UINT index = 0;; ++index)
-      {
-        ComPtr<DXGIAdapter> adapter;
-        if (api_state.dxgiFactory->EnumAdapterByGpuPreference(index, gpuPreference, COM_ARGS(&adapter)) == DXGI_ERROR_NOT_FOUND)
-          break;
-
-        check_and_add_adapter(api_state.d3d12Env, featureLevel, gpuCfg, eastl::move(adapter), adapterList);
-      }
-    }
-
-    logdbg("DX12: Found %u candidates", adapterList.size());
-    watchdog_kick();
-
-    ComPtr<IDXGIOutput> output;
-    if (const char *displayName = get_monitor_name_from_settings(); displayName)
-    {
-      logdbg("DX12: IDXGIFactory1::EnumAdapters1 : 'displayName'=%s...", displayName);
-      output = get_output_monitor_by_name(api_state.dxgiFactory.Get(), displayName);
-    }
-
-    sci.output = output ? output : get_default_monitor(api_state.dxgiFactory.Get());
-
-    for (auto &&adapter : adapterList)
-    {
-      char strBuffer[eastl::size(DXGI_ADAPTER_DESC1{}.Description)];
-      size_t converted = 0;
-      wcstombs_s(&converted, strBuffer, adapter.info.Description, _TRUNCATE);
-      logdbg("DX12: Trying with device %s", strBuffer);
-      if (api_state.device.init(api_state.d3d12Env, api_state.debugState, api_state.dxgiFactory, eastl::move(adapter), featureLevel,
-            eastl::move(sci), deviceCfg))
-      {
-        memcpy_s(api_state.deviceName, sizeof(api_state.deviceName), strBuffer, converted);
+      case DXGI_GPU_PREFERENCE_MINIMUM_POWER: //
+        logdbg("DX12: Enumerating available devices to prefer iGPU...");
         break;
-      }
+      case DXGI_GPU_PREFERENCE_UNSPECIFIED: //
+        gpuPreference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+        [[fallthrough]];
+      case DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE: //
+        logdbg("DX12: Enumerating available devices in performance order...");
+    }
+
+    const DataBlock *gpuCfg = dxCfg->getBlockByName("gpuPreferences");
+    const ComPtr<IDXGIOutput> output = get_output_monitor_from_settings();
+    for (UINT index = 0;; ++index)
+    {
+      ComPtr<DXGIAdapter> adapter;
+      if (api_state.dxgiFactory->EnumAdapterByGpuPreference(index, gpuPreference, COM_ARGS(&adapter)) == DXGI_ERROR_NOT_FOUND)
+        break;
+
+      ProbedAdapterInfo adapterInfo;
+      if (APISupport::FULL_SUPPORT != precheck_adapter(adapter, gpuCfg, adapterInfo))
+        continue;
+
+      watchdog_kick();
+      if (init_device(eastl::move(adapter), output))
+        break;
     }
   }
 
@@ -1893,24 +1803,24 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       return 1;
     }
 #endif
-    case Drv3dCommand::PIX_GPU_BEGIN_CAPTURE:
+    case Drv3dCommand::GPU_BEGIN_CAPTURE:
 #if _TARGET_XBOX
       api_state.device.getContext().flushDraws();
 #endif
       api_state.device.getContext().beginCapture(reinterpret_cast<uintptr_t>(par1), reinterpret_cast<LPCWSTR>(par2));
       return 1;
-    case Drv3dCommand::PIX_GPU_END_CAPTURE:
+    case Drv3dCommand::GPU_END_CAPTURE:
 #if _TARGET_XBOX
       api_state.device.getContext().flushDraws();
 #endif
       api_state.device.getContext().endCapture();
       return 1;
-    case Drv3dCommand::PIX_GPU_CAPTURE_NEXT_FRAMES:
+    case Drv3dCommand::GPU_CAPTURE_NEXT_FRAMES:
       api_state.device.getContext().captureNextFrames(reinterpret_cast<uintptr_t>(par1), reinterpret_cast<LPCWSTR>(par2),
         reinterpret_cast<uintptr_t>(par3));
       return 1;
 #if DX12_CAPTURE_AFTER_LONG_FRAMES
-    case Drv3dCommand::PIX_GPU_CAPTURE_AFTER_LONG_FRAMES:
+    case Drv3dCommand::GPU_CAPTURE_AFTER_LONG_FRAMES:
     {
       const CaptureAfterLongFrameParams *params = reinterpret_cast<const CaptureAfterLongFrameParams *>(par1);
       api_state.device.getContext().captureAfterLongFrames(params->thresholdUS, params->frames, params->captureCountLimit,
@@ -3258,6 +3168,9 @@ bool d3d::update_screen(uint32_t frame_id, [[maybe_unused]] bool app_active)
   auto &ctx = api_state.device.getContext();
   api_state.state.onFrameEnd(ctx);
 
+#if _TARGET_PC_WIN
+  flip_nudge_on_frame((HWND)api_state.windowState.params.hwnd);
+#endif
   ctx.finishFrame(frame_id);
   api_state.device.processDebugLog();
 
@@ -3517,6 +3430,14 @@ bool d3d::multi_draw_indirect(int prim_type, Sbuffer *args, uint32_t draw_count,
   return true;
 }
 
+// The workaround reads the args on the CPU, so it takes only args that the CPU writes: a dynamic buffer without UAV access
+static bool buffer_allows_tessellation_draw_id_workaround(GenericBufferInterface *buffer, const BufferReference &buffer_ref,
+  uint32_t stride_bytes, uint32_t offset_in_record)
+{
+  return buffer_ref.cpuPointer() && (buffer->getFlags() & (SBCF_DYNAMIC | SBCF_BIND_UNORDERED)) == SBCF_DYNAMIC &&
+         stride_bytes >= sizeof(DrawIndexedIndirectArgsWithId) && 0 == offset_in_record;
+}
+
 bool d3d::multi_draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t draw_count, uint32_t stride_bytes, uint32_t byte_offset)
 {
   STORE_RETURN_ADDRESS();
@@ -3541,14 +3462,22 @@ bool d3d::multi_draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t dra
   ScopedCommitLock ctxLock{api_state.device.getContext()};
   buffer->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsIndirectBuffer(); });
 
+  BufferReference anyBufferRef = get_any_buffer_ref(buffer);
   BufferResourceReferenceAndRange bufferRef //
-    {get_any_buffer_ref(buffer), byte_offset, draw_count * stride_bytes};
+    {anyBufferRef, byte_offset, draw_count * stride_bytes};
 
   if (!api_state.state.flushGraphics(api_state.device, FrontendState::GraphicsMode::DRAW_INDEXED))
   {
     return false;
   }
-  api_state.device.getContext().drawIndexedIndirect(topology, draw_count, bufferRef, stride_bytes);
+
+  uint32_t offsetInRecord = stride_bytes ? byte_offset % stride_bytes : 0;
+  if (api_state.device.getDriverDesc().issues.hasBrokenTessellationDrawID &&
+      buffer_allows_tessellation_draw_id_workaround(buffer, anyBufferRef, stride_bytes, offsetInRecord))
+    api_state.device.getContext().drawIndexedIndirectTessellationWorkaround(topology, draw_count, bufferRef, stride_bytes,
+      anyBufferRef.cpuPointer() + byte_offset);
+  else
+    api_state.device.getContext().drawIndexedIndirect(topology, draw_count, bufferRef, stride_bytes, offsetInRecord);
 
   Stat3D::updateDrawPrim();
   return true;
@@ -3922,7 +3851,7 @@ Vbuffer *d3d::create_vb(int size, int flg, const char *name, ResourceTagType tag
 
   D3D_CONTRACT_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_VERTEX | SBCF_BIND_SHADER_RES)) == 0);
   validate_sbuffer_flags(flg | SBCF_BIND_VERTEX, name);
-  return api_state.device.newBufferObject(0, size, flg | SBCF_BIND_VERTEX, 0, name, tag);
+  return api_state.device.newBufferObject((flg & SBCF_MISC_ALLOW_RAW) ? 1 : 0, size, flg | SBCF_BIND_VERTEX, 0, name, tag);
 }
 
 Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name, ResourceTagType tag)
@@ -3935,7 +3864,7 @@ Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name, ResourceTagTyp
 
   D3D_CONTRACT_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES)) == 0);
   validate_sbuffer_flags(flg | SBCF_BIND_INDEX, stat_name);
-  return api_state.device.newBufferObject(0, size, flg | SBCF_BIND_INDEX, 0, stat_name, tag);
+  return api_state.device.newBufferObject((flg & SBCF_MISC_ALLOW_RAW) ? 1 : 0, size, flg | SBCF_BIND_INDEX, 0, stat_name, tag);
 }
 
 Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char *name, ResourceTagType tag)
@@ -4242,18 +4171,8 @@ APISupport get_dx12_support_status(ProbedAdapterInfo &out_adapter)
     return APISupport::OUTDATED_OS;
   }
 
-  Direct3D12Enviroment d3d12Env;
-  if (!d3d12Env.setup())
-  {
+  if (!setup_pre_device_state())
     return APISupport::NO_DEVICE_FOUND;
-  }
-
-  ComPtr<DXGIFactory> dxgiFactory;
-  if (auto hr = d3d12Env.CreateDXGIFactory2(0, COM_ARGS(&dxgiFactory)); FAILED(hr))
-  {
-    logdbg("DX12: CreateDXGIFactory2 for DXGI 1.7 interface failed, %s", dxgi_error_code_to_string(hr));
-    return APISupport::NO_DEVICE_FOUND;
-  }
 
   auto featureLevel = make_feature_level(dxCfg.getInt("FeatureLevelMajor", min_major_feature_level),
     dxCfg.getInt("FeatureLevelMinor", min_minor_feature_level));
@@ -4265,18 +4184,28 @@ APISupport get_dx12_support_status(ProbedAdapterInfo &out_adapter)
   UINT index = 0;
   ComPtr<DXGIAdapter> adapter;
   APISupport apiSupport = APISupport::NO_DEVICE_FOUND;
-  if (auto hr = dxgiFactory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, COM_ARGS(&adapter));
+  if (auto hr = api_state.dxgiFactory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, COM_ARGS(&adapter));
       hr != DXGI_ERROR_NOT_FOUND)
   {
-    apiSupport = check_adapter(d3d12Env, featureLevel, gpuCfg, adapter, out_adapter);
+    apiSupport = probe_adapter(api_state.d3d12Env, featureLevel, gpuCfg, adapter, out_adapter);
     if (apiSupport != APISupport::FULL_SUPPORT)
     {
       logdbg("DX12: No viable device found, DX12 is unavailable!");
+    }
+    else
+    {
+      logdbg("DX12: Keeping the probe device for init_video.");
     }
   }
   else
   {
     logdbg("DX12: EnumAdapterByGpuPreference failed, 0x%08X %s", hr, dxgi_error_code_to_string(hr));
+  }
+
+  if (apiSupport != APISupport::FULL_SUPPORT)
+  {
+    adapter.Reset();
+    api_state.releasePreDeviceState();
   }
 
   return apiSupport;
@@ -4375,13 +4304,9 @@ void validate_buffer_barrier(ResourceBarrier barrier, GpuPipeline q)
   if (RB_NONE == barrier)
     return;
 
-  if (RB_NONE != ((RB_ALIAS_FROM | RB_ALIAS_TO | RB_ALIAS_TO_AND_DISCARD | RB_ALIAS_ALL) & barrier))
+  if (RB_NONE != ((RB_ALIAS_FROM | RB_ALIAS_TO | RB_ALIAS_TO_AND_DISCARD) & barrier))
   {
-    // flush is a special case and can end up in buffer enum, with the single barrier parameter constructor.
-    if (RB_ALIAS_ALL != barrier)
-    {
-      D3D_CONTRACT_ERROR("DX12: Aliasing barriers are not needed for buffers");
-    }
+    D3D_CONTRACT_ERROR("DX12: Aliasing barriers are not needed for buffers");
     return;
   }
 
@@ -4503,12 +4428,11 @@ bool validate_texture_barrier(ResourceBarrier barrier, bool is_depth, bool is_rt
     isOkayToExecute = false;
   };
 
-  if (RB_NONE != ((RB_ALIAS_FROM | RB_ALIAS_TO | RB_ALIAS_TO_AND_DISCARD | RB_ALIAS_ALL) & barrier))
+  if (RB_NONE != ((RB_ALIAS_FROM | RB_ALIAS_TO | RB_ALIAS_TO_AND_DISCARD) & barrier))
   {
-    if ((RB_ALIAS_FROM != barrier) && (RB_ALIAS_TO != barrier) && (RB_ALIAS_TO_AND_DISCARD != barrier) && (RB_ALIAS_ALL != barrier))
+    if ((RB_ALIAS_FROM != barrier) && (RB_ALIAS_TO != barrier) && (RB_ALIAS_TO_AND_DISCARD != barrier))
     {
-      reportError("DX12: Aliasing barriers can only RB_ALIAS_FROM, RB_ALIAS_TO, "
-                  "RB_ALIAS_TO_AND_DISCARD or RB_ALIAS_ALL");
+      reportError("DX12: Aliasing barriers can only be RB_ALIAS_FROM, RB_ALIAS_TO or RB_ALIAS_TO_AND_DISCARD");
     }
   }
 

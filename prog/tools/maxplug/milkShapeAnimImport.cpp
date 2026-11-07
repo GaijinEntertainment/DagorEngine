@@ -320,7 +320,7 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
     missingNodes.Append(1, (TCHAR *)_T(""));
     TSTR msg;
     msg = _T("Missing bones:\n");
-    msg += &missingNodes[0];
+    msg += missingNodes.data();
     MessageBox(hpanel, msg, _T("Milkshape animation import"), MB_OK);
   }
   else
@@ -413,7 +413,7 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
         tabAppend(s, std::format(L"biped.setTransform $'{}' #rotation (quat {:g} {:g} {:g} {:g}) true\n", name, q.x, q.y, q.z, q.w));
       }
 
-      ExecuteMAXScriptScript(&s[0], MAXScript::ScriptSource::NotSpecified);
+      ExecuteMAXScriptScript(s.data(), MAXScript::ScriptSource::NotSpecified);
     }
   }
 

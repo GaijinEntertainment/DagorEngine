@@ -246,20 +246,15 @@ float resolve_offset_val(const Element *elem, const Sqrat::Object &o)
   if (tp & SQOBJECT_NUMERIC)
     return o.Cast<float>();
 
-  if (tp == OT_USERDATA)
+  if (tp == OT_USERPOINTER)
   {
-    SizeSpec *ss = NULL;
-    HSQOBJECT hObj = o.GetObject();
-    if (SQ_SUCCEEDED(sq_obj_getuserdata(&hObj, (SQUserPointer *)&ss, nullptr)))
+    SizeSpec ss;
+    if (decode_size_spec(script_cast_to_userpointer(o), ss))
     {
-      G_ASSERT(ss);
-      if (ss)
-      {
-        if (elem && ss->mode == SizeSpec::FONT_H)
-          return elem->calcFontHeightPercent(ss->value);
-        else
-          G_ASSERTF(0, "Unsupported size mode %d", ss->mode);
-      }
+      if (elem && ss.mode == SizeSpec::FONT_H)
+        return elem->calcFontHeightPercent(ss.value);
+      else
+        G_ASSERTF(0, "Unsupported size mode %d", ss.mode);
     }
     else
       G_ASSERT(0);
@@ -278,7 +273,7 @@ bool script_parse_offsets(const Element *elem, const Sqrat::Object &obj, float o
   {
     out_val[0] = out_val[1] = out_val[2] = out_val[3] = obj.Cast<float>();
   }
-  else if (tp == OT_USERDATA)
+  else if (tp == OT_USERPOINTER)
   {
     out_val[0] = out_val[1] = out_val[2] = out_val[3] = resolve_offset_val(elem, obj);
   }
@@ -309,7 +304,7 @@ bool script_parse_offsets(const Element *elem, const Sqrat::Object &obj, float o
   {
     memset(out_val, 0, sizeof(float) * 4);
     if (err_msg)
-      *err_msg = "Unexpected offset type. Expected numeric, array or user data";
+      *err_msg = "Unexpected offset type. Expected numeric, array or user pointer";
     return false;
   }
   return true;

@@ -136,4 +136,6 @@ void init_entity_filter_service()
       EntityFilterService("game_spline", "_rend_game_spline", "(filter) Show 'Export to game' splines", false, false, true, false));
   IDaEditor3Engine::get().registerService(
     new (inimem) EntityFilterService("ground_obj", "_rend_ground_obj", "(filter) Show ground objects", false, false, true, false));
+  IDaEditor3Engine::get().registerService(new (inimem)
+      EntityFilterService("loft_tagged", "_rend_loft_tagged", "(filter) Show loft tagged geometry", false, false, true, false));
 }

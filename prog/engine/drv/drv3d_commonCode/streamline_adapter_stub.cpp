@@ -66,3 +66,4 @@ eastl::optional<Reflex::State> Reflex::getState() const { return eastl::nullopt;
 bool Reflex::sleep(uint32_t) { return false; }
 void Reflex::startFrame(uint32_t) {}
 bool Reflex::setMarker(uint32_t, lowlatency::LatencyMarkerType) { return false; }
+uint32_t Reflex::getPingMessage() const { return 0; }

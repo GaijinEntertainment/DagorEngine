@@ -33,7 +33,6 @@ extern unsigned char unix_hid_scancode_to_key[256];
 #if _TARGET_PC_WIN
 #include <osApiWrappers/dag_unicode.h>
 #include <workCycle/threadedWindow.h>
-#include <generic/dag_smallTab.h>
 #include <hidusage.h>
 #include <stdio.h>
 static STICKYKEYS kbd_saved_sticky_keys = {sizeof(STICKYKEYS), 0};

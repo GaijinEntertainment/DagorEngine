@@ -8,6 +8,7 @@
 #include <EASTL/vector.h>
 #include <EASTL/array.h>
 #include <EASTL/string.h>
+#include <EASTL/string_view.h>
 #include <hash/wyhash.h>
 #include <util/dag_generationRefId.h>
 #include <generic/dag_functionRef.h>
@@ -18,6 +19,7 @@ class D3dResource;
 struct Frustum;
 class Occlusion;
 class BaseTexture;
+struct BaseEffectEnabled;
 struct mat44f;
 class BBox3;
 
@@ -205,9 +207,9 @@ enum class SortingType : int
 
 struct CullingDesc
 {
-  CullingDesc(const eastl::string &t, SortingType s, int vrs_rate = 0, float screen_discard_threshold = 0,
+  CullingDesc(eastl::string_view t, SortingType s, int vrs_rate = 0, float screen_discard_threshold = 0,
     bool disable_occlusion = false) :
-    tag(t),
+    tag(t.data(), t.size()),
     sortingType(s),
     vrsRate(vrs_rate),
     screenAreaDiscardThreshold(screen_discard_threshold),
@@ -228,6 +230,7 @@ struct SystemDesc
     FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD = 1 << 0,
     FLAG_DISABLE_SIM_LODS = 1 << 1,
     FLAG_DISABLE_CULLING = 1 << 2,
+    FLAG_DISABLE_OCCLUSION = 1 << 3,
   };
 
   EmitterData emitterData;
@@ -292,13 +295,12 @@ bool prefetch_system_textures(ContextId cid, SystemId sys_id);
 InstanceId create_instance(ContextId cid, SystemId sid);
 InstanceId create_instance(ContextId cid, const eastl::string &name);
 void destroy_instance(ContextId cid, InstanceId &iid);
-void reset_instance(ContextId cid, InstanceId iid);
 // pre-simulates the instance so it appears mid-playing. time < 0 = auto: one full particle
 // lifetime, i.e. to steady state. per_instance_mode/step_dt: see Config warmup fields.
 void warmup_instance(ContextId cid, InstanceId iid, float time, bool per_instance_mode = false, float step_dt = 0.f);
 void clear_instances(ContextId cid, int keep_allocated_count); // pass keep_allocated_count = 0 for complete memory shrink
 
-CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &descs, uint32_t visibilityMask = 0xffffffff);
+CullingId create_culling_state(ContextId cid, dag::ConstSpan<CullingDesc> descs, uint32_t visibilityMask = 0xffffffff);
 CullingId create_proxy_culling_state(ContextId cid);
 void destroy_culling_state(ContextId cid, CullingId &cull_id);
 void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustum, const Point3 &view_pos,
@@ -308,14 +310,14 @@ void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustu
 void update_instances_culling_state(ContextId cid, CullingId cullid, dag::ConstSpan<InstanceId> iids, const Frustum &frustum,
   const mat44f *globtm, const Point3 &view_pos, OcclusionSyncWaitFunc occlusion_sync_wait_f = {});
 void clear_culling_state(ContextId cid, CullingId cullid);
-void remap_culling_state_tag(ContextId cid, CullingId cullid, const eastl::string &from, const eastl::string &to); // pass same values
-                                                                                                                   // to reset remap
+void remap_culling_state_tag(ContextId cid, CullingId cullid, eastl::string_view from, eastl::string_view to); // pass same values
+                                                                                                               // to reset remap
 uint32_t inverse_remap_tags_mask(ContextId cid, uint32_t tags_mask);
-int fetch_culling_state_visible_count(ContextId cid, CullingId cullid, const eastl::string &tag);
+int fetch_culling_state_visible_count(ContextId cid, CullingId cullid, eastl::string_view tag);
 void partition_workers_if_outside_sphere(ContextId cid, CullingId cull_id_from, CullingId cull_id_to,
-  const eastl::vector<eastl::string> &tags, Point4 sphere);
+  dag::ConstSpan<eastl::string_view> tags, Point4 sphere);
 void partition_workers_if_inside_sphere(ContextId cid, CullingId cull_id_from, CullingId cull_id_to,
-  const eastl::vector<eastl::string> &tags, Point4 sphere);
+  dag::ConstSpan<eastl::string_view> tags, Point4 sphere);
 
 void set_was_inactive(ContextId cid);
 void start_update(ContextId cid, float dt, bool update_gpu = true, bool tp_wake_up = true);
@@ -335,8 +337,8 @@ void updateDafxFrameBounds(ContextId cid);
 using TextureCallback = void (*)(TEXTUREID);
 
 void before_render(ContextId cid, uint32_t tags_mask = 0xFFFFFFFF);
-void before_render(ContextId cid, const eastl::vector<eastl::string> &tags_name);
-bool render(ContextId ctx_id, CullingId cull_id, const eastl::string &tag, float mip_bias, TextureCallback tc = nullptr,
+void before_render(ContextId cid, dag::ConstSpan<eastl::string_view> tags_name);
+bool render(ContextId ctx_id, CullingId cull_id, eastl::string_view tag, float mip_bias, TextureCallback tc = nullptr,
   float reduced_render = 1.f);
 void reset_samplers_cache(ContextId cid);
 
@@ -361,7 +363,7 @@ void set_subinstance_value_from_system(ContextId cid, InstanceId iid, int sub_id
   dag::Span<const float> scale_vec = {} /*optional: assumes target and scale values are floats*/);
 void set_instance_pos(ContextId cid, InstanceId iid, const Point4 &pos); // for sorting and distance based emitters
 void set_instance_emission_rate(ContextId cid, InstanceId iid, float v);
-void set_instance_status(ContextId cid, InstanceId iid, bool enabled, float distance = 0);
+void set_instance_status(ContextId cid, InstanceId iid, const BaseEffectEnabled &dafxe);
 bool get_instance_status(ContextId cid, InstanceId iid);
 void set_instance_visibility(ContextId cid, InstanceId iid, uint32_t visibility);
 bool is_instance_renderable_active(ContextId cid, InstanceId iid);
@@ -419,6 +421,7 @@ struct Config
   int render_buffer_start_size = 512 * 1024;
 
   bool sim_lods_enabled = false;
+  bool sim_lods_for_player_instances = true;
   bool gen_sim_lods_for_invisible_instances = false;
   bool gen_sim_lods_based_on_distance = false; // distance + proj bbox radius weight function
   float min_sim_lod_dt_tick = 1.f / 5.f;       // default: 5 ticks per second (5fps)
@@ -542,7 +545,6 @@ struct Stats
   {
     int createInstance;
     int destroyInstance;
-    int resetInstance;
     int setInstancePos;
     int setInstanceStatus;
     int setInstanceEmissionRate;

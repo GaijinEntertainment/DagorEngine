@@ -6,13 +6,16 @@
 
 #include <drv/3d/dag_resId.h>
 #include <3d/dag_resPtr.h>
+#include <generic/dag_functionRef.h>
 #include <generic/dag_tabFwd.h>
 #include <EditorCore/ec_interface_ex.h>
 
 class DataBlock;
 class ViewportWindow;
 class DynamicRenderableSceneInstance;
+class Point3;
 class TexStreamingContext;
+class TMatrix;
 struct DemonPostFxSettings;
 struct Color4;
 
@@ -114,6 +117,24 @@ public:
 
   virtual void renderOneDynModelInstance(DynamicRenderableSceneInstance *sceneInstance, Stage stage, int *optional_inst_seed = nullptr,
     bool raw_render = false) = 0;
+
+  // False when renderIsolated() returns empty for every call.
+  virtual bool canRenderIsolated() const { return false; }
+
+  // Returns a new A8R8G8B8 texture with only what render_opaque draws into the bound gbuffer, and alpha 1 only where it
+  // drew. The texture is sRGB encoded, so read it as display ready colors.
+  // The scene sun and environment light the drawn objects, with no SSAO or SSR. Shadows, exposure and tonemap depend on
+  // the renderer.
+  // Returns empty when not supported. A renderer can also return empty while the scene is not ready to render (see
+  // isEnvironmentLightingReady()).
+  // render_opaque adds world_offset to each position it draws: a renderer can move the render away from the scene, so
+  // that its world space data (for example static shadows) does not show on it.
+  virtual TexPtr renderIsolated(int width, int height, const TMatrix &view_itm, const Driver3dPerspective &persp,
+    dag::FunctionRef<void(const Point3 &world_offset)> render_opaque) = 0;
+
+  // Returns false while the scene is not ready to render or the environment light is not up to date, for example
+  // shortly after the project load. A render made then is empty or has a wrong ambient light.
+  virtual bool isEnvironmentLightingReady() { return true; }
 
   virtual void invalidateEditorClipmap() {}
   virtual void updateEditorLandmesh() {}

@@ -81,7 +81,7 @@ Example of the request message received from the Game Client via WebSocket:
     "method" : "profileSvc.changeProfileName", # length: [1..100]; ASCII ([a-zA-Z0-9_.]+)
     "params" : {                          # object; required
         "projectId"       : "enlisted_pc",# string; optional; length: [1..100]; ASCII ([a-z0-9_]+)
-        "profileId"       : "2345",       # string; optional; currently non-negative int64; ASCII
+        "profileId"       : "2345",       # string; optional; currently positive int64; ASCII
         "transactId"      : "6544",       # string; required; currently non-negative int64; ASCII;
                                           # negative values are reserved for special requests; -1 is always invalid
         "actionParams"    : {             # object; optional; method specific params; ASCII
@@ -157,8 +157,10 @@ Compressed part of the message consists of one or more separate compressed frame
 It is expected from the Game Client to start graceful reconnect
 to another service after receiving this kind of notification.
 
-The SEP server will provide only very limited time to reconnect
-before it will forcibly close the WebSocket connection.
+The SEP server keeps the WebSocket connection operational until either
+all clients disconnect or the configured shutdown grace period ends.
+The default period is 60000 ms. Remaining connections are then closed
+with the `service_restart` WebSocket close code.
 
 ```yaml
 {

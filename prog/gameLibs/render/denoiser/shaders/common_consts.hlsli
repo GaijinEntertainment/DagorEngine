@@ -5,4 +5,7 @@
 #define CAMERA_ATTACHED_REFLECTION_MATERIAL_ID 1
 #define STRAND_MATERIAL_ID 2
 
+// The denoisers do not write a texel further than this
+#define DENOISING_RANGE 100000
+
 #endif // __DENOISER_COMMON_CONSTS_HLSLI__

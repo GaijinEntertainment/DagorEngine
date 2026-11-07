@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "uiRender.h"
-#include "userUi.h"
 #include "ui/overlay.h"
 #include "render/world/dargPanelAnchorResolve.h"
 #include <gui/dag_stdGuiRender.h>
@@ -37,15 +36,10 @@ bool multithreaded = true;
 all_darg_scenes_t get_all_scenes()
 {
   all_darg_scenes_t scenes;
-  if (auto gscn = user_ui::gui_scene.get())
-    scenes.push_back(gscn);
   if (auto oscn = overlay_ui::gui_scene())
     scenes.push_back(oscn);
   return scenes;
 }
-
-
-bool has_scenes() { return overlay_ui::gui_scene() || user_ui::gui_scene.get(); }
 
 
 static struct UIRenderJob final : public cpujobs::IJob
@@ -165,25 +159,21 @@ void prepare_to_start_ui_before_render_job()
     sqvm_register_critical_section(scn->getScriptVM(), ui_render_job.critSec);
 }
 
-void start_ui_before_render_job()
+void start_ui_before_render_job(bool wake)
 {
-  if (beforeRenderMultithreaded)
-  {
-    if (is_main_thread())
-      sqeventbus::set_mtsafe_mode(true);
-    using namespace threadpool;
-    uint32_t _1;
-    add(&ui_before_render_job, PRIO_LOW, _1, AddFlags::WakeOnAdd | AddFlags::IgnoreNotDone);
-  }
+  if (!beforeRenderMultithreaded)
+    return;
+  if (is_main_thread())
+    sqeventbus::set_mtsafe_mode(true);
+  using namespace threadpool;
+  uint32_t _1;
+  add(&ui_before_render_job, PRIO_LOW, _1, (wake ? AddFlags::WakeOnAdd : AddFlags::None) | AddFlags::IgnoreNotDone);
 }
 
 void skip_ui_render_job()
 {
   if (beforeRenderMultithreaded)
     G_VERIFY(interlocked_exchange(ui_render_job.done, 1) == 0); // Since we resetted it on `ui_before_render_job` start
-  if (multithreaded)
-    for (darg::IGuiScene *scn : get_all_scenes())
-      sqvm_unregister_critical_section(scn->getScriptVM());
 }
 
 void update_all_gui_scenes_mainthread(float dt)
@@ -237,9 +227,9 @@ void before_render(float dt, const TMatrix &view_itm, const TMatrix &view_tm, co
 
 void init()
 {
-  multithreaded = ::dgs_get_settings()->getBlockByNameEx("ui")->getBool("multithreaded", true) && threadpool::get_num_workers() > 0;
-  beforeRenderMultithreaded =
-    ::dgs_get_settings()->getBlockByNameEx("ui")->getBool("beforeRenderMultithreaded", true) && threadpool::get_num_workers() > 0;
+  const DataBlock *uiBlk = ::dgs_get_settings()->getBlockByNameEx("ui");
+  multithreaded = uiBlk->getBool("multithreaded", true) && threadpool::get_num_workers() > 0;
+  beforeRenderMultithreaded = uiBlk->getBool("beforeRenderMultithreaded", true) && threadpool::get_num_workers() > 0;
 }
 
 

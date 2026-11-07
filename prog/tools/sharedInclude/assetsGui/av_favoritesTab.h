@@ -29,9 +29,14 @@ public:
 
   void setSelectedAsset(const DagorAsset *asset) { favoritesTree.setSelectedAsset(asset); }
 
-  void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets)
+  void setSelectedAssetFolder(const DagorAssetFolder &folder) { favoritesTree.setSelectedAssetFolder(folder); }
+
+  // sub_folders: the subfolders of the current folder.
+  // Returns the folder whose direct assets were appended, or nullptr when there is none.
+  DagorAssetFolder *getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets,
+    dag::Vector<DagorAssetFolder *> &sub_folders)
   {
-    favoritesTree.getFilteredAssetsFromTheCurrentFolder(assets);
+    return favoritesTree.getFilteredAssetsFromTheCurrentFolder(assets, sub_folders);
   }
 
   void onAllowedTypesChanged(dag::ConstSpan<int> allowed_type_indexes)

@@ -15,7 +15,9 @@
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_info.h>
 
+#include <util/dag_finally.h>
 #include <util/dag_string.h>
+#include <util/dag_strUtil.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_DObject.h>
@@ -47,7 +49,18 @@
 #include <shaders/dag_renderStateId.h>
 // #include <EASTL/shared_ptr.h>
 #include <ioSys/dag_memIo.h>
-// #include "hashSaver.h"
+#include <ctype.h>
+
+namespace
+{
+TextureGenCommandSync texgen_command_sync = TextureGenCommandSync::FlushAndWait;
+int texgen_max_tile_size = 0;
+} // namespace
+
+void texgen_set_command_sync(TextureGenCommandSync mode) { texgen_command_sync = mode; }
+// Tiny tiles make millions of commands per node.
+void texgen_set_max_tile_size(int size) { texgen_max_tile_size = size > 0 ? max(size, 64) : 0; }
+int texgen_get_max_tile_size() { return texgen_max_tile_size; }
 
 
 struct ParticleStruct
@@ -72,12 +85,11 @@ struct ParticleStruct
 
 static int create_constants_param_block(DataBlock &params, const DataBlock &params_, TextureGenLogger &logger);
 
-typedef char sha1_string_type[25];
+typedef char sha1_string_type[20 * 2 + 1];
 
 struct VprogCached
 {
   VPROG vprog = BAD_VPROG;
-  sha1_string_type sha1 = {0};
 
   ~VprogCached() { close(); }
 
@@ -86,13 +98,11 @@ struct VprogCached
     if (vprog != BAD_VPROG)
       d3d::delete_vertex_shader(vprog);
     vprog = BAD_VPROG;
-    sha1[0] = 0;
   }
 };
 
 static VprogCached common_vprog, common_particles_vprog;
 static VDECL common_vdecl = BAD_VDECL;
-static Sbuffer *particlesInstancesIndirect = 0;
 static Sbuffer *textureParamsCB = 0;
 // Node params for dsc2-compiled (dshl) variants are bound at b3 via set_const_buffer; the legacy
 // set_ps_const(0)->b0 path is not honored for a set_program-bound dsc2 element. Sized well above any
@@ -113,6 +123,68 @@ static void create_biggest_depth(int w, int h)
 }
 
 static constexpr int MAX_PARAMS_SIZE = 128;
+
+static bool is_param_read_by_cpp(const char *name)
+{
+  for (const char *cppParam : {"maxSubStepSize", "entitiesNames", "saveEntitiesToFile", "shader_postcode"})
+    if (strcmp(cppParam, name) == 0)
+      return true;
+  return false;
+}
+
+static bool is_ident_char(char c) { return isalnum((unsigned char)c) || c == '_'; }
+
+static const char *skip_blanks(const char *p)
+{
+  while (*p == ' ' || *p == '\t')
+    p++;
+  return p;
+}
+
+static void blank_comments(String &text)
+{
+  for (char *p = text.data(); *p; p++)
+  {
+    if (p[0] != '/' || (p[1] != '/' && p[1] != '*'))
+      continue;
+    const char *end = p[1] == '/' ? strchr(p, '\n') : strstr(p + 2, "*/");
+    char *stop = end ? (char *)end + (p[1] == '*' ? 2 : 0) : p + strlen(p);
+    memset(p, ' ', stop - p);
+    p = stop - 1;
+  }
+}
+
+static bool param_is_only_copied(const char *text, const char *name)
+{
+  const int len = (int)strlen(name);
+  bool copied = false;
+  for (const char *p = strstr(text, name); p; p = strstr(p + len, name))
+  {
+    if ((p > text && is_ident_char(p[-1])) || is_ident_char(p[len]))
+      continue;
+    const char *next = skip_blanks(p + len);
+    const char *prev = p;
+    while (prev > text && (prev[-1] == ' ' || prev[-1] == '\t'))
+      prev--;
+    const char *word = prev;
+    while (word > text && is_ident_char(word[-1]))
+      word--;
+    if (*next == ';' && word < prev && !(prev - word == 6 && strncmp(word, "return", 6) == 0))
+      continue;
+    if (prev > text && prev[-1] == '.' && *next == '=' && next[1] != '=')
+    {
+      const char *src = skip_blanks(next + 1);
+      if (strncmp(src, name, len) == 0 && *skip_blanks(src + len) == ';')
+      {
+        copied = true;
+        p = src;
+      }
+      continue;
+    }
+    return false;
+  }
+  return copied;
+}
 
 class CachedShader // todo: replace with shared_ptr
 {
@@ -166,15 +238,8 @@ protected:
 };
 
 static eastl::hash_map<eastl::string, eastl::unique_ptr<CachedShader>> cached_shaders;
-static void make_sha1_string(const void *buf, int len, sha1_string_type result);
 
 static eastl::hash_map<eastl::string, sha1_string_type> cached_blk_shaders;
-
-static void prune_cache()
-{
-  cached_blk_shaders.clear();
-  cached_shaders.clear();
-}
 
 static void remove_unused_shaders_from_cache()
 {
@@ -198,33 +263,7 @@ static void make_sha1_string(const void *buf, int len, sha1_string_type sha1_str
   sha1_starts(&ctx);
   sha1_update(&ctx, (const unsigned char *)buf, len);
   sha1_finish(&ctx, sha1_output);
-  sha1_string[24] = sha1_string[23] = sha1_string[22] = sha1_string[21] = sha1_string[20] = 0;
-  // convert to c-string.
-  //  minimum C-string will have length of 20 + 20 bits encoded, i.e. 24 bytes length + trailing zero.
-  uint32_t zeros = 0;
-  for (int i = 0; i < 20; ++i)
-  {
-    if (sha1_output[i] == 0)
-    {
-      sha1_string[i] = i + 1;
-      zeros |= (1 << i);
-    }
-    else
-      sha1_string[i] = sha1_output[i];
-  }
-
-  if (zeros)
-    for (int cz = 0, i = 0; i < 4; ++i)
-    {
-      uint8_t byte = zeros & (i ? 0xFF : 0xF);
-      if (byte)
-      {
-        sha1_string[20 + cz] = byte;
-        cz++;
-      }
-      sha1_string[20] |= byte ? (1 << i) : 0;
-      zeros >>= (i ? 8 : 4);
-    }
+  data_to_str_hex_buf(sha1_string, sizeof(sha1_string_type), sha1_output, sizeof(sha1_output));
 }
 
 static CachedShader *add_shader_to_cache(const char *pixel_shader, int len, TextureGenLogger &logger, bool &was_in_cache)
@@ -271,7 +310,7 @@ public:
     void reset()
     {
       shader = 0;
-      prog = BAD_PROGRAM;
+      prog = particlesProg = BAD_PROGRAM;
     }
 
     ShaderCode() : shader(0), prog(BAD_PROGRAM), particlesProg(BAD_PROGRAM) {}
@@ -281,11 +320,13 @@ public:
 
     void close()
     {
+      if (prog != BAD_PROGRAM)
+        d3d::delete_program(prog);
+      if (particlesProg != BAD_PROGRAM)
+        d3d::delete_program(particlesProg);
       if (shader)
         shader->release();
-      shader = NULL;
-      // d3d::delete_program(prog); - autodeleted with fshader
-      prog = particlesProg = BAD_PROGRAM;
+      reset();
     }
   } defShader;
 
@@ -327,10 +368,15 @@ public:
     wrapSampler = d3d::request_sampler(smpInfo);
   }
 
-  void initConstants(const DataBlock &params_, TextureGenLogger &logger)
+  bool initConstants(const DataBlock &params_, TextureGenLogger &logger)
   {
     totalParamsSize = create_constants_param_block(params, params_, logger);
     logger.log(LOGLEVEL_REMARK, String(128, "shader <%s> has %d", name, totalParamsSize));
+    if (totalParamsSize <= MAX_PARAMS_SIZE)
+      return true;
+    logger.log(LOGLEVEL_ERR,
+      String(128, "shader <%s>: the params take %d floats, the limit is %d", name, totalParamsSize, MAX_PARAMS_SIZE));
+    return false;
   }
 
   String enumerateLines(const char *s)
@@ -370,7 +416,8 @@ public:
     if (code.shader)
     {
       code.prog = d3d::create_program(common_vprog.vprog, code.shader->getShader(), common_vdecl);
-      code.particlesProg = d3d::create_program(common_particles_vprog.vprog, code.shader->getShader(), common_vdecl);
+      if (common_particles_vprog.vprog != BAD_VPROG)
+        code.particlesProg = d3d::create_program(common_particles_vprog.vprog, code.shader->getShader(), common_vdecl);
     }
     else
     {
@@ -389,15 +436,52 @@ public:
     premain = premain_;
     shaderCode = shader_code;
     postmain = postmain_;
+    findUnreadParams(shaderPostCode, subst_blk);
     linkShader(shaderPostCode, defShader, subst_blk, logger);
     regs[TSHADER_REG_TYPE_INPUT] = inputs;
     regs[TSHADER_REG_TYPE_OUTPUT] = outputs;
     return defShader.prog != BAD_PROGRAM;
   }
 
+  void findUnreadParams(const char *post_code, const DataBlock *subst_blk)
+  {
+    String text(0, "%s\n%s\n%s", shaderPreMain.str(), shaderCode.str(), post_code);
+    for (int i = 0; subst_blk && i < subst_blk->paramCount(); i++)
+      if (subst_blk->getParamType(i) == DataBlock::TYPE_STRING)
+        text.aprintf(0, "\n%s", subst_blk->getStr(i));
+    blank_comments(text);
+    unreadParams = params;
+    for (int i = 0; i < params.paramCount(); i++)
+      if (!param_is_only_copied(text, params.getParamName(i)))
+        unreadParams.removeParam(params.getParamName(i));
+  }
+
+  void logUnappliedParams(TextureGenLogger &logger, const TextureGenNodeData &data) const
+  {
+    for (int i = 0; i < data.params.paramCount(); i++)
+    {
+      const char *param = data.params.getParamName(i);
+      if (params.findParam(param) < 0 && !is_param_read_by_cpp(param))
+        logger.log(LOGLEVEL_WARN,
+          String(0, "%s node <%s>: the shader has no param '%s', so its value is not applied", name.str(), data.nodeName, param));
+    }
+    if (!unreadParams.paramCount() || data.params.getStr("shader_postcode", nullptr))
+      return;
+    Tab<NameOffset> offsets;
+    create_constant_buffer_offsets(offsets, unreadParams, 0);
+    Tab<Point4> applied, declared;
+    create_constant_buffer(unreadParams, data.params, applied);
+    create_constant_buffer(unreadParams, declared);
+    for (int i = 0; i < offsets.size(); i++)
+      if (memcmp(&applied[0].x + offsets[i].ofs, &declared[0].x + offsets[i].ofs,
+            getDataBlockTypeSize(unreadParams.getParamType(i)) * sizeof(float)) != 0)
+        logger.log(LOGLEVEL_WARN, String(0, "%s node <%s>: the shader does not read its param '%s', so its value is not applied",
+                                    name.str(), data.nodeName, offsets[i].name));
+  }
+
   // Configure this shader to render a precompiled dshl bindump variant (Stage-3 dshl pipeline).
   // Element creation is deferred to the first process() (needs the GPU lock + the loaded bindump).
-  void initDshl(ShaderBindumpHandle bindump, const char *variant_name, const DataBlock *params_blk, int inputs, int outputs,
+  bool initDshl(ShaderBindumpHandle bindump, const char *variant_name, const DataBlock *params_blk, int inputs, int outputs,
     int def_sub_size, TextureGenLogger &logger)
   {
     dshlBindump = bindump;
@@ -405,8 +489,7 @@ public:
     defMaxSubStepSize = def_sub_size;
     regs[TSHADER_REG_TYPE_INPUT] = inputs;
     regs[TSHADER_REG_TYPE_OUTPUT] = outputs;
-    if (params_blk)
-      initConstants(*params_blk, logger);
+    return !params_blk || initConstants(*params_blk, logger);
   }
 
   void ensureDshlElem(TextureGenLogger &logger)
@@ -474,9 +557,11 @@ public:
     }
   }
 
-  unsigned getMaxSubStepSize(const TextureGenNodeData &data) const { return data.params.getInt("maxSubStepSize", defMaxSubStepSize); }
-
-  static unsigned steps_w(int w, int maxSubStepSize) { return ((w + maxSubStepSize - 1) / maxSubStepSize); }
+  unsigned getMaxSubStepSize(const TextureGenNodeData &data) const
+  {
+    const int size = data.params.getInt("maxSubStepSize", defMaxSubStepSize);
+    return texgen_max_tile_size > 0 && !data.particles ? min(size, texgen_max_tile_size) : size;
+  }
 
   unsigned subSteps(const TextureGenNodeData &data) const override
   {
@@ -485,17 +570,23 @@ public:
         return 1;
 
     int maxSubStepSize = getMaxSubStepSize(data);
-    return steps_w(data.nodeW, maxSubStepSize) * steps_w(data.nodeH, maxSubStepSize);
+    return texgen_tiles_per_side(data.nodeW, maxSubStepSize) * texgen_tiles_per_side(data.nodeH, maxSubStepSize);
   }
 
   void getSubStepXY(int &stepX, int &stepY, int &stepW, int &stepH, int subStep, const TextureGenNodeData &data) const
   {
-    int maxSubStepSize = getMaxSubStepSize(data);
-    int stepsW = steps_w(data.nodeW, maxSubStepSize);
-    stepX = (subStep % stepsW) * maxSubStepSize;
-    stepY = (subStep / stepsW) * maxSubStepSize;
-    stepW = min<int>(maxSubStepSize, data.nodeW - stepX);
-    stepH = min<int>(maxSubStepSize, data.nodeH - stepY);
+    texgen_get_tile(data.nodeW, data.nodeH, getMaxSubStepSize(data), subStep, stepX, stepY, stepW, stepH);
+  }
+
+  int subStepPixels(const TextureGenNodeData &data, int sub_step) const override
+  {
+    if (subSteps(data) == 1)
+    {
+      return data.nodeW * data.nodeH;
+    }
+    int stepX = 0, stepY = 0, stepW = 0, stepH = 0;
+    getSubStepXY(stepX, stepY, stepW, stepH, sub_step, data);
+    return stepW * stepH;
   }
 
   virtual bool processAll(TextureGenerator &texGen, TextureRegManager &r, const TextureGenNodeData &data) override
@@ -512,16 +603,28 @@ public:
     dag::ConstSpan<TextureInput> inputs = data.inputs;
     dag::ConstSpan<D3dResource *> outputs = data.outputs;
     Sbuffer *particles = data.particles;
+    Sbuffer *particlesArgs = particles ? regMananger.getParticlesArgs(particles) : nullptr;
+    G_ASSERT_RETURN(!particles || particlesArgs, false);
+    if (subStep <= 0 && *data.nodeName)
+      logUnappliedParams(*texgen_get_logger(&texGen), data);
 
-    if (particles && regMananger.getEntitiesSaver())
+    const char *names = particles && regMananger.getEntitiesSaver() ? data.params.getStr("entitiesNames", "") : "";
+    if (*names)
     {
       G_ASSERT(sizeof(ParticleStruct) == particles->getElementSize());
+      uint32_t *args = nullptr;
+      if (!particlesArgs->lock(0, 0, (void **)&args, VBLOCK_READONLY))
+        return false;
+      const int count = min<uint32_t>(args[1], particles->getNumElements());
+      particlesArgs->unlock();
+
       ParticleStruct *buf = nullptr;
-      if (!particles->lockEx(0, particles->getElementSize() * particles->getNumElements(), (void **)&buf, VBLOCK_READONLY))
+      // a lock of size 0 locks the whole buffer
+      if (count > 0 && !particles->lockEx(0, particles->getElementSize() * count, (void **)&buf, VBLOCK_READONLY))
         return false;
 
       Tab<TextureGenEntity> entities;
-      for (int i = 0; i < particles->getNumElements(); i++)
+      for (int i = 0; i < count; i++)
       {
         TextureGenEntity ent;
         memset(&ent, 0, sizeof(ent));
@@ -537,9 +640,9 @@ public:
           entities.push_back(ent);
       }
 
-      particles->unlock();
+      if (buf)
+        particles->unlock();
 
-      const char *names = data.params.getStr("entitiesNames", "");
       Tab<String> entityNames;
       for (;;)
       {
@@ -576,6 +679,18 @@ public:
     shaders::render_states::set(renderState);
 
     int inputsCnt = min<int>(inputs.size(), getRegCount(TSHADER_REG_TYPE_INPUT));
+    FINALLY([&] {
+      for (int i = 0; i < 8; ++i)
+        d3d::set_rwbuffer(STAGE_PS, i, 0);
+      for (int i = 0; i < inputsCnt; ++i)
+        d3d::settex(i, 0);
+      if (particles)
+        d3d::set_buffer(STAGE_VS, 0, 0);
+      d3d::set_render_target();
+      d3d::set_const_buffer(STAGE_PS, 1, 0);
+      d3d::set_const_buffer(STAGE_PS, 3, 0);
+      shaders::overrides::reset();
+    });
     for (int i = 0; i < inputsCnt; ++i)
     {
       d3d::settex(i, inputs[i].tex);
@@ -592,7 +707,8 @@ public:
       {
         if (!isRegOptional(TSHADER_REG_TYPE_INPUT, i))
         {
-          texgen_get_logger(&texGen)->log(LOGLEVEL_ERR, String(128, "shader <%s> has missing #%d tex input reg, and it is mandatory"));
+          texgen_get_logger(&texGen)->log(LOGLEVEL_ERR,
+            String(128, "shader <%s> has missing #%d tex input reg, and it is mandatory", name.str(), i));
           return false;
         }
         else
@@ -608,16 +724,20 @@ public:
     {
       if (outputs[i] && outputs[i]->getType() == D3DResourceType::SBUF)
       {
-        uint32_t *dataIndirect;
-        d3d_err(particlesInstancesIndirect->lock(0, 0, (void **)&dataIndirect, VBLOCK_WRITEONLY));
+        Sbuffer *args = regMananger.getParticlesArgs(outputs[i]);
+        G_ASSERT_RETURN(args, false);
+        uint32_t *dataIndirect = nullptr;
+        d3d_err(args->lock(0, 0, (void **)&dataIndirect, VBLOCK_WRITEONLY));
+        if (!dataIndirect)
+          return false;
         dataIndirect[0] = 6;
         dataIndirect[1] = 0;
         dataIndirect[2] = 0;
         dataIndirect[3] = 0;
-        particlesInstancesIndirect->unlock();
+        args->unlock();
 
         d3d::set_rwbuffer(STAGE_PS, 7 - particlesOut, (Sbuffer *)outputs[i]);
-        d3d::set_rwbuffer(STAGE_PS, 6 - particlesOut, particlesInstancesIndirect);
+        d3d::set_rwbuffer(STAGE_PS, 6 - particlesOut, args);
         particlesOut += 2;
         continue;
       }
@@ -677,23 +797,23 @@ public:
     }
     else
     {
+      PROGRAM program = particles ? defShader.particlesProg : defShader.prog;
       const char *shader_postcode = params_override.getStr("shader_postcode", NULL);
       if (shader_postcode)
       {
         auto shaderFound = shaders.find_as(shader_postcode);
         if (shaderFound != shaders.end())
         {
-          d3d::set_program(shaderFound->second.prog == BAD_PROGRAM
-                             ? (particles ? defShader.particlesProg : defShader.prog)
-                             : (particles ? shaderFound->second.particlesProg : shaderFound->second.prog));
+          if (shaderFound->second.prog != BAD_PROGRAM)
+            program = particles ? shaderFound->second.particlesProg : shaderFound->second.prog;
         }
         else
         {
           ShaderCode code;
           if (linkShader(shader_postcode, code, params_override.getBlockByName("substitutions"), *texgen_get_logger(&texGen)))
           {
+            program = particles ? code.particlesProg : code.prog;
             shaders[shader_postcode] = eastl::move(code);
-            d3d::set_program(particles ? code.particlesProg : code.prog);
             code.reset();
           }
           else
@@ -704,8 +824,13 @@ public:
           }
         }
       }
-      else
-        d3d::set_program(particles ? defShader.particlesProg : defShader.prog);
+      if (program == BAD_PROGRAM)
+      {
+        texgen_get_logger(&texGen)->log(LOGLEVEL_ERR,
+          String(128, "shader <%s> has no %sprogram", name.str(), particles ? "particles " : ""));
+        return false;
+      }
+      d3d::set_program(program);
     }
 
     if (particles && depth && subStep <= 0)
@@ -763,29 +888,17 @@ public:
       d3d::setscissor(stepX, stepY, stepW, stepH);
     }
 
-    if (particles && particlesInstancesIndirect)
+    if (particles)
     {
-      d3d::draw_indirect(PRIM_TRILIST, particlesInstancesIndirect, 0);
+      d3d::draw_indirect(PRIM_TRILIST, particlesArgs, 0);
     }
     else
       d3d::draw(PRIM_TRILIST, 0, 1);
 
-    for (int i = 0; i < 8; ++i)
-      d3d::set_rwbuffer(STAGE_PS, i, 0);
-
-    for (int i = 0; i < inputsCnt; ++i)
-      d3d::settex(i, 0);
-
-    if (particles)
-      d3d::set_buffer(STAGE_VS, 0, 0);
-
-    d3d::set_render_target();
-    d3d::set_const_buffer(STAGE_PS, 1, 0);
-    d3d::set_const_buffer(STAGE_PS, 3, 0);
-
-    d3d::driver_command(Drv3dCommand::D3D_FLUSH);
-
-    shaders::overrides::reset();
+    if (texgen_command_sync == TextureGenCommandSync::FlushAndWait)
+    {
+      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+    }
 
     return true;
   }
@@ -794,7 +907,7 @@ protected:
   String name;
   String shaderPreMain, premain, shaderCode, postmain;
   eastl::array<int, TSHADER_REG_TYPE_CNT> regs;
-  DataBlock params;
+  DataBlock params, unreadParams;
   int totalParamsSize;
   int defMaxSubStepSize = 4096;
   eastl::hash_map<eastl::string, ShaderCode> shaders;
@@ -811,46 +924,32 @@ protected:
 
 bool init_pixel_shader_texgen()
 {
-  prune_cache();
+  remove_unused_shaders_from_cache();
   del_d3dres(textureParamsCB);
   textureParamsCB = d3d::buffers::create_persistent_cb(16, "textureParamsCB", RESTAG_TEXGEN);
 
   del_d3dres(textureNodeParamsCB);
   textureNodeParamsCB = d3d::buffers::create_persistent_cb(TEXGEN_NODE_PARAMS_CB_REGS, "textureNodeParamsCB", RESTAG_TEXGEN);
 
-  del_d3dres(particlesInstancesIndirect);
-  particlesInstancesIndirect = d3d::create_sbuffer(4, 4, SBCF_UA_INDIRECT, 0, "particlesInstancesIndirect", RESTAG_TEXGEN);
-  if (particlesInstancesIndirect)
+  // Linked HLSL programs keep this vdecl.
+  if (common_vdecl == BAD_VDECL)
   {
-    uint32_t *data;
-    d3d_err(particlesInstancesIndirect->lock(0, 0, (void **)&data, VBLOCK_WRITEONLY));
-    data[0] = 6;
-    data[1] = 0;
-    data[2] = 0;
-    data[3] = 0;
-    particlesInstancesIndirect->unlock();
+    static VSDTYPE vsd[] = {VSD_STREAM(0), VSD_END};
+    common_vdecl = d3d::create_vdecl(vsd);
   }
 
-  d3d::delete_vdecl(common_vdecl);
-  static VSDTYPE vsd[] = {VSD_STREAM(0), VSD_END};
-  common_vdecl = d3d::create_vdecl(vsd);
-
-  return particlesInstancesIndirect != NULL;
+  return textureParamsCB != nullptr;
 }
 
 static void init_cached_vprog(VprogCached &vprog, const char *shader)
 {
-  int len = strlen(shader);
-  sha1_string_type sha1;
-  make_sha1_string(shader, len, sha1);
-  if (memcmp(vprog.sha1, sha1, sizeof(sha1)) == 0)
+  if (vprog.vprog != BAD_VPROG || !shader)
     return;
 #if _TARGET_PC_WIN
-  vprog.vprog = d3d::create_vertex_shader_hlsl(shader, len, "main_vs", "vs_5_0");
+  vprog.vprog = d3d::create_vertex_shader_hlsl(shader, strlen(shader), "main_vs", "vs_5_0");
 #else
   vprog.vprog = BAD_VPROG;
 #endif
-  memcpy(vprog.sha1, sha1, sizeof(sha1));
 }
 
 bool load_pixel_shader_texgen(const DataBlock &shaders)
@@ -859,24 +958,31 @@ bool load_pixel_shader_texgen(const DataBlock &shaders)
     if (!init_pixel_shader_texgen())
       return false;
 
-  if (!shaders.getStr("vprog"))
+  const char *vprog = shaders.getStr("vprog", nullptr);
+  if (!vprog)
   {
     logerr("no vprog for texture gen!");
     return false;
   }
-  init_cached_vprog(common_vprog, shaders.getStr("vprog"));
-  // d3d::delete_vertex_shader(common_particles_vprog);
-  init_cached_vprog(common_particles_vprog, shaders.getStr("particles_vprog"));
+  const char *particlesVprog = shaders.getStr("particles_vprog", nullptr);
+  if (!particlesVprog && common_particles_vprog.vprog == BAD_VPROG)
+    logerr("no particles_vprog for texture gen: nodes cannot draw particles");
+  const VPROG oldParticlesVprog = common_particles_vprog.vprog;
+  init_cached_vprog(common_vprog, vprog);
+  init_cached_vprog(common_particles_vprog, particlesVprog);
+  const char *newPremain = shaders.getStr("premain", ""), *newPostmain = shaders.getStr("postmain", "");
+  if (strcmp(newPremain, premain) != 0 || strcmp(newPostmain, postmain) != 0 || common_particles_vprog.vprog != oldParticlesVprog)
+  {
+    premain = newPremain;
+    postmain = newPostmain;
+    cached_blk_shaders.clear();
+  }
 
   if (common_vprog.vprog == BAD_VPROG)
   {
-    logerr("can't create vprog <%s>for texture gen!", shaders.getStr("vprog"));
+    logerr("can't create vprog <%s>for texture gen!", vprog);
     return false;
   }
-
-  premain = shaders.getStr("premain", "");
-  postmain = shaders.getStr("postmain", "");
-
   return true;
 }
 
@@ -919,22 +1025,23 @@ bool add_pixel_shader_texgen(const DataBlock &shaders, TextureGenerator *texGen)
 
     PSGenShader *shader = new PSGenShader(shaderName);
 
+    const char *nodePremain = premain, *nodePostmain = postmain;
     if (fullShaderCode)
     {
       shaderPreMain = fullShaderCode;
-      premain = shaderCode = shaderPostCode = postmain = "";
+      nodePremain = shaderCode = shaderPostCode = nodePostmain = "";
     }
 
-    if (!shader->initShader(shaderPreMain, premain, shaderCode, shaderPostCode, postmain, substBlk, shaderBlock->getInt("inputs", 0),
-          shaderBlock->getInt("outputs", 1), shaderBlock->getInt("defMaxSubSize", 4096), *texgen_get_logger(texGen)))
+    const DataBlock *paramsBlk = shaderBlock->getBlockByName("params");
+    if ((paramsBlk && !shader->initConstants(*paramsBlk, *texgen_get_logger(texGen))) ||
+        !shader->initShader(shaderPreMain, nodePremain, shaderCode, shaderPostCode, nodePostmain, substBlk,
+          shaderBlock->getInt("inputs", 0), shaderBlock->getInt("outputs", 1), shaderBlock->getInt("defMaxSubSize", 4096),
+          *texgen_get_logger(texGen)))
     {
       texgen_get_logger(texGen)->log(LOGLEVEL_ERR, String(128, "can not init shader <%s>", shaderName));
       del_it(shader);
       continue;
     }
-
-    if (shaderBlock->getBlockByName("params"))
-      shader->initConstants(*shaderBlock->getBlockByName("params"), *texgen_get_logger(texGen));
     texgen_add_shader(texGen, shaderName, shader);
     memcpy(cached_blk_shaders[shaderName], sha1, sizeof(sha1));
   }
@@ -948,7 +1055,11 @@ bool add_dshl_shader_texgen(TextureGenerator *tex_gen, const char *shader_name, 
   const DataBlock *params_blk, int inputs, int outputs, int def_sub_size)
 {
   PSGenShader *shader = new PSGenShader(shader_name);
-  shader->initDshl(bindump, variant_name, params_blk, inputs, outputs, def_sub_size, *texgen_get_logger(tex_gen));
+  if (!shader->initDshl(bindump, variant_name, params_blk, inputs, outputs, def_sub_size, *texgen_get_logger(tex_gen)))
+  {
+    del_it(shader);
+    return false;
+  }
   texgen_add_shader(tex_gen, shader_name, shader);
   return true;
 }
@@ -960,9 +1071,6 @@ void close_pixel_shader_texgen()
   common_vprog.close();
   common_particles_vprog.close();
 
-  del_d3dres(particlesInstancesIndirect);
-  particlesInstancesIndirect = NULL;
-
   del_d3dres(textureParamsCB);
   textureParamsCB = NULL;
   del_d3dres(textureNodeParamsCB);
@@ -970,26 +1078,18 @@ void close_pixel_shader_texgen()
   clear_and_shrink(premain);
   clear_and_shrink(postmain);
   biggest_depth.close();
-  prune_cache();
+  bigW = bigH = 0;
+  cached_blk_shaders.clear();
+  cached_shaders.clear();
 }
 
 
 static int create_constants_param_block(DataBlock &params, const DataBlock &params_, TextureGenLogger &logger)
 {
   params.reset();
-  int paramsSize = 0;
   for (int i = 0; i < params_.paramCount(); ++i)
   {
-    if (params_.getParamType(i) == params_.TYPE_STRING)
-      continue;
-
     const char *name = params_.getParamName(i);
-    int typeSize = getDataBlockTypeSize(params_.getParamType(i));
-    if ((paramsSize + typeSize - 1) / 4 != paramsSize / 4)
-      paramsSize = (paramsSize & (~3)) + 4;
-
-    logger.log(LOGLEVEL_REMARK, String(128, "param <%s> starts at %d size %d", name, paramsSize, typeSize));
-    paramsSize += typeSize;
     switch (params_.getParamType(i))
     {
       case DataBlock::TYPE_INT: params.addInt(name, params_.getInt(i)); break;
@@ -1005,8 +1105,10 @@ static int create_constants_param_block(DataBlock &params, const DataBlock &para
     }
   }
 
-  paramsSize = (paramsSize + 3) & (~3);
-  G_ASSERT(paramsSize <= MAX_PARAMS_SIZE);
-
-  return min(paramsSize, (int)MAX_PARAMS_SIZE);
+  Tab<NameOffset> offsets;
+  const int paramsSize = create_constant_buffer_offsets(offsets, params, 0);
+  for (int i = 0; i < offsets.size(); ++i)
+    logger.log(LOGLEVEL_REMARK,
+      String(128, "param <%s> starts at %d size %d", offsets[i].name, offsets[i].ofs, getDataBlockTypeSize(params.getParamType(i))));
+  return paramsSize;
 }

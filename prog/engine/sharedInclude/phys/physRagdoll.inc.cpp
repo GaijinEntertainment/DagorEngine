@@ -202,8 +202,7 @@ void PhysRagdoll::startRagdoll(int interact_layer, int interact_mask, const Geom
 
   TIME_PROFILE(startRagdoll);
 
-  const TMatrix *noAddToWorld = nullptr;
-  physSys = new PhysSystemInstance(physRes, physWorld, noAddToWorld, &ud, interact_layer, interact_mask, scale);
+  physSys = new PhysSystemInstance(physRes, physWorld, TMatrix(scale), &ud, interact_layer, interact_mask, /*add_to_world*/ false);
   clear_and_shrink(lastNodeTms);
 
   if (tree)

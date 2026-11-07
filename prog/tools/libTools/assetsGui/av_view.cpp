@@ -115,9 +115,10 @@ const char *AssetBaseView::getSelObjName()
 }
 
 
-void AssetBaseView::getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const
+DagorAssetFolder *AssetBaseView::getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets,
+  dag::Vector<DagorAssetFolder *> &sub_folders) const
 {
-  assetsTree->getFilteredAssetsFromTheCurrentFolder(assets);
+  return assetsTree->getFilteredAssetsFromTheCurrentFolder(assets, sub_folders);
 }
 
 
@@ -145,6 +146,22 @@ bool AssetBaseView::selectAsset(const DagorAsset &asset, bool reset_filter_if_ne
     resetFilter();
     refilterAssetsTree();
     selected = assetsTree->selectAsset(&asset);
+  }
+
+  return selected;
+}
+
+bool AssetBaseView::selectAssetFolder(const DagorAssetFolder &folder)
+{
+  bool selected = assetsTree->selectAssetFolder(folder);
+
+  if (!selected)
+  {
+    resetFilter();
+    tagFilter.reset();
+    assetsTree->setTagFilter(tagFilter);
+    refilterAssetsTree();
+    selected = assetsTree->selectAssetFolder(folder);
   }
 
   return selected;

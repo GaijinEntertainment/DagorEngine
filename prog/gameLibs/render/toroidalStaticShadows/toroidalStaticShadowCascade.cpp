@@ -132,28 +132,6 @@ bool ToroidalStaticShadowCascade::setSunDir(const TMatrix &light_view_proj, cons
   return true;
 }
 
-void ToroidalStaticShadowCascade::getBoxViews(const BBox3 &box, ViewTransformData *out_views, int &out_cnt) const
-{
-  out_cnt = 0;
-  IBBox2 region = getClippedBoxRegion(box);
-  if (region.isEmpty())
-    return;
-
-  IBBox2 splitBoxes[4];
-  split_toroidal(region, helper, splitBoxes, out_cnt);
-
-  const FrameData &fr = getReadFrameData();
-  const TMatrix wtm = calcToCSPMatrix(fr, 0, Point2(0, 0));
-  for (int i = 0; i < out_cnt; ++i)
-  {
-    ToroidalQuadRegion region = getToroidalQuad(splitBoxes[i]);
-    TMatrix4_vec4 globtm =
-      TMatrix4(get_region_proj_tm(wtm, point2(region.texelsFrom) / helper.texSize, point2(region.wd) / helper.texSize));
-    out_views[i] = ViewTransformData{
-      (mat44f_cref)globtm, region.lt.x, int(helper.texSize) - region.wd.y - region.lt.y, region.wd.x, region.wd.y, 0.0f, 1.0f};
-  }
-}
-
 void ToroidalStaticShadowCascade::setWorldBox(const BBox3 &box)
 {
   worldBox = box;
@@ -217,9 +195,6 @@ void ToroidalStaticShadowCascade::invalidate(bool force)
     scrolledDepthMin = 0;
     scrolledDepthMax = 1;
   }
-#if COLLECT_STATIC_SHADOWS_STATISTICS
-  staticShadowsStatistics.completelyValidFramesSinceLastUpdate = 0;
-#endif
 }
 
 void ToroidalStaticShadowCascade::setShadervarsToInvalid()
@@ -554,7 +529,6 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
     uint32_t texelsUpdated = (uint32_t)max((int)0, toroidal_update(newTexelsOrigin, helper, fullUpdateThresholdTexels, shadowcb));
     current.torOfs = point2((helper.mainOrigin - helper.curOrigin) % helper.texSize) / helper.texSize;
     current.alignedOrigin = point2(helper.curOrigin) * texelSize;
-    originRefHeight = clipPointToWorld(pos).y;
 
     G_ASSERT(texelsUpdated > 0);
     clip_list_to(notRenderedRegions, get_texture_box(helper));
@@ -679,13 +653,7 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
 void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
 {
   if (renderData.regionsToDiscard.empty() && renderData.regionsToRender.empty())
-  {
-#if COLLECT_STATIC_SHADOWS_STATISTICS
-    staticShadowsStatistics.completelyValidFrames++;
-    staticShadowsStatistics.completelyValidFramesSinceLastUpdate++;
-#endif
     return;
-  }
 
   TIME_D3D_PROFILE(staticShadowRender);
   SCOPE_RENDER_TARGET;
@@ -703,22 +671,6 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
     d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, shadowClearValue, 0);
   }
   renderData.regionsToDiscard.clear();
-
-#if COLLECT_STATIC_SHADOWS_STATISTICS
-  // discarded (empty) and invalidated regions can't be mixed here
-  uint32_t renderCount = renderData.regionsToRender.size();
-  if (!isValid())
-  {
-    staticShadowsStatistics.renderRegionFirstTimeFrames++;
-    staticShadowsStatistics.renderRegionFirstTimeCount += renderCount;
-  }
-  else
-  {
-    staticShadowsStatistics.invalidateRegionFrames++;
-    staticShadowsStatistics.invalidateRegionCount += renderCount;
-  }
-  staticShadowsStatistics.completelyValidFramesSinceLastUpdate = 0;
-#endif
 
   d3d::settm(TM_VIEW, renderData.viewTm);
   cb.startRenderStaticShadow(renderData.viewTm, renderData.znzf, renderData.minHt, renderData.maxHt);

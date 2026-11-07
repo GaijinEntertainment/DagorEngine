@@ -12,6 +12,19 @@
 #include <daECS/io/blk.h>
 #include <ecsPropPanel/ecsEntityObjectPropertyPanel.h>
 #include <ecsPropPanel/ecsBasicObjectEditor.h>
+#include <ecs/lights/light.h>
+#include <render/lights/omniLight.h>
+#include <render/lights/spotLight.h>
+#include <debug/dag_debug3d.h>
+#include <de3_lightGizmos.h>
+
+// Defined in prog/daNetGame/render/fx/lightsES.cpp.inl
+namespace lights_impl
+{
+bool is_lights_render_available();
+OmniLight get_omni_light(uint32_t h);
+SpotLight get_spot_light(uint32_t h);
+} // namespace lights_impl
 
 static inline ecs::ComponentsInitializer complist_to_compinitializer(ecs::ComponentsList &&clist)
 {
@@ -160,7 +173,23 @@ public:
 
   void actObjects(float dt) override {}
   void beforeRenderObjects() override {}
-  void renderObjects() override {}
+  void renderObjects() override
+  {
+    if (entity == ecs::INVALID_ENTITY_ID || !lights_impl::is_lights_render_available())
+      return;
+    // Light volumes follow the "gameObj previews" toggle, the same as the gameObj light gizmos
+    if (auto *gameObjSrv = IDaEditor3Engine::get().findService("_goEntMgr"); gameObjSrv && !gameObjSrv->getServiceVisible())
+      return;
+
+    begin_draw_cached_debug_lines();
+    const SpotLightEntity *spotLight = g_entity_mgr->getNullable<SpotLightEntity>(entity, ECS_HASH("spot_light"));
+    if (spotLight && spotLight->lightId)
+      renderSpotLight(lights_impl::get_spot_light(spotLight->lightId.get()));
+    const OmniLightEntity *omniLight = g_entity_mgr->getNullable<OmniLightEntity>(entity, ECS_HASH("omni_light"));
+    if (omniLight && omniLight->lightId)
+      renderOmniLight(lights_impl::get_omni_light(omniLight->lightId.get()));
+    end_draw_cached_debug_lines();
+  }
   void renderTransObjects(BaseTexture *) override {}
 
   bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "ecs_template") == 0; }
@@ -261,6 +290,32 @@ private:
   ECSBasicObjectEditor objEd;
   String templateName;
   bool nonOwnedSingleton = false;
+
+  // Live values of the light, read the same way as editor_draw_spot_light_es() in lightES.cpp.inl
+  static void renderSpotLight(const SpotLight &light)
+  {
+    const float radius = light.culling_radius > 0.0f ? light.culling_radius : light.pos_radius.w;
+    if (radius <= 0.0f)
+      return;
+    const Point3 apex(light.pos_radius.x, light.pos_radius.y, light.pos_radius.z);
+    const Point3 dir(light.dir_tanHalfAngle.x, light.dir_tanHalfAngle.y, light.dir_tanHalfAngle.z);
+    const float halfAngle = atanf(light.dir_tanHalfAngle.w);
+    // color_atten.a is the cosine of the inner cone half angle
+    const float innerAttenuation = halfAngle > 1e-4f ? safe_acos(light.color_atten.a) / halfAngle : 1.0f;
+    draw_spot_light_visualization(TMatrix::IDENT, apex, dir, 2.0f * halfAngle, radius, innerAttenuation);
+  }
+
+  // Live values of the light, read the same way as editor_draw_omni_light_es() in lightES.cpp.inl
+  void renderOmniLight(const OmniLight &light) const
+  {
+    const float radius = light.posRelToOrigin_cullRadius.w > 0.0f ? light.posRelToOrigin_cullRadius.w : light.pos_radius.w;
+    if (radius <= 0.0f)
+      return;
+    TMatrix lightTm = ECS_GET_OR(entity, transform, TMatrix::IDENT);
+    lightTm.orthonormalize();
+    lightTm.setcol(3, Point3(light.pos_radius.x, light.pos_radius.y, light.pos_radius.z));
+    draw_omni_light_visualization(lightTm, radius);
+  }
 
   TMatrix getInitialTm() const
   {

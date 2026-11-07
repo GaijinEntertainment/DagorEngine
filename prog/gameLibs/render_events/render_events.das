@@ -3,6 +3,7 @@ require ecs
 require DagorDriver3D
 require DagorMath
 require fx
+require DagorStdGuiRender
 
 [cpp_event(broadcast)]
 struct SetFxQuality
@@ -26,6 +27,7 @@ struct RenderEventUI
   viewItm : TMatrix
   globtm : mat44f
   persp : Driver3dPerspective
+  ctx : GuiContext?
 
 [cpp_event(broadcast)]
 struct RenderXray

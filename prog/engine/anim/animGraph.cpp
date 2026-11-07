@@ -597,6 +597,18 @@ int AnimationGraph::addParamId(const char *name, int type)
       paramTimeInd.push_back(id);
     return id;
   }
+
+  // Underlying type is the same. If someone asks for a time param as a scalar param - just give it to them.
+  if (paramTypes[id] == AnimGraphStateHolder::PT_TimeParam && type == AnimGraphStateHolder::PT_ScalarParam)
+    return id;
+
+  // Someone is saying that existing scalar param should be treated as time param, so change its type.
+  if (paramTypes[id] == AnimGraphStateHolder::PT_ScalarParam && type == AnimGraphStateHolder::PT_TimeParam)
+  {
+    paramTypes[id] = AnimGraphStateHolder::PT_TimeParam;
+    paramTimeInd.push_back(id);
+  }
+
   if (paramTypes[id] == type)
     return id;
   ANIM_ERR("adding param <%s> type=%d while such param with type %d already exists!", name, type, paramTypes[id]);
@@ -643,6 +655,10 @@ int AnimationGraph::getParamId(const char *name, int type) const
   int id = paramNames.getNameId(name);
   if (id < 0)
     return -1;
+
+  if (paramTypes[id] == AnimGraphStateHolder::PT_TimeParam && type == AnimGraphStateHolder::PT_ScalarParam)
+    return id;
+
   if (paramTypes[id] == type)
     return id;
   G_ASSERTF(false, "param <%s> of type %d is absent; present with type %d", name, type, paramTypes[id]);

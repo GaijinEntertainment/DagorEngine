@@ -29,9 +29,17 @@ int modfx_use_simplified_vs_lighting = 0;
 interval modfx_use_simplified_vs_lighting: no < 1, yes;
 assume_if_not_assumed modfx_use_simplified_vs_lighting = no;
 
+int dafx_directional_ambient = 0;
+interval dafx_directional_ambient: off < 1, on;
+assume_if_not_assumed dafx_directional_ambient = off;
+
 int modfx_bboard_clustered_lighting_centered = 0;
 interval modfx_bboard_clustered_lighting_centered: no < 1, yes;
 assume_if_not_assumed modfx_bboard_clustered_lighting_centered = no;
+
+int modfx_scatter_lighting = 0;
+interval modfx_scatter_lighting: off < 1, on;
+assume_if_not_assumed modfx_scatter_lighting = off;
 
 texture wboit_color;
 texture wboit_alpha;
@@ -54,6 +62,16 @@ define_macro_if_not_defined DAFXEX_USE_VOXEL_SHADOWS()
 endmacro
 
 define_macro_if_not_defined DAFXEX_USE_GI()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_DIRECTIONAL_AMBIENT()
+endmacro
+
+macro USE_MODFX_SCATTER_LIGHTING()
+  if (modfx_scatter_lighting == on)
+  {
+    hlsl { #define MODFX_SCATTER_LIGHTING 1 }
+  }
 endmacro
 
 define_macro_if_not_defined DAFXEX_USE_SHADOW()
@@ -223,6 +241,12 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
       DAFXEX_USE_VOXEL_SHADOWS()
     }
 
+    if (dafx_modfx_bboard_render || dafx_modfx_bboard_rain)
+    {
+      DAFXEX_USE_DIRECTIONAL_AMBIENT()
+      USE_MODFX_SCATTER_LIGHTING()
+    }
+
     blend_src=one;
     blend_dst=isa;
 
@@ -279,6 +303,12 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     blend_asrc=zero;
     blend_adst=isa;
 
+    if (dafx_modfx_volshape_render)
+    {
+      DAFXEX_USE_DIRECTIONAL_AMBIENT()
+      USE_MODFX_SCATTER_LIGHTING()
+    }
+
     if (modfx_wboit_enabled == on)
     {
       (ps)
@@ -310,6 +340,7 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
         #define MODFX_SHADER_VOLSHAPE_WBOIT_APPLY 1
       ##endif
     }
+
   }
   else if ( dafx_modfx_volshape_wboit_render )
   {
@@ -321,6 +352,8 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
 
     DAFX_USE_CLOUD_SHADOWS()
     DAFXEX_USE_VOXEL_SHADOWS()
+    DAFXEX_USE_DIRECTIONAL_AMBIENT()
+    USE_MODFX_SCATTER_LIGHTING()
     hlsl
     {
       #define MODFX_SHADER_VOLSHAPE_WBOIT 1
@@ -345,6 +378,9 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     DAFX_USE_CLOUD_SHADOWS()
     DAFXEX_USE_SHADOW()
     DAFXEX_USE_VOXEL_SHADOWS()
+    DAFXEX_USE_DIRECTIONAL_AMBIENT()
+    USE_MODFX_SCATTER_LIGHTING()
+
     hlsl { #define MODFX_SHADER_ATEST 1 }
   }
   else if ( is_distortion_group )

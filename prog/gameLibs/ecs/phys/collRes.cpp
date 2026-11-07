@@ -149,10 +149,9 @@ public:
   void requestResources(const char *, const ecs::resource_request_cb_t &res_cb) override
   {
     ecs::string emptyStr;
-    ecs::Object emptyObj;
     if (auto &res = res_cb.getOr(ECS_HASH("collres__res"), emptyStr); !res.empty())
       return res_cb(res.c_str(), CollisionGameResClassId);
-    else if (auto &desc = res_cb.getOr(ECS_HASH("collres__desc"), emptyObj); !desc.empty())
+    else if (const ecs::Array *desc = res_cb.getNullable<ecs::Array>(ECS_HASH("collres__desc")); desc && !desc->empty())
       return;
     res_cb("<missing_collres>", CollisionGameResClassId);
   }

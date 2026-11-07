@@ -24,6 +24,7 @@ public:
   LightsSorter(OmniLightsManager &omni_lights, SpotLightsManager &spot_lights);
   void init(DynLightsFeatures requested_features) override;
   DynLightsFeatures getRuntimeFeatures() const override;
+  void close();
   void sortLightsCPU(Tab<uint16_t> &omni_visible_ids, Tab<uint16_t> &spot_visible_ids, vec4f cur_view_pos);
   void sortLightsGPU(Sbuffer *data_buf, Sbuffer *counts_buf, bool update_variables = true);
 

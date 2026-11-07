@@ -11,6 +11,8 @@ bool dx11::decode_metadata(dag::ConstSpan<uint8_t> metadata, DecodedShader &out)
   out.totalBytecodeSize = simple.bytecodeByteSize;
   out.maxConstantRegUsed = simple.maxConstantRegUsed;
   out.maxRtvUsed = simple.maxRtvUsed;
+  out.uavReadMask = get_uav_read_mask(simple);
+  out.uavWriteMask = get_uav_write_mask(simple);
 
   if (metadata.size() >= COMBINED_METADATA_SIZE)
   {

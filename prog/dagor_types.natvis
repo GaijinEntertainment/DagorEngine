@@ -714,8 +714,9 @@
   </Expand>
 </Type>
 
-<Type Name="IdSparseIndexedMapping&lt;*,*,*&gt;">
-	<DisplayString>{{ keys={usedCount} }}</DisplayString>
+<Type Name="IdSparseIndexedMapping&lt;*,*,*,*&gt;">
+	<DisplayString Condition="hiddenCount == 0">{{ keys={usedCount} }}</DisplayString>
+	<DisplayString>{{ keys={usedCount} hidden={hiddenCount} }}</DisplayString>
 	<Expand>
 		<CustomListItems>
 			<Variable Name="_i" InitialValue="0" />
@@ -723,6 +724,9 @@
 				<If Condition="(((uint32_t *)usedBits)[_i / 32] &amp; (1u &lt;&lt; (_i % 32))) != 0">
 					<Item Name="[{_i}]">elements[_i].value</Item>
 				</If>
+				<Elseif Condition="hiddenCount != 0 &amp;&amp; (((uint32_t *)storedBits)[_i / 32] &amp; (1u &lt;&lt; (_i % 32))) != 0">
+					<Item Name="[{_i}] hidden">elements[_i].value</Item>
+				</Elseif>
 				<Exec>_i++</Exec>
 			</Loop>
 		</CustomListItems>

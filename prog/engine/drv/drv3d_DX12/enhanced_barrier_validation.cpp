@@ -19,7 +19,7 @@ constexpr d3d::AccessFlags buffer_only_access_mask =
 constexpr d3d::AccessFlags texture_only_access_mask =
   d3d::AccessFlag::RenderTargetRead | d3d::AccessFlag::RenderTargetWrite | d3d::AccessFlag::DepthStencilWrite |
   d3d::AccessFlag::DepthStencilRead | d3d::AccessFlag::InputAttachment | d3d::AccessFlag::BlitRead | d3d::AccessFlag::BlitWrite |
-  d3d::AccessFlag::ResolveRead | d3d::AccessFlag::ResolveWrite | d3d::AccessFlag::ShadingRate;
+  d3d::AccessFlag::ResolveRead | d3d::AccessFlag::ResolveWrite | d3d::AccessFlag::ClearTargetWrite | d3d::AccessFlag::ShadingRate;
 
 constexpr d3d::AccessFlags shader_resource_access_mask =
   d3d::AccessFlag::ShaderResource | d3d::AccessFlag::InputAttachment | d3d::AccessFlag::BlitRead;
@@ -35,6 +35,8 @@ constexpr d3d::AccessFlags resolve_access_mask = d3d::AccessFlag::ResolveRead | 
 
 constexpr d3d::AccessFlags unordered_access_mask = d3d::AccessFlag::UnorderedAccess | d3d::AccessFlag::ClearWrite;
 
+constexpr d3d::AccessFlags clear_access_mask = d3d::AccessFlag::ClearWrite | d3d::AccessFlag::ClearTargetWrite;
+
 constexpr d3d::PipelineStageFlags vertex_shading_stage_mask =
   d3d::PipelineStageFlag::VertexAttributeInput | d3d::PipelineStageFlag::AllVertexShading;
 
@@ -49,20 +51,6 @@ constexpr d3d::PipelineStageFlags shading_stage_mask =
 
 constexpr uint32_t all_subresources_index = 0xffffffffu;
 
-enum class ClearTarget
-{
-  DepthStencil,
-  UnorderedAccess,
-  RenderTarget
-};
-
-ClearTarget texture_clear_target(BaseTex *btex)
-{
-  if (btex->getFormat().isDepth())
-    return ClearTarget::DepthStencil;
-  return btex->isUav() ? ClearTarget::UnorderedAccess : ClearTarget::RenderTarget;
-}
-
 uint32_t write_access_type_count(d3d::AccessFlags access)
 {
   uint32_t count = 0;
@@ -72,10 +60,11 @@ uint32_t write_access_type_count(d3d::AccessFlags access)
   count += (access & d3d::AccessFlag::CopyWrite) ? 1 : 0;
   count += (access & d3d::AccessFlag::ResolveWrite) ? 1 : 0;
   count += (access & d3d::AccessFlag::ClearWrite) ? 1 : 0;
+  count += (access & d3d::AccessFlag::ClearTargetWrite) ? 1 : 0;
   return count;
 }
 
-d3d::AccessFlags accesses_allowed_in(d3d::TextureLayout layout, ClearTarget clear_target)
+d3d::AccessFlags accesses_allowed_in(d3d::TextureLayout layout, d3d::AccessFlags access, bool is_depth)
 {
   switch (layout)
   {
@@ -99,21 +88,16 @@ d3d::AccessFlags accesses_allowed_in(d3d::TextureLayout layout, ClearTarget clea
     case d3d::TextureLayout::ResolveDest: return d3d::AccessFlag::ResolveWrite;
     case d3d::TextureLayout::ShadingRateSource: return d3d::AccessFlag::ShadingRate;
     case d3d::TextureLayout::ClearDest:
-      switch (clear_target)
-      {
-        case ClearTarget::DepthStencil: return d3d::AccessFlag::ClearWrite | depth_stencil_access_mask;
-        case ClearTarget::UnorderedAccess: return d3d::AccessFlag::ClearWrite | d3d::AccessFlag::UnorderedAccess;
-        case ClearTarget::RenderTarget: return d3d::AccessFlag::ClearWrite | render_target_access_mask;
-      }
-      return {};
+      if (access & d3d::AccessFlag::ClearTargetWrite)
+        return d3d::AccessFlag::ClearTargetWrite | (is_depth ? depth_stencil_access_mask : render_target_access_mask);
+      return d3d::AccessFlag::ClearWrite | d3d::AccessFlag::UnorderedAccess;
     default: return {};
   }
 }
 
 d3d::AccessFlag lowest_access_flag(uint32_t bits) { return static_cast<d3d::AccessFlag>(bits & (0u - bits)); }
 
-void validate_enhanced_barrier_access(d3d::PipelineStageFlags stages, d3d::AccessFlags access, ClearTarget clear_target,
-  const char *res_name)
+void validate_enhanced_barrier_access(d3d::PipelineStageFlags stages, d3d::AccessFlags access, bool is_depth, const char *res_name)
 {
   if (write_access_type_count(access) > 1)
     D3D_CONTRACT_ERROR("DX12: enhanced barrier for <%s>: access mask 0x%08X sets more than one write access type", res_name,
@@ -121,14 +105,16 @@ void validate_enhanced_barrier_access(d3d::PipelineStageFlags stages, d3d::Acces
 
   const bool anyStage = bool(stages & d3d::PipelineStageFlag::All);
   const bool shadingStage = bool(stages & shading_stage_mask);
-  const bool clearStage = bool(stages & d3d::PipelineStageFlag::Clear);
+  const bool clearStage = anyStage || bool(stages & d3d::PipelineStageFlag::Clear);
+  const bool clearViewStage = bool(stages & d3d::PipelineStageFlag::ClearView);
+  const bool uavClear = clearStage && (access & d3d::AccessFlag::ClearWrite);
+  const bool targetClear = clearStage && (access & d3d::AccessFlag::ClearTargetWrite);
   const bool blitReadStage = (stages & d3d::PipelineStageFlag::Blit) && (access & d3d::AccessFlag::BlitRead);
   const bool blitWriteStage = (stages & d3d::PipelineStageFlag::Blit) && (access & d3d::AccessFlag::BlitWrite);
   const bool renderTargetSynced = anyStage || bool(stages & d3d::PipelineStageFlag::OutputMerging) || blitWriteStage ||
-                                  (clearStage && clear_target == ClearTarget::RenderTarget);
-  const bool unorderedSynced = shadingStage || (clearStage && clear_target == ClearTarget::UnorderedAccess);
-  const bool depthStencilSynced =
-    anyStage || bool(stages & depth_stencil_stage_mask) || (clearStage && clear_target == ClearTarget::DepthStencil);
+                                  (!is_depth && (clearViewStage || targetClear));
+  const bool unorderedSynced = shadingStage || uavClear;
+  const bool depthStencilSynced = anyStage || bool(stages & depth_stencil_stage_mask) || (is_depth && (clearViewStage || targetClear));
 
   auto requireStage = [access, res_name](d3d::AccessFlags group, bool synced) {
     if (synced)
@@ -148,12 +134,10 @@ void validate_enhanced_barrier_access(d3d::PipelineStageFlags stages, d3d::Acces
   requireStage(copy_access_mask, anyStage || bool(stages & d3d::PipelineStageFlag::Copy));
   requireStage(resolve_access_mask, anyStage || bool(stages & d3d::PipelineStageFlag::Resolve));
   requireStage(d3d::AccessFlag::ShadingRate, anyStage || bool(stages & pixel_shading_stage_mask));
-  requireStage(d3d::AccessFlag::ClearWrite, clear_target == ClearTarget::RenderTarget
-                                              ? renderTargetSynced
-                                              : (clear_target == ClearTarget::UnorderedAccess ? unorderedSynced : depthStencilSynced));
+  requireStage(clear_access_mask, clearStage);
 }
 
-void validate_enhanced_texture_layout(d3d::TextureLayout layout, d3d::AccessFlags access, BaseTex *btex, ClearTarget clear_target)
+void validate_enhanced_texture_layout(d3d::TextureLayout layout, d3d::AccessFlags access, BaseTex *btex)
 {
   const char *texName = btex->getName();
   if (layout == d3d::TextureLayout::Undefined)
@@ -163,7 +147,8 @@ void validate_enhanced_texture_layout(d3d::TextureLayout layout, d3d::AccessFlag
     return;
   }
 
-  if (const uint32_t incompatible = access.asInteger() & ~accesses_allowed_in(layout, clear_target).asInteger())
+  const bool isDepth = btex->getFormat().isDepth();
+  if (const uint32_t incompatible = access.asInteger() & ~accesses_allowed_in(layout, access, isDepth).asInteger())
     D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: access %s is not compatible with layout %s", texName,
       to_string(lowest_access_flag(incompatible)), to_string(layout));
 
@@ -171,7 +156,7 @@ void validate_enhanced_texture_layout(d3d::TextureLayout layout, d3d::AccessFlag
   {
     case d3d::TextureLayout::RenderTarget:
     case d3d::TextureLayout::BlitDest:
-      if (!btex->isRenderTarget() || btex->getFormat().isDepth())
+      if (!btex->isRenderTarget() || isDepth)
         D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: %s layout requires a color texture created with TEXCF_RTARGET",
           texName, to_string(layout));
       break;
@@ -186,9 +171,20 @@ void validate_enhanced_texture_layout(d3d::TextureLayout layout, d3d::AccessFlag
     case d3d::TextureLayout::DepthRoStencilRo:
     case d3d::TextureLayout::DepthRw:
     case d3d::TextureLayout::DepthRo:
-      if (!btex->getFormat().isDepth())
+      if (!isDepth)
         D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: %s layout requires a depth-format texture", texName,
           to_string(layout));
+      break;
+    case d3d::TextureLayout::ClearDest:
+      if (!(access & clear_access_mask))
+        D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: ClearDest layout requires ClearWrite or ClearTargetWrite access",
+          texName);
+      if ((access & d3d::AccessFlag::ClearWrite) && !btex->isUav())
+        D3D_CONTRACT_ERROR(
+          "DX12: enhanced_texture_barrier for <%s>: ClearWrite access requires a texture created with TEXCF_UNORDERED", texName);
+      if ((access & d3d::AccessFlag::ClearTargetWrite) && !btex->isRenderTarget())
+        D3D_CONTRACT_ERROR(
+          "DX12: enhanced_texture_barrier for <%s>: ClearTargetWrite access requires a texture created with TEXCF_RTARGET", texName);
       break;
     case d3d::TextureLayout::ShadingRateSource:
       if (0 == (btex->cflg & TEXCF_VARIABLE_RATE))
@@ -244,8 +240,8 @@ void drv3d_dx12::validate_enhanced_buffer_barrier(const d3d::BufferBarrier &barr
     D3D_CONTRACT_ERROR("DX12: enhanced_buffer_barrier for <%s>: access %s requires a buffer created with SBCF_BIND_UNORDERED", bufName,
       to_string(lowest_access_flag(needsUav)));
 
-  validate_enhanced_barrier_access(barrier.pipelineSync.src, barrier.memorySync.src, ClearTarget::UnorderedAccess, bufName);
-  validate_enhanced_barrier_access(barrier.pipelineSync.dst, barrier.memorySync.dst, ClearTarget::UnorderedAccess, bufName);
+  validate_enhanced_barrier_access(barrier.pipelineSync.src, barrier.memorySync.src, false, bufName);
+  validate_enhanced_barrier_access(barrier.pipelineSync.dst, barrier.memorySync.dst, false, bufName);
 }
 
 void drv3d_dx12::validate_enhanced_texture_barrier(const d3d::TextureBarrier &barrier, BaseTex *btex)
@@ -258,10 +254,10 @@ void drv3d_dx12::validate_enhanced_texture_barrier(const d3d::TextureBarrier &ba
     D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: destination access mask contains buffer-only flags (%s)", texName,
       to_string(lowest_access_flag(bufferOnly)));
 
-  const ClearTarget clearTarget = texture_clear_target(btex);
-  validate_enhanced_barrier_access(barrier.pipelineSync.src, barrier.memorySync.src, clearTarget, texName);
-  validate_enhanced_barrier_access(barrier.pipelineSync.dst, barrier.memorySync.dst, clearTarget, texName);
-  validate_enhanced_texture_layout(barrier.layoutTransition.src, barrier.memorySync.src, btex, clearTarget);
-  validate_enhanced_texture_layout(barrier.layoutTransition.dst, barrier.memorySync.dst, btex, clearTarget);
+  const bool isDepth = btex->getFormat().isDepth();
+  validate_enhanced_barrier_access(barrier.pipelineSync.src, barrier.memorySync.src, isDepth, texName);
+  validate_enhanced_barrier_access(barrier.pipelineSync.dst, barrier.memorySync.dst, isDepth, texName);
+  validate_enhanced_texture_layout(barrier.layoutTransition.src, barrier.memorySync.src, btex);
+  validate_enhanced_texture_layout(barrier.layoutTransition.dst, barrier.memorySync.dst, btex);
   validate_enhanced_texture_subresources(barrier.subresources, btex);
 }

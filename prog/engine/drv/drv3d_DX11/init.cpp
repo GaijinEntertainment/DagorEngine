@@ -17,6 +17,7 @@
 #include "render_state.h"
 #include "driver_state.h"
 #include "streamline_adapter.h"
+#include "../drv3d_commonCode/flipStallNudge.h"
 #if HAS_AFTERMATH
 #include <GFSDK_Aftermath.h>
 #endif
@@ -1038,14 +1039,12 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
 
   ::QueryPerformanceFrequency(&qpc_freq);
   PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN createDx11Device = nullptr;
-#if _TARGET_PC_WIN && !_M_ARM64 // Do not use Streamline on Win-ARM64 yet.
   streamlineInterposer = StreamlineAdapter::loadInterposer();
   StreamlineAdapter::init(streamlineAdapter, StreamlineAdapter::RenderAPI::DX11);
   if (streamlineAdapter)
     createDx11Device = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)StreamlineAdapter::getInterposerSymbol(streamlineInterposer,
       "D3D11CreateDeviceAndSwapChain");
   else
-#endif
     createDx11Device = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(dx11_dllh, "D3D11CreateDeviceAndSwapChain");
 
   if (!createDx11Device)
@@ -1549,6 +1548,8 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
 
   if (scd.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
     create_waitable_object();
+  if (is_flip_model(scd.SwapEffect))
+    init_flip_nudge();
 
   if (dx_device && blk_dx.getBool("debug", false))
   {
@@ -1888,7 +1889,7 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
 
 #if HAS_AMD_DX_EXT
   dump_dll_version(gpu::amd_lib_name);
-  if (auto amdLib = GetModuleHandleA(gpu::amd_lib_name))
+  if (auto amdLib = g_device_desc.info.vendor == GpuVendor::ATI ? GetModuleHandleA(gpu::amd_lib_name) : nullptr)
   {
     auto amdDxExtCreate = reinterpret_cast<PFNAmdDxExtCreate11>(GetProcAddress(amdLib, "AmdDxExtCreate11"));
     if (amdDxExtCreate != nullptr)
@@ -1959,6 +1960,7 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
     }
   }
   g_device_desc.issues.hasBrokenUAVOnlyPasses = false;
+  init_texformat_uav_usage_cache();
 
   if (dx_device)
   {
@@ -2240,6 +2242,8 @@ static void close_device(bool is_reset)
   SAFE_RELEASE(amdDepthBoundsExtension);
   SAFE_RELEASE(amdExtension);
 #endif
+  nv_dbt_supported = false;
+  ati_dbt_supported = false;
 
   SAFE_RELEASE(pInfoQueue);
 
@@ -2259,10 +2263,12 @@ static void close_device(bool is_reset)
     set_fullscreen_state(FALSE, nullptr); // switch to windowed mode
     int ts = get_time_msec();
     discard_queued_swapchain_frames(swap_chain, scd.SwapEffect);
+    waitableObject.reset();
     swap_chain->Release();
     debug("release swap_chain done in %d msec", get_time_msec() - ts);
   }
   swap_chain = NULL;
+  shutdown_flip_nudge();
 
   del_d3dres(secondary_backbuffer_color_tex);
 

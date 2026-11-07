@@ -28,7 +28,10 @@ Sources =
   test_malformed_binary.cpp
   test_malformed_bbf3.cpp
   test_no_includes.cpp
+  test_binary_include.cpp
   test_nesting_depth.cpp
+  test_vromfs_pack.cpp
+  test_delete_directive.cpp
 ;
 
 UseProgLibs +=

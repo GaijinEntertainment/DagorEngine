@@ -1064,7 +1064,31 @@ you don't need to worry that it will be "just as bad" as it appears in the
 
 ### Special Parameters
 
-Composites have several parameters designed for specific, limited-use cases.
+Composites have several parameters for special cases. Some apply to all games,
+others only to one game.
+
+#### All Games
+
+**Disabled Nodes**: The `disabled:b=yes` parameter switches off a node without
+deleting it from the file. Put it in the `node{}` block. The node and all of its
+child nodes stay in the composite, but their assets are not loaded, not shown
+and not exported. To use the node again, remove the parameter from the node and
+from all of its disabled ancestor nodes.
+
+```blk
+node{
+  name:t="sheer_cliff_a"
+  disabled:b=yes
+  tm:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+```
+
+In the
+[Composite Editor](../../dagor-tools/asset-viewer/asset-viewer-comp-editor/asset_viewer_comp_editor.md),
+select one or more nodes in the Composite Outliner, right-click, and select **Disable
+selected** or **Enable selected**. The Outliner shows a disabled node and its
+child nodes in gray, without icons. You cannot edit a disabled node or its
+child nodes. To edit them, enable the node first.
 
 #### War Thunder
 

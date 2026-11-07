@@ -56,8 +56,8 @@ void BadResolutionTracker::filterOutBadResolutions(DynamicResolutionUpdates &upd
       [&](const auto &reso) -> eastl::pair<ResourceDescription, ResourceDescription> {
         if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(reso)>, NoDynamicResolutionUpdate>)
           return {
-            set_tex_desc_resolution(desc, scale_by(reso.dynamicRes, resolutionType->multiplier), automip),
-            set_tex_desc_resolution(desc, scale_by(reso.staticRes, resolutionType->multiplier), automip),
+            set_tex_desc_resolution(desc, scale_by(reso.dynamicRes, resolutionType->multiplier, resolutionType->roundUp), automip),
+            set_tex_desc_resolution(desc, scale_by(reso.staticRes, resolutionType->multiplier, resolutionType->roundUp), automip),
           };
         G_ASSERT(false); // impossible situation
         return {};

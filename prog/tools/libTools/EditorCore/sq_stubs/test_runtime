@@ -1,40 +1,83 @@
 let {Point2} = require("dagor.math")
+let {Future} = require("async")
+
+function resolved() {
+  let f = Future()
+  f.resolve(true)
+  return f
+}
 
 let TestInput = class {
-  function mouseButtonDown(button) { assert(type(button)=="integer") }
-  function mouseButtonUp(button) { assert(type(button)=="integer") }
-  function mouseClick(button) { assert(type(button)=="integer") }
-  function mouseClickModifier(button, modifier) { assert(type(button)=="integer" && type(modifier)=="integer") }
-  function mousePosition(at) { assert(at instanceof Point2, "at should be Point2") }
+  function mouseButtonDown(button) {
+    assert(type(button)=="integer")
+    return resolved()
+  }
+  function mouseButtonUp(button) {
+    assert(type(button)=="integer")
+    return resolved()
+  }
+  function mouseClick(button) {
+    assert(type(button)=="integer")
+    return resolved()
+  }
+  function mouseClickModifier(button, modifier) {
+    assert(type(button)=="integer" && type(modifier)=="integer")
+    return resolved()
+  }
+  function mousePosition(at) {
+    assert(at instanceof Point2, "at should be Point2")
+    return resolved()
+  }
   function mouseMove(from, to, over_seconds) {
     assert(from instanceof Point2, "from should be Point2")
     assert(to instanceof Point2, "to should be Point2")
     assert(type(over_seconds)=="float")
+    return resolved()
   }
-  function keyDown(key) { assert(type(key)=="integer") }
-  function keyUp(key) { assert(type(key)=="integer") }
-  function keyPress(key) { assert(type(key)=="integer") }
-  function keyPressModifier(key, modifier) { assert(type(key)=="integer" && type(modifier)=="integer") }
-  function keyHeld(key, over_seconds) { assert(type(key)=="integer" && type(over_seconds)=="float") }
+  function keyDown(key) {
+    assert(type(key)=="integer")
+    return resolved()
+  }
+  function keyUp(key) {
+    assert(type(key)=="integer")
+    return resolved()
+  }
+  function keyPress(key) {
+    assert(type(key)=="integer")
+    return resolved()
+  }
+  function keyPressModifier(key, modifier) {
+    assert(type(key)=="integer" && type(modifier)=="integer")
+    return resolved()
+  }
+  function keyHeld(key, over_seconds) {
+    assert(type(key)=="integer" && type(over_seconds)=="float")
+    return resolved()
+  }
   function keyHeldModifier(key, modifier, over_seconds) {
     assert(type(key)=="integer")
     assert(type(modifier)=="integer")
     assert(type(over_seconds)=="float")
+    return resolved()
   }
-  function characterInput(text, between_seconds) { assert(type(text)=="string" && type(between_seconds)=="float") }
+  function characterInput(text, between_seconds) {
+    assert(type(text)=="string" && type(between_seconds)=="float")
+    return resolved()
+  }
   function mouseDrag(button, from, to, over_seconds) {
     assert(type(button)=="integer")
     assert(from instanceof Point2, "from should be Point2")
     assert(to instanceof Point2, "to should be Point2")
     assert(type(over_seconds)=="float")
+    return resolved()
   }
   function mouseMoveItem(path, over_seconds) {
     assert(type(path)=="string" && type(over_seconds)=="float")
-    return true
+    return resolved()
   }
   function mouseClickItem(path, button) {
     assert(type(path)=="string" && type(button)=="integer")
-    return true
+    return resolved()
   }
 }
 
@@ -46,8 +89,11 @@ let TestRuntime = class {
   }
   isRunning = @() true
   function markFailed(reason=null) { assert(reason==null || type(reason)=="string") }
-  yieldFrame = @() {}
-  function yieldTime(seconds) { assert(type(seconds)=="float") }
+  yieldFrame = @() resolved()
+  function yieldTime(seconds) {
+    assert(type(seconds)=="float")
+    return resolved()
+  }
   function queryItem(path) {
     assert(type(path)=="string")
     return {

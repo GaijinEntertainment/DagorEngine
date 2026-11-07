@@ -191,8 +191,10 @@ Sqrat::Object rapidjson_to_quirrel(HSQUIRRELVM vm, const rapidjson::Value &jval)
     }
     else
     {
-      Sqrat::Table sqobj(vm);
       rapidjson::Value::ConstObject obj = jval.GetObject();
+      sq_newtableex(vm, obj.MemberCount());
+      Sqrat::Table sqobj = Sqrat::Var<Sqrat::Table>(vm, -1).value;
+      sq_pop(vm, 1);
       for (auto &[k, v] : obj)
         sqobj.SetValue(eastl::string_view{k.GetString(), k.GetStringLength()}, rapidjson_to_quirrel(vm, v));
       return sqobj;
@@ -201,9 +203,10 @@ Sqrat::Object rapidjson_to_quirrel(HSQUIRRELVM vm, const rapidjson::Value &jval)
   if (jval.IsArray())
   {
     rapidjson::Value::ConstArray ar = jval.GetArray();
-    Sqrat::Array sqarray(vm);
+    Sqrat::Array sqarray(vm, ar.Size());
+    SQInteger idx = 0;
     for (const rapidjson::Value &arrEl : ar)
-      sqarray.Append(rapidjson_to_quirrel(vm, arrEl));
+      sqarray.SetValue(idx++, rapidjson_to_quirrel(vm, arrEl));
     return sqarray;
   }
   if (jval.IsString())

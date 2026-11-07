@@ -18,6 +18,7 @@ String get_config_filename();
 void initial_load_settings();
 void load_gameparams();
 void save_settings(const SettingsHashMap *changed_settings, bool apply_settings = true);
+void apply_settings_deferred_by_level_load();
 void clear_settings();
 void commit_settings(const eastl::function<void(DataBlock &)> &mutate_cb);
 bool do_settings_changes_need_videomode_change(const FastNameMap &changed_fields);

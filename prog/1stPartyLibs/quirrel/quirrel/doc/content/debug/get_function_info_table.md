@@ -30,10 +30,10 @@ fails the parameter type check before this function runs.
 
 ## Notes
 
-`pure` is `true` either because the function carries the `[pure]` attribute, or
-because the compiler proved the body has no side effect on its own, without any
-attribute written. `fastcall` is a native-only trait; a script closure never
-reports it.
+`pure` is `true` only for a function marked pure: a script function with the
+`[pure]` attribute, a native bound as pure, or a closure that the host marked
+with `sq_mark_pure_inplace`. The compiler does not infer it from the body.
+`fastcall` is a native-only trait; a script closure never reports it.
 
 A native bound through a type mask instead of a declaration string has no real
 parameter names, so `argNames` is filled with placeholders `arg1`, `arg2`, and so

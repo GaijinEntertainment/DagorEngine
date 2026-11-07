@@ -17,6 +17,7 @@ void rebuild_xmb(Element *node, Element *xmb_parent);
 
 BBox2 calc_xmb_viewport(Element *node, Element **nearest_xmb_viewport);
 bool is_xmb_node_input_covered(Element *node);
+bool is_xmb_node_blocked(Element *node);
 
 // Navigate a regular grid XMB structure (defineed by isGridLine=true on rows/columns)
 Element *xmb_grid_navigate(Element *cur_focus, Direction dir);

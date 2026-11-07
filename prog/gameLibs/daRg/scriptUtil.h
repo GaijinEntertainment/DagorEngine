@@ -3,8 +3,11 @@
 
 #include <sqrat.h>
 #include <util/dag_globDef.h>
+#include <util/dag_stdint.h>
+#include <util/dag_bitwise_cast.h>
 #include <quirrel/sqStackChecker.h>
 #include <math/dag_Point2.h>
+#include <daRg/dag_layout.h>
 
 
 namespace darg
@@ -55,10 +58,27 @@ SQInteger get_element_info(HSQUIRRELVM v);
 
 void script_set_userpointer_to_slot(const Sqrat::Object &obj, const char *key, void *up);
 void *script_cast_to_userpointer(const Sqrat::Object &obj);
-template <typename T>
-T script_cast_from_userpointer(const Sqrat::Object &obj)
+
+// Mode in the 3 low mantissa bits to fit 32-bit pointers; mode 0 (PIXELS) is never encoded, so 8-aligned pointers fail
+constexpr uint32_t SIZE_SPEC_MODE_MASK = 7;
+static_assert(SizeSpec::ELEM_SELF_H <= SIZE_SPEC_MODE_MASK, "SizeSpec::Mode must fit SIZE_SPEC_MODE_MASK");
+
+inline SQUserPointer encode_size_spec(SizeSpec::Mode mode, float value)
 {
-  return (T)(intptr_t)script_cast_to_userpointer(obj);
+  G_ASSERT(mode != SizeSpec::PIXELS);
+  uint32_t bits = (bitwise_cast<uint32_t>(value) & ~SIZE_SPEC_MODE_MASK) | uint32_t(mode);
+  return (SQUserPointer)(uintptr_t)bits;
+}
+
+inline bool decode_size_spec(SQUserPointer up, SizeSpec &res)
+{
+  uintptr_t raw = (uintptr_t)up;
+  uint32_t bits = uint32_t(raw);
+  if ((bits & SIZE_SPEC_MODE_MASK) == SizeSpec::PIXELS || (uint64_t(raw) >> 32) != 0)
+    return false;
+  res.mode = SizeSpec::Mode(bits & SIZE_SPEC_MODE_MASK);
+  res.value = bitwise_cast<float>(bits & ~SIZE_SPEC_MODE_MASK);
+  return true;
 }
 
 bool load_sound_info(Sqrat::Object src, Sqrat::string &out_name, Sqrat::Object &out_params, float &out_vol);

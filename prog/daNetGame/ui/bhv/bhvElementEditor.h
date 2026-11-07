@@ -25,6 +25,7 @@ public:
   virtual int pointingEvent(darg::ElementTree *,
     darg::Element *,
     darg::InputDevice device,
+    darg::TouchSource touch_src,
     darg::InputEvent event,
     int touch_idx,
     int button_idx,

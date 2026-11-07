@@ -55,6 +55,7 @@ class ResetRandomSwitchReorderHandler : public IListReorderHandler
 public:
   ResetRandomSwitchReorderHandler(AnimTreeEditor &editor, PropPanel::ContainerPropertyControl *panel) : editor(editor), panel(panel) {}
   void handleReorder(int from, int to) override;
+  bool canReorder() override;
 
 private:
   AnimTreeEditor &editor;

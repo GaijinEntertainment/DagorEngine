@@ -3,9 +3,6 @@
 #include "jsonDump.h"
 #include "jsonDumpCommon.h"
 
-#include <debug/dag_log.h>
-#include <osApiWrappers/dag_files.h>
-#include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_console.h>
 
 
@@ -20,7 +17,10 @@ Writer w(sb);
 
 } // namespace jsondump
 
-void dump_state_to_json(const InternalRegistry &registry, const intermediate::Graph &ir_graph, const sd::NodeStateDeltas &state_deltas)
+namespace state_dump
+{
+
+void dump(const DumpSources &dump_src, const char *custom_filename)
 {
   jsondump::sb.Clear();
   jsondump::w.Reset(jsondump::sb);
@@ -29,38 +29,33 @@ void dump_state_to_json(const InternalRegistry &registry, const intermediate::Gr
   {
     jsondump::w.StartObject();
 
-    jsondump::dump_registry_to_json(registry);
-    jsondump::dump_ir_graph_to_json(registry, ir_graph);
-    jsondump::dump_state_deltas_to_json(ir_graph, state_deltas);
+    jsondump::dump_registry_to_json(dump_src.registry);
+    jsondump::dump_ir_graph_to_json(dump_src.registry, dump_src.ir_graph);
+    jsondump::dump_state_deltas_to_json(dump_src.ir_graph, dump_src.state_deltas);
+    jsondump::dump_events_to_json(dump_src.ir_graph, dump_src.events);
+    jsondump::dump_layout_to_json(dump_src.ir_graph, dump_src.layout);
 
     jsondump::w.EndObject();
   }
 
   if (!jsondump::w.IsComplete())
   {
-    logerr("daFG: failed to dump, json is broken!");
+    console::error("daFG: failed to dump, json is broken!");
     return;
   }
 
-  DagorDateTime dt;
-  get_local_time(&dt);
-  String filename(0, "dafgDump_%02d-%02d-%02d.json", dt.hour, dt.minute, dt.second);
 
-  if (file_ptr_t f = df_open(filename, DF_WRITE | DF_CREATE))
+  String filename(custom_filename);
+  if (filename.empty())
   {
-    int fileLen = static_cast<int>(jsondump::sb.GetSize());
-    int bytesWritten = df_write(f, jsondump::sb.GetString(), fileLen);
-    if (bytesWritten == fileLen)
-      debug("daFG: framegraph dump saved to '%s'", filename);
-    else
-      logerr("daFG: failed to dump, wrote %d bytes instead of %d", bytesWritten, fileLen);
+    DagorDateTime dt;
+    get_local_time(&dt);
+    filename.printf(0, "dafgStateDump_%02d-%02d-%02d", dt.hour, dt.minute, dt.second);
+  }
 
-    df_close(f);
-  }
-  else
-  {
-    logerr("daFG: failed to open '%s' for writing", filename);
-  }
+  jsondump::write_to_file(filename, jsondump::sb);
 }
+
+} // namespace state_dump
 
 } // namespace dafg

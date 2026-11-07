@@ -114,6 +114,7 @@ protected:
   bool assetBrowserIsOpen() const override;
   void assetBrowserSetOpen(bool open) override;
   void assetBrowserOnAssetSelected(DagorAsset *asset, bool double_clicked) override;
+  void assetBrowserOnFolderSelected(const DagorAssetFolder &folder) override;
   void assetBrowserOnContextMenu(DagorAsset *asset) override;
 
   // IAssetSelectorContextMenuHandler

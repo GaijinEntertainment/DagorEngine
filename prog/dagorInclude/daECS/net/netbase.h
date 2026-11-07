@@ -16,6 +16,7 @@
 #include <generic/dag_enumBitMask.h>
 #include <generic/dag_functionRef.h>
 #include <EASTL/string.h>
+#include <cstring>
 
 
 namespace danet
@@ -74,6 +75,56 @@ enum ConnFlags : uint32_t
 };
 DAGOR_ENABLE_ENUM_BITMASK(ConnFlags);
 
+// How a client reached the host: published with each host URL, then stored on IConnection.
+// Direct covers listen / LAN / loopback; the URL itself shows 127.0.0.1 vs a LAN IP.
+enum class SessionUrlKind : uint8_t
+{
+  Unknown = 0,
+  Direct = 1,
+  UdpPunch = 2,
+  Relay = 3,
+  Proxy = 4,
+};
+
+inline const char *session_url_kind_name(SessionUrlKind k)
+{
+  switch (k)
+  {
+    case SessionUrlKind::Direct: return "direct";
+    case SessionUrlKind::UdpPunch: return "udp_punch";
+    case SessionUrlKind::Relay: return "relay";
+    case SessionUrlKind::Proxy: return "proxy";
+    default: return "unknown";
+  }
+}
+
+inline SessionUrlKind session_url_kind_from_name(const char *name)
+{
+  if (!name || !*name)
+    return SessionUrlKind::Unknown;
+  if (strcmp(name, "direct") == 0 || strcmp(name, "localhost") == 0)
+    return SessionUrlKind::Direct;
+  if (strcmp(name, "udp_punch") == 0)
+    return SessionUrlKind::UdpPunch;
+  if (strcmp(name, "relay") == 0)
+    return SessionUrlKind::Relay;
+  if (strcmp(name, "proxy") == 0)
+    return SessionUrlKind::Proxy;
+  return SessionUrlKind::Unknown;
+}
+
+// One published / dialled host address. Matching still serializes url and kind as two
+// member attributes (host_urls / host_url_kinds) for older clients.
+struct SessionUrl
+{
+  eastl::string url;
+  SessionUrlKind kind = SessionUrlKind::Unknown;
+
+  SessionUrl() = default;
+  SessionUrl(eastl::string u, SessionUrlKind k = SessionUrlKind::Unknown) : url(eastl::move(u)), kind(k) {}
+  SessionUrl(const char *u, SessionUrlKind k = SessionUrlKind::Unknown) : url(u ? u : ""), kind(k) {}
+};
+
 class IConnection
 {
 public:
@@ -98,6 +149,9 @@ public:
   virtual void addFlags(ConnFlags) = 0;
   virtual void clearFlags(ConnFlags) = 0;
   virtual bool hasAnyFlags(ConnFlags) const = 0;
+
+  virtual SessionUrlKind getSessionUrlKind() const { return SessionUrlKind::Unknown; }
+  virtual void setSessionUrlKind(SessionUrlKind) {}
 
   bool isActive() const { return !hasAnyFlags(CF_DISCONNECTING | CF_PENDING); }
 

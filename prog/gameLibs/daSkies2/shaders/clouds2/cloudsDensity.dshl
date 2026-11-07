@@ -11,6 +11,7 @@ float4 clouds_wind_alt_gradient;
 float clouds_erosion_noise_tile_size = 811;
 float4 clouds_erosion_noise_wind_ofs;//this creates 'evolution' of noise, as erosion noise starts to scroll through clouds.
 int clouds_shape_scale = 8;
+float clouds_shape_tiling_strength = 1;
 int clouds_cumulonimbus_shape_scale = 4;
 int clouds_turbulence_freq=4;
 float clouds_turbulence_scale = 0.21;
@@ -35,6 +36,15 @@ float4 clouds_erosion_wind_dir = (0, 0, 0, 0);
 
 float clouds_second_layer_density = 0.25;
 float clouds_first_layer_density = 1.;
+
+//clouds_height_alter is declared in clouds_alt_fraction.dshl: the types LUT bake branches on it too
+float clouds_anvil_amount = 1;//anvil is applied proportionally to cumulonimbus strength; 0 disables it
+float clouds_density_alter_strength = 1;//lerps back to unaltered density
+
+//anvil flare: coverage added at the cap, and the height band it ramps over
+float clouds_anvil_spread = 0.4;//coverage, not a distance: it lowers the shape threshold, so the cap widens in place
+float clouds_anvil_flare_from = 0.68;//where the mushroom waist closes, so the two never overlap
+float clouds_anvil_flare_pow = 1;//below 1 flares right above the waist (mushroom), above 1 keeps it to the top
 
 macro SAMPLE_CLOUDS_DENSITY_COMMON(code, clouds_view_pos)
   (code) {
@@ -116,6 +126,13 @@ macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
     clouds_curl_2d@tex2d = clouds_curl_2d;
     clouds_weather_texture@tex2d = clouds_weather_texture;
     clouds_turbulence@f4 = (clouds_turbulence_freq, clouds_turbulence_scale/clouds_turbulence_freq, clouds_first_layer_density, clouds_second_layer_density);
+    clouds_shape_tiling@f2 = (clouds_shape_tiling_strength, 2 * max(clouds_shape_scale, 1), 0, 0);
+  }
+  if (clouds_height_alter == on) {
+    (code) {
+      clouds_height_alter_p@f2 = (clouds_anvil_amount, clouds_density_alter_strength, 0, 0);
+      clouds_anvil_p@f4 = (clouds_anvil_spread, min(clouds_anvil_flare_from, 0.99), max(clouds_anvil_flare_pow, 0.05), 0);
+    }
   }
   INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   DENSITY_HEIGHT_GRADIENT_TEXTURE(code)
@@ -136,6 +153,54 @@ macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
           tex2Dlod(clouds_curl_2d, float4(curlTC.xy+fIndex*0.125+0.125, 0,0)).xy,
           frac(curlTC.z*16));
     }
+    float3 shape_tiling_hash3(float2 cell)
+    {
+      return frac(sin(float3(dot(cell, float2(127.1, 311.7)), dot(cell, float2(269.5, 183.3)), dot(cell, float2(419.2, 371.9)))) * 43758.5453);
+    }
+    float sample_shape_cell(float2 cell, float2 uv, float z, float2 curl_noise, float lod)
+    {
+      float2 tileCell = cell - floor((cell + 0.5) / clouds_shape_tiling.y) * clouds_shape_tiling.y;
+      float3 rnd = shape_tiling_hash3(tileCell);
+      float2 rotated = rnd.z < 0.5 ? uv : float2(-uv.y, uv.x);
+      rotated = frac(rnd.z * 2) < 0.5 ? rotated : -rotated;
+      return tex3Dlod(gen_cloud_shape, float4(rotated + rnd.xy * clouds_shape_tiling.x + curl_noise, z, lod)).x;
+    }
+    float sample_cloud_shape(float3 shape_coord, float2 curl_noise, float lod)
+    {
+      BRANCH
+      if (clouds_shape_tiling.x <= 0)
+        return tex3Dlod(gen_cloud_shape, float4(shape_coord.xy + curl_noise, shape_coord.z, lod)).x;
+      float2 cellUV = shape_coord.xy * 2;
+      float2 cell = floor(cellUV);
+      float2 w = smoothstep(0.35, 0.65, frac(cellUV));
+      float4 weights = float4((1 - w.x) * (1 - w.y), w.x * (1 - w.y), (1 - w.x) * w.y, w.x * w.y);
+      float shape = 0;
+      BRANCH
+      if (weights.x > 0)
+        shape += weights.x * sample_shape_cell(cell, shape_coord.xy, shape_coord.z, curl_noise, lod);
+      BRANCH
+      if (weights.y > 0)
+        shape += weights.y * sample_shape_cell(cell + float2(1, 0), shape_coord.xy, shape_coord.z, curl_noise, lod);
+      BRANCH
+      if (weights.z > 0)
+        shape += weights.z * sample_shape_cell(cell + float2(0, 1), shape_coord.xy, shape_coord.z, curl_noise, lod);
+      BRANCH
+      if (weights.w > 0)
+        shape += weights.w * sample_shape_cell(cell + float2(1, 1), shape_coord.xy, shape_coord.z, curl_noise, lod);
+      return shape;
+    }
+    ##if clouds_height_alter == on
+    float cloudsAnvilAlter(float gradient, float heightFraction, float anvil)
+    {
+      return pow(saturate(gradient), max(saturate(remap(heightFraction, 0.65, 0.95, 1, 1-anvil)), 0.05));
+    }
+    float cloudsDensityAlter(float heightFraction, float anvil)
+    {
+      float density = heightFraction*saturate(remap(heightFraction, 0, 0.2, 0, 1));
+      density *= lerp(1, saturate(remap(sqrt(saturate(heightFraction)), 0.4, 0.95, 1, 0.2)), anvil);
+      return density*saturate(remap(heightFraction, 0.9, 1, 1, 0));
+    }
+    ##endif
     float sampleCloudDensityMath(float3 p, float lod, float heightFraction) {
       //skew clouds in direction of wind.
       //solved for (0:0), (0.25:0.20), (0.6:0.9), (1:1)
@@ -169,8 +234,13 @@ macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
         curl_noise = decode_curl(curl_noise)*cloudBottomCurliness;
         //we can also actually apply curl noise for each layer independently, if we primarily pre-bake
         curl_noise = curl_noise*notCumuloNimbusCloudStr;//cumulonimbus have no time to be affected by turbulence (long time discrepancies in wind speed)
-        cloud_shape = tex3Dlod(gen_cloud_shape, float4(clouds_shape_sampling_coord.xy + curl_noise, clouds_shape_sampling_coord.z, lod)).x;
+        cloud_shape = sample_cloud_shape(clouds_shape_sampling_coord, curl_noise, lod);
       }
+      ##if clouds_height_alter == on
+      float anvil = clouds_height_alter_p.x*cumuloNimbusStr*cloud_coverage1;
+      float anvilFlare = pow(saturate(remap(heightFraction, clouds_anvil_p.y, 1, 0, 1)), clouds_anvil_p.z);
+      cloud_coverage1 = saturate(cloud_coverage1 + anvilFlare*anvil*clouds_anvil_p.x);
+      ##endif
       BRANCH
       if (cumuloNimbusStr > 0)
       {
@@ -180,6 +250,15 @@ macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
       float erosionLevel, density_height_gradient1, density_height_gradient2;
       getCloudsTypeParamsTex(base_cloud_type, heightFraction, cloud_coverage1, density_height_gradient1, density_height_gradient2, erosionLevel);
 
+      ##if clouds_height_alter == on
+      BRANCH
+      if (anvil > 0)
+      {
+        density_height_gradient1 = cloudsAnvilAlter(density_height_gradient1, heightFraction, anvil);
+        density_height_gradient2 = cloudsAnvilAlter(density_height_gradient2, heightFraction, anvil);
+      }
+      ##endif
+
       float cloud_shape1 = cloud_shape*density_height_gradient1;
       float cloud_shape2 = cloud_shape*density_height_gradient2;
 
@@ -188,6 +267,9 @@ macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
 
       float density1 = saturate(cloud_coverage1*base_cloud_with_coverage1);
       float density = density1*DENSITY_LAYER1 + saturate(cloud_coverage2*base_cloud_with_coverage2)*DENSITY_LAYER2;
+      ##if clouds_height_alter == on
+      density *= lerp(1, cloudsDensityAlter(heightFraction, anvil), clouds_height_alter_p.y*cumuloNimbusStr);
+      ##endif
       density += density*weather_data.a;//rain map. we should probably use it for rain
 
       return density;

@@ -17,9 +17,11 @@ class CarEngineModel;
 class CarDrivelineElement : public DrivelineElementState
 {
 protected:
+  static constexpr int MAX_CHILDREN = MAX_DRIVELINE_DIFFS;
+
   // Administration
-  CarDrivelineElement *parent, *child[2]; // Bi-directional tree
-  CarDriveline *driveline;                // Part of which driveline
+  CarDrivelineElement *parent, *child[MAX_CHILDREN] = {}; // Bi-directional tree
+  CarDriveline *driveline;                                // Part of which driveline
 
 public:
   CarDrivelineElement(CarDriveline *dl);
@@ -83,8 +85,9 @@ struct CarDrivelineState
     totalInertia = 0.f;         // Pre and post clutch inertia
 
   // Dynamic
-  bool prepostLocked = true; // Engine is locked to rest of drivetrain?
-  float tClutch = 0.f;       // Directed clutch torque (+/-clutchCurT)
+  bool prepostLocked = true;                                            // Engine is locked to rest of drivetrain?
+  float tClutch = 0.f;                                                  // Directed clutch torque (+/-clutchCurT)
+  float diffTorqueShares[MAX_DRIVELINE_DIFFS] = {0.5f, 0.5f, 0.f, 0.f}; // Used with more than one diff, sum is 1
 };
 
 
@@ -132,6 +135,7 @@ public:
   bool load(const DataBlock *blk);
   void loadCenterDiff(const DataBlock &blk);
   void loadCenterDiff(const PhysCarCenterDiffParams &src);
+  void setFixedDiffTorqueShares(const float *shares, int count);
 
   // Physics
   void resetData();
@@ -143,7 +147,7 @@ public:
 
 public:
   PhysCarCenterDiffParams centerDiff;
-  float centerDiffPowerRatio;
+  float fixedDiffTorqueShares[MAX_DRIVELINE_DIFFS] = {};
   float centerDiffTorque;
 
 private:

@@ -16,9 +16,8 @@
 class PhysSystemInstance
 {
 public:
-  // Note: if `tm` is null then bodies wont be added to phys world
-  PhysSystemInstance(PhysicsResource *resource, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup = 0,
-    uint16_t fmask = 0, float scale = 1.f);
+  PhysSystemInstance(PhysicsResource *resource, PhysWorld *world, const TMatrix &tm, void *userData, uint16_t fgroup = 0,
+    uint16_t fmask = 0, bool add_to_world = true);
   PhysSystemInstance(const PhysSystemInstance &) = delete;
   ~PhysSystemInstance();
 
@@ -52,6 +51,9 @@ public:
   void removeJoint(const char *name);
   bool removeJoint(const char *body1, const char *body2);
 
+  // empty body_ids adds all bodies
+  void addBodiesToWorld(dag::ConstSpan<int> body_ids, bool drop_joints_to_inactive);
+
   int findBodyIdByName(const char *name) const;
 
 protected:
@@ -68,8 +70,8 @@ protected:
     eastl::unique_ptr<PhysBody> body;
     Tab<TmHelper> tmHelpers;
 
-    Body(const PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup, uint16_t fmask,
-      bool has_joints, float scale = 1.f);
+    Body(const PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix &tm, void *userData, uint16_t fgroup, uint16_t fmask,
+      bool has_joints, bool add_to_world, float scale);
 
     void updateTms(const PhysicsResource::Body &res_body, const TMatrix &wtm);
   };
@@ -81,6 +83,10 @@ protected:
 
   Tab<PhysJoint *> joints;
 
+  template <typename Pred>
+  bool removeJointsIf(Pred pred);
+
   static void phys_jolt_setup_collision_groups_for_joints(int grpId, Tab<Body> &b, PhysicsResource *r);
+  static void phys_jolt_enable_collision_between_bodies(Tab<Body> &b, int body1, int body2);
 };
 DAG_DECLARE_RELOCATABLE(PhysSystemInstance::Body);

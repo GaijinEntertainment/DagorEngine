@@ -104,15 +104,18 @@ struct TracerCreateCommand
 };
 
 #ifndef __cplusplus
-float get_tracers_max_turbulence_radius(float radiusStart) {return (radiusStart*2+0.25);}
+#define SMOKE_TRACER_DEFAULT_TURBULENCE_PARAMS float4(0.25, 2, 0.1, 1)
 
-#define TRACERS_WIND_RADIUS_STR 0.1
-float get_tracers_max_wind_radius(float radiusStart){return TRACERS_WIND_RADIUS_STR*radiusStart;}
-
-float3 get_tracers_wind(float time)
+float get_tracers_max_turbulence_radius(float radiusStart, float4 turbulence_params) {return (radiusStart*turbulence_params.y+turbulence_params.x);}
+float get_tracers_max_wind_radius(float radiusStart, float4 turbulence_params){return turbulence_params.z*radiusStart;}
+float3 get_tracers_wind(float time, float4 turbulence_params)
 {
-  return -time*TRACERS_WIND_RADIUS_STR*float3(1,0,1);//todo: unified wind solution (particles, volumetrics, tracers)
+  return -time*turbulence_params.z*float3(1,0,1);//todo: unified wind solution (particles, volumetrics, tracers)
 }
+
+float get_tracers_max_turbulence_radius(float radiusStart) {return get_tracers_max_turbulence_radius(radiusStart, SMOKE_TRACER_DEFAULT_TURBULENCE_PARAMS);}
+float get_tracers_max_wind_radius(float radiusStart){return get_tracers_max_wind_radius(radiusStart, SMOKE_TRACER_DEFAULT_TURBULENCE_PARAMS);}
+float3 get_tracers_wind(float time) {return get_tracers_wind(time, SMOKE_TRACER_DEFAULT_TURBULENCE_PARAMS);}
 
 void smoke_tracer_unpack_verts(uint packedData, out uint firstVert, out uint totalVerts)
 {

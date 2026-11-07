@@ -818,10 +818,11 @@ public:
     const ImGuiID childWindowId = ImGui::GetCurrentWindow()->GetID("c");
     const ImVec2 regionAvailable = ImGui::GetContentRegionAvail();
     const ImVec2 childSize(regionAvailable.x, control_height > 0.0f ? control_height : regionAvailable.y);
-    const eastl::optional<ImU32> borderColor = treeRenderEx->getBorderColor();
+    const eastl::optional<E3DCOLOR> borderColor = treeRenderEx->getBorderColor();
     if (borderColor)
     {
-      ImGui::PushStyleColor(ImGuiCol_Border, *borderColor);
+      const E3DCOLOR color = *borderColor;
+      ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(color.r, color.g, color.b, color.a));
       ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
     }
     if (ImGui::BeginChild(childWindowId, childSize, ImGuiChildFlags_FrameStyle,

@@ -307,11 +307,12 @@ macro BLOOD_PUDDLES_RESOLVE_COMMON_PS()
 
   hlsl(ps) {
     GBUFFER_OUTPUT apply_blood_puddle_resolve_ps(uint decal_type, bool is_landscape,
-      float thickness, float edgeCloseness, float3 normal, float alpha, float2 screen_pos)
+      float thickness, float edgeCloseness, float3 normal, float alpha, float4 screen_pos,
+      uint shading_rate, uint coverage)
     {
   ##if special_vision == thermal_vision
       #if FILTER_DYNAMIC
-        filterDynamic(screen_pos);
+        filterDynamic(screen_pos.xy);
       #endif
 
       float invCoolingTerm = alpha;
@@ -371,7 +372,7 @@ macro BLOOD_PUDDLES_RESOLVE_COMMON_PS()
       float srcDominance = (1.0/srcMulDstDominance - 1.0);
 
       #if FILTER_DYNAMIC
-        filterDynamic(screen_pos);
+        filterDynamic(screen_pos.xy);
       #endif
 
       UnpackedGbuffer output;
@@ -490,6 +491,7 @@ shader blood_puddles_resolve
     }
   }
 
+  hlsl(ps) { #define MIXING_UAV_DEPTH_TEST(z, scene_z) true }
   WRITE_GBUFFER_WITH_MIXING(special_vision == special_vision_off, true, true)
   DYNAMIC_FILTER_FOR_MIXING(false, true)
   INIT_PER_GROUP_PARAMS(ps)
@@ -503,7 +505,7 @@ shader blood_puddles_resolve
 
 
   hlsl(ps) {
-    GBUFFER_OUTPUT blood_puddles_resolve_ps(VsOutput input HW_USE_SCREEN_POS)
+    GBUFFER_OUTPUT blood_puddles_resolve_ps(VsOutput input HW_USE_SCREEN_POS MATERIAL_UAV_VRS_PS_INPUT)
     {
       float4 accBuf0 = texelFetch(blood_acc_buf0, input.pos.xy, 0);
       float invAlpha = accBuf0.a;
@@ -525,7 +527,7 @@ shader blood_puddles_resolve
       float alpha = (1.0 - invAlpha);
 
       return apply_blood_puddle_resolve_ps(decalType, isLandscape, thickness, edgeCloseness,
-       normal, alpha, GET_SCREEN_POS(input.pos).xy);
+       normal, alpha, GET_SCREEN_POS(input.pos), MATERIAL_UAV_VRS_ARGS);
     }
   }
 
@@ -571,7 +573,7 @@ shader blood_puddles_forward
   hlsl(ps) {
 
     [earlydepthstencil]
-    GBUFFER_OUTPUT blood_puddles_forward_ps(VsOutput input HW_USE_SCREEN_POS)
+    GBUFFER_OUTPUT blood_puddles_forward_ps(VsOutput input HW_USE_SCREEN_POS MATERIAL_UAV_VRS_PS_INPUT)
     {
       float4 screen = GET_SCREEN_POS(input.pos);
 
@@ -584,7 +586,7 @@ shader blood_puddles_forward
       float thickness = min(1.0 - intensity - edgeCloseness, 0.93);
 
       return apply_blood_puddle_resolve_ps(decalType, isLandscape, thickness,
-        edgeCloseness, normal, alpha, GET_SCREEN_POS(input.pos).xy);
+        edgeCloseness, normal, alpha, GET_SCREEN_POS(input.pos), MATERIAL_UAV_VRS_ARGS);
     }
   }
   compile("target_vs", "blood_puddles_vs");

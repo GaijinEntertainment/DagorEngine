@@ -104,32 +104,41 @@ public:
 
 class ThreadedProgressIndicator : public IGenericProgressIndicator
 {
-  volatile int packDoneVal = 0;
-  volatile int packTotalVal = 0;
-  volatile int phaseVal = 0; // 1 = tex, 2 = res
+  volatile int assetsDoneVal = 0;
+  volatile int assetsTotalVal = 0;
+  volatile int packsDoneVal = 0;
+  volatile int packsTotalVal = 0;
 
 public:
-  void setPhase(int p) { interlocked_relaxed_store(phaseVal, p); }
-
   void setActionDescFmt(const char *, const DagorSafeArg *, int) override {}
   void setTotal(int total) override
   {
-    interlocked_relaxed_store(packTotalVal, total);
-    interlocked_relaxed_store(packDoneVal, 0);
+    interlocked_relaxed_store(assetsTotalVal, total);
+    interlocked_relaxed_store(assetsDoneVal, 0);
   }
-  void setDone(int done) override { interlocked_relaxed_store(packDoneVal, done); }
-  void incDone(int inc = 1) override { interlocked_add(packDoneVal, inc); }
+  void setDone(int done) override { interlocked_relaxed_store(assetsDoneVal, done); }
+  void incDone(int inc = 1) override { interlocked_add(assetsDoneVal, inc); }
   void redrawScreen() override {}
   void destroy() override {}
   void startProgress(IProgressCB *) override {}
   void endProgress() override {}
 
+  void beginBuild(int total)
+  {
+    interlocked_relaxed_store(packsDoneVal, 0);
+    interlocked_relaxed_store(packsTotalVal, total);
+    interlocked_relaxed_store(assetsDoneVal, 0);
+    interlocked_relaxed_store(assetsTotalVal, 0);
+  }
+  void incPacksDone(int inc = 1) { interlocked_add(packsDoneVal, inc); }
+
   DaBuildProgress snap() const
   {
     DaBuildProgress p;
-    p.phase = interlocked_relaxed_load(phaseVal);
-    p.packDone = interlocked_relaxed_load(packDoneVal);
-    p.packTotal = interlocked_relaxed_load(packTotalVal);
+    p.assetDone = interlocked_relaxed_load(assetsDoneVal);
+    p.assetTotal = interlocked_relaxed_load(assetsTotalVal);
+    p.packDone = interlocked_relaxed_load(packsDoneVal);
+    p.packTotal = interlocked_relaxed_load(packsTotalVal);
     return p;
   }
 };
@@ -711,6 +720,8 @@ bool is_dabuild_running() { return interlocked_relaxed_load(dabuildStatus) == 1;
 
 void stop_dabuild_background()
 {
+  pendingBuildQueue.clear();
+
   if (!interlocked_relaxed_load(inprocThreadDone))
   {
     interlocked_relaxed_store(inprocBuildCancelled, true);
@@ -889,7 +900,7 @@ void update_dabuild_background(PropPanel::IMenu *mm)
   if (progressShm)
   {
     DaBuildProgress snap;
-    progressShm->readSnap(snap.phase, snap.packDone, snap.packTotal, snap.assetDone, snap.assetTotal);
+    progressShm->readSnap(snap.packDone, snap.packTotal, snap.assetDone, snap.assetTotal);
     dabuildProgress = snap;
   }
   else if (interlocked_relaxed_load(dabuildStatus) == 1)
@@ -1098,6 +1109,7 @@ static bool launch_build_inproc_async(DaBuildPostParams postParams)
   ::get_app().getConsole().addMessage(ILogWriter::NOTE, "daBuild: in-process build (0 jobs)");
 
   dabuildProgress = DaBuildProgress{};
+  inprocPbar.beginBuild(buildPostParams.ids.size() * buildPostParams.tc.size());
   currentBuildUsesJobs = false;
   interlocked_relaxed_store(inprocBuildCancelled, false);
   interlocked_relaxed_store(inprocThreadDone, false);
@@ -1112,7 +1124,7 @@ static bool launch_build_inproc_async(DaBuildPostParams postParams)
       bool ok = true;
       for (uint64_t id : buildPostParams.ids)
       {
-        if (interlocked_relaxed_load(inprocBuildCancelled))
+        if (cancelled || interlocked_relaxed_load(inprocBuildCancelled))
         {
           cancelled = true;
           break;
@@ -1121,8 +1133,20 @@ static bool launch_build_inproc_async(DaBuildPostParams postParams)
         String selector(0, "\1%s", (pkgIdx == 0) ? DABUILD_BASE_PKG_SELECTOR : pack_id_pkg_name(id));
         const char *packName = pack_id_pack_name(id);
         const char *packList[] = {selector.c_str(), packName};
-        if (!dabuild->exportPacks(buildPostParams.tc, make_span_const(packList, 2)))
-          ok = false;
+
+        for (unsigned tc : buildPostParams.tc)
+        {
+          if (interlocked_relaxed_load(inprocBuildCancelled))
+          {
+            cancelled = true;
+            break;
+          }
+
+          if (!dabuild->exportPacks(make_span_const(&tc, 1), make_span_const(packList, 2)))
+            ok = false;
+
+          inprocPbar.incPacksDone();
+        }
       }
 
       if (!cancelled)
@@ -1742,13 +1766,14 @@ void render_dabuild_imgui()
 
     DaBuildProgress progress = running ? ::get_dabuild_progress() : DaBuildProgress{};
     bool jobMode = running && ::get_dabuild_current_build_uses_jobs();
-    const char *phaseLabel = progress.phase == 1 ? "Tex" : progress.phase == 2 ? "Res" : "Pack";
     static const char spinChars[] = "|/-\\";
     char spin = running ? spinChars[(int)(ImGui::GetTime() * 6.0) % 4] : ' ';
-    if (jobMode)
-      ImGui::Text("%s %d / %d (dispatched) %c", phaseLabel, progress.packDone, progress.packTotal, spin);
+    if (!running)
+      ImGui::Text("Pack 0 / 0");
+    else if (progress.packTotal <= 0)
+      ImGui::Text("Starting batch... %c", spin);
     else
-      ImGui::Text("%s %d / %d   %c", phaseLabel, progress.packDone, progress.packTotal, spin);
+      ImGui::Text("Pack %d / %d  %c", progress.packDone, progress.packTotal, spin);
     float packFrac = progress.packTotal > 0 ? (float)progress.packDone / (float)progress.packTotal : 0.0f;
     ImGui::ProgressBar(packFrac, ImVec2(-1.0f, 0.0f));
     if (jobMode)
@@ -1827,6 +1852,9 @@ void render_dabuild_imgui()
     ImGui::SameLine();
     if (ImGui::Button("Select all"))
       queue_select_all_known_packs();
+
+    if (running)
+      ImGui::EndDisabled();
 
     static constexpr float LIST_PAD = 2.0f;
     static constexpr float ITEM_PAD = 4.0f;
@@ -2049,17 +2077,12 @@ void render_dabuild_imgui()
     }
     ImGui::EndChild();
 
-    if (running)
+    if (running && childHovered)
     {
-      ImGui::EndDisabled();
-
-      if (childHovered)
-      {
-        ImGui::BeginTooltip();
-        ImGui::TextUnformatted("Pack building is in process");
-        ImGui::TextUnformatted("Currently being built packs are marked with color");
-        ImGui::EndTooltip();
-      }
+      ImGui::BeginTooltip();
+      ImGui::TextUnformatted("Pack building is in process");
+      ImGui::TextUnformatted("Currently being built packs are marked with color");
+      ImGui::EndTooltip();
     }
   }
 

@@ -144,7 +144,7 @@ macro USE_HEIGHTMAP_MAX_GRID(code)
                 tEdge = heightmap_max_grid_edge_t(world_pos, dir, d > 1e8 ? t : t - dt, d > 1e8 ? t - dt : t);
                 dEdge = world_pos.y + dir.y*tEdge - heightmap_max_grid_get_height(world_pos + dir*tEdge);
               }
-              // constraint: HLSL 2018 runs both sides of ||, and the second call writes hit_t
+              // HLSL 2018 runs both sides of ||, and the second call writes hit_t
               bool crossed = heightmap_max_grid_crossed(fromBelow, d, dEdge, t - dt, tEdge, hit_t);
               if (!crossed)
                 crossed = heightmap_max_grid_crossed(fromBelow, dEdge, dNext, tEdge, t, hit_t);

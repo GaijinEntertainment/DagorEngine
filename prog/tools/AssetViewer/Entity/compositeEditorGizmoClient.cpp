@@ -2,13 +2,20 @@
 
 #include "compositeEditorGizmoClient.h"
 #include "compositeEditorCopyDlg.h"
-#include "compositeEditorViewport.h"
 #include "entityViewPluginInterface.h"
 #include "../av_appwnd.h"
 #include <de3_objEntity.h>
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_input.h>
 #include <math/dag_mathAng.h>
+
+static Point3 calc_node_world_pos(CompositeEditor &composite_editor, const CompositeEditorTreeDataNode *node)
+{
+  int nodeIndex = -1;
+  CompositeEditorTreeDataNode *parent = composite_editor.getTreeDataNodeParent(node, nodeIndex);
+  const TMatrix parentWorldTm = parent ? composite_editor.calcParentMatrix(parent) : TMatrix::IDENT;
+  return (parentWorldTm * node->getTransformationMatrix()).getcol(3);
+}
 
 void CompositeEditorGizmoClient::setEntity(IObjEntity *in_entity) { entity = in_entity; }
 
@@ -31,14 +38,10 @@ Point3 CompositeEditorGizmoClient::getPt()
     {
       if (!an.canTransform)
         continue;
-      IObjEntity *subEntity = compositeEditor.getSubEntityByDataBlockId(an.node->dataBlockId);
-      if (subEntity)
-      {
-        TMatrix tm;
-        subEntity->getTm(tm);
-        selectionCenter += tm.getcol(3);
-        ++validCount;
-      }
+      // Use the node transform, not the sub-entity one (place_type can put the sub-entity on the ground or water),
+      // because changed() turns and scales around it.
+      selectionCenter += calc_node_world_pos(compositeEditor, an.node);
+      ++validCount;
     }
     if (validCount > 0)
       return selectionCenter / float(validCount);
@@ -46,19 +49,7 @@ Point3 CompositeEditorGizmoClient::getPt()
       return Point3::ZERO;
   }
 
-  if (entity)
-  {
-    IObjEntity *selectedSubEntity = CompositeEditorViewport::getSelectedSubEntity(entity);
-    if (selectedSubEntity)
-    {
-      TMatrix tm;
-      selectedSubEntity->getTm(tm);
-      return tm.getcol(3);
-    }
-  }
-
-  const TMatrix tm = node->getTransformationMatrix();
-  return tm.getcol(3);
+  return calc_node_world_pos(get_app().getCompositeEditor(), node);
 }
 
 bool CompositeEditorGizmoClient::getRot(Point3 &p)

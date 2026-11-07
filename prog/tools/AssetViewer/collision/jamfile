@@ -23,7 +23,6 @@ Sources =
   convexVhacdProcessing.cpp
   kdopProcessing.cpp
   collisionUtils.cpp
-  physMatLegend.cpp
 ;
 
 UseProgLibs =

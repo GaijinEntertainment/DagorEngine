@@ -26,4 +26,7 @@ private:
   static void runTexShow(const char *argv[], int argc);
   static void runTexHide();
   static void runSelectAsset(dag::ConstSpan<const char *> params);
+  static void runSetLod(dag::ConstSpan<const char *> params);
+  static void runLodInfo();
+  static void runDumpAssetRefs(dag::ConstSpan<const char *> params);
 };

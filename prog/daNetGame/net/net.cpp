@@ -199,6 +199,8 @@ static constexpr int DEFAULT_TIME_TO_SWITCH_SERVER_ADDR = 4000;
 // in case of probing of alternative server route, fallback should be fast
 static constexpr int DEFAULT_TIME_TO_SWITCH_SERVER_ADDR_FAST = DEFAULT_TIME_TO_SWITCH_SERVER_ADDR / 2;
 
+static int get_server_unresponsive_time_ms(int *no_packets_ms = nullptr);
+
 const char *select_next_server_url(bool rotate)
 {
   auto *ctx = GET_NET_CTX();
@@ -206,7 +208,7 @@ const char *select_next_server_url(bool rotate)
     return nullptr;
   if (++ctx->currentServerUrlIdx >= (int)ctx->serverUrls.size() && rotate)
     ctx->currentServerUrlIdx = 0;
-  return (ctx->currentServerUrlIdx < (int)ctx->serverUrls.size()) ? ctx->serverUrls[ctx->currentServerUrlIdx].c_str() : nullptr;
+  return (ctx->currentServerUrlIdx < (int)ctx->serverUrls.size()) ? ctx->serverUrls[ctx->currentServerUrlIdx].url.c_str() : nullptr;
 }
 
 uint32_t get_current_server_route_id()
@@ -222,7 +224,7 @@ const char *get_server_route_host(uint32_t route_id)
   auto *ctx = GET_NET_CTX();
   if (!ctx)
     return nullptr;
-  const char *surl = (route_id < ctx->serverUrls.size()) ? ctx->serverUrls[route_id].c_str() : nullptr;
+  const char *surl = (route_id < ctx->serverUrls.size()) ? ctx->serverUrls[route_id].url.c_str() : nullptr;
   if (const char *pcol = surl ? strchr(surl, ':') : nullptr)
   {
     size_t l = eastl::min<size_t>(pcol - surl, countof(tmpbuf) - 1); //-V1004
@@ -249,7 +251,7 @@ void switch_server_route(uint32_t route_id)
   G_ASSERT_RETURN(route_id != (uint32_t)ctx->currentServerUrlIdx, );
 
   debug("%s route=%d -> %d, url=%s -> %s", __FUNCTION__, ctx->currentServerUrlIdx, route_id,
-    ctx->serverUrls[ctx->currentServerUrlIdx].c_str(), ctx->serverUrls[route_id].c_str());
+    ctx->serverUrls[ctx->currentServerUrlIdx].url.c_str(), ctx->serverUrls[route_id].url.c_str());
 
   net::IConnection *sconn = ctx->network.getServerConnection();
   if (!sconn)
@@ -257,10 +259,10 @@ void switch_server_route(uint32_t route_id)
 
   const int timeToSwitchFast =
     dgs_get_settings()->getBlockByNameEx("net")->getInt("timeToSwitchUnresponsiveServerFast", DEFAULT_TIME_TO_SWITCH_SERVER_ADDR_FAST);
-  ctx->timeToSwitchServerAddr = get_no_packets_time_ms() + timeToSwitchFast;
+  ctx->timeToSwitchServerAddr = get_server_unresponsive_time_ms() + timeToSwitchFast;
 
   ctx->currentServerUrlIdx = (int)route_id;
-  sconn->changeSendAddress(ctx->serverUrls[ctx->currentServerUrlIdx].c_str());
+  sconn->changeSendAddress(ctx->serverUrls[ctx->currentServerUrlIdx].url.c_str());
 }
 
 void send_echo_msg(uint32_t route_id)
@@ -274,7 +276,7 @@ void send_echo_msg(uint32_t route_id)
   if (!sconn)
     return;
 
-  sconn->sendEcho(ctx->serverUrls[route_id].c_str(), route_id);
+  sconn->sendEcho(ctx->serverUrls[route_id].url.c_str(), route_id);
 }
 
 void on_client_disconnected(ecs::EntityManager &manager, DisconnectionCause cause)
@@ -325,6 +327,9 @@ dag::Span<net::IConnection *> get_client_connections()
     conns.size());
 }
 
+// The signed difference survives the DaNetTime wrap; a negative one is a clock step back.
+static int time_since_ms(DaNetTime time, DaNetTime cur_time) { return time ? eastl::max(int(cur_time - time), 0) : 0; }
+
 int get_no_packets_time_ms()
 {
   auto *ctx = GET_NET_CTX();
@@ -332,8 +337,28 @@ int get_no_packets_time_ms()
     return 0;
   DaNetTime last = ctx->getNet().getDriver()->getLastReceivedPacketTime(0);
   DaNetTime curTime = danet::GetTime();
-  G_ASSERTF(curTime >= last, "current time (%u) < last recive time (%u)", curTime, last);
-  return (last && curTime >= last) ? curTime - last : 0;
+  G_ASSERTF(!last || int(curTime - last) >= 0, "current time (%u) < last receive time (%u)", curTime, last);
+  return time_since_ms(last, curTime);
+}
+
+static int get_no_ack_time_ms()
+{
+  auto *ctx = GET_NET_CTX();
+  auto *peer = ctx ? static_cast<const DaNetPeerInterface *>(ctx->getNet().getDriver()->getControlIface()) : nullptr;
+  return peer ? time_since_ms(peer->GetReliableTimeoutTime(0), danet::GetTime()) : 0;
+}
+
+// Max of the time since the last server packet and the time since the first reliable send that timed out without an ack.
+// no_packets_ms, when given, gets the first of the two, so a log can print the value that decided.
+static int get_server_unresponsive_time_ms(int *no_packets_ms)
+{
+  int noPacketsTime = get_no_packets_time_ms(); // 0 on a server or without a network
+  if (no_packets_ms)
+    *no_packets_ms = noPacketsTime;
+  auto *ctx = GET_NET_CTX();
+  if (!ctx || ctx->getNet().isServer())
+    return 0;
+  return eastl::max(noPacketsTime, get_no_ack_time_ms());
 }
 
 static void switch_unresponsive_server_addr(ecs::EntityManager &manager, net::NetContext &nctx)
@@ -347,17 +372,19 @@ static void switch_unresponsive_server_addr(ecs::EntityManager &manager, net::Ne
     return;
   if (!nctx.timeToSwitchServerAddr)
     nctx.timeToSwitchServerAddr = timeToSwitch;
-  int nopktt = get_no_packets_time_ms();
-  if (nopktt <= nctx.timeToSwitchServerAddr)
+  int noPacketsTime = 0;
+  int unresponsiveTime = get_server_unresponsive_time_ms(&noPacketsTime);
+  if (unresponsiveTime <= nctx.timeToSwitchServerAddr)
   {
-    if (nopktt < timeToSwitch)
+    if (unresponsiveTime < timeToSwitch)
       nctx.timeToSwitchServerAddr = timeToSwitch;
     return;
   }
 
   G_ASSERT_RETURN(nctx.currentServerUrlIdx < (int)nctx.serverUrls.size(), );
 
-  logwarn("No network packets for %d ms from %s", nopktt, nctx.serverUrls[nctx.currentServerUrlIdx].c_str());
+  logwarn("Server unresponsive for %d ms (no packets for %d ms), current route %s", unresponsiveTime, noPacketsTime,
+    nctx.serverUrls[nctx.currentServerUrlIdx].url.c_str());
   manager.broadcastEvent(ChangeServerRoute{/*currentIsUnresponsive*/ true});
   eastl::string country_code;
   auth_get_country_code(manager, country_code);
@@ -365,7 +392,7 @@ static void switch_unresponsive_server_addr(ecs::EntityManager &manager, net::Ne
     {{"addr", get_server_route_host((uint32_t)nctx.currentServerUrlIdx)}, {"country", country_code.c_str()}});
   const int timeToSwitchFast =
     dgs_get_settings()->getBlockByNameEx("net")->getInt("timeToSwitchUnresponsiveServerFast", DEFAULT_TIME_TO_SWITCH_SERVER_ADDR_FAST);
-  nctx.timeToSwitchServerAddr = nopktt + timeToSwitchFast;
+  nctx.timeToSwitchServerAddr = unresponsiveTime + timeToSwitchFast;
 }
 
 void net_disconnect(net::IConnection &conn, DisconnectionCause cause)
@@ -492,7 +519,15 @@ static void net_do_connect(const eastl::string &url, int gen)
   net_context->network.getDriver()->connect(url.c_str(), NET_PROTO_VERSION);
 }
 
-void install_session_routes_and_connect(ecs::EntityManager &mgr, dag::Vector<eastl::string> urls, eastl::string relayUrl)
+net::SessionUrlKind current_server_url_kind()
+{
+  auto *ctx = GET_NET_CTX();
+  if (!ctx || ctx->currentServerUrlIdx < 0 || ctx->currentServerUrlIdx >= (int)ctx->serverUrls.size())
+    return net::SessionUrlKind::Unknown;
+  return ctx->serverUrls[ctx->currentServerUrlIdx].kind;
+}
+
+void install_session_routes_and_connect(ecs::EntityManager &mgr, dag::Vector<net::SessionUrl> urls, eastl::string relayUrl)
 {
   G_ASSERT_RETURN(net_context, );
   G_ASSERT_RETURN(!urls.empty(), );
@@ -503,10 +538,12 @@ void install_session_routes_and_connect(ecs::EntityManager &mgr, dag::Vector<eas
   for (int i = 0; i < (int)urls.size(); ++i)
   {
     ctx.serverUrls.emplace_back(eastl::move(urls[i]));
-    if (!ctx.serverUrls.back().empty())
+    if (!ctx.serverUrls.back().url.empty())
     {
       statsd::counter("net.server_addr_init", 1, {{"addr", get_server_route_host((uint32_t)i)}, {"country", country.c_str()}});
     }
+    debug("install_session_routes: i=%d kind=%s url=%s", i, net::session_url_kind_name(ctx.serverUrls.back().kind),
+      ctx.serverUrls.back().url.c_str());
   }
   ctx.currentServerUrlIdx = 0;
 
@@ -514,7 +551,7 @@ void install_session_routes_and_connect(ecs::EntityManager &mgr, dag::Vector<eas
   if (!relayUrl.empty())
   {
     request_udp_punch_via_relay(relayUrl.c_str());
-    ctx.pendingConnect.url = ctx.serverUrls.front();
+    ctx.pendingConnect.url = ctx.serverUrls.front().url;
     ctx.pendingConnect.connectGen = g_net_globals.connectGen;
     ctx.pendingConnect.fireAtMs = danet::GetTime() + 200;
   }
@@ -522,10 +559,10 @@ void install_session_routes_and_connect(ecs::EntityManager &mgr, dag::Vector<eas
   {
     debug("install_session_routes: no relayStunRequestAddr, connecting "
           "immediately");
-    net_do_connect(ctx.serverUrls.front(), g_net_globals.connectGen);
+    net_do_connect(ctx.serverUrls.front().url, g_net_globals.connectGen);
   }
   for (int i = 1; i < (int)ctx.serverUrls.size(); ++i)
-    ucr_send_hello(ctx.serverUrls[i].c_str());
+    ucr_send_hello(ctx.serverUrls[i].url.c_str());
 }
 
 void net_update(ecs::EntityManager &mgr)

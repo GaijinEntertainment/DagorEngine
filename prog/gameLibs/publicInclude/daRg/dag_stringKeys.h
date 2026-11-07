@@ -48,6 +48,7 @@ namespace darg
   KEY(counterBeforeRender)       \
   KEY(ctrlKey)                   \
   KEY(curAngle)                  \
+  KEY(curDistance)               \
   KEY(curSector)                 \
   KEY(cursor)                    \
   KEY(cursorNavAnchor)           \
@@ -71,7 +72,6 @@ namespace darg
   KEY(easing)                    \
   KEY(editableText)              \
   KEY(elem)                      \
-  KEY(ellipsis)                  \
   KEY(embed)                     \
   KEY(eventHandlers)             \
   KEY(eventId)                   \
@@ -150,8 +150,6 @@ namespace darg
   KEY(loFreq)                    \
   KEY(loop)                      \
   KEY(loopPause)                 \
-  KEY(lowLineCount)              \
-  KEY(lowLineCountAlign)         \
   KEY(margin)                    \
   KEY(max)                       \
   KEY(maxChars)                  \
@@ -213,6 +211,8 @@ namespace darg
   KEY(padding)                   \
   KEY(pageScroll)                \
   KEY(panMouseButton)            \
+  KEY(panTouchOnly)              \
+  KEY(panTouches)                \
   KEY(parSpacing)                \
   KEY(parallaxK)                 \
   KEY(password)                  \
@@ -284,15 +284,14 @@ namespace darg
   KEY(texOffs)                   \
   KEY(text)                      \
   KEY(textAreaEditorData)        \
-  KEY(textOverflowX)             \
-  KEY(textOverflowY)             \
+  KEY(textOverflow)              \
   KEY(threshold)                 \
   KEY(tint)                      \
   KEY(title)                     \
   KEY(to)                        \
   KEY(touchHoldTime)             \
   KEY(touchMarginPriority)       \
-  KEY(touchPadGestures)          \
+  KEY(touchSrc)                  \
   KEY(transform)                 \
   KEY(transitions)               \
   KEY(translate)                 \
@@ -322,19 +321,18 @@ namespace darg
 
 // ^ Please keep this list sorted alphabetically for easier navigation
 
-// Keep sorted; constraint: ':' keeps them apart from property overrides
-#define DARG_STORAGE_KEYS_LIST                           \
-  STORAGE_KEY(browserData, "browser:data")               \
-  STORAGE_KEY(btnData, "btn:data")                       \
-  STORAGE_KEY(gestureData, "gesture:data")               \
-  STORAGE_KEY(marqueeData, "marquee:data")               \
-  STORAGE_KEY(moveResizeData, "moveresize:data")         \
-  STORAGE_KEY(pannable2TouchData, "pannable2touch:data") \
-  STORAGE_KEY(pannableData, "pannable:data")             \
-  STORAGE_KEY(parallaxData, "parallax:data")             \
-  STORAGE_KEY(pieMenuData, "pie_menu:data")              \
-  STORAGE_KEY(sizeTransData, "size_trans:data")          \
-  STORAGE_KEY(sliderData, "slider:data")                 \
+// Keep sorted; ':' keeps them apart from property overrides
+#define DARG_STORAGE_KEYS_LIST                   \
+  STORAGE_KEY(browserData, "browser:data")       \
+  STORAGE_KEY(btnData, "btn:data")               \
+  STORAGE_KEY(marqueeData, "marquee:data")       \
+  STORAGE_KEY(moveResizeData, "moveresize:data") \
+  STORAGE_KEY(pannableData, "pannable:data")     \
+  STORAGE_KEY(parallaxData, "parallax:data")     \
+  STORAGE_KEY(pieMenuData, "pie_menu:data")      \
+  STORAGE_KEY(sizeTransData, "size_trans:data")  \
+  STORAGE_KEY(sliderData, "slider:data")         \
+  STORAGE_KEY(textInputData, "text_input:data")  \
   STORAGE_KEY(virtualListData, "virtualList:data")
 
 class StringKeys

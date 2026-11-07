@@ -21,10 +21,14 @@ macro READ_OBJECT_SDF(code)
       StructuredBuffer<float4> object_sdf_instances@buf;
     }
     object_sdf_instances_count@i2 = (object_sdf_instances_count, object_sdf_instances_data_offset,0,0);
-    object_sdf_mip_atlas@smp3d = object_sdf_mip_atlas;
+    object_sdf_mip_atlas@tex3d = object_sdf_mip_atlas;
     sdf_inv_atlas_size_in_blocks@f3 = sdf_inv_atlas_size_in_blocks;
     sdf_internal_block_size_tc@f3 = sdf_internal_block_size_tc;//SDF_INTERNAL_BLOCK_SIZE*(sdf_inv_atlas_size_in_blocks/8)
     sdf_internal_half_texel@f3 = 0.5*sdf_inv_atlas_size;//(sdf_inv_atlas_size_in_blocks/8), as block size is 8
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
+  hlsl(code) {
+    #define object_sdf_mip_atlas_samplerstate global_linear_wrap_sampler
   }
   hlsl(code) {
     #include "objects_sdf.hlsli"

@@ -3,8 +3,7 @@
 include "shader_global.dshl"
 include "hardware_defines.dshl"
 
-buffer scene_omni_managed_lights;
-buffer scene_spot_managed_lights;
+buffer scene_managed_lights;
 
 buffer visible_lights_data_buf;
 buffer visible_lights_counts_buf;
@@ -16,13 +15,9 @@ buffer spot_lights_ssss_shadow_desc;
 shader dynamic_lights_shadows_gather
 {
   (cs) {
-    scene_omni_managed_lights@buf = scene_omni_managed_lights hlsl {
+    scene_managed_lights@buf = scene_managed_lights hlsl {
       #include <lightsManager.hlsli>
-      StructuredBuffer<ManagedLight> scene_omni_managed_lights@buf;
-    };
-    scene_spot_managed_lights@buf = scene_spot_managed_lights hlsl {
-      #include <lightsManager.hlsli>
-      StructuredBuffer<ManagedLight> scene_spot_managed_lights@buf;
+      StructuredBuffer<ManagedLight> scene_managed_lights@buf;
     };
     visible_lights_data_buf@buf = visible_lights_data_buf hlsl {
       ByteAddressBuffer visible_lights_data_buf@buf;
@@ -57,16 +52,8 @@ shader dynamic_lights_shadows_gather
     {
       uint idsOffset = is_spot ? CLUSTERED_SPOT_LIGHTS_IDS_OFFSET : CLUSTERED_OMNI_LIGHTS_IDS_OFFSET;
       uint sceneLightIndex = loadBuffer(visible_lights_data_buf, (idsOffset + light_index) * 4u);
-      uint shadowIdMask = 0u;
-      BRANCH
-      if (is_spot)
-      {
-        shadowIdMask = structuredBufferAt(scene_spot_managed_lights, sceneLightIndex).shadowId_mask;
-      }
-      else
-      {
-        shadowIdMask = structuredBufferAt(scene_omni_managed_lights, sceneLightIndex).shadowId_mask;
-      }
+      uint managedOffset = is_spot ? SCENE_SPOT_MANAGED_LIGHTS_FIRST_INDEX : SCENE_OMNI_MANAGED_LIGHTS_FIRST_INDEX;
+      uint shadowIdMask = structuredBufferAt(scene_managed_lights, managedOffset + sceneLightIndex).shadowId_mask;
       return decode_managed_shadow_id(shadowIdMask);
     }
 

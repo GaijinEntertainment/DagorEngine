@@ -13,13 +13,22 @@ dafg::NodeHandle create_indirect_args_node(const dafg::NameSpace &ns, const east
     view_multiplex(registry, constants.viewInfo.kind);
 
     const auto indirectArgsHandle = registry.create("indirect_args")
-                                      .indirectBuffer(d3d::buffers::Indirect::Dispatch, DAGDP_MAX_VIEWPORTS)
+                                      .indirectBuffer(d3d::buffers::Indirect::Dispatch, 1)
                                       .atStage(dafg::Stage::UNKNOWN) // TODO: d3d::zero_rwbufi semantics is not defined.
                                       .useAs(dafg::Usage::UNKNOWN)
                                       .handle();
 
     return [indirectArgsHandle] { d3d::zero_rwbufi(indirectArgsHandle.get()); };
   });
+}
+
+inline DagdpViewportGpuData make_viewport_gpu_data(const Viewport &viewport, const ViewInfo &view_info, float tile_world_size)
+{
+  DagdpViewportGpuData result{};
+  fill_viewport_gpu_data(result, viewport, view_info.maxDrawDistance);
+  result.baseTileIntPosXZ = int2(static_cast<int>(floorf(viewport.worldPos.x / tile_world_size)),
+    static_cast<int>(floorf(viewport.worldPos.z / tile_world_size)));
+  return result;
 }
 
 template <typename PersistentData>
@@ -35,13 +44,25 @@ dafg::NodeHandle create_cull_tiles_node(const dafg::NameSpace &ns, const eastl::
     registry.modify("indirect_args").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_heightmap__indirect_args");
 
     registry.create("visible_tile_positions")
-      .byteAddressBuffer(constants.numTiles * 2 * constants.viewInfo.maxViewports) // int2
+      .byteAddressBuffer(constants.numTiles * (TILE_POSITION_BYTE_SIZE / sizeof(uint32_t)) * constants.viewInfo.maxViewports)
       .atStage(dafg::Stage::COMPUTE)
       .bindToShaderVar("dagdp_heightmap__visible_tile_positions");
+
+    registry.registerBuffer("viewport_data", [persistentData](auto) { return ManagedBufView(persistentData->viewportDataBuffer); })
+      .atStage(dafg::Stage::TRANSFER);
 
     return [persistentData, viewHandle, shader = ComputeShader("dagdp_heightmap_cull_tiles")] {
       const auto &constants = persistentData->constants;
       const auto &view = viewHandle.ref();
+      G_ASSERT(view.viewports.size() <= constants.viewInfo.maxViewports);
+
+      dag::RelocatableFixedVector<DagdpViewportGpuData, DAGDP_MAX_VIEWPORTS, true, framemem_allocator> viewportDataFmem;
+      for (const auto &viewport : view.viewports)
+        viewportDataFmem.push_back(make_viewport_gpu_data(viewport, constants.viewInfo, constants.tileWorldSize));
+
+      if (!update_frame_mem(make_span_const(viewportDataFmem), persistentData->viewportDataBuffer.getBuf(),
+            constants.viewInfo.maxViewports, "viewports"))
+        return;
 
       ShaderGlobal::set_int(var::num_tiles, constants.numTiles);
       ShaderGlobal::set_float(var::tile_pos_delta, constants.tileWorldSize);
@@ -51,19 +72,14 @@ dafg::NodeHandle create_cull_tiles_node(const dafg::NameSpace &ns, const eastl::
 
       for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)
       {
-        const auto &viewport = view.viewports[viewportIndex];
-        ScopeFrustumPlanesShaderVars scopedFrustumVars(viewport.frustum);
+        const auto &viewportData = viewportDataFmem[viewportIndex];
+        ScopeFrustumPlanesShaderVars scopedFrustumVars(view.viewports[viewportIndex].frustum);
 
-        IPoint4 baseTileIntPos;
-        baseTileIntPos.x = static_cast<int>(floorf(viewport.worldPos.x / constants.tileWorldSize));
-        baseTileIntPos.y = static_cast<int>(floorf(viewport.worldPos.z / constants.tileWorldSize));
-
-        ShaderGlobal::set_float4(var::base_tile_pos_xz, point4(baseTileIntPos) * constants.tileWorldSize);
-        ShaderGlobal::set_float4(var::viewport_pos, viewport.worldPos);
+        ShaderGlobal::set_float4(var::base_tile_pos_xz, Point4(viewportData.baseTileIntPosXZ.x * constants.tileWorldSize,
+                                                          viewportData.baseTileIntPosXZ.y * constants.tileWorldSize, 0, 0));
+        ShaderGlobal::set_float4(var::viewport_pos, viewportData.worldPos);
         ShaderGlobal::set_int(var::viewport_index, viewportIndex);
-        ShaderGlobal::set_int(var::visible_tiles_start_offset, viewportIndex * constants.numTiles * TILE_POSITION_BYTE_SIZE);
-        ShaderGlobal::set_float(var::viewport_max_distance,
-          min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance) * get_global_range_scale());
+        ShaderGlobal::set_float(var::viewport_max_distance, viewportData.maxDistance);
 
         const bool res = shader.dispatchThreads(constants.numTiles, 1, 1);
         G_ASSERT(res);
@@ -84,34 +100,13 @@ dafg::NodeHandle create_place_node(
   return ns.registerNode(name.c_str(), DAFG_PP_NODE_SRC, [persistentData, is_optimistic](dafg::Registry registry) {
     const auto &constants = persistentData->constants;
     view_multiplex(registry, constants.viewInfo.kind);
-
-    (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
-      .modify("instance_data")
-      .buffer()
-      .atStage(dafg::Stage::COMPUTE)
-      .bindToShaderVar("dagdp__instance_data");
+    request_place_stage_buffers(registry, constants.viewInfo, is_optimistic);
 
 #if IS_GRASS
     ComputeShader placeShader = ComputeShader(is_optimistic ? "dagdp_grass_place_stage0" : "dagdp_grass_place_stage1");
 #else
     ComputeShader placeShader = ComputeShader(is_optimistic ? "dagdp_heightmap_place_stage0" : "dagdp_heightmap_place_stage1");
 #endif
-
-    (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
-      .read(is_optimistic ? "dyn_allocs_stage0" : "dyn_allocs_stage1")
-      .buffer()
-      .atStage(dafg::Stage::COMPUTE)
-      .bindToShaderVar("dagdp__dyn_allocs");
-
-    (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
-      .modify(is_optimistic ? "dyn_counters_stage0" : "dyn_counters_stage1")
-      .buffer()
-      .atStage(dafg::Stage::COMPUTE)
-      .bindToShaderVar("dagdp__dyn_counters");
-
-    eastl::fixed_string<char, 32> viewResourceName;
-    viewResourceName.append_sprintf("view@%s", constants.viewInfo.uniqueName.c_str());
-    const auto viewHandle = registry.readBlob<ViewPerFrameData>(viewResourceName.c_str()).handle();
 
     const auto indirectArgsHandle =
       registry.read("indirect_args").buffer().atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::INDIRECTION_BUFFER).handle();
@@ -121,10 +116,10 @@ dafg::NodeHandle create_place_node(
       .atStage(dafg::Stage::COMPUTE)
       .bindToShaderVar("dagdp_heightmap__visible_tile_positions");
 
-    return [persistentData, viewHandle, indirectArgsHandle, shader = eastl::move(placeShader)] {
+    registry.read("viewport_data").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_heightmap__viewport_data");
+
+    return [persistentData, indirectArgsHandle, shader = eastl::move(placeShader)] {
       const auto &constants = persistentData->constants;
-      const auto &view = viewHandle.ref();
-      G_ASSERT(view.viewports.size() <= constants.viewInfo.maxViewports);
 
       ShaderGlobal::set_buffer(var::draw_ranges, persistentData->commonBuffers.drawRangesBuffer.getBufId());
       ShaderGlobal::set_buffer(var::placeables, persistentData->commonBuffers.placeablesBuffer.getBufId());
@@ -175,29 +170,9 @@ dafg::NodeHandle create_place_node(
 
       constants.passBlock.setState();
 
-      // TODO: the way culling variables are bound right now (see frustum.dshl), we need a dispatch per viewport.
-      // Otherwise they could be merged into a single dispatch.
-      for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)
-      {
-        const auto &viewport = view.viewports[viewportIndex];
-        ScopeFrustumPlanesShaderVars scopedFrustumVars(viewport.frustum);
-
-        IPoint4 baseTileIntPos;
-        baseTileIntPos.x = static_cast<int>(floorf(viewport.worldPos.x / constants.tileWorldSize));
-        baseTileIntPos.y = static_cast<int>(floorf(viewport.worldPos.z / constants.tileWorldSize));
-
-        ShaderGlobal::set_float4(var::base_tile_pos_xz, point4(baseTileIntPos) * constants.tileWorldSize);
-        ShaderGlobal::set_int4(var::base_tile_int_pos_xz, baseTileIntPos);
-        ShaderGlobal::set_float4(var::viewport_pos, viewport.worldPos);
-        ShaderGlobal::set_float(var::viewport_max_distance,
-          min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance) * get_global_range_scale());
-        ShaderGlobal::set_int(var::viewport_index, viewportIndex);
-        ShaderGlobal::set_int(var::visible_tiles_start_offset, viewportIndex * constants.numTiles * TILE_POSITION_BYTE_SIZE);
-
-        bool res = shader.dispatchIndirect(indirectArgsHandle.view().getBuf(), viewportIndex * DISPATCH_INDIRECT_BUFFER_SIZE);
-        G_ASSERT(res);
-        G_UNUSED(res);
-      }
+      const bool res = shader.dispatchIndirect(indirectArgsHandle.view().getBuf(), 0);
+      G_ASSERT(res);
+      G_UNUSED(res);
 
       ShaderGlobal::set_buffer(var::draw_ranges, BAD_D3DRESID);
       ShaderGlobal::set_buffer(var::placeables, BAD_D3DRESID);

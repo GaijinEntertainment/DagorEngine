@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/textureGen/registry ;
+
+TargetType  = lib ;
+Target      = gameLibs/textureGen/registry.lib ;
+
+AddIncludes =
+  $(Root)/prog
+;
+
+Sources =
+  texgenRegistry.cpp
+;
+
+UseProgLibs +=
+  gameLibs/textureGen/graph
+  3rdPartyLibs/eastl
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

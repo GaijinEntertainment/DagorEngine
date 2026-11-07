@@ -5,6 +5,7 @@
 #include "../animTreeDragListHandler.h"
 
 #include <ioSys/dag_dataBlock.h>
+#include <ioSys/dag_dataBlockCommentsDef.h>
 #include <propPanel/control/container.h>
 
 const bool DEFAULT_RECURSIVE = false;
@@ -70,14 +71,31 @@ void nodes_from_attachement_save_block_settings(PropPanel::ContainerPropertyCont
   if (!selectedBlock)
     selectedBlock = settings->addNewBlock("node");
 
+  const bool keepRecursive = recursiveValue != DEFAULT_RECURSIVE;
+  const bool keepIncludingRoot = includingRootValue != DEFUALT_INCLUDING_ROOT;
   for (int i = selectedBlock->paramCount() - 1; i >= 0; --i)
+  {
+    const char *name = selectedBlock->getParamName(i);
+    const int type = selectedBlock->getParamType(i);
+    const bool isField = type == DataBlock::TYPE_STRING
+                           ? !strcmp(name, "srcNode") || !strcmp(name, "destNode")
+                           : type == DataBlock::TYPE_BOOL && ((keepRecursive && !strcmp(name, "recursive")) ||
+                                                               (keepIncludingRoot && !strcmp(name, "includingRoot")));
+    if (CHECK_COMMENT_PREFIX(name) || (isField && selectedBlock->findParam(name) == i))
+      continue;
     selectedBlock->removeParam(i);
+    while (i < selectedBlock->paramCount() && CHECK_COMMENT_PREFIX(selectedBlock->getParamName(i)) &&
+           IS_COMMENT_POST(selectedBlock->getParamName(i)))
+      selectedBlock->removeParam(i);
+    while (i > 0 && CHECK_COMMENT_PREFIX(selectedBlock->getParamName(i - 1)) && IS_COMMENT_PRE(selectedBlock->getParamName(i - 1)))
+      selectedBlock->removeParam(--i);
+  }
 
   selectedBlock->setStr("srcNode", srcNodeValue.c_str());
   selectedBlock->setStr("destNode", destNodeValue.c_str());
-  if (recursiveValue != DEFAULT_RECURSIVE)
+  if (keepRecursive)
     selectedBlock->setBool("recursive", recursiveValue);
-  if (includingRootValue != DEFUALT_INCLUDING_ROOT)
+  if (keepIncludingRoot)
     selectedBlock->setBool("includingRoot", includingRootValue);
 
   if (listName != srcNodeValue)

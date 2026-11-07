@@ -41,6 +41,14 @@ float scope_exit_pupil_radius_mul = 1.0;
 texture lens_frame_tex;
 texture scope_lens_mask;
 
+float4 scope_lens_ghost_params = (0.0, 2.0, 4.0, 1.0);
+float4 scope_lens_ghost_scales = (0.2, 0.3, -0.35, 0.0);
+float4 scope_lens_ghost_lods = (0.0, 1.0, 2.0, 0.0);
+float4 scope_lens_ghost_weights = (0.25, 0.6, 0.5, 0.0);
+float4 scope_lens_ghost_tint0 = (1.0, 0.55, 0.35, 0.0);
+float4 scope_lens_ghost_tint1 = (0.9, 0.9, 1.0, 0.0);
+float4 scope_lens_ghost_tint2 = (1.0, 0.9, 0.6, 0.0);
+
 texture scope_reticle_tex;
 float scope_reticle_size_mul = 1.0;
 
@@ -169,6 +177,9 @@ macro SCOPE_LENS_SHADER()
       float4 normal               : NORMAL;
     ##if shader == dynamic_crosshair
       float2 texcoord             : TEXCOORD0;
+      #if CROSSHAIR_USE_GLOW
+      float4 vcol                 : COLOR0;
+      #endif
     ##endif
       INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
     };
@@ -194,6 +205,9 @@ macro SCOPE_LENS_SHADER()
 
     ##if shader == dynamic_crosshair
       float2 texcoord               : TEXCOORD10;
+      #if CROSSHAIR_USE_GLOW
+      float glowMask                : TEXCOORD11;
+      #endif
     ##endif
 
       #if SET_UP_MULTIDRAW
@@ -309,6 +323,9 @@ macro SCOPE_LENS_SHADER()
         output.pos.xy += lensCenterOnParallaxPlane.xy / lensCenterOnParallaxPlane.w - lensNDC;
         output.pos.xy *= output.pos.w;
         output.texcoord = modifiedInput.texcoord;
+        #if CROSSHAIR_USE_GLOW
+          output.glowMask = input.vcol.r;
+        #endif
       ##endif
 
     ##else
@@ -413,6 +430,9 @@ macro SCOPE_LENS_SHADER()
           emissiveMul *= diffuseColor.a;
         #endif
           diffuseColor.rgb *= max(1.0, emissiveMul);
+        #if CROSSHAIR_USE_GLOW
+          diffuseColor.rgb += input.glowMask * crosshair_glow.rgb * crosshair_glow.a;
+        #endif
 
         #if CROSSHAIR_USE_EXPOSURE
           diffuseColor.rgb = pack_hdr(diffuseColor.rgb);
@@ -521,6 +541,13 @@ macro SCOPE_LENS_SHADER()
         lens_shading_params@f4 = lens_shading_params;
         lens_shading_params2@f3 = lens_shading_params2;
         crosshair_parallax_distance@f1 = crosshair_parallax_distance;
+        scope_lens_ghost_params@f4 = scope_lens_ghost_params;
+        scope_lens_ghost_scales@f4 = scope_lens_ghost_scales;
+        scope_lens_ghost_lods@f4 = scope_lens_ghost_lods;
+        scope_lens_ghost_weights@f4 = scope_lens_ghost_weights;
+        scope_lens_ghost_tint0@f4 = scope_lens_ghost_tint0;
+        scope_lens_ghost_tint1@f4 = scope_lens_ghost_tint1;
+        scope_lens_ghost_tint2@f4 = scope_lens_ghost_tint2;
       }
 
       if (use_sniper_scope_precise_lens_shadow == yes) {
@@ -612,17 +639,17 @@ macro SCOPE_LENS_SHADER()
 
           ##if (special_vision == thermal_vision)
           float2 distortedTc = getDisTc(scrpos, lensScrPos, lensToPoint, float2(1.00, -distortionCoeff));
-          return tex2Dlod(frame_tex, float4(distortedTc, 0, 2)).rgb;
+          return tex2Dlod(frame_tex, float4(distortedTc, 0, 0)).rgb;
           ##else
           float aberrationCoeff = 1.0 - lens_distortion_params.z;
           float2 disTcR = getDisTc(scrpos, lensScrPos, lensToPoint, float2(1.00, -distortionCoeff / aberrationCoeff));
           float2 disTcG = getDisTc(scrpos, lensScrPos, lensToPoint, float2(1.00, -distortionCoeff));
           float2 disTcB = getDisTc(scrpos, lensScrPos, lensToPoint, float2(1.00, -distortionCoeff * aberrationCoeff));
           if (dot(disTcR - disTcG, disTcR - disTcG) < screen_pos_to_texcoord.x * screen_pos_to_texcoord.x)
-            return tex2Dlod(frame_tex, float4(disTcG, 0, 2)).rgb; // Optimization if there isn't aberrations.
-          half r = tex2Dlod(frame_tex, float4(disTcR, 0, 2)).r;
-          half g = tex2Dlod(frame_tex, float4(disTcG, 0, 2)).g;
-          half b = tex2Dlod(frame_tex, float4(disTcB, 0, 2)).b;
+            return tex2Dlod(frame_tex, float4(disTcG, 0, 0)).rgb; // Optimization if there isn't aberrations.
+          half r = tex2Dlod(frame_tex, float4(disTcR, 0, 0)).r;
+          half g = tex2Dlod(frame_tex, float4(disTcG, 0, 0)).g;
+          half b = tex2Dlod(frame_tex, float4(disTcB, 0, 0)).b;
           half3 color = half3(r, g, b);
           return color;
           ##endif
@@ -685,6 +712,40 @@ macro SCOPE_LENS_SHADER()
 
           return color * shade_factor;
         }
+
+        ##if lens_detail_level <= full && special_vision != thermal_vision
+        #define GHOST_COUNT 3
+
+        half3 sample_lens_ghosts(float2 scrpos, float2 lensScrPos, float3 lensToPoint)
+        {
+          BRANCH
+          if (scope_lens_ghost_params.x <= 0)
+            return 0;
+
+          float ghostScale[GHOST_COUNT] = { scope_lens_ghost_scales.x, scope_lens_ghost_scales.y, scope_lens_ghost_scales.z };
+          float ghostLod[GHOST_COUNT] = { scope_lens_ghost_lods.x, scope_lens_ghost_lods.y, scope_lens_ghost_lods.z };
+          half3 ghostTint[GHOST_COUNT] = { scope_lens_ghost_tint0.rgb, scope_lens_ghost_tint1.rgb, scope_lens_ghost_tint2.rgb };
+          half ghostWeight[GHOST_COUNT] = { scope_lens_ghost_weights.x, scope_lens_ghost_weights.y, scope_lens_ghost_weights.z };
+
+          half3 ghosts = 0;
+          float2 ghostDistortion = float2(1.00, -lens_distortion_params.y);
+          int ghostLayers = int(scope_lens_ghost_params.w);
+
+          UNROLL
+          for (int i = 0; i < GHOST_COUNT; ++i)
+          {
+            if (i >= ghostLayers)
+              break;
+            float ghostOffset = ghostScale[i] * scope_lens_ghost_params.z;
+            float2 ghostScrPos = lensScrPos + (lensScrPos - scrpos) * ghostOffset;
+            float2 ghostTc = saturate(getDisTc(ghostScrPos, lensScrPos, lensToPoint, ghostDistortion));
+            half3 ghostColor = unpack_hdr(tex2Dlod(frame_tex, float4(ghostTc, 0, ghostLod[i])).rgb);
+            ghosts += max(ghostColor - scope_lens_ghost_params.y, 0) * ghostTint[i] * ghostWeight[i];
+          }
+
+          return ghosts * scope_lens_ghost_params.x;
+        }
+        ##endif
 
         half3 apply_lens_reflection(half3 color, VsOutput input, float4 screenpos, half shade_factor)
         {
@@ -808,6 +869,9 @@ macro SCOPE_LENS_SHADER()
           ##if lens_detail_level <= full && in_editor_assume == no
             half3 collimatorRFront = getRFront(input.eyeToLens, eyeToPoint, lensNormal);
             color = unpack_hdr(getColor(screenpos.xy, input.lensScrPos, lensToPoint));
+            ##if special_vision != thermal_vision
+            color += sample_lens_ghosts(screenpos.xy, input.lensScrPos, lensToPoint);
+            ##endif
 
             shadeFactor = calc_scope_shadow(input, collimatorRFront, lensNormal);
 

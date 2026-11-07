@@ -1,3 +1,5 @@
+system_owned_scene:b=yes
+
 entity {
   _template:t="base_music"
 }

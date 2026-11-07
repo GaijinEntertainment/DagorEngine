@@ -247,7 +247,7 @@ if (compatibility_mode == compatibility_mode_off)
       float3 result = float3(0, 0, 0);
       float totalWeight = 0;
       // no cubemap texture support for mobiles
-  #if indoor_probes_enable_cube_tex == yes
+  ##if indoor_probes_enable_cube_tex == yes
 
       int boxesNearbyCount = 0;
       ##if !hardware.ps4
@@ -329,7 +329,10 @@ if (compatibility_mode == compatibility_mode_off)
           float3 correctedRoughR_weight = isBox ? parallax_correction_refl_box(world_pos, localPos, reflected_dir, probePos, boxSize, boxX, boxY, boxZ) :
                                                   correctedReflShape;
 
-          float3 color = texCUBEArraylod(light_probe_specular_cubes, float4(correctedRoughR_weight.rgb, cubeId), roughnessMip).rgb;
+          float3 color = 0;
+          BRANCH
+          if (cubeId != PENDING_CUBE_ID)
+            color = texCUBEArraylod(light_probe_specular_cubes, float4(correctedRoughR_weight.rgb, cubeId), roughnessMip).rgb;
 
           ##if !hardware.ps4
             //this attribute causes artifacts on ps4 (checked on enlisted, task RE-6208)
@@ -356,7 +359,7 @@ if (compatibility_mode == compatibility_mode_off)
 
       result *= fadeWeight;
 
-  #endif //indoor_probes_enable_cube_tex == yes
+  ##endif //indoor_probes_enable_cube_tex == yes
       return float4(result, 1.0f-totalWeight*fadeWeight);
     }
   }

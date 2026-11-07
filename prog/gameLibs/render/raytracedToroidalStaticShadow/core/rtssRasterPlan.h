@@ -50,7 +50,7 @@ inline void rtss_raster_plan(dag::Span<RtssJob> jobs, uint32_t raster_levels, co
     if (raster_levels & (1u << (jobs[i].levelSlot >> 16)))
       out.order.push_back(i);
   const int n = (int)out.order.size();
-  // constraint: a sort that allocates can stall the frame on a heap that streaming threads hold
+  // a sort that allocates can stall the frame on a heap that streaming threads hold
   eastl::insertion_sort(out.order.begin(), out.order.end(),
     [&](uint32_t a, uint32_t b) { return rtss_raster_job_key(jobs[a]) < rtss_raster_job_key(jobs[b]); });
   out.cullGroups.clear();
@@ -91,7 +91,7 @@ inline void rtss_raster_plan(dag::Span<RtssJob> jobs, uint32_t raster_levels, co
     g.origin = IPoint2(x, y);
     x += g.size.x;
     shelf = eastl::max(shelf, g.size.y);
-    // constraint: the viewport row grows down, so the page of the largest y is at the top, or of the smallest x when turned
+    // the viewport row grows down, so the page of the largest y is at the top, or of the smallest x when turned
     for (int r = g.first; r < g.first + g.count; ++r)
     {
       RtssJob &job = jobs[out.order[r]];
@@ -143,7 +143,7 @@ inline void rtss_raster_matrices(const RtssScheduler &s, int level, int bit, con
   // render() draws no empty depth range, but its matrix stays finite for a cull ahead
   const double zEnd = r.zEnd > r.zStart ? r.zEnd : r.zStart + 1;
   proj = matrix_ortho_off_center_lh(float(r.x0), float(r.x1), float(r.y0 / x.sy), float(r.y1 / x.sy), float(r.zStart), float(zEnd));
-  // constraint: a turn, not a mirror, so the triangles keep their winding
+  // a turn, not a mirror, so the triangles keep their winding
   for (int i = 0; transposed && i < 4; ++i)
     proj.m[i][0] = eastl::exchange(proj.m[i][1], -proj.m[i][0]);
 }

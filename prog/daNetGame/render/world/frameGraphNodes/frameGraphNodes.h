@@ -129,7 +129,6 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeAcesFxLowresTransparentNodes
 dafg::NodeHandle makeTranslucentInWorldPanelsNode();
 
 dafg::NodeHandle makeTransparentSceneLateNode(MainNodeRenderPass mode);
-dafg::NodeHandle makeMainHeroTransNode(MainNodeRenderPass mode);
 
 dafg::NodeHandle makeUnderWaterFogNode();
 

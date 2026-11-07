@@ -9,7 +9,7 @@ namespace voicechat
 
 // turns the speech probability of each frame into the speech flag of the gate: the probability opens a closed gate after
 // onset_frames frames at the open threshold, and its smoothed value keeps an open one at the close threshold.
-// constraint: isSpeech advances the detector, so it takes each frame once, with the gate state before that frame
+// isSpeech advances the detector, so it takes each frame once, with the gate state before that frame
 class SpeechDetector
 {
 public:

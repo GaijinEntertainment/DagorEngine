@@ -9,7 +9,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_addressWait.h>
 #if _TARGET_PC_WIN || _TARGET_XBOX
-#include <windows.h> // SetThreadPriorityBoost
+#include <windows.h> // INFINITE
 #endif
 #include <osApiWrappers/dag_lockProfiler.h>
 #include <perfMon/dag_statDrv.h>
@@ -46,10 +46,6 @@
 #define HAVE_NATIVE_FUTEX_CONSTEXPR constexpr
 #endif
 
-#if _TARGET_C1
-
-#endif
-
 namespace threadpool
 {
 static thread_local int currentWorkerId = -1;
@@ -57,6 +53,12 @@ static thread_local int currentWorkerId = -1;
 #if _TARGET_PC_WIN
 static bool has_futex_impl = false;
 #endif
+
+// Park is a native futex, a mutex+condvar bucket per address, or an os_event with 1ms timeout (Win7)
+static inline intptr_t spins_before_park()
+{
+  return HAVE_NATIVE_FUTEX ? SPINS_BEFORE_SLEEP / 8 : (HAVE_FUTEX ? SPINS_BEFORE_SLEEP / 4 : SPINS_BEFORE_SLEEP * 2); //-V547
+}
 
 struct JobDoneEvent
 {
@@ -193,7 +195,7 @@ static bool perform_job(TPQueue *pools, int prio_lowest, JobEnvironment &jenv, J
   return perform_queue_elem(pop_job(pools, prio_lowest), jenv, doneEvent);
 }
 
-EA_DISABLE_VC_WARNING(4582) // ctor is not implicitly called
+EA_DISABLE_VC_WARNING(4582 4583) // ctor and dtor are not implicitly called
 struct TPCtxBase
 {
   TPQueue taskQueue[NUM_PRIO];
@@ -242,15 +244,7 @@ struct TPWorkerThread final : public DaThread
 
   void execute() override
   {
-#if _TARGET_C1
-
-
-
-#elif _TARGET_XBOX
-    // Disable thread priority boost (*) to disallow workers schedule each other out on wake ups
-    // (*) https://learn.microsoft.com/en-us/windows/win32/procthread/priority-boosts
-    G_VERIFYF(SetThreadPriorityBoost(GetCurrentThread(), /*bDisablePriorityBoost*/ TRUE), "%d", GetLastError());
-#elif _TARGET_PC_WIN // Use cached in locals fn pointer to reduce possible CPU cache interference with `num_wakes` globals
+#if _TARGET_PC_WIN // Use cached in locals fn pointer to reduce possible CPU cache interference with `num_wakes` globals
     auto waitOnAddr = os_get_native_wait_on_address_impl();
     auto os_wait_on_address = [&](volatile uint32_t *a, const uint32_t *ca) { waitOnAddr(a, ca, (int)INFINITE); };
     G_FAST_ASSERT(!waitOnAddr == !HAVE_NATIVE_FUTEX);
@@ -294,17 +288,21 @@ struct TPWorkerThread final : public DaThread
       if (interlocked_acquire_load(terminating))
         break;
 
-      int busyIterations = BUSY_WAIT_ITERATIONS; // if worker woke up, there is(was) something to do.
-      // Let's just-in case busy wait for few iterations, if new job appears, it won't have to wait for worker
-      do // do while jobs exist
+      int busyIterations = BUSY_WAIT_ITERATIONS, yieldsBackoff = 1; // if worker woke up, there is(was) something to do.
+      do
       {
         if (perform_queue_elem(jelem, jenv, tpctx.jobDoneEvent))
+        {
           busyIterations = BUSY_WAIT_ITERATIONS;
+          yieldsBackoff = 1;
+        }
         else
         {
-          if (--busyIterations <= 0)
-            break;     // no more jobs in queue
-          cpu_yield(); // just for HT
+          if ((busyIterations -= yieldsBackoff) <= 0)
+            break; // no more jobs in queue
+          for (int i = 0; i < yieldsBackoff; ++i)
+            cpu_yield();
+          yieldsBackoff = min(yieldsBackoff * 2, 16);
         }
         jelem = pop_job(tpctx.taskQueue, PRIO_LOW);
       } while (1);
@@ -370,12 +368,10 @@ struct TPCtx : public TPCtxBase
   void waitFlag(volatile unsigned &var, int lowest_prio, uint32_t desc)
   {
     lock_start_t interval = 0;
-    intptr_t spins = SPINS_BEFORE_SLEEP << int(!HAVE_FUTEX); // sleep more if we don't have futex impl (to avoid long 1ms event waits)
+    intptr_t spins = spins_before_park();
     if (lowest_prio < 0 || !has_queue_items(taskQueue, lowest_prio))
     {
       lock_start_t reft = dagor_lock_profiler_start();
-      if (lowest_prio >= 0)
-        spins /= 8; // This number reflects on how much we sure that "no work" state can be relied upon
       while (--spins >= 0)
       {
         if (interlocked_acquire_load(var) != 0)
@@ -404,10 +400,10 @@ struct TPCtx : public TPCtxBase
   inline void activeWaitBarrier(volatile unsigned &var, JobPriority prio, uint32_t queue_pos, uint32_t desc)
   {
     // Note: assume that if we get here then `var` is likely 0
-    while (taskQueue[(int)prio].getCurrentReadIndex() <= queue_pos) // We have not started performing our job yet
+    for (;;) // Perform the jobs queued up to ours, i.e. while we have not started performing our job yet
     {
-      if (!perform_queue_elem(taskQueue[prio].pop(), *jenv_direct, jobDoneEvent))
-        break; // Empty queue
+      if (!perform_queue_elem(taskQueue[prio].pop(queue_pos), *jenv_direct, jobDoneEvent))
+        break; // Empty queue or past our job
       if (interlocked_acquire_load(var))
         return;
     }
@@ -415,7 +411,7 @@ struct TPCtx : public TPCtxBase
       return;
     ScopeLockProfiler<da_profiler::NoDesc> lp(desc ? desc : da_profiler::DescThreadPool);
     G_UNUSED(lp);
-    intptr_t spins = SPINS_BEFORE_SLEEP << int(!HAVE_FUTEX);
+    intptr_t spins = spins_before_park();
     do
       jobDoneEvent.wait(var, spins);
     while (!interlocked_acquire_load(var));
@@ -487,6 +483,11 @@ void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size)
   const int workerThreadPriority = coreCount < 4 ? cpujobs::DEFAULT_THREAD_PRIORITY : cpujobs::DEFAULT_THREAD_PRIORITY + 1;
 #if _TARGET_C1
 
+#elif _TARGET_XBOX
+  uint64_t waff = (1ull << coreCount) - 1; // Ditto
+#elif _TARGET_PC_WIN
+  // 4 CPUs: a quarter of the box idles with main, so workers may share its CPU; +2 main preempts them there
+  uint64_t waff = (MAIN_THREAD_PRIORITY > workerThreadPriority && coreCount <= 4) ? 0 : WORKER_THREADS_AFFINITY_MASK; // 0: not pinned
 #else
   uint64_t waff = WORKER_THREADS_AFFINITY_MASK;
 #endif
@@ -508,18 +509,18 @@ void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size)
 #elif _TARGET_C3 | _TARGET_C1 | _TARGET_ANDROID | _TARGET_IOS
   G_UNUSED(coreCount);
 #elif _TARGET_PC_WIN | _TARGET_C2
-  int idealCore = 0;
+  auto skipMainCore = [&](int core) {
+    while (core < coreCount && !((1ull << core) & WORKER_THREADS_AFFINITY_USE))
+      core += 2;
+    return core;
+  };
+  int idealCore = skipMainCore(0);
   for (int workerNo = 0; workerNo < num_workers; workerNo++)
   {
-    tp_instance->workers[workerNo].setThreadIdealProcessor(idealCore); // Just a hint for OS to not run workers on one core.
-                                                                       // scheduling it out.
-
-    idealCore += 2; // Skip HT threads.
-    while (((1ull << idealCore) & WORKER_THREADS_AFFINITY_MASK) == 0 && idealCore < coreCount)
-      idealCore += 2;
-
+    tp_instance->workers[workerNo].setThreadIdealProcessor(idealCore);
+    idealCore = skipMainCore(idealCore + 2); // Skip HT threads.
     if (idealCore >= coreCount)
-      idealCore = 1; // Use HT threads.
+      idealCore = skipMainCore(1); // Use HT threads.
   }
 #endif
 }
@@ -567,11 +568,11 @@ void barrier_active_wait_for_job_ool(cpujobs::IJob *j, JobPriority prio, uint32_
   tp_instance->activeWaitBarrier(j->done, prio, queue_pos, profile_wait_token);
 }
 
-bool perform_pending_job(JobPriority prio)
+bool perform_pending_job(JobPriority prio, uint32_t max_queue_pos)
 {
   if (!tp_instance)
     return false;
-  return perform_queue_elem(tp_instance->taskQueue[prio].pop(), *jenv_direct, tp_instance->jobDoneEvent);
+  return perform_queue_elem(tp_instance->taskQueue[prio].pop(max_queue_pos), *jenv_direct, tp_instance->jobDoneEvent);
 }
 
 void wait_ool(cpujobs::IJob *j, uint32_t profile_token, int lowest_prio_to_perform)

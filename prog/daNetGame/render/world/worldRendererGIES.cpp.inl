@@ -65,13 +65,12 @@ enum GiQualitySetting
 };
 
 CONSOLE_INT_VAL("render", gi_quality, GI_COLORED, GI_ONLY_AO, GI_SCREEN_PROBES);
-CONSOLE_FLOAT_VAL_MINMAX("render", min_sdf_voxel_with_lights_size, 0.35, 0, 4);
-CONSOLE_FLOAT_VAL_MINMAX("render", max_sdf_voxel_with_lights_size, 2.33, 0, 4);
 CONSOLE_FLOAT_VAL_MINMAX("render", gi_algorithm_quality, 1, 0, 1);
 CONSOLE_BOOL_VAL("render", gi_update_pos, true);
 CONSOLE_BOOL_VAL("render", gi_update_scene, true);
 CONSOLE_BOOL_VAL("render", gi_enabled, true);
 CONSOLE_BOOL_VAL("render", gi_show_resticted_update_box, false);
+CONSOLE_INT_VAL("render", gi_surface_cache_entries_k, 384, 0, 16384); // in 1024 entries
 
 static ShaderVariableInfo ssr_alternate_reflectionsVarId("ssr_alternate_reflections", true);
 static ShaderVariableInfo gi_enable_lights_at_radiance_traceVarId("gi_enable_lights_at_radiance_trace", true);
@@ -81,12 +80,14 @@ extern float cascade0Dist;
 
 struct GiDatablockCache
 {
-  float voxelSceneResScale = 0.5f;
   uint8_t sdfClips = 0; // 0 - autodetect
   float sdfVoxel0 = 0.15f;
   uint8_t albedoClips = 3;
   uint8_t radianceGridClipW = 28;
   uint8_t radianceGridClips = 4;
+  uint16_t surfaceCacheFeedGroups = DaGISettings::SurfaceCache{}.feedGroups;
+  uint16_t surfaceCacheRelightThreads = DaGISettings::SurfaceCache{}.relightThreads;
+  uint16_t surfaceCacheVoxelRemeanFrames = DaGISettings::SurfaceCache{}.voxelRemeanFrames;
 };
 
 static GiDatablockCache giDatablockCache;
@@ -94,12 +95,17 @@ static GiDatablockCache giDatablockCache;
 static void update_gi_datablock_cache()
 {
   const DataBlock *graphicsGI = dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("gi");
-  giDatablockCache.voxelSceneResScale = graphicsGI->getReal("voxelSceneResScale", giDatablockCache.voxelSceneResScale);
   giDatablockCache.sdfClips = graphicsGI->getInt("sdfClips", giDatablockCache.sdfClips);
   giDatablockCache.sdfVoxel0 = clamp(graphicsGI->getReal("sdfVoxel0", giDatablockCache.sdfVoxel0), 0.065f, 0.45f);
   giDatablockCache.albedoClips = graphicsGI->getInt("albedoClips", giDatablockCache.albedoClips);
   giDatablockCache.radianceGridClipW = graphicsGI->getInt("radianceGridClipW", giDatablockCache.radianceGridClipW);
   giDatablockCache.radianceGridClips = graphicsGI->getInt("radianceGridClips", giDatablockCache.radianceGridClips);
+  gi_surface_cache_entries_k.set(graphicsGI->getInt("surfaceCacheEntriesK", gi_surface_cache_entries_k));
+  giDatablockCache.surfaceCacheFeedGroups = graphicsGI->getInt("surfaceCacheFeedGroups", giDatablockCache.surfaceCacheFeedGroups);
+  giDatablockCache.surfaceCacheRelightThreads =
+    graphicsGI->getInt("surfaceCacheRelightThreads", giDatablockCache.surfaceCacheRelightThreads);
+  giDatablockCache.surfaceCacheVoxelRemeanFrames =
+    graphicsGI->getInt("surfaceCacheVoxelRemeanFrames", giDatablockCache.surfaceCacheVoxelRemeanFrames);
 }
 
 static void set_voxelization_transform(int max_res, IPoint3 res, const BBox3 &box)
@@ -298,12 +304,12 @@ void WorldRenderer::setGILightsToShader(bool allow_frustum_lights)
     return;
 
   if (giGlobalLightsPrepared)
-    lights.setOutOfFrustumLightsToShader(); // Relying on out-of-frustum culling result being unchanged after
-                                            // WorldRenderer::updateGIPos().
+    lights.setOutOfFrustumLightsToShader(*giLights); // Relying on out-of-frustum culling result being unchanged after
+                                                     // WorldRenderer::giBeforeRender().
   else if (allow_frustum_lights)
     lights.setInsideOfFrustumLightsToShader();
   else
-    lights.setEmptyOutOfFrustumLights();
+    lights.setEmptyOutOfFrustumLights(*giLights);
 }
 
 uint32_t get_gi_history_frames() { return static_cast<WorldRenderer *>(get_world_renderer())->getGIHistoryFrames(); }
@@ -335,16 +341,17 @@ DaGISettings WorldRenderer::getGISettings() const
 
   auto s = daGI2->getNextSettings();
   constexpr float ALBEDO_MEDIA_MUL = 0.0625f;
-  constexpr float LIT_SCENE_MUL = 0.0625f;
-  s.voxelScene.sdfResScale = giDatablockCache.voxelSceneResScale;
   const bool temporality = gi_quality == GI_SCREEN_PROBES || gi_algorithm_quality > 0.0001;
 
   const float temporalSpeed = temporality ? lerp<float>(0.05, 1, gi_algorithm_quality) : 0;
   s.mediaScene.temporalSpeed = temporalSpeed * ALBEDO_MEDIA_MUL;
-  s.voxelScene.temporalSpeed = temporalSpeed * LIT_SCENE_MUL;
   s.albedoScene.temporalSpeed = temporalSpeed * ALBEDO_MEDIA_MUL;
   s.sdf.clips = clamp(giDatablockCache.sdfClips > 0 ? giDatablockCache.sdfClips : (bareMinimumPreset ? 5 : 6), 4, 6);
   s.sdf.voxel0Size = giDatablockCache.sdfVoxel0;
+  s.surfaceCache.entries = uint32_t(gi_surface_cache_entries_k.get()) << 10;
+  s.surfaceCache.feedGroups = giDatablockCache.surfaceCacheFeedGroups;
+  s.surfaceCache.relightThreads = giDatablockCache.surfaceCacheRelightThreads;
+  s.surfaceCache.voxelRemeanFrames = giDatablockCache.surfaceCacheVoxelRemeanFrames;
   if (gi_quality == GI_ONLY_AO)
   {
     s.skyVisibility.clipW = bareMinimumPreset ? 64 : 56;
@@ -353,7 +360,7 @@ DaGISettings WorldRenderer::getGISettings() const
     s.radianceGrid.w = 0;
     s.screenProbes.tileSize = 0;
     s.volumetricGI.tileSize = 0;
-    s.voxelScene.sdfResScale = 0; // no need for voxel scene
+    s.surfaceCache.entries = 0;
     s.skyVisibility.framesToUpdateTemporally = temporality ? lerp(96, 32, gi_algorithm_quality) : 0;
     s.mediaScene.temporalSpeed = gi_algorithm_quality * ALBEDO_MEDIA_MUL;
   }
@@ -398,7 +405,7 @@ DaGISettings WorldRenderer::getGISettings() const
   return s;
 }
 
-void WorldRenderer::giBeforeRender()
+void WorldRenderer::giUpdateSettings()
 {
   if (daGI2 && !gi_enabled.get())
     closeGI();
@@ -408,46 +415,50 @@ void WorldRenderer::giBeforeRender()
 
   ShaderGlobal::set_int(gi_qualityVarId, daGI2 ? gi_quality : -1);
 
-  giGlobalLightsPrepared = false;
-
   if (!daGI2)
     return;
-  TIME_D3D_PROFILE(gi2_before_render)
 
   if (gi_algorithm_quality >= 0.75f)
     giDynamicQuality = cvt(gi_algorithm_quality, 0.75f, 1.0f, 0.55f, 1.0f);
   else
     giDynamicQuality = cvt(gi_algorithm_quality, 0.25f, 0.5f, 0.1f, 0.55f);
 
+  const bool giNeededReprojection = giNeedsReprojection();
+  daGI2->setSettings(getGISettings());
+
+  // pull both flags: a short circuit leaves one set and recreates the FG again in the next frame
+  const bool qualityChanged = gi_quality.pullValueChange();
+  const bool algorithmQualityChanged = gi_algorithm_quality.pullValueChange();
+  if (qualityChanged || algorithmQualityChanged || giNeededReprojection != giNeedsReprojection())
+    requestFgRecreation("gi shvars");
+}
+
+void WorldRenderer::giBeforeRender()
+{
+  giGlobalLightsPrepared = false;
+
+  if (!daGI2)
+    return;
+  TIME_D3D_PROFILE(gi2_before_render)
+
   int w, h, maxW, maxH;
   getRenderingResolution(w, h);
   getMaxPossibleRenderingResolution(maxW, maxH);
 
-  const bool giNeededReprojection = giNeedsReprojection();
+  const DaGISettings s = daGI2->getNextSettings();
 
-  DaGISettings s = getGISettings();
-  daGI2->setSettings(s);
-
-  bool hasLightsInVoxelsLitScene = s.voxelScene.sdfResScale > 0.0f && !s.voxelScene.onlyEmission;
-  bool useGiGlobalLights = gi_quality > GI_ONLY_AO && !hasLightsInVoxelsLitScene;
-  if (useGiGlobalLights)
-    useGiGlobalLights &= !ShaderGlobal::is_var_assumed(gi_enable_lights_at_radiance_traceVarId) ||
-                         ShaderGlobal::get_interval_assumed_value(gi_enable_lights_at_radiance_traceVarId) > 0;
-  if (useGiGlobalLights)
+  const bool useGiGlobalLights = s.surfaceCache.entries > 0;
+  // each frame: relights run without updateGIPos
+  if (useGiGlobalLights && lights.initialized())
   {
-    int sdfClipsWithLights = s.sdf.clips - 2; // Could be a parameter.
-    // the int product is made explicit for pvs V636, which this change surfaces by moving the line
-    float xzSize = float((1 << (sdfClipsWithLights - 1)) * s.sdf.texWidth) * s.sdf.voxel0Size;
-    float ySize = xzSize * s.sdf.yResScale;
-    Point3 center = currentFrameCamera.viewItm.getcol(3);
-    Point3 halfSize = Point3(xzSize, ySize, xzSize) * 0.5f;
-    giCurrentGlobalLightsBox = BBox3(center - halfSize, center + halfSize);
+    TIME_PROFILE(cull_global_lights)
+    alignas(16) TMatrix4 globtm = dagi_lights_globtm(s.sdf, currentFrameCamera.viewItm.getcol(3));
+    lights.cullOutOfFrustumLights(*giLights, (mat44f_cref)globtm, SpotLightMaskType::SPOT_LIGHT_MASK_GI,
+      OmniLightMaskType::OMNI_LIGHT_MASK_GI);
+    giGlobalLightsPrepared = true;
   }
-  else
-  {
-    giCurrentGlobalLightsBox.setempty();
-  }
-  ShaderGlobal::set_int(gi_enable_lights_at_radiance_traceVarId, useGiGlobalLights ? 1 : 0);
+  if (!ShaderGlobal::is_var_assumed(gi_enable_lights_at_radiance_traceVarId))
+    ShaderGlobal::set_int(gi_enable_lights_at_radiance_traceVarId, useGiGlobalLights ? 1 : 0);
 
   ShaderGlobal::set_int(ssr_alternate_reflectionsVarId, ssrWantsAlternateReflections && gi_quality > 0 ? 1 : 0);
   // if InitGI called only on level load it can cause GI artifacts, for some reason.
@@ -455,44 +466,20 @@ void WorldRenderer::giBeforeRender()
   // if (++giInvalidateDeferred == DEFERRED_FRAMES_TO_INVALIDATE_GI)
   //  daGI2->invalidateDeferred();
   // we check if static shadows are valid in the pos where we moved to
-  // static shadows are valid if: either it is completely valid, or it is within the region (although there might be invalid regions)
-  // region size is decreased each frame
   const float giUpdateDist = 100.f; // fixme:
   DaGI::RadianceUpdate ru = DaGI::RadianceUpdate::On;
   // todo: check teleportation and set giUpdatePosFrameCounter = 0 on teleportation
   if (!ignoreStaticShadowsForGI && ++giUpdatePosFrameCounter <= MAX_GI_FRAMES_TO_INVALIDATE_POS) // if frames passed < threshold
   {
-    auto turnOffGiUpdate = [&]() {
-      auto staticShadows = shadowsManager.getStaticShadows();
-      if (!staticShadows)
-        return true;
-      const Point3 &cameraPos = currentFrameCamera.viewItm.getcol(3);
-      BBox3 shBox = staticShadows->getWorldBox();
-      Point3 pos = min(max(cameraPos, shBox[0] + Point3(giUpdateDist, giUpdateDist, giUpdateDist)),
-        shBox[1] - Point3(giUpdateDist, giUpdateDist, giUpdateDist));
-      BBox3 checkBox = BBox3(pos, giUpdateDist);
-      checkBox[0] = max(checkBox[0], shBox[0]);
-      checkBox[1] = min(checkBox[1], shBox[1]);
-
-      if (!staticShadows->isInside(checkBox)    // we are not even inside static shadows
-          || !staticShadows->isValid(checkBox)) // static shadows are invalid
-        return true;
-      // if static shadows are fully updated, render immediately, otherwise try to wait for one frame
-      if (giUpdatePosFrameCounter == 1 && !staticShadows->isCompletelyValid(checkBox))
-        return true;
-      return false;
-    }();
-    if (turnOffGiUpdate)
+    const Point3 &cameraPos = currentFrameCamera.viewItm.getcol(3);
+    // if static shadows are fully updated, render immediately, otherwise try to wait for one frame
+    if (!shadowsManager.validStaticShadows(cameraPos, giUpdateDist) ||
+        (giUpdatePosFrameCounter == 1 && !shadowsManager.fullyUpdatedStaticShadows(cameraPos, giUpdateDist)))
       ru = DaGI::RadianceUpdate::Off;
   }
 
   daGI2->beforeRender(w, h, maxW, maxH, currentFrameCamera.viewItm, currentFrameCamera.jitterProjTm,
     currentFrameCamera.noJitterPersp.zn, currentFrameCamera.noJitterPersp.zf, ru);
-
-  if (gi_quality.pullValueChange() || gi_algorithm_quality.pullValueChange() || giNeededReprojection != giNeedsReprojection())
-  {
-    requestFgRecreation("gi shvars");
-  }
 }
 
 void WorldRenderer::renderGiCollision(const TMatrix &view_itm, const Frustum &)
@@ -521,12 +508,6 @@ bool WorldRenderer::requiresGIUpdate() const
 
 void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, float hmin, float hmax)
 {
-  if (daGI2 && !gi_enabled.get())
-    closeGI();
-
-  if (!daGI2 && gi_enabled.get())
-    initGI();
-
   if (!daGI2)
     return;
 
@@ -585,18 +566,8 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
   giPos.y = min(giPos.y, hmax + giHmapOffsetFromUp);
   giPos.y = max(giPos.y, hmin + giHmapOffsetFromLow);
 
-  bool lightsInsideFrustum = true;
-  bool useGiGlobalLights = !giCurrentGlobalLightsBox.isempty();
-  if (lights.initialized() && useGiGlobalLights)
-  {
-    TIME_PROFILE(cull_global_lights)
-    alignas(16) TMatrix4 globtm = matrix_ortho_off_center_lh(giCurrentGlobalLightsBox[0].x, giCurrentGlobalLightsBox[1].x,
-      giCurrentGlobalLightsBox[1].y, giCurrentGlobalLightsBox[0].y, giCurrentGlobalLightsBox[0].z, giCurrentGlobalLightsBox[1].z);
-    lights.cullOutOfFrustumLights((mat44f_cref)globtm, SpotLightMaskType::SPOT_LIGHT_MASK_GI, OmniLightMaskType::OMNI_LIGHT_MASK_GI);
-    lights.setOutOfFrustumLightsToShader();
-    lightsInsideFrustum = false;
-    giGlobalLightsPrepared = true;
-  }
+  if (giGlobalLightsPrepared)
+    lights.setOutOfFrustumLightsToShader(*giLights);
 
   TIME_D3D_PROFILE(gi2_update_pos)
   {
@@ -608,8 +579,7 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
   if (mediaVolumes.bakePending(globalFrameBlockId)) // the bake wave settled
     daGI2->invalidateInitialMedia();
   daGI2->updatePosition(
-    [&](int sdf_clip, const BBox3 &box, float voxelSize, uintptr_t &) {
-      G_UNUSED(sdf_clip);
+    [&](int, const BBox3 &box, float voxelSize, uintptr_t &) {
       BBox3 sceneBox = box;
       // we increase by maximum written + 1 where we rounding due to rasterization
       sceneBox[0] -= Point3(voxelSize, voxelSize, voxelSize);
@@ -627,23 +597,6 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
         TIME_PROFILE(sort_instances)
         stlsort::sort(handles.begin(), handles.end(),
           [](auto a, auto b) { return rendinst::handle_to_ri_type(a) < rendinst::handle_to_ri_type(b); });
-      }
-      if (lights.initialized() && !useGiGlobalLights)
-      {
-        float sdfVoxelizeQuality = float(gi_algorithm_quality) * (float(gi_quality) / 2.0);
-        float maxSz = max(float(min_sdf_voxel_with_lights_size), float(max_sdf_voxel_with_lights_size));
-        if (voxelSize <= lerp(float(min_sdf_voxel_with_lights_size), maxSz, sdfVoxelizeQuality) &&
-            voxelSize <= world_sdf_from_collision_rasterize_below && daGI2->sdfClipHasVoxelsLitSceneClip(sdf_clip))
-        {
-          TIME_PROFILE(cull_lights)
-          alignas(16) TMatrix4 globtm = matrix_ortho_off_center_lh(box[0].x, box[1].x, box[1].y, box[0].y, box[0].z, box[1].z);
-          lights.cullOutOfFrustumLights((mat44f_cref)globtm, SpotLightMaskType::SPOT_LIGHT_MASK_GI,
-            OmniLightMaskType::OMNI_LIGHT_MASK_GI);
-          lights.setOutOfFrustumLightsToShader();
-        }
-        else
-          lights.setEmptyOutOfFrustumLights();
-        lightsInsideFrustum = false;
       }
       IPoint3 res = ipoint3(floor(sceneBox.width() / voxelSize + Point3(0.5, 0.5, 0.5)));
       // Point3 voxelize_box1 = Point3(1./sceneBox.width().x, 1./sceneBox.width().y, 1./sceneBox.width().z);
@@ -686,7 +639,7 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
   // gather the closest source instances for the media volume debug trace (gi_media_vols_debug)
   mediaVolumes.debugPrepare(view_itm.getcol(3));
 
-  if (!lightsInsideFrustum)
+  if (giGlobalLightsPrepared)
     lights.setInsideOfFrustumLightsToShader();
 
   ShaderGlobal::setBlock(oldBlock, ShaderGlobal::LAYER_FRAME);

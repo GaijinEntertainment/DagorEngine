@@ -30,11 +30,14 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
 #include <osApiWrappers/dag_stackHlp.h>
-#include <EASTL/bitset.h>
+#include <EASTL/array.h>
 #include <EASTL/fixed_vector.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_atomic_types.h>
 #include <osApiWrappers/dag_mutex.h>
+#include <osApiWrappers/dag_hinge.h>
+#include <math/dag_mathBase.h>
+#include <android/sensor.h>
 #include <mutex>
 
 
@@ -208,51 +211,6 @@ static int g_android_next_input_call_id = 0;
 using InputCallsArray = eastl::array<MainWindowProcCall, 128>;
 static InputCallsArray g_android_input_calls;
 
-static dag::mutex g_android_joystick_events_mutex;
-static eastl::bitset<128> g_android_joystick_events_free;
-static eastl::array<android::JoystickEvent, 128> g_android_joystick_events_storage;
-
-static android::JoystickEvent *allocate_android_joystick_event(void *event)
-{
-  int eventId = -1;
-  {
-    std::unique_lock lock(g_android_joystick_events_mutex);
-    eventId = g_android_joystick_events_free.find_first();
-    if (eventId < g_android_joystick_events_free.size())
-      g_android_joystick_events_free.set(eventId, false);
-    else
-      return nullptr;
-  }
-
-  android::JoystickEvent *joystickEvent = &g_android_joystick_events_storage[eventId];
-
-  joystickEvent->deviceId = android::motion_event::get_device_id(event);
-  for (int i = 0, sz = joystickEvent->axisValues.size(); i < sz; ++i)
-    joystickEvent->axisValues[i] = android::motion_event::get_axis_value(event, i, 0);
-
-  return joystickEvent;
-}
-
-
-static void free_android_joystick_events(const InputCallsArray &input_calls, int input_calls_size)
-{
-  if (input_calls_size <= 0)
-    return;
-
-  std::unique_lock lock(g_android_joystick_events_mutex);
-  for (int i = 0; i < input_calls_size; ++i)
-  {
-    const MainWindowProcCall &call = input_calls[i];
-    if (call.message == GPCM_JoystickMovement)
-    {
-      android::JoystickEvent *joystickEvent = (android::JoystickEvent *)call.wParam;
-      const int eventId = eastl::distance(g_android_joystick_events_storage.begin(), joystickEvent);
-      g_android_joystick_events_free.set(eventId, true);
-    }
-  }
-}
-
-
 static AndroidProcessResult process_android_key_event(struct android_app *app, void *event)
 {
   AndroidProcessResult result;
@@ -289,8 +247,6 @@ static AndroidProcessResult process_android_motion_event(struct android_app *app
   AndroidProcessResult result;
   result.status = 1;
 
-  static constexpr int AINPUT_SOURCE_JOYSTICK = 0x01000010;
-
   bool srcTouch = (event_source & AINPUT_SOURCE_TOUCHSCREEN) == AINPUT_SOURCE_TOUCHSCREEN;
   bool srcMouse = (event_source & AINPUT_SOURCE_MOUSE) == AINPUT_SOURCE_MOUSE;
   if (srcTouch || srcMouse)
@@ -321,17 +277,13 @@ static AndroidProcessResult process_android_motion_event(struct android_app *app
         break;
     }
   }
-  else if (event_source == AINPUT_SOURCE_JOYSTICK)
-  {
-    if (android::JoystickEvent *joystickEvent = allocate_android_joystick_event(event))
-      result.wndCalls.push_back(MainWindowProcCall{GPCM_JoystickMovement, uintptr_t(joystickEvent), 0});
-  }
 
   return result;
 }
 
 
 static int32_t dagor_android_handle_input_thread(struct android_app *app, AInputEvent *event);
+static void dagor_android_main_thread_setup(struct android_app *state);
 
 
 namespace
@@ -347,6 +299,8 @@ struct DagorMainThread final : public DaThread
 
     // writing to a socket closed by the peer leads to SIGPIPE, process will exit if it is not ignored
     signal(SIGPIPE, SIG_IGN);
+
+    dagor_android_main_thread_setup((android_app *)win32_get_instance());
 
     default_crt_init_kernel_lib();
 
@@ -481,12 +435,15 @@ static int push_android_input(const AndroidProcessResult &result)
   if (result.wndCalls.empty())
     return result.status;
 
-  std::unique_lock lock(g_android_input_mutex);
-  if (g_android_next_input_call_id + result.wndCalls.size() < g_android_input_calls.size())
   {
-    eastl::copy(result.wndCalls.begin(), result.wndCalls.end(), g_android_input_calls.begin() + g_android_next_input_call_id);
-    g_android_next_input_call_id += result.wndCalls.size();
+    std::unique_lock lock(g_android_input_mutex);
+    if (g_android_next_input_call_id + result.wndCalls.size() <= g_android_input_calls.size())
+    {
+      eastl::copy(result.wndCalls.begin(), result.wndCalls.end(), g_android_input_calls.begin() + g_android_next_input_call_id);
+      g_android_next_input_call_id += result.wndCalls.size();
+    }
   }
+
   return result.status;
 }
 
@@ -586,7 +543,24 @@ static int32_t dagor_android_handle_input_thread(struct android_app *app, AInput
 dag::AtomicInteger<bool> dagor_android_in_fatal_state = false;
 
 
-bool android_should_ignore_cmd(int8_t cmd) { return dagor_should_ignore_android_cmd ? dagor_should_ignore_android_cmd(cmd) : false; }
+static bool is_android_activity_state_cmd(int32_t cmd)
+{
+  switch (cmd)
+  {
+    case APP_CMD_START:
+    case APP_CMD_RESUME:
+    case APP_CMD_PAUSE:
+    case APP_CMD_STOP:
+    case APP_CMD_SAVE_STATE: return true;
+    default: return false;
+  }
+}
+
+
+bool android_should_ignore_cmd(int8_t cmd)
+{
+  return is_android_activity_state_cmd(cmd) || (dagor_should_ignore_android_cmd && dagor_should_ignore_android_cmd(cmd));
+}
 
 
 static void quit_game_on_fatal_state(int32_t cmd)
@@ -1019,6 +993,8 @@ extern void setup_debug_system(const char *exe_fname, const char *prefix, const 
 extern void jni_register_all_natives();
 
 static constexpr int MAX_ARGS_COUNT = 64;
+static char *g_android_argv[MAX_ARGS_COUNT];
+static int g_android_argc = 0;
 #if defined(DEBUG_ANDROID_CMDLINE_FILE)
 #include <folders/folders.h>
 #include <osApiWrappers/dag_files.h>
@@ -1093,7 +1069,77 @@ static void android_looper_poll_all_blocking()
 }
 
 
-void android_main(struct android_app *state)
+static constexpr int SENSOR_TYPE_HINGE_ANGLE = 36;
+static constexpr float HINGE_CLOSED_MAX_DEG = 15.f;
+static constexpr float HINGE_FULLY_OPEN_MIN_DEG = 165.f;
+static constexpr int32_t HINGE_SENSOR_PERIOD_US = 50000;
+
+static ASensorManager *g_hinge_sensor_manager = nullptr;
+static const ASensor *g_hinge_sensor = nullptr;
+static dag::AtomicPointer<ASensorEventQueue> g_hinge_event_queue(nullptr);
+static dag::AtomicFloat<float> g_hinge_angle_deg(-1.f);
+
+static int on_hinge_sensor_events(int, int, void *)
+{
+  ASensorEventQueue *queue = g_hinge_event_queue.load(dag::memory_order_acquire);
+  if (!queue)
+    return 1;
+  ASensorEvent event;
+  while (ASensorEventQueue_getEvents(queue, &event, 1) > 0)
+    if (event.type == SENSOR_TYPE_HINGE_ANGLE)
+      g_hinge_angle_deg.store(event.data[0], dag::memory_order_relaxed);
+  return 1;
+}
+
+static void init_hinge_sensor()
+{
+  g_hinge_sensor_manager = ASensorManager_getInstanceForPackage(dagor_android_self_pkg_name.c_str());
+  g_hinge_sensor = g_hinge_sensor_manager ? ASensorManager_getDefaultSensor(g_hinge_sensor_manager, SENSOR_TYPE_HINGE_ANGLE) : nullptr;
+  if (!g_hinge_sensor)
+    return;
+  ASensorEventQueue *queue = ASensorManager_createEventQueue(g_hinge_sensor_manager, dagor_command_thread_looper,
+    ALOOPER_POLL_CALLBACK, on_hinge_sensor_events, nullptr);
+  g_hinge_event_queue.store(queue, dag::memory_order_release); // before the sensor can send events to the callback
+  const bool enabled = queue && ASensorEventQueue_registerSensor(queue, g_hinge_sensor, HINGE_SENSOR_PERIOD_US, 0) == 0;
+  debug("Android: hinge angle sensor %s", enabled ? "enabled" : "failed");
+}
+
+static void shutdown_hinge_sensor()
+{
+  if (ASensorEventQueue *queue = g_hinge_event_queue.load(dag::memory_order_acquire))
+  {
+    ASensorEventQueue_disableSensor(queue, g_hinge_sensor);
+    ASensorManager_destroyEventQueue(g_hinge_sensor_manager, queue);
+  }
+  g_hinge_event_queue.store(nullptr, dag::memory_order_release);
+  g_hinge_sensor = nullptr;
+  g_hinge_sensor_manager = nullptr;
+  g_hinge_angle_deg.store(-1.f, dag::memory_order_relaxed);
+}
+
+static void update_hinge_state()
+{
+  if (!is_main_thread() || !g_hinge_sensor)
+    return;
+  const float angleDeg = g_hinge_angle_deg.load(dag::memory_order_relaxed);
+  HingeState state;
+  if (angleDeg < 0.f)
+    state.status = HingeStatus::UNKNOWN;
+  else
+  {
+    state.angle = DegToRad(angleDeg);
+    if (angleDeg <= HINGE_CLOSED_MAX_DEG)
+      state.status = HingeStatus::CLOSED;
+    else if (angleDeg >= HINGE_FULLY_OPEN_MIN_DEG)
+      state.status = HingeStatus::FULLY_OPEN;
+    else
+      state.status = HingeStatus::PARTIALLY_OPEN;
+  }
+  set_hinge_state(state);
+}
+
+
+static void dagor_android_main_thread_setup(struct android_app *state)
 {
   JavaVM *jvm = android::get_java_vm(state->activity);
   jobject activityObj = android::get_activity_class(state->activity);
@@ -1120,19 +1166,6 @@ void android_main(struct android_app *state)
   setup_debug_system(logName, logsFolder.empty() ? externalDataPath : logsFolder.c_str(), DAGOR_DEBUG_LOG_NAME, useDateTimeName,
     useRotatedLogs);
 
-  g_android_joystick_events_free.set();
-
-  state->onAppCmd = dagor_android_handle_cmd_thread;
-  state->externalInputProcessing = 1;
-
-  apply_hinstance(state, NULL);
-
-  jni_register_all_natives();
-
-  android_exit_app_ptr = &android_exit_app;
-
-  measure_cpu_freq();
-
   dagor_android_internal_path = state->activity->internalDataPath;
   dagor_android_external_path = externalDataPath;
 
@@ -1143,15 +1176,14 @@ void android_main(struct android_app *state)
 
   SimpleString defaultLibName{"android-native-app"};
 
-  char *argv[MAX_ARGS_COUNT];
   int argc = 0;
 
   auto copyArg = [&](const char *arg, size_t len) {
     G_ASSERT(argc < MAX_ARGS_COUNT);
 
-    argv[argc] = new char[len + 1];
-    argv[argc][len] = '\0';
-    ::strncpy(argv[argc], arg, len);
+    g_android_argv[argc] = new char[len + 1];
+    g_android_argv[argc][len] = '\0';
+    ::strncpy(g_android_argv[argc], arg, len);
     ++argc;
   };
 
@@ -1179,21 +1211,18 @@ void android_main(struct android_app *state)
 #endif
 
 #if defined(DEBUG_ANDROID_CMDLINE_FILE)
-  read_argv_from_file(DEBUG_ANDROID_CMDLINE_FILE, argc, argv);
+  read_argv_from_file(DEBUG_ANDROID_CMDLINE_FILE, argc, g_android_argv);
 #endif
-  char **argvptr = argv;
+  g_android_argc = argc;
+  char **argvptr = g_android_argv;
 #if defined OPTIONAL_ADD_ARGS
   OPTIONAL_ADD_ARGS(argc, argvptr);
 #endif
   dgs_init_argv(argc, argvptr);
 
-  dgs_report_fatal_error = messagebox_report_fatal_error;
-
 #if DAGOR_DBGLEVEL != 0
   debug("BUILD TIMESTAMP:   %s %s\n\n", dagor_exe_build_date, dagor_exe_build_time);
 #endif
-
-  g_jvm = state->activity->vm;
 
 #define JNI_ASSERT(jni, cond) G_ASSERT((cond) && !jni->ExceptionCheck())
   JNIEnv *jni;
@@ -1293,8 +1322,30 @@ void android_main(struct android_app *state)
     dagor_android_scr_xdpi, dagor_android_scr_ydpi, dagor_android_scr_xres / dagor_android_scr_xdpi * 2.54,
     dagor_android_scr_yres / dagor_android_scr_ydpi * 2.54);
 
-  dagor_command_thread_looper = ALooper_forThread();
   debug("Android: dagor_command_thread_looper: %p", dagor_command_thread_looper);
+
+  init_hinge_sensor();
+}
+
+
+void android_main(struct android_app *state)
+{
+  state->onAppCmd = dagor_android_handle_cmd_thread;
+  state->externalInputProcessing = 1;
+
+  apply_hinstance(state, NULL);
+
+  jni_register_all_natives();
+
+  android_exit_app_ptr = &android_exit_app;
+
+  measure_cpu_freq();
+
+  dgs_report_fatal_error = messagebox_report_fatal_error;
+
+  g_jvm = state->activity->vm;
+
+  dagor_command_thread_looper = ALooper_forThread();
 
   g_dagor_main_thread.start();
 
@@ -1304,9 +1355,11 @@ void android_main(struct android_app *state)
   if (g_dagor_main_thread.isThreadStarted())
     g_dagor_main_thread.terminate(true);
 
+  shutdown_hinge_sensor();
+
 #if defined(DEBUG_ANDROID_CMDLINE_FILE)
-  for (int i = 0; i < argc; i++)
-    delete[] argv[i];
+  for (int i = 0; i < g_android_argc; i++)
+    delete[] g_android_argv[i];
 #endif
 
   win32_set_instance(NULL);
@@ -1357,7 +1410,7 @@ void dagor_process_sys_messages(bool /*input_only*/)
     workcycle_internal::main_window_proc(app, call.message, call.wParam, call.lParam);
   }
 
-  free_android_joystick_events(inputCalls, inputCallsSize);
+  update_hinge_state();
 }
 
 void dagor_idle_cycle(bool input_only, bool is_work_cycle)

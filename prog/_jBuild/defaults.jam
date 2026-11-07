@@ -61,11 +61,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   GdkVer        ?= 260403 ;
   GdkWinSdk     ?= 22621 ;
   PS4SdkVer     ?= 1050 ;
-  local 1200 = 1000 ;
-  local 1150 = 900 ;
-  local 1050 = 700 ;
-  local 850 = 300 ;
-  PS4CrossGenSdkVer ?= $($(PS4SdkVer)) ;
+  PS4CrossGenSdkVer ?= [ MATCH ^$(PS4SdkVer)=(.*)$ : 1250=1300 1200=1000 1150=900 1050=700 850=300 ] ;
   PS5SdkVer     ?= 1100 ;
   MacOSXVer     ?= 11.0 ;
   MacOSXMinVer  ?= $(MacOSXVer) ;
@@ -73,10 +69,10 @@ if ! $(__DEFAULTS_INCLUDED) {
   iOSMinVer     ?= $(iOSVer) ;
   tvOSVer       ?= 11.4 ;
   tvOSMinVer    ?= $(tvOSVer) ;
-  AndroidNdkVer ?= r27c ;
+  AndroidNdkVer ?= r29 ;
   AndroidApiVer ?= 33 ;
   AndroidSdkTarget ?= $(AndroidApiVer) ;
-  AndroidApiMinVer ?= 28 ;
+  AndroidApiMinVer ?= 29 ;
   NSwitchSdkVer ?= 1754 ;
   WinSdkVer     ?= win.sdk.100 ;
   UseD3DMulti   ?= no ;
@@ -101,6 +97,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   AftermathSdkVer ?= 2025.5.0.25317 ;
   NvApiVer      ?= R610 ;
   NvtxSdkVersion ?= 3.5 ;
+  NsightGraphicsSdkVer ?= 0.9.2 ;
   DefFreeTypeVer = 2.8 ;
   FreeTypeVer   ?= $(DefFreeTypeVer) ;
   FidelityFXVer ?= 2.1.1 ;
@@ -242,7 +239,6 @@ if ! $(__DEFAULTS_INCLUDED) {
     switch $(Platform) {
       case windows  : fmod_platform = win ;
       case linux    : fmod_platform = linux ;
-      case ps5      : fmod_platform = pentagon ;
       case xboxOne  : fmod_platform = gamecore ;
       case macOS    : fmod_platform = mac ;
       case scarlett : fmod_platform = gamecore ;
@@ -259,7 +255,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   }
 
   StreamlineSdkPath = $(_DEVTOOL)/streamline-$(StreamlineVer) ;
-  if $(StreamlineFeatures) && $(Platform) in windows && $(PlatformArch) in x86_64 arm64 {
+  if $(StreamlineFeatures) && $(Platform) in windows && $(PlatformArch) in x86_64 arm64 arm64ec {
     if ! [ GLOB $(StreamlineSdkPath) : * ] {
       exit Streamline SDK not found in $(StreamlineSdkPath), please update devtools ;
     }
@@ -382,7 +378,7 @@ if ! $(__DEFAULTS_INCLUDED) {
     if $(PlatformOutputDir) { _platform_spec = $(PlatformOutputDir) ; }
     if $(Platform) = ps4 {
       _platform = $(_platform)-$(PS4SdkVer) ;
-      if $(PS4CrossGenSdkVer) != none { _platform = $(_platform)c$(PS4CrossGenSdkVer) ; }
+      if $(PS4CrossGenSdkVer) { _platform = $(_platform)c$(PS4CrossGenSdkVer) ; }
     } else if $(Platform) = ps5 {
       _platform = $(_platform)-$(PS5SdkVer) ;
     } else if $(Platform) in xboxOne scarlett {

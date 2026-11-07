@@ -39,7 +39,7 @@
 
   #define SQRAT_ASSERT assert
   #define SQRAT_ASSERTF(cond, msg, ...) assert((cond) && (msg))
-  #define SQRAT_VERIFY(cond) do { if (!(cond)) assert(#cond); } while(0)
+  #define SQRAT_VERIFY(cond) do { if (!(cond)) assert(!#cond); } while(0)
 #endif
 
 #include <squirrel.h>

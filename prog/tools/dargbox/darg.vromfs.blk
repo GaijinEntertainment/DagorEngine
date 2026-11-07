@@ -12,7 +12,6 @@ sign_digest:t="sha256"
 folder {
   path:t="../../../prog/scripts/sq/daRg"
   dest_path:t="sq/darg"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*.nut
 }
@@ -20,7 +19,6 @@ folder {
 folder {
   path:t="../../../prog/scripts/sq/std"
   dest_path:t="sq/std"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*.nut
 }
@@ -28,7 +26,6 @@ folder {
 folder {
   path:t="../../../prog/1stPartyLibs/daScript/daslib"
   dest_path:t="daslib"
-  scan_folder:b=true
   scan_subfolders:b=false
   wildcard:t=*.das
 }
@@ -36,7 +33,6 @@ folder {
 folder {
   path:t="gamebase/"
   dest_path:t="./"
-  scan_folder:b=true
   scan_subfolders:b=false
   wildcard:t=init.nut
 }
@@ -44,7 +40,6 @@ folder {
 folder {
   path:t="gamebase/browser"
   dest_path:t="browser"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*.*
 }
@@ -52,7 +47,6 @@ folder {
 folder {
   path:t="gamebase/samples_prog/_basic/components"
   dest_path:t="samples_prog/_basic/components"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*.nut
 }

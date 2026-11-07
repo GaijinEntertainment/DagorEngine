@@ -201,11 +201,23 @@ class StatefulCommandBuffer
       };
       typedef Bitset<COUNT> type;
     };
+    struct RootSlot
+    {
+      enum Type
+      {
+        GRAPHICS,
+        // raytrace pipelines use the compute root signature slot too
+        COMPUTE,
+
+        COUNT
+      };
+    };
     DirtySet::type dirtyState = DirtySet::type(0);
     // only two, uav/srv and sampler
     ID3D12DescriptorHeap *descriptorHeaps[2] = {};
     D3D12_GPU_DESCRIPTOR_HANDLE bindlessHeapAddress[2]{};
-    D3D12_GPU_DESCRIPTOR_HANDLE activeBindlessHeapAddress[2]{};
+    // graphics and compute root arguments are separate, a heap switch has to update both
+    D3D12_GPU_DESCRIPTOR_HANDLE activeBindlessHeapAddress[RootSlot::COUNT][2]{};
 
     void markChange(uint32_t index, bool change)
     {
@@ -216,18 +228,19 @@ class StatefulCommandBuffer
     void clearChange(uint32_t index) { dirtyState.set(index, false); }
     void dirtyAll() { dirtyState = ~DirtySet::type(0); }
 
-    void resetActiveBindlessAddresses()
+    void resetActiveBindlessAddresses(RootSlot::Type slot)
     {
-      eastl::fill(eastl::begin(activeBindlessHeapAddress), eastl::end(activeBindlessHeapAddress), D3D12_GPU_DESCRIPTOR_HANDLE{0});
+      eastl::fill(eastl::begin(activeBindlessHeapAddress[slot]), eastl::end(activeBindlessHeapAddress[slot]),
+        D3D12_GPU_DESCRIPTOR_HANDLE{0});
     }
 
-    bool needsBindlessSamplerSet() const { return bindlessHeapAddress[0] != activeBindlessHeapAddress[0]; }
+    bool needsBindlessSamplerSet(RootSlot::Type slot) const { return bindlessHeapAddress[0] != activeBindlessHeapAddress[slot][0]; }
 
-    void bindlessSamplerSetWasApplied() { activeBindlessHeapAddress[0] = bindlessHeapAddress[0]; }
+    void bindlessSamplerSetWasApplied(RootSlot::Type slot) { activeBindlessHeapAddress[slot][0] = bindlessHeapAddress[0]; }
 
-    bool needsBindlessSRVSet() const { return bindlessHeapAddress[1] != activeBindlessHeapAddress[1]; }
+    bool needsBindlessSRVSet(RootSlot::Type slot) const { return bindlessHeapAddress[1] != activeBindlessHeapAddress[slot][1]; }
 
-    void bindlessSRVSetWasApplied() { activeBindlessHeapAddress[1] = bindlessHeapAddress[1]; }
+    void bindlessSRVSetWasApplied(RootSlot::Type slot) { activeBindlessHeapAddress[slot][1] = bindlessHeapAddress[1]; }
   };
   GraphicsCommandList<AnyCommandListPtr> cmd;
 
@@ -537,7 +550,7 @@ public:
 
   void setRaytraceConstantBuffer(uint32_t slot, D3D12_GPU_VIRTUAL_ADDRESS cbv)
   {
-    raytraceState.constBufferDirtyState.set(slot, raytraceState.raygenShader.cbvRange[slot] != cbv);
+    or_bit(raytraceState.constBufferDirtyState, slot, raytraceState.raygenShader.cbvRange[slot] != cbv);
     raytraceState.raygenShader.cbvRange[slot] = cbv;
   }
 
@@ -600,7 +613,7 @@ public:
       raytraceState.dirtyState.set(RaytraceState::DirtySet::SAMPLER_DESCRIPTORS);
       raytraceState.dirtyState.set(RaytraceState::DirtySet::SRV_DESCRIPTORS);
       raytraceState.dirtyState.set(RaytraceState::DirtySet::UAV_DESCRIPTORS);
-      globalState.resetActiveBindlessAddresses();
+      globalState.resetActiveBindlessAddresses(GlobalState::RootSlot::COMPUTE);
     }
     if (raytraceState.rootConstantDirtyState.any())
     {
@@ -635,15 +648,15 @@ public:
     {
       raytraceState.rootSignature->updateSamplerRange(cmd, raytraceState.raygenShader.samplerRange);
     }
-    if (globalState.needsBindlessSamplerSet())
+    if (globalState.needsBindlessSamplerSet(GlobalState::RootSlot::COMPUTE))
     {
       raytraceState.rootSignature->updateBindlessSamplerRange(cmd, globalState.bindlessHeapAddress[0]);
-      globalState.bindlessSamplerSetWasApplied();
+      globalState.bindlessSamplerSetWasApplied(GlobalState::RootSlot::COMPUTE);
     }
-    if (globalState.needsBindlessSRVSet())
+    if (globalState.needsBindlessSRVSet(GlobalState::RootSlot::COMPUTE))
     {
       raytraceState.rootSignature->updateUnboundedSRVRanges(cmd, globalState.bindlessHeapAddress[1]);
-      globalState.bindlessSRVSetWasApplied();
+      globalState.bindlessSRVSetWasApplied(GlobalState::RootSlot::COMPUTE);
     }
 
     raytraceState.dirtyState.reset();
@@ -679,7 +692,7 @@ public:
       computeState.dirtyState.set(ComputeState::DirtySet::CBV_DESCRIPTORS);
 #endif
 
-      globalState.resetActiveBindlessAddresses();
+      globalState.resetActiveBindlessAddresses(GlobalState::RootSlot::COMPUTE);
     }
 
     if (computeState.rootConstantDirtyState.any())
@@ -714,15 +727,15 @@ public:
     {
       raytraceState.rootSignature->updateSamplerRange(cmd, computeState.computeShader.samplerRange);
     }
-    if (globalState.needsBindlessSamplerSet())
+    if (globalState.needsBindlessSamplerSet(GlobalState::RootSlot::COMPUTE))
     {
       raytraceState.rootSignature->updateBindlessSamplerRange(cmd, globalState.bindlessHeapAddress[0]);
-      globalState.bindlessSamplerSetWasApplied();
+      globalState.bindlessSamplerSetWasApplied(GlobalState::RootSlot::COMPUTE);
     }
-    if (globalState.needsBindlessSRVSet())
+    if (globalState.needsBindlessSRVSet(GlobalState::RootSlot::COMPUTE))
     {
       raytraceState.rootSignature->updateUnboundedSRVRanges(cmd, globalState.bindlessHeapAddress[1]);
-      globalState.bindlessSRVSetWasApplied();
+      globalState.bindlessSRVSetWasApplied(GlobalState::RootSlot::COMPUTE);
     }
     computeState.dirtyState.reset();
     // some extra flags have to be set and unset to correctly track what was applied and what was not
@@ -769,7 +782,7 @@ public:
 
   void setComputeConstantBuffer(uint32_t slot, D3D12_GPU_VIRTUAL_ADDRESS cbv)
   {
-    computeState.constBufferDirtyState.set(slot, computeState.computeShader.cbvRange[slot] != cbv);
+    or_bit(computeState.constBufferDirtyState, slot, computeState.computeShader.cbvRange[slot] != cbv);
     computeState.computeShader.cbvRange[slot] = cbv;
   }
 
@@ -834,7 +847,7 @@ public:
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
       computeState.dirtyState.set(ComputeState::DirtySet::CBV_DESCRIPTORS);
 #endif
-      globalState.resetActiveBindlessAddresses();
+      globalState.resetActiveBindlessAddresses(GlobalState::RootSlot::COMPUTE);
     }
     if (computeState.rootConstantDirtyState.any())
     {
@@ -868,15 +881,15 @@ public:
     {
       computeState.rootSignature->updateSamplerRange(cmd, computeState.computeShader.samplerRange);
     }
-    if (globalState.needsBindlessSamplerSet())
+    if (globalState.needsBindlessSamplerSet(GlobalState::RootSlot::COMPUTE))
     {
       computeState.rootSignature->updateBindlessSamplerRange(cmd, globalState.bindlessHeapAddress[0]);
-      globalState.bindlessSamplerSetWasApplied();
+      globalState.bindlessSamplerSetWasApplied(GlobalState::RootSlot::COMPUTE);
     }
-    if (globalState.needsBindlessSRVSet())
+    if (globalState.needsBindlessSRVSet(GlobalState::RootSlot::COMPUTE))
     {
       computeState.rootSignature->updateUnboundedSRVRanges(cmd, globalState.bindlessHeapAddress[1]);
-      globalState.bindlessSRVSetWasApplied();
+      globalState.bindlessSRVSetWasApplied(GlobalState::RootSlot::COMPUTE);
     }
     computeState.dirtyState.reset();
   }
@@ -967,7 +980,7 @@ public:
 
   void setVertexConstantBuffer(uint32_t slot, D3D12_GPU_VIRTUAL_ADDRESS cbv)
   {
-    graphicsState.vertexConstBufferDirtyState.set(slot, graphicsState.vertexShader.cbvRange[slot] != cbv);
+    or_bit(graphicsState.vertexConstBufferDirtyState, slot, graphicsState.vertexShader.cbvRange[slot] != cbv);
     graphicsState.vertexShader.cbvRange[slot] = cbv;
   }
 
@@ -991,7 +1004,7 @@ public:
 
   void setPixelConstantBuffer(uint32_t slot, D3D12_GPU_VIRTUAL_ADDRESS cbv)
   {
-    graphicsState.pixelConstBufferDirtyState.set(slot, graphicsState.pixelShader.cbvRange[slot] != cbv);
+    or_bit(graphicsState.pixelConstBufferDirtyState, slot, graphicsState.pixelShader.cbvRange[slot] != cbv);
     graphicsState.pixelShader.cbvRange[slot] = cbv;
   }
 
@@ -1192,8 +1205,8 @@ public:
 
     if (!graphicsDirtyState.any() && !graphicsState.vertexConstBufferDirtyState.any() &&
         !graphicsState.pixelConstBufferDirtyState.any() && !graphicsState.vertexRootConstantDirtyState.any() &&
-        !graphicsState.pixelRootConstantDirtyState.any() && !globalState.needsBindlessSamplerSet() &&
-        !globalState.needsBindlessSRVSet())
+        !graphicsState.pixelRootConstantDirtyState.any() && !globalState.needsBindlessSamplerSet(GlobalState::RootSlot::GRAPHICS) &&
+        !globalState.needsBindlessSRVSet(GlobalState::RootSlot::GRAPHICS))
       return;
 
     // only one pipeline can be active at a time
@@ -1225,7 +1238,7 @@ public:
       graphicsDirtyState.set(GraphicsState::DirtySet::VERTEX_CBV_DESCRIPTORS);
       graphicsDirtyState.set(GraphicsState::DirtySet::PIXEL_CBV_DESCRIPTORS);
 #endif
-      globalState.resetActiveBindlessAddresses();
+      globalState.resetActiveBindlessAddresses(GlobalState::RootSlot::GRAPHICS);
     }
     if (graphicsDirtyState.test(GraphicsState::DirtySet::PRIMITIVE_TOPOLOGY))
     {
@@ -1294,15 +1307,15 @@ public:
       graphicsState.rootSignature->updatePixelSamplerRange(cmd, graphicsState.pixelShader.samplerRange);
     }
 
-    if (globalState.needsBindlessSamplerSet())
+    if (globalState.needsBindlessSamplerSet(GlobalState::RootSlot::GRAPHICS))
     {
       graphicsState.rootSignature->updateBindlessSamplerRange(cmd, globalState.bindlessHeapAddress[0]);
-      globalState.bindlessSamplerSetWasApplied();
+      globalState.bindlessSamplerSetWasApplied(GlobalState::RootSlot::GRAPHICS);
     }
-    if (globalState.needsBindlessSRVSet())
+    if (globalState.needsBindlessSRVSet(GlobalState::RootSlot::GRAPHICS))
     {
       graphicsState.rootSignature->updateBindlessSRVRange(cmd, globalState.bindlessHeapAddress[1]);
-      globalState.bindlessSRVSetWasApplied();
+      globalState.bindlessSRVSetWasApplied(GlobalState::RootSlot::GRAPHICS);
     }
 
     if (graphicsDirtyState.test(GraphicsState::DirtySet::DEPTH_BOUNDS))
@@ -1373,8 +1386,24 @@ public:
     ++knownWrittenCommands;
   }
 
+  void drawIndexedWithDrawId(uint32_t draw_id, uint32_t index_count, uint32_t instance_count, uint32_t first_index,
+    int32_t vertex_offset, uint32_t first_instance)
+  {
+    if (!validateTopology())
+      return;
+    if (!canDraw())
+      return;
+
+    flushGraphics(PrimitivePipeline::VERTEX);
+    cmd.setGraphicsRoot32BitConstants(dxil::DRAW_ID_ROOT_PARAMETER_INDEX, 1, &draw_id, 0);
+    cmd.drawIndexedInstanced(index_count, instance_count, first_index, vertex_offset, first_instance);
+    ++knownWrittenCommands;
+  }
+
+  // treat dst as DSV, if depth value is specified
   void embeddedExecute(ID3D12RootSignature *signature, ID3D12PipelineState *pipeline, DWORD const_values[4],
-    eastl::optional<D3D12_GPU_DESCRIPTOR_HANDLE> src, D3D12_CPU_DESCRIPTOR_HANDLE dst, D3D12_RECT dst_rect)
+    eastl::optional<D3D12_GPU_DESCRIPTOR_HANDLE> src, D3D12_CPU_DESCRIPTOR_HANDLE dst, D3D12_RECT dst_rect,
+    eastl::optional<float> depth = eastl::nullopt)
   {
     G_ASSERT(signature);
     G_ASSERT(pipeline);
@@ -1384,8 +1413,8 @@ public:
     dstViewport.TopLeftY = dst_rect.top;
     dstViewport.Width = dst_rect.right - dst_rect.left;
     dstViewport.Height = dst_rect.bottom - dst_rect.top;
-    dstViewport.MinDepth = 0.01f;
-    dstViewport.MaxDepth = 1.f;
+    dstViewport.MinDepth = depth.value_or(0.01f);
+    dstViewport.MaxDepth = depth.value_or(1.f);
 
     if (eastl::exchange(activeEmbeddedPipeline, pipeline) != pipeline)
     {
@@ -1402,7 +1431,21 @@ public:
     cmd.setGraphicsRoot32BitConstants(0, 4, const_values, 0);
     if (src)
       cmd.setGraphicsRootDescriptorTable(1, src.value());
-    cmd.omSetRenderTargets(1, &dst, FALSE, nullptr);
+    if (depth.has_value())
+    {
+#if !_TARGET_XBOXONE
+      // a bound SRI is transcoded into the HTile of the DSV and clamps the scissor
+      if (boundShadingRateTexture)
+      {
+        cmd.rsSetShadingRateImage(nullptr);
+        boundShadingRateTexture = nullptr;
+        graphicsState.dirtyState.set(GraphicsState::DirtySet::SHADING_RATE_TEXTURE);
+      }
+#endif
+      cmd.omSetRenderTargets(0, nullptr, FALSE, &dst);
+    }
+    else
+      cmd.omSetRenderTargets(1, &dst, FALSE, nullptr);
     cmd.iaSetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 #if !_TARGET_XBOXONE
     // Have to manage VRS here or we may blit with VRS on and it will end up generating garbage.
@@ -1445,6 +1488,13 @@ public:
     D3D12_CPU_DESCRIPTOR_HANDLE dst, D3D12_RECT dst_rect)
   {
     embeddedExecute(signature, pipeline, const_values, eastl::nullopt, dst, dst_rect);
+  }
+
+  void clearDepthExecute(ID3D12RootSignature *signature, ID3D12PipelineState *pipeline, float depth, D3D12_CPU_DESCRIPTOR_HANDLE dst,
+    D3D12_RECT dst_rect)
+  {
+    DWORD dwordRegs[4]{};
+    embeddedExecute(signature, pipeline, dwordRegs, eastl::nullopt, dst, dst_rect, depth);
   }
 
 #if !_TARGET_XBOXONE

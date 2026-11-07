@@ -73,13 +73,9 @@ void eff_from_attachment_save_block_settings(PropPanel::ContainerPropertyControl
   if (listName.empty())
     return;
 
-  DataBlock *selectedBlock = nullptr;
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    DataBlock *child = settings->getBlock(i);
-    if (listName == child->getStr("node", nullptr))
-      selectedBlock = child;
-  }
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "node");
+  DataBlock *selectedBlock = selectedIdx >= 0 && selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : nullptr;
   const SimpleString nodeValue = panel->getText(PID_CTRLS_EFF_FROM_ATTACHMENT_NODE);
   const SimpleString destNodeValue = panel->getText(PID_CTRLS_EFF_FROM_ATTACHMENT_DEST_NODE);
   const SimpleString effectorValue = panel->getText(PID_CTRLS_EFF_FROM_ATTACHMENT_EFFECTOR);
@@ -113,13 +109,10 @@ void eff_from_attachment_set_selected_node_list_settings(PropPanel::ContainerPro
   const char *defaultWtModulate = settings->getStr("wtModulate", "");
   const bool defaultWtModulateInverse = settings->getBool("wtModulateInverse", DEFAULT_WT_MODULATE_INVERSE);
   const SimpleString name = panel->getText(PID_CTRLS_NODES_LIST);
-  const DataBlock *selectedBlock = &DataBlock::emptyBlock;
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    const DataBlock *child = settings->getBlock(i);
-    if (name == child->getStr("node", nullptr))
-      selectedBlock = child;
-  }
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "node");
+  const DataBlock *selectedBlock =
+    selectedIdx >= 0 && selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : &DataBlock::emptyBlock;
   panel->setText(PID_CTRLS_EFF_FROM_ATTACHMENT_NODE, name);
   panel->setText(PID_CTRLS_EFF_FROM_ATTACHMENT_DEST_NODE, selectedBlock->getStr("destNode", ""));
   panel->setText(PID_CTRLS_EFF_FROM_ATTACHMENT_EFFECTOR, selectedBlock->getStr("effector", ""));

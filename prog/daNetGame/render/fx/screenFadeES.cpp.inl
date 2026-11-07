@@ -17,4 +17,6 @@ static void screen_fade_es_event_handler(const ecs::Event &evt, float screen_fad
     return;
   const bool dest = evt.is<ecs::EventEntityDestroyed>() || evt.is<ecs::EventComponentsDisappear>();
   set_fade_mul(dest ? 1 : sqr(sqr((1.f - screen_fade))));
+  if (evt.is<ecs::EventComponentChanged>() && screen_fade <= 0.f)
+    debug("screen fade: faded in");
 }

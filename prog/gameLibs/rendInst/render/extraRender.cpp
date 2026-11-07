@@ -62,23 +62,6 @@ CONSOLE_FLOAT_VAL("rendinst", fadeStartRatio, 0.9f);
 __forceinline scene::node_index get_riex_render_node_index(rendinst::riex_render_info_t handle) { return handle & 0x3FFFFFFF; }
 __forceinline uint32_t get_riex_render_scene_index(rendinst::riex_render_info_t handle) { return handle >> 30; }
 
-static Tab<rendinst::render::ri_extra_render_marker_cb> ri_extra_render_marker_callbacks;
-
-struct CallRenderExtraMarkerCallbacksRAII
-{
-  CallRenderExtraMarkerCallbacksRAII()
-  {
-    for (rendinst::render::ri_extra_render_marker_cb cb : ri_extra_render_marker_callbacks)
-      cb(true);
-  }
-
-  ~CallRenderExtraMarkerCallbacksRAII()
-  {
-    for (rendinst::render::ri_extra_render_marker_cb cb : ri_extra_render_marker_callbacks)
-      cb(false);
-  }
-};
-
 // If too much objects - solid angle threshold decrease, if too small - increase
 namespace rendinst
 {
@@ -194,9 +177,9 @@ void rendinst::gatherOcclusion(mat44f_cref globtm, vec4f vpos, RIOcclusionData &
     [](const auto &a, const auto &b) { return a.y > b.y; });
 }
 
-void rendinst::prepareOcclusionData(mat44f_cref gtm, vec4f vpos, RIOcclusionData &od, int max_ri_to_add, bool walls)
+void rendinst::prepareOcclusionData(mat44f_cref gtm, vec4f vpos, RIOcclusionData &od, int max_ri_to_add)
 {
-  gatherOcclusion(gtm, vpos, od, max_ri_to_add, walls ? RendinstTiledScene::IS_WALLS : RendinstTiledScene::LARGE_OCCLUDER);
+  gatherOcclusion(gtm, vpos, od, max_ri_to_add, RendinstTiledScene::HAS_OCCLUSION_FOR_SW_RASTER);
 }
 
 static rendinst::RIOcclusionData simpleOcc;
@@ -309,7 +292,7 @@ static uint16_t get_pool_flags(rendinst::RiExtraPool &pool)
   if (!pool.collRes)
     flag |= rendinst::RendinstTiledScene::VISUAL_COLLISION;
   if (pool.largeOccluder && pool.isWalls && pool.collRes != nullptr)
-    flag |= rendinst::RendinstTiledScene::IS_WALLS;
+    flag |= rendinst::RendinstTiledScene::HAS_OCCLUSION_FOR_SW_RASTER;
   if (pool.isRendinstClipmap)
     flag |= rendinst::RendinstTiledScene::IS_RENDINST_CLIPMAP;
   if (pool.useVsm)
@@ -626,6 +609,14 @@ scene::node_index rendinst::alloc_instance_for_tiled_scene(rendinst::RiExtraPool
   if (inst_idx >= pool.tsNodeIdx.size())
     pool.tsNodeIdx.resize(inst_idx + 1, scene::INVALID_NODE);
   scene::node_index ni = riExTiledScenes[pool.tsIndex].allocate(tm44, pool_idx, get_pool_flags(pool));
+  if (pool.startHidden)
+  {
+    mat44f hiddenTm = tm44;
+    hiddenTm.col0 = v_zero();
+    hiddenTm.col1 = v_zero();
+    hiddenTm.col2 = v_zero();
+    riExTiledScenes[pool.tsIndex].setTransform(ni, hiddenTm);
+  }
   pool.tsNodeIdx[inst_idx] = (pool.tsIndex << 30) | ni;
   out_sphere = pool.riXYZR[inst_idx]; // this is actually not same sphere that used in rendering! fixme:
   return ni;
@@ -973,6 +964,9 @@ void rendinst::render::rebuildAllElemsInternal()
   static int drawOrderVarId = -2;
   if (drawOrderVarId == -2)
     drawOrderVarId = VariableMap::getVariableId("draw_order");
+  static int materialWriteVarId = -2;
+  if (materialWriteVarId == -2)
+    materialWriteVarId = VariableMap::getVariableId("material_write_no_edit");
 
   ScopedRIExtraWriteLock wr;
   const int toRebuild = interlocked_acquire_load(pendingRebuildCnt);
@@ -1008,7 +1002,7 @@ void rendinst::render::rebuildAllElemsInternal()
       dag::Span<ShaderMesh::RElem> elems = mesh->getElems(stage);
       for (const ShaderMesh::RElem &elem : elems)
       {
-        const PackedDrawOrder drawOrder{elem, stage, drawOrderVarId};
+        const PackedDrawOrder drawOrder{elem, stage, drawOrderVarId, materialWriteVarId};
         const int vbIdx = elem.vertexData->getVbIdx();
         G_ASSERT(vbIdx <= eastl::numeric_limits<uint8_t>::max());
         allElems[writeI++] = RenderElem{(ShaderElement *)elem.e, (short)elem.vertexData->getStride(), (uint8_t)vbIdx, drawOrder,
@@ -1294,7 +1288,11 @@ void rendinst::gatherRIGenExtraToTestForShadows(Tab<bbox3f> &out_bboxes, mat44f_
 
   bool hasConservativeRasterization = d3d::get_driver_desc().caps.hasConservativeRassterization;
   vec4f bboxExpandSize = hasConservativeRasterization ? v_splats(0.0f) : v_splats(static_shadow_texel_size * 0.5f);
-  dag::Vector<scene::node_index, framemem_allocator> nodesToUnsetFlags;
+  // We don't want to overbloat tiled scene deferred commands with unset flag commands,
+  // because `DeferredCommand` is 80 bytes while we need only 4 bytes for `node_index`
+  constexpr int MAX_DEFERRED_COMMANDS_FOR_TILED_SCENE = 100;
+  // not framemem: growing next to framemem out_bboxes leaves the older blocks of both stuck there
+  eastl::fixed_vector<scene::node_index, MAX_DEFERRED_COMMANDS_FOR_TILED_SCENE, true> nodesToUnsetFlags;
   left_ri_count = 0;
 
   Frustum cullingFrustum(globtm_cull);
@@ -1333,9 +1331,6 @@ void rendinst::gatherRIGenExtraToTestForShadows(Tab<bbox3f> &out_bboxes, mat44f_
         }
       });
 
-    // We don't want to overbloat tiled scene deferred commands with unset flag commands,
-    // because `DeferredCommand` is 80 bytes while we need only 4 bytes for `node_index`
-    constexpr int MAX_DEFERRED_COMMANDS_FOR_TILED_SCENE = 100;
     if (nodesToUnsetFlags.size() <= MAX_DEFERRED_COMMANDS_FOR_TILED_SCENE)
     {
       // NEEDS_CHECK_IN_SHADOW flag is resetted for boxes on edges - practically we just ignore them, cause
@@ -1441,6 +1436,12 @@ static bool lock_vbextra(RiGenExtraVisibility &v, vec4f *&vbPtr, rendinst::rende
     debug_dump_stack();
   }
   uint32_t dataSize = cnt * rendinst::RIEXTRA_VECS_COUNT;
+  if (dataSize > vbctx.vb->bufSize())
+  {
+    // maxExtraRiCount is shared, another ctx raised it while this ring keeps its old size
+    vbctx.vb.reset();
+    rendinst::render::allocateRIGenExtra(vbctx);
+  }
   if (vbctx.vb->getPos() + dataSize > vbctx.vb->bufSize())
   {
     if (vbctx.lastSwitchFrameNo && vbctx.lastSwitchFrameNo >= dagor_frame_no() - 1)
@@ -1516,7 +1517,7 @@ static bool fill_vbextra(RiGenExtraVisibility &v,
             bitwise_cast<uint32_t>(v_extract_y(data[rendinst::render::ADDITIONAL_DATA_IDX])), perInstanceRenderDataOffset,
             perInstanceRenderDataFlags, perInstanceRenderOptionalFlags);
           if (perInstanceRenderOptionalFlags & (uint32_t)rendinst::RiExtraOptionalFlag::HIDE_MARKED_MATERIAL)
-            v.hideMarkedMaterialsForInstances.push_back({poolI, (uint16_t)m});
+            v.hideMarkedMaterialsForInstances.push_back({(uint32_t)m, poolI, (uint8_t)l});
         }
       }
     }
@@ -1614,6 +1615,9 @@ bool rendinst::render::RiExtraRendererBuilder::build(RiGenVisibility &v, rendins
   if (DAGOR_UNLIKELY(!lock_vbextra(v.riex, vbPtr, rendinst::render::vbExtraCtx[vbExtraCtxId])))
   {
     v.riex.riexInstCount = 0;
+    // their vbOffset is set only by fill_vbextra, a later draw would read ring offset 0
+    v.riex.sortedTransparentElems.clear();
+    v.riex.partitionedElemsCount = 0;
     complete_vb_fill(v.riex, rendinst::render::vbExtraCtx[vbExtraCtxId].gen);
     return false;
   }
@@ -1798,8 +1802,6 @@ void rendinst::render::renderRIGenExtra(const RiGenVisibility &vbase, RenderPass
   if (!fill_vbextra(const_cast<RiGenExtraVisibility &>(v), nullptr, vbexctx))
     return;
 
-  CallRenderExtraMarkerCallbacksRAII callRenderExtraMarkerCallbacks;
-
   rendinst::render::rebuildAllElems();
 
   ccExtra.lockRead(); //?!
@@ -1950,7 +1952,8 @@ void rendinst::render::renderRIGenExtraFromBuffer(Sbuffer *buffer, dag::ConstSpa
   dag::ConstSpan<uint16_t> ri_indices, dag::ConstSpan<uint32_t> lod_offsets, RenderPass render_pass,
   OptimizeDepthPass optimization_depth_pass, OptimizeDepthPrepass optimization_depth_prepass,
   IgnoreOptimizationLimits ignore_optimization_instances_limits, LayerFlag layer, ShaderElement *shader_override,
-  uint32_t instance_multiply, bool gpu_instancing, Sbuffer *indirect_buffer, Sbuffer *ofs_buffer, bool use_external_per_draw_cb)
+  uint32_t instance_multiply, bool gpu_instancing, Sbuffer *indirect_buffer, Sbuffer *ofs_buffer, bool use_external_per_draw_cb,
+  const char *only_shader_name)
 {
   TIME_D3D_PROFILE(render_ri_extra_from_buffer);
 
@@ -1995,7 +1998,7 @@ void rendinst::render::renderRIGenExtraFromBuffer(Sbuffer *buffer, dag::ConstSpa
         continue;
       renderer.addObjectToRender(ri_indices[i], 0, optimization_depth_prepass == OptimizeDepthPrepass::Yes,
         ignore_optimization_instances_limits == IgnoreOptimizationLimits::Yes, offsets_and_count[i], lod, i,
-        TexStreamingContext(FLT_MAX), 0.0f, 0.0f, {}, shader_override, gpu_instancing);
+        TexStreamingContext(FLT_MAX), 0.0f, 0.0f, {}, shader_override, gpu_instancing, only_shader_name);
     }
 
   renderer.sortMeshesByMaterial();
@@ -2187,17 +2190,6 @@ void rendinst::render::validateFarLodsWithHeavyShaders(const RiGenVisibility *ma
       }
     }
   }
-}
-
-void rendinst::render::registerRIGenExtraRenderMarkerCb(ri_extra_render_marker_cb cb)
-{
-  if (find_value_idx(ri_extra_render_marker_callbacks, cb) == -1)
-    ri_extra_render_marker_callbacks.push_back(cb);
-}
-
-bool rendinst::render::unregisterRIGenExtraRenderMarkerCb(ri_extra_render_marker_cb cb)
-{
-  return erase_item_by_value(ri_extra_render_marker_callbacks, cb);
 }
 
 

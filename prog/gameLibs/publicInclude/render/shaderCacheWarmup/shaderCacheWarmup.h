@@ -26,8 +26,13 @@ struct WarmupParams
 // NOTE: requires GPU acquire!
 // returns true if warmup is in progress
 bool get_warmup_status(uint32_t &completed, uint32_t &total);
-// reference status rendering
-void draw_warmup_status();
+// Draws on the current render target a progress bar displaying the progress of 'completed' towards 'total'.
+// The 'completed' value must be equal or smaller than the 'total' value.
+// The value of 'total' must be greater than zero.
+// On invalid inputs for 'completed' or 'total' an assert may be raised and nothing will be drawn.
+// This may alter the currently set d3d view.
+// Render/GPU mutex has to be held (eg GPU acquire).
+void draw_warmup_status(uint32_t completed, uint32_t total);
 
 void warmup_shaders(const Tab<const char *> &graphics_shader_names, const Tab<const char *> &compute_shader_names,
   const WarmupParams &params, const bool is_loading_thread);

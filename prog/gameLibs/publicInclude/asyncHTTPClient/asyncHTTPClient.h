@@ -221,6 +221,8 @@ struct InitAsyncParams
   const char *caBundleFile = nullptr;
   bool verboseDebug = false;
   bool pollInThread = false;
+  // over all hosts; unlike pollInThread, every init_async() call applies it
+  int maxTotalConnections = 10;
 };
 
 void init_async(InitAsyncParams const &params);

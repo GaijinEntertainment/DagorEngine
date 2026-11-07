@@ -560,7 +560,10 @@ void GraphEditor::processRequest(RequestInfo *params)
     {
       const char *postContent = (const char *)params->read_POST_content();
       if (!postContent)
+      {
+        sendCommand("message:Graph is not compiled, request data is lost");
         return html_response_raw(params->conn, "");
+      }
       receivedCompileJson.setStr(postContent);
       receivedCompileJsonChanged = true;
       tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this

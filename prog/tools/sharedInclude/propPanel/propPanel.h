@@ -46,4 +46,14 @@ void reload_all_icons();
 void set_previous_imgui_control_tooltip(const void *control, const char *text, const char *text_end = nullptr);
 void set_previous_imgui_control_tooltip(ImGuiID item_id, const char *text, const char *text_end = nullptr);
 
+// Returns true when the tooltip has to be shown now, with the same delay and click handling behavior as
+// set_previous_imgui_control_tooltip().
+// It can be used for showing a custom formatted tooltip. It applies to the last ImGui item, so call it before you draw
+// another one. Draw it with ImGui::BeginTooltipEx(ImGuiTooltipFlags_OverridePrevious, ...) when propPanel also draws a
+// tooltip for the item, and draw it after that tooltip. Without the flag its text is appended to the tooltip that
+// propPanel drew.
+// control, item_id: a unique identifier of the control, like in set_previous_imgui_control_tooltip().
+bool should_show_imgui_control_tooltip(const void *control);
+bool should_show_imgui_control_tooltip(ImGuiID item_id);
+
 } // namespace PropPanel

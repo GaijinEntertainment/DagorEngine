@@ -22,7 +22,7 @@ static inline void level_settings_ecs_query(ecs::EntityManager &manager, Callabl
 static inline int csm_max_cascade_count(ecs::EntityManager &manager, float fov)
 {
   int maxCascade = 3;
-  level_settings_ecs_query(manager, [&](ecs::FloatList dagdp__csm_max_fov ECS_REQUIRE(ecs::Tag dagdp_level_settings)) {
+  level_settings_ecs_query(manager, [&](const ecs::FloatList &dagdp__csm_max_fov ECS_REQUIRE(ecs::Tag dagdp_level_settings)) {
     maxCascade = dagdp__csm_max_fov.size();
     if (fov < 0)
       return;

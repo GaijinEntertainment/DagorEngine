@@ -245,37 +245,57 @@ macro SAMPLE_JUST_RADIANCE_SP_CODE(code)
     screenprobes_current_radiance@smp2d = screenprobes_current_radiance;
     dagi_sp_oct_to_radiance_atlas@f2 = dagi_sp_oct_to_radiance_atlas;
     dagi_sp_oct_to_radiance_atlas_clamp@f4 = dagi_sp_oct_to_radiance_atlas_clamp;
+    dagi_sp_radiance_oct_edge_texel_center@f1 = (1.0 - 1.0 / screenspace_probe_res.w);
   }
 endmacro
 
 macro SAMPLE_JUST_RADIANCE_SP(code)
   SAMPLE_JUST_RADIANCE_SP_CODE(code)
   hlsl(code) {
-    void sample_bilinear_radiance_weights(inout float3 final_radiance, float3 direction, float4 weights, uint2 probe_coords[4])
+    void sample_bilinear_radiance_weights(inout float3 final_radiance, float3 direction, float4 weights, uint2 probe_coords[4], float linear_roughness)
     {
-      float2 octRradianceUV = screenspace_probe_dir_encode(direction)*dagi_sp_oct_to_radiance_atlas.xy + dagi_sp_oct_to_radiance_atlas.xy;
-      octRradianceUV = clamp(octRradianceUV, dagi_sp_oct_to_radiance_atlas_clamp.xy, dagi_sp_oct_to_radiance_atlas_clamp.zw);
-      UNROLL
-      for (uint i = 0; i < 4; ++i)
+      float2 octTC = screenspace_probe_dir_encode(direction);
+      // To get accurate radiance near octTC = +-1 we need to load neighbor texels at wrapped coords and apply manual bilinear filter.
+      // But it is slower, so do it only on mirrors and near problematic octahedral edges.
+      BRANCH
+      if (linear_roughness > 0.05 || all(abs(octTC) < dagi_sp_radiance_oct_edge_texel_center))
       {
-        float2 samplePosUV = probe_coords[i]*screenspace_probe_atlas_size.zw + octRradianceUV;
-        final_radiance += weights[i]*tex2Dlod(screenprobes_current_radiance, float4(samplePosUV,0,0)).xyz;
+        float2 octRradianceUV = octTC*dagi_sp_oct_to_radiance_atlas.xy + dagi_sp_oct_to_radiance_atlas.xy;
+        octRradianceUV = clamp(octRradianceUV, dagi_sp_oct_to_radiance_atlas_clamp.xy, dagi_sp_oct_to_radiance_atlas_clamp.zw);
+        UNROLL
+        for (uint i = 0; i < 4; ++i)
+        {
+          float2 samplePosUV = probe_coords[i]*screenspace_probe_atlas_size.zw + octRradianceUV;
+          final_radiance += weights[i]*tex2Dlod(screenprobes_current_radiance, float4(samplePosUV,0,0)).xyz;
+        }
+      }
+      else
+      {
+        int res = sp_getRadianceRes();
+        octTC = (octTC*0.5 + 0.5)*res - 0.5;
+        float2 octTCFloor = floor(octTC);
+        float2 f = octTC - octTCFloor;
+        int2 c0 = int2(octTCFloor);
+        int2 taps[4] = {
+          octahedral_map_border_to_octhedral(c0, res, 0),
+          octahedral_map_border_to_octhedral(c0 + int2(1, 0), res, 0),
+          octahedral_map_border_to_octhedral(c0 + int2(0, 1), res, 0),
+          octahedral_map_border_to_octhedral(c0 + int2(1, 1), res, 0)
+        };
+        float4 tapWeights = float4((1 - f.x)*(1 - f.y), f.x*(1 - f.y), (1 - f.x)*f.y, f.x*f.y);
+        UNROLL
+        for (uint i = 0; i < 4; ++i)
+        {
+          int2 probeOfs = int2(probe_coords[i])*res;
+          float3 radiance = 0;
+          UNROLL
+          for (uint j = 0; j < 4; ++j)
+            radiance += tapWeights[j]*texture2DAt(screenprobes_current_radiance, probeOfs + taps[j]).xyz;
+          final_radiance += weights[i]*radiance;
+        }
       }
       float currentExposure = 1;//fixme
       final_radiance *= currentExposure;
-    }
-
-    bool sample_bilinear_radiance_with_normal_campos(float3 direction, float sceneLinearDepth, float3 camPos, float3 worldNormal, float2 screen_coord, inout float3 final_radiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
-    {
-      uint2 probes[4]; float4 weights;
-      bool ret = dagi_get_current_bilinear_weights(probes, weights, sceneLinearDepth, camPos, worldNormal, screen_coord, depth_exp);
-      final_radiance = ret ? 0 : final_radiance;
-      sample_bilinear_radiance_weights(final_radiance, direction, weights, probes);
-      return ret;
-    }
-    bool sample_bilinear_radiance_with_normal(float3 direction, float sceneLinearDepth, float3 worldPos, float3 worldNormal, float2 screen_coord, inout float3 final_radiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
-    {
-      return sample_bilinear_radiance_with_normal_campos(direction, sceneLinearDepth, worldPos - sp_world_view_pos, worldNormal, screen_coord, final_radiance, depth_exp);
     }
   }
 endmacro
@@ -290,7 +310,7 @@ macro SAMPLE_IRRADIANCE_SPECULAR_SP(code)
   SAMPLE_JUST_IRRADIANCE_SP(code)
   SAMPLE_JUST_RADIANCE_SP(code)
   hlsl(code) {
-    bool sample_bilinear_specular_irradiance_with_normal_campos(float3 specularDirection, float3 diffuseDirection, float sceneLinearDepth, float3 camPos, float3 worldNormal, float2 screen_coord, inout float3 final_specular, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    bool sample_bilinear_specular_irradiance_with_normal_campos(float3 specularDirection, float3 diffuseDirection, float sceneLinearDepth, float3 camPos, float3 worldNormal, float linear_roughness, float2 screen_coord, inout float3 final_specular, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
     {
       uint2 probes[4]; float4 weights;
       bool ret = dagi_get_current_bilinear_weights(probes, weights, sceneLinearDepth, camPos, worldNormal, screen_coord, depth_exp);
@@ -298,12 +318,12 @@ macro SAMPLE_IRRADIANCE_SPECULAR_SP(code)
       if (ret)
         final_specular = final_irradiance = 0;
       sample_bilinear_irradiance_weights(final_irradiance, diffuseDirection, weights, probes);
-      sample_bilinear_radiance_weights(final_specular, specularDirection, weights, probes);
+      sample_bilinear_radiance_weights(final_specular, specularDirection, weights, probes, linear_roughness);
       return ret;
     }
-    bool sample_bilinear_specular_irradiance_with_normal(float3 specularDirection, float3 diffuseDirection, float sceneLinearDepth, float3 worldPos, float3 worldNormal, float2 screen_coord, inout float3 final_specular, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
+    bool sample_bilinear_specular_irradiance_with_normal(float3 specularDirection, float3 diffuseDirection, float sceneLinearDepth, float3 worldPos, float3 worldNormal, float linear_roughness, float2 screen_coord, inout float3 final_specular, inout float3 final_irradiance, float depth_exp = SP_DEFAULT_BILINEAR_DEPTH_EXP)
     {
-      return sample_bilinear_specular_irradiance_with_normal_campos(specularDirection, diffuseDirection, sceneLinearDepth, worldPos - sp_world_view_pos, worldNormal, screen_coord, final_specular, final_irradiance, depth_exp);
+      return sample_bilinear_specular_irradiance_with_normal_campos(specularDirection, diffuseDirection, sceneLinearDepth, worldPos - sp_world_view_pos, worldNormal, linear_roughness, screen_coord, final_specular, final_irradiance, depth_exp);
     }
 
   }

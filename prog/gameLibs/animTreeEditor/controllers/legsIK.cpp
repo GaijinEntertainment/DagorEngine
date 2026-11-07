@@ -53,7 +53,7 @@ void legs_ik_init_block_settings(PropPanel::ContainerPropertyControl *panel, con
       legNames.emplace_back("def");
 
   bool isEditable = !legNames.empty();
-  bool defaultBlockSelected = isEditable && legNames[0] == "def";
+  bool defaultBlockSelected = isEditable && legNames[0] == "def" && settings->blockExists("def");
   bool isBlockTypeEditable = defaultBlockSelected || (isEditable && !settings->blockExists("def"));
   const DataBlock *defaultBlock = settings->getBlockByNameEx("def");
   const DataBlock *selectedBlock = settings->getBlockByNameEx("leg");
@@ -97,10 +97,8 @@ void legs_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel, Dat
     return;
 
   const DataBlock *defaultBlock = settings->getBlockByNameEx("def");
-  DataBlock *selectedBlock = nullptr;
-  if (listName == "def")
-    selectedBlock = settings->getBlockByName("def");
-  else
+  DataBlock *selectedBlock = listName == "def" ? settings->getBlockByName("def") : nullptr;
+  if (!selectedBlock)
   {
     for (int i = 0; i < settings->blockCount(); ++i)
     {
@@ -176,9 +174,9 @@ void legs_ik_set_selected_node_list_settings(PropPanel::ContainerPropertyControl
   const SimpleString name = panel->getText(PID_CTRLS_NODES_LIST);
   const DataBlock *selectedBlock = &DataBlock::emptyBlock;
   const DataBlock *defaultBlock = settings->getBlockByNameEx("def");
-  if (name == "def")
+  if (name == "def" && defaultBlock != &DataBlock::emptyBlock)
   {
-    selectedBlock = settings->getBlockByName("def");
+    selectedBlock = defaultBlock;
     panel->setText(PID_CTRLS_LEGS_IK_BLOCK_TYPE, "def");
   }
   else
@@ -217,7 +215,7 @@ void legs_ik_set_selected_node_list_settings(PropPanel::ContainerPropertyControl
 
   bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
   int defNid = settings->getNameId("def");
-  bool isBlockTypeEditable = isEditable && (selectedBlock->getBlockNameId() == defNid || !settings->blockExists("def"));
+  bool isBlockTypeEditable = isEditable && (selectedBlock->getBlockNameId() == defNid || defaultBlock == &DataBlock::emptyBlock);
   panel->setEnabledById(PID_CTRLS_LEGS_IK_BLOCK_TYPE, isBlockTypeEditable);
   for (int i = PID_CTRLS_LEGS_IK_LEG; i <= PID_CTRLS_LEGS_IK_REVERSE_FLEX_DIRECTION; ++i)
     panel->setEnabledById(i, isEditable);

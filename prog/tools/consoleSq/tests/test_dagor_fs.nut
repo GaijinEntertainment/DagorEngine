@@ -1,7 +1,8 @@
 // Quirrel module under test: dagor.fs (registered by dagorFS.cpp)
 
 from "dagor.fs" import file_exists, dir_exists, is_path_absolute, scan_folder, stat, resolve_mountpoint,
-  read_text_from_file, read_text_from_file_on_disk, write_text_to_file, mkdir, mkpath, remove_file, remove_dirtree
+  read_text_from_file, read_text_from_file_on_disk, write_text_to_file, mkdir, mkpath, remove_file, remove_dirtree,
+  can_read_text_from_file
 from "dagor.time" import get_time_msec
 
 
@@ -11,6 +12,7 @@ from "dagor.time" import get_time_msec
 println("--- Section 1: existence queries on self ---")
 
 assert(file_exists(".definitely_missing_file_xyz.txt") == false, "missing file does not exist")
+assert(can_read_text_from_file(".definitely_missing_file_xyz.txt") == false, "missing file cannot be read")
 assert(dir_exists(".") == true, "current directory exists")
 assert(dir_exists(".this_dir_does_not_exist_xyz") == false, "missing dir does not exist")
 
@@ -73,6 +75,7 @@ let tmpName = $"_tmp_test_dagor_fs_{get_time_msec()}.txt"
 let payload = "hello from test_dagor_fs"
 write_text_to_file(tmpName, payload)
 assert(file_exists(tmpName), $"temp file exists after write: {tmpName}")
+assert(can_read_text_from_file(tmpName), $"temp file can be read after write: {tmpName}")
 
 let readBack = read_text_from_file_on_disk(tmpName)
 assert(readBack == payload, $"read_text_from_file_on_disk round-trip: '{readBack}'")
@@ -82,6 +85,7 @@ assert(readBack2 == payload, $"read_text_from_file round-trip: '{readBack2}'")
 
 assert(remove_file(tmpName), "remove_file succeeds")
 assert(file_exists(tmpName) == false, "file gone after remove")
+assert(can_read_text_from_file(tmpName) == false, "removed file cannot be read")
 
 println("Section 5 PASSED")
 

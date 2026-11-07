@@ -686,11 +686,11 @@ def enableOverride(var self : StateRequest; das_override : OverrideRenderState)
 
 
 def requestRenderPass(var self : Registry) : VirtualPassRequest
-  if self.registry.nodes[self.nodeId].renderingRequirements is some
+  if !(self.registry.nodes[self.nodeId].renderingRequirements is none)
     let selfName = self.registry.knownNames |> getName(self.nodeId)
     error("Encountered two renderpass requests in {selfName} framegraph node! Ignoring one of the requests!")
 
-  self.registry.nodes[self.nodeId].renderingRequirements |> emplace_some
+  self.registry.nodes[self.nodeId].renderingRequirements |> emplace_virtualPass
 
   return VirtualPassRequest(registry = self.registry, nodeId = self.nodeId)
 
@@ -724,7 +724,7 @@ def color(var self : VirtualPassRequest; names : string[]) : VirtualPassRequest
 
 
 def color(var self : VirtualPassRequest; attachments : array<VirtualAttachmentRequest>) : VirtualPassRequest
-  assume reqs = self.registry.nodes[self.nodeId].renderingRequirements as some
+  assume reqs = self.registry.nodes[self.nodeId].renderingRequirements as virtualPass
 
   if reqs.colorAttachments |> length != 0
     let selfName = self.registry.knownNames |> getName(self.nodeId)
@@ -746,7 +746,7 @@ def private depth(var self : VirtualPassRequest; name : string; usage_access : A
 
 
 def private depth(var self : VirtualPassRequest; attachment : VirtualAttachmentRequest; usage_access : Access; read_only : bool) : VirtualPassRequest
-  assume reqs = self.registry.nodes[self.nodeId].renderingRequirements as some
+  assume reqs = self.registry.nodes[self.nodeId].renderingRequirements as virtualPass
 
   if reqs.depthAttachment.nameId != ResNameId.Invalid
     let selfName = self.registry.knownNames |> getName(self.nodeId)
@@ -775,7 +775,7 @@ def vrsRate(var self : VirtualPassRequest; name : string[]) : VirtualPassRequest
   return self |> color(attachments)
 
 def vrsRate(var self : VirtualPassRequest; attachment : VirtualAttachmentRequest) : VirtualPassRequest
-  assume reqs = self.registry.nodes[self.nodeId].renderingRequirements as some
+  assume reqs = self.registry.nodes[self.nodeId].renderingRequirements as virtualPass
 
   if reqs.vrsRateAttachment.nameId != ResNameId.Invalid
     let selfName = self.registry.knownNames |> getName(self.nodeId)

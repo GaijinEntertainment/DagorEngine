@@ -8,6 +8,7 @@ include "get_additional_ao.dshl"
 include "ssao_reprojection.dshl"
 include "halfres_close_depth_with_normals.dshl"
 include "camera_in_camera.dshl"
+include "camera_indoor_inc.dshl"
 
 float gtao_cutoff_radius_mul = 1.68;
 float gtao_cutoff_smoothness = 0.8;
@@ -17,6 +18,12 @@ float gtao_max_pixel_radius = 64;
 float gtao_half_hfov_tan = 1.0;
 float gtao_temporal_directions = 0;
 float gtao_temporal_offset = 0;
+float4 gtao_sky_occlusion = (0, 1.5, 0, 0.1); // strength, half angle, strength indoors, reach / depth
+int gtao_sky_occlusion_mode = 0;
+interval gtao_sky_occlusion_mode : off < 1, on;
+float gtao_frame_no = 0;
+float gtao_max_raw_value = 1;
+float gtao_sample_distribution_exponent = 1.5;
 int4 temporal_shadow_frame;
 int4 gtao_dispatch_grid_dim = (1, 1, 0, 0);
 float4 hero_cockpit_vec = (0, 0, 0, 0);
@@ -50,7 +57,6 @@ macro GTAO_MAIN_CORE(code)
 
   local float4 halfResTexSize = get_dimensions(downsampled_close_depth_tex, 0);
   local float pixelToTan = 2.0 * gtao_half_hfov_tan / halfResTexSize.x;
-  local float gtaoSamples = 4;
   (code) {
     world_view_pos@f3 = world_view_pos;
     gtao_texel_size@f4 = (1.0 / max(1, halfResTexSize.x), 1.0 / max(1, halfResTexSize.y), halfResTexSize.xy);
@@ -73,10 +79,20 @@ macro GTAO_MAIN_CORE(code)
     gtao_cutoff_radius_mul@f1 = gtao_cutoff_radius_mul;
     gtao_cutoff_smoothness@f1 = gtao_cutoff_smoothness;
     gtao_world_radius@f1 = gtao_world_radius;
+    gtao_sample_distribution_exponent@f1 = gtao_sample_distribution_exponent;
 
-    tan_to_stride@f1 = 1.0 / (pixelToTan * gtaoSamples);
+    tan_to_pixel_radius@f1 = 1.0 / pixelToTan;
     depth_to_radius_limit_max_pixel_radius@f1 = gtao_max_pixel_radius * pixelToTan;
     depth_to_radius_limit_min_screen_radius@f1 = gtao_screen_radius * halfResTexSize.y * pixelToTan;
+  }
+
+  if (gtao_sky_occlusion_mode == on)
+  {
+    (code) {
+      // x is -strength * log2(e), for exp2
+      gtao_sky_sector@f4 = (-1.442695 * (gtao_sky_occlusion.x + (gtao_sky_occlusion.z - gtao_sky_occlusion.x) * camera_indoor),
+        gtao_sky_occlusion.y, gtao_sky_occlusion.w, gtao_sky_occlusion.w / pixelToTan);
+    }
   }
 
   INIT_HALF_RES_CLOSE_DEPTH(code)
@@ -113,27 +129,28 @@ macro GTAO_MAIN_CORE(code)
       return GetCameraVec(uv) * sceneDepth;
     }
 
-    inline half GTAO_Offsets(half2 uv)
+    float GTAO_SliceIndex(half2 uv)
     {
-      int2 position = (int2)(uv * gtao_texel_size.zw);
-      return 0.25 * (half)((position.y - position.x) & 3);
-    }
-
-    inline half GTAO_Directions(half2 uv)
-    {
-      // directions use a 4x4 pattern that contains a full rotation in each row and is shifted left/right between rows
-      int2 position = (int2)(uv * gtao_texel_size.zw);
-      return (1.0 / 16.0) * ((((position.x + position.y) & 3) << 2) + (position.x & 3));
+      uint2 position = (uint2)(uv * gtao_texel_size.zw) & 3;
+      uint idx = position.y * 4 + position.x;
+      // 4x4 slice indices {14,9,13,10, 2,5,1,6, 12,8,11,15, 4,0,3,7} packed into 2 constants (4 bits per slice).
+      uint packedSliceIndex = idx < 8 ? 0x6152AD9Eu : 0x7304FB8Cu;
+      return (packedSliceIndex >> ((idx & 7) * 4)) & 15;
     }
 
     #define SSAO_SAMPLES 4
     #define SSAO_THICKNESSMIX 0.2
     #define PI_HALF 1.5707963267948966192313216916398
+    // One slice gives visibility up to PI/2, only the average over slices is in [0, 1]
+    #define GTAO_INV_MAX_VISIBILITY (1.0 / PI_HALF)
+    #define GTAO_TEMPORAL_LATTICE_JITTER_COEFF 215
+    // Closer samples hit the center texel or a neighbour whose depth error is large for its distance: false self-occlusion.
+    // Empirical value from XeGTAO (pixelTooCloseThreshold).
+    #define GTAO_MIN_SAMPLE_PIXELS 1.3
 
-    void SliceSample(half2 tc_base, half2 aoDir, int i, float targetMip, half3 ray, half3 v,
-      float cutoff_radius, float inv_falloff_range, inout float closest)
+    void SliceSample(half2 uv, float targetMip, half3 ray, half3 v,
+      float cutoff_radius, float inv_falloff_range, float sky_cutoff, inout float closest, inout float sky_closest)
     {
-      half2 uv = tc_base + aoDir * i;
       float rawDepth = tex2Dlod(half_res_close_depth, float4(uv.xy, 0, targetMip)).x;
 
       ##if (maybe(screen_mask_enabled))
@@ -144,9 +161,15 @@ macro GTAO_MAIN_CORE(code)
       float depth = decode_depth(rawDepth, zn_zfar.zw);
       // Vector from current pixel to current slice sample
       half3 p = GetCameraVec(uv) * depth - ray;
-      float pLen = length(p);
+      float pLen2 = dot(p, p);
+      float invPLen = rsqrt(pLen2);
+      float pLen = pLen2 * invPLen;
       // Cosine of the horizon angle of the current sample
-      float current = dot(v, p) / pLen;
+      float current = dot(v, p) * invPLen;
+      ##if gtao_sky_occlusion_mode == on
+        // sky_closest >= -1, so maxes can form max3
+        sky_closest = max(sky_closest, pLen < sky_cutoff ? current : -1.0);
+      ##endif
       // Linear falloff for samples that are too far away from current pixel
       float falloff = saturate((cutoff_radius - pLen) * inv_falloff_range);
       FLATTEN
@@ -170,6 +193,49 @@ macro GTAO_MAIN_CORE(code)
       return 0.25 * (-cos(2.0 * h1 - n) + cosN + 2.0 * h1 * sinN - cos(2.0 * h2 - n) + cosN + 2.0 * h2 * sinN);
     }
 
+    ##if gtao_sky_occlusion_mode == on
+    #define SKY_SLIVER 0.25
+    #define SKY_FAR_MIP 2 // Coarse closest depth halves the tap cost
+
+    // Inverse depth scaling: no divide, same cosine
+    void SkyFarSample(half2 uv, half3 ray, half3 v, float sky_cutoff, inout float sky_closest)
+    {
+      float rawDepth = tex2Dlod(half_res_close_depth, float4(uv.xy, 0, SKY_FAR_MIP)).x;
+
+      ##if (maybe(screen_mask_enabled))
+        if (rawDepth >= 1)
+          return;
+      ##endif
+
+      float invDepth = rawDepth * zn_zfar.w + zn_zfar.z;
+      half3 p = GetCameraVec(uv) - ray * invDepth;
+      float pLenSq = dot(p, p);
+      float current = dot(v, p) * rsqrt(pLenSq);
+      sky_closest = pLenSq < pow2(sky_cutoff * invDepth) ? max(sky_closest, current) : sky_closest;
+    }
+
+    // Arc bounds as slice angles, exp2 weight
+    float3 SkyArc(half3 v, half3 planeNormal, float n)
+    {
+      half3 up = half3(-local_view_x.y, -local_view_y.y, local_view_z.y);
+      // Slice frame is orthonormal: v, cross(v, planeNormal)
+      float upX = dot(up, v);
+      float upY = dot(up, cross(v, planeNormal));
+      float upLenSq = upX * upX + upY * upY;
+      float invUpLen = rsqrt(max(upLenSq, 1e-8));
+      float u = GTAOFastAcos(clamp(upX * invUpLen, -1.0, 1.0));
+      u = upY < 0 ? -u : u;
+      // Half angle <= PI/2 needs one overlap
+      float d = u - n;
+      d -= 2 * PI * round(d * (0.5 / PI));
+      float lo = max(d - gtao_sky_sector.y, -PI_HALF);
+      float hi = max(min(d + gtao_sky_sector.y, PI_HALF), lo);
+      // Weighted by in-slice up; slivers fade out
+      float weight = upLenSq * invUpLen * min(rcp(hi - lo), 1.0 / SKY_SLIVER) * gtao_sky_sector.x;
+      return float3(lo + n, hi + n, weight);
+    }
+    ##endif
+
     half gtao(half2 tc_original, half3 worldNormal)
     {
 
@@ -189,19 +255,19 @@ macro GTAO_MAIN_CORE(code)
       // World space radius is limited below by screen-constant radius (avoid AO disappearing on far objects, if needed)
       // and above by max-stride-related one to not thrash GPU cache
       float worldRadius = min(worldRadiusLimitMaxPixelRadius, max(gtao_world_radius, worldRadiusLimitMinScreenRadius));
-      float stride = worldRadius / sceneDepth * tan_to_stride;
+      float pixelRadius = worldRadius / sceneDepth * tan_to_pixel_radius;
 
       // Compute cutoff relative to world space radius at current depth
       float cutoffRadius = max(gtao_world_radius, worldRadiusLimitMinScreenRadius) * gtao_cutoff_radius_mul;
       float invFalloffRange = 1.0 / (cutoffRadius * gtao_cutoff_smoothness);
-      half2 dirMult = gtao_texel_size.xy * stride;
+      half2 dirMult = gtao_texel_size.xy * pixelRadius;
 
       // Get the view vector (normalized vector from pixel to camera)
       half3 v = normalize(-ray);
 
-      // Calculate slice direction from pixel's position
-      float noiseDirection = GTAO_Directions(tc_original);
-      float angle = (noiseDirection + gtao_temporal_directions) * PI * 2;
+      // Slices are marched both ways, so the angles cover a half turn
+      float sliceIndex = GTAO_SliceIndex(tc_original);
+      float angle = (sliceIndex * (1.0 / 16.0) + gtao_temporal_directions) * PI;
       half2 aoDir = dirMult * half2(sin(angle), cos(angle));
 
       // Project world space normal to the slice plane
@@ -216,22 +282,26 @@ macro GTAO_MAIN_CORE(code)
       // Init variables
       float c1 = -1.0;
       float c2 = -1.0;
+      float s1 = -1.0;
+      float s2 = -1.0;
+      float skyCutoff = 0;
+      ##if gtao_sky_occlusion_mode == on
+        skyCutoff = 1.5 * max(sceneDepth * gtao_sky_sector.z, worldRadius);
+      ##endif
 
-      half noiseOffset = GTAO_Offsets(tc_original) + gtao_temporal_offset;
-      half2 tc_base = tc_original + aoDir * (0.125 * noiseOffset - 0.375);
+      float jitter = frac(sliceIndex * (GTAO_TEMPORAL_LATTICE_JITTER_COEFF / 16.0) + gtao_temporal_offset);
+      float minS = saturate(GTAO_MIN_SAMPLE_PIXELS / pixelRadius);
 
       // Mipmapping is disabled as it is causing severe visual errors. See https://youtrack.gaijin.ru/issue/38-7328
       const float targetMip = 0.0;
 
       // Find horizons of the slice
-      int i;
-      for (i = -1; i >= -SSAO_SAMPLES; i--)
+      for (int i = 0; i < SSAO_SAMPLES; i++)
       {
-        SliceSample(tc_base, aoDir, i, targetMip, ray, v, cutoffRadius, invFalloffRange, c1);
-      }
-      for (i = 1; i <= SSAO_SAMPLES; i++)
-      {
-        SliceSample(tc_base, aoDir, i, targetMip, ray, v, cutoffRadius, invFalloffRange, c2);
+        float t = (i + jitter) * (1.0 / SSAO_SAMPLES);
+        half2 ofs = aoDir * lerp(minS, 1.0, pow(t, gtao_sample_distribution_exponent));
+        SliceSample(tc_original - ofs, targetMip, ray, v, cutoffRadius, invFalloffRange, skyCutoff, c1, s1);
+        SliceSample(tc_original + ofs, targetMip, ray, v, cutoffRadius, invFalloffRange, skyCutoff, c2, s2);
       }
 
       // Finalize
@@ -244,21 +314,27 @@ macro GTAO_MAIN_CORE(code)
 
       float visibility = IntegrateArc(h1, h2, n) * length(projectedNormal);
 
+      ##if gtao_sky_occlusion_mode == on
+        // aoDir * skyReach / worldRadius, without the divide
+        half2 farOffset = gtao_texel_size.xy * max(gtao_sky_sector.w, pixelRadius) * half2(sin(angle), cos(angle));
+        SkyFarSample(tc_original - farOffset, ray, v, skyCutoff, s1);
+        SkyFarSample(tc_original + farOffset, ray, v, skyCutoff, s2);
+        float3 skyArc = SkyArc(v, planeNormal, n);
+        // Arc inside hemisphere: horizons need no clamp
+        float open = max(min(skyArc.y, GTAOFastAcos(s2)) - max(skyArc.x, -GTAOFastAcos(s1)), 0);
+        visibility *= exp2(skyArc.z * (skyArc.y - skyArc.x - open));
+      ##endif
+
       return visibility;
     }
 
     SSAO_TYPE gtao_resolve(float2 screenpos, float2 texcoord, float3 viewVect)
     {
       SSAO_TYPE gtao_value;
-      #if _HARDWARE_METAL && !SHADER_COMPILER_DXC
-        #define GTAO_VALUE_X gtao_value
-      #else
-        #define GTAO_VALUE_X gtao_value.x
-      #endif
       float rawDepth = tex2Dlod(half_res_close_depth, float4(texcoord, 0, 0)).x;
       BRANCH
       if (rawDepth <= 0 || rawDepth >= 1)//why not just rawDepth <= 0
-        return 1;
+        return (SSAO_TYPE)float3(GTAO_INV_MAX_VISIBILITY, 1, 1);
 
       float depth1 = decode_depth(rawDepth, zn_zfar.zw);
       half3 wsNormal = normalize(tex2Dlod(half_res_close_depth_normals, float4(texcoord, 0, 0)).xyz * 2 - 1);
@@ -266,8 +342,8 @@ macro GTAO_MAIN_CORE(code)
       float w = depth1;
       float3 pixelPos = cameraToPoint + world_view_pos;
 
-      GTAO_VALUE_X = gtao(texcoord, wsNormal);
-      GTAO_VALUE_X = getAdditionalAmbientOcclusion(float(GTAO_VALUE_X), pixelPos, wsNormal, texcoord);
+      gtao_value.x = gtao(texcoord, wsNormal);
+      gtao_value.x = getAdditionalAmbientOcclusion(float(gtao_value.x), pixelPos, wsNormal, texcoord);
 
       ##if maybe(ssao_contact_shadows)
       {
@@ -307,6 +383,8 @@ macro GTAO_MAIN_CORE(code)
                 projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(1,1,0,0)
               );
             }
+            if (camera_has_sub_view() && is_wrong_camera_view_area_postfx(hitUV))
+              hitT = 1;
 
             half contactShadow = 1.h - saturate(1.h - pow2(hitT));
             gtao_value.CONTACT_SHADOWS_ATTR *= lerp (1, contactShadow, shadow_strength);
@@ -323,7 +401,7 @@ macro GTAO_MAIN_CORE(code)
         {
           float fade = saturate(dot(float4(pixelPos, 1), hero_cockpit_vec));
           float fadeGtao = getAdditionalAmbientOcclusion(1.f, pixelPos, wsNormal, texcoord);
-          GTAO_VALUE_X = lerp(GTAO_VALUE_X, fadeGtao, fade);
+          gtao_value.x = lerp(gtao_value.x, fadeGtao, fade);
           ##if maybe(ssao_contact_shadows)
             float fadeShadow = getAdditionalShadow(1.f, cameraToPoint,  texcoord, w);
             gtao_value.CONTACT_SHADOWS_ATTR = lerp(gtao_value.CONTACT_SHADOWS_ATTR, fadeShadow, fade);
@@ -334,6 +412,7 @@ macro GTAO_MAIN_CORE(code)
       ##if maybe(ssao_wsao)
         gtao_value.WSAO_ATTR = getWsao(cameraToPoint + world_view_pos, wsNormal);
       ##endif
+      gtao_value.x *= GTAO_INV_MAX_VISIBILITY;
       return setSSAO(gtao_value);
     }
   }
@@ -419,6 +498,7 @@ macro GTAO_SPATIAL_CORE(code)
     raw_gtao_tex@smp2d = raw_gtao_tex;
     gtao_texel_size@f4 = (1.0 / halfResTexSize.xy, halfResTexSize.xy);
     gtao_texture_size@i2 = (halfResTexSizeInt.x, halfResTexSizeInt.y);
+    gtao_max_raw_value@f1 = gtao_max_raw_value;
   }
 
   hlsl(code) {
@@ -453,6 +533,7 @@ macro GTAO_SPATIAL_CORE(code)
         }
       }
       ao /= weightsSpatial;
+      ao.x *= gtao_max_raw_value;
 
       return ao;
     }
@@ -666,6 +747,7 @@ shader gtao_spatial_cs
           accumulate_ao_horizontal(false, baseCacheLoadLane, cache, invDepth, weightsSpatial, ao);
       }
       ao *= rcp(weightsSpatial);
+      ao.x *= gtao_max_raw_value;
 
       if (all(outputPos < gtao_texel_size.zw))
         texture2DAt(gtao_target, outputPos) = ao;
@@ -690,9 +772,12 @@ macro GTAO_TEMPORAL_CORE(code)
     gtao_tex@tex2d = gtao_tex;
     gtao_texel_size@f4 = (1.0 / halfResTexSize.xy, halfResTexSize.xy);
     gtao_limit_sample@f2 = (halfResTexSize.x - 1, halfResTexSize.y - 1,0,0);
+    gtao_frame_no@f1 = gtao_frame_no;
   }
 
   hlsl(code) {
+    #include <interleavedGradientNoise.hlsl>
+
     static const float depthScale = 10.f;
     void addSample(SSAO_TYPE ao, int2 coord, float invDepth10, inout float neighborWeights, inout SSAO_TYPE stdAo)
     {
@@ -758,7 +843,9 @@ macro GTAO_TEMPORAL_CORE(code)
       float3 cameraToPoint = viewVec * decode_depth(rawDepth, zn_zfar.zw);
       reproject_ssao_with_neighborhood(ao, minAo, maxAo, cameraToPoint, texcoord, rawDepth);
 
-      return ao;
+      float noise = interleavedGradientNoiseFramed(pixel.xy + 0.5, gtao_frame_no);
+      // Apply stochastic rounding to avoid stuck values.
+      return floor(ao * 255.0 + noise) * (1.0 / 255.0);
     }
   }
 endmacro

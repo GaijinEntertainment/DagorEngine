@@ -10,6 +10,7 @@
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <util/dag_bitArray.h>
 #include <ioSys/dag_dataBlock.h>
+#include <debug/dag_log.h>
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstAccess.h>
 #include <rendInst/rendInstGen.h>
@@ -23,6 +24,8 @@ struct RiObstacleSetup
   float overridePaddingValue = 0.f;
   bool overrideType = false;
   int overrideTypeValue = 0;
+  int afterDestroyObstacleType = -1;
+  BBox3 afterDestroyBoxRel = BBox3(Point3(0.f, 0.f, 0.f), Point3(1.f, 1.f, 1.f)); // per axis, 0..1 of the collision bbox
 };
 struct obstacle_settings_t
 {
@@ -272,6 +275,21 @@ inline bool load_obstacle_settings(const char *obstacle_settings_path, rendinst:
       setup.overrideTypeValue = blk->getInt("obstacleType", 0);
       hasOverrides = true;
     }
+    if (blk->findParam("afterDestroyObstacleType") >= 0)
+    {
+      setup.afterDestroyObstacleType = blk->getInt("afterDestroyObstacleType", -1);
+      hasOverrides = true;
+    }
+    if (blk->findParam("afterDestroyBoxMinPercent") >= 0)
+    {
+      setup.afterDestroyBoxRel[0] = blk->getPoint3("afterDestroyBoxMinPercent", Point3::ZERO) * 0.01f;
+      hasOverrides = true;
+    }
+    if (blk->findParam("afterDestroyBoxMaxPercent") >= 0)
+    {
+      setup.afterDestroyBoxRel[1] = blk->getPoint3("afterDestroyBoxMaxPercent", Point3::ZERO) * 0.01f;
+      hasOverrides = true;
+    }
 
     if (hasOverrides)
     {
@@ -290,6 +308,13 @@ inline bool load_obstacle_settings(const char *obstacle_settings_path, rendinst:
       }
     }
   }
+
+  for (const auto &[riName, setupIdx] : obstacle_settings.mapNames)
+    if (obstacle_settings.setups[setupIdx].afterDestroyObstacleType >= 0 &&
+        obstacle_settings.setups[setupIdx].afterDestroyBoxRel.isempty())
+      logerr(
+        "%s: %s has afterDestroyBoxMinPercent above afterDestroyBoxMaxPercent on some axis, its after destroy obstacle blocks nothing",
+        obstacle_settings_path, riName.c_str());
 
   return true;
 }

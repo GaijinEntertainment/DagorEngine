@@ -1,5 +1,5 @@
+int rtsm_rendered = 0;
 int rtsm_bindless_slot = -1;
-int rtsm_is_translucent = 0;
 int csm_bindless_slot = -1;
 int csm_sampler_bindless_slot = -1;
 int vsm_bindless_slot = -1;
@@ -9,18 +9,13 @@ macro CHECKING_RTSM(stage)
   if (use_hw_raytracing)
   {
     (stage) {
-      rtsm_bindless_slot@i1 = rtsm_bindless_slot;
-      rtsm_is_translucent@i1 = rtsm_is_translucent;
-      csm_bindless_slot@i1 = csm_bindless_slot;
-      csm_sampler_bindless_slot@i1 = csm_sampler_bindless_slot;
-      vsm_bindless_slot@i1 = vsm_bindless_slot;
-      vsm_sampler_bindless_slot@i1 = vsm_sampler_bindless_slot;
+      rtsm_rendered@i1 = rtsm_rendered;
     }
 
     hlsl (stage) {
       bool isRTSMEnabled()
       {
-        return rtsm_bindless_slot >= 0;
+        return rtsm_rendered != 0;
       }
     }
   }
@@ -36,10 +31,17 @@ macro CHECKING_RTSM(stage)
 endmacro
 
 macro USING_RTSM(stage)
-  CHECKING_RTSM(stage)
-
   if (use_hw_raytracing)
   {
+    (stage) {
+      rtsm_rendered@i1 = rtsm_rendered;
+      rtsm_bindless_slot@i1 = rtsm_bindless_slot;
+      csm_bindless_slot@i1 = csm_bindless_slot;
+      csm_sampler_bindless_slot@i1 = csm_sampler_bindless_slot;
+      vsm_bindless_slot@i1 = vsm_bindless_slot;
+      vsm_sampler_bindless_slot@i1 = vsm_sampler_bindless_slot;
+    }
+
     hlsl (stage) {
       #define HAS_RTSM 1
 
@@ -47,21 +49,28 @@ macro USING_RTSM(stage)
 
       #include <NRD.hlsli>
 
+      bool isRTSMEnabled()
+      {
+        return rtsm_rendered != 0 && rtsm_bindless_slot >= 0;
+      }
+
       half3 getRTSM(uint2 tci)
       {
         half4 shadowTexel = half4(texture2DAt(uniformBindlessTex2D(rt_texture_outputs, rtsm_bindless_slot), tci));
         half4 shadowData = half4(SIGMA_BackEnd_UnpackShadow(shadowTexel));
 
-        if (!rtsm_is_translucent)
-          return shadowData.xxx;
-        else
-          return half3(lerp(shadowData.yzw, 1.0, shadowData.x));
+        return shadowData.xxx;
       }
     }
   }
   else
   {
     hlsl (stage) {
+      bool isRTSMEnabled()
+      {
+        return false;
+      }
+
       half3 getRTSM(uint2 tci)
       {
         return 0;

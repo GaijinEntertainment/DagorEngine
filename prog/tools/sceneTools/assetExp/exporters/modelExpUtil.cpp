@@ -21,6 +21,7 @@ extern bool shadermeshbuilder_strip_d3dres;
 BEGIN_DABUILD_PLUGIN_NAMESPACE(modelExp)
 
 DataBlock appBlkCopy;
+AlphaTestValidation::Context *atest_validation_ctx = nullptr;
 DagorAsset *cur_asset = NULL;
 ILogWriter *cur_log = NULL;
 namespace modelexp

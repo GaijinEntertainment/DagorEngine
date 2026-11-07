@@ -343,6 +343,7 @@ bool A2dPlugin::end()
   asset = nullptr;
   ::release_game_resource_ex(a2d, Anim2DataGameResClassId);
   a2d = nullptr;
+  selectedNode = -1;
   ref.reset();
   animNodes.clear();
 

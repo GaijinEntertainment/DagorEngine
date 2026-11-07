@@ -42,7 +42,7 @@ let PERCENT_DIFF_SUM_DECAY_FACTOR : float = 0.95 // so that two routes with a sm
 // The client evaluates the route over ECHO_HISTORY_MAX_LENGTH * DEFAULT_ECHO_PERIOD_SECONDS seconds
 let ECHO_HISTORY_MAX_LENGTH : int = 10
 let DEFAULT_ECHO_PERIOD_SECONDS : float = 1.
-let RTT_MAX : uint = uint(INT_MAX)
+let RTT_MAX : uint = uint(1 << 20)
 
 // Echo history has timeouts just alongside regular echo responses, meaning the timeout is indistinguishable from high ping (true to life)
 def get_rtt_estimation(echo_history : UInt32List) : uint
@@ -276,7 +276,7 @@ def evaluate_server_route(evt : ChangeServerRoute)
                                            var rtt_estimation : uint&)
       rtt_estimation = get_rtt_estimation(echo_history)
       if route_id == MAIN_HOST_ROUTE_ID
-        rtt_estimation = min(rtt_estimation + add_rtt, RTT_MAX)
+        rtt_estimation = uint(max(int(rtt_estimation) + int(add_rtt), 0))
 
       if route_id == currentRoute && !evt.currentIsUnresponsive // if unresponsive, estimation is RTT_MAX
         currentRttEstimation = rtt_estimation

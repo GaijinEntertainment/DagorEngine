@@ -544,12 +544,7 @@ namespace das
             DAS_ASSERT(structType->ownSemanticHash!=0);
             hb.update(structType->ownSemanticHash);
         } else if ( enumType ) {
-            hb.updateString(enumType->getMangledName());
-            hb.update(enumType->baseType);
-            for ( auto & e : enumType->list ) {
-                hb.updateString(e.name);
-                hb.update(e.value ? getConstExprIntOrUInt(e.value) : int64_t(-1));   // the folded constant, not the printer's text
-            }
+            enumType->getOwnSemanticHash(hb);
         } else if ( annotation ) {
             DAS_ASSERT(annotation->ownSemanticHash!=0);
             hb.update(annotation->ownSemanticHash);
@@ -600,12 +595,7 @@ namespace das
                 structType->getOwnSemanticHash(hb, dep, adep);
             }
         } else if ( enumType ) {
-            hb.updateString(enumType->getMangledName());
-            hb.update(enumType->baseType);
-            for ( auto & e : enumType->list ) {
-                hb.updateString(e.name);
-                hb.update(e.value ? getConstExprIntOrUInt(e.value) : int64_t(-1));   // the folded constant, not the printer's text
-            }
+            enumType->getOwnSemanticHash(hb);
         } else if ( annotation ) {
             if ( adep.find(annotation) == adep.end() ) {
                 adep.insert(annotation);

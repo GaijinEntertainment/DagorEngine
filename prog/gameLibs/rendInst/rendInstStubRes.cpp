@@ -20,7 +20,7 @@ class StubRiReleasingFactory : public GameResourceFactory
     {
       resSize = 0;
 
-      Mesh m; // constraint: empty, the stub is not ShaderResUnitedVdata-compatible
+      Mesh m; // empty, the stub is not ShaderResUnitedVdata-compatible
 
       MaterialData md;
       md.className = "rendinst_simple";

@@ -121,11 +121,10 @@ static void recomputeDistMuls()
         clamp(riGenCullDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul), true, true, false, in.impostorsFarDistAddMul);
 }
 
-void setDynamicDistMul(float mul, float ofs, float impostors_far_dist_additional_mul)
+void setDynamicDistMul(float mul, float ofs)
 {
   rendinst::render::distMulInputs.dynamicMul = mul;
   rendinst::render::distMulInputs.dynamicOfs = ofs;
-  rendinst::render::distMulInputs.impostorsFarDistAddMul = impostors_far_dist_additional_mul;
   recomputeDistMuls();
 }
 
@@ -137,14 +136,13 @@ void resetDynamicDistMul()
   recomputeDistMuls();
 }
 
-void setPerFrameDistMuls(float mul, float ofs, float min_cull_mul, float lods_shift_mul, float impostors_far_dist_additional_mul)
+void setPerFrameDistMuls(float mul, float ofs, float min_cull_mul, float lods_shift_mul)
 {
   auto &in = rendinst::render::distMulInputs;
   in.dynamicMul = mul;
   in.dynamicOfs = ofs;
   in.minCullMul = min_cull_mul;
   in.lodsShiftMul = lods_shift_mul;
-  in.impostorsFarDistAddMul = impostors_far_dist_additional_mul;
   recomputeDistMuls();
 }
 
@@ -250,7 +248,14 @@ void setImpostorsDistAddMul(float impostors_dist_additional_mul)
 
 void setImpostorsFarDistAddMul(float impostors_far_dist_additional_mul)
 {
-  rendinst::render::distMulInputs.impostorsFarDistAddMul = impostors_far_dist_additional_mul;
+  Point2 distMulRange =
+    ::dgs_get_settings()
+      ->getBlockByNameEx("graphics")
+      ->getPoint2("impostorsFarDistAdditionalMulRange", Point2(impostors_far_dist_additional_mul, impostors_far_dist_additional_mul));
+  float clampedDistMul = clamp(impostors_far_dist_additional_mul, distMulRange.x, distMulRange.y);
+  if (clampedDistMul != impostors_far_dist_additional_mul)
+    logerr("impostorsFarDistAdditionalMul value (%f) clamped to %f", impostors_far_dist_additional_mul, clampedDistMul);
+  rendinst::render::distMulInputs.impostorsFarDistAddMul = clampedDistMul;
   recomputeDistMuls();
 }
 

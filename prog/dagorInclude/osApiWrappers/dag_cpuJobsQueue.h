@@ -49,8 +49,6 @@ struct JobQueue
 
   uint32_t countToIndex(uint32_t i) const { return i / (MULTI_PRODUCER ? 2 : 1) & queueSizeMinusOne; }
 
-  uint32_t getCurrentReadIndex() const { return readIndex.load(); }
-
   uint32_t push(T t, void (*on_queue_full_cb)(void *), void *param)
   {
     G_ASSERTF(queue, "attempt to push to empty queue");
@@ -107,7 +105,7 @@ struct JobQueue
     }
   }
 
-  T pop()
+  T pop(uint32_t max_read_index = ~0u)
   {
     uint32_t currentMaximumReadIndex;
     uint32_t currentReadIndex;
@@ -116,6 +114,8 @@ struct JobQueue
     for (;;)
     {
       currentReadIndex = readIndex.load();
+      if (currentReadIndex > max_read_index) // Checked on the same value the CAS below commits, so no element past the bound is taken
+        return T();
       currentMaximumReadIndex = writeIndex.load();
 
       if (countToIndex(currentReadIndex) == countToIndex(currentMaximumReadIndex))

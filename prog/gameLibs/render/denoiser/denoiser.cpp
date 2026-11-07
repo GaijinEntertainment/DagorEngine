@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/denoiser.h>
+#include <render/denoiser/denoiser_api.h>
 #include <shaders/dag_computeShaders.h>
 #include <image/dag_texPixel.h>
 #include <perfMon/dag_statDrv.h>
@@ -10,12 +10,20 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/unordered_map.h>
 #include <EASTL/vector.h>
+#include <EASTL/shared_ptr.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/tuple.h>
+#include <EASTL/string.h>
+#include <util/dag_string.h>
 #include <drv/3d/dag_sampler.h>
 #include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_resource.h>
+#include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_bindless.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
-#include "denoiser_names.h"
 
 #include "shaders/common_consts.hlsli"
 
@@ -83,7 +91,6 @@ static ComputeShaderElement *prepareCS = nullptr;
 
 static ComputeShaderElement *sigmaClassifyTilesCS = nullptr;
 static ComputeShaderElement *sigmaSmoothTilesCS = nullptr;
-static ComputeShaderElement *sigmaCopyCS = nullptr;
 static ComputeShaderElement *sigmaBlurCS = nullptr;
 static ComputeShaderElement *sigmaPostBlurCS = nullptr;
 static ComputeShaderElement *sigmaStabilizeCS = nullptr;
@@ -113,6 +120,7 @@ static ComputeShaderElement *reblurDiffusePerfHistoryFix = nullptr;
 static ComputeShaderElement *reblurDiffusePerfBlur = nullptr;
 static ComputeShaderElement *reblurDiffusePerfPostBlur = nullptr;
 static ComputeShaderElement *reblurDiffusePerfTemporalStabilization = nullptr;
+static ComputeShaderElement *reblurDiffuseBehindHistory = nullptr;
 
 static ComputeShaderElement *reblurSpecularPrepass = nullptr;
 static ComputeShaderElement *reblurSpecularTemporalAccumulation = nullptr;
@@ -140,6 +148,10 @@ static ComputeShaderElement *relaxSpecularATorus = nullptr;
 static ComputeShaderElement *relaxSpecularAntiFirefly = nullptr;
 static ComputeShaderElement *relaxSpecularCopy = nullptr;
 
+static ComputeShaderElement *reflectionBlurCS = nullptr;
+static ComputeShaderElement *reflectionMipFirstCS = nullptr;
+static ComputeShaderElement *reflectionMipCS = nullptr;
+
 static d3d::SamplerHandle samplerNearestClamp = d3d::INVALID_SAMPLER_HANDLE;
 static d3d::SamplerHandle samplerNearestMirror = d3d::INVALID_SAMPLER_HANDLE;
 static d3d::SamplerHandle samplerLinearClamp = d3d::INVALID_SAMPLER_HANDLE;
@@ -152,51 +164,47 @@ static UniqueBuf reblurSharedCb_ao;
 static UniqueBuf reblurSharedCb_gi;
 static UniqueBuf reblurSharedCb_reflection;
 
-static int downsampled_close_depth_texVarId = -1;
 static int denoiser_resolutionVarId = -1;
-static int denoiser_view_zVarId = -1;
-static int denoiser_nrVarId = -1;
-static int denoiser_half_view_zVarId = -1;
-static int denoiser_half_nrVarId = -1;
-static int denoiser_half_motion_vectors_rtrVarId = -1;
-static int denoiser_half_nr_rtrVarId = -1;
-static int denoiser_half_view_z_rtrVarId = -1;
 static int denoiser_prepare_close_depthVarId = -1;
-static int half_selected_depth_rtrVarId = -1;
+static int rtr_depth_modeVarId = -1;
+static int denoiser_gi_second_chanceVarId = -1;
 static int half_selected_depth_rtr_samplerstateVarId = -1;
 static int denoiser_camera_attached_radiusVarId = -1;
 
-static int rtao_bindless_slotVarId = -1;
-static int rtsm_bindless_slotVarId = -1;
-static int ptgi_bindless_slotVarId = -1;
-static int ptgi_depth_bindless_slotVarId = -1;
-static int rtsm_is_translucentVarId = -1;
+static int rtsm_renderedVarId = -1;
+static int rtao_renderedVarId = -1;
+static int ptgi_renderedVarId = -1;
+static int rtr_renderedVarId = -1;
 static int csm_bindless_slotVarId = -1;
 static int csm_sampler_bindless_slotVarId = -1;
 static int vsm_bindless_slotVarId = -1;
 static int vsm_sampler_bindless_slotVarId = -1;
-static int rtr_bindless_slotVarId = -1;
 static int rtr_bindless_sampler_slotVarId = -1;
-static int rtr_normal_roughness_bindless_slotVarId = -1;
 static int rtr_normal_roughness_bindless_sampler_slotVarId = -1;
 static int ptgi_bindless_sampler_slotVarId = -1;
 static int ptgi_depth_bindless_sampler_slotVarId = -1;
 static int rtao_bindless_sampler_slotVarId = -1;
 static int ray_reconstruction_activeVarId = -1;
 static int blue_noise_frame_indexVarId = -1;
+static int denoiser_blur_srcVarId = -1;
+static int denoiser_blur_dstVarId = -1;
+static int denoiser_blur_view_zVarId = -1;
+static int denoiser_blur_nrVarId = -1;
+static int denoiser_blur_verticalVarId = -1;
+static int denoiser_blur_last_passVarId = -1;
+static int denoiser_blur_max_radiusVarId = -1;
+static int denoiser_blur_max_roughnessVarId = -1;
+static int denoiser_blur_texels_per_unitVarId = -1;
+static int denoiser_blur_checkerboardVarId = -1;
+static int denoiser_reflection_mip_dst_sizeVarId = -1;
+static int denoiser_reflection_mip_src_sizeVarId = -1;
 
 static int bindless_range = -1;
 
 enum
 {
-  rtao_bindless_index = 0,
-  ptgi_bindless_index,
-  ptgi_depth_bindless_index,
-  rtsm_bindless_index,
-  csm_bindless_index,
+  csm_bindless_index = 0,
   vsm_bindless_index,
-  rtr_bindless_index,
-  rtr_normal_roughness_bindless_index,
 
   bindless_texture_count
 };
@@ -374,8 +382,8 @@ struct ReblurSharedConstants
   uint32_t hasDiffuse;
   uint32_t hasSpecular;
 
-  uint32_t pad1;
-  uint32_t pad2;
+  uint32_t hasBehindHistory;
+  uint32_t secondChanceDebug;
 };
 
 static_assert(sizeof(ReblurSharedConstants) % (4 * sizeof(float)) == 0,
@@ -518,20 +526,15 @@ void close_blue_noise()
 }
 
 
-void initialize(int w, int h, bool use_ray_reconstruction, bool ptgi_use_ray_reconstruction)
+void initialize(bool use_ray_reconstruction, bool ptgi_use_ray_reconstruction)
 {
-  G_ASSERT(w && h);
-  G_ASSERT((resolution_config.width == 0 && resolution_config.height == 0) ||
-           (resolution_config.width == w && resolution_config.height == h &&
-             use_ray_reconstruction == resolution_config.useRayReconstruction &&
-             ptgi_use_ray_reconstruction == resolution_config.ptgiUseRayReconstruction));
-
-  if (resolution_config.width == w && resolution_config.height == h &&
-      use_ray_reconstruction == resolution_config.useRayReconstruction &&
-      ptgi_use_ray_reconstruction == resolution_config.ptgiUseRayReconstruction)
+  const bool initialized = bindless_range >= 0;
+  G_ASSERT(!initialized || (use_ray_reconstruction == resolution_config.useRayReconstruction &&
+                             ptgi_use_ray_reconstruction == resolution_config.ptgiUseRayReconstruction));
+  if (initialized)
     return;
 
-  resolution_config.init(w, h, use_ray_reconstruction, ptgi_use_ray_reconstruction);
+  resolution_config.init(use_ray_reconstruction, ptgi_use_ray_reconstruction);
 
   if (!prepareCS)
     prepareCS = new_compute_shader("denoiser_prepare");
@@ -540,8 +543,6 @@ void initialize(int w, int h, bool use_ray_reconstruction, bool ptgi_use_ray_rec
     sigmaClassifyTilesCS = new_compute_shader("nrd_sigma_shadow_classify_tiles");
   if (!sigmaSmoothTilesCS)
     sigmaSmoothTilesCS = new_compute_shader("nrd_sigma_shadow_smooth_tiles");
-  if (!sigmaCopyCS)
-    sigmaCopyCS = new_compute_shader("nrd_sigma_shadow_copy");
   if (!sigmaBlurCS)
     sigmaBlurCS = new_compute_shader("nrd_sigma_shadow_blur");
   if (!sigmaPostBlurCS)
@@ -597,6 +598,8 @@ void initialize(int w, int h, bool use_ray_reconstruction, bool ptgi_use_ray_rec
     reblurDiffusePerfPostBlur = new_compute_shader("nrd_reblur_perf_diffuse_postblur");
   if (!reblurDiffusePerfTemporalStabilization)
     reblurDiffusePerfTemporalStabilization = new_compute_shader("nrd_reblur_perf_diffuse_temporal_stabilization");
+  if (!reblurDiffuseBehindHistory)
+    reblurDiffuseBehindHistory = new_compute_shader("nrd_reblur_diffuse_behind_history");
 
   if (!reblurSpecularPrepass)
     reblurSpecularPrepass = new_compute_shader("nrd_reblur_specular_prepass");
@@ -682,40 +685,40 @@ void initialize(int w, int h, bool use_ray_reconstruction, bool ptgi_use_ray_rec
   }
   init_blue_noise();
 
-  downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
   denoiser_resolutionVarId = get_shader_variable_id("denoiser_resolution");
-  denoiser_view_zVarId = get_shader_variable_id("denoiser_view_z");
-  denoiser_nrVarId = get_shader_variable_id("denoiser_nr");
-  denoiser_half_view_zVarId = get_shader_variable_id("denoiser_half_view_z");
-  denoiser_half_nrVarId = get_shader_variable_id("denoiser_half_nr");
-  denoiser_half_motion_vectors_rtrVarId = get_shader_variable_id("denoiser_half_motion_vectors_rtr", true);
-  denoiser_half_nr_rtrVarId = get_shader_variable_id("denoiser_half_nr_rtr", true);
-  denoiser_half_view_z_rtrVarId = get_shader_variable_id("denoiser_half_view_z_rtr", true);
   denoiser_prepare_close_depthVarId = get_shader_variable_id("denoiser_prepare_close_depth", true);
-  half_selected_depth_rtrVarId = get_shader_variable_id("half_selected_depth_rtr", true);
+  rtr_depth_modeVarId = get_shader_variable_id("rtr_depth_mode", true);
+  denoiser_gi_second_chanceVarId = get_shader_variable_id("denoiser_gi_second_chance", true);
   half_selected_depth_rtr_samplerstateVarId = get_shader_variable_id("half_selected_depth_rtr_samplerstate", true);
   denoiser_camera_attached_radiusVarId = get_shader_variable_id("denoiser_camera_attached_radius");
 
-  rtao_bindless_slotVarId = get_shader_variable_id("rtao_bindless_slot");
-  rtsm_bindless_slotVarId = get_shader_variable_id("rtsm_bindless_slot");
-  ptgi_bindless_slotVarId = get_shader_variable_id("ptgi_bindless_slot");
-  ptgi_depth_bindless_slotVarId = get_shader_variable_id("ptgi_depth_bindless_slot");
-  rtsm_is_translucentVarId = get_shader_variable_id("rtsm_is_translucent");
+  rtsm_renderedVarId = get_shader_variable_id("rtsm_rendered");
+  rtao_renderedVarId = get_shader_variable_id("rtao_rendered");
+  ptgi_renderedVarId = get_shader_variable_id("ptgi_rendered");
+  rtr_renderedVarId = get_shader_variable_id("rtr_rendered");
   csm_bindless_slotVarId = get_shader_variable_id("csm_bindless_slot", true);
   csm_sampler_bindless_slotVarId = get_shader_variable_id("csm_sampler_bindless_slot", true);
   vsm_bindless_slotVarId = get_shader_variable_id("vsm_bindless_slot", true);
   vsm_sampler_bindless_slotVarId = get_shader_variable_id("vsm_sampler_bindless_slot", true);
-  rtr_bindless_slotVarId = get_shader_variable_id("rtr_bindless_slot");
   rtr_bindless_sampler_slotVarId = get_shader_variable_id("rtr_bindless_sampler_slot");
-  rtr_normal_roughness_bindless_slotVarId = get_shader_variable_id("rtr_normal_roughness_bindless_slot");
   rtr_normal_roughness_bindless_sampler_slotVarId = get_shader_variable_id("rtr_normal_roughness_bindless_sampler_slot");
   ptgi_bindless_sampler_slotVarId = get_shader_variable_id("ptgi_bindless_sampler_slot");
   ptgi_depth_bindless_sampler_slotVarId = get_shader_variable_id("ptgi_depth_bindless_sampler_slot");
   rtao_bindless_sampler_slotVarId = get_shader_variable_id("rtao_bindless_sampler_slot");
   ray_reconstruction_activeVarId = get_shader_variable_id("ray_reconstruction_active");
   blue_noise_frame_indexVarId = get_shader_variable_id("blue_noise_frame_index");
-
-  ShaderGlobal::set_int4(denoiser_resolutionVarId, resolution_config.width, resolution_config.height, 0, 0);
+  denoiser_blur_srcVarId = get_shader_variable_id("denoiser_blur_src", true);
+  denoiser_blur_dstVarId = get_shader_variable_id("denoiser_blur_dst", true);
+  denoiser_blur_view_zVarId = get_shader_variable_id("denoiser_blur_view_z", true);
+  denoiser_blur_nrVarId = get_shader_variable_id("denoiser_blur_nr", true);
+  denoiser_blur_verticalVarId = get_shader_variable_id("denoiser_blur_vertical", true);
+  denoiser_blur_last_passVarId = get_shader_variable_id("denoiser_blur_last_pass", true);
+  denoiser_blur_max_radiusVarId = get_shader_variable_id("denoiser_blur_max_radius", true);
+  denoiser_blur_max_roughnessVarId = get_shader_variable_id("denoiser_blur_max_roughness", true);
+  denoiser_blur_texels_per_unitVarId = get_shader_variable_id("denoiser_blur_texels_per_unit", true);
+  denoiser_blur_checkerboardVarId = get_shader_variable_id("denoiser_blur_checkerboard", true);
+  denoiser_reflection_mip_dst_sizeVarId = get_shader_variable_id("denoiser_reflection_mip_dst_size", true);
+  denoiser_reflection_mip_src_sizeVarId = get_shader_variable_id("denoiser_reflection_mip_src_size", true);
 
   bindless_range = d3d::allocate_bindless_resource_range(D3DResourceType::TEX, bindless_texture_count);
 }
@@ -754,10 +757,10 @@ bool is_ptgi_ray_reconstruction_enabled() { return resolution_config.ptgiUseRayR
 
 void teardown()
 {
+  ShaderGlobal::set_int(rtr_depth_modeVarId, 0); // no prepare produces the rtr set now
   safe_delete(prepareCS);
   safe_delete(sigmaClassifyTilesCS);
   safe_delete(sigmaSmoothTilesCS);
-  safe_delete(sigmaCopyCS);
   safe_delete(sigmaBlurCS);
   safe_delete(sigmaPostBlurCS);
   safe_delete(sigmaStabilizeCS);
@@ -783,6 +786,7 @@ void teardown()
   safe_delete(reblurDiffusePerfBlur);
   safe_delete(reblurDiffusePerfPostBlur);
   safe_delete(reblurDiffusePerfTemporalStabilization);
+  safe_delete(reblurDiffuseBehindHistory);
   safe_delete(reblurSpecularPrepass);
   safe_delete(reblurSpecularTemporalAccumulation);
   safe_delete(reblurSpecularHistoryFix);
@@ -805,6 +809,9 @@ void teardown()
   safe_delete(relaxSpecularATorus);
   safe_delete(relaxSpecularAntiFirefly);
   safe_delete(relaxSpecularCopy);
+  safe_delete(reflectionBlurCS);
+  safe_delete(reflectionMipFirstCS);
+  safe_delete(reflectionMipCS);
 
   close_blue_noise();
 
@@ -815,335 +822,11 @@ void teardown()
   resolution_config.closeAll();
   frame_counter = 0;
 
-  if (bindless_range > 0)
+  if (bindless_range >= 0)
   {
     d3d::free_bindless_resource_range(D3DResourceType::TEX, bindless_range, bindless_texture_count);
     bindless_range = -1;
   }
-}
-
-void add_persistent_texture(TexInfoMap &textures, const char *name, int w, int h, int flg)
-{
-  auto &ti = textures[name];
-  ti.w = w;
-  ti.h = h;
-  ti.mipLevels = 1;
-  ti.type = D3DResourceType::TEX;
-  ti.cflg = TEXCF_UNORDERED | flg;
-}
-
-void add_transient_texture(TexInfoMap &textures, const char *name, int w, int h, int flg)
-{
-  auto &ti = textures[name];
-  ti.w = w;
-  ti.h = h;
-  ti.mipLevels = 1;
-  ti.type = D3DResourceType::TEX;
-  ti.cflg = TEXCF_UNORDERED | flg;
-}
-
-void get_required_persistent_texture_descriptors(TexInfoMap &persistent_textures, bool need_half_res_close_set,
-  bool need_half_res_checkerboard_set, bool need_smart_depth_set)
-{
-  if (resolution_config.useRayReconstruction && resolution_config.ptgiUseRayReconstruction)
-    return;
-
-  add_persistent_texture(persistent_textures, TextureNames::denoiser_normal_roughness, resolution_config.width,
-    resolution_config.height, TEXFMT_A2R10G10B10);
-  add_persistent_texture(persistent_textures, TextureNames::denoiser_view_z, resolution_config.width, resolution_config.height,
-    TEXFMT_R32F);
-  const int halfW = resolution_config.width / 2, halfH = resolution_config.height / 2;
-
-  if (need_half_res_close_set)
-  {
-    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_normal_roughness, halfW, halfH, TEXFMT_A2R10G10B10);
-    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_view_z, halfW, halfH, TEXFMT_R32F);
-  }
-
-  if (need_half_res_checkerboard_set || need_smart_depth_set)
-  {
-    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_normal_roughness_rtr, halfW, halfH, TEXFMT_A2R10G10B10);
-    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_view_z_rtr, halfW, halfH, TEXFMT_R32F);
-    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_motion_vectors_rtr, halfW, halfH, TEXFMT_A16B16G16R16F);
-  }
-
-  if (need_smart_depth_set)
-    add_persistent_texture(persistent_textures, TextureNames::half_selected_depth_rtr, halfW, halfH, TEXFMT_R32F);
-}
-
-void get_required_persistent_texture_descriptors_for_ao(TexInfoMap &persistent_textures)
-{
-  if (resolution_config.width == 0 || resolution_config.height == 0)
-    return;
-
-  int width = resolution_config.rtao.width;
-  int height = resolution_config.rtao.height;
-
-  if (resolution_config.useRayReconstruction)
-  {
-    add_persistent_texture(persistent_textures, AODenoiser::TextureNames::rtao_tex_unfiltered, width, height, TEXFMT_L16);
-
-    ShaderGlobal::set_int(rtao_bindless_sampler_slotVarId, d3d::register_bindless_sampler(samplerNearestClamp));
-  }
-  else
-  {
-    ShaderGlobal::set_int(rtao_bindless_sampler_slotVarId,
-      d3d::register_bindless_sampler(resolution_config.rtao.isHalfRes ? samplerLinearClamp : samplerNearestClamp));
-
-    add_persistent_texture(persistent_textures, AODenoiser::TextureNames::rtao_tex_unfiltered, width, height, TEXFMT_L16);
-    add_persistent_texture(persistent_textures, AODenoiser::TextureNames::denoised_ao, width, height, TEXFMT_L16);
-    add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_prev_view_z, width, height, TEXFMT_R32F);
-    add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_prev_normal_roughness, width, height, TEXFMT_A2R10G10B10);
-    add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_prev_internal_data, width, height, TEXFMT_R16UI);
-    add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_diff_history, width, height, TEXFMT_L16);
-    add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_diff_fast_history, width, height, TEXFMT_L16);
-  }
-}
-
-void get_required_transient_texture_descriptors_for_ao(TexInfoMap &transient_textures)
-{
-  if (resolution_config.width == 0 || resolution_config.height == 0)
-    return;
-
-  if (resolution_config.useRayReconstruction)
-    return;
-
-  int width = resolution_config.rtao.width;
-  int height = resolution_config.rtao.height;
-  int tilesW = divide_up(width, 16);
-  int tilesH = divide_up(height, 16);
-
-  add_transient_texture(transient_textures, AODenoiser::TextureNames::ao_tiles, tilesW, tilesH, TEXFMT_R8);
-  add_transient_texture(transient_textures, AODenoiser::TextureNames::ao_diffTemp2, width, height, TEXFMT_L16);
-  add_transient_texture(transient_textures, AODenoiser::TextureNames::ao_diffFastHistory, width, height, TEXFMT_L16);
-  add_transient_texture(transient_textures, AODenoiser::TextureNames::ao_data1, width, height, TEXFMT_R8);
-}
-
-inline int calc_tiles_width(int w, bool checkerboard)
-{
-  int checkerboardWidth = divide_up(w, 2);
-  return divide_up(checkerboard ? checkerboardWidth : w, 8);
-}
-
-inline int calc_tiles_height(int h) { return divide_up(h, 8); }
-
-void get_required_persistent_texture_descriptors_for_rtr(TexInfoMap &persistent_textures, ReflectionMethod method)
-{
-  if (resolution_config.width == 0 || resolution_config.height == 0)
-    return;
-
-  int width = resolution_config.rtr.width;
-  int height = resolution_config.rtr.height;
-
-  if (resolution_config.useRayReconstruction)
-  {
-
-    // R is distance, BGA is color
-    add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::rtr_tex_unfiltered, width, height,
-      TEXFMT_A16B16G16R16F);
-
-    ShaderGlobal::set_int(rtr_bindless_sampler_slotVarId, d3d::register_bindless_sampler(samplerNearestClamp));
-  }
-  else
-  {
-    ShaderGlobal::set_int(rtr_bindless_sampler_slotVarId,
-      d3d::register_bindless_sampler(resolution_config.rtr.isHalfRes ? samplerLinearClamp : samplerNearestClamp));
-    ShaderGlobal::set_int(rtr_normal_roughness_bindless_sampler_slotVarId,
-      d3d::register_bindless_sampler(resolution_config.rtr.isHalfRes ? samplerLinearClamp : samplerNearestClamp));
-
-    // division.
-    int tilesWidth = calc_tiles_width(width, resolution_config.rtr.isHalfRes);
-    int tilesHeight = calc_tiles_height(height);
-
-    add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::rtr_tex_unfiltered, width, height,
-      TEXFMT_A16B16G16R16F);
-    add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::rtr_tex, width, height, TEXFMT_A16B16G16R16F);
-    add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::rtr_sample_tiles, tilesWidth, tilesHeight,
-      TEXCF_UNORDERED | TEXFMT_R8UI);
-
-    if (method == ReflectionMethod::Reblur)
-    {
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::reblur_spec_prev_view_z, width, height,
-        TEXFMT_R32F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::reblur_spec_prev_normal_roughness, width, height,
-        TEXFMT_A2R10G10B10);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::reblur_spec_prev_internal_data, width, height,
-        TEXFMT_R16UI);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::reblur_spec_history, width, height,
-        TEXFMT_A16B16G16R16F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::reblur_spec_fast_history, width, height,
-        TEXFMT_R16F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::reblur_spec_history_stabilized_ping, width, height,
-        TEXFMT_R16F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::reblur_spec_history_stabilized_pong, width, height,
-        TEXFMT_R16F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::reblur_spec_hitdist_for_tracking_ping, width,
-        height, TEXFMT_R16F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::reblur_spec_hitdist_for_tracking_pong, width,
-        height, TEXFMT_R16F);
-    }
-    else if (method == ReflectionMethod::Relax)
-    {
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::relax_spec_illum_prev, width, height,
-        TEXFMT_A16B16G16R16F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::relax_spec_illum_responsive_prev, width, height,
-        TEXFMT_A16B16G16R16F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::relax_spec_reflection_hit_t_curr, width, height,
-        TEXFMT_R16F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::relax_spec_reflection_hit_t_prev, width, height,
-        TEXFMT_R16F);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::relax_spec_history_length_prev, width, height,
-        TEXFMT_R8);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::relax_spec_normal_roughness_prev, width, height,
-        TEXFMT_A8R8G8B8);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::relax_spec_material_id_prev, width, height,
-        TEXFMT_R8);
-      add_persistent_texture(persistent_textures, ReflectionDenoiser::TextureNames::relax_spec_view_z_prev, width, height,
-        TEXFMT_R32F);
-    }
-    else
-      G_ASSERTF(false, "Reflection denoiser not implemented!");
-  }
-}
-
-void get_required_transient_texture_descriptors_for_rtr(TexInfoMap &transient_textures, ReflectionMethod method)
-{
-  if (resolution_config.width == 0 || resolution_config.height == 0)
-    return;
-
-  if (resolution_config.useRayReconstruction)
-    return;
-
-  int width = resolution_config.rtr.width;
-  int height = resolution_config.rtr.height;
-  int tilesW = divide_up(width, 16);
-  int tilesH = divide_up(height, 16);
-
-  if (method == ReflectionMethod::Reblur)
-  {
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_data1, width, height, TEXFMT_R8);
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_data2, width, height, TEXFMT_R32UI);
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_hitdistForTracking, width, height, TEXFMT_R16F);
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_tmp2, width, height, TEXFMT_A16B16G16R16F);
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_fastHistory, width, height, TEXFMT_R16F);
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_reblur_tiles, tilesW, tilesH, TEXFMT_R8);
-  }
-  else if (method == ReflectionMethod::Relax)
-  {
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_relax_tiles, tilesW, tilesH, TEXFMT_R8);
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_historyLength, width, height, TEXFMT_R8);
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_specReprojectionConfidence, width, height,
-      TEXFMT_R8);
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_specIllumPing, width, height,
-      TEXFMT_A16B16G16R16F);
-    add_transient_texture(transient_textures, ReflectionDenoiser::TextureNames::rtr_specIllumPong, width, height,
-      TEXFMT_A16B16G16R16F);
-  }
-  else
-    G_ASSERTF(false, "Reflection denoiser not implemented!");
-}
-
-void get_required_persistent_texture_descriptors_for_rtsm(TexInfoMap &persistent_textures, bool translucent)
-{
-  if (resolution_config.width == 0 || resolution_config.height == 0)
-    return;
-
-  int width = resolution_config.rtsm.width;
-  int height = resolution_config.rtsm.height;
-
-  if (resolution_config.useRayReconstruction)
-  {
-    add_persistent_texture(persistent_textures, ShadowDenoiser::TextureNames::rtsm_value, width, height, TEXCF_RTARGET | TEXFMT_R8);
-  }
-  else
-  {
-    add_persistent_texture(persistent_textures, ShadowDenoiser::TextureNames::rtsm_historyLengthPersistent, width, height,
-      TEXFMT_R32UI);
-    add_persistent_texture(persistent_textures, ShadowDenoiser::TextureNames::rtsm_value, width, height, TEXFMT_R16F);
-    add_persistent_texture(persistent_textures, ShadowDenoiser::TextureNames::rtsm_shadows_denoised, width, height,
-      TEXCF_RTARGET | (translucent ? TEXFMT_A8R8G8B8 : TEXFMT_R8));
-    if (translucent)
-      add_persistent_texture(persistent_textures, ShadowDenoiser::TextureNames::rtsm_translucency, width, height, TEXFMT_A8R8G8B8);
-  }
-}
-
-void get_required_transient_texture_descriptors_for_rtsm(TexInfoMap &transient_textures, bool translucent)
-{
-  if (resolution_config.width == 0 || resolution_config.height == 0)
-    return;
-
-  if (resolution_config.useRayReconstruction)
-    return;
-
-  int width = resolution_config.rtsm.width;
-  int height = resolution_config.rtsm.height;
-  int tilesW = divide_up(width, 16);
-  int tilesH = divide_up(height, 16);
-
-  unsigned int tmpFmt = translucent ? TEXFMT_A8R8G8B8 : TEXFMT_R8;
-
-  add_transient_texture(transient_textures, ShadowDenoiser::TextureNames::rtsm_tiles, tilesW, tilesH, TEXFMT_A8R8G8B8);
-  add_transient_texture(transient_textures, ShadowDenoiser::TextureNames::rtsm_smoothTiles, tilesW, tilesH, TEXFMT_R8G8);
-  add_transient_texture(transient_textures, ShadowDenoiser::TextureNames::rtsm_denoiseData1, width, height, TEXFMT_R16F);
-  add_transient_texture(transient_textures, ShadowDenoiser::TextureNames::rtsm_denoiseData2, width, height, TEXFMT_R16F);
-  add_transient_texture(transient_textures, ShadowDenoiser::TextureNames::rtsm_denoiseTemp1, width, height, tmpFmt);
-  add_transient_texture(transient_textures, ShadowDenoiser::TextureNames::rtsm_denoiseTemp2, width, height, tmpFmt);
-  add_transient_texture(transient_textures, ShadowDenoiser::TextureNames::rtsm_denoiseHistory, width, height, tmpFmt);
-  add_transient_texture(transient_textures, ShadowDenoiser::TextureNames::rtsm_denoiseHistoryLengthTransient, width, height,
-    TEXFMT_R32UI);
-}
-
-void get_required_persistent_texture_descriptors_for_gi(TexInfoMap &persistent_textures)
-{
-  if (resolution_config.width == 0 || resolution_config.height == 0)
-    return;
-
-  int width = resolution_config.ptgi.width;
-  int height = resolution_config.ptgi.height;
-
-  if (resolution_config.ptgiUseRayReconstruction)
-  {
-
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::ptgi_tex_unfiltered, width, height, TEXFMT_A16B16G16R16F);
-
-    ShaderGlobal::set_int(ptgi_bindless_sampler_slotVarId, d3d::register_bindless_sampler(samplerNearestClamp));
-  }
-  else
-  {
-    ShaderGlobal::set_int(ptgi_bindless_sampler_slotVarId, d3d::register_bindless_sampler(samplerLinearClamp));
-    ShaderGlobal::set_int(ptgi_depth_bindless_sampler_slotVarId, d3d::register_bindless_sampler(samplerLinearClamp));
-
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::ptgi_tex_unfiltered, width, height, TEXFMT_A16B16G16R16F);
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::denoised_gi, width, height, TEXFMT_A16B16G16R16F);
-
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::gi_prev_view_z, width, height, TEXFMT_R32F);
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::gi_prev_normal_roughness, width, height, TEXFMT_A2R10G10B10);
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::gi_prev_internal_data, width, height, TEXFMT_R16UI);
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::gi_diff_history, width, height, TEXFMT_A16B16G16R16F);
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::gi_diff_fast_history, width, height, TEXFMT_R16F);
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::gi_diff_history_stabilized_ping, width, height, TEXFMT_R16F);
-    add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::gi_diff_history_stabilized_pong, width, height, TEXFMT_R16F);
-  }
-}
-
-void get_required_transient_texture_descriptors_for_gi(TexInfoMap &transient_textures)
-{
-  if (resolution_config.width == 0 || resolution_config.height == 0)
-    return;
-
-  if (resolution_config.ptgiUseRayReconstruction)
-    return;
-
-  int width = resolution_config.ptgi.width;
-  int height = resolution_config.ptgi.height;
-  int tilesW = divide_up(width, 16);
-  int tilesH = divide_up(height, 16);
-
-  add_transient_texture(transient_textures, GIDenoiser::TextureNames::gi_data1, width, height, TEXFMT_R8);
-  add_transient_texture(transient_textures, GIDenoiser::TextureNames::gi_data2, width, height, TEXFMT_R8UI);
-  add_transient_texture(transient_textures, GIDenoiser::TextureNames::gi_diffTemp2, width, height, TEXFMT_A16B16G16R16F);
-  add_transient_texture(transient_textures, GIDenoiser::TextureNames::gi_diffFastHistory, width, height, TEXFMT_R16F);
-  add_transient_texture(transient_textures, GIDenoiser::TextureNames::gi_tiles, tilesW, tilesH, TEXFMT_R8);
 }
 
 inline float4x4 convertx(const TMatrix4 &m)
@@ -1155,7 +838,8 @@ inline float4x4 convert(const TMatrix4 &m)
   return float4x4(m._11, m._21, m._31, m._41, m._12, m._22, m._32, m._42, m._13, m._23, m._33, m._43, m._14, m._24, m._34, m._44);
 }
 
-void prepare(const FrameParams &params)
+// the frame state every pass reads, false when nothing denoises (ray reconstruction everywhere)
+static bool prepare_frame(const PrepareParams &params, const IPoint2 &resolution)
 {
   frame_counter++;
 
@@ -1164,32 +848,8 @@ void prepare(const FrameParams &params)
 
   ShaderGlobal::set_int(ray_reconstruction_activeVarId, resolution_config.useRayReconstruction ? 1 : 0);
 
-  if (params.dynRes.has_value())
-    resolution_config.dynRes = params.dynRes.value();
-  else
-  {
-    resolution_config.dynRes.res = resolution_config.dynRes.prevRes = IPoint2{resolution_config.width, resolution_config.height};
-    resolution_config.dynRes.halfRes = resolution_config.dynRes.prevHalfRes =
-      IPoint2{resolution_config.width / 2, resolution_config.height / 2};
-  }
-
   if (resolution_config.useRayReconstruction && resolution_config.ptgiUseRayReconstruction)
-    return;
-
-  const IPoint2 &renderingResolution = resolution_config.dynRes.res;
-
-  auto normal_roughness_iter = params.textures.find(TextureNames::denoiser_normal_roughness);
-  G_ASSERT_RETURN(normal_roughness_iter != params.textures.end(), );
-
-  auto view_z_iter = params.textures.find(TextureNames::denoiser_view_z);
-  G_ASSERT_RETURN(view_z_iter != params.textures.end(), );
-
-  auto normal_roughness = normal_roughness_iter->second;
-  auto view_z = view_z_iter->second;
-
-  G_ASSERT_RETURN(normal_roughness && view_z, );
-
-  TIME_D3D_PROFILE(denoiser::prepare);
+    return false;
 
   reset_history = params.reset;
 
@@ -1242,8 +902,8 @@ void prepare(const FrameParams &params)
   float a3 = ml::Sequence::Bayer4x4(uint2(0, 0), frame_counter * 2 + 1) * ml::radians(360.0f);
   rotator_post = ml::Geometry::CombineRotators(ml::Geometry::GetRotator(a2), ml::Geometry::GetRotator(a3));
 
-  Point2 scaledJitter = Point2(jitter.x * renderingResolution.x, jitter.y * renderingResolution.y);
-  Point2 scaledPrevJitter = Point2(prev_jitter.x * renderingResolution.x, prev_jitter.y * renderingResolution.y);
+  Point2 scaledJitter = Point2(jitter.x * resolution.x, jitter.y * resolution.y);
+  Point2 scaledPrevJitter = Point2(prev_jitter.x * resolution.x, prev_jitter.y * resolution.y);
 
   float jitterDx = abs(scaledJitter.x - scaledPrevJitter.x);
   float jitterDy = abs(scaledJitter.y - scaledPrevJitter.y);
@@ -1285,56 +945,8 @@ void prepare(const FrameParams &params)
     max_fast_accumulated_frame_num = maxFastAccumulatedFrameNum + 0.5f;
   }
 
-  ShaderGlobal::set_int4(denoiser_resolutionVarId, renderingResolution.x, renderingResolution.y, 0, 0);
-  ShaderGlobal::set_texture(denoiser_view_zVarId, view_z);
-  ShaderGlobal::set_texture(denoiser_nrVarId, normal_roughness);
-
-  auto find_tex = [&params](const char *name) -> Texture * {
-    auto it = params.textures.find(name);
-    return it != params.textures.end() ? it->second : nullptr;
-  };
-
-  Texture *half_normal_roughness = find_tex(TextureNames::denoiser_half_normal_roughness);
-  Texture *half_view_z = find_tex(TextureNames::denoiser_half_view_z);
-  Texture *downsampled_close_depth_tex = find_tex(TextureNames::half_depth);
-  const bool haveCloseSet = half_normal_roughness && half_view_z && downsampled_close_depth_tex;
-
-  ShaderGlobal::set_int(denoiser_prepare_close_depthVarId, haveCloseSet ? 1 : 0);
-  ShaderGlobal::set_texture(denoiser_half_view_zVarId, half_view_z);
-  ShaderGlobal::set_texture(denoiser_half_nrVarId, half_normal_roughness);
-  ShaderGlobal::set_texture(downsampled_close_depth_texVarId, downsampled_close_depth_tex);
-
-  Texture *half_nr_rtr = find_tex(TextureNames::denoiser_half_normal_roughness_rtr);
-  Texture *half_view_z_rtr = find_tex(TextureNames::denoiser_half_view_z_rtr);
-  Texture *half_motion_vectors_rtr = find_tex(TextureNames::denoiser_half_motion_vectors_rtr);
-
-  ShaderGlobal::set_texture(denoiser_half_nr_rtrVarId, half_nr_rtr);
-  ShaderGlobal::set_texture(denoiser_half_view_z_rtrVarId, half_view_z_rtr);
-  ShaderGlobal::set_texture(denoiser_half_motion_vectors_rtrVarId, half_motion_vectors_rtr);
-
-  Texture *half_depth_selected_rtr = find_tex(TextureNames::half_selected_depth_rtr);
-
-  ShaderGlobal::set_texture(half_selected_depth_rtrVarId, half_depth_selected_rtr);
-  if (half_depth_selected_rtr)
-  {
-    d3d::SamplerInfo info;
-    info.filter_mode = d3d::FilterMode::Point;
-    info.address_mode_u = info.address_mode_v = d3d::AddressMode::Clamp;
-    ShaderGlobal::set_sampler(half_selected_depth_rtr_samplerstateVarId, d3d::request_sampler(info));
-  }
-
-  prepareCS->dispatchThreads(renderingResolution.x, renderingResolution.y, 1);
-
-  ShaderGlobal::set_texture(downsampled_close_depth_texVarId, nullptr);
-  ShaderGlobal::set_texture(denoiser_view_zVarId, nullptr);
-  ShaderGlobal::set_texture(denoiser_nrVarId, nullptr);
-
-  ShaderGlobal::set_texture(denoiser_half_view_zVarId, nullptr);
-  ShaderGlobal::set_texture(denoiser_half_nrVarId, nullptr);
-  ShaderGlobal::set_texture(denoiser_half_motion_vectors_rtrVarId, nullptr);
-  ShaderGlobal::set_texture(denoiser_half_nr_rtrVarId, nullptr);
-  ShaderGlobal::set_texture(denoiser_half_view_z_rtrVarId, nullptr);
-  ShaderGlobal::set_texture(half_selected_depth_rtrVarId, nullptr);
+  ShaderGlobal::set_int4(denoiser_resolutionVarId, resolution.x, resolution.y, 0, 0);
+  return true;
 }
 
 static float randuf() { return rand() / float(RAND_MAX); }
@@ -1342,27 +954,115 @@ static float randsf() { return 2 * randuf() - 1; }
 static Point4 rand4uf() { return Point4(randuf(), randuf(), randuf(), randuf()); }
 static Point4 rand4sf() { return Point4(randsf(), randsf(), randsf(), randsf()); }
 
-template <typename T>
-static eastl::tuple<Texture *, Texture *, Texture *> get_denoiser_textures(const T &params, bool half_res)
+// a cross frame texture of a pass: the current frame is written, the last frame is read
+struct StateTexture
 {
-  auto normal_roughness_iter =
-    params.textures.find(half_res ? TextureNames::denoiser_half_normal_roughness : TextureNames::denoiser_normal_roughness);
-  auto view_z_iter = params.textures.find(half_res ? TextureNames::denoiser_half_view_z : TextureNames::denoiser_view_z);
-  auto motion_vectors_iter = params.textures.find(half_res ? TextureNames::half_motion_vectors : TextureNames::motion_vectors);
-  if (normal_roughness_iter == params.textures.end() || view_z_iter == params.textures.end() ||
-      motion_vectors_iter == params.textures.end())
-    return eastl::make_tuple(nullptr, nullptr, nullptr);
-  auto normal_roughness = normal_roughness_iter->second;
-  auto view_z = view_z_iter->second;
-  auto motion_vectors = motion_vectors_iter->second;
-  return eastl::make_tuple(normal_roughness, view_z, motion_vectors);
-}
+  Texture *current = nullptr;
+  Texture *history = nullptr;
+};
 
-#define GET_DENOISER_TEXTURES(params, half_res) auto [normalRoughness, viewZ, motionVectors] = get_denoiser_textures(params, half_res)
+struct ShadowTextures
+{
+  Texture *value = nullptr;
+  Texture *viewZ = nullptr;
+  Texture *normalRoughness = nullptr;
+  Texture *motionVectors = nullptr;
+  StateTexture denoised; // the output, and the history of the stabilization
+  StateTexture historyLength;
+  Texture *tiles = nullptr;
+  Texture *smoothTiles = nullptr;
+  Texture *data1 = nullptr;
+  Texture *data2 = nullptr;
+  Texture *temp1 = nullptr;
+  Texture *temp2 = nullptr;
+};
 
-#define ACQUIRE_TEXTURE(name) ACQUIRE_DENOISER_TEXTURE(params, name, )
+struct AOTextures
+{
+  Texture *unfiltered = nullptr;
+  Texture *viewZ = nullptr;
+  Texture *normalRoughness = nullptr;
+  Texture *motionVectors = nullptr;
+  Texture *denoised = nullptr; // the output, scratch until the last pass
+  StateTexture prevViewZ;
+  StateTexture prevNormalRoughness;
+  StateTexture prevInternalData;
+  StateTexture diffHistory;
+  StateTexture diffFastHistory;
+  Texture *tiles = nullptr;
+  Texture *diffTemp2 = nullptr;
+  Texture *diffFastHistoryTemp = nullptr;
+  Texture *data1 = nullptr;
+};
 
-void set_shadow_maps_bindless(Texture *csm_texture, d3d::SamplerHandle csm_sampler, Texture *vsm_texture,
+struct GITextures
+{
+  Texture *unfiltered = nullptr;
+  Texture *viewZ = nullptr;
+  Texture *normalRoughness = nullptr;
+  Texture *motionVectors = nullptr;
+  Texture *denoised = nullptr; // the output, scratch until the last pass
+  Texture *validation = nullptr;
+  StateTexture prevViewZ;
+  StateTexture prevNormalRoughness;
+  StateTexture prevInternalData;
+  StateTexture diffHistory;
+  StateTexture diffFastHistory;
+  StateTexture diffHistoryStabilized;
+  StateTexture behindViewZ;
+  StateTexture behindInternalData;
+  StateTexture behindDiffHistory;
+  StateTexture behindDiffFastHistory;
+  Texture *data1 = nullptr;
+  Texture *data2 = nullptr;
+  Texture *diffTemp2 = nullptr;
+  Texture *diffFastHistoryTemp = nullptr;
+  Texture *tiles = nullptr;
+};
+
+struct ReflectionTextures
+{
+  Texture *unfiltered = nullptr;
+  Texture *viewZ = nullptr;
+  Texture *normalRoughness = nullptr;
+  Texture *motionVectors = nullptr;
+  Texture *denoised = nullptr; // the output, scratch until the last pass
+  Texture *validation = nullptr;
+  struct Reblur
+  {
+    StateTexture prevViewZ;
+    StateTexture prevNormalRoughness;
+    StateTexture prevInternalData;
+    StateTexture history;
+    StateTexture fastHistory;
+    StateTexture historyStabilized;
+    StateTexture hitDistForTracking;
+    Texture *data1 = nullptr;
+    Texture *data2 = nullptr;
+    Texture *hitDistForTrackingTemp = nullptr;
+    Texture *tmp2 = nullptr;
+    Texture *fastHistoryTemp = nullptr;
+    Texture *tiles = nullptr;
+  } reblur;
+  struct Relax
+  {
+    StateTexture illum;
+    StateTexture illumResponsive;
+    StateTexture reflectionHitT;
+    StateTexture historyLength;
+    StateTexture normalRoughness;
+    StateTexture materialId;
+    StateTexture viewZ;
+    Texture *tiles = nullptr;
+    Texture *historyLengthTemp = nullptr;
+    Texture *reprojectionConfidence = nullptr;
+    Texture *illumPing = nullptr;
+    Texture *illumPong = nullptr;
+  } relax;
+  Texture *blurTemp = nullptr;
+};
+
+static void set_shadow_maps_bindless(Texture *csm_texture, d3d::SamplerHandle csm_sampler, Texture *vsm_texture,
   d3d::SamplerHandle vsm_sampler)
 {
   if (csm_texture)
@@ -1372,6 +1072,8 @@ void set_shadow_maps_bindless(Texture *csm_texture, d3d::SamplerHandle csm_sampl
     auto samplerIx = d3d::register_bindless_sampler(csm_sampler);
     ShaderGlobal::set_int(csm_sampler_bindless_slotVarId, samplerIx);
   }
+  else
+    ShaderGlobal::set_int(csm_bindless_slotVarId, -1);
 
   if (vsm_texture)
   {
@@ -1382,59 +1084,29 @@ void set_shadow_maps_bindless(Texture *csm_texture, d3d::SamplerHandle csm_sampl
   }
 }
 
-void set_shadow_output_bindless(Texture *shadow_texture, bool translucent)
-{
-  if (!shadow_texture)
-    return;
-  d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtsm_bindless_index, shadow_texture);
-  ShaderGlobal::set_int(rtsm_bindless_slotVarId, bindless_range + rtsm_bindless_index);
-  ShaderGlobal::set_int(rtsm_is_translucentVarId, translucent ? 1 : 0);
-}
-
-void denoise_shadow(const ShadowDenoiser &params)
+static void denoise_shadow(const ShadowParams &params, const ShadowTextures &tex)
 {
   set_shadow_maps_bindless(params.csmTexture, params.csmSampler, params.vsmTexture, params.vsmSampler);
 
   if (resolution_config.useRayReconstruction)
-  {
-    ACQUIRE_TEXTURE(rtsm_value);
-    set_shadow_output_bindless(rtsm_value);
-
-    d3d::resource_barrier(ResourceBarrierDesc(rtsm_value, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
-
     return;
-  }
 
   TIME_D3D_PROFILE(denoise_shadow);
-  const IPoint2 &resolution = resolution_config.dynRes.res;
+  // the textures are the rect, the history keeps the size of its frame
+  const IPoint2 resolution = texture_size(tex.value);
   int width = resolution.x, height = resolution.y;
-  const IPoint2 &prevResolution = resolution_config.dynRes.prevRes;
+  const IPoint2 prevResolution = texture_size(tex.denoised.history);
   int prevWidth = prevResolution.x, prevHeight = prevResolution.y;
 
   int tilesW = divide_up(width, 16);
   int tilesH = divide_up(height, 16);
-
-#define NAME(name) ACQUIRE_TEXTURE(name)
-  ENUM_RTSM_DENOISED_PERSISTENT_NAMES
-  ENUM_RTSM_DENOISED_TRANSIENT_NAMES
-#undef NAME
-
-  auto titer = params.textures.find(ShadowDenoiser::TextureNames::rtsm_translucency);
-  auto rtsm_translucency = titer != params.textures.end() ? titer->second : nullptr;
-
-  GET_DENOISER_TEXTURES(params, false);
-
-  set_shadow_output_bindless(rtsm_shadows_denoised, rtsm_translucency);
-
-  if (reset_history)
-    clear_texture(rtsm_shadows_denoised);
 
   float3 lightDirectionView =
     ml::Rotate(world_to_view, float3(-params.lightDirection.x, -params.lightDirection.y, -params.lightDirection.z));
 
   float3 cameraDelta = prev_view_pos - view_pos;
 
-  uint32_t frameNum = min(params.maxStabilizedFrameNum, ShadowDenoiser::MAX_HISTORY_FRAME_NUM);
+  uint32_t frameNum = min(params.maxStabilizedFrameNum, ShadowParams::MAX_HISTORY_FRAME_NUM);
   float stabilizationStrength = frameNum / (1.0f + frameNum);
 
   float unproject = 1.0f / (0.5f * height * abs(projectY));
@@ -1452,13 +1124,12 @@ void denoise_shadow(const ShadowDenoiser &params)
   sigmaSharedConstants.frustumPrev = frustum_prev;
   sigmaSharedConstants.cameraDelta = float4(cameraDelta, 0);
   sigmaSharedConstants.mvScale = float4(motion_multiplier, 0);
-  sigmaSharedConstants.resourceSizeInv = float2(1.0 / resolution_config.rtsm.width, 1.0 / resolution_config.rtsm.height);
-  sigmaSharedConstants.resourceSizeInvPrev = float2(1.0 / resolution_config.rtsm.width, 1.0 / resolution_config.rtsm.height);
+  sigmaSharedConstants.resourceSizeInv = float2(1.0 / width, 1.0 / height);
+  sigmaSharedConstants.resourceSizeInvPrev = float2(1.0 / prevWidth, 1.0 / prevHeight);
   sigmaSharedConstants.rectSize = float2(width, height);
   sigmaSharedConstants.rectSizeInv = float2(1.0 / width, 1.0 / height);
   sigmaSharedConstants.rectSizePrev = float2(prevWidth, prevHeight);
-  sigmaSharedConstants.resolutionScale =
-    float2(float(width) / float(resolution_config.rtsm.width), float(height) / float(resolution_config.rtsm.height));
+  sigmaSharedConstants.resolutionScale = float2(1, 1);
   sigmaSharedConstants.rectOffset = float2(0, 0);
   sigmaSharedConstants.printfAt = uint2(0, 0);
   sigmaSharedConstants.rectOrigin = uint2(0, 0);
@@ -1466,7 +1137,7 @@ void denoise_shadow(const ShadowDenoiser &params)
   sigmaSharedConstants.tilesSizeMinusOne = int2(tilesW - 1, tilesH - 1);
   sigmaSharedConstants.orthoMode = 0;
   sigmaSharedConstants.unproject = unproject;
-  sigmaSharedConstants.denoisingRange = 100000;
+  sigmaSharedConstants.denoisingRange = DENOISING_RANGE;
   sigmaSharedConstants.planeDistSensitivity = 0.02;
   sigmaSharedConstants.stabilizationStrength = reset_history ? 0 : stabilizationStrength;
   sigmaSharedConstants.debug = 0;
@@ -1485,11 +1156,9 @@ void denoise_shadow(const ShadowDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&sigmaSharedConstants, divide_up(sizeof(sigmaSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, viewZ);
-    d3d::set_tex(STAGE_CS, 1, rtsm_value);
-    if (rtsm_translucency)
-      d3d::set_tex(STAGE_CS, 2, rtsm_translucency);
-    d3d::set_rwtex(STAGE_CS, 0, rtsm_tiles, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 1, tex.value);
+    d3d::set_rwtex(STAGE_CS, 0, tex.tiles, 0, 0);
 
     sigmaClassifyTilesCS->dispatch(tilesW, tilesH, 1);
   }
@@ -1501,24 +1170,10 @@ void denoise_shadow(const ShadowDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&sigmaSharedConstants, divide_up(sizeof(SigmaSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, rtsm_tiles);
-    d3d::set_rwtex(STAGE_CS, 0, rtsm_smoothTiles, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_rwtex(STAGE_CS, 0, tex.smoothTiles, 0, 0);
 
     sigmaSmoothTilesCS->dispatchThreads(tilesW, tilesH, 1);
-  }
-
-  if (stabilizationEnabled)
-  {
-    TIME_D3D_PROFILE(sigma::copy);
-
-    d3d::set_cb0_data(STAGE_CS, (const float *)&sigmaSharedConstants, divide_up(sizeof(SigmaSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, rtsm_smoothTiles);
-    d3d::set_tex(STAGE_CS, 1, rtsm_shadows_denoised);
-    d3d::set_tex(STAGE_CS, 2, rtsm_historyLengthPersistent);
-    d3d::set_rwtex(STAGE_CS, 0, rtsm_denoiseHistory, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtsm_denoiseHistoryLengthTransient, 0, 0);
-
-    sigmaCopyCS->dispatch(tilesW * 2, tilesH, 1);
   }
 
   {
@@ -1528,14 +1183,12 @@ void denoise_shadow(const ShadowDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&sigmaSharedConstants, divide_up(sizeof(SigmaSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, viewZ);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, rtsm_value);
-    d3d::set_tex(STAGE_CS, 3, rtsm_smoothTiles);
-    if (rtsm_translucency)
-      d3d::set_tex(STAGE_CS, 4, rtsm_translucency);
-    d3d::set_rwtex(STAGE_CS, 0, rtsm_denoiseData1, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtsm_denoiseTemp1, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.value);
+    d3d::set_tex(STAGE_CS, 3, tex.smoothTiles);
+    d3d::set_rwtex(STAGE_CS, 0, tex.data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.temp1, 0, 0);
 
     sigmaBlurCS->dispatch(tilesW * 2, tilesH, 1);
   }
@@ -1547,16 +1200,19 @@ void denoise_shadow(const ShadowDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&sigmaSharedConstants, divide_up(sizeof(SigmaSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, viewZ);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, rtsm_denoiseData1);
-    d3d::set_tex(STAGE_CS, 3, rtsm_smoothTiles);
-    d3d::set_tex(STAGE_CS, 4, rtsm_denoiseTemp1);
-    d3d::set_rwtex(STAGE_CS, 0, rtsm_denoiseData2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, stabilizationEnabled ? rtsm_denoiseTemp2 : rtsm_shadows_denoised, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.data1);
+    d3d::set_tex(STAGE_CS, 3, tex.smoothTiles);
+    d3d::set_tex(STAGE_CS, 4, tex.temp1);
+    d3d::set_rwtex(STAGE_CS, 0, tex.data2, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, stabilizationEnabled ? tex.temp2 : tex.denoised.current, 0, 0);
 
     sigmaPostBlurCS->dispatch(tilesW * 2, tilesH, 1);
   }
+
+  if (!stabilizationEnabled)
+    clear_texture(tex.historyLength.current); // the next frame reads it as a history of no frames
 
   if (stabilizationEnabled)
   {
@@ -1566,32 +1222,30 @@ void denoise_shadow(const ShadowDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&sigmaSharedConstants, divide_up(sizeof(SigmaSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, viewZ);
-    d3d::set_tex(STAGE_CS, 1, motionVectors);
-    d3d::set_tex(STAGE_CS, 2, rtsm_denoiseData2);
-    d3d::set_tex(STAGE_CS, 3, rtsm_denoiseTemp2);
-    d3d::set_tex(STAGE_CS, 4, rtsm_denoiseHistory);
-    d3d::set_tex(STAGE_CS, 5, rtsm_denoiseHistoryLengthTransient);
-    d3d::set_tex(STAGE_CS, 6, rtsm_smoothTiles);
-    d3d::set_rwtex(STAGE_CS, 0, rtsm_shadows_denoised, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtsm_historyLengthPersistent, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 1, tex.motionVectors);
+    d3d::set_tex(STAGE_CS, 2, tex.data2);
+    d3d::set_tex(STAGE_CS, 3, tex.temp2);
+    // NRD copies its history to a temp first because it writes the same resource here, the ring does not need that
+    d3d::set_tex(STAGE_CS, 4, tex.denoised.history);
+    d3d::set_tex(STAGE_CS, 5, tex.historyLength.history);
+    d3d::set_tex(STAGE_CS, 6, tex.smoothTiles);
+    d3d::set_rwtex(STAGE_CS, 0, tex.denoised.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.historyLength.current, 0, 0);
 
     sigmaStabilizeCS->dispatch(tilesW * 2, tilesH, 1);
   }
-
-  d3d::resource_barrier({rtsm_shadows_denoised, RB_RO_SRV | RB_STAGE_ALL_SHADERS, 0, 0});
 }
 
 static float getCheckerboardResolveAccumSpeed(bool need_override) { return need_override ? 0.95f : checkerboard_resolve_accum_speed; }
 
+// the textures are the rect, the history keeps the size of its frame
 static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist_params, const Point2 &antilag_settings,
-  bool use_history_confidence, const IPoint2 res_size, bool half_res, int max_stabilized_frame_num, bool checkerboard, bool occlusion,
-  bool antiFirefly, bool override_checker_accum)
+  bool use_history_confidence, const IPoint2 &resolution, const IPoint2 &prev_resolution, int max_stabilized_frame_num,
+  bool checkerboard, bool occlusion, bool antiFirefly, bool override_checker_accum)
 {
-  const IPoint2 &resolution = half_res ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
   int width = resolution.x, height = resolution.y;
-  const IPoint2 &prevResolution = half_res ? resolution_config.dynRes.prevHalfRes : resolution_config.dynRes.prevRes;
-  int prevWidth = prevResolution.x, prevHeight = prevResolution.y;
+  int prevWidth = prev_resolution.x, prevHeight = prev_resolution.y;
 
   float disocclusionThresholdBonus = (1.0f + jitter_delta) / float(height);
   float disocclusionThreshold = 0.01 + disocclusionThresholdBonus;
@@ -1600,17 +1254,15 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   float3 cameraDelta = prev_view_pos - view_pos;
 
   uint32_t frameNum =
-    min(max_stabilized_frame_num, occlusion ? AODenoiser::MAX_HISTORY_FRAME_NUM : ReflectionDenoiser::REBLUR_MAX_HISTORY_FRAME_NUM);
+    min(max_stabilized_frame_num, occlusion ? AOParams::MAX_HISTORY_FRAME_NUM : ReflectionParams::REBLUR_MAX_HISTORY_FRAME_NUM);
   float stabilizationStrength = frameNum / (1.0f + frameNum);
 
   float unproject = 1.0f / (0.5f * height * abs(projectY));
 
   float lobeAngleFraction = occlusion ? 0.5f : 0.15f;
 
-  float worstResolutionScale = ml::min(float(width) / float(res_size.x), float(height) / float(res_size.y));
-
   float minBlurRadius = 1;
-  float maxBlurRadius = 30 * worstResolutionScale;
+  float maxBlurRadius = 30;
 
   float fastHistoryClampingSigmaScale = 2; // It is suggested to be 1.5
   fastHistoryClampingSigmaScale =
@@ -1640,14 +1292,14 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
 
   // float2
   reblurSharedConstants.antilagSettings = float2(antilag_settings.x, antilag_settings.y);
-  reblurSharedConstants.resourceSize = float2(res_size.x, res_size.y);
-  reblurSharedConstants.resourceSizeInv = float2(1.0 / res_size.x, 1.0 / res_size.y);
-  reblurSharedConstants.resourceSizeInvPrev = float2(1.0 / res_size.x, 1.0 / res_size.y);
+  reblurSharedConstants.resourceSize = float2(width, height);
+  reblurSharedConstants.resourceSizeInv = float2(1.0 / width, 1.0 / height);
+  reblurSharedConstants.resourceSizeInvPrev = float2(1.0 / prevWidth, 1.0 / prevHeight);
   reblurSharedConstants.rectSize = float2(width, height);
   reblurSharedConstants.rectSizeInv = float2(1.0 / width, 1.0 / height);
   reblurSharedConstants.rectSizePrev = float2(prevWidth, prevHeight);
-  reblurSharedConstants.resolutionScale = float2(float(width) / float(res_size.x), float(height) / float(res_size.y));
-  reblurSharedConstants.resolutionScalePrev = float2(float(prevWidth) / float(res_size.x), float(prevHeight) / float(res_size.y));
+  reblurSharedConstants.resolutionScale = float2(1, 1);
+  reblurSharedConstants.resolutionScalePrev = float2(1, 1);
   reblurSharedConstants.rectOffset = float2(0, 0);
   reblurSharedConstants.jitter = float2(jitter.x * width, jitter.y * height);
 
@@ -1668,7 +1320,7 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   reblurSharedConstants.debug = 0;
   reblurSharedConstants.orthoMode = 0;
   reblurSharedConstants.unproject = unproject;
-  reblurSharedConstants.denoisingRange = 100000;
+  reblurSharedConstants.denoisingRange = DENOISING_RANGE;
   reblurSharedConstants.planeDistSensitivity = 0.02;
   reblurSharedConstants.framerateScale = frame_rate_scale;
   reblurSharedConstants.minBlurRadius = minBlurRadius;
@@ -1711,48 +1363,25 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   reblurSharedConstants.hasDiffuse = 0;
   reblurSharedConstants.hasSpecular = 1;
 
+  reblurSharedConstants.hasBehindHistory = 0;
+  reblurSharedConstants.secondChanceDebug = 0;
+
   return reblurSharedConstants;
 }
 
-void denoise_ao(const AODenoiser &params)
+static void denoise_ao(const AOParams &params, const AOTextures &tex)
 {
-  if (resolution_config.useRayReconstruction)
-  {
-    ACQUIRE_TEXTURE(rtao_tex_unfiltered);
-    d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtao_bindless_index, rtao_tex_unfiltered);
-    ShaderGlobal::set_int(rtao_bindless_slotVarId, bindless_range + rtao_bindless_index);
-    d3d::resource_barrier(ResourceBarrierDesc(rtao_tex_unfiltered, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
-    return;
-  }
-
   TIME_D3D_PROFILE(denoise_ao);
 
-#define NAME(name) ACQUIRE_TEXTURE(name)
-  ENUM_AO_DENOISED_NAMES
-#undef NAME
-
-  TextureInfo ti, tilesTi;
-  rtao_tex_unfiltered->getinfo(ti);
-  ao_tiles->getinfo(tilesTi);
-
-  int width = ti.w, height = ti.h, tilesWidth = tilesTi.w, tilesHeight = tilesTi.h;
-  bool halfRes = params.halfResolution;
-
-  GET_DENOISER_TEXTURES(params, halfRes);
-  auto &ao_diffTemp1 = denoised_ao;
-
-  d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtao_bindless_index, denoised_ao);
-  ShaderGlobal::set_int(rtao_bindless_slotVarId, bindless_range + rtao_bindless_index);
+  const IPoint2 resolution = texture_size(tex.unfiltered);
+  int width = resolution.x, height = resolution.y, tilesWidth = divide_up(width, 16), tilesHeight = divide_up(height, 16);
+  Texture *diffTemp1 = tex.denoised;
 
   ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
-    IPoint2{resolution_config.rtao.width, resolution_config.rtao.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
-    true, false, false);
+    resolution, texture_size(tex.prevViewZ.history), params.maxStabilizedFrameNum, params.checkerboard, true, false, false);
 
   Sbuffer *reblurSharedCb =
     create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_ao, reblurSharedConstants, "ReblurSharedConstantsCB_ao");
-
-  if (reset_history)
-    clear_texture(denoised_ao);
 
   ShaderGlobal::set_int4(denoiser_resolutionVarId, width, height, 0, 0);
 
@@ -1760,8 +1389,8 @@ void denoise_ao(const AODenoiser &params)
     TIME_D3D_PROFILE(reblur::classify_tiles);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, viewZ);
-    d3d::set_rwtex(STAGE_CS, 0, ao_tiles, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.viewZ);
+    d3d::set_rwtex(STAGE_CS, 0, tex.tiles, 0, 0);
 
     reblurClassifyTiles->dispatch(tilesWidth, tilesHeight, 1);
   }
@@ -1772,21 +1401,21 @@ void denoise_ao(const AODenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, ao_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
-    d3d::set_tex(STAGE_CS, 3, motionVectors);
-    d3d::set_tex(STAGE_CS, 4, ao_prev_view_z);
-    d3d::set_tex(STAGE_CS, 5, ao_prev_normal_roughness);
-    d3d::set_tex(STAGE_CS, 6, ao_prev_internal_data);
-    d3d::set_tex(STAGE_CS, 7, viewZ); // DUMMY
-    d3d::set_tex(STAGE_CS, 8, viewZ); // DUMMY
-    d3d::set_tex(STAGE_CS, 9, rtao_tex_unfiltered);
-    d3d::set_tex(STAGE_CS, 10, ao_diff_history);
-    d3d::set_tex(STAGE_CS, 11, ao_diff_fast_history);
-    d3d::set_rwtex(STAGE_CS, 0, ao_data1, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, ao_diffTemp2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, ao_diffFastHistory, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 3, tex.motionVectors);
+    d3d::set_tex(STAGE_CS, 4, tex.prevViewZ.history);
+    d3d::set_tex(STAGE_CS, 5, tex.prevNormalRoughness.history);
+    d3d::set_tex(STAGE_CS, 6, tex.prevInternalData.history);
+    d3d::set_tex(STAGE_CS, 7, tex.viewZ); // DUMMY
+    d3d::set_tex(STAGE_CS, 8, tex.viewZ); // DUMMY
+    d3d::set_tex(STAGE_CS, 9, tex.unfiltered);
+    d3d::set_tex(STAGE_CS, 10, tex.diffHistory.history);
+    d3d::set_tex(STAGE_CS, 11, tex.diffFastHistory.history);
+    d3d::set_rwtex(STAGE_CS, 0, tex.data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.diffTemp2, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, tex.diffFastHistoryTemp, 0, 0);
 
     if (params.performanceMode)
       reblurDiffuseOcclusionPerfTemporalAccumulation->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1801,14 +1430,14 @@ void denoise_ao(const AODenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, ao_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, ao_data1);
-    d3d::set_tex(STAGE_CS, 3, viewZ);
-    d3d::set_tex(STAGE_CS, 4, ao_diffTemp2);
-    d3d::set_tex(STAGE_CS, 5, ao_diffFastHistory);
-    d3d::set_rwtex(STAGE_CS, 0, ao_diffTemp1, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, ao_diff_fast_history, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.data1);
+    d3d::set_tex(STAGE_CS, 3, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 4, tex.diffTemp2);
+    d3d::set_tex(STAGE_CS, 5, tex.diffFastHistoryTemp);
+    d3d::set_rwtex(STAGE_CS, 0, diffTemp1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.diffFastHistory.current, 0, 0);
 
     if (params.performanceMode)
       reblurDiffuseOcclusionPerfHistoryFix->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1823,13 +1452,13 @@ void denoise_ao(const AODenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, ao_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
-    d3d::set_tex(STAGE_CS, 3, ao_data1);
-    d3d::set_tex(STAGE_CS, 4, ao_diffTemp1);
-    d3d::set_rwtex(STAGE_CS, 0, ao_prev_view_z, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, ao_diffTemp2, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 3, tex.data1);
+    d3d::set_tex(STAGE_CS, 4, diffTemp1);
+    d3d::set_rwtex(STAGE_CS, 0, tex.prevViewZ.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.diffTemp2, 0, 0);
 
     if (params.performanceMode)
       reblurDiffuseOcclusionPerfBlur->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1844,15 +1473,15 @@ void denoise_ao(const AODenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, ao_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, ao_data1);
-    d3d::set_tex(STAGE_CS, 3, ao_prev_view_z);
-    d3d::set_tex(STAGE_CS, 4, ao_diffTemp2);
-    d3d::set_rwtex(STAGE_CS, 0, ao_prev_normal_roughness, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, ao_diff_history, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, ao_prev_internal_data, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 3, denoised_ao, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.data1);
+    d3d::set_tex(STAGE_CS, 3, tex.prevViewZ.current);
+    d3d::set_tex(STAGE_CS, 4, tex.diffTemp2);
+    d3d::set_rwtex(STAGE_CS, 0, tex.prevNormalRoughness.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.diffHistory.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, tex.prevInternalData.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, tex.denoised, 0, 0);
 
     if (params.performanceMode)
       reblurDiffuseOcclusionPerfPostBlurNoTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1861,67 +1490,40 @@ void denoise_ao(const AODenoiser &params)
   }
 
   d3d::set_const_buffer(STAGE_CS, 0, nullptr);
-
-  d3d::resource_barrier(ResourceBarrierDesc(denoised_ao, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
 }
 
-void denoise_gi(const GIDenoiser &params)
+static void denoise_gi(const GIParams &params, const GITextures &tex)
 {
   TIME_D3D_PROFILE(denoise_gi);
 
-  if (resolution_config.ptgiUseRayReconstruction)
-  {
-    ACQUIRE_TEXTURE(ptgi_tex_unfiltered);
-    d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + ptgi_bindless_index, ptgi_tex_unfiltered);
-    ShaderGlobal::set_int(ptgi_bindless_slotVarId, bindless_range + ptgi_bindless_index);
-    d3d::resource_barrier(ResourceBarrierDesc(ptgi_tex_unfiltered, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
-    return;
-  }
+  const IPoint2 resolution = texture_size(tex.unfiltered);
+  int width = resolution.x, height = resolution.y, tilesWidth = divide_up(width, 16), tilesHeight = divide_up(height, 16);
+  Texture *diffTemp1 = tex.denoised;
 
-#define NAME(name) ACQUIRE_TEXTURE(name)
-  ENUM_GI_DENOISED_NAMES
-#undef NAME
-
-  TextureInfo ti, tilesTi;
-  ptgi_tex_unfiltered->getinfo(ti);
-  gi_tiles->getinfo(tilesTi);
-
-  int width = ti.w, height = ti.h, tilesWidth = tilesTi.w, tilesHeight = tilesTi.h;
-  bool halfRes = params.halfResolution;
-
-  GET_DENOISER_TEXTURES(params, halfRes);
-  auto &gi_diffTemp1 = denoised_gi;
-
-  d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + ptgi_bindless_index, denoised_gi);
-  d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + ptgi_depth_bindless_index, viewZ);
-  ShaderGlobal::set_int(ptgi_bindless_slotVarId, bindless_range + ptgi_bindless_index);
-  ShaderGlobal::set_int(ptgi_depth_bindless_slotVarId, bindless_range + ptgi_depth_bindless_index);
-
-  ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
-    IPoint2{resolution_config.ptgi.width, resolution_config.ptgi.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
-    true, params.antiFirefly, false);
+  ReblurSharedConstants reblurSharedConstants =
+    make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false, resolution, texture_size(tex.prevViewZ.history),
+      params.maxStabilizedFrameNum, params.checkerboard, true, params.antiFirefly, false);
 
   // Only the validation layer reads these; the default is specular only.
   reblurSharedConstants.hasDiffuse = 1;
   reblurSharedConstants.hasSpecular = 0;
 
+  const bool secondChance = tex.behindViewZ.current && reblurDiffuseBehindHistory;
+  ShaderGlobal::set_int(denoiser_gi_second_chanceVarId, secondChance ? 1 : 0);
+  reblurSharedConstants.hasBehindHistory = secondChance && !reset_history ? 1 : 0;
+  reblurSharedConstants.secondChanceDebug = params.secondChanceDebug ? 1 : 0;
+
   Sbuffer *reblurSharedCb =
     create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_gi, reblurSharedConstants, "ReblurSharedConstantsCB_gi");
 
-  if (reset_history)
-    clear_texture(denoised_gi);
-
   ShaderGlobal::set_int4(denoiser_resolutionVarId, width, height, 0, 0);
-
-  auto stab_ping = (frame_counter & 1) == 0 ? gi_diff_history_stabilized_ping : gi_diff_history_stabilized_pong;
-  auto stab_pong = (frame_counter & 1) != 0 ? gi_diff_history_stabilized_ping : gi_diff_history_stabilized_pong;
 
   {
     TIME_D3D_PROFILE(reblur::classify_tiles);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, viewZ);
-    d3d::set_rwtex(STAGE_CS, 0, gi_tiles, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.viewZ);
+    d3d::set_rwtex(STAGE_CS, 0, tex.tiles, 0, 0);
 
     reblurClassifyTiles->dispatch(tilesWidth, tilesHeight, 1);
   }
@@ -1933,11 +1535,11 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, gi_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
-    d3d::set_tex(STAGE_CS, 3, ptgi_tex_unfiltered);
-    d3d::set_rwtex(STAGE_CS, 0, gi_diffTemp1, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 3, tex.unfiltered);
+    d3d::set_rwtex(STAGE_CS, 0, diffTemp1, 0, 0);
 
     if (params.performanceMode)
       reblurDiffusePerfPrepass->dispatch(tilesWidth, tilesHeight, 1);
@@ -1951,27 +1553,34 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, gi_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
-    d3d::set_tex(STAGE_CS, 3, motionVectors);
-    d3d::set_tex(STAGE_CS, 4, gi_prev_view_z);
-    d3d::set_tex(STAGE_CS, 5, gi_prev_normal_roughness);
-    d3d::set_tex(STAGE_CS, 6, gi_prev_internal_data);
-    d3d::set_tex(STAGE_CS, 7, viewZ); // DUMMY
-    d3d::set_tex(STAGE_CS, 8, viewZ); // DUMMY
-    d3d::set_tex(STAGE_CS, 9, gi_diffTemp1);
-    d3d::set_tex(STAGE_CS, 10, gi_diff_history);
-    d3d::set_tex(STAGE_CS, 11, gi_diff_fast_history);
-    d3d::set_rwtex(STAGE_CS, 0, gi_data1, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, gi_diffTemp2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, gi_diffFastHistory, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 3, gi_data2, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 3, tex.motionVectors);
+    d3d::set_tex(STAGE_CS, 4, tex.prevViewZ.history);
+    d3d::set_tex(STAGE_CS, 5, tex.prevNormalRoughness.history);
+    d3d::set_tex(STAGE_CS, 6, tex.prevInternalData.history);
+    d3d::set_tex(STAGE_CS, 7, tex.viewZ); // DUMMY
+    d3d::set_tex(STAGE_CS, 8, tex.viewZ); // DUMMY
+    d3d::set_tex(STAGE_CS, 9, diffTemp1);
+    d3d::set_tex(STAGE_CS, 10, tex.diffHistory.history);
+    d3d::set_tex(STAGE_CS, 11, tex.diffFastHistory.history);
+    d3d::set_tex(STAGE_CS, 14, tex.behindViewZ.history);
+    d3d::set_tex(STAGE_CS, 15, tex.behindInternalData.history);
+    d3d::set_tex(STAGE_CS, 16, tex.behindDiffHistory.history);
+    d3d::set_tex(STAGE_CS, 17, tex.behindDiffFastHistory.history);
+    d3d::set_rwtex(STAGE_CS, 0, tex.data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.diffTemp2, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, tex.diffFastHistoryTemp, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, tex.data2, 0, 0);
 
     if (params.performanceMode)
       reblurDiffusePerfTemporalAccumulation->dispatch(tilesWidth * 2, tilesHeight, 1);
     else
       reblurDiffuseTemporalAccumulation->dispatch(tilesWidth * 2, tilesHeight, 1);
+
+    for (int slot = 14; slot <= 17; ++slot)
+      d3d::set_tex(STAGE_CS, slot, nullptr);
   }
 
   {
@@ -1981,14 +1590,14 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, gi_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, gi_data1);
-    d3d::set_tex(STAGE_CS, 3, viewZ);
-    d3d::set_tex(STAGE_CS, 4, gi_diffTemp2);
-    d3d::set_tex(STAGE_CS, 5, gi_diffFastHistory);
-    d3d::set_rwtex(STAGE_CS, 0, gi_diffTemp1, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, gi_diff_fast_history, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.data1);
+    d3d::set_tex(STAGE_CS, 3, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 4, tex.diffTemp2);
+    d3d::set_tex(STAGE_CS, 5, tex.diffFastHistoryTemp);
+    d3d::set_rwtex(STAGE_CS, 0, diffTemp1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.diffFastHistory.current, 0, 0);
 
     if (params.performanceMode)
       reblurDiffusePerfHistoryFix->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2003,13 +1612,13 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, gi_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
-    d3d::set_tex(STAGE_CS, 3, gi_data1);
-    d3d::set_tex(STAGE_CS, 4, gi_diffTemp1);
-    d3d::set_rwtex(STAGE_CS, 0, gi_prev_view_z, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, gi_diffTemp2, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 3, tex.data1);
+    d3d::set_tex(STAGE_CS, 4, diffTemp1);
+    d3d::set_rwtex(STAGE_CS, 0, tex.prevViewZ.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.diffTemp2, 0, 0);
 
     if (params.performanceMode)
       reblurDiffusePerfBlur->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2024,13 +1633,13 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, gi_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, gi_data1);
-    d3d::set_tex(STAGE_CS, 3, gi_prev_view_z);
-    d3d::set_tex(STAGE_CS, 4, gi_diffTemp2);
-    d3d::set_rwtex(STAGE_CS, 0, gi_prev_normal_roughness, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, gi_diff_history, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.data1);
+    d3d::set_tex(STAGE_CS, 3, tex.prevViewZ.current);
+    d3d::set_tex(STAGE_CS, 4, tex.diffTemp2);
+    d3d::set_rwtex(STAGE_CS, 0, tex.prevNormalRoughness.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.diffHistory.current, 0, 0);
 
     if (params.performanceMode)
       reblurDiffusePerfPostBlur->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2045,17 +1654,17 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, gi_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, gi_prev_view_z);
-    d3d::set_tex(STAGE_CS, 3, gi_data1);
-    d3d::set_tex(STAGE_CS, 4, gi_data2);
-    d3d::set_tex(STAGE_CS, 5, gi_diff_history);
-    d3d::set_tex(STAGE_CS, 6, stab_ping);
-    d3d::set_tex(STAGE_CS, 13, motionVectors);
-    d3d::set_rwtex(STAGE_CS, 1, gi_prev_internal_data, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, denoised_gi, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 3, stab_pong, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.prevViewZ.current);
+    d3d::set_tex(STAGE_CS, 3, tex.data1);
+    d3d::set_tex(STAGE_CS, 4, tex.data2);
+    d3d::set_tex(STAGE_CS, 5, tex.diffHistory.current);
+    d3d::set_tex(STAGE_CS, 6, tex.diffHistoryStabilized.history);
+    d3d::set_tex(STAGE_CS, 13, tex.motionVectors);
+    d3d::set_rwtex(STAGE_CS, 1, tex.prevInternalData.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, tex.denoised, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, tex.diffHistoryStabilized.current, 0, 0);
 
     if (params.performanceMode)
       reblurDiffusePerfTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2063,65 +1672,71 @@ void denoise_gi(const GIDenoiser &params)
       reblurDiffuseTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
   }
 
-  if (auto iter = params.textures.find(GIDenoiser::TextureNames::gi_validation); iter != params.textures.end())
+  if (tex.validation)
   {
     TIME_D3D_PROFILE(reblur::validation);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, normalRoughness);
-    d3d::set_tex(STAGE_CS, 1, viewZ);
-    d3d::set_tex(STAGE_CS, 2, motionVectors);
-    d3d::set_tex(STAGE_CS, 3, gi_data1);
-    d3d::set_tex(STAGE_CS, 4, gi_data2);
-    d3d::set_tex(STAGE_CS, 5, ptgi_tex_unfiltered);
-    d3d::set_tex(STAGE_CS, 6, ptgi_tex_unfiltered);
-    d3d::set_rwtex(STAGE_CS, 0, iter->second, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 1, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 2, tex.motionVectors);
+    d3d::set_tex(STAGE_CS, 3, tex.data1);
+    d3d::set_tex(STAGE_CS, 4, tex.data2);
+    d3d::set_tex(STAGE_CS, 5, tex.unfiltered);
+    d3d::set_tex(STAGE_CS, 6, tex.unfiltered);
+    d3d::set_rwtex(STAGE_CS, 0, tex.validation, 0, 0);
 
     // The validation shader runs 16x16 threads, one group covers a whole tile.
     reblurValidation->dispatch(tilesWidth, tilesHeight, 1);
   }
 
-  d3d::set_const_buffer(STAGE_CS, 0, nullptr);
+  if (secondChance)
+  {
+    TIME_D3D_PROFILE(reblur::behind_history);
 
-  d3d::resource_barrier(ResourceBarrierDesc(denoised_gi, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
+    d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
+    d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
+
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
+    d3d::set_tex(STAGE_CS, 0, tex.prevViewZ.current);
+    d3d::set_tex(STAGE_CS, 1, tex.prevInternalData.current);
+    d3d::set_tex(STAGE_CS, 2, tex.diffHistory.current);
+    d3d::set_tex(STAGE_CS, 3, tex.diffFastHistory.current);
+    d3d::set_tex(STAGE_CS, 4, tex.behindViewZ.history);
+    d3d::set_tex(STAGE_CS, 5, tex.behindInternalData.history);
+    d3d::set_tex(STAGE_CS, 6, tex.behindDiffHistory.history);
+    d3d::set_tex(STAGE_CS, 7, tex.behindDiffFastHistory.history);
+    d3d::set_tex(STAGE_CS, 8, tex.prevViewZ.history);
+    d3d::set_tex(STAGE_CS, 9, tex.prevInternalData.history);
+    d3d::set_tex(STAGE_CS, 10, tex.diffHistory.history);
+    d3d::set_tex(STAGE_CS, 11, tex.diffFastHistory.history);
+    d3d::set_rwtex(STAGE_CS, 0, tex.behindViewZ.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.behindInternalData.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, tex.behindDiffHistory.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, tex.behindDiffFastHistory.current, 0, 0);
+
+    reblurDiffuseBehindHistory->dispatchThreads(width, height, 1);
+  }
+
+  d3d::set_const_buffer(STAGE_CS, 0, nullptr);
 }
 
-static void denoise_reflection_reblur(const ReflectionDenoiser &params)
+static void denoise_reflection_reblur(const ReflectionParams &params, const ReflectionTextures &tex, bool use_smart_depth)
 {
   TIME_D3D_PROFILE(denoise_reflection_reblur);
 
-#define NAME(name) ACQUIRE_TEXTURE(name)
-  ENUM_RTR_DENOISED_SHARED_PERSISTENT_NAMES;
-  ENUM_RTR_DENOISED_SHARED_TRANSIENT_NAMES;
-  ENUM_RTR_DENOISED_REBLUR_PERSISTENT_NAMES;
-  ENUM_RTR_DENOISED_REBLUR_TRANSIENT_NAMES;
-#undef NAME
-
-  const IPoint2 &resolution = params.halfResolution ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
+  const IPoint2 resolution = texture_size(tex.unfiltered);
   const IPoint2 tilesResolution = IPoint2(divide_up(resolution.x, 16), divide_up(resolution.y, 16));
 
   int width = resolution.x, height = resolution.y, tilesWidth = tilesResolution.x, tilesHeight = tilesResolution.y;
-  bool halfRes = params.halfResolution;
-
-  GET_DENOISER_TEXTURES(params, halfRes);
-  auto &rtr_tmp1 = rtr_tex;
-
-  d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtr_normal_roughness_bindless_index, normalRoughness);
-  d3d::resource_barrier(ResourceBarrierDesc(normalRoughness, RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0));
-  ShaderGlobal::set_int(rtr_normal_roughness_bindless_slotVarId, bindless_range + rtr_normal_roughness_bindless_index);
+  Texture *tmp1 = tex.denoised;
 
   ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
-    IPoint2{resolution_config.rtr.width, resolution_config.rtr.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
-    false, params.antiFirefly, params.useSmartDepth);
+    resolution, texture_size(tex.reblur.prevViewZ.history), params.maxStabilizedFrameNum, params.checkerboard, false,
+    params.antiFirefly, use_smart_depth);
 
   Sbuffer *reblurSharedCb =
     create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_reflection, reblurSharedConstants, "ReblurSharedConstantsCB_reflection");
-
-  auto hitd_ping = (frame_counter & 1) == 0 ? reblur_spec_hitdist_for_tracking_ping : reblur_spec_hitdist_for_tracking_pong;
-  auto hitd_pong = (frame_counter & 1) != 0 ? reblur_spec_hitdist_for_tracking_ping : reblur_spec_hitdist_for_tracking_pong;
-
-  auto stab_ping = (frame_counter & 1) == 0 ? reblur_spec_history_stabilized_ping : reblur_spec_history_stabilized_pong;
-  auto stab_pong = (frame_counter & 1) != 0 ? reblur_spec_history_stabilized_ping : reblur_spec_history_stabilized_pong;
 
   ShaderGlobal::set_int4(denoiser_resolutionVarId, width, height, 0, 0);
 
@@ -2129,8 +1744,8 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     TIME_D3D_PROFILE(reblur::classify_tiles);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, viewZ);
-    d3d::set_rwtex(STAGE_CS, 0, rtr_reblur_tiles, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.viewZ);
+    d3d::set_rwtex(STAGE_CS, 0, tex.reblur.tiles, 0, 0);
 
     reblurClassifyTiles->dispatch(tilesWidth, tilesHeight, 1);
   }
@@ -2142,12 +1757,12 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
-    d3d::set_tex(STAGE_CS, 3, rtr_tex_unfiltered);
-    d3d::set_rwtex(STAGE_CS, 0, rtr_tmp1, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtr_hitdistForTracking, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.reblur.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 3, tex.unfiltered);
+    d3d::set_rwtex(STAGE_CS, 0, tmp1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.reblur.hitDistForTrackingTemp, 0, 0);
 
     if (params.performanceMode)
       reblurSpecularPerfPrepass->dispatch(tilesWidth, tilesHeight, 1);
@@ -2162,25 +1777,25 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
-    d3d::set_tex(STAGE_CS, 3, motionVectors);
-    d3d::set_tex(STAGE_CS, 4, reblur_spec_prev_view_z);
-    d3d::set_tex(STAGE_CS, 5, reblur_spec_prev_normal_roughness);
-    d3d::set_tex(STAGE_CS, 6, reblur_spec_prev_internal_data);
-    d3d::set_tex(STAGE_CS, 7, viewZ); // dummy
-    d3d::set_tex(STAGE_CS, 8, viewZ); // dummy
-    d3d::set_tex(STAGE_CS, 9, rtr_tmp1);
-    d3d::set_tex(STAGE_CS, 10, reblur_spec_history);
-    d3d::set_tex(STAGE_CS, 11, reblur_spec_fast_history);
-    d3d::set_tex(STAGE_CS, 12, hitd_ping);
-    d3d::set_tex(STAGE_CS, 13, rtr_hitdistForTracking);
-    d3d::set_rwtex(STAGE_CS, 0, rtr_data1, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtr_tmp2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, rtr_fastHistory, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 3, hitd_pong, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 4, rtr_data2, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.reblur.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 3, tex.motionVectors);
+    d3d::set_tex(STAGE_CS, 4, tex.reblur.prevViewZ.history);
+    d3d::set_tex(STAGE_CS, 5, tex.reblur.prevNormalRoughness.history);
+    d3d::set_tex(STAGE_CS, 6, tex.reblur.prevInternalData.history);
+    d3d::set_tex(STAGE_CS, 7, tex.viewZ); // dummy
+    d3d::set_tex(STAGE_CS, 8, tex.viewZ); // dummy
+    d3d::set_tex(STAGE_CS, 9, tmp1);
+    d3d::set_tex(STAGE_CS, 10, tex.reblur.history.history);
+    d3d::set_tex(STAGE_CS, 11, tex.reblur.fastHistory.history);
+    d3d::set_tex(STAGE_CS, 12, tex.reblur.hitDistForTracking.history);
+    d3d::set_tex(STAGE_CS, 13, tex.reblur.hitDistForTrackingTemp);
+    d3d::set_rwtex(STAGE_CS, 0, tex.reblur.data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.reblur.tmp2, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, tex.reblur.fastHistoryTemp, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, tex.reblur.hitDistForTracking.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 4, tex.reblur.data2, 0, 0);
 
     if (params.performanceMode)
       reblurSpecularPerfTemporalAccumulation->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2195,15 +1810,15 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, rtr_data1);
-    d3d::set_tex(STAGE_CS, 3, viewZ);
-    d3d::set_tex(STAGE_CS, 4, rtr_tmp2);
-    d3d::set_tex(STAGE_CS, 5, rtr_fastHistory);
-    d3d::set_tex(STAGE_CS, 6, hitd_pong);
-    d3d::set_rwtex(STAGE_CS, 0, rtr_tmp1, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, reblur_spec_fast_history, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.reblur.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.reblur.data1);
+    d3d::set_tex(STAGE_CS, 3, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 4, tex.reblur.tmp2);
+    d3d::set_tex(STAGE_CS, 5, tex.reblur.fastHistoryTemp);
+    d3d::set_tex(STAGE_CS, 6, tex.reblur.hitDistForTracking.current);
+    d3d::set_rwtex(STAGE_CS, 0, tmp1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.reblur.fastHistory.current, 0, 0);
 
     if (params.performanceMode)
       reblurSpecularPerfHistoryFix->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2218,13 +1833,13 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
-    d3d::set_tex(STAGE_CS, 3, rtr_data1);
-    d3d::set_tex(STAGE_CS, 4, rtr_tmp1);
-    d3d::set_rwtex(STAGE_CS, 0, reblur_spec_prev_view_z, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtr_tmp2, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.reblur.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 3, tex.reblur.data1);
+    d3d::set_tex(STAGE_CS, 4, tmp1);
+    d3d::set_rwtex(STAGE_CS, 0, tex.reblur.prevViewZ.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.reblur.tmp2, 0, 0);
 
     if (params.performanceMode)
       reblurSpecularPerfBlur->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2239,13 +1854,13 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, rtr_data1);
-    d3d::set_tex(STAGE_CS, 3, reblur_spec_prev_view_z);
-    d3d::set_tex(STAGE_CS, 4, rtr_tmp2);
-    d3d::set_rwtex(STAGE_CS, 0, reblur_spec_prev_normal_roughness, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, reblur_spec_history, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.reblur.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.reblur.data1);
+    d3d::set_tex(STAGE_CS, 3, tex.reblur.prevViewZ.current);
+    d3d::set_tex(STAGE_CS, 4, tex.reblur.tmp2);
+    d3d::set_rwtex(STAGE_CS, 0, tex.reblur.prevNormalRoughness.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.reblur.history.current, 0, 0);
 
     if (params.performanceMode)
       reblurSpecularPerfPostBlur->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2260,18 +1875,18 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, reblur_spec_prev_view_z);
-    d3d::set_tex(STAGE_CS, 3, rtr_data1);
-    d3d::set_tex(STAGE_CS, 4, rtr_data2);
-    d3d::set_tex(STAGE_CS, 5, hitd_pong);
-    d3d::set_tex(STAGE_CS, 6, reblur_spec_history);
-    d3d::set_tex(STAGE_CS, 7, stab_ping);
-    d3d::set_tex(STAGE_CS, 13, motionVectors);
-    d3d::set_rwtex(STAGE_CS, 1, reblur_spec_prev_internal_data, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, rtr_tex, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 3, stab_pong, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.reblur.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.reblur.prevViewZ.current);
+    d3d::set_tex(STAGE_CS, 3, tex.reblur.data1);
+    d3d::set_tex(STAGE_CS, 4, tex.reblur.data2);
+    d3d::set_tex(STAGE_CS, 5, tex.reblur.hitDistForTracking.current);
+    d3d::set_tex(STAGE_CS, 6, tex.reblur.history.current);
+    d3d::set_tex(STAGE_CS, 7, tex.reblur.historyStabilized.history);
+    d3d::set_tex(STAGE_CS, 13, tex.motionVectors);
+    d3d::set_rwtex(STAGE_CS, 1, tex.reblur.prevInternalData.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, tex.denoised, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, tex.reblur.historyStabilized.current, 0, 0);
 
     if (params.performanceMode)
       reblurSpecularPerfTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2279,19 +1894,19 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
       reblurSpecularTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
   }
 
-  if (auto iter = params.textures.find(ReflectionDenoiser::TextureNames::rtr_validation); iter != params.textures.end())
+  if (tex.validation)
   {
     TIME_D3D_PROFILE(reblur::validation);
 
     d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
-    d3d::set_tex(STAGE_CS, 0, normalRoughness);
-    d3d::set_tex(STAGE_CS, 1, viewZ);
-    d3d::set_tex(STAGE_CS, 2, motionVectors);
-    d3d::set_tex(STAGE_CS, 3, rtr_data1);
-    d3d::set_tex(STAGE_CS, 4, rtr_data2);
-    d3d::set_tex(STAGE_CS, 5, rtr_tex_unfiltered);
-    d3d::set_tex(STAGE_CS, 6, rtr_tex_unfiltered);
-    d3d::set_rwtex(STAGE_CS, 0, iter->second, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 1, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 2, tex.motionVectors);
+    d3d::set_tex(STAGE_CS, 3, tex.reblur.data1);
+    d3d::set_tex(STAGE_CS, 4, tex.reblur.data2);
+    d3d::set_tex(STAGE_CS, 5, tex.unfiltered);
+    d3d::set_tex(STAGE_CS, 6, tex.unfiltered);
+    d3d::set_rwtex(STAGE_CS, 0, tex.validation, 0, 0);
 
     reblurValidation->dispatch(tilesWidth * 2, tilesHeight, 1);
   }
@@ -2310,13 +1925,12 @@ inline float3 RELAX_GetFrustumForward(const float4x4 &viewToWorld, const float4 
   return frustumForwardWorld;
 }
 
-static RelaxSharedConstants make_relax_shared_constants(IPoint2 res_size, bool half_res, bool checkerboard,
+// the textures are the rect, the history keeps the size of its frame
+static RelaxSharedConstants make_relax_shared_constants(const IPoint2 &resolution, const IPoint2 &prev_resolution, bool checkerboard,
   int max_stabilized_frame_num, int max_fast_stabilized_frame_num, bool override_checker_accum)
 {
-  const IPoint2 &resolution = half_res ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
   int width = resolution.x, height = resolution.y;
-  const IPoint2 &prevResolution = half_res ? resolution_config.dynRes.prevHalfRes : resolution_config.dynRes.prevRes;
-  int prevWidth = prevResolution.x, prevHeight = prevResolution.y;
+  int prevWidth = prev_resolution.x, prevHeight = prev_resolution.y;
 
   float unproject = 1.0f / (0.5f * height * abs(projectY));
 
@@ -2334,12 +1948,11 @@ static RelaxSharedConstants make_relax_shared_constants(IPoint2 res_size, bool h
 
   float3 cameraDelta = prev_view_pos - view_pos;
 
-  float specMaxAccumulatedFrameNum =
-    reset_history ? 0 : min(max_stabilized_frame_num, ReflectionDenoiser::RELAX_MAX_HISTORY_FRAME_NUM);
+  float specMaxAccumulatedFrameNum = reset_history ? 0 : min(max_stabilized_frame_num, ReflectionParams::RELAX_MAX_HISTORY_FRAME_NUM);
   float specMaxFastAccumulatedFrameNum =
-    reset_history ? 0 : min(max_fast_stabilized_frame_num, ReflectionDenoiser::RELAX_MAX_HISTORY_FRAME_NUM);
-  float diffMaxAccumulatedFrameNum = reset_history ? 0 : min(30, ReflectionDenoiser::RELAX_MAX_HISTORY_FRAME_NUM);
-  float diffMaxFastAccumulatedFrameNum = reset_history ? 0 : min(6, ReflectionDenoiser::RELAX_MAX_HISTORY_FRAME_NUM);
+    reset_history ? 0 : min(max_fast_stabilized_frame_num, ReflectionParams::RELAX_MAX_HISTORY_FRAME_NUM);
+  float diffMaxAccumulatedFrameNum = reset_history ? 0 : min(30, ReflectionParams::RELAX_MAX_HISTORY_FRAME_NUM);
+  float diffMaxFastAccumulatedFrameNum = reset_history ? 0 : min(6, ReflectionParams::RELAX_MAX_HISTORY_FRAME_NUM);
 
   float disocclusionThresholdBonus = (1.0f + jitter_delta) / float(height);
   float disocclusionThreshold = 0.01 + disocclusionThresholdBonus;
@@ -2369,13 +1982,13 @@ static RelaxSharedConstants make_relax_shared_constants(IPoint2 res_size, bool h
 
   // float2
   relaxSharedConstants.jitter = float2(jitter.x * width, jitter.y * height);
-  relaxSharedConstants.resolutionScale = float2(float(width) / float(res_size.x), float(height) / float(res_size.y));
+  relaxSharedConstants.resolutionScale = float2(1, 1);
   relaxSharedConstants.rectOffset = float2(0, 0);
-  relaxSharedConstants.resourceSizeInv = float2(1.0 / res_size.x, 1.0 / res_size.y);
-  relaxSharedConstants.resourceSize = float2(res_size.x, res_size.y);
+  relaxSharedConstants.resourceSizeInv = float2(1.0 / width, 1.0 / height);
+  relaxSharedConstants.resourceSize = float2(width, height);
   relaxSharedConstants.rectSizeInv = float2(1.0 / width, 1.0 / height);
   relaxSharedConstants.rectSizePrev = float2(prevWidth, prevHeight);
-  relaxSharedConstants.resourceSizeInvPrev = float2(1.0 / res_size.x, 1.0 / res_size.y);
+  relaxSharedConstants.resourceSizeInvPrev = float2(1.0 / prevWidth, 1.0 / prevHeight);
 
   // uint2
   relaxSharedConstants.printfAt = uint2(0, 0);
@@ -2410,7 +2023,7 @@ static RelaxSharedConstants make_relax_shared_constants(IPoint2 res_size, bool h
   relaxSharedConstants.historyResetTemporalSigmaScale = 0.5;
   relaxSharedConstants.historyResetSpatialSigmaScale = 4.5;
   relaxSharedConstants.historyResetAmount = 0.5;
-  relaxSharedConstants.denoisingRange = 100000;
+  relaxSharedConstants.denoisingRange = DENOISING_RANGE;
   relaxSharedConstants.specPhiLuminance = 1;
   relaxSharedConstants.diffPhiLuminance = 2;
   relaxSharedConstants.diffMaxLuminanceRelativeDifference = maxDiffuseLuminanceRelativeDifference;
@@ -2450,32 +2063,17 @@ static RelaxSharedConstants make_relax_shared_constants(IPoint2 res_size, bool h
   return relaxSharedConstants;
 }
 
-static void denoise_reflection_relax(const ReflectionDenoiser &params)
+static void denoise_reflection_relax(const ReflectionParams &params, const ReflectionTextures &tex, bool use_smart_depth)
 {
   TIME_D3D_PROFILE(denoise_reflection_relax);
 
-#define NAME(name) ACQUIRE_TEXTURE(name)
-  ENUM_RTR_DENOISED_SHARED_PERSISTENT_NAMES;
-  ENUM_RTR_DENOISED_SHARED_TRANSIENT_NAMES;
-  ENUM_RTR_DENOISED_RELAX_PERSISTENT_NAMES;
-  ENUM_RTR_DENOISED_RELAX_TRANSIENT_NAMES;
-#undef NAME
-
-  const IPoint2 &resolution = params.halfResolution ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
+  const IPoint2 resolution = texture_size(tex.unfiltered);
   const IPoint2 tilesResolution = IPoint2(divide_up(resolution.x, 16), divide_up(resolution.y, 16));
 
   int width = resolution.x, height = resolution.y, tilesWidth = tilesResolution.x, tilesHeight = tilesResolution.y;
-  bool halfRes = params.halfResolution;
 
-  GET_DENOISER_TEXTURES(params, halfRes);
-
-  d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtr_normal_roughness_bindless_index, normalRoughness);
-  d3d::resource_barrier(ResourceBarrierDesc(normalRoughness, RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0));
-  ShaderGlobal::set_int(rtr_normal_roughness_bindless_slotVarId, bindless_range + rtr_normal_roughness_bindless_index);
-
-  RelaxSharedConstants relaxSharedConstants =
-    make_relax_shared_constants(IPoint2{resolution_config.rtr.width, resolution_config.rtr.height}, halfRes, params.checkerboard,
-      params.maxStabilizedFrameNum, params.maxFastStabilizedFrameNum, params.useSmartDepth);
+  RelaxSharedConstants relaxSharedConstants = make_relax_shared_constants(resolution, texture_size(tex.relax.viewZ.history),
+    params.checkerboard, params.maxStabilizedFrameNum, params.maxFastStabilizedFrameNum, use_smart_depth);
 
   ShaderGlobal::set_int4(denoiser_resolutionVarId, width, height, 0, 0);
 
@@ -2483,8 +2081,8 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     TIME_D3D_PROFILE(relax::classify_tiles);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, viewZ);
-    d3d::set_rwtex(STAGE_CS, 0, rtr_relax_tiles, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.viewZ);
+    d3d::set_rwtex(STAGE_CS, 0, tex.relax.tiles, 0, 0);
 
     relaxClassifyTiles->dispatch(tilesWidth, tilesHeight, 1);
   }
@@ -2496,11 +2094,11 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
-    d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
-    d3d::set_tex(STAGE_CS, 3, rtr_tex_unfiltered);
-    d3d::set_rwtex(STAGE_CS, 0, rtr_tex, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.relax.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 3, tex.unfiltered);
+    d3d::set_rwtex(STAGE_CS, 0, tex.denoised, 0, 0);
 
     relaxSpecularPrepass->dispatch(tilesWidth, tilesHeight, 1);
   }
@@ -2512,31 +2110,25 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
-    d3d::set_tex(STAGE_CS, 1, motionVectors);
-    d3d::set_tex(STAGE_CS, 2, normalRoughness);
-    d3d::set_tex(STAGE_CS, 3, viewZ);
-    d3d::set_tex(STAGE_CS, 4, viewZ); // DUMMY
-    d3d::set_tex(STAGE_CS, 5, relax_spec_normal_roughness_prev);
-    d3d::set_tex(STAGE_CS, 6, relax_spec_view_z_prev);
-    d3d::set_tex(STAGE_CS, 7, relax_spec_history_length_prev);
-    d3d::set_tex(STAGE_CS, 8, relax_spec_material_id_prev);
-    d3d::set_tex(STAGE_CS, 9, rtr_tex);
-    d3d::set_tex(STAGE_CS, 10, relax_spec_illum_responsive_prev);
-    d3d::set_tex(STAGE_CS, 11, relax_spec_illum_prev);
-    if ((frame_counter & 1) == 0)
-      d3d::set_tex(STAGE_CS, 12, relax_spec_reflection_hit_t_prev);
-    else
-      d3d::set_tex(STAGE_CS, 12, relax_spec_reflection_hit_t_curr);
-    d3d::set_tex(STAGE_CS, 13, viewZ); // DUMMY
-    d3d::set_rwtex(STAGE_CS, 0, rtr_historyLength, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtr_specIllumPing, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, rtr_specIllumPong, 0, 0);
-    if ((frame_counter & 1) == 0)
-      d3d::set_rwtex(STAGE_CS, 3, relax_spec_reflection_hit_t_curr, 0, 0);
-    else
-      d3d::set_rwtex(STAGE_CS, 3, relax_spec_reflection_hit_t_prev, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 4, rtr_specReprojectionConfidence, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.relax.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.motionVectors);
+    d3d::set_tex(STAGE_CS, 2, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 3, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 4, tex.viewZ); // DUMMY
+    d3d::set_tex(STAGE_CS, 5, tex.relax.normalRoughness.history);
+    d3d::set_tex(STAGE_CS, 6, tex.relax.viewZ.history);
+    d3d::set_tex(STAGE_CS, 7, tex.relax.historyLength.history);
+    d3d::set_tex(STAGE_CS, 8, tex.relax.materialId.history);
+    d3d::set_tex(STAGE_CS, 9, tex.denoised);
+    d3d::set_tex(STAGE_CS, 10, tex.relax.illumResponsive.history);
+    d3d::set_tex(STAGE_CS, 11, tex.relax.illum.history);
+    d3d::set_tex(STAGE_CS, 12, tex.relax.reflectionHitT.history);
+    d3d::set_tex(STAGE_CS, 13, tex.viewZ); // DUMMY
+    d3d::set_rwtex(STAGE_CS, 0, tex.relax.historyLengthTemp, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.relax.illumPing, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, tex.relax.illumPong, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, tex.relax.reflectionHitT.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 4, tex.relax.reprojectionConfidence, 0, 0);
 
     relaxSpecularTemporalAccumulation->dispatch(tilesWidth * 2, tilesHeight, 1);
   }
@@ -2548,12 +2140,12 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
-    d3d::set_tex(STAGE_CS, 1, rtr_historyLength);
-    d3d::set_tex(STAGE_CS, 2, normalRoughness);
-    d3d::set_tex(STAGE_CS, 3, viewZ);
-    d3d::set_tex(STAGE_CS, 4, rtr_specIllumPing);
-    d3d::set_rwtex(STAGE_CS, 0, rtr_specIllumPong, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.relax.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.relax.historyLengthTemp);
+    d3d::set_tex(STAGE_CS, 2, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 3, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 4, tex.relax.illumPing);
+    d3d::set_rwtex(STAGE_CS, 0, tex.relax.illumPong, 0, 0);
 
     relaxSpecularHistoryFix->dispatch(tilesWidth * 2, tilesHeight * 2, 1);
   }
@@ -2565,15 +2157,15 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
-    d3d::set_tex(STAGE_CS, 1, viewZ);
-    d3d::set_tex(STAGE_CS, 2, rtr_historyLength);
-    d3d::set_tex(STAGE_CS, 3, rtr_tex);
-    d3d::set_tex(STAGE_CS, 4, rtr_specIllumPing);
-    d3d::set_tex(STAGE_CS, 5, rtr_specIllumPong);
-    d3d::set_rwtex(STAGE_CS, 0, relax_spec_history_length_prev, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, relax_spec_illum_prev, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, relax_spec_illum_responsive_prev, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.relax.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 2, tex.relax.historyLengthTemp);
+    d3d::set_tex(STAGE_CS, 3, tex.denoised);
+    d3d::set_tex(STAGE_CS, 4, tex.relax.illumPing);
+    d3d::set_tex(STAGE_CS, 5, tex.relax.illumPong);
+    d3d::set_rwtex(STAGE_CS, 0, tex.relax.historyLength.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, tex.relax.illum.current, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, tex.relax.illumResponsive.current, 0, 0);
 
     relaxSpecularHistoryClamping->dispatch(tilesWidth * 2, tilesHeight * 2, 1);
   }
@@ -2596,31 +2188,31 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
-    d3d::set_tex(STAGE_CS, 1, rtr_historyLength);
-    d3d::set_tex(STAGE_CS, 2, normalRoughness);
-    d3d::set_tex(STAGE_CS, 3, viewZ);
+    d3d::set_tex(STAGE_CS, 0, tex.relax.tiles);
+    d3d::set_tex(STAGE_CS, 1, tex.relax.historyLengthTemp);
+    d3d::set_tex(STAGE_CS, 2, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 3, tex.viewZ);
     if (isSmem)
-      d3d::set_tex(STAGE_CS, 4, relax_spec_illum_prev);
+      d3d::set_tex(STAGE_CS, 4, tex.relax.illum.current);
     else if (isEven)
-      d3d::set_tex(STAGE_CS, 4, rtr_specIllumPong);
+      d3d::set_tex(STAGE_CS, 4, tex.relax.illumPong);
     else
-      d3d::set_tex(STAGE_CS, 4, rtr_specIllumPing);
-    d3d::set_tex(STAGE_CS, 5, rtr_specReprojectionConfidence);
-    d3d::set_tex(STAGE_CS, 6, viewZ); // hasConfidenceInputs
+      d3d::set_tex(STAGE_CS, 4, tex.relax.illumPing);
+    d3d::set_tex(STAGE_CS, 5, tex.relax.reprojectionConfidence);
+    d3d::set_tex(STAGE_CS, 6, tex.viewZ); // hasConfidenceInputs
 
     if (isLast)
-      d3d::set_rwtex(STAGE_CS, 0, rtr_tex, 0, 0);
+      d3d::set_rwtex(STAGE_CS, 0, tex.denoised, 0, 0);
     else if (isEven)
-      d3d::set_rwtex(STAGE_CS, 0, rtr_specIllumPing, 0, 0);
+      d3d::set_rwtex(STAGE_CS, 0, tex.relax.illumPing, 0, 0);
     else
-      d3d::set_rwtex(STAGE_CS, 0, rtr_specIllumPong, 0, 0);
+      d3d::set_rwtex(STAGE_CS, 0, tex.relax.illumPong, 0, 0);
 
     if (isSmem)
     {
-      d3d::set_rwtex(STAGE_CS, 1, relax_spec_normal_roughness_prev, 0, 0);
-      d3d::set_rwtex(STAGE_CS, 2, relax_spec_material_id_prev, 0, 0);
-      d3d::set_rwtex(STAGE_CS, 3, relax_spec_view_z_prev, 0, 0);
+      d3d::set_rwtex(STAGE_CS, 1, tex.relax.normalRoughness.current, 0, 0);
+      d3d::set_rwtex(STAGE_CS, 2, tex.relax.materialId.current, 0, 0);
+      d3d::set_rwtex(STAGE_CS, 3, tex.relax.viewZ.current, 0, 0);
     }
 
     if (isSmem)
@@ -2629,63 +2221,1347 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
       relaxSpecularATorus->dispatch(tilesWidth, tilesHeight, 1);
   }
 
-  if (auto iter = params.textures.find(ReflectionDenoiser::TextureNames::rtr_validation); iter != params.textures.end())
+  if (tex.validation)
   {
     TIME_D3D_PROFILE(relax::validation);
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
-    d3d::set_tex(STAGE_CS, 0, normalRoughness);
-    d3d::set_tex(STAGE_CS, 1, viewZ);
-    d3d::set_tex(STAGE_CS, 2, motionVectors);
-    d3d::set_tex(STAGE_CS, 3, rtr_historyLength);
-    d3d::set_rwtex(STAGE_CS, 0, iter->second, 0, 0);
+    d3d::set_tex(STAGE_CS, 0, tex.normalRoughness);
+    d3d::set_tex(STAGE_CS, 1, tex.viewZ);
+    d3d::set_tex(STAGE_CS, 2, tex.motionVectors);
+    d3d::set_tex(STAGE_CS, 3, tex.relax.historyLengthTemp);
+    d3d::set_rwtex(STAGE_CS, 0, tex.validation, 0, 0);
 
     relaxValidation->dispatch(tilesWidth * 2, tilesHeight, 1);
   }
 }
 
-void denoise_reflection(const ReflectionDenoiser &params)
+static void blur_reflection(const ReflectionParams &params, const ReflectionTextures &tex)
 {
-  if (resolution_config.useRayReconstruction)
-  {
-    ACQUIRE_TEXTURE(rtr_tex_unfiltered);
-    d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtr_bindless_index, rtr_tex_unfiltered);
-    ShaderGlobal::set_int(rtr_bindless_slotVarId, bindless_range + rtr_bindless_index);
-    d3d::resource_barrier(ResourceBarrierDesc(rtr_tex_unfiltered, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
+  TIME_D3D_PROFILE(blur_reflection);
+
+  // made on the first use: the other methods run with a shader dump that lacks it
+  if (!reflectionBlurCS)
+    reflectionBlurCS = new_compute_shader("denoiser_reflection_blur");
+  if (!reflectionBlurCS)
     return;
-  }
 
-  ACQUIRE_TEXTURE(rtr_tex);
+  const IPoint2 resolution = texture_size(tex.unfiltered);
+  const float radius = params.blurRadius * resolution.y;
+  const float texelsPerUnit = 0.5f * resolution.y * fabsf(projectY); // the inverse of the unproject of NRD
+  // a checkerboard trace shoots the texels where x + y has the parity of the frame, the first pass fills the others. 2 is a
+  // full source, as in NRD
+  const int checkerboard = params.checkerboard ? int(frame_counter & 1) : 2;
+  ShaderGlobal::set_int4(denoiser_resolutionVarId, resolution.x, resolution.y, 0, 0);
+  ShaderGlobal::set_float(denoiser_blur_max_radiusVarId, radius);
+  ShaderGlobal::set_float(denoiser_blur_max_roughnessVarId, params.blurMaxRoughness);
+  ShaderGlobal::set_float(denoiser_blur_texels_per_unitVarId, texelsPerUnit);
+  ShaderGlobal::set_texture(denoiser_blur_view_zVarId, tex.viewZ);
+  ShaderGlobal::set_texture(denoiser_blur_nrVarId, tex.normalRoughness);
 
-  d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtr_bindless_index, rtr_tex);
-  ShaderGlobal::set_int(rtr_bindless_slotVarId, bindless_range + rtr_bindless_index);
+  auto pass = [&](Texture *src, Texture *dst, bool vertical, bool last) {
+    ShaderGlobal::set_texture(denoiser_blur_srcVarId, src);
+    ShaderGlobal::set_texture(denoiser_blur_dstVarId, dst);
+    ShaderGlobal::set_int(denoiser_blur_verticalVarId, vertical ? 1 : 0);
+    ShaderGlobal::set_int(denoiser_blur_last_passVarId, last ? 1 : 0);
+    ShaderGlobal::set_int(denoiser_blur_checkerboardVarId, last ? 2 : checkerboard);
+    reflectionBlurCS->dispatchThreads(resolution.x, resolution.y, 1);
+  };
+  pass(tex.unfiltered, tex.blurTemp, false, false);
+  pass(tex.blurTemp, tex.denoised, true, true);
 
-  if (reset_history)
-    clear_texture(rtr_tex);
+  ShaderGlobal::set_texture(denoiser_blur_srcVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_blur_dstVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_blur_view_zVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_blur_nrVarId, nullptr);
 
-  switch (params.method)
+  // the pyramid for the lobes wider than the blur
+  if (!reflectionMipFirstCS)
+    reflectionMipFirstCS = new_compute_shader("denoiser_reflection_mip_first");
+  if (!reflectionMipCS)
+    reflectionMipCS = new_compute_shader("denoiser_reflection_mip");
+  if (!reflectionMipFirstCS || !reflectionMipCS)
+    return;
+  TextureInfo info;
+  tex.denoised->getinfo(info);
+  for (int mip = 1; mip < info.mipLevels; ++mip)
   {
-    case ReflectionMethod::Reblur: denoise_reflection_reblur(params); break;
-    case ReflectionMethod::Relax: denoise_reflection_relax(params); break;
-    default: G_ASSERTF(false, "Reflection denoiser not implemented!");
+    TextureInfo srcInfo, dstInfo;
+    tex.denoised->getinfo(srcInfo, mip - 1);
+    tex.denoised->getinfo(dstInfo, mip);
+    ShaderGlobal::set_int4(denoiser_reflection_mip_dst_sizeVarId, dstInfo.w, dstInfo.h, 0, 0);
+    ShaderGlobal::set_int4(denoiser_reflection_mip_src_sizeVarId, srcInfo.w, srcInfo.h, 0, 0);
+    d3d::resource_barrier({tex.denoised, RB_RO_SRV | RB_STAGE_COMPUTE, unsigned(mip - 1), 1});
+    tex.denoised->texmiplevel(mip - 1, mip - 1);
+    d3d::set_tex(STAGE_CS, 0, tex.denoised);
+    d3d::set_rwtex(STAGE_CS, 0, tex.denoised, 0, mip);
+    (mip == 1 ? reflectionMipFirstCS : reflectionMipCS)->dispatchThreads(dstInfo.w, dstInfo.h, 1);
   }
-
-  d3d::resource_barrier(ResourceBarrierDesc(rtr_tex, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
+  d3d::set_tex(STAGE_CS, 0, nullptr);
+  d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
+  tex.denoised->texmiplevel(-1, -1);
+  d3d::resource_barrier({tex.denoised, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
 }
 
-void denoise_reflection_noop(const ReflectionDenoiser &params)
+static void denoise_reflection(const ReflectionParams &params, const ReflectionTextures &tex, ReflectionMethod method,
+  bool use_smart_depth)
 {
-  if (resolution_config.useRayReconstruction)
-    return;
-
-  if (params.method != ReflectionMethod::Reblur && params.method != ReflectionMethod::Relax)
-    return;
-
-  GET_DENOISER_TEXTURES(params, params.halfResolution);
-  d3d::resource_barrier(ResourceBarrierDesc(normalRoughness, RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0));
+  switch (method)
+  {
+    case ReflectionMethod::Reblur: denoise_reflection_reblur(params, tex, use_smart_depth); break;
+    case ReflectionMethod::Relax: denoise_reflection_relax(params, tex, use_smart_depth); break;
+    case ReflectionMethod::Blur: blur_reflection(params, tex); break;
+    default: G_ASSERTF(false, "Reflection denoiser not implemented!");
+  }
 }
 
 int get_frame_number() { return frame_counter; }
+
+// --- daFG nodes --------------------------------------------------------------------------------------------
+
+using OrderingToken = eastl::monostate; // the type of an ordering blob, as the games name it
+
+// set at the registration of the prepare node and of the reflection node, read when a trace declares its view z
+// and when a reader declares the prepare outputs an effect publishes through bindless
+static bool shadow_trace_in_graph = false;
+static eastl::optional<Inputs> reflection_inputs_in_graph;
+// the auto resolution of the prepare node, every texture of the lib follows it
+static eastl::string resolution_name;
+
+using RwTex = eastl::optional<dafg::VirtualResourceHandle<BaseTexture, true, false>>;
+using RoTex = eastl::optional<dafg::VirtualResourceHandle<const BaseTexture, true, false>>;
+
+template <typename H>
+static Texture *ptr(const eastl::optional<H> &handle)
+{
+  return handle ? handle->get() : nullptr;
+}
+
+static const char *view_z_name(Inputs inputs)
+{
+  return inputs == Inputs::Full ? "denoiser_view_z" : inputs == Inputs::Half ? "denoiser_half_view_z" : "denoiser_half_view_z_rtr";
+}
+
+static const char *normal_roughness_name(Inputs inputs)
+{
+  return inputs == Inputs::Full ? "denoiser_nr" : inputs == Inputs::Half ? "denoiser_half_nr" : "denoiser_half_nr_rtr";
+}
+
+Inputs reflection_inputs(bool checkerboard_depth, bool smart_depth)
+{
+  return !resolution_config.rtrHalfRes ? Inputs::Full : (checkerboard_depth || smart_depth) ? Inputs::HalfRtr : Inputs::Half;
+}
+
+static const char *reflection_view_z_name(Inputs inputs)
+{
+  return inputs == Inputs::Full   ? "denoiser_view_z_reflection"
+         : inputs == Inputs::Half ? "denoiser_half_view_z_reflection"
+                                  : "denoiser_half_view_z_rtr_reflection";
+}
+
+// the name of a view z after the traces that mark it, for a reader after them
+static const char *final_view_z_name(Inputs inputs)
+{
+  if (reflection_inputs_in_graph.has_value() && *reflection_inputs_in_graph == inputs)
+    return reflection_view_z_name(inputs);
+  if (inputs == Inputs::Full && shadow_trace_in_graph)
+    return "denoiser_view_z_shadow";
+  return view_z_name(inputs);
+}
+
+dafg::NodeHandle make_gi_view_z_node()
+{
+  return dafg::root().registerNode("denoiser_gi_view_z", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    const Config &cfg = resolution_config;
+    if (!cfg.ptgiUseRayReconstruction)
+      registry.renameTexture(final_view_z_name(cfg.ptgiHalfRes ? Inputs::Half : Inputs::Full), "denoiser_gi_view_z");
+  });
+}
+
+dafg::NodeHandle make_reflection_normal_roughness_node()
+{
+  return dafg::root().registerNode("denoiser_reflection_normal_roughness", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    if (reflection_inputs_in_graph)
+      registry.renameTexture(normal_roughness_name(*reflection_inputs_in_graph), "denoiser_reflection_normal_roughness");
+  });
+}
+
+static int bindless_sampler(bool linear) { return d3d::register_bindless_sampler(linear ? samplerLinearClamp : samplerNearestClamp); }
+
+ParamsHandle<PrepareParams> create_prepare_params(dafg::Registry registry)
+{
+  return registry.createBlob<PrepareParams>("denoiser_prepare_params").handle();
+}
+ParamsHandle<ShadowParams> create_shadow_params(dafg::Registry registry)
+{
+  return registry.createBlob<ShadowParams>("denoiser_shadow_params").handle();
+}
+ParamsHandle<AOParams> create_ao_params(dafg::Registry registry)
+{
+  return registry.createBlob<AOParams>("denoiser_ao_params").handle();
+}
+ParamsHandle<GIParams> create_gi_params(dafg::Registry registry)
+{
+  return registry.createBlob<GIParams>("denoiser_gi_params").handle();
+}
+ParamsHandle<ReflectionParams> create_reflection_params(dafg::Registry registry)
+{
+  return registry.createBlob<ReflectionParams>("denoiser_reflection_params").handle();
+}
+
+OutputRwHandle create_shadow_trace_output(dafg::Registry registry, const char *shader_var)
+{
+  const uint32_t format = resolution_config.useRayReconstruction ? TEXFMT_R8 : TEXFMT_R16F;
+  return registry.create("rtsm_value")
+    .texture({format | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str())})
+    .atStage(dafg::Stage::CS)
+    .bindToShaderVar(shader_var)
+    .handle();
+}
+
+OutputRwHandle create_ao_trace_output(dafg::Registry registry, const char *shader_var)
+{
+  const bool halfRes = resolution_config.rtaoHalfRes;
+  return registry.create("rtao_tex_unfiltered")
+    .texture({TEXFMT_L16 | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), halfRes ? 0.5f : 1.f)})
+    .atStage(dafg::Stage::CS)
+    .bindToShaderVar(shader_var)
+    .handle();
+}
+
+OutputRwHandle create_gi_trace_output(dafg::Registry registry, const char *shader_var)
+{
+  const bool halfRes = resolution_config.ptgiHalfRes;
+  return registry.create("ptgi_tex_unfiltered")
+    .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), halfRes ? 0.5f : 1.f)})
+    .atStage(dafg::Stage::CS)
+    .bindToShaderVar(shader_var)
+    .handle();
+}
+
+OutputRwHandle create_reflection_trace_output(dafg::Registry registry, const char *shader_var)
+{
+  const Config &cfg = resolution_config;
+  const bool halfRes = cfg.rtrHalfRes;
+  if (cfg.useRayReconstruction)
+    return registry.create("rtr_tex_unfiltered")
+      .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), halfRes ? 0.5f : 1.f)})
+      .clear(make_clear_value(0.f, 0.f, 0.f, 1.f))
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar(shader_var)
+      .handle();
+  return registry.create("rtr_tex_unfiltered")
+    .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), halfRes ? 0.5f : 1.f)})
+    .atStage(dafg::Stage::CS)
+    .bindToShaderVar(shader_var)
+    .handle();
+}
+
+OutputRwHandle create_reflection_output(dafg::Registry registry, const char *shader_var, ReflectionMethod method)
+{
+  if (resolution_config.useRayReconstruction)
+    return eastl::nullopt;
+  const bool halfRes = resolution_config.rtrHalfRes;
+  const uint32_t mipLevels = method == ReflectionMethod::Blur ? dafg::AUTO_MIP_COUNT : 1;
+  return registry.create("rtr_tex")
+    .texture(
+      {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), halfRes ? 0.5f : 1.f), mipLevels})
+    .clear(make_clear_value(0.f, 0.f, 0.f, 0.f))
+    .atStage(dafg::Stage::CS)
+    .bindToShaderVar(shader_var)
+    .handle();
+}
+
+dafg::AutoResolutionRequest<2> reflection_resolution(dafg::Registry registry)
+{
+  return registry.getResolution<2>(resolution_name.c_str(), resolution_config.rtrHalfRes ? 0.5f : 1.f);
+}
+
+void read_normal_roughness(dafg::Registry registry, const char *shader_var, Inputs inputs)
+{
+  if (shader_var)
+    registry.root().readTexture(normal_roughness_name(inputs)).atStage(dafg::Stage::PS_OR_CS).bindToShaderVar(shader_var).optional();
+  else
+    registry.root()
+      .readTexture(normal_roughness_name(inputs))
+      .atStage(dafg::Stage::PS_OR_CS)
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .optional();
+}
+
+void read_selected_depth(dafg::Registry registry, const char *shader_var)
+{
+  if (shader_var)
+    registry.root().readTexture("half_selected_depth_rtr").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar(shader_var).optional();
+  else
+    registry.root()
+      .readTexture("half_selected_depth_rtr")
+      .atStage(dafg::Stage::PS_OR_CS)
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .optional();
+}
+
+void order_after_prepare(dafg::Registry registry) { registry.root().readBlob<OrderingToken>("denoiser_prepared"); }
+
+void modify_view_z_for_shadow(dafg::Registry registry, const char *shader_var)
+{
+  if (resolution_config.useRayReconstruction)
+    return;
+  registry.renameTexture("denoiser_view_z", "denoiser_view_z_shadow").atStage(dafg::Stage::CS).bindToShaderVar(shader_var);
+}
+
+void modify_view_z_for_reflection(dafg::Registry registry, const char *shader_var, Inputs inputs)
+{
+  if (resolution_config.useRayReconstruction)
+    return;
+  const char *from =
+    inputs == Inputs::Full ? (shadow_trace_in_graph ? "denoiser_view_z_shadow" : "denoiser_view_z") : view_z_name(inputs);
+  registry.renameTexture(from, reflection_view_z_name(inputs)).atStage(dafg::Stage::CS).bindToShaderVar(shader_var);
+}
+
+OutputHandle read_shadow_output(dafg::Registry registry)
+{
+  if (!d3d::get_driver_desc().caps.hasBindless)
+    return registry.root()
+      .readTexture("rtsm_shadows_denoised")
+      .atStage(dafg::Stage::PS_OR_CS)
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .optional()
+      .handle();
+  return registry.root()
+    .readTexture("rtsm_shadows_denoised")
+    .atStage(dafg::Stage::PS_OR_CS)
+    .bindlessShaderVar("rtsm_bindless_slot")
+    .optional()
+    .handle();
+}
+
+OutputHandle read_ao_output(dafg::Registry registry)
+{
+  if (!d3d::get_driver_desc().caps.hasBindless)
+    return registry.root()
+      .readTexture("denoised_ao")
+      .atStage(dafg::Stage::PS_OR_CS)
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .optional()
+      .handle();
+  return registry.root()
+    .readTexture("denoised_ao")
+    .atStage(dafg::Stage::PS_OR_CS)
+    .bindlessShaderVar("rtao_bindless_slot")
+    .optional()
+    .handle();
+}
+
+OutputHandle read_gi_output(dafg::Registry registry)
+{
+  // the denoise publishes its view z through bindless too, the reader keeps it alive
+  if (!d3d::get_driver_desc().caps.hasBindless)
+  {
+    registry.root().readTexture("denoiser_gi_view_z").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).optional();
+    return registry.root()
+      .readTexture("denoised_gi")
+      .atStage(dafg::Stage::PS_OR_CS)
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .optional()
+      .handle();
+  }
+  registry.root()
+    .readTexture("denoiser_gi_view_z")
+    .atStage(dafg::Stage::PS_OR_CS)
+    .bindlessShaderVar("ptgi_depth_bindless_slot")
+    .optional();
+  return registry.root()
+    .readTexture("denoised_gi")
+    .atStage(dafg::Stage::PS_OR_CS)
+    .bindlessShaderVar("ptgi_bindless_slot")
+    .optional()
+    .handle();
+}
+
+OutputHandle read_reflection_output(dafg::Registry registry)
+{
+  // the denoise publishes its normal roughness through bindless too, the reader keeps it alive
+  if (!d3d::get_driver_desc().caps.hasBindless)
+  {
+    registry.root()
+      .readTexture("denoiser_reflection_normal_roughness")
+      .atStage(dafg::Stage::PS_OR_CS)
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .optional();
+    return registry.root()
+      .readTexture("rtr_tex")
+      .atStage(dafg::Stage::PS_OR_CS)
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .optional()
+      .handle();
+  }
+  registry.root()
+    .readTexture("denoiser_reflection_normal_roughness")
+    .atStage(dafg::Stage::PS_OR_CS)
+    .bindlessShaderVar("rtr_normal_roughness_bindless_slot")
+    .optional();
+  return registry.root()
+    .readTexture("rtr_tex")
+    .atStage(dafg::Stage::PS_OR_CS)
+    .bindlessShaderVar("rtr_bindless_slot")
+    .optional()
+    .handle();
+}
+
+OutputHandle read_reflection_trace_output(dafg::Registry registry)
+{
+  if (resolution_config.useRayReconstruction)
+    return eastl::nullopt;
+  return registry.root()
+    .readTexture("rtr_tex_unfiltered")
+    .atStage(dafg::Stage::PS_OR_CS)
+    .useAs(dafg::Usage::SHADER_RESOURCE)
+    .optional()
+    .handle();
+}
+
+OutputHandle read_gi_validation(dafg::Registry registry)
+{
+  return registry.root()
+    .readTexture("gi_validation")
+    .atStage(dafg::Stage::PS_OR_CS)
+    .useAs(dafg::Usage::SHADER_RESOURCE)
+    .optional()
+    .handle();
+}
+
+OutputHandle read_reflection_validation(dafg::Registry registry)
+{
+  return registry.root()
+    .readTexture("rtr_validation")
+    .atStage(dafg::Stage::PS_OR_CS)
+    .useAs(dafg::Usage::SHADER_RESOURCE)
+    .optional()
+    .handle();
+}
+
+// The first traced frame after frames without a trace starts the history anew: the state the ring holds is stale
+struct ResetAfterGap
+{
+  bool saved;
+  explicit ResetAfterGap(bool gap) : saved(reset_history) { reset_history = reset_history || gap; }
+  ~ResetAfterGap() { reset_history = saved; }
+};
+
+struct RenderedFlag
+{
+  const int &varId;
+  bool lastFrame = false;
+  explicit RenderedFlag(const int &var_id) : varId(var_id) {}
+  ~RenderedFlag() { ShaderGlobal::set_int(varId, 0); }
+};
+
+#if DAGOR_DBGLEVEL > 0
+Texture *fit_debug_image(DebugImage &dst, const IPoint2 &rect, uint32_t format, const char *name)
+{
+  const int back = dst.shown ^ 1;
+  UniqueTex &tex = dst.tex[back];
+  IPoint2 size = rect;
+  if (tex)
+  {
+    TextureInfo di;
+    tex->getinfo(di);
+    if (di.w < rect.x || di.h < rect.y || (di.cflg & TEXFMT_MASK) != (format & TEXFMT_MASK))
+    {
+      size = IPoint2(max(size.x, int(di.w)), max(size.y, int(di.h)));
+      tex.close();
+    }
+  }
+  if (!tex && size.x > 0 && size.y > 0)
+    tex = dag::create_tex(nullptr, size.x, size.y, format, 1, String(0, "%s_%d", name, back));
+  dst.rect[back] = rect;
+  dst.shown = back;
+  return tex.getTex2D();
+}
+
+void copy_for_debug(BaseTexture *src, DebugImage &dst, const char *name)
+{
+  if (!src)
+    return;
+  TextureInfo si;
+  src->getinfo(si);
+  if (Texture *tex = fit_debug_image(dst, IPoint2(si.w, si.h), (si.cflg & TEXFMT_MASK) | TEXCF_UPDATE_DESTINATION, name))
+    d3d::update_sub_region(src, 0, 0, 0, 0, si.w, si.h, 1, tex, 0, 0, 0, 0);
+}
+#endif
+
+dafg::NodeHandle make_prepare_node(const PrepareNodeParams &params)
+{
+  shadow_trace_in_graph = params.shadowTrace;
+  reflection_inputs_in_graph.reset();
+  resolution_name = params.resolutionName;
+  eastl::shared_ptr<const PrepareNodeParams> shared = eastl::make_shared<PrepareNodeParams>(params);
+  return dafg::root().registerNode("denoiser_prepare", DAFG_PP_NODE_SRC, [shared](dafg::Registry registry) {
+    if (shared->declareInputs)
+      shared->declareInputs(registry);
+    auto paramsHndl = registry.readBlob<PrepareParams>("denoiser_prepare_params").handle();
+    registry.createBlob<OrderingToken>("denoiser_prepared");
+    const Config &cfg = resolution_config;
+    if (!(cfg.useRayReconstruction && cfg.ptgiUseRayReconstruction))
+    {
+      registry.create("denoiser_nr")
+        .texture({TEXFMT_A2R10G10B10 | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str())})
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("denoiser_nr");
+      registry.create("denoiser_view_z")
+        .texture({TEXFMT_R32F | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str())})
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("denoiser_view_z");
+      if (shared->halfResCloseSet)
+      {
+        registry.create("denoiser_half_nr")
+          .texture({TEXFMT_A2R10G10B10 | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), 0.5f)})
+          .atStage(dafg::Stage::CS)
+          .bindToShaderVar("denoiser_half_nr");
+        registry.create("denoiser_half_view_z")
+          .texture({TEXFMT_R32F | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), 0.5f)})
+          .atStage(dafg::Stage::CS)
+          .bindToShaderVar("denoiser_half_view_z");
+      }
+      if (shared->checkerboardSet || shared->smartDepthSet)
+      {
+        registry.create("denoiser_half_nr_rtr")
+          .texture({TEXFMT_A2R10G10B10 | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), 0.5f)})
+          .atStage(dafg::Stage::CS)
+          .bindToShaderVar("denoiser_half_nr_rtr");
+        registry.create("denoiser_half_view_z_rtr")
+          .texture({TEXFMT_R32F | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), 0.5f)})
+          .atStage(dafg::Stage::CS)
+          .bindToShaderVar("denoiser_half_view_z_rtr");
+        registry.create("denoiser_half_motion_vectors_rtr")
+          .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), 0.5f)})
+          .atStage(dafg::Stage::CS)
+          .bindToShaderVar("denoiser_half_motion_vectors_rtr");
+      }
+      if (shared->smartDepthSet)
+        registry.create("half_selected_depth_rtr")
+          .texture({TEXFMT_R32F | TEXCF_UNORDERED, registry.getResolution<2>(resolution_name.c_str(), 0.5f)})
+          .atStage(dafg::Stage::CS)
+          .bindToShaderVar("half_selected_depth_rtr");
+    }
+    return [shared, paramsHndl, resolution = registry.getResolution<2>(resolution_name.c_str())]() {
+      const PrepareParams &params = paramsHndl.ref();
+      const IPoint2 res = resolution.get();
+      const bool prepared = params.render && prepare_frame(params, res);
+      // the readers of the rtr set select their depth by it, so it follows what the prepare produced in the frame
+      ShaderGlobal::set_int(rtr_depth_modeVarId, !prepared ? 0 : shared->smartDepthSet ? 2 : shared->checkerboardSet ? 1 : 0);
+      if (!prepared)
+        return;
+      TIME_D3D_PROFILE(denoiser::prepare);
+      ShaderGlobal::set_int(denoiser_prepare_close_depthVarId, shared->halfResCloseSet ? 1 : 0);
+      if (shared->smartDepthSet)
+        ShaderGlobal::set_sampler(half_selected_depth_rtr_samplerstateVarId, samplerNearestClamp);
+      if (shared->setShaderState)
+        shared->setShaderState();
+      prepareCS->dispatchThreads(res.x, res.y, 1);
+    };
+  });
+}
+
+dafg::NodeHandle make_shadow_node(const ShadowNodeParams &params)
+{
+  G_ASSERT_RETURN(resolution_config.useRayReconstruction || params.motionVectorsName, {});
+  return dafg::root().registerNode("denoise_shadow", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
+    auto paramsHndl = registry.readBlob<ShadowParams>("denoiser_shadow_params").handle();
+    RoTex valueHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, denoisedHistHndl, historyLengthHistHndl;
+    RwTex denoisedHndl, historyLengthHndl, tilesHndl, smoothTilesHndl, data1Hndl, data2Hndl, temp1Hndl, temp2Hndl;
+    if (resolution_config.useRayReconstruction)
+      registry.renameTexture("rtsm_value", "rtsm_shadows_denoised");
+    else
+    {
+      valueHndl = registry.readTexture("rtsm_value").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      viewZHndl = registry.readTexture("denoiser_view_z_shadow").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      normalRoughnessHndl = registry.readTexture("denoiser_nr").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      motionVectorsHndl =
+        registry.readTexture(params.motionVectorsName).atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      const auto resolution = registry.getResolution<2>(resolution_name.c_str());
+      const auto tilesResolution = registry.getResolution<2>(resolution_name.c_str(), 1.f / 16).roundingUp();
+      denoisedHndl = registry.create("rtsm_shadows_denoised")
+                       .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                       .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                       .clear(make_clear_value(1.f, 0.f, 0.f, 0.f))
+                       .atStage(dafg::Stage::CS)
+                       .useAs(dafg::Usage::SHADER_RESOURCE)
+                       .handle();
+      denoisedHistHndl =
+        registry.readTextureHistory("rtsm_shadows_denoised").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      historyLengthHndl = registry.create("rtsm_history_length")
+                            .texture({TEXFMT_R32UI | TEXCF_UNORDERED, resolution})
+                            .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                            // water and too distant texels are never written, don't leave garbage there
+                            .clear(ResourceClearValue{})
+                            .atStage(dafg::Stage::CS)
+                            .useAs(dafg::Usage::SHADER_RESOURCE)
+                            .handle();
+      historyLengthHistHndl =
+        registry.readTextureHistory("rtsm_history_length").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      tilesHndl = registry.create("rtsm_tiles")
+                    .texture({TEXFMT_A8R8G8B8 | TEXCF_UNORDERED, tilesResolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+      smoothTilesHndl = registry.create("rtsm_smooth_tiles")
+                          .texture({TEXFMT_R8G8 | TEXCF_UNORDERED, tilesResolution})
+                          .atStage(dafg::Stage::CS)
+                          .useAs(dafg::Usage::SHADER_RESOURCE)
+                          .handle();
+      data1Hndl = registry.create("rtsm_data1")
+                    .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+      data2Hndl = registry.create("rtsm_data2")
+                    .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+      temp1Hndl = registry.create("rtsm_temp1")
+                    .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+      temp2Hndl = registry.create("rtsm_temp2")
+                    .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+    }
+    auto resources = eastl::make_tuple(valueHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, denoisedHndl, denoisedHistHndl,
+      historyLengthHndl, historyLengthHistHndl, tilesHndl, smoothTilesHndl, data1Hndl, data2Hndl, temp1Hndl, temp2Hndl);
+    return [paramsHndl, resources = eastl::make_unique<decltype(resources)>(resources),
+             rendered = eastl::make_unique<RenderedFlag>(rtsm_renderedVarId)]() {
+      const auto &[valueHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, denoisedHndl, denoisedHistHndl, historyLengthHndl,
+        historyLengthHistHndl, tilesHndl, smoothTilesHndl, data1Hndl, data2Hndl, temp1Hndl, temp2Hndl] = *resources;
+      const ShadowParams &params = paramsHndl.ref();
+      ShaderGlobal::set_int(rtsm_renderedVarId, params.render ? 1 : 0);
+      if (!params.render)
+      {
+        rendered->lastFrame = false;
+        return;
+      }
+      ResetAfterGap reset(!rendered->lastFrame);
+      rendered->lastFrame = true;
+      ShadowTextures tex;
+      tex.value = ptr(valueHndl);
+      tex.viewZ = ptr(viewZHndl);
+      tex.normalRoughness = ptr(normalRoughnessHndl);
+      tex.motionVectors = ptr(motionVectorsHndl);
+      tex.denoised = {ptr(denoisedHndl), ptr(denoisedHistHndl)};
+      tex.historyLength = {ptr(historyLengthHndl), ptr(historyLengthHistHndl)};
+      tex.tiles = ptr(tilesHndl);
+      tex.smoothTiles = ptr(smoothTilesHndl);
+      tex.data1 = ptr(data1Hndl);
+      tex.data2 = ptr(data2Hndl);
+      tex.temp1 = ptr(temp1Hndl);
+      tex.temp2 = ptr(temp2Hndl);
+      denoise_shadow(params, tex);
+    };
+  });
+}
+
+dafg::NodeHandle make_ao_node(const AONodeParams &params)
+{
+  G_ASSERT_RETURN(resolution_config.useRayReconstruction ||
+                    (resolution_config.rtaoHalfRes ? params.halfMotionVectorsName : params.motionVectorsName),
+    {});
+  return dafg::root().registerNode("denoise_ao", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
+    auto paramsHndl = registry.readBlob<AOParams>("denoiser_ao_params").handle();
+    const Config &cfg = resolution_config;
+    const bool halfRes = cfg.rtaoHalfRes;
+    ShaderGlobal::set_int(rtao_bindless_sampler_slotVarId, bindless_sampler(halfRes));
+    RoTex unfilteredHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, prevViewZHistHndl, prevNormalRoughnessHistHndl,
+      prevInternalDataHistHndl, diffHistoryHistHndl, diffFastHistoryHistHndl;
+    RwTex denoisedHndl, prevViewZHndl, prevNormalRoughnessHndl, prevInternalDataHndl, diffHistoryHndl, diffFastHistoryHndl, tilesHndl,
+      diffTemp2Hndl, diffFastHistoryTempHndl, data1Hndl;
+    if (cfg.useRayReconstruction)
+      registry.renameTexture("rtao_tex_unfiltered", "denoised_ao");
+    else
+    {
+      unfilteredHndl =
+        registry.readTexture("rtao_tex_unfiltered").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      const Inputs inputs = halfRes ? Inputs::Half : Inputs::Full;
+      viewZHndl = registry.readTexture(view_z_name(inputs)).atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      normalRoughnessHndl =
+        registry.readTexture(normal_roughness_name(inputs)).atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      motionVectorsHndl = registry.readTexture(halfRes ? params.halfMotionVectorsName : params.motionVectorsName)
+                            .atStage(dafg::Stage::CS)
+                            .useAs(dafg::Usage::SHADER_RESOURCE)
+                            .handle();
+      const auto resolution = registry.getResolution<2>(resolution_name.c_str(), halfRes ? 0.5f : 1.f);
+      const auto tilesResolution = registry.getResolution<2>(resolution_name.c_str(), (halfRes ? 0.5f : 1.f) / 16).roundingUp();
+      denoisedHndl = registry.create("denoised_ao")
+                       .texture({TEXFMT_L16 | TEXCF_UNORDERED, resolution})
+                       .clear(make_clear_value(1.f, 0.f, 0.f, 0.f))
+                       .atStage(dafg::Stage::CS)
+                       .useAs(dafg::Usage::SHADER_RESOURCE)
+                       .handle();
+      prevViewZHndl = registry.create("rtao_prev_view_z")
+                        .texture({TEXFMT_R32F | TEXCF_UNORDERED, resolution})
+                        .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                        .clear(ResourceClearValue{})
+                        .atStage(dafg::Stage::CS)
+                        .useAs(dafg::Usage::SHADER_RESOURCE)
+                        .handle();
+      prevViewZHistHndl =
+        registry.readTextureHistory("rtao_prev_view_z").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      prevNormalRoughnessHndl = registry.create("rtao_prev_normal_roughness")
+                                  .texture({TEXFMT_A2R10G10B10 | TEXCF_UNORDERED, resolution})
+                                  .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                  .clear(ResourceClearValue{})
+                                  .atStage(dafg::Stage::CS)
+                                  .useAs(dafg::Usage::SHADER_RESOURCE)
+                                  .handle();
+      prevNormalRoughnessHistHndl = registry.readTextureHistory("rtao_prev_normal_roughness")
+                                      .atStage(dafg::Stage::CS)
+                                      .useAs(dafg::Usage::SHADER_RESOURCE)
+                                      .handle();
+      prevInternalDataHndl = registry.create("rtao_prev_internal_data")
+                               .texture({TEXFMT_R16UI | TEXCF_UNORDERED, resolution})
+                               .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                               .clear(ResourceClearValue{})
+                               .atStage(dafg::Stage::CS)
+                               .useAs(dafg::Usage::SHADER_RESOURCE)
+                               .handle();
+      prevInternalDataHistHndl =
+        registry.readTextureHistory("rtao_prev_internal_data").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      diffHistoryHndl = registry.create("rtao_diff_history")
+                          .texture({TEXFMT_L16 | TEXCF_UNORDERED, resolution})
+                          .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                          .clear(ResourceClearValue{})
+                          .atStage(dafg::Stage::CS)
+                          .useAs(dafg::Usage::SHADER_RESOURCE)
+                          .handle();
+      diffHistoryHistHndl =
+        registry.readTextureHistory("rtao_diff_history").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      diffFastHistoryHndl = registry.create("rtao_diff_fast_history")
+                              .texture({TEXFMT_L16 | TEXCF_UNORDERED, resolution})
+                              .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                              .clear(ResourceClearValue{})
+                              .atStage(dafg::Stage::CS)
+                              .useAs(dafg::Usage::SHADER_RESOURCE)
+                              .handle();
+      diffFastHistoryHistHndl =
+        registry.readTextureHistory("rtao_diff_fast_history").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      tilesHndl = registry.create("rtao_tiles")
+                    .texture({TEXFMT_R8 | TEXCF_UNORDERED, tilesResolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+      diffTemp2Hndl = registry.create("rtao_diff_temp2")
+                        .texture({TEXFMT_L16 | TEXCF_UNORDERED, resolution})
+                        .atStage(dafg::Stage::CS)
+                        .useAs(dafg::Usage::SHADER_RESOURCE)
+                        .handle();
+      diffFastHistoryTempHndl = registry.create("rtao_diff_fast_history_temp")
+                                  .texture({TEXFMT_L16 | TEXCF_UNORDERED, resolution})
+                                  .atStage(dafg::Stage::CS)
+                                  .useAs(dafg::Usage::SHADER_RESOURCE)
+                                  .handle();
+      data1Hndl = registry.create("rtao_data1")
+                    .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+    }
+    auto resources = eastl::make_tuple(unfilteredHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, denoisedHndl, prevViewZHndl,
+      prevViewZHistHndl, prevNormalRoughnessHndl, prevNormalRoughnessHistHndl, prevInternalDataHndl, prevInternalDataHistHndl,
+      diffHistoryHndl, diffHistoryHistHndl, diffFastHistoryHndl, diffFastHistoryHistHndl, tilesHndl, diffTemp2Hndl,
+      diffFastHistoryTempHndl, data1Hndl);
+    return [paramsHndl, resources = eastl::make_unique<decltype(resources)>(resources),
+             rendered = eastl::make_unique<RenderedFlag>(rtao_renderedVarId)]() {
+      const auto &[unfilteredHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, denoisedHndl, prevViewZHndl, prevViewZHistHndl,
+        prevNormalRoughnessHndl, prevNormalRoughnessHistHndl, prevInternalDataHndl, prevInternalDataHistHndl, diffHistoryHndl,
+        diffHistoryHistHndl, diffFastHistoryHndl, diffFastHistoryHistHndl, tilesHndl, diffTemp2Hndl, diffFastHistoryTempHndl,
+        data1Hndl] = *resources;
+      const AOParams &params = paramsHndl.ref();
+      ShaderGlobal::set_int(rtao_renderedVarId, params.render ? 1 : 0);
+      if (!params.render || resolution_config.useRayReconstruction)
+      {
+        rendered->lastFrame = false;
+        return;
+      }
+      ResetAfterGap reset(!rendered->lastFrame);
+      rendered->lastFrame = true;
+      AOTextures tex;
+      tex.unfiltered = ptr(unfilteredHndl);
+      tex.viewZ = ptr(viewZHndl);
+      tex.normalRoughness = ptr(normalRoughnessHndl);
+      tex.motionVectors = ptr(motionVectorsHndl);
+      tex.denoised = ptr(denoisedHndl);
+      tex.prevViewZ = {ptr(prevViewZHndl), ptr(prevViewZHistHndl)};
+      tex.prevNormalRoughness = {ptr(prevNormalRoughnessHndl), ptr(prevNormalRoughnessHistHndl)};
+      tex.prevInternalData = {ptr(prevInternalDataHndl), ptr(prevInternalDataHistHndl)};
+      tex.diffHistory = {ptr(diffHistoryHndl), ptr(diffHistoryHistHndl)};
+      tex.diffFastHistory = {ptr(diffFastHistoryHndl), ptr(diffFastHistoryHistHndl)};
+      tex.tiles = ptr(tilesHndl);
+      tex.diffTemp2 = ptr(diffTemp2Hndl);
+      tex.diffFastHistoryTemp = ptr(diffFastHistoryTempHndl);
+      tex.data1 = ptr(data1Hndl);
+      denoise_ao(params, tex);
+    };
+  });
+}
+
+dafg::NodeHandle make_gi_node(const GINodeParams &params)
+{
+  G_ASSERT_RETURN(resolution_config.ptgiUseRayReconstruction ||
+                    (resolution_config.ptgiHalfRes ? params.halfMotionVectorsName : params.motionVectorsName),
+    {});
+  return dafg::root().registerNode("denoise_gi", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
+    auto paramsHndl = registry.readBlob<GIParams>("denoiser_gi_params").handle();
+    const Config &cfg = resolution_config;
+    const bool halfRes = cfg.ptgiHalfRes;
+    ShaderGlobal::set_int(ptgi_bindless_sampler_slotVarId, bindless_sampler(!cfg.ptgiUseRayReconstruction));
+    RoTex unfilteredHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, prevViewZHistHndl, prevNormalRoughnessHistHndl,
+      prevInternalDataHistHndl, diffHistoryHistHndl, diffFastHistoryHistHndl, diffHistoryStabilizedHistHndl, behindViewZHistHndl,
+      behindInternalDataHistHndl, behindDiffHistoryHistHndl, behindDiffFastHistoryHistHndl;
+    RwTex denoisedHndl, validationHndl, prevViewZHndl, prevNormalRoughnessHndl, prevInternalDataHndl, diffHistoryHndl,
+      diffFastHistoryHndl, diffHistoryStabilizedHndl, behindViewZHndl, behindInternalDataHndl, behindDiffHistoryHndl,
+      behindDiffFastHistoryHndl, data1Hndl, data2Hndl, diffTemp2Hndl, diffFastHistoryTempHndl, tilesHndl;
+    if (cfg.ptgiUseRayReconstruction)
+      registry.renameTexture("ptgi_tex_unfiltered", "denoised_gi");
+    else
+    {
+      ShaderGlobal::set_int(ptgi_depth_bindless_sampler_slotVarId, bindless_sampler(true));
+      unfilteredHndl =
+        registry.readTexture("ptgi_tex_unfiltered").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      const Inputs inputs = halfRes ? Inputs::Half : Inputs::Full;
+      viewZHndl = registry.readTexture(view_z_name(inputs)).atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      normalRoughnessHndl =
+        registry.readTexture(normal_roughness_name(inputs)).atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      motionVectorsHndl = registry.readTexture(halfRes ? params.halfMotionVectorsName : params.motionVectorsName)
+                            .atStage(dafg::Stage::CS)
+                            .useAs(dafg::Usage::SHADER_RESOURCE)
+                            .handle();
+      const auto resolution = registry.getResolution<2>(resolution_name.c_str(), halfRes ? 0.5f : 1.f);
+      const auto tilesResolution = registry.getResolution<2>(resolution_name.c_str(), (halfRes ? 0.5f : 1.f) / 16).roundingUp();
+      denoisedHndl = registry.create("denoised_gi")
+                       .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                       .clear(make_clear_value(0.f, 0.f, 0.f, 0.f))
+                       .atStage(dafg::Stage::CS)
+                       .useAs(dafg::Usage::SHADER_RESOURCE)
+                       .handle();
+      prevViewZHndl = registry.create("ptgi_prev_view_z")
+                        .texture({TEXFMT_R32F | TEXCF_UNORDERED, resolution})
+                        .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                        .clear(ResourceClearValue{})
+                        .atStage(dafg::Stage::CS)
+                        .useAs(dafg::Usage::SHADER_RESOURCE)
+                        .handle();
+      prevViewZHistHndl =
+        registry.readTextureHistory("ptgi_prev_view_z").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      prevNormalRoughnessHndl = registry.create("ptgi_prev_normal_roughness")
+                                  .texture({TEXFMT_A2R10G10B10 | TEXCF_UNORDERED, resolution})
+                                  .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                  .clear(ResourceClearValue{})
+                                  .atStage(dafg::Stage::CS)
+                                  .useAs(dafg::Usage::SHADER_RESOURCE)
+                                  .handle();
+      prevNormalRoughnessHistHndl = registry.readTextureHistory("ptgi_prev_normal_roughness")
+                                      .atStage(dafg::Stage::CS)
+                                      .useAs(dafg::Usage::SHADER_RESOURCE)
+                                      .handle();
+      prevInternalDataHndl = registry.create("ptgi_prev_internal_data")
+                               .texture({TEXFMT_R16UI | TEXCF_UNORDERED, resolution})
+                               .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                               .clear(ResourceClearValue{})
+                               .atStage(dafg::Stage::CS)
+                               .useAs(dafg::Usage::SHADER_RESOURCE)
+                               .handle();
+      prevInternalDataHistHndl =
+        registry.readTextureHistory("ptgi_prev_internal_data").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      diffHistoryHndl = registry.create("ptgi_diff_history")
+                          .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                          .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                          .clear(ResourceClearValue{})
+                          .atStage(dafg::Stage::CS)
+                          .useAs(dafg::Usage::SHADER_RESOURCE)
+                          .handle();
+      diffHistoryHistHndl =
+        registry.readTextureHistory("ptgi_diff_history").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      diffFastHistoryHndl = registry.create("ptgi_diff_fast_history")
+                              .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                              .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                              .clear(ResourceClearValue{})
+                              .atStage(dafg::Stage::CS)
+                              .useAs(dafg::Usage::SHADER_RESOURCE)
+                              .handle();
+      diffFastHistoryHistHndl =
+        registry.readTextureHistory("ptgi_diff_fast_history").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      diffHistoryStabilizedHndl = registry.create("ptgi_diff_history_stabilized")
+                                    .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                                    .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                    .clear(ResourceClearValue{})
+                                    .atStage(dafg::Stage::CS)
+                                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                                    .handle();
+      diffHistoryStabilizedHistHndl = registry.readTextureHistory("ptgi_diff_history_stabilized")
+                                        .atStage(dafg::Stage::CS)
+                                        .useAs(dafg::Usage::SHADER_RESOURCE)
+                                        .handle();
+      if (params.secondChanceHistory)
+      {
+        behindViewZHndl = registry.create("ptgi_behind_view_z")
+                            .texture({TEXFMT_R32F | TEXCF_UNORDERED, resolution})
+                            .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                            .atStage(dafg::Stage::CS)
+                            .useAs(dafg::Usage::SHADER_RESOURCE)
+                            .handle();
+        behindViewZHistHndl =
+          registry.readTextureHistory("ptgi_behind_view_z").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+        behindInternalDataHndl = registry.create("ptgi_behind_internal_data")
+                                   .texture({TEXFMT_R16UI | TEXCF_UNORDERED, resolution})
+                                   .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                   .atStage(dafg::Stage::CS)
+                                   .useAs(dafg::Usage::SHADER_RESOURCE)
+                                   .handle();
+        behindInternalDataHistHndl = registry.readTextureHistory("ptgi_behind_internal_data")
+                                       .atStage(dafg::Stage::CS)
+                                       .useAs(dafg::Usage::SHADER_RESOURCE)
+                                       .handle();
+        behindDiffHistoryHndl = registry.create("ptgi_behind_diff_history")
+                                  .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                                  .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                  .atStage(dafg::Stage::CS)
+                                  .useAs(dafg::Usage::SHADER_RESOURCE)
+                                  .handle();
+        behindDiffHistoryHistHndl = registry.readTextureHistory("ptgi_behind_diff_history")
+                                      .atStage(dafg::Stage::CS)
+                                      .useAs(dafg::Usage::SHADER_RESOURCE)
+                                      .handle();
+        behindDiffFastHistoryHndl = registry.create("ptgi_behind_diff_fast_history")
+                                      .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                                      .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                      .atStage(dafg::Stage::CS)
+                                      .useAs(dafg::Usage::SHADER_RESOURCE)
+                                      .handle();
+        behindDiffFastHistoryHistHndl = registry.readTextureHistory("ptgi_behind_diff_fast_history")
+                                          .atStage(dafg::Stage::CS)
+                                          .useAs(dafg::Usage::SHADER_RESOURCE)
+                                          .handle();
+      }
+      data1Hndl = registry.create("ptgi_data1")
+                    .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+      data2Hndl = registry.create("ptgi_data2")
+                    .texture({TEXFMT_R8UI | TEXCF_UNORDERED, resolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+      diffTemp2Hndl = registry.create("ptgi_diff_temp2")
+                        .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                        .atStage(dafg::Stage::CS)
+                        .useAs(dafg::Usage::SHADER_RESOURCE)
+                        .handle();
+      diffFastHistoryTempHndl = registry.create("ptgi_diff_fast_history_temp")
+                                  .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                                  .atStage(dafg::Stage::CS)
+                                  .useAs(dafg::Usage::SHADER_RESOURCE)
+                                  .handle();
+      tilesHndl = registry.create("ptgi_tiles")
+                    .texture({TEXFMT_R8 | TEXCF_UNORDERED, tilesResolution})
+                    .atStage(dafg::Stage::CS)
+                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                    .handle();
+      if (params.validation)
+        validationHndl = registry.create("gi_validation")
+                           .texture({TEXFMT_A8R8G8B8 | TEXCF_UNORDERED, resolution})
+                           .atStage(dafg::Stage::CS)
+                           .useAs(dafg::Usage::SHADER_RESOURCE)
+                           .handle();
+    }
+    auto resources = eastl::make_tuple(unfilteredHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, denoisedHndl, validationHndl,
+      prevViewZHndl, prevViewZHistHndl, prevNormalRoughnessHndl, prevNormalRoughnessHistHndl, prevInternalDataHndl,
+      prevInternalDataHistHndl, diffHistoryHndl, diffHistoryHistHndl, diffFastHistoryHndl, diffFastHistoryHistHndl,
+      diffHistoryStabilizedHndl, diffHistoryStabilizedHistHndl, behindViewZHndl, behindViewZHistHndl, behindInternalDataHndl,
+      behindInternalDataHistHndl, behindDiffHistoryHndl, behindDiffHistoryHistHndl, behindDiffFastHistoryHndl,
+      behindDiffFastHistoryHistHndl, data1Hndl, data2Hndl, diffTemp2Hndl, diffFastHistoryTempHndl, tilesHndl);
+    return [paramsHndl, resources = eastl::make_unique<decltype(resources)>(resources),
+             rendered = eastl::make_unique<RenderedFlag>(ptgi_renderedVarId)]() {
+      const auto &[unfilteredHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, denoisedHndl, validationHndl, prevViewZHndl,
+        prevViewZHistHndl, prevNormalRoughnessHndl, prevNormalRoughnessHistHndl, prevInternalDataHndl, prevInternalDataHistHndl,
+        diffHistoryHndl, diffHistoryHistHndl, diffFastHistoryHndl, diffFastHistoryHistHndl, diffHistoryStabilizedHndl,
+        diffHistoryStabilizedHistHndl, behindViewZHndl, behindViewZHistHndl, behindInternalDataHndl, behindInternalDataHistHndl,
+        behindDiffHistoryHndl, behindDiffHistoryHistHndl, behindDiffFastHistoryHndl, behindDiffFastHistoryHistHndl, data1Hndl,
+        data2Hndl, diffTemp2Hndl, diffFastHistoryTempHndl, tilesHndl] = *resources;
+      const GIParams &params = paramsHndl.ref();
+      ShaderGlobal::set_int(ptgi_renderedVarId, params.render ? 1 : 0);
+      if (!params.render || resolution_config.ptgiUseRayReconstruction)
+      {
+        rendered->lastFrame = false;
+        return;
+      }
+      ResetAfterGap reset(!rendered->lastFrame);
+      rendered->lastFrame = true;
+      GITextures tex;
+      tex.unfiltered = ptr(unfilteredHndl);
+      tex.viewZ = ptr(viewZHndl);
+      tex.normalRoughness = ptr(normalRoughnessHndl);
+      tex.motionVectors = ptr(motionVectorsHndl);
+      tex.denoised = ptr(denoisedHndl);
+      tex.validation = ptr(validationHndl);
+      tex.prevViewZ = {ptr(prevViewZHndl), ptr(prevViewZHistHndl)};
+      tex.prevNormalRoughness = {ptr(prevNormalRoughnessHndl), ptr(prevNormalRoughnessHistHndl)};
+      tex.prevInternalData = {ptr(prevInternalDataHndl), ptr(prevInternalDataHistHndl)};
+      tex.diffHistory = {ptr(diffHistoryHndl), ptr(diffHistoryHistHndl)};
+      tex.diffFastHistory = {ptr(diffFastHistoryHndl), ptr(diffFastHistoryHistHndl)};
+      tex.diffHistoryStabilized = {ptr(diffHistoryStabilizedHndl), ptr(diffHistoryStabilizedHistHndl)};
+      tex.behindViewZ = {ptr(behindViewZHndl), ptr(behindViewZHistHndl)};
+      tex.behindInternalData = {ptr(behindInternalDataHndl), ptr(behindInternalDataHistHndl)};
+      tex.behindDiffHistory = {ptr(behindDiffHistoryHndl), ptr(behindDiffHistoryHistHndl)};
+      tex.behindDiffFastHistory = {ptr(behindDiffFastHistoryHndl), ptr(behindDiffFastHistoryHistHndl)};
+      tex.data1 = ptr(data1Hndl);
+      tex.data2 = ptr(data2Hndl);
+      tex.diffTemp2 = ptr(diffTemp2Hndl);
+      tex.diffFastHistoryTemp = ptr(diffFastHistoryTempHndl);
+      tex.tiles = ptr(tilesHndl);
+      denoise_gi(params, tex);
+    };
+  });
+}
+
+dafg::NodeHandle make_reflection_node(const ReflectionNodeParams &params)
+{
+  const Inputs inputs = reflection_inputs(params.checkerboardDepth, params.useSmartDepth);
+  G_ASSERT_RETURN(resolution_config.useRayReconstruction || params.method == ReflectionMethod::Blur ||
+                    (inputs == Inputs::Full ? params.motionVectorsName != nullptr
+                                            : inputs == Inputs::HalfRtr || params.halfMotionVectorsName != nullptr),
+    {});
+  if (!resolution_config.useRayReconstruction)
+    reflection_inputs_in_graph = inputs;
+  return dafg::root().registerNode("denoise_reflection", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
+    auto paramsHndl = registry.readBlob<ReflectionParams>("denoiser_reflection_params").handle();
+    const Config &cfg = resolution_config;
+    const bool halfRes = cfg.rtrHalfRes;
+    const bool linear = halfRes || params.method == ReflectionMethod::Blur; // the reader of a Blur output samples its mips
+    ShaderGlobal::set_int(rtr_bindless_sampler_slotVarId, bindless_sampler(linear));
+    RoTex unfilteredHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, reblurPrevViewZHistHndl,
+      reblurPrevNormalRoughnessHistHndl, reblurPrevInternalDataHistHndl, reblurHistoryHistHndl, reblurFastHistoryHistHndl,
+      reblurHistoryStabilizedHistHndl, reblurHitDistForTrackingHistHndl, relaxIllumHistHndl, relaxIllumResponsiveHistHndl,
+      relaxReflectionHitTHistHndl, relaxHistoryLengthHistHndl, relaxNormalRoughnessHistHndl, relaxMaterialIdHistHndl,
+      relaxViewZHistHndl;
+    RwTex denoisedHndl, validationHndl, reblurPrevViewZHndl, reblurPrevNormalRoughnessHndl, reblurPrevInternalDataHndl,
+      reblurHistoryHndl, reblurFastHistoryHndl, reblurHistoryStabilizedHndl, reblurHitDistForTrackingHndl, reblurData1Hndl,
+      reblurData2Hndl, reblurHitDistForTrackingTempHndl, reblurTmp2Hndl, reblurFastHistoryTempHndl, reblurTilesHndl, relaxIllumHndl,
+      relaxIllumResponsiveHndl, relaxReflectionHitTHndl, relaxHistoryLengthHndl, relaxNormalRoughnessHndl, relaxMaterialIdHndl,
+      relaxViewZHndl, relaxTilesHndl, relaxHistoryLengthTempHndl, relaxReprojectionConfidenceHndl, relaxIllumPingHndl,
+      relaxIllumPongHndl, blurTempHndl;
+    if (cfg.useRayReconstruction)
+      registry.renameTexture("rtr_tex_unfiltered", "rtr_tex");
+    else
+    {
+      ShaderGlobal::set_int(rtr_normal_roughness_bindless_sampler_slotVarId, bindless_sampler(linear));
+      unfilteredHndl =
+        registry.readTexture("rtr_tex_unfiltered").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      const Inputs inputs = reflection_inputs(params.checkerboardDepth, params.useSmartDepth);
+      viewZHndl =
+        registry.readTexture(reflection_view_z_name(inputs)).atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      normalRoughnessHndl =
+        registry.readTexture(normal_roughness_name(inputs)).atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      if (params.method != ReflectionMethod::Blur)
+        motionVectorsHndl = registry
+                              .readTexture(inputs == Inputs::HalfRtr ? "denoiser_half_motion_vectors_rtr"
+                                           : halfRes                 ? params.halfMotionVectorsName
+                                                                     : params.motionVectorsName)
+                              .atStage(dafg::Stage::CS)
+                              .useAs(dafg::Usage::SHADER_RESOURCE)
+                              .handle();
+      denoisedHndl = registry.modifyTexture("rtr_tex").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+      const auto resolution = registry.getResolution<2>(resolution_name.c_str(), halfRes ? 0.5f : 1.f);
+      const auto tilesResolution = registry.getResolution<2>(resolution_name.c_str(), (halfRes ? 0.5f : 1.f) / 16).roundingUp();
+      if (params.method == ReflectionMethod::Reblur)
+      {
+        reblurPrevViewZHndl = registry.create("rtr_reblur_prev_view_z")
+                                .texture({TEXFMT_R32F | TEXCF_UNORDERED, resolution})
+                                .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                .clear(ResourceClearValue{})
+                                .atStage(dafg::Stage::CS)
+                                .useAs(dafg::Usage::SHADER_RESOURCE)
+                                .handle();
+        reblurPrevViewZHistHndl =
+          registry.readTextureHistory("rtr_reblur_prev_view_z").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+        reblurPrevNormalRoughnessHndl = registry.create("rtr_reblur_prev_normal_roughness")
+                                          .texture({TEXFMT_A2R10G10B10 | TEXCF_UNORDERED, resolution})
+                                          .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                          .clear(ResourceClearValue{})
+                                          .atStage(dafg::Stage::CS)
+                                          .useAs(dafg::Usage::SHADER_RESOURCE)
+                                          .handle();
+        reblurPrevNormalRoughnessHistHndl = registry.readTextureHistory("rtr_reblur_prev_normal_roughness")
+                                              .atStage(dafg::Stage::CS)
+                                              .useAs(dafg::Usage::SHADER_RESOURCE)
+                                              .handle();
+        reblurPrevInternalDataHndl = registry.create("rtr_reblur_prev_internal_data")
+                                       .texture({TEXFMT_R16UI | TEXCF_UNORDERED, resolution})
+                                       .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                       .clear(ResourceClearValue{})
+                                       .atStage(dafg::Stage::CS)
+                                       .useAs(dafg::Usage::SHADER_RESOURCE)
+                                       .handle();
+        reblurPrevInternalDataHistHndl = registry.readTextureHistory("rtr_reblur_prev_internal_data")
+                                           .atStage(dafg::Stage::CS)
+                                           .useAs(dafg::Usage::SHADER_RESOURCE)
+                                           .handle();
+        reblurHistoryHndl = registry.create("rtr_reblur_history")
+                              .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                              .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                              .clear(ResourceClearValue{})
+                              .atStage(dafg::Stage::CS)
+                              .useAs(dafg::Usage::SHADER_RESOURCE)
+                              .handle();
+        reblurHistoryHistHndl =
+          registry.readTextureHistory("rtr_reblur_history").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+        reblurFastHistoryHndl = registry.create("rtr_reblur_fast_history")
+                                  .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                                  .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                  .clear(ResourceClearValue{})
+                                  .atStage(dafg::Stage::CS)
+                                  .useAs(dafg::Usage::SHADER_RESOURCE)
+                                  .handle();
+        reblurFastHistoryHistHndl =
+          registry.readTextureHistory("rtr_reblur_fast_history").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+        reblurHistoryStabilizedHndl = registry.create("rtr_reblur_history_stabilized")
+                                        .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                                        .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                        .clear(ResourceClearValue{})
+                                        .atStage(dafg::Stage::CS)
+                                        .useAs(dafg::Usage::SHADER_RESOURCE)
+                                        .handle();
+        reblurHistoryStabilizedHistHndl = registry.readTextureHistory("rtr_reblur_history_stabilized")
+                                            .atStage(dafg::Stage::CS)
+                                            .useAs(dafg::Usage::SHADER_RESOURCE)
+                                            .handle();
+        reblurHitDistForTrackingHndl = registry.create("rtr_reblur_hit_dist_for_tracking")
+                                         .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                                         .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                         .clear(ResourceClearValue{})
+                                         .atStage(dafg::Stage::CS)
+                                         .useAs(dafg::Usage::SHADER_RESOURCE)
+                                         .handle();
+        reblurHitDistForTrackingHistHndl = registry.readTextureHistory("rtr_reblur_hit_dist_for_tracking")
+                                             .atStage(dafg::Stage::CS)
+                                             .useAs(dafg::Usage::SHADER_RESOURCE)
+                                             .handle();
+        reblurData1Hndl = registry.create("rtr_reblur_data1")
+                            .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                            .atStage(dafg::Stage::CS)
+                            .useAs(dafg::Usage::SHADER_RESOURCE)
+                            .handle();
+        reblurData2Hndl = registry.create("rtr_reblur_data2")
+                            .texture({TEXFMT_R32UI | TEXCF_UNORDERED, resolution})
+                            .atStage(dafg::Stage::CS)
+                            .useAs(dafg::Usage::SHADER_RESOURCE)
+                            .handle();
+        reblurHitDistForTrackingTempHndl = registry.create("rtr_reblur_hit_dist_for_tracking_temp")
+                                             .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                                             .atStage(dafg::Stage::CS)
+                                             .useAs(dafg::Usage::SHADER_RESOURCE)
+                                             .handle();
+        reblurTmp2Hndl = registry.create("rtr_reblur_tmp2")
+                           .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                           .atStage(dafg::Stage::CS)
+                           .useAs(dafg::Usage::SHADER_RESOURCE)
+                           .handle();
+        reblurFastHistoryTempHndl = registry.create("rtr_reblur_fast_history_temp")
+                                      .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                                      .atStage(dafg::Stage::CS)
+                                      .useAs(dafg::Usage::SHADER_RESOURCE)
+                                      .handle();
+        reblurTilesHndl = registry.create("rtr_reblur_tiles")
+                            .texture({TEXFMT_R8 | TEXCF_UNORDERED, tilesResolution})
+                            .atStage(dafg::Stage::CS)
+                            .useAs(dafg::Usage::SHADER_RESOURCE)
+                            .handle();
+      }
+      else if (params.method == ReflectionMethod::Relax)
+      {
+        relaxIllumHndl = registry.create("rtr_relax_illum")
+                           .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                           .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                           .clear(ResourceClearValue{})
+                           .atStage(dafg::Stage::CS)
+                           .useAs(dafg::Usage::SHADER_RESOURCE)
+                           .handle();
+        relaxIllumHistHndl =
+          registry.readTextureHistory("rtr_relax_illum").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+        relaxIllumResponsiveHndl = registry.create("rtr_relax_illum_responsive")
+                                     .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                                     .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                     .clear(ResourceClearValue{})
+                                     .atStage(dafg::Stage::CS)
+                                     .useAs(dafg::Usage::SHADER_RESOURCE)
+                                     .handle();
+        relaxIllumResponsiveHistHndl = registry.readTextureHistory("rtr_relax_illum_responsive")
+                                         .atStage(dafg::Stage::CS)
+                                         .useAs(dafg::Usage::SHADER_RESOURCE)
+                                         .handle();
+        relaxReflectionHitTHndl = registry.create("rtr_relax_reflection_hit_t")
+                                    .texture({TEXFMT_R16F | TEXCF_UNORDERED, resolution})
+                                    .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                    .clear(ResourceClearValue{})
+                                    .atStage(dafg::Stage::CS)
+                                    .useAs(dafg::Usage::SHADER_RESOURCE)
+                                    .handle();
+        relaxReflectionHitTHistHndl = registry.readTextureHistory("rtr_relax_reflection_hit_t")
+                                        .atStage(dafg::Stage::CS)
+                                        .useAs(dafg::Usage::SHADER_RESOURCE)
+                                        .handle();
+        relaxHistoryLengthHndl = registry.create("rtr_relax_history_length")
+                                   .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                                   .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                   .clear(ResourceClearValue{})
+                                   .atStage(dafg::Stage::CS)
+                                   .useAs(dafg::Usage::SHADER_RESOURCE)
+                                   .handle();
+        relaxHistoryLengthHistHndl = registry.readTextureHistory("rtr_relax_history_length")
+                                       .atStage(dafg::Stage::CS)
+                                       .useAs(dafg::Usage::SHADER_RESOURCE)
+                                       .handle();
+        relaxNormalRoughnessHndl = registry.create("rtr_relax_normal_roughness")
+                                     .texture({TEXFMT_A8R8G8B8 | TEXCF_UNORDERED, resolution})
+                                     .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                     .clear(ResourceClearValue{})
+                                     .atStage(dafg::Stage::CS)
+                                     .useAs(dafg::Usage::SHADER_RESOURCE)
+                                     .handle();
+        relaxNormalRoughnessHistHndl = registry.readTextureHistory("rtr_relax_normal_roughness")
+                                         .atStage(dafg::Stage::CS)
+                                         .useAs(dafg::Usage::SHADER_RESOURCE)
+                                         .handle();
+        relaxMaterialIdHndl = registry.create("rtr_relax_material_id")
+                                .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                                .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                                .clear(ResourceClearValue{})
+                                .atStage(dafg::Stage::CS)
+                                .useAs(dafg::Usage::SHADER_RESOURCE)
+                                .handle();
+        relaxMaterialIdHistHndl =
+          registry.readTextureHistory("rtr_relax_material_id").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+        relaxViewZHndl = registry.create("rtr_relax_view_z")
+                           .texture({TEXFMT_R32F | TEXCF_UNORDERED, resolution})
+                           .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                           .clear(ResourceClearValue{})
+                           .atStage(dafg::Stage::CS)
+                           .useAs(dafg::Usage::SHADER_RESOURCE)
+                           .handle();
+        relaxViewZHistHndl =
+          registry.readTextureHistory("rtr_relax_view_z").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+        relaxTilesHndl = registry.create("rtr_relax_tiles")
+                           .texture({TEXFMT_R8 | TEXCF_UNORDERED, tilesResolution})
+                           .atStage(dafg::Stage::CS)
+                           .useAs(dafg::Usage::SHADER_RESOURCE)
+                           .handle();
+        relaxHistoryLengthTempHndl = registry.create("rtr_relax_history_length_temp")
+                                       .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                                       .atStage(dafg::Stage::CS)
+                                       .useAs(dafg::Usage::SHADER_RESOURCE)
+                                       .handle();
+        relaxReprojectionConfidenceHndl = registry.create("rtr_relax_reprojection_confidence")
+                                            .texture({TEXFMT_R8 | TEXCF_UNORDERED, resolution})
+                                            .atStage(dafg::Stage::CS)
+                                            .useAs(dafg::Usage::SHADER_RESOURCE)
+                                            .handle();
+        relaxIllumPingHndl = registry.create("rtr_relax_illum_ping")
+                               .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                               .atStage(dafg::Stage::CS)
+                               .useAs(dafg::Usage::SHADER_RESOURCE)
+                               .handle();
+        relaxIllumPongHndl = registry.create("rtr_relax_illum_pong")
+                               .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                               .atStage(dafg::Stage::CS)
+                               .useAs(dafg::Usage::SHADER_RESOURCE)
+                               .handle();
+      }
+      else
+        blurTempHndl = registry.create("rtr_blur_temp")
+                         .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, resolution})
+                         .atStage(dafg::Stage::CS)
+                         .useAs(dafg::Usage::SHADER_RESOURCE)
+                         .handle();
+      if (params.validation)
+        validationHndl = registry.create("rtr_validation")
+                           .texture({TEXFMT_A8R8G8B8 | TEXCF_UNORDERED, resolution})
+                           .atStage(dafg::Stage::CS)
+                           .useAs(dafg::Usage::SHADER_RESOURCE)
+                           .handle();
+    }
+    auto resources = eastl::make_tuple(unfilteredHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, denoisedHndl, validationHndl,
+      reblurPrevViewZHndl, reblurPrevViewZHistHndl, reblurPrevNormalRoughnessHndl, reblurPrevNormalRoughnessHistHndl,
+      reblurPrevInternalDataHndl, reblurPrevInternalDataHistHndl, reblurHistoryHndl, reblurHistoryHistHndl, reblurFastHistoryHndl,
+      reblurFastHistoryHistHndl, reblurHistoryStabilizedHndl, reblurHistoryStabilizedHistHndl, reblurHitDistForTrackingHndl,
+      reblurHitDistForTrackingHistHndl, reblurData1Hndl, reblurData2Hndl, reblurHitDistForTrackingTempHndl, reblurTmp2Hndl,
+      reblurFastHistoryTempHndl, reblurTilesHndl, relaxIllumHndl, relaxIllumHistHndl, relaxIllumResponsiveHndl,
+      relaxIllumResponsiveHistHndl, relaxReflectionHitTHndl, relaxReflectionHitTHistHndl, relaxHistoryLengthHndl,
+      relaxHistoryLengthHistHndl, relaxNormalRoughnessHndl, relaxNormalRoughnessHistHndl, relaxMaterialIdHndl, relaxMaterialIdHistHndl,
+      relaxViewZHndl, relaxViewZHistHndl, relaxTilesHndl, relaxHistoryLengthTempHndl, relaxReprojectionConfidenceHndl,
+      relaxIllumPingHndl, relaxIllumPongHndl, blurTempHndl);
+    return [paramsHndl, resources = eastl::make_unique<decltype(resources)>(resources),
+             rendered = eastl::make_unique<RenderedFlag>(rtr_renderedVarId), method = params.method,
+             useSmartDepth = params.useSmartDepth]() {
+      const auto &[unfilteredHndl, viewZHndl, normalRoughnessHndl, motionVectorsHndl, denoisedHndl, validationHndl,
+        reblurPrevViewZHndl, reblurPrevViewZHistHndl, reblurPrevNormalRoughnessHndl, reblurPrevNormalRoughnessHistHndl,
+        reblurPrevInternalDataHndl, reblurPrevInternalDataHistHndl, reblurHistoryHndl, reblurHistoryHistHndl, reblurFastHistoryHndl,
+        reblurFastHistoryHistHndl, reblurHistoryStabilizedHndl, reblurHistoryStabilizedHistHndl, reblurHitDistForTrackingHndl,
+        reblurHitDistForTrackingHistHndl, reblurData1Hndl, reblurData2Hndl, reblurHitDistForTrackingTempHndl, reblurTmp2Hndl,
+        reblurFastHistoryTempHndl, reblurTilesHndl, relaxIllumHndl, relaxIllumHistHndl, relaxIllumResponsiveHndl,
+        relaxIllumResponsiveHistHndl, relaxReflectionHitTHndl, relaxReflectionHitTHistHndl, relaxHistoryLengthHndl,
+        relaxHistoryLengthHistHndl, relaxNormalRoughnessHndl, relaxNormalRoughnessHistHndl, relaxMaterialIdHndl,
+        relaxMaterialIdHistHndl, relaxViewZHndl, relaxViewZHistHndl, relaxTilesHndl, relaxHistoryLengthTempHndl,
+        relaxReprojectionConfidenceHndl, relaxIllumPingHndl, relaxIllumPongHndl, blurTempHndl] = *resources;
+      const ReflectionParams &params = paramsHndl.ref();
+      ShaderGlobal::set_int(rtr_renderedVarId, params.render ? 1 : 0);
+      if (!params.render || resolution_config.useRayReconstruction)
+      {
+        rendered->lastFrame = false;
+        return;
+      }
+      ResetAfterGap reset(!rendered->lastFrame);
+      rendered->lastFrame = true;
+      ReflectionTextures tex;
+      tex.unfiltered = ptr(unfilteredHndl);
+      tex.viewZ = ptr(viewZHndl);
+      tex.normalRoughness = ptr(normalRoughnessHndl);
+      tex.motionVectors = ptr(motionVectorsHndl);
+      tex.denoised = ptr(denoisedHndl);
+      tex.validation = ptr(validationHndl);
+      tex.reblur.prevViewZ = {ptr(reblurPrevViewZHndl), ptr(reblurPrevViewZHistHndl)};
+      tex.reblur.prevNormalRoughness = {ptr(reblurPrevNormalRoughnessHndl), ptr(reblurPrevNormalRoughnessHistHndl)};
+      tex.reblur.prevInternalData = {ptr(reblurPrevInternalDataHndl), ptr(reblurPrevInternalDataHistHndl)};
+      tex.reblur.history = {ptr(reblurHistoryHndl), ptr(reblurHistoryHistHndl)};
+      tex.reblur.fastHistory = {ptr(reblurFastHistoryHndl), ptr(reblurFastHistoryHistHndl)};
+      tex.reblur.historyStabilized = {ptr(reblurHistoryStabilizedHndl), ptr(reblurHistoryStabilizedHistHndl)};
+      tex.reblur.hitDistForTracking = {ptr(reblurHitDistForTrackingHndl), ptr(reblurHitDistForTrackingHistHndl)};
+      tex.reblur.data1 = ptr(reblurData1Hndl);
+      tex.reblur.data2 = ptr(reblurData2Hndl);
+      tex.reblur.hitDistForTrackingTemp = ptr(reblurHitDistForTrackingTempHndl);
+      tex.reblur.tmp2 = ptr(reblurTmp2Hndl);
+      tex.reblur.fastHistoryTemp = ptr(reblurFastHistoryTempHndl);
+      tex.reblur.tiles = ptr(reblurTilesHndl);
+      tex.relax.illum = {ptr(relaxIllumHndl), ptr(relaxIllumHistHndl)};
+      tex.relax.illumResponsive = {ptr(relaxIllumResponsiveHndl), ptr(relaxIllumResponsiveHistHndl)};
+      tex.relax.reflectionHitT = {ptr(relaxReflectionHitTHndl), ptr(relaxReflectionHitTHistHndl)};
+      tex.relax.historyLength = {ptr(relaxHistoryLengthHndl), ptr(relaxHistoryLengthHistHndl)};
+      tex.relax.normalRoughness = {ptr(relaxNormalRoughnessHndl), ptr(relaxNormalRoughnessHistHndl)};
+      tex.relax.materialId = {ptr(relaxMaterialIdHndl), ptr(relaxMaterialIdHistHndl)};
+      tex.relax.viewZ = {ptr(relaxViewZHndl), ptr(relaxViewZHistHndl)};
+      tex.relax.tiles = ptr(relaxTilesHndl);
+      tex.relax.historyLengthTemp = ptr(relaxHistoryLengthTempHndl);
+      tex.relax.reprojectionConfidence = ptr(relaxReprojectionConfidenceHndl);
+      tex.relax.illumPing = ptr(relaxIllumPingHndl);
+      tex.relax.illumPong = ptr(relaxIllumPongHndl);
+      tex.blurTemp = ptr(blurTempHndl);
+      denoise_reflection(params, tex, method, useSmartDepth);
+    };
+  });
+}
 
 } // namespace denoiser
 

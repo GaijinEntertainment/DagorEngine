@@ -387,7 +387,8 @@ private:
 
   virtual ScriptedShaderMaterial *initMaterial(const shaderbindump::ShaderClass &sc) = 0;
   virtual bool isValidShader(const int vpr, const int fsh) const = 0;
-  virtual void onStaticVariant(ScriptedShaderElement &el) = 0;
+  // used_dyn_variants is null when every variant of the class is warmed up
+  virtual void onStaticVariant(ScriptedShaderElement &el, const eastl::bitvector<> *used_dyn_variants) = 0;
   virtual void onDynamicVariant(const size_t variant_id, const ScriptedShaderElement &el) = 0;
 
   virtual void onGpuAcquired() = 0;
@@ -493,7 +494,7 @@ private:
         const shaderbindump::ShaderCode &code = shaderClass.code[stVariantId];
         ScriptedShaderElement *el = elements.push_back(ScriptedShaderElement::create(code, *ssm, ""));
 
-        onStaticVariant(*el);
+        onStaticVariant(*el, nullptr);
 
         uint32_t dynWarmedup = 0u;
         for (size_t dynVariantId = 0; dynVariantId < code.passes.size(); ++dynVariantId)
@@ -515,8 +516,9 @@ private:
         const shaderbindump::ShaderCode &code = shaderClass.code[stVariantId];
         ScriptedShaderElement *el = elements.push_back(ScriptedShaderElement::create(code, *ssm, ""));
 
-        onStaticVariant(*el);
+        // the filter must be ready before the element prepares its passes
         enumerateVariants(code.dynVariants, code.passes.size(), usedDynVariants);
+        onStaticVariant(*el, &usedDynVariants);
 
         uint32_t dynWarmedup = 0u;
         for (int dynVariantId = 0; dynVariantId < code.passes.size(); ++dynVariantId)
@@ -610,7 +612,10 @@ private:
     return ScriptedShaderMaterial::create(*smp);
   }
 
-  virtual void onStaticVariant(ScriptedShaderElement &el) override { el.preCreateStateBlocks(); }
+  virtual void onStaticVariant(ScriptedShaderElement &el, const eastl::bitvector<> *used_dyn_variants) override
+  {
+    el.preCreateStateBlocks(used_dyn_variants);
+  }
 
   virtual void onDynamicVariant(const size_t variant_id, const ScriptedShaderElement &el) override
   {
@@ -678,7 +683,7 @@ private:
     return ScriptedShaderMaterial::create(*smp);
   }
 
-  virtual void onStaticVariant(ScriptedShaderElement &) override {}
+  virtual void onStaticVariant(ScriptedShaderElement &, const eastl::bitvector<> *) override {}
 
   virtual void onDynamicVariant(const size_t variant_id, const ScriptedShaderElement &el)
   {
@@ -838,34 +843,32 @@ bool shadercache::get_warmup_status(uint32_t &completed, uint32_t &total)
   return total > 0;
 }
 
-void shadercache::draw_warmup_status()
+void shadercache::draw_warmup_status(uint32_t completed, uint32_t total)
 {
-  uint32_t completed;
-  uint32_t total;
-  if (shadercache::get_warmup_status(completed, total))
-  {
-    int w = 0, h = 0;
-    d3d::get_target_size(w, h);
-    int barH = 32;
-    int barW = (completed * w * 100) / (total * 100);
-    if (w)
-    {
-      d3d::setview(0, h - barH, w, barH, 0, 1);
-      d3d::clearview(CLEAR_TARGET, E3DCOLOR(0), 0, 0);
-    }
-    if (barW)
-    {
-      d3d::setview(0, h - barH, barW, barH, 0, 1);
-      d3d::clearview(CLEAR_TARGET, E3DCOLOR(0xFFFFFFFF), 0, 0);
-    }
+  G_ASSERT_RETURN(total > 0, );
+  G_ASSERT_RETURN(completed <= total, );
 
-    // retro style load progress
-    // int barHofs = barH;
-    // barH = 8;
-    // barW = completed % w;
-    // d3d::setview(0, h - barH - barHofs, w, barH, 0, 1);
-    // d3d::clearview(CLEAR_TARGET, E3DCOLOR(0), 0, 0);
-    // d3d::setview(0, h - barH - barHofs, barW, barH, 0, 1);
-    // d3d::clearview(CLEAR_TARGET, E3DCOLOR(0xFFFFFFFF), 0, 0);
+  int w = 0, h = 0;
+  d3d::get_target_size(w, h);
+  int barH = 32;
+  int barW = (completed * w * 100) / (total * 100);
+  if (w)
+  {
+    d3d::setview(0, h - barH, w, barH, 0, 1);
+    d3d::clearview(CLEAR_TARGET, E3DCOLOR(0), 0, 0);
   }
+  if (barW)
+  {
+    d3d::setview(0, h - barH, barW, barH, 0, 1);
+    d3d::clearview(CLEAR_TARGET, E3DCOLOR(0xFFFFFFFF), 0, 0);
+  }
+
+  // retro style load progress
+  // int barHofs = barH;
+  // barH = 8;
+  // barW = completed % w;
+  // d3d::setview(0, h - barH - barHofs, w, barH, 0, 1);
+  // d3d::clearview(CLEAR_TARGET, E3DCOLOR(0), 0, 0);
+  // d3d::setview(0, h - barH - barHofs, barW, barH, 0, 1);
+  // d3d::clearview(CLEAR_TARGET, E3DCOLOR(0xFFFFFFFF), 0, 0);
 }

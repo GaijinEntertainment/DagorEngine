@@ -84,18 +84,18 @@ public:
   ~CompositeJoystickClassDriver();
 
   void addClassDrv(IGenJoystickClassDrv *drv, bool is_xinput);
-  void addPcPadClassDrvs(bool use_sony_pads)
+  void addPcPadClassDrvs(bool use_dspads)
   {
     setGamepadLayoutGroup(true);
-    // first: Sony pads get the main slot
-    IGenJoystickClassDrv *sonyDrv = use_sony_pads ? createSonyPadJoystickClassDriver() : nullptr;
-    addClassDrv(sonyDrv, true);
+    // first: dsPads get the main slot
+    IGenJoystickClassDrv *dsPadDrv = use_dspads ? createDsPadJoystickClassDriver() : nullptr;
+    addClassDrv(dsPadDrv, true);
 #if _TARGET_PC_WIN
     addClassDrv(createXinputJoystickClassDriver(), true);
 #elif _TARGET_PC_LINUX
-    addClassDrv(createJoystickClassDriver(false, true, sonyDrv != nullptr), true);
+    addClassDrv(createJoystickClassDriver(false, true, dsPadDrv != nullptr), true);
 #endif
-    addClassDrv(createJoystickClassDriver(true, false, sonyDrv != nullptr), false);
+    addClassDrv(createJoystickClassDriver(true, false, dsPadDrv != nullptr), false);
   }
   void setFFClient(ICompositeForceFeedback *cli) { ffClient = cli; }
   void setLocClient(ICompositeLocalization *cli, bool refresh = false);

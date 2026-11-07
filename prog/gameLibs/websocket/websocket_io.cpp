@@ -20,6 +20,8 @@
 // curl_multi_poll and curl_multi_wakeup, 7.68.0
 #define WEBSOCKET_CURL_MULTI_POLL (LIBCURL_VERSION_NUM >= 0x074400)
 
+#define WEBSOCKET_CURL_MULTI_QUICK_EXIT (LIBCURL_VERSION_NUM >= 0x081600)
+
 namespace websocket
 {
 
@@ -53,7 +55,7 @@ private:
   MessageCb messageCb;
   MessageCb messageAsyncCb;
 
-  // constraint: only the worker thread pushes, so events keep the I/O order
+  // only the worker thread pushes, so events keep the I/O order
   WinCritSec appQueueMutex;
   eastl::vector<IoEvent> appQueue;
 
@@ -61,7 +63,7 @@ private:
   bool *pollAlive = nullptr;
 
 public:
-  // constraint: only the manager lock guards these
+  // only the manager lock guards these
   ClientImpl *livePrev = nullptr;
   ClientImpl *liveNext = nullptr;
 
@@ -98,14 +100,14 @@ struct WorkerItem
 };
 
 static constexpr int fallback_wait_ms = 10;
-// constraint: a wakeup can fail to send, so even a wait that a wakeup would end lasts at most this long
+// a wakeup can fail to send, so even a wait that a wakeup would end lasts at most this long
 static constexpr int max_wait_ms = 1000;
 
 static volatile int io_wakeups = 0;
 static bool force_wake_socket = false;
 static volatile int drop_wakeups = 0;
 
-// constraint: never destroyed and not on the heap, so a client destroyed after shutdown() still finds it
+// never destroyed and not on the heap, so a client destroyed after shutdown() still finds it
 static WinCritSec &get_manager_mutex()
 {
   alignas(WinCritSec) static char storage[sizeof(WinCritSec)];
@@ -128,7 +130,8 @@ private:
   class IoThread final : public DaThread
   {
   public:
-    explicit IoThread(IoManager &io_manager) : DaThread("WebSocketIO", 256 << 10), manager(io_manager) {}
+    explicit IoThread(IoManager &io_manager) : DaThread("WebSocketIO", 128 << 10, 0, WORKER_THREADS_AFFINITY_MASK), manager(io_manager)
+    {}
     void execute() override { manager.ioLoop(); }
 
   private:
@@ -138,7 +141,9 @@ private:
   class WorkerThread final : public DaThread
   {
   public:
-    explicit WorkerThread(IoManager &io_manager) : DaThread("WebSocketWorker", 256 << 10), manager(io_manager) {}
+    explicit WorkerThread(IoManager &io_manager) :
+      DaThread("WebSocketWorker", 64 << 10, 0, WORKER_THREADS_AFFINITY_MASK), manager(io_manager)
+    {}
     void execute() override { manager.workerLoop(); }
 
   private:
@@ -160,10 +165,10 @@ private:
   void workerLoop();
   bool isRunning() const { return ioThread.isThreadRunnning() && workerThread.isThreadRunnning(); }
 
-  // constraint: created before and cleaned after both threads, so curl_multi_wakeup always has a valid handle
+  // created before and cleaned after both threads, so curl_multi_wakeup always has a valid handle
   CURLM *multi = nullptr;
   volatile int stopIo = 0;
-  // constraint: without a working curl_multi_wakeup (older than 7.68, or built with CURL_DISABLE_SOCKETPAIR as for Sony),
+  // without a working curl_multi_wakeup (older than 7.68, or built with CURL_DISABLE_SOCKETPAIR as for Sony),
   // wakeIo() sends a datagram to this self-connected socket, which every wait watches
   os_socket_t wakeSocket = OS_SOCKET_INVALID;
   bool curlWakeup = false;
@@ -189,7 +194,7 @@ private:
 
 static IoManager *manager_instance = nullptr;
 static unsigned manager_clients = 0;
-// constraint: intrusive, so the list leaves nothing on the heap for the exit leak check
+// intrusive, so the list leaves nothing on the heap for the exit leak check
 static ClientImpl *live_clients = nullptr;
 
 } // namespace
@@ -234,7 +239,7 @@ private:
       heldEvents.push_back(eastl::move(event));
       return;
     }
-    // constraint: the rest waits until poll() ran the connect callback, so onMessageAsync never runs before it
+    // the rest waits until poll() ran the connect callback, so onMessageAsync never runs before it
     if (event.type == IoEvent::Type::Connect && event.connectStatus == ConnectStatus::Ok)
       holdEvents = true;
     manager.queueEvent(client, eastl::move(event));
@@ -330,6 +335,9 @@ IoManager::IoManager() : ioThread(*this), workerThread(*this)
   multi = curl_multi_init();
   if (!multi)
     DAG_FATAL("failed to allocate curl multi handle");
+#if WEBSOCKET_CURL_MULTI_QUICK_EXIT
+  curl_multi_setopt(multi, CURLMOPT_QUICK_EXIT, 1L);
+#endif
   os_event_create(&workerEvent);
 #if WEBSOCKET_CURL_MULTI_POLL
   // a probe that succeeds leaves one wakeup pending, so the first wait returns at once
@@ -396,7 +404,7 @@ void IoManager::post(IoCommand &&command)
   bool wake = false;
   {
     WinAutoLock lock(commandMutex);
-    // constraint: a non-empty queue already has a wakeup pending, the I/O thread swaps it before its next wait
+    // a non-empty queue already has a wakeup pending, the I/O thread swaps it before its next wait
     wake = commands.empty();
     commands.push_back(eastl::move(command));
   }
@@ -434,7 +442,7 @@ void IoManager::ioLoop()
       waitConns[i]->readyEvents = waitFds[i].revents;
       anyReady |= waitFds[i].revents != 0;
     }
-    // constraint: curl maps no POLLHUP or POLLERR into revents, so a wake without a known socket checks them all
+    // curl maps no POLLHUP or POLLERR into revents, so a wake without a known socket checks them all
     performAll = readyCount > 0 && !anyReady && !waitFds.empty();
   }
 }
@@ -449,7 +457,7 @@ void IoManager::applyCommand(IoCommand &command)
 
   auto it = eastl::find_if(slots.begin(), slots.end(),
     [client = command.client](const eastl::unique_ptr<IoSlot> &slot) { return slot->client == client; });
-  // constraint: onMessageAsync can post for its client after Detach, such commands find no slot
+  // onMessageAsync can post for its client after Detach, such commands find no slot
   if (it == slots.end())
     return;
   IoSlot &slot = **it;
@@ -574,7 +582,7 @@ int IoManager::performConnections(bool perform_all)
 
 void IoManager::waitForIo(int timeout_ms, int &ready_count)
 {
-  // constraint: the wake socket sits in waitFds only during the wait, waitFds stays index-matched to waitConns after it
+  // the wake socket sits in waitFds only during the wait, waitFds stays index-matched to waitConns after it
   const bool hasWakeSocket = wakeSocket != OS_SOCKET_INVALID;
   if (hasWakeSocket)
     waitFds.push_back({(curl_socket_t)wakeSocket, CURL_WAIT_POLLIN, 0});
@@ -584,7 +592,7 @@ void IoManager::waitForIo(int timeout_ms, int &ready_count)
   const CURLMcode mc = curl_multi_poll(multi, fds, (unsigned)waitFds.size(), waitMs, &ready_count);
 #else
   const CURLMcode mc = curl_multi_wait(multi, fds, (unsigned)waitFds.size(), waitMs, &ready_count);
-  // constraint: curl_multi_wait returns at once when it has nothing to wait on
+  // curl_multi_wait returns at once when it has nothing to wait on
   if (mc == CURLM_OK && runningTransfers == 0 && waitFds.empty())
     sleep_msec(waitMs);
 #endif
@@ -650,7 +658,7 @@ ClientImpl::ClientImpl(ClientConfig &&config, IoConnectionFactory io_factory) :
   settings{config.maxMessageSize, config.verifyCert, config.verifyHost, config.connectTimeoutMs, config.closeTimeoutMs},
   factory(io_factory)
 {
-  // constraint: assigned, not constructed: the MoveOnlyFunction move constructor reads a field an empty source leaves unset
+  // assigned, not constructed: the MoveOnlyFunction move constructor reads a field an empty source leaves unset
   closeCb = eastl::move(config.onClose);
   messageCb = eastl::move(config.onMessage);
   messageAsyncCb = eastl::move(config.onMessageAsync);
@@ -663,7 +671,7 @@ ClientImpl::ClientImpl(ClientConfig &&config, IoConnectionFactory io_factory) :
 
 ClientImpl::~ClientImpl()
 {
-  // constraint: leaves the list first, so shutdown() closing clients under the lock never touches it from now on
+  // leaves the list first, so shutdown() closing clients under the lock never touches it from now on
   IoManager::unlink(this);
   if (pollAlive)
     *pollAlive = false;
@@ -671,7 +679,7 @@ ClientImpl::~ClientImpl()
   command.type = IoCommand::Type::Detach;
   command.client = this;
   manager->post(eastl::move(command));
-  // constraint: the worker sets it after the last event of this client, so no callback runs once it is set
+  // the worker sets it after the last event of this client, so no callback runs once it is set
   os_event_wait(&detachedEvent, OS_WAIT_INFINITE);
   os_event_destroy(&detachedEvent);
   IoManager::release();
@@ -721,7 +729,7 @@ void ClientImpl::poll()
     events.swap(appQueue);
   }
 
-  // constraint: a callback can destroy this client
+  // a callback can destroy this client
   bool alive = true;
   pollAlive = &alive;
   for (IoEvent &event : events)
@@ -784,7 +792,7 @@ static unsigned live_client_count()
   return count;
 }
 
-// constraint: only clients this thread polls, whose destructor also runs on it, so a client still in the list right
+// only clients this thread polls, whose destructor also runs on it, so a client still in the list right
 // before its poll() stays valid during it, unless a callback of that poll() destroys it
 static void poll_own_live_clients(int64_t thread_id)
 {

@@ -417,7 +417,7 @@ namespace das
     ,   lookup_method                                               =   30822    // 1 site(s)
     ,   lookup_new_type                                             =   30823    // 1 site(s)
     ,   lookup_safe_field_type                                      =   30824    // 1 site(s)
-    ,   lookup_structure_field                                      =   30825    // 1 site(s)
+    ,   lookup_structure_field                                      =   30825    // 2 site(s)
     ,   lookup_structure_field_type                                 =   30826    // 1 site(s)
     ,   lookup_super_class                                          =   30827    // 1 site(s)
     ,   lookup_super_constructor                                    =   30828    // 1 site(s)

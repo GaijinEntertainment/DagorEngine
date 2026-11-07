@@ -90,7 +90,7 @@ bool imgui_draw_shatter_material_profile(ShatterMaterialProfileImGuiState &state
     RoughShatterFlavorSettings &o = state.roughSettings;
     changed |= ImGui::DragFloat("relCell", &o.relCell, 0.005f, 0.005f, 0.5f, "%.3f", CLAMP);
     changed |= ImGui::DragFloatRange2("min/maxCell", &o.minCell, &o.maxCell, 0.01f, 0.005f, 2.f, "%.3f", nullptr, CLAMP);
-    changed |= ImGui::DragFloat("relAmpl", &o.relAmpl, 0.1f, 0.f, 8.f, "%.3f", CLAMP);
+    changed |= ImGui::DragFloat("relAmpl", &o.relAmpl, 0.1f, 0.f, 16.f, "%.3f", CLAMP);
     changed |= ImGui::SliderInt("ridgeCells", &o.ridgeCells, 1, 16, "%d", CLAMP);
     changed |= ImGui::DragFloatRange2("ridgeRange", &o.ridgeRange.x, &o.ridgeRange.y, 0.01f, 0.f, 1.f, "%.3f", nullptr, CLAMP);
     changed |= ImGui::DragFloat("ridgeJitter", &o.ridgeJitter, 0.01f, 0.f, 1.f, "%.3f", CLAMP);

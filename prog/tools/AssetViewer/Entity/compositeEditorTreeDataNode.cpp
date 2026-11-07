@@ -8,6 +8,12 @@
 #include <math/dag_mathAng.h>
 #include <util/dag_string.h>
 
+static bool is_blk_gen_name_asset_missing(const DataBlock &params, const char *asset_type)
+{
+  const char *name = params.getStr("blkGenName", "");
+  return *name && !DAEDITOR3.getAssetByName(name, DAEDITOR3.getAssetTypeId(asset_type));
+}
+
 static void update_point2_parameter_value(CompositeEditorTreeDataNode &node, const char *name, real value)
 {
   Point2 parameter;
@@ -43,6 +49,22 @@ const char *CompositeEditorTreeDataNode::getAssetTypeName() const
   }
 
   return nullptr;
+}
+
+bool CompositeEditorTreeDataNode::isAssetMissing() const
+{
+  // The asset of a spline, polygon or point is in blkGenName, like in SplineEntity::SplineData::load(). The name of a
+  // spline or polygon is only a label.
+  const char *blockName = params.getBlockName();
+  if (blockName && strcmp(blockName, "spline") == 0)
+    return is_blk_gen_name_asset_missing(params, "spline");
+  if (blockName && strcmp(blockName, "polygon") == 0)
+    return is_blk_gen_name_asset_missing(params, "land");
+  if (blockName && strcmp(blockName, "point") == 0)
+    return !params.getBool("useDefSplineGen", true) && is_blk_gen_name_asset_missing(params, "spline");
+
+  const char *name = getAssetName();
+  return *name && !DAEDITOR3.getGenObjAssetByName(name);
 }
 
 bool CompositeEditorTreeDataNode::isCompositeAsset() const
@@ -155,6 +177,12 @@ bool CompositeEditorTreeDataNode::isEntBlock() const
   return blockName != nullptr && strcmp(blockName, "ent") == 0;
 }
 
+bool CompositeEditorTreeDataNode::isNodeBlock() const
+{
+  const char *blockName = params.getBlockName();
+  return blockName != nullptr && strcmp(blockName, "node") == 0;
+}
+
 bool CompositeEditorTreeDataNode::hasEntBlock() const
 {
   for (int i = 0; i < nodes.size(); ++i)
@@ -190,6 +218,9 @@ bool CompositeEditorTreeDataNode::isAncestorOfNode(unsigned dataBlockId) const
 
   return false;
 }
+
+// daEditorX reads "disabled" only on a node block (CompositEntityPool::loadAssetData).
+bool CompositeEditorTreeDataNode::isDisabled() const { return isNodeBlock() && params.getBool("disabled", false); }
 
 bool CompositeEditorTreeDataNode::hasNameParameter() const { return params.findParam("name") >= 0; }
 

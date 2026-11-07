@@ -38,6 +38,7 @@ static inline void riex_object_group_process_es(
 {
   auto &rulesBuilder = *evt.get<0>();
   auto &builder = dagdp__riex_manager.currentBuilder;
+  const float lodRangeMul = GlobalManager::lodRangeMul();
 
   builder = {}; // Reset the state.
 
@@ -212,6 +213,10 @@ static inline void riex_object_group_process_es(
 
         // Don't try to clamp values here; views should implement GLOBAL_MAX_DRAW_DISTANCE limit instead and everything will just work.
       }
+
+      // the last range is the draw distance and stays unscaled
+      for (size_t i = 0; i + 1 < placeable.ranges.size(); ++i)
+        placeable.ranges[i].baseDrawDistance *= lodRangeMul;
 
       totalWeight += placeable.params.weight;
       objectGroupInfo.placeables.push_back(placeable);

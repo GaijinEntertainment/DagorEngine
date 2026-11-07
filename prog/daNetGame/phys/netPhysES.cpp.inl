@@ -12,8 +12,6 @@
 #include <daECS/net/message.h>
 #include <daECS/net/recipientFilters.h>
 #include <daECS/core/coreEvents.h>
-#include <osApiWrappers/dag_events.h>
-#include <util/dag_threadPool.h>
 #include "phys/physEvents.h"
 #include "game/player.h"
 #include <gamePhys/phys/walker/humanPhys.h>
@@ -136,39 +134,10 @@ int BasePhysActor::calcControlsTickDelta()
   return plr ? eastl::min(plr->calcControlsTickDelta(), maxTicksDelta) : 0;
 }
 
-#if _TARGET_C1 | _TARGET_XBOXONE
-struct ReserveOneThreadpoolWorkerJob final : public cpujobs::IJob
-{
-  os_event_t evt;
-  ReserveOneThreadpoolWorkerJob() { os_event_create(&evt); }
-  ~ReserveOneThreadpoolWorkerJob() { os_event_destroy(&evt); }
-  const char *getJobName(bool &) const override { return DAPROFILER_STRING("ReserveOneThreadpoolWorkerJob"); }
-  void doJob() override
-  {
-    threadpool::wake_up_one(); // Wake up Jolt's sim job
-    TIME_PROFILE_WAIT_DEV("tp_worker_reserve");
-    os_event_wait(&evt, OS_WAIT_INFINITE);
-  }
-};
-static InitOnDemand<ReserveOneThreadpoolWorkerJob, false> reserve_one_tp_worker_job;
-void free_reserved_tp_worker() { os_event_set(&reserve_one_tp_worker_job->evt); }
-#else
-void free_reserved_tp_worker() {}
-#endif
-
 ECS_TAG(gameClient)
 static void start_async_phys_sim_es(const ParallelUpdateFrameDelayed &evt)
 {
-#if _TARGET_C1 | _TARGET_XBOXONE
-  // Reserve one threadpool worker until the end of PUFD in order to make sure that it has core to run on
-  // (otherwise it might be preempted-out by other TP workers that do Jolt simulation)
-  G_ASSERT(threadpool::get_current_worker_id() >= 0 && threadpool::get_num_workers() > 2);
-  threadpool::add(reserve_one_tp_worker_job.demandInit());
-  constexpr bool wake_tp = false; // Will be woken up by reserve_one_tp_worker_job
-#else
-  constexpr bool wake_tp = true;
-#endif
-  dacoll::phys_world_start_sim(evt.dt, wake_tp);
+  dacoll::phys_world_start_sim(evt.dt);
   dacoll::phys_world_set_invalid_fetch_sim_res_thread(/*cur thread*/ 0); // it's invalid to call fetchSimRes until end of this event
 }
 
@@ -319,7 +288,7 @@ void net_phys_collision_es_impl(const UpdatePhysEvent &info,
     if (!qcoll.shouldCollide)
       return;
 
-    CollisionObject staticCollObj(testBody.staticPhysBody, nullptr);
+    CollisionObject staticCollObj(testBody.staticPhysBody);
     dag::ConstSpan<CollisionObject> testColl = testPhys ? testPhys->getCollisionObjects() : make_span_const(&staticCollObj, 1);
     uint64_t testCollActive = testPhys ? testPhys->getActiveCollisionObjectsBitMask() : ~0ull;
     TMatrix testTm, staticBodyItm;

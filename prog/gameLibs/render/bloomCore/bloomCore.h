@@ -12,7 +12,7 @@ namespace bloom
 using RenderFunc = eastl::fixed_function<16, void()>;
 using RenderCallback = eastl::fixed_function<16, void(RenderFunc render_func)>;
 void regenerate_downsample_chain(
-  dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, float mips_count_f, bool use_esram = true,
+  dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, const char *input_tex_name, float mips_count_f, bool use_esram = true,
   RenderCallback cb = [](RenderFunc render_func) { render_func(); });
 void regenerate_upsample_chain(
   dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, float mips_count_f, float upsample_factor, const Color3 &halation_color,

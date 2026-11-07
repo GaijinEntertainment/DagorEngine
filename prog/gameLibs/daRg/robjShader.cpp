@@ -13,8 +13,10 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_shaderCommon.h>
+#include <shaders/dag_renderStateId.h>
 
 #include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shader.h>
 #include <drv/3d/dag_shaderConstants.h>
@@ -318,6 +320,22 @@ bool RobjShaderParams::getAnimFloat(AnimProp prop, float **ptr)
 
 static constexpr int DARG_SHADER_CMD = 42;
 
+// Same state as DARG_PIXEL_SHADER_SETUP in darg_shader_inc.dshl
+static shaders::RenderStateId get_runtime_shader_state()
+{
+  static shaders::RenderStateId id = [] {
+    shaders::RenderState state;
+    state.ztest = 0;
+    state.zwrite = 0;
+    state.cull = CULL_NONE;
+    state.blendParams[0].ablend = 1;
+    state.blendParams[0].ablendFactors.src = BLEND_ONE;
+    state.blendParams[0].ablendFactors.dst = BLEND_INVSRCALPHA;
+    return shaders::render_states::create(state);
+  }();
+  return id;
+}
+
 static void shader_render_callback(StdGuiRender::CallBackState &cbs)
 {
   G_ASSERT_RETURN(cbs.command == DARG_SHADER_CMD, );
@@ -346,6 +364,8 @@ static void shader_render_callback(StdGuiRender::CallBackState &cbs)
     d3d::set_ps_const(1, &c1, 1);
     d3d::set_ps_const(2, &p->params[0], 4);
 
+    shaders::render_states::set(get_runtime_shader_state());
+    ShaderElement::invalidate_cached_state_block();
     d3d::set_program(p->rtProgram);
     d3d::setvsrc(0, nullptr, 0);
     d3d::draw(PRIM_TRILIST, 0, 1);

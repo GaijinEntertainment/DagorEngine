@@ -161,7 +161,6 @@ void create_emitter_state(EmitterState &state, const EmitterData &data, unsigned
     G_ASSERT(false);
   }
 
-  state.cyclesCountRef = state.cyclesCount;
   state.spawnTickRef = state.spawnTick;
   state.shrinkTickRef = state.shrinkTick;
   state.garbageTick = 0;

@@ -88,6 +88,8 @@ Picture atlas configuration format::
     refHRes:i=1080 //reference size of vertcal resoultion.
                    //Atlas will proportionally scale on bigger resolutions,
                    //as we usually need pixel perfect rasterization of icons
+    keepAlive:b=yes //dynamic atlas only: keep its texture and pictures when no picture is referenced,
+                    //instead of releasing it in discard_unused_picture()
   }
 
 
@@ -146,7 +148,7 @@ struct AtlasData
   Tab<int> picNameId;
   String picSrcFolder;
   FastIntList missingPicHash;
-  bool dynamic = false, premultiplyAlpha = true, lazyAlloc = false, isRt = false;
+  bool dynamic = false, premultiplyAlpha = true, lazyAlloc = false, isRt = false, keepAlive = false;
   int fmt = FMT_none;
   int texFmt = 0;
   IPoint2 maxAllowedPicSz = defMaxAllowedPicSz;
@@ -643,9 +645,12 @@ static bool readAtlasDesc(const char *file_name, DataBlock &out_blk, String &out
 
 static bool reloadDiscardedPic(PICTUREID pid, DynamicPicAtlas::ItemData *d)
 {
+  TexRec &tr = *texRec[getTexRecIdx(pid)];
+  if (tr.ad->atlas.isRepackPending())
+    return false;
+
   if (d->scheduleRestoring())
   {
-    TexRec &tr = *texRec[getTexRecIdx(pid)];
     const char *pic_nm = nameMap.getName(tr.ad->picNameId[getPicRecIdx(pid)]);
     if (!pic_nm || !*pic_nm)
     {
@@ -661,41 +666,10 @@ static bool reloadDiscardedPic(PICTUREID pid, DynamicPicAtlas::ItemData *d)
     {
       j->doJobSync();
       delete j;
-      return true;
+      return d->valid();
     }
-    // if loading calls reArrangeAndAlloc
-    // it will happen at unknown or surely frame begin reordered time
-    // causing content to be corrupted if it is order dependant,
-    // i.e. if someone need to write to atlas between this actions
-    // we must honor ordering/disable reorder, but that possible only if GPU lock is taken
-    // and we can't do that in this job because we will catch
-    // deadlock between main-ui-this job threads
-    // -main waits ui with gpu lock,
-    // -ui waits picmgr on internal lock
-    // -picmgr lock is taken by job that waits gpu lock held on main
-    // and in fact it does not solve ordering issue
-    // so proper way seems to execute delayed action
-    //
-    // happens mostly on vulkan, so treatment only for vulkan
-    // yet if reload asked from main thread, writes between reload actions happen in frame begin reordered time
-    // so we must also handle this case in inverse manner
-    if (d3d::get_driver_code().is(d3d::vulkan) && !is_main_thread())
-    {
-      struct DelayedPicLoad : public DelayedAction
-      {
-        AsyncPicLoadJob *j;
-        DelayedPicLoad(AsyncPicLoadJob *ji) : j(ji) {}
-        virtual void performAction()
-        {
-          d3d::GpuAutoLock gpu_lock;
-          j->doJobSync();
-          delete j;
-        }
-      };
-      add_delayed_action(new DelayedPicLoad(j));
-    }
-    else
-      G_VERIFY(cpujobs::add_job(asyncLoadJobMgr, j));
+
+    G_VERIFY(cpujobs::add_job(asyncLoadJobMgr, j));
   }
   return false;
 }
@@ -914,18 +888,44 @@ static bool check_pic_still_valid(PictureRenderContext &ctx)
 {
   WinAutoLock lock(critSec);
   int tex_idx;
-  if (const DynamicPicAtlas::ItemData *d = decodePicId(ctx.pid, tex_idx, /*update_lru*/ false, &ctx.gen))
-    // treat image as valid if ST_waitFirstPictureFactoryRender is setted up in dx field, to support first round of
-    // render_pic_with_factory
-    if (d->valid() || d->dx == DynamicPicAtlas::ItemData::ST_waitPictureFactoryFirstRender)
-    {
-      // dynamic atlas could be rearranged (see reArrangeAndAlloc()), so update actual texture coordinates
-      ctx.x0 = d->x0;
-      ctx.y0 = d->y0;
-      return true;
-    }
-  return false;
+  DynamicPicAtlas::ItemData *d = const_cast<DynamicPicAtlas::ItemData *>(decodePicId(ctx.pid, tex_idx, false, &ctx.gen));
+  if (!d || !d->isPendingRender() || d->w != ctx.w || d->h != ctx.h)
+    return false;
+
+  d->lruFrame = dagor_frame_no();
+
+  // dynamic atlas could be rearranged (see reArrangeAndAlloc()), so update actual texture coordinates
+  ctx.x0 = d->x0;
+  ctx.y0 = d->y0;
+  return true;
 }
+
+static DynamicPicAtlas *find_dyn_atlas(int tex_idx, uint8_t gen)
+{
+  if (tex_idx >= texRec.size() || texRec[tex_idx].isFreeSlot() || texRecGen[tex_idx] != gen || !texRec[tex_idx]->ad)
+    return nullptr;
+  return &texRec[tex_idx]->ad->atlas;
+}
+
+struct AtlasRepackAction final : public DelayedAction
+{
+  int texIdx;
+  uint8_t gen;
+  uint32_t requestFrame;
+  AtlasRepackAction(int tex_idx, uint8_t g, uint32_t frame) : texIdx(tex_idx), gen(g), requestFrame(frame) {}
+  bool precondition() override { return dagor_frame_no() > requestFrame; }
+  void performAction() override
+  {
+    if (!inited)
+      return;
+
+    WinAutoLock lock(critSec);
+    if (DynamicPicAtlas *atlas = find_dyn_atlas(texIdx, gen))
+      if (atlas->isRepackPending() && dagor_frame_no() > atlas->getRepackRequestFrame())
+        atlas->repack();
+  }
+};
+
 #if DAGOR_DBGLEVEL > 0
 static const char *extract_pic_name(PICTUREID pid, uint8_t gen)
 {
@@ -972,6 +972,7 @@ const char *PictureRenderContext::extractPicName() const { return extract_pic_na
 
 static void discard_canceled_atlas_picture(PictureRenderContext &ctx)
 {
+  WinAutoLock lock(critSec);
   if (!check_pic_still_valid(ctx))
     return;
   int atlasItemIdx = getPicRecIdx(ctx.pid);
@@ -983,13 +984,24 @@ static void discard_canceled_atlas_picture(PictureRenderContext &ctx)
     pic_name_to_log(extract_pic_name(ctx.pid, ctx.gen), stor), ctx.x0, ctx.y0);
 }
 
+static bool is_atlas_repack_pending(const PictureRenderContext &ctx)
+{
+  int tex_idx;
+  return decodePicId(ctx.pid, tex_idx, false, &ctx.gen) && texRec[tex_idx]->ad->atlas.isRepackPending();
+}
+
 AsyncPicState process_pic_before_render(PictureRenderContext &ctx)
 {
+  WinAutoLock lock(critSec);
+
   if (!AsyncPicLoadJob::loadAllowed)
   {
     discard_canceled_atlas_picture(ctx);
     return AsyncPicState::DisallowedToRender;
   }
+
+  if (is_atlas_repack_pending(ctx))
+    return AsyncPicState::TooEarlyToRender;
 
   if (!check_pic_still_valid(ctx))
     return AsyncPicState::Discarded;
@@ -998,6 +1010,32 @@ AsyncPicState process_pic_before_render(PictureRenderContext &ctx)
     return AsyncPicState::TooEarlyToRender;
 
   return AsyncPicState::ReadyToRender;
+}
+
+void mark_pic_rendered(const PictureRenderContext &ctx)
+{
+  WinAutoLock lock(critSec);
+  int tex_idx;
+  DynamicPicAtlas::ItemData *d = const_cast<DynamicPicAtlas::ItemData *>(decodePicId(ctx.pid, tex_idx, true, &ctx.gen));
+  if (!d || !d->isPendingRender())
+    return;
+
+  if (d->w != ctx.w || d->h != ctx.h)
+  {
+    debug("PM: pic=%08X resized %dx%d->%dx%d during render, skipped (newer ctx exists)", ctx.pid, ctx.w, ctx.h, d->w, d->h);
+    return;
+  }
+
+  if (d->x0 != ctx.x0 || d->y0 != ctx.y0)
+  {
+    debug("PM: pic=%08X moved (%d,%d)->(%d,%d) during render, discarded (no other ctx is expected to be active)", ctx.pid, ctx.x0,
+      ctx.y0, d->x0, d->y0);
+    rbp::Rect rect;
+    texRec[tex_idx]->ad->atlas.discardItem(getPicRecIdx(ctx.pid), rect);
+    return;
+  }
+
+  d->dx = 0;
 }
 
 static void retry_render_pic_with_factory_imm(void *arg)
@@ -1024,6 +1062,7 @@ static void retry_render_pic_with_factory_imm(void *arg)
       add_delayed_callback_buffered(retry_render_pic_with_factory_imm, arg);
       return;
     }
+    mark_pic_rendered(ctx);
     debug("PM: render succeed at last for pic=%08X at %d,%d", ctx.pid, ctx.x0, ctx.y0);
   }
   else
@@ -1038,6 +1077,8 @@ static void render_pic_with_factory_imm(PictureRenderContext &ctx)
   const AsyncPicState picState = process_pic_before_render(ctx);
   if (picState != AsyncPicState::ReadyToRender)
   {
+    if (picState == AsyncPicState::TooEarlyToRender)
+      add_delayed_callback_buffered(retry_render_pic_with_factory_imm, new PictureRenderContext(ctx));
     if (picState == AsyncPicState::Discarded)
     {
       String stor;
@@ -1062,6 +1103,8 @@ static void render_pic_with_factory_imm(PictureRenderContext &ctx)
     ctx.triedAtFrame = dagor_frame_no();
     add_delayed_callback_buffered(retry_render_pic_with_factory_imm, new PictureRenderContext(ctx));
   }
+  else
+    mark_pic_rendered(ctx);
 }
 
 void PictureDelayedRenderFactory::queueRender(PictureRenderContext &ctx, WinAutoLock *lock)
@@ -1156,6 +1199,10 @@ void PictureManager::prepare_to_release(bool final_term)
     enter_critical_section(critSec);
     for (PictureRenderFactory *f = PictureRenderFactory::tail; f; f = f->next)
       f->clearPendReq();
+    for_each_tex_rec([](TexRec &tr, int) {
+      if (tr.ad && tr.ad->dynamic)
+        tr.ad->atlas.discardPendingRenderItems();
+    });
     leave_critical_section(critSec);
     AsyncPicLoadJob::loadAllowed = true;
     return;
@@ -1339,15 +1386,16 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
     if (tr.ad)
     {
       const DynamicPicAtlas::ItemData *d = tr.ad->atlas.findItem(pic_hash, !tr.ad->lazyAlloc);
-      if (d && d->valid())
+      if (d && d->isAllocated())
       {
+        const bool ready = d->valid();
         out_pic_id = makePicId(tex_rec_idx, tr.ad->atlas.getItemIdx(d), tr.ad->dynamic);
         out_tex_id = tr.texId;
         out_smp_id = tr.smpId;
         if (out_tc0)
-          out_tc0->set(d->u0, d->v0);
+          out_tc0->set(ready ? d->u0 : 0, ready ? d->v0 : 0);
         if (out_tc1)
-          out_tc1->set(d->u1, d->v1);
+          out_tc1->set(ready ? d->u1 : 0, ready ? d->v1 : 0);
         if (out_sz)
           *out_sz = tr.picSz(d);
 
@@ -1518,9 +1566,6 @@ bool PictureManager::is_picture_content_ready(PICTUREID pid)
     return true;   // gone for good, nothing more will arrive
   if (!d->valid()) // discarded, restore scheduled or awaiting first factory render
     return false;
-  for (PictureRenderFactory *f : picRenderFactory)
-    if (f->isPicRenderPending(pid))
-      return false;
   return true;
 }
 bool PictureManager::get_picture_size(PICTUREID pid, Point2 &out_total_texsz, Point2 &out_picsz)
@@ -1532,8 +1577,6 @@ bool PictureManager::get_picture_size(PICTUREID pid, Point2 &out_total_texsz, Po
     TexRec &tr = *texRec[tex_idx];
     out_total_texsz = tr.size;
     out_picsz = tr.picSz(d);
-    if (d->valid())
-      reloadDiscardedPic(pid, const_cast<DynamicPicAtlas::ItemData *>(d));
     return true;
   }
   if (tex_idx == -1)
@@ -1549,11 +1592,7 @@ Point2 PictureManager::get_picture_pix_size(PICTUREID pid)
   WinAutoLock lock(critSec);
   int tex_idx = -1;
   if (const DynamicPicAtlas::ItemData *d = decodePicId(pid, tex_idx))
-  {
-    if (d->valid())
-      reloadDiscardedPic(pid, const_cast<DynamicPicAtlas::ItemData *>(d));
     return texRec[tex_idx]->picSz(d);
-  }
   if (tex_idx == -1)
     return Point2(0, 0);
   return texRec[tex_idx]->getSize();
@@ -1605,7 +1644,8 @@ bool PictureManager::discard_unused_picture(bool force_lock)
   last_discard_skipped = false;
 
   for_each_tex_rec([](TexRec &tr, int i) {
-    if (tr.refCount > 1 || (tr.ad && tr.ad->missingPicHash.size()) || (!tr.ad && tr.texId == BAD_TEXTUREID && tr.size.y < 1))
+    if (tr.refCount > 1 || (tr.ad && (tr.ad->keepAlive || tr.ad->missingPicHash.size())) ||
+        (!tr.ad && tr.texId == BAD_TEXTUREID && tr.size.y < 1))
       return;
     else
     {
@@ -1782,6 +1822,7 @@ bool PictureManager::TexRec::initAtlas()
     ad->texFmt = tex_fmt;
     ad->premultiplyAlpha = texBlk.getBool("premultiplyAlpha", true);
     ad->lazyAlloc = texBlk.getBool("lazyAlloc", dynAtlasLazyAllocDef);
+    ad->keepAlive = texBlk.getBool("keepAlive", false);
     ad->picSrcFolder = texBlk.getStr("picSrcFolderAbs", NULL);
     ad->maxAllowedPicSz = max_pic_sz;
     if (texBlk.getBool("rtTex", false))
@@ -1981,7 +2022,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
         reportErr = 11;
       return;
     }
-    if (d->valid())
+    if (d->isAllocated())
     {
       // already loaded in earlier jobs
       TexRec &tr = *texRec[tex_idx];
@@ -2077,6 +2118,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
   }
 
   d->hash = 0;
+  const bool hadPendingRepack = tr.ad->atlas.isRepackPending();
   if (!skipAtlasPic && tr.ad->atlas.addItem(0, 0, ti.w, ti.h, pic_hash, tr.ad->atlas.getItemIdx(d)) == d)
   {
     debug("PM: add pic=%08X (%s) tex=%p prf=%p %dx%d -> %s[%d] at %d,%d decode=%.1fms", picId, name, pic_tex.get(), prf, ti.w, ti.h,
@@ -2088,7 +2130,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
     if (prf)
     {
       // mark image as not valid, to avoid rendering it to screen from uninitialized rect
-      d->dx = DynamicPicAtlas::ItemData::ST_waitPictureFactoryFirstRender;
+      d->dx = DynamicPicAtlas::ItemData::ST_pendingRender;
 
       uint8_t gen = texRecGen[tex_idx];
       PictureRenderContext ctx(prf, tr.ad->atlas.tex.first.getTex2D(), d->x0, d->y0, ti.w, ti.h,
@@ -2101,10 +2143,6 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
         logerr("PM: pic '%s' %dx%d was removed during render_pic_with_factory() call", name, ti.w, ti.h);
         return;
       }
-      // check that d->dx is not changed to something else
-      if (d->dx == DynamicPicAtlas::ItemData::ST_waitPictureFactoryFirstRender)
-        // restore image dx field, to make it vaild and available for rendering
-        d->dx = 0;
     }
     else
     {
@@ -2148,13 +2186,19 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
     d->h = ti.h;
     d->discard();
     finalizePic(d, tr);
-    if (!skipAtlasPic)
+
+    if (!skipAtlasPic && tr.ad->atlas.isRepackPending())
+      debug("PM: atlas '%s' waits for rearrange, pic=%08X deferred", tr.getName(), picId);
+    else if (!skipAtlasPic)
     {
       String stor;
       logwarn("PM: failed to alloc item #%d hash=%08X sz=%dx%d, name='%s', pic=%08X", tr.ad->atlas.getItemIdx(d), pic_hash, ti.w, ti.h,
         pic_name_to_log(name, stor), picId);
     }
   }
+
+  if (!hadPendingRepack && tr.ad->atlas.isRepackPending())
+    add_delayed_action(new AtlasRepackAction(tex_idx, texRecGen[tex_idx], tr.ad->atlas.getRepackRequestFrame()));
 }
 void PictureManager::AsyncPicLoadJob::loadTexPic()
 {
@@ -2283,7 +2327,7 @@ void PictureManager::AsyncPicLoadJob::discardUndonePic()
 {
   int tex_idx;
   if (DynamicPicAtlas::ItemData *d = const_cast<DynamicPicAtlas::ItemData *>(decodePicId(picId, tex_idx)))
-    if (!d->valid())
+    if (!d->isAllocated())
       d->discard();
 }
 void PictureManager::AsyncPicLoadJob::finalizePic(DynamicPicAtlas::ItemData *d, TexRec &tr)

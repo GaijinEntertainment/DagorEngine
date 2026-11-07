@@ -12,9 +12,7 @@ namespace levelprofiler
 {
 
 using SearchTextChangedCallback = eastl::function<void(const char *)>;
-using SearchEnterCallback = eastl::function<void()>;
 
-class LpProfilerTable;
 template <typename T>
 class LpRangeFilter;
 template <typename T>
@@ -116,9 +114,6 @@ struct MultiSelectLabelFuncs
     else
       snprintf(output_label, buffer_size, "%d", value);
   }
-
-  // Format int label - simple integer formatting
-  static void IntLabel(const int &value, char *output_label, size_t buffer_size) { snprintf(output_label, buffer_size, "%d", value); }
 };
 
 // --- MultiSelect Widget - checkboxes with multi-selection support ---
@@ -155,7 +150,7 @@ public:
 
     LpMultiSelectIO *multiSelectIo = LpMultiSelect::begin_multi_select(multiSelectFlagsCurrent, -1, (int)unique_values.size());
 
-    Context context{&unique_values, &filter_object};
+    Context context{&unique_values, &filter_object, &has_changed};
     LpSelectionExternalStorage selectionStorage;
     selectionStorage.userData = &context;
     selectionStorage.adapter_set_item_selected = &LpMultiSelectWidget<T>::update_selection;
@@ -183,11 +178,10 @@ public:
         {
           // Shift+Click: apply state to all items in between
           for (int j = (lastSelectedIdx < i ? lastSelectedIdx : i), end = (lastSelectedIdx < i ? i : lastSelectedIdx); j <= end; ++j)
-            if (const T &valueInRange = unique_values[j]; filter_object.pass(valueInRange) != isItemActive)
-              filter_object.toggle(valueInRange);
+            filter_object.setPassed(unique_values[j], isItemActive);
         }
         else
-          filter_object.toggle(currentValue);
+          filter_object.setPassed(currentValue, isItemActive);
 
         lastSelectedIdx = i;
         has_changed = true;
@@ -205,6 +199,7 @@ private:
   {
     const eastl::vector<T> *values = nullptr;
     CheckFilter<T> *filter = nullptr;
+    bool *changed = nullptr;
   };
 
   static void update_selection(LpSelectionExternalStorage *storage, int index, bool is_selected)
@@ -214,10 +209,8 @@ private:
     if (!context || !context->values || !context->filter)
       return;
 
-    if (const T &valueToUpdate = (*context->values)[index]; is_selected)
-      context->filter->getOffList().erase(valueToUpdate);
-    else
-      context->filter->toggle(valueToUpdate);
+    context->filter->setPassed((*context->values)[index], is_selected);
+    *context->changed = true;
   }
 
   LabelFunc labelFunc;
@@ -228,8 +221,7 @@ private:
 class LpSearchWidget
 {
 public:
-  LpSearchWidget(LpProfilerTable * /*profiler_table*/, ColumnIndex /*column_index*/, const char *identifier, const char *hint_text,
-    SearchTextChangedCallback on_search_callback, SearchEnterCallback apply_filters_callback);
+  LpSearchWidget(const char *identifier, const char *hint_text, SearchTextChangedCallback on_search_callback);
 
   ~LpSearchWidget();
 
@@ -254,19 +246,12 @@ class LpRangeFilterController
 
 public:
   explicit LpRangeFilterController(LpRangeFilter<T> *f = nullptr) : filter(f) {}
-  void bind(LpRangeFilter<T> *f) { filter = f; }
   bool isBound() const { return filter != nullptr; }
   void resetToDefaults()
   {
     if (filter)
       filter->reset(filter->getDefaultMin(), filter->getDefaultMax());
   }
-  void setRange(T mn, T mx)
-  {
-    if (filter)
-      filter->reset(mn, mx);
-  }
-  bool isActive() const { return filter && !filter->isDefault(); }
   LpRangeFilter<T> *raw() { return filter; }
 
 private:
@@ -287,7 +272,6 @@ public:
   bool draw(const ImVec2 &available_area);
 
   float getRatio() const { return ratio; }
-  void setRatio(float new_ratio);
 
 private:
   LpSplitterDirection direction;
@@ -298,7 +282,7 @@ private:
 
 template <typename T>
 bool drawRangeFilter(const char *widget_id, const char *label, LpRangeFilterController<T> &ctrl, const char *format_min = nullptr,
-  const char *format_max = nullptr, float speed = 1.0f, ImGuiSliderFlags flags = 0)
+  const char *format_max = nullptr, float speed = 1.0f, ImGuiSliderFlags flags = 0, bool *cleared = nullptr)
 {
   if (!ctrl.isBound())
     return false;
@@ -308,6 +292,8 @@ bool drawRangeFilter(const char *widget_id, const char *label, LpRangeFilterCont
   {
     ctrl.resetToDefaults();
     changed = true;
+    if (cleared)
+      *cleared = true;
   }
   ImGui::Separator();
   const char *fmtMin = format_min ? format_min : (eastl::is_integral<T>::value ? "Min: %d" : "Min: %.3f");

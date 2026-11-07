@@ -24,6 +24,7 @@
 #include <util/dag_nameHashers.h>
 #include <util/dag_finally.h>
 #include "lodGridVertexDataPool.h"
+#include "edgeTessPack.h"
 
 constexpr uint32_t SUBPATCHES_DEPTH = 1;
 // Current implementation supports SUBPATCHES_DEPTH not bigger than 3.
@@ -105,8 +106,8 @@ void HeightmapRenderer::setRenderClip(const BBox2 *clip) const
   ShaderGlobal::set_float4(heightmap_region_gvid, c);
 }
 
-void HeightmapRenderer::renderPatchesByBatches(dag::ConstSpan<LodGridPatchParams> patches, const int buffer_size, const int vDataIndex,
-  int startFlipped, const bool render_quads, int primitiveCount, int startInd) const
+void HeightmapRenderer::renderPatchesInBatches(dag::ConstSpan<LodGridPatchParams> patches, const int buffer_size, int startFlipped,
+  const bool render_quads, int primitiveCount, int startInd) const
 {
   int nextStartInd = 0;
   for (int patch = 0, total_instances = patches.size(); total_instances > 0;)
@@ -117,7 +118,7 @@ void HeightmapRenderer::renderPatchesByBatches(dag::ConstSpan<LodGridPatchParams
     {
       current_batch_size = toFlipped;
       startFlipped = 10000000;
-      nextStartInd = render_quads ? primitiveCount * 4 : primitiveCount * 6;
+      nextStartInd = primitiveCount * 3;
     }
 
     d3d::set_vs_const(heightmap_scale_offset_c, &patches[patch].params.x, current_batch_size);
@@ -139,7 +140,6 @@ void HeightmapRenderer::renderPatchesByBatches(dag::ConstSpan<LodGridPatchParams
 void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridRingCullData &cull_data, LodGridVertexData *vData,
   int vDataDim) const
 {
-  int vDataIndex = dimBits - VDATA_OFS;
   if (!shElem || !cull_data.hasPatches())
     return;
 
@@ -162,7 +162,7 @@ void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridRingCullData
 
   const int buffer_size = min<int>(MAX_HW_INSTANCING, d3d::get_driver_desc().maxvpconsts - heightmap_scale_offset_c);
   int dim = vDataDim >= 0 ? vDataDim : getDim();
-  LodGridVertexData *vdataPtr = vData ? vData : &lod_grid_vdata[vDataIndex];
+  LodGridVertexData *vdataPtr = vData ? vData : &lod_grid_vdata[dimBits - VDATA_OFS];
   d3d::set_vs_const1(heightmap_scale_offset_c - 2, 0, bitwise_cast<float>(2 * get_log2i(dim)), bitwise_cast<float>(dim - 1), 0);
   d3d::set_vs_const1(heightmap_scale_offset_c - 1, dim, bitwise_cast<float>(dim + 1), cull_data.scaleX,
     bitwise_cast<float>(get_log2i(dim)));
@@ -184,7 +184,7 @@ void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridRingCullData
       return;
     TIME_D3D_PROFILE(lod0_hw_tessellation);
     dag::ConstSpan<LodGridPatchParams> lod0Patches = make_span_const(cull_data.patches).first(cull_data.lod0PatchesCount);
-    renderPatchesByBatches(lod0Patches, buffer_size, vDataIndex, cull_data.startFlipped, renderQuads, quadsInPatch);
+    renderPatchesInBatches(lod0Patches, buffer_size, cull_data.startFlipped, renderQuads, quadsInPatch);
   }
 
   const uint32_t renderedQuads = (renderQuads ? cull_data.lod0PatchesCount : 0);
@@ -193,7 +193,7 @@ void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridRingCullData
   if (!shElem->setStates(0, true))
     return;
   dag::ConstSpan<LodGridPatchParams> otherLodsPatches = make_span_const(cull_data.patches).last(cull_data.getCount() - renderedQuads);
-  renderPatchesByBatches(otherLodsPatches, buffer_size, vDataIndex, cull_data.startFlipped - renderedQuads, false, quadsInPatch << 1);
+  renderPatchesInBatches(otherLodsPatches, buffer_size, cull_data.startFlipped - renderedQuads, false, quadsInPatch << 1);
 }
 
 struct GridCullingContext
@@ -282,19 +282,13 @@ static inline uint32_t edge_tess_encode(int lod_difference)
 {
   return min(lod_difference, 15); // fits range to 4bit [0, 15] range.
 }
-static inline uint32_t uint_pack_edges_tess(int edgeTessOut[4])
-{
-  // Pack 4 x 4bit = 16 bit of information in a integer and then static_cast it as float. Shader unpacks edge tesselation.
-  // Note: float has 23 bit of mantissa + 1 implicit bit. Thus, up to 24 bits can be packed using this trick.
-  int packed_edge_tess = edgeTessOut[0] | (edgeTessOut[1] << 4) | (edgeTessOut[2] << 8) | (edgeTessOut[3] << 12);
-  return packed_edge_tess;
-}
 
 void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float originPosY, float scaleX, float scaleY, float alignX,
   float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridRingCullData &cull_data,
   const Occlusion *use_occlusion, float &out_lod0_area_radius, int hmap_tess_factorVarId, int dim, bool fight_t_junctions,
   const HeightmapHeightCulling *heightCulling, BBox2 *innerLodsRegion, float waterLevel, const Point3 *viewPos,
-  dag::FunctionRef<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB) const> cullCb, void (*on_patch_cb)(const BBox3 &box))
+  dag::FunctionRef<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB) const> cullCb, void (*on_patch_cb)(const BBox3 &box),
+  float patch_xz_margin_cells)
 {
   G_UNREFERENCED(fight_t_junctions);
   G_ASSERT(scaleX == scaleY);
@@ -328,6 +322,7 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
   if (frustum)
     cull_data.frustum = *frustum;
   out_lod0_area_radius = 0.f;
+  const int areaPad = (int)ceilf(patch_xz_margin_cells / dim);
   alignas(16) struct Area
   {
     int minX = -1000000, minY = -1000000, maxX = 1000000, maxY = 1000000;
@@ -380,6 +375,7 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
     int lodRad = lod == (numLods - 1) ? lodGrid.lastLodRad : lodGrid.lodStep;
     int subdiv = lod == 0 ? lod0SubDiv : 0;
     float gridSize = nodeLodSize * scaleX / (1 << subdiv);
+    const float xzMargin = patch_xz_margin_cells * gridSize;
     float patchSize = gridSize * dim;
     int rad1 = (lodRad << 1) << subdiv;
     int prevRad1 = lod == 0 ? -1000000 : (lodGrid.lodStep);
@@ -389,8 +385,8 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
 
     if (lod == 0)
     {
-      const int mnX = max(-rad1, area.minX << subdiv), mxX = min(rad1, (area.maxX + 1) << subdiv),
-                mnY = max(-rad1, area.minY << subdiv), mxY = min(rad1, (area.maxY + 1) << subdiv);
+      const int mnX = max(-rad1, (area.minX << subdiv) - areaPad), mxX = min(rad1, ((area.maxX + 1) << subdiv) + areaPad),
+                mnY = max(-rad1, (area.minY << subdiv) - areaPad), mxY = min(rad1, ((area.maxY + 1) << subdiv) + areaPad);
       out_lod0_area_radius = lodArea;
       int cullStep = 0;
       if (heightCulling) // no need to calculate individual minmax for all patches
@@ -446,6 +442,10 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
                 if ((y + cullStep) >= mxY && chunkY == (mcY - 1))
                   posRB.z += lodGrid.lastLodExtension;
               }
+              pos.x -= xzMargin;
+              pos.z -= xzMargin;
+              posRB.x += xzMargin;
+              posRB.z += xzMargin;
 
               if (cull_node_by_clip(pos, posRB, ctx) && cull_node(pos, posRB, ctx, waterLevel, viewPos) &&
                   (!cullCb || cullCb(pos, posRB)))
@@ -467,8 +467,8 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
     }
     else // other lods
     {
-      const int mnX = max(-rad1, area.minX), mxX = min(rad1, area.maxX + 1), mnY = max(-rad1, area.minY),
-                mxY = min(rad1, area.maxY + 1);
+      const int mnX = max(-rad1, area.minX - areaPad), mxX = min(rad1, area.maxX + 1 + areaPad), mnY = max(-rad1, area.minY - areaPad),
+                mxY = min(rad1, area.maxY + 1 + areaPad);
       if (heightCulling)
         heightLod = heightCulling->getLod(patchSize);
 
@@ -496,6 +496,10 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
             if (y == (mxY - 1))
               posRB.z += lodGrid.lastLodExtension;
           }
+          pos.x -= xzMargin;
+          pos.z -= xzMargin;
+          posRB.x += xzMargin;
+          posRB.z += xzMargin;
 
           // Note: We can also cull at subpatches. In such case, make sure BBox is extended by `lodGrid.lastLodExtension` at edges.
           if (!cull_node_by_clip(pos, posRB, ctx))
@@ -510,7 +514,7 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
 
           // Note: At `if (lod == 0)` branch, BBox2 innerLodsRegion filling is before `cull_node_by_clip` (fix-me?)
           if (innerLodsRegion && lod != numLods - 1)
-            (*innerLodsRegion) += BBox2(Point2(pos.x, pos.z), Point2(posRB.x, posRB.z));
+            (*innerLodsRegion) += BBox2(origin, origin + Point2(patchSize, patchSize));
 
           if (!cull_node(pos, posRB, ctx, waterLevel, viewPos))
             continue;

@@ -103,6 +103,9 @@ extern "C"
 
   KRNLIMP bool dd_dir_exist(const char *fn);
 
+  // False only when a found path part differs in case (Windows only)
+  KRNLIMP bool dd_is_fname_case_valid(const char *fn);
+
   inline bool dd_file_exists(const char *fn) { return dd_file_exist(fn); }
   inline bool dd_dir_exists(const char *fn) { return dd_dir_exist(fn); }
 

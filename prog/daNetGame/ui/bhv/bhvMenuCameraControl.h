@@ -25,22 +25,13 @@ public:
   virtual int pointingEvent(darg::ElementTree *,
     darg::Element *,
     darg::InputDevice /*device*/,
+    darg::TouchSource /*touch_src*/,
     darg::InputEvent /*event*/,
     int pointer_id,
     int btn_id,
     Point2 pos,
     int accum_res) override;
   virtual int update(UpdateStage /*stage*/, darg::Element *, float /*dt*/) override;
-
-private:
-  int pointingEvent(darg::ElementTree *,
-    darg::Element *elem,
-    darg::InputDevice device,
-    darg::InputEvent event,
-    int pointer_id,
-    int button_id,
-    const Point2 &pos,
-    int accum_res);
 };
 
 

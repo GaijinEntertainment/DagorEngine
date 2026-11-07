@@ -147,13 +147,17 @@ inline auto use_rot_camera_view(dafg::Registry registry, const char *view_ns, co
                   : eastl::move(camReq).bindAsProj<&CameraParams::noJitterProjTm>().handle();
 }
 
-inline auto use_current_camera(dafg::Registry &registry)
+inline auto use_camera(dafg::Registry &registry, const char *blob_name)
 {
-  return registry.readBlob<CameraParams>("current_camera")
+  return registry.readBlob<CameraParams>(blob_name)
     .bindAsView<&CameraParams::viewTm>()
     .bindAsProj<&CameraParams::jitterProjTm>()
     .bindToShaderVar<&CameraParams::jitteredCamPosToUnjitteredHistoryClip>("jitteredCamPosToUnjitteredHistoryClip");
 }
+
+inline auto use_current_camera(dafg::Registry &registry) { return use_camera(registry, "current_camera"); }
+
+inline auto use_current_cockpit_camera(dafg::Registry &registry) { return use_camera(registry, "current_cockpit_camera"); }
 
 inline auto request_common_transparent_state(dafg::Registry &registry, const char *depth_bind = nullptr, bool use_reactive_mask = true)
 {
@@ -194,9 +198,9 @@ inline auto request_common_published_transparent_state(dafg::Registry &registry,
   return use_camera_in_camera(registry);
 }
 
-inline auto request_common_opaque_state(dafg::Registry registry)
+inline auto request_common_opaque_state(dafg::Registry registry, const bool is_cockpit = false)
 {
-  auto camera = use_camera_in_camera(registry);
+  auto camera = is_cockpit ? use_current_cockpit_camera(registry) : use_camera_in_camera(registry);
   auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
   auto stateRequest = registry.requestState().setFrameBlock("global_frame").allowWireframe();
 
@@ -289,8 +293,11 @@ inline uint32_t get_frame_render_target_format()
   return rtFmt;
 }
 
-inline void create_gbuffer_targets(
-  dafg::Registry registry, const char *name_fmt, const bool need_motion_vectors, const bool force_clear_on_creation = false)
+inline void create_gbuffer_targets(dafg::Registry registry,
+  const char *name_fmt,
+  const bool need_motion_vectors,
+  const bool allow_clear_on_creation = true,
+  const uint32_t extra_flags = 0)
 {
   const auto gbufResolution = registry.getResolution<2>("main_view");
 
@@ -302,9 +309,10 @@ inline void create_gbuffer_targets(
                                          ? dag::Span<const unsigned>(FULL_GBUFFER_FORMATS)
                                          : dag::Span<const unsigned>(FULL_GBUFFER_FORMATS.data(), NO_MOTION_GBUFFER_RT_COUNT);
 
-  const uint32_t globalFlags = WRDispatcher::isEnviCover() && WRDispatcher::isEnviCoverCompatible()
-                                 ? TEXCF_UNORDERED | GBUF_TARGET_GLOBAL_FLAGS
-                                 : GBUF_TARGET_GLOBAL_FLAGS;
+  const uint32_t globalFlags =
+    (WRDispatcher::isEnviCover() && WRDispatcher::isEnviCoverCompatible() ? TEXCF_UNORDERED | GBUF_TARGET_GLOBAL_FLAGS
+                                                                          : GBUF_TARGET_GLOBAL_FLAGS) |
+    extra_flags;
 
   const bool isRREnabled = is_rr_enabled();
 
@@ -316,9 +324,11 @@ inline void create_gbuffer_targets(
                         .texture({gbufFmts[i] | globalFlags | TEXCF_RTARGET, gbufResolution})
                         .useAs(dafg::Usage::COLOR_ATTACHMENT)
                         .atStage(dafg::Stage::PS);
-    if (i == 0 && (force_clear_on_creation || isRREnabled))
+    if (!allow_clear_on_creation)
+      continue;
+    if (i == 0 && isRREnabled)
       eastl::move(gbufRtHndl).clear(make_clear_value(0.0f, 0.0f, 0.0f, 0.0f));
-    if (i == 1 && (force_clear_on_creation || !renderer_has_feature(FeatureRenderFlags::PREV_OPAQUE_TEX) || isRREnabled))
+    if (i == 1 && (!renderer_has_feature(FeatureRenderFlags::PREV_OPAQUE_TEX) || isRREnabled))
       eastl::move(gbufRtHndl).clear(make_clear_value(0, 0, 0, 0));
     if (i == 2 && (need_motion_vectors))
       eastl::move(gbufRtHndl).clear(make_clear_value(0, 0, 0, 0));

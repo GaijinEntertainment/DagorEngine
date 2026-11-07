@@ -24,7 +24,7 @@ private:
   class ExecutionSemaphoreSynced
   {
   private:
-    std::atomic<int32_t> activePrimaryCommandsCount = 0;
+    dag::AtomicInteger<int32_t> activePrimaryCommandsCount = 0;
 
   public:
     void reset();

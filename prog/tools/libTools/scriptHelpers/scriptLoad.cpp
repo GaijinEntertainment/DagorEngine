@@ -173,34 +173,38 @@ public:
 #define WRITE_DATA_E3DCOLOR cwr.write32ex(&value, sizeof(value))
 
 
-#define SIMPLE_PARAM(type, add_method, get_method, set_method, blk_set, blk_get, write_stmnt)                                      \
-  namespace ScriptHelpers                                                                                                          \
-  {                                                                                                                                \
-  class TunedParam_##type : public TunedParam                                                                                      \
-  {                                                                                                                                \
-  public:                                                                                                                          \
-    type value;                                                                                                                    \
-                                                                                                                                   \
-    TunedParam_##type(const char *nm, const type &val) : TunedParam(nm), value(val) {}                                             \
-                                                                                                                                   \
-    void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &panl) override { panl.add_method(++pid, getName(), value); } \
-    void getValues(int &pid, PropPanel::ContainerPropertyControl &panel) override { value = panel.get_method(++pid); }             \
-    void setValue(int pid, PropPanel::ContainerPropertyControl &panel) override { panel.set_method(pid, value); }                  \
-    TunedElement *findById(const int pid, int &cur_pid) override { return pid == ++cur_pid ? cloneElem() : nullptr; }              \
-    bool isArrayActionById(const int pid, int &cur_pid) override                                                                   \
-    {                                                                                                                              \
-      ++cur_pid;                                                                                                                   \
-      return false;                                                                                                                \
-    }                                                                                                                              \
-                                                                                                                                   \
-    void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override { write_stmnt; }                                    \
-    void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override { blk.blk_set("value", value); }                               \
-    void loadValues(const DataBlock &blk) override { value = blk.blk_get("value", value); }                                        \
-                                                                                                                                   \
-    TunedElement *cloneElem() override { return new TunedParam_##type(*this); }                                                    \
-  };                                                                                                                               \
-                                                                                                                                   \
-  TunedElement *create_tuned_##type##_param(const char *name, const type &val) { return new TunedParam_##type(name, val); }        \
+#define SIMPLE_PARAM(type, add_method, get_method, set_method, blk_set, blk_get, write_stmnt)                               \
+  namespace ScriptHelpers                                                                                                   \
+  {                                                                                                                         \
+  class TunedParam_##type : public TunedParam                                                                               \
+  {                                                                                                                         \
+  public:                                                                                                                   \
+    type value;                                                                                                             \
+                                                                                                                            \
+    TunedParam_##type(const char *nm, const type &val) : TunedParam(nm), value(val) {}                                      \
+                                                                                                                            \
+    void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &panl) override                                        \
+    {                                                                                                                       \
+      panl.add_method(++pid, getName(), value);                                                                             \
+      panelPid = pid;                                                                                                       \
+    }                                                                                                                       \
+    void getValues(int &pid, PropPanel::ContainerPropertyControl &panel) override { value = panel.get_method(++pid); }      \
+    void setValue(int pid, PropPanel::ContainerPropertyControl &panel) override { panel.set_method(pid, value); }           \
+    TunedElement *findById(const int pid, int &cur_pid) override { return pid == ++cur_pid ? cloneElem() : nullptr; }       \
+    bool isArrayActionById(const int pid, int &cur_pid) override                                                            \
+    {                                                                                                                       \
+      ++cur_pid;                                                                                                            \
+      return false;                                                                                                         \
+    }                                                                                                                       \
+                                                                                                                            \
+    void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override { write_stmnt; }                             \
+    void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override { blk.blk_set("value", value); }                        \
+    void loadValues(const DataBlock &blk) override { value = blk.blk_get("value", value); }                                 \
+                                                                                                                            \
+    TunedElement *cloneElem() override { return new TunedParam_##type(*this); }                                             \
+  };                                                                                                                        \
+                                                                                                                            \
+  TunedElement *create_tuned_##type##_param(const char *name, const type &val) { return new TunedParam_##type(name, val); } \
   }
 
 
@@ -241,6 +245,7 @@ public:
   void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &panel) override
   {
     PropPanel::ContainerPropertyControl *rgrp = panel.createRadioGroup(++pid, getName());
+    panelPid = pid;
     int selPid = 0;
 
     for (int i = 0; i < enumList.size(); ++i)
@@ -793,6 +798,8 @@ void set_tuned_array_member_to_show_in_caption(TunedElement &array, const char *
 {
   static_cast<TunedArray &>(array).memberToShowInCaption = member;
 }
+
+void set_tuned_element_desc(TunedElement &e, const char *desc) { e.setDesc(desc); }
 
 namespace ContextMenu
 {

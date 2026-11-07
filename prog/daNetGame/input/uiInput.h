@@ -15,10 +15,8 @@ namespace uiinput
 enum class DaInputMaskLayers : int
 {
   Console = 0,
-  UserUiButtons = 1,
-  UserUiPointers = 2,
-  OverlayUiButtons = 3,
-  OverlayUiPointers = 4
+  OverlayUiButtons = 1,
+  OverlayUiPointers = 2
 };
 
 class MouseKbdHandler : public ecs::IGenHidEventHandler

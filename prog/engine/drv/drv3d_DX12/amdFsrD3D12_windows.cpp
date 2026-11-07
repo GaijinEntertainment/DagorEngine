@@ -115,6 +115,9 @@ bool verify_dll_version(const char *dll, LibraryVersion version)
   return true;
 };
 
+// ffxCreateContext and a context-less ffxQuery probe amdxc64 with the device, and the probe crashes on a removed device
+bool is_device_lost() { return drv3d_dx12::get_device().isInErrorState(); }
+
 } // namespace
 
 FSRD3D12 *g_fsrD3D12 = nullptr; // With this only one FSR instance is allowed. When this will became a problem, please fix it
@@ -198,6 +201,12 @@ public:
     if (!isLoaded())
     {
       logdbg("[AMDFSR] Library not loaded. Failed.");
+      return false;
+    }
+
+    if (is_device_lost())
+    {
+      logdbg("[AMDFSR] Device is lost. Failed.");
       return false;
     }
 
@@ -291,7 +300,7 @@ public:
   {
     G_ASSERT_RETURN(swapchain, false);
 
-    if (!isFrameGenerationSupported())
+    if (!isFrameGenerationSupported() || is_device_lost())
       return false;
 
     if (!destroyContextIfNeeded(framegenContext) || !destroyContextIfNeeded(swapchainContext))
@@ -391,6 +400,9 @@ public:
     const bool rebuild = liveBackBuffer != contextBackBuffer;
 
     if (enable == isFrameGenEnabled && !rebuild)
+      return;
+
+    if (rebuild && is_device_lost())
       return;
 
     d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
@@ -578,14 +590,6 @@ public:
     G_VERIFY(destroyContextIfNeeded(upscalingContext));
   }
 
-  void recover()
-  {
-    // The regular tear down resets the mode to off, but the preRecover keeps the mode
-    // and the mode isn't off here have to restore the fsr context and reinitialize the object
-    if (getUpscalingMode() != amd::FSR::UpscalingMode::Off)
-      initUpscaling(contextArgs);
-  }
-
   uint64_t getMemorySize()
   {
     FfxApiEffectMemoryUsage usageInfo{};
@@ -669,7 +673,7 @@ private:
 
   void initVersionString() const
   {
-    if (!upscalingVersionString.empty() || !query)
+    if (!upscalingVersionString.empty() || !query || is_device_lost())
       return;
 
     auto device = d3d::get_device();
@@ -760,8 +764,6 @@ bool FSRD3D12::isFrameGenerationSuppressed() const { return pImpl->isFrameGenera
 
 void FSRD3D12::preRecover() { pImpl->preRecover(); }
 
-void FSRD3D12::recover() { pImpl->recover(); }
-
 bool FSRD3D12::createFrameGenerationSwapchain(DXGIFactory *factory, ID3D12CommandQueue *queue,
   const drv3d_dx12::SwapchainCreateInfo &create_info, const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc,
   const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
@@ -781,11 +783,4 @@ static void fsr3_before_reset(bool full_reset)
     amd::g_fsrD3D12->preRecover();
 }
 
-static void fsr3_after_reset(bool full_reset)
-{
-  if (full_reset && amd::g_fsrD3D12)
-    amd::g_fsrD3D12->recover();
-}
-
 REGISTER_D3D_BEFORE_RESET_FUNC(fsr3_before_reset);
-REGISTER_D3D_AFTER_RESET_FUNC(fsr3_after_reset);

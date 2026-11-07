@@ -10,6 +10,11 @@
 #include <debug/dag_except.h>
 #include <debug/dag_debug.h>
 #include "../hid_commonCode/dsPadIds.h"
+#include "joy_ignored_ids.h"
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
+#include <EASTL/sort.h>
+#include <EASTL/algorithm.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -22,8 +27,8 @@ UDev HidJoystickClassDriver::udev(HidJoystickClassDriver::on_device_action, NULL
 Tab<HidJoystickClassDriver *> HidJoystickClassDriver::udev_users;
 
 
-HidJoystickClassDriver::HidJoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads) :
-  enabled(false), excludeXInput(exclude_xinput), remapAsX360(remap_360), excludeSonyPads(exclude_sony_pads)
+HidJoystickClassDriver::HidJoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_dspads) :
+  enabled(false), excludeXInput(exclude_xinput), remapAsX360(remap_360), excludeDsPads(exclude_dspads)
 {
   defJoy = NULL;
   enableAutoDef = true;
@@ -31,6 +36,7 @@ HidJoystickClassDriver::HidJoystickClassDriver(bool exclude_xinput, bool remap_3
   deviceConfigChanged = false;
   prevUpdateRefTime = ::ref_time_ticks();
   secDrv = NULL;
+  loadIgnoredIds();
   udev_users.push_back(this);
 }
 
@@ -187,7 +193,7 @@ void HidJoystickClassDriver::refreshDeviceList()
     sort(device, &cmp_dev_name);
 }
 
-// constraint: a system without the udev rules denies the hidraw access hid_dspad_pc needs, so the pad stays an evdev joystick
+// a system without the udev rules denies the hidraw access hid_dspad_pc needs, so the pad stays an evdev joystick
 static bool hidraw_node_accessible(const char *evdev_node)
 {
   const char *name = strrchr(evdev_node, '/');
@@ -207,12 +213,54 @@ static bool hidraw_node_accessible(const char *evdev_node)
   return ok;
 }
 
+static uint32_t make_vidpid(unsigned vid, unsigned pid) { return (vid << 16) | pid; }
+
+static void read_vidpid_list(const DataBlock &blk, const char *param_name, dag::Vector<uint32_t> &out)
+{
+  dblk::iterate_params_by_name(blk, param_name, [&](int param_idx, int, int param_type) {
+    unsigned vid = 0, pid = 0;
+    int tail = 0;
+    const char *str = param_type == DataBlock::TYPE_STRING ? blk.getStr(param_idx) : "";
+    // trailing " %n" skips any whitespace and records the offset, so str[tail]=='\0' rejects anything past VVVV:PPPP
+    if (sscanf(str, "%x:%x %n", &vid, &pid, &tail) == 2 && str[tail] == '\0' && vid <= 0xFFFF && pid <= 0xFFFF)
+      out.push_back(make_vidpid(vid, pid));
+    else
+      logerr("joystick: bad %s id '%s' in input{}, expected %s:t=\"VVVV:PPPP\"", param_name, str, param_name);
+  });
+}
+
+// input{ joystickIgnore:t="26ce:01a2" } adds a device to the built-in list, joystickAllow:t="..." removes one
+void HidJoystickClassDriver::loadIgnoredIds()
+{
+  for (const JoyVidPid &id : ignored_joystick_ids)
+    ignoredIds.push_back(make_vidpid(id.vid, id.pid));
+
+  const DataBlock *inputBlk = ::dgs_get_settings() ? ::dgs_get_settings()->getBlockByNameEx("input") : &DataBlock::emptyBlock;
+  read_vidpid_list(*inputBlk, "joystickIgnore", ignoredIds);
+
+  dag::Vector<uint32_t> allowed;
+  read_vidpid_list(*inputBlk, "joystickAllow", allowed);
+  for (uint32_t id : allowed)
+    ignoredIds.erase(eastl::remove(ignoredIds.begin(), ignoredIds.end(), id), ignoredIds.end());
+
+  eastl::sort(ignoredIds.begin(), ignoredIds.end());
+}
+
+bool HidJoystickClassDriver::isIgnored(unsigned vid, unsigned pid) const
+{
+  return eastl::binary_search(ignoredIds.begin(), ignoredIds.end(), make_vidpid(vid, pid));
+}
+
 void HidJoystickClassDriver::onDeviceAction(const UDev::Device &dev, UDev::Action action)
 {
   if (dev.devClass != UDev::JOYSTICK)
     return;
-  if (action == UDev::ADDED && excludeSonyPads && sonypad::is_sony_pad(dev.id.vendor, dev.id.product) &&
-      hidraw_node_accessible(dev.devnode))
+  if (action == UDev::ADDED && isIgnored(dev.id.vendor, dev.id.product))
+  {
+    JOY_LOG("skip %04X:%04X '%s': not a game controller, input/joystickAllow enables it", dev.id.vendor, dev.id.product, dev.name);
+    return;
+  }
+  if (action == UDev::ADDED && excludeDsPads && dspad::is_dspad(dev.id.vendor, dev.id.product) && hidraw_node_accessible(dev.devnode))
   {
     JOY_LOG("skip %04X:%04X '%s': hid_dspad_pc reads it over hidraw", dev.id.vendor, dev.id.product, dev.name);
     return;

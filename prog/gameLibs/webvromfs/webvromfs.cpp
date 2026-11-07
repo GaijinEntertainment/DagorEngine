@@ -19,6 +19,7 @@
 #define ENT_PTR_STATUS_ABORTED   ((datacache::Entry *)((char *)NULL + 2))
 #define IS_ENT_PTR_STATUS_BAD(E) ((E) == ENT_PTR_STATUS_FAILED || (E) == ENT_PTR_STATUS_ABORTED)
 
+dag::mutex WebVromfsDataCache::bannedUrlPrefixMutex;
 Tab<SimpleString> WebVromfsDataCache::bannedUrlPrefix;
 int WebVromfsDataCache::banUnresponsiveUrlForTimeoutInSec = 9;
 bool WebVromfsDataCache::silentMode = false;
@@ -107,7 +108,10 @@ void WebVromfsDataCache::term()
   webcache = NULL;
   del_it(wc);
   clear_and_shrink(webcachePrefix);
-  clear_and_shrink(bannedUrlPrefix);
+  {
+    dag::lock_guard<dag::mutex> lock(bannedUrlPrefixMutex);
+    clear_and_shrink(bannedUrlPrefix);
+  }
 
   if (waitReqSumCnt[0])
     debug("web-vromfs: spent %d msec for %d sync download and %d fetch requests (main thread)", waitTimeSumUsec[0] / 1000,
@@ -131,6 +135,8 @@ bool WebVromfsDataCache::vromfs_get_file_data(const char *rel_fn, const char * /
   volatile datacache::Entry *sync_wait_entry = ENT_PTR_STATUS_PENDING;
   datacache::EntryHolder ent;
   if (!dont_load)
+  {
+    dag::lock_guard<dag::mutex> lock(bannedUrlPrefixMutex);
     for (const auto &p : bannedUrlPrefix)
       if (strncmp(rel_fn, p, p.length()) == 0)
       {
@@ -138,6 +144,7 @@ bool WebVromfsDataCache::vromfs_get_file_data(const char *rel_fn, const char * /
         dont_load = true;
         break;
       }
+  }
   if (dont_load)
   {
     ent.reset(wb->webcache->get(rel_fn, &err));
@@ -218,6 +225,7 @@ bool WebVromfsDataCache::vromfs_get_file_data(const char *rel_fn, const char * /
         if (const char *prefix_end = strchr(rel_fn + 8, '/'))
         {
           SimpleString s(rel_fn, prefix_end + 1 - rel_fn);
+          dag::lock_guard<dag::mutex> lock(bannedUrlPrefixMutex);
           if (find_value_idx(bannedUrlPrefix, s) < 0)
           {
             bannedUrlPrefix.emplace_back(s);

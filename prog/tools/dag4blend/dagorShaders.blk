@@ -2878,6 +2878,14 @@ shader_category{
   }
   shader{
     name:t="rendinst_mask_layered"
+    parameter{
+      name:t="enable_motion_vectors"
+      type:t="i"
+      default:i=0
+      soft_min:i=0
+      soft_max:i=1
+      description:t="Integer, but works as boolean. 1 -> writes motion vectors while the object moves (doors, windows). Every pixel of the material pays for it, so set it only on moving parts"
+    }
     parameters_group{
       name:t="DETAILS"
       parameter{
@@ -3105,6 +3113,14 @@ shader_category{
   shader{
     name:t="rendinst_simple"
     parameter{
+      name:t="enable_motion_vectors"
+      type:t="i"
+      default:i=0
+      soft_min:i=0
+      soft_max:i=1
+      description:t="Integer, but works as boolean. 1 -> writes motion vectors while the object moves (doors, windows). Every pixel of the material pays for it, so set it only on moving parts"
+    }
+    parameter{
       name:t="atest"
       type:t="i"
       default:i=0
@@ -3241,6 +3257,14 @@ shader_category{
       name:t="rendinst_additional_data"
       type:t="i"
       default:i=0
+    }
+    parameter{
+      name:t="enable_motion_vectors"
+      type:t="i"
+      default:i=0
+      soft_min:i=0
+      soft_max:i=1
+      description:t="Integer, but works as boolean. 1 -> writes motion vectors while the object moves (doors, windows). Every pixel of the material pays for it, so set it only on moving parts"
     }
     parameters_group{
       name:t="DETAILS"
@@ -3416,6 +3440,14 @@ shader_category{
   }
   shader{
     name:t="rendinst_perlin_layered"
+    parameter{
+      name:t="enable_motion_vectors"
+      type:t="i"
+      default:i=0
+      soft_min:i=0
+      soft_max:i=1
+      description:t="Integer, but works as boolean. 1 -> writes motion vectors while the object moves (doors, windows). Every pixel of the material pays for it, so set it only on moving parts"
+    }
     parameter{
       name:t="tex1"
       type:t="b"
@@ -3762,6 +3794,32 @@ shader_category{
         name:t="invert_heights"
         type:t="p4"
         default:p4=0.0, 0.0, 0.0, 0.0
+      }
+    }
+    parameters_group{
+      name:t="TRIPLANAR"
+      parameter{
+        name:t="triplanar"
+        type:t="i"
+        default:i=0
+        soft_min:i=0
+        soft_max:i=1
+        description:t="Integer, but works as boolean. 1 or more -> the detail layers are projected along the world axes instead of the UVs"
+      }
+      parameter{
+        name:t="triplanar_scale"
+        type:t="r"
+        default:r=6.0
+        soft_min:r=0.1
+        description:t="World units per detail texture repeat, before details_tile. The shader divides by it, so keep it above 0"
+      }
+      parameter{
+        name:t="triplanar_sharpness"
+        type:t="r"
+        default:r=0.69
+        soft_min:r=0.3
+        soft_max:r=0.95
+        description:t="Width of the blend zone between the projections: higher values narrow it. A side projection starts where its normal component exceeds this fraction of the dominant one. Below 0.3 most pixels sample two or three projections, above 0.95 the seam is a hard line"
       }
     }
     parameters_group{

@@ -45,14 +45,24 @@ macro COMMON_UI_DOWNSAMPLE()
 
   (vs) {
     texSize@f4 = (blur_dst_tex_size.x, blur_dst_tex_size.y, blur_dst_tex_size.x * 2.0, blur_dst_tex_size.y * -2.0);
-    quads@i4[256] : register(16);
+    quadsPacked@u4[256] : register(16);
   }
 
   hlsl(vs) {
+    uint4 fetch_quad(uint instance_id)
+    {
+      uint4 cell = quadsPacked[instance_id / 2];
+      uint2 packedCoords = (instance_id % 2 == 0) ? cell.xy : cell.zw;
+      return uint4(
+        packedCoords.x & 0xFFFF,
+        packedCoords.x >> 16,
+        packedCoords.y & 0xFFFF,
+        packedCoords.y >> 16);
+    }
+
     VsOutput common_ui_downsample_vs(uint vertexId : SV_VertexID, uint instance_id : SV_InstanceID)
     {
-      int4 quad = quads[instance_id.x];
-
+      int4 quad = fetch_quad(instance_id);
       int2 vertex[4] =
       {
         { quad.x, quad.y },

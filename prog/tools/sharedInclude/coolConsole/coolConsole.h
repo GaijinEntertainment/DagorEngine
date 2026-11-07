@@ -123,6 +123,7 @@ private:
   bool lastVisible;
   bool activateOnShow = false;
   bool scrollToBottomOnShow = false;
+  bool forceDoubleDrawOnShow = false;
 
   IProgressCB *progressCb;
   int progressPosition = 0;

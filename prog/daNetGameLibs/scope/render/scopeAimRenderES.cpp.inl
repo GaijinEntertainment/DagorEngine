@@ -135,6 +135,9 @@ template <typename Callable>
 static void get_scope_wtm_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 template <typename Callable>
+static void check_if_gun_in_scope_disabled_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
+
+template <typename Callable>
 static void get_scope_camera_node_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 extern ShaderBlockIdHolder dynamicSceneBlockId;
@@ -363,22 +366,51 @@ static void render_scope_crosshair(const ScopeAimRenderingData &scopeAimData, co
     render_scope_reticle_quad(scopeAimData.entityWithScopeLensEid, scopeAimData.lensNodeId);
 }
 
-void render_scope_prepass(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
+static bool is_gun_in_scope_disabled(ecs::EntityId gun_eid)
 {
-  TIME_D3D_PROFILE(render_scope_prepass);
-  STATE_GUARD_0(ShaderGlobal::set_int(is_hero_cockpitVarId, VALUE), 1);
-  ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Depth));
-  process_animchars_and_render(make_span_const(scopeAimData.scopeLensCockpitEntities), ShaderMesh::STG_opaque, ShaderMesh::STG_atest,
-    dynamicDepthSceneBlockId, VISFLG_MAIN_AND_SHADOW_VISIBLE, true, NeedPreviousMatrices::Yes, texCtx);
+  bool disabled = false;
+  check_if_gun_in_scope_disabled_ecs_query(*g_entity_mgr, gun_eid,
+    [&](const bool gun__integratedScope) { disabled = gun__integratedScope; });
+  return disabled;
 }
 
-void render_scope(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
+void render_scope_prepass(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx, const bool gun_only)
+{
+  TIME_D3D_PROFILE(render_scope_prepass);
+  if (gun_only)
+  {
+    if (is_gun_in_scope_disabled(scopeAimData.gunEid))
+      return;
+  }
+
+  STATE_GUARD_0(ShaderGlobal::set_int(is_hero_cockpitVarId, VALUE), 1);
+  ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Depth));
+
+  dag::ConstSpan<ecs::EntityId> eids =
+    gun_only ? make_span_const(&scopeAimData.gunEid, 1) : make_span_const(scopeAimData.scopeLensCockpitEntities);
+
+  process_animchars_and_render(eids, ShaderMesh::STG_opaque, ShaderMesh::STG_atest, dynamicDepthSceneBlockId,
+    VISFLG_MAIN_AND_SHADOW_VISIBLE, true, NeedPreviousMatrices::Yes, texCtx);
+}
+
+void render_scope(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx, const bool gun_only)
 {
   TIME_D3D_PROFILE(render_scope);
+
+  if (gun_only)
+  {
+    if (is_gun_in_scope_disabled(scopeAimData.gunEid))
+      return;
+  }
+
   STATE_GUARD_0(ShaderGlobal::set_int(is_hero_cockpitVarId, VALUE), 1);
   ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
-  process_animchars_and_render(make_span_const(scopeAimData.scopeLensCockpitEntities), ShaderMesh::STG_opaque, ShaderMesh::STG_atest,
-    dynamicSceneBlockId, VISFLG_MAIN_AND_SHADOW_VISIBLE, true, NeedPreviousMatrices::Yes, texCtx);
+
+  dag::ConstSpan<ecs::EntityId> eids =
+    gun_only ? make_span_const(&scopeAimData.gunEid, 1) : make_span_const(scopeAimData.scopeLensCockpitEntities);
+
+  process_animchars_and_render(eids, ShaderMesh::STG_opaque, ShaderMesh::STG_atest, dynamicSceneBlockId,
+    VISFLG_MAIN_AND_SHADOW_VISIBLE, true, NeedPreviousMatrices::Yes, texCtx);
 }
 
 void render_scope_trans_except_lens(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)

@@ -103,6 +103,7 @@ private:
     FAIL
   };
   ObjectUpdateResult lastUpdateResult = ObjectUpdateResult::OK;
+  uint64_t suboptimalFrames = 0;
 
   SwapchainMode currentMode{};
 

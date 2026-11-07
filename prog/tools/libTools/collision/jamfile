@@ -12,6 +12,7 @@ AddIncludes =
 
 Sources =
   exportCollisionNodeType.cpp
+  physMatLegend.cpp
   vhacdMeshChecker.cpp
 ;
 

@@ -22,6 +22,7 @@
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/OffsetCenterOfMassShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <Jolt/Physics/Collision/Shape/EmptyShape.h>
@@ -49,25 +50,6 @@
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_compilerDefs.h>
 
-namespace layers
-{
-enum : JPH::BroadPhaseLayer::Type
-{
-  STATIC,
-  DYNAMIC,
-  DEBRIS, // Debris collides only with STATIC
-
-  NUM_LAYERS
-};
-}; // namespace layers
-
-// FIXME: coalesce this with dacoll::PhysLayer (move it to engine)
-static constexpr const uint16_t DefaultFilter = 1;
-static constexpr const uint16_t StaticFilter = 2;
-static constexpr const uint16_t KinematicFilter = 4;
-static constexpr const uint16_t DebrisFilter = 8;
-static constexpr const uint16_t AllFilter = 0x3F;
-
 static constexpr float drawConstraintSize = 0.1f;
 
 inline JPH::ObjectLayer make_objlayer_debris(JPH::BroadPhaseLayer::Type bl, uint16_t gm, uint16_t lm)
@@ -92,6 +74,7 @@ public:
       case layers::STATIC: return "STATIC";
       case layers::DYNAMIC: return "DYNAMIC";
       case layers::DEBRIS: return "DEBRIS";
+      case layers::PASSABLE: return "PASSABLE";
       default: G_ASSERTF(false, "inLayer=%d", (BroadPhaseLayer::Type)inLayer); return "INVALID";
     }
   }
@@ -113,9 +96,11 @@ static struct JoltBroadphaseCanCollide final : public JPH::ObjectVsBroadPhaseLay
     auto inLayer2 = (JPH::BroadPhaseLayer::Type)_inLayer2;
     switch (objlayer_to_bphlayer(inLayer1))
     {
-      case layers::STATIC: return inLayer2 != layers::STATIC;
-      case layers::DYNAMIC: return inLayer2 != layers::DEBRIS;
+      case layers::STATIC: return inLayer2 != layers::STATIC && inLayer2 != layers::PASSABLE;
+      case layers::DYNAMIC:
+        return inLayer2 != layers::DEBRIS && (inLayer2 != layers::PASSABLE || !(objlayer_to_group_mask(inLayer1) & DefaultFilter));
       case layers::DEBRIS: return inLayer2 == layers::STATIC;
+      case layers::PASSABLE: return false;
     }
     G_ASSERTF(false, "inLayer1=%d -> broadphaseLayer=%d", inLayer1, objlayer_to_bphlayer(inLayer1));
     return false;
@@ -196,8 +181,16 @@ public:
   {
     JobImpl(const char *jName, JPH::ColorArg color, JPH::JobSystem *jSys, const JobFunction &jFunc, JPH::uint32 numDeps) :
       Job(jName, color, jSys, jFunc, numDeps)
-    {}
-    const char *getJobName(bool &) const override { return DAPROFILER_STRING("JoltJobImpl"); }
+    {
+#if TIME_PROFILER_ENABLED
+      static da_profiler::desc_id_t job_desc = 0;
+      da_profiler::desc_id_t jobDesc = interlocked_relaxed_load(job_desc);
+      if (!jobDesc)
+        interlocked_relaxed_store(job_desc, jobDesc = ::da_profiler::add_description(nullptr, 0, 0, "JoltJob"));
+      IJob::jobNameProfDesc = jobDesc;
+#endif
+    }
+    const char *getJobName(bool &) const override { return DAPROFILER_STRING("JoltJob"); }
     void doJob() override
     {
       Execute();
@@ -447,7 +440,7 @@ void PhysWorld::init_engine(bool single_threaded)
   });
 
   if (phys_blk.getInt("jobSysType", single_threaded ? 0 : 1))
-    jobSystem = new JoltJobSystemImpl(maxJobs / 16, maxBarriers, clamp<int>(threadpool::get_num_workers(), 1, maxWorkers));
+    jobSystem = new JoltJobSystemImpl(maxJobs / 8, maxBarriers, clamp<int>(threadpool::get_num_workers(), 1, maxWorkers));
   else
     jobSystem = new JPH::JobSystemSingleThreaded(maxJobs);
 
@@ -520,6 +513,8 @@ PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TM
     logerr("No collision shape for phys body <%s> with collType=%d @ %@", s.debugName, coll ? (int)coll->collType : -1, tm);
     return;
   }
+  if (s.centerOfMassOffset.lengthSq() > 0.f)
+    shape = JPH::OffsetCenterOfMassShapeSettings(to_jVec3(s.centerOfMassOffset), shape).Create().Get();
   body.SetShape(shape);
   if (s.autoMask)
   {
@@ -1013,8 +1008,15 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
 
 void PhysBody::setCollision(const PhysCollision *coll, bool /*allow_fast_inaccurate_coll_tm*/)
 {
-  if (auto shape = PhysBody::create_jolt_collision_shape(coll, jolt_api::body_lock().TryGetBody(bodyId)->IsDynamic()))
-    api().SetShape(bodyId, shape, false, isInWorld() ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
+  using namespace JPH;
+  const Body *body = jolt_api::body_lock().TryGetBody(bodyId);
+  if (auto shape = PhysBody::create_jolt_collision_shape(coll, body->IsDynamic()))
+  {
+    // rewrap with the creation-time COM offset, otherwise SetShape recomputes COM from the new shape alone
+    if (const Shape *ps = body->GetShape(); ps && ps->GetSubType() == EShapeSubType::OffsetCenterOfMass)
+      shape = OffsetCenterOfMassShapeSettings(static_cast<const OffsetCenterOfMassShape *>(ps)->GetOffset(), shape).Create().Get();
+    api().SetShape(bodyId, shape, false, isInWorld() ? EActivation::Activate : EActivation::DontActivate);
+  }
 }
 
 // Note: some Jolt shapes (e.g. spheres/capsules/cylinders) can only be scaled uniformly, this code ensures that
@@ -1195,6 +1197,9 @@ void PhysBody::setGroupAndLayerMask(unsigned int group, unsigned int mask)
   JPH::ObjectLayer objl = api().GetObjectLayer(bodyId);
   api().SetObjectLayer(bodyId, make_objlayer_debris(objlayer_to_bphlayer(objl), groupMask, layerMask));
 }
+
+void PhysBody::setPassableLayer() { api().SetObjectLayer(bodyId, make_objlayer(layers::PASSABLE, groupMask, layerMask)); }
+bool PhysBody::isPassableLayer() const { return objlayer_to_bphlayer(api().GetObjectLayer(bodyId)) == layers::PASSABLE; }
 
 void PhysBody::setGravity(const Point3 &grav, bool activate)
 {
@@ -1560,6 +1565,7 @@ struct JoltSimJob final : public cpujobs::IJob
   float fixedTimeStep = 1. / 60.f;
   uint32_t qPos = 0;
   float time = 0;
+  float simDt = 0.f;
 
   void setup(int mss, float fts, float dt)
   {
@@ -1580,14 +1586,25 @@ struct JoltSimJob final : public cpujobs::IJob
       int numSubSteps = int(double(time) / fixedTimeStep);
       time -= numSubSteps * fixedTimeStep;
       numSubSteps = min(numSubSteps, (int)maxSubSteps);
-      if (numSubSteps || !allowVariable)
-        update(numSubSteps * fixedTimeStep, max(numSubSteps, 1)); // Still update even with 0 dt for broadphase update/contact removal
-      else                                                        // Update with less then `fixedTimeStep` time
-        update(eastl::exchange(time, 0.f), 1);
+      // A rounding leftover as a step would scale the next warm start impulses by the step ratio (thousands of times)
+      const bool tinyLeftover = time < fixedTimeStep * 0.01f;
+      if (numSubSteps || !allowVariable || tinyLeftover)
+      {
+        simDt = numSubSteps * fixedTimeStep;
+        update(simDt, max(numSubSteps, 1)); // Still update even with 0 dt for broadphase update/contact removal
+      }
+      else // Update with less then `fixedTimeStep` time
+      {
+        simDt = eastl::exchange(time, 0.f);
+        update(simDt, 1);
+      }
       DA_PROFILE_TAG(JoltSimJob, "ncollsteps: %d", numSubSteps);
     }
     else
-      update(time);
+    {
+      simDt = time;
+      update(simDt);
+    }
   }
 };
 static JoltSimJob sim_job;
@@ -1609,6 +1626,7 @@ bool PhysWorld::fetchSimRes(bool wait, PhysBody *)
     threadpool::barrier_active_wait_for_job(&sim_job, threadpool::PRIO_DEFAULT, sim_job.qPos);
   else
     return false;
+  lastSimDt = sim_job.simDt;
   return true;
 }
 
@@ -1664,7 +1682,7 @@ static Point3 get_velocity_from_hit(const JPH::ClosestHitCollisionCollector<JPH:
   return to_point3(jolt_api::body_api().GetLinearVelocity(cb.mHit.mBodyID2));
 }
 
-// constraint: Jolt prunes a cast by the collector early-out fraction only; AddHit takes the first hit whatever mHit holds
+// Jolt prunes a cast by the collector early-out fraction only; AddHit takes the first hit whatever mHit holds
 static void limit_cast_to(JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector> &cb, float t)
 {
   if (t < cb.GetEarlyOutFraction())
@@ -1792,6 +1810,14 @@ void PhysSystemInstance::phys_jolt_setup_collision_groups_for_joints(int grpId, 
         b.GetCollisionGroup().SetSubGroupID(i);
       }
     });
+}
+
+void PhysSystemInstance::phys_jolt_enable_collision_between_bodies(Tab<PhysSystemInstance::Body> &b, int body1, int body2)
+{
+  b[body1].body->lockRO([&](const JPH::Body &bd) {
+    const JPH::GroupFilter *filter = bd.GetCollisionGroup().GetGroupFilter();
+    const_cast<JPH::GroupFilterTable *>(static_cast<const JPH::GroupFilterTable *>(filter))->EnableCollision(body1, body2);
+  });
 }
 
 int phys_body_get_hmap_step(PhysBody *b)

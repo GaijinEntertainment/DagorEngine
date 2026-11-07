@@ -34,6 +34,26 @@ macro INIT_VCOLOR_LAYERED(always_use_normal_details)
   interval atest: atestOff < 1, atestOn;
   static float4 overlay_color_from = (0.5, 0.5, 0.5, 0.5);
   static float4 overlay_color_to = (0.5, 0.5, 0.5, 0.5);
+
+  if (shader == rendinst_cliff)
+  {
+    static int triplanar = 0 no_warnings;
+    interval triplanar : triplanar_off < 1, triplanar_on;
+    static float triplanar_scale = 6 no_warnings;
+    static float triplanar_sharpness = 0.69 no_warnings;
+    if (triplanar == triplanar_on)
+    {
+      hlsl {
+        #define RI_TRIPLANAR 1
+        #include "triplanar.hlsl"
+      }
+      (ps) {
+        triplanar_scale_mul@f1 = 1 / triplanar_scale;
+        triplanar_sharpness@f1 = triplanar_sharpness;
+      }
+    }
+  }
+
   if (atest == atestOn)
   {
     static float4 details_alphatest = (0, 0, 0, 0);
@@ -90,13 +110,53 @@ macro USE_VCOLOR_LAYERED(stage)
   VCOLOR_LAYERED_WEIGHT_BLENDING(stage)
 endmacro
 
+macro USE_VCOLOR_LAYERED_TRIPLANAR_DISPLACEMENT()
+  (vs) {
+    triplanar_scale_mul@f1 = 1 / triplanar_scale;
+    triplanar_sharpness@f1 = triplanar_sharpness;
+  }
+  hlsl(ds) {
+    half3 sample_detail_heights_lod(float2 uv, float3 lod)
+    {
+      float3 tile = get_details_tile().xyz;
+      half3 heights;
+      heights.x = tex2DLodBindless(get_diffuse_tex(), float4(uv * tile.x, 0, lod.x)).a;
+      heights.y = tex2DLodBindlessSampler(get_diffuse_tex1(), get_diffuse_tex().smp, float4(uv * tile.y, 0, lod.y)).a;
+      heights.z = tex2DLodBindlessSampler(get_diffuse_tex2(), get_diffuse_tex().smp, float4(uv * tile.z, 0, lod.z)).a;
+      return heights;
+    }
+
+    half3 triplanar_detail_heights(TriplanarCoords coords, float3 lod)
+    {
+      half3 heights = 0;
+      TriplanarOrder sorted = sort_triplanar_axes(coords.weights);
+      PlanarProjection proj = get_planar_projection(coords, sorted.axis.x, sorted.weight.x);
+      heights += sample_detail_heights_lod(proj.uv, lod) * proj.weight;
+      BRANCH
+      if (sorted.weight.y > 0)
+      {
+        proj = get_planar_projection(coords, sorted.axis.y, sorted.weight.y);
+        heights += sample_detail_heights_lod(proj.uv, lod) * proj.weight;
+        BRANCH
+        if (sorted.weight.z > 0)
+        {
+          proj = get_planar_projection(coords, sorted.axis.z, sorted.weight.z);
+          heights += sample_detail_heights_lod(proj.uv, lod) * proj.weight;
+        }
+      }
+      return heights;
+    }
+  }
+endmacro
+
 // If use_translucency is set to true, translucent_inc.dshl:INIT_TRANSLUCENCY_SETTING(ps) should be called before
-macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_translucency, use_sheen, has_char_microdetail_sampler, always_use_normal_details, order)
-  USE_LAYERED_PS(always_use_normal_details)
+macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_translucency, use_sheen, has_char_microdetail_sampler, order)
+  USE_LAYERED_PS()
   USE_PIXEL_TANGENT_SPACE()
   if (is_writing_gbuffer)
   {
     WRITE_GBUFFER()
+    INIT_AND_USE_DBG_GBUFF_TEX()
     if (use_sheen)
     {
       USE_SHEEN_COMMON()
@@ -128,9 +188,132 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
       #define SAMPLE_TEX_SAMPLER(tex, smp, tc) tex2DBindlessSampler(tex, smp, tc)
     #endif
 
+    #if RI_TRIPLANAR
+      #ifndef SAMPLE_TEX_GRAD
+        #define SAMPLE_TEX_GRAD(tex, tc, dx, dy) tex2DgradBindless(tex, tc, dx, dy)
+      #endif
+      #ifndef SAMPLE_TEX_SAMPLER_GRAD
+        #define SAMPLE_TEX_SAMPLER_GRAD(tex, smp, tc, dx, dy) tex2DgradBindlessSampler(tex, smp, tc, dx, dy)
+      #endif
+      #ifndef SAMPLE_TEX_LOD
+        #define SAMPLE_TEX_LOD(tex, tc, lod) tex2DLodBindless(tex, float4(tc, 0, lod))
+      #endif
+      #ifndef SAMPLE_TEX_SAMPLER_LOD
+        #define SAMPLE_TEX_SAMPLER_LOD(tex, smp, tc, lod) tex2DLodBindlessSampler(tex, smp, float4(tc, 0, lod))
+      #endif
+
+      float detail_tex_lod(Texture2D tex, float tile, float lod_base)
+      {
+        float2 texSize;
+        tex.GetDimensions(texSize.x, texSize.y);
+        return lod_base + log2(tile * max(texSize.x, texSize.y));
+      }
+
+      void sample_detail_diffuse_proj(PlanarProjection proj, bool use_grad, out half4 diffuse0, out half4 diffuse1, out half4 diffuse2)
+      {
+        float3 tile = get_details_tile().xyz;
+        // Grad is not cheap, but its necessary for sharp visual, but it is not noticable on non-dominant layers
+        if (use_grad)
+        {
+          diffuse0 = SAMPLE_TEX_GRAD(get_diffuse_tex(), proj.uv * tile.x, proj.dx * tile.x, proj.dy * tile.x);
+          diffuse1 = SAMPLE_TEX_SAMPLER_GRAD(get_diffuse_tex1(), get_diffuse_tex().smp, proj.uv * tile.y, proj.dx * tile.y, proj.dy * tile.y);
+          diffuse2 = SAMPLE_TEX_SAMPLER_GRAD(get_diffuse_tex2(), get_diffuse_tex().smp, proj.uv * tile.z, proj.dx * tile.z, proj.dy * tile.z);
+          return;
+        }
+        diffuse0 = SAMPLE_TEX_LOD(get_diffuse_tex(), proj.uv * tile.x, detail_tex_lod(get_diffuse_tex().tex, tile.x, proj.lod));
+        diffuse1 = SAMPLE_TEX_SAMPLER_LOD(get_diffuse_tex1(), get_diffuse_tex().smp, proj.uv * tile.y, detail_tex_lod(get_diffuse_tex1(), tile.y, proj.lod));
+        diffuse2 = SAMPLE_TEX_SAMPLER_LOD(get_diffuse_tex2(), get_diffuse_tex().smp, proj.uv * tile.z, detail_tex_lod(get_diffuse_tex2(), tile.z, proj.lod));
+      }
+
+      void add_detail_diffuse(PlanarProjection proj, bool use_grad, inout half4 diffuse0, inout half4 diffuse1, inout half4 diffuse2)
+      {
+        half4 d0, d1, d2;
+        sample_detail_diffuse_proj(proj, use_grad, d0, d1, d2);
+        diffuse0 += d0 * proj.weight;
+        diffuse1 += d1 * proj.weight;
+        diffuse2 += d2 * proj.weight;
+      }
+
+      void triplanar_detail_diffuse(TriplanarCoords coords, TriplanarOrder sorted, out half4 diffuse0, out half4 diffuse1, out half4 diffuse2)
+      {
+        diffuse0 = diffuse1 = diffuse2 = 0;
+        add_detail_diffuse(get_planar_projection(coords, sorted.axis.x, sorted.weight.x), true, diffuse0, diffuse1, diffuse2);
+        BRANCH
+        if (sorted.weight.y > 0)
+        {
+          add_detail_diffuse(get_planar_projection(coords, sorted.axis.y, sorted.weight.y), false, diffuse0, diffuse1, diffuse2);
+          BRANCH
+          if (sorted.weight.z > 0)
+            add_detail_diffuse(get_planar_projection(coords, sorted.axis.z, sorted.weight.z), false, diffuse0, diffuse1, diffuse2);
+        }
+      }
+
+    #else
+      void sample_detail_diffuse(float2 tc, out half4 diffuse0, out half4 diffuse1, out half4 diffuse2)
+      {
+        diffuse0 = SAMPLE_TEX(get_diffuse_tex(), tc * get_details_tile().x);
+        diffuse1 = SAMPLE_TEX_SAMPLER(get_diffuse_tex1(), get_diffuse_tex().smp, tc * get_details_tile().y);
+        diffuse2 = SAMPLE_TEX_SAMPLER(get_diffuse_tex2(), get_diffuse_tex().smp, tc * get_details_tile().z);
+      }
+    #endif
+
+
+    ##if use_normal_details
+      #if RI_TRIPLANAR
+        void sample_detail_normals_proj(PlanarProjection proj, bool use_grad, out half4 packed0, out half4 packed1, out half4 packed2)
+        {
+          float3 tile = get_details_tile().xyz;
+          // Grad is not cheap, but its necessary for sharp visual, but it is not noticable on non-dominant layers
+          if (use_grad)
+          {
+            packed0 = SAMPLE_TEX_GRAD(get_normal_tex(), proj.uv * tile.x, proj.dx * tile.x, proj.dy * tile.x);
+            packed1 = SAMPLE_TEX_SAMPLER_GRAD(get_normal_tex1(), get_normal_tex().smp, proj.uv * tile.y, proj.dx * tile.y, proj.dy * tile.y);
+            packed2 = SAMPLE_TEX_SAMPLER_GRAD(get_normal_tex2(), get_normal_tex().smp, proj.uv * tile.z, proj.dx * tile.z, proj.dy * tile.z);
+            return;
+          }
+          packed0 = SAMPLE_TEX_LOD(get_normal_tex(), proj.uv * tile.x, detail_tex_lod(get_normal_tex().tex, tile.x, proj.lod));
+          packed1 = SAMPLE_TEX_SAMPLER_LOD(get_normal_tex1(), get_normal_tex().smp, proj.uv * tile.y, detail_tex_lod(get_normal_tex1(), tile.y, proj.lod));
+          packed2 = SAMPLE_TEX_SAMPLER_LOD(get_normal_tex2(), get_normal_tex().smp, proj.uv * tile.z, detail_tex_lod(get_normal_tex2(), tile.z, proj.lod));
+        }
+
+        void add_detail_normals(PlanarProjection proj, bool use_grad, half3 layer_weights, half3 N, inout half4 packed_normal, inout half3 normal_sum)
+        {
+          half4 packed0, packed1, packed2;
+          sample_detail_normals_proj(proj, use_grad, packed0, packed1, packed2);
+          half4 packedValues = packed0 * layer_weights.x + packed1 * layer_weights.y + packed2 * layer_weights.z;
+          packed_normal += packedValues * proj.weight;
+          half3 localNorm = unpack_ag_normal(packedValues);
+          normal_sum += (localNorm.z * N + localNorm.x * proj.tangent + localNorm.y * proj.bitangent) * proj.weight;
+        }
+
+        void triplanar_detail_normals(TriplanarCoords coords, TriplanarOrder sorted, half3 layer_weights, half3 N, out half4 packed_normal, out half3 world_normal)
+        {
+          packed_normal = 0;
+          half3 normalSum = 0;
+          add_detail_normals(get_planar_projection(coords, sorted.axis.x, sorted.weight.x), true, layer_weights, N, packed_normal, normalSum);
+          BRANCH
+          if (sorted.weight.y > 0)
+          {
+            add_detail_normals(get_planar_projection(coords, sorted.axis.y, sorted.weight.y), false, layer_weights, N, packed_normal, normalSum);
+            BRANCH
+            if (sorted.weight.z > 0)
+              add_detail_normals(get_planar_projection(coords, sorted.axis.z, sorted.weight.z), false, layer_weights, N, packed_normal, normalSum);
+          }
+          world_normal = normalize(normalSum);
+        }
+      #else
+        void sample_detail_normals(float2 tc, out half4 packed0, out half4 packed1, out half4 packed2)
+        {
+          packed0 = SAMPLE_TEX(get_normal_tex(), tc * get_details_tile().x);
+          packed1 = SAMPLE_TEX_SAMPLER(get_normal_tex1(), get_normal_tex().smp, tc * get_details_tile().y);
+          packed2 = SAMPLE_TEX_SAMPLER(get_normal_tex2(), get_normal_tex().smp, tc * get_details_tile().z);
+        }
+      #endif
+    ##endif
+
     ##if (atest == atestOff)
-      #ifdef FORCE_EARLY_DEPTH_STENCIL
-        FORCE_EARLY_DEPTH_STENCIL
+      #ifdef USE_EARLY_DEPTH_STENCIL
+        USE_EARLY_DEPTH_STENCIL
       #endif
     ##endif
 
@@ -155,11 +338,19 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
       #endif
 
       input.normal.xyz = MUL_VFACE(input.normal.xyz);
+      half3 vertexNormal = normalize(input.normal.xyz);
       float2 texCoord = input.diffuseTexcoord.xy;
       float3 worldPos = world_view_pos.xyz-input.pointToEye.xyz;
-      half4 diffuseColor = SAMPLE_TEX(get_diffuse_tex(), texCoord * get_details_tile().x);
-      half4 diffuseColor1 = SAMPLE_TEX_SAMPLER(get_diffuse_tex1(), get_diffuse_tex().smp, texCoord * get_details_tile().y);
-      half4 diffuseColor2 = SAMPLE_TEX_SAMPLER(get_diffuse_tex2(), get_diffuse_tex().smp, texCoord * get_details_tile().z);
+      half4 diffuseColor, diffuseColor1, diffuseColor2;
+      #if RI_TRIPLANAR
+        float3 triPos = worldPos * get_triplanar_scale_mul();
+        TriplanarCoords tri = make_triplanar_coords(triPos, vertexNormal, get_triplanar_sharpness());
+        set_triplanar_derivatives(tri, ddx(triPos), ddy(triPos));
+        TriplanarOrder triOrder = sort_triplanar_axes(tri.weights);
+        triplanar_detail_diffuse(tri, triOrder, diffuseColor, diffuseColor1, diffuseColor2);
+      #else
+        sample_detail_diffuse(texCoord, diffuseColor, diffuseColor1, diffuseColor2);
+      #endif
       float2 by_normal_params = float2(0, 0);
       ##if (shader == rendinst_cliff)
         by_normal_params = float2(max(dot(get_mask_by_normal().xyz, input.normal.xyz), 0), get_mask_by_normal().w);
@@ -187,14 +378,20 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
         diffuseColor = diffuseColor*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
         WRITE_SCENE25D_VOXEL_DATA(worldPos, diffuseColor.rgb, 0, 0);
       #else
-        ##if always_use_normal_details || ((normal != NULL) && (compatibility_mode == compatibility_mode_off))
-          half4 packedNormalMap = SAMPLE_TEX(get_normal_tex(), texCoord * get_details_tile().x);
-          half4 packedNormalMap1 = SAMPLE_TEX_SAMPLER(get_normal_tex1(), get_normal_tex().smp, texCoord * get_details_tile().y);
-          half4 packedNormalMap2 = SAMPLE_TEX_SAMPLER(get_normal_tex2(), get_normal_tex().smp, texCoord * get_details_tile().z);
-          half3 normalMap;
+        half3 worldNormal = vertexNormal;
+        ##if use_normal_details
+          #if RI_TRIPLANAR
+            half4 packedNormalMap;
+            triplanar_detail_normals(tri, triOrder, weights, vertexNormal, packedNormalMap, worldNormal);
+            half3 normalMap = half3(0, 0, 1);
+          #else
+            half4 packedNormalMap, packedNormalMap1, packedNormalMap2;
+            sample_detail_normals(texCoord, packedNormalMap, packedNormalMap1, packedNormalMap2);
+            half3 normalMap;
 
-          packedNormalMap = packedNormalMap * weights.x + packedNormalMap1 * weights.y + packedNormalMap2 * weights.z;
-          normalMap = unpack_ag_normal(packedNormalMap);
+            packedNormalMap = packedNormalMap * weights.x + packedNormalMap1 * weights.y + packedNormalMap2 * weights.z;
+            normalMap = unpack_ag_normal(packedNormalMap);
+          #endif
         ##else
           half4 packedNormalMap = 0;
           half3 normalMap = float3(0, 1, 0);
@@ -203,7 +400,11 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
         half smoothness = packedNormalMap.r;
         ##if (shader == rendinst_cliff)
           #define INV_LEAKS_CONTRAST_VALUE 10
-          half3 overlayNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
+          #if RI_TRIPLANAR
+            half3 overlayNormal = worldNormal;
+          #else
+            half3 overlayNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
+          #endif
           float overlayNormalMask = saturate(dot(get_overlay_by_normal().xyz, overlayNormal.xyz));
           float4 normalOverlayColor = lerp(get_normal_overlay_color_from(), get_normal_overlay_color_to(), overlayNormalMask);
           float4 overlayColor = lerp(get_overlay_color_from(), get_overlay_color_to(), input.vcolMask.z);
@@ -238,7 +439,6 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
 
         half reflectance = 0.5;
         half ao = 1;
-        half3 worldNormal = normalize(input.normal.xyz);
         ##if compatibility_mode == compatibility_mode_off
           BRANCH
           if (character_micro_detail_layer>=0)
@@ -246,13 +446,17 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
             apply_character_micro_detail(sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
                                         diffuseColor.rgb, normalMap, reflectance, smoothness);
           }
+          // This is the only perturb_normal_precise needed for triplanar route, as it adds extra details, the rest
+          // are done in the triplanar normal sampling itself
           worldNormal = perturb_normal_precise( normalMap, worldNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
 
           #if NORMAL_RENDER_PASS
             apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
           #endif
         ##else
-          worldNormal = perturb_normal_precise(normalMap, worldNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy);
+          #if !RI_TRIPLANAR
+            worldNormal = perturb_normal_precise(normalMap, worldNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy);
+          #endif
         ##endif
 
         UnpackedGbuffer gbuffer;
@@ -291,6 +495,12 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
         init_reflectance(gbuffer, reflectance);
         init_normal(gbuffer, worldNormal);
         init_albedo(gbuffer, diffuseColor.rgb);
+        #if RI_TRIPLANAR
+          float2 densityTc = get_planar_projection(tri, triOrder.axis.x, triOrder.weight.x).uv;
+        #else
+          float2 densityTc = texCoord;
+        #endif
+        init_worldTexelDensity(gbuffer, get_diffuse_tex().tex, densityTc * get_details_tile().x, input.pointToEye.xyz);
 
         float4 screenpos = GET_SCREEN_POS(input.pos);
 
@@ -315,5 +525,5 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
 endmacro
 
 macro VCOLOR_LAYERED_PS(is_writing_gbuffer, is_blending_hmap, use_translucency, use_sheen, order)
-  VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_translucency, use_sheen, true, true, order)
+  VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_translucency, use_sheen, true, order)
 endmacro

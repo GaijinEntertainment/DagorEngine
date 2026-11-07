@@ -82,6 +82,7 @@ if $(Platform) in windows {
     debug/device_state_pc.cpp
     debug/gpu_postmortem_dagor_trace.cpp
     debug/gpu_postmortem_microsoft_dred.cpp
+    debug/memory_heap_reporter.cpp
     debug/pipeline_resource_reporter.cpp
     shader_library.cpp
 
@@ -118,6 +119,12 @@ if $(Platform) in windows {
     Sources +=
       debug/gpu_postmortem_nvidia_aftermath.cpp
     ;
+  }
+
+  local NsightGraphicsSdkDir = $(_DEVTOOL)/NsightGraphics-$(NsightGraphicsSdkVer) ;
+  if [ GLOB $(NsightGraphicsSdkDir) : * ] && $(Config) != rel && $(PlatformArch) = x86_64 {
+    AddIncludes += $(NsightGraphicsSdkDir)/include ;
+    CPPopt += -DHAS_NGFX ;
   }
 
   include $(Root)/prog/engine/drv/drv3d_commonCode/nvapi.jam ;

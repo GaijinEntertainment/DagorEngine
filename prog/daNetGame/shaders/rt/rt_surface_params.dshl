@@ -390,7 +390,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
     }
     ##endif
 
-    SurfaceParams calc_surface_params(inout HitInfo hitInfo, half3 surfaceToCamera, float w)
+    SurfaceParams calc_surface_params(inout HitInfo hitInfo, half3 surfaceToCamera, float w, float primary_surface_distance)
     {
       float3 worldPos = hitInfo.position + bvh_origin;
 

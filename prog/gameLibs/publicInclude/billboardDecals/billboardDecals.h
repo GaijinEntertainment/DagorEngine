@@ -12,7 +12,6 @@
 #include <decalMatrices/decalsMatrices.h>
 #include "billboard_decals_const.hlsli"
 #include "billboard_decals.hlsli"
-#include <EASTL/vector.h>
 
 class ShaderMaterial;
 class Point3;
@@ -43,8 +42,8 @@ public:
   void renderBillboards();
   int32_t addHole(const Point3 &pos, const Point3 &norm, const Point3 &up, float size, uint32_t texture_id, uint32_t matrix_id);
   bool updateHole(const Point3 &pos, const Point3 &norm, const Point3 &up, float size, uint32_t id, uint32_t texture_id,
-    uint32_t matrix_id, bool allow_rapid_update);
-  void removeHole(uint32_t id);
+    uint32_t matrix_id);
+  bool removeHole(uint32_t id);
   void clearInSphere(const Point3 &pos, float sphere_radius);
   void clear(); // clear current holes
 
@@ -74,12 +73,6 @@ protected:
   float softnessDistance, hardDistance;
   unsigned int holesTypes;
   int w, h;
-  unsigned int numFreeDecals = 0;
-  eastl::vector<uint32_t> freeDecalIds;
-
-  // to avoid reused a deleted hole in the same frame as it freed up
-  // We collect freed ids during frame, and the put it inside freeDecalsIds before render a new frame
-  eastl::vector<uint32_t> recentlyFreedIds;
 
 private:
   void render();

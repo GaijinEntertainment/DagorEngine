@@ -7,8 +7,9 @@ println("min(-1.5, 2) =", min(-1.5, 2))
 println("type(min(5, 2.0)) =", type(min(5, 2.0)))
 println("type(min(2, 5.0)) =", type(min(2, 5.0)))
 
+let x = 1
 try {
-  min(1)
+  min(x)
 } catch (e) {
-  println("min(1) throws:", e)
+  println("min(x) throws:", e)
 }

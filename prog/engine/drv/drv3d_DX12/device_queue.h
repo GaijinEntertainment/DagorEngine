@@ -4,8 +4,8 @@
 #include "d3d12_error_handling.h"
 #include "debug/device_state.h"
 
-#include <atomic>
 #include <dag/dag_vector.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <drv/3d/dag_tiledResource.h>
 
 
@@ -116,6 +116,14 @@ private:
 #define AP_DEBUG(...)
 #endif
 
+// Lets AsyncProgress keep one body for both the plain and the atomic progress store
+inline uint64_t progress_load(uint64_t v) { return v; }
+inline uint64_t progress_load(const dag::AtomicInteger<uint64_t> &v) { return v.load(); }
+inline void progress_store(uint64_t &v, uint64_t value) { v = value; }
+inline void progress_store(dag::AtomicInteger<uint64_t> &v, uint64_t value) { v.store(value); }
+inline uint64_t progress_increment(uint64_t &v) { return ++v; }
+inline uint64_t progress_increment(dag::AtomicInteger<uint64_t> &v) { return v.add_fetch(1); }
+
 template <typename ProgessStoreType>
 class AsyncProgress
 {
@@ -135,7 +143,7 @@ public:
   void reset()
   {
     fence.Reset();
-    progress = 0;
+    progress_store(progress, 0);
   }
 
   bool reset(D3DDevice *device, debug::DeviceState &debug, eastl::wstring_view name)
@@ -151,56 +159,56 @@ public:
 
   bool enqueueAdvance(const DeviceQueue &queue)
   {
-    AP_DEBUG("DX12: %p:%u->enqueueAdvance %p", fence.Get(), progress, &queue);
-    return queue.enqueueProgressUpdate(fence.Get(), ++progress);
+    AP_DEBUG("DX12: %p:%u->enqueueAdvance %p", fence.Get(), expectedProgress(), &queue);
+    return queue.enqueueProgressUpdate(fence.Get(), progress_increment(progress));
   }
 
   bool enqueueProgress(const DeviceQueue &queue, uint64_t value)
   {
-    AP_DEBUG("DX12: %p:%u->enqueueProgress %p, %u", fence.Get(), progress, &queue, value);
-    progress = value;
+    AP_DEBUG("DX12: %p:%u->enqueueProgress %p, %u", fence.Get(), expectedProgress(), &queue, value);
+    progress_store(progress, value);
     return queue.enqueueProgressUpdate(fence.Get(), value);
   }
 
   bool wait(const DeviceQueue &queue) const
   {
-    AP_DEBUG("DX12: %p:%u->wait %p", fence.Get(), progress, &queue);
-    return queue.syncWith(fence.Get(), progress);
+    AP_DEBUG("DX12: %p:%u->wait %p", fence.Get(), expectedProgress(), &queue);
+    return queue.syncWith(fence.Get(), expectedProgress());
   }
 
   bool waitOnProgress(const DeviceQueue &queue, uint64_t value) const
   {
-    AP_DEBUG("DX12: %p:%u (%u)->wait %p", fence.Get(), value, progress, &queue);
-    G_ASSERTF(progress >= value, "%u >= %u failed", progress, value);
+    AP_DEBUG("DX12: %p:%u (%u)->wait %p", fence.Get(), value, expectedProgress(), &queue);
+    G_ASSERTF(expectedProgress() >= value, "%u >= %u failed", expectedProgress(), value);
     return queue.syncWith(fence.Get(), value);
   }
 
   uint64_t currentProgress() const
   {
     auto value = fence->GetCompletedValue();
-    AP_DEBUG("DX12: %p:%u->currentProgress -> %u", fence.Get(), progress, value);
+    AP_DEBUG("DX12: %p:%u->currentProgress -> %u", fence.Get(), expectedProgress(), value);
     return value;
   }
 
-  uint64_t expectedProgress() const { return progress; }
+  uint64_t expectedProgress() const { return progress_load(progress); }
 
   bool waitForProgress(uint64_t value, HANDLE handle) const
   {
-    AP_DEBUG("DX12: %p:%u->waitForProgress %u, %p", fence.Get(), progress, value, handle);
+    AP_DEBUG("DX12: %p:%u->waitForProgress %u, %p", fence.Get(), expectedProgress(), value, handle);
     return DX12_CHECK_OK(fence->SetEventOnCompletion(value, handle));
   }
 
   bool wait(HANDLE handle) const
   {
-    AP_DEBUG("DX12: %p:%u->wait %p", fence.Get(), progress, handle);
-    return DX12_CHECK_OK(fence->SetEventOnCompletion(progress, handle));
+    AP_DEBUG("DX12: %p:%u->wait %p", fence.Get(), expectedProgress(), handle);
+    return DX12_CHECK_OK(fence->SetEventOnCompletion(expectedProgress(), handle));
   }
 
   // sends a signale from 'signaler' to be waited on by 'signaled'
   // short cut for enqueueAdvance('signaler') and wait('signaled') pair
   bool synchronize(const DeviceQueue &signaler, const DeviceQueue &signaled)
   {
-    AP_DEBUG("DX12: %p:%u->synchronize %p, %p", fence.Get(), progress, &signaler, &signaled);
+    AP_DEBUG("DX12: %p:%u->synchronize %p, %p", fence.Get(), expectedProgress(), &signaler, &signaled);
     if (!enqueueAdvance(signaler))
     {
       return false;
@@ -216,7 +224,7 @@ class DeviceQueueGroup
   DeviceQueue group[uint32_t(DeviceQueueType::COUNT)];
   AsyncProgress<uint64_t> uploadProgress;
   AsyncProgress<uint64_t> graphicsProgress;
-  AsyncProgress<std::atomic_uint64_t> frameProgress;
+  AsyncProgress<dag::AtomicInteger<uint64_t>> frameProgress;
 
 public:
   bool init(D3DDevice *device, debug::DeviceState &debug);
@@ -267,13 +275,15 @@ public:
 // Some driver/device struggle with long running frames and then suddenly
 // WaitForSingleObject returns errors that make no sense.
 // This functions handles this with some fall back strategies.
-bool wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what);
+bool wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what,
+  bool flip_nudge);
 
-__forceinline bool wait_for_frame_progress_with_event(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what)
+__forceinline bool wait_for_frame_progress_with_event(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what,
+  bool flip_nudge = false)
 {
   if (DAGOR_LIKELY(qs.checkFrameProgress() >= progress))
     return true;
-  return wait_for_frame_progress_with_event_slow_path(qs, progress, event, what);
+  return wait_for_frame_progress_with_event_slow_path(qs, progress, event, what, flip_nudge);
 }
 
 } // namespace drv3d_dx12

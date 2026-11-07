@@ -2153,6 +2153,18 @@ auto dx12::dxil::combinePhaseOnePixelShader(const ShaderStageData &ps, const Roo
   return result;
 }
 
+auto dx12::dxil::getVertexProgramStageDebugInfoSuffixes(dag::ConstSpan<uint8_t> source) -> VertexProgramStageDebugInfoSuffixes
+{
+  auto *metadata = bindump::map<VertexProgramPhaseOneMetadata>(source.data());
+  if (!metadata)
+    return {};
+  return {
+    .hs = metadata->hullShaderMetadata.empty() ? nullptr : "_hs",
+    .ds = metadata->domainShaderMetadata.empty() ? nullptr : "_ds",
+    .gs = metadata->geomentryShaderMetadata.empty() ? nullptr : (metadata->rootSignature.isMesh ? "_as" : "_gs"),
+  };
+}
+
 auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir, wchar_t *pdb_name,
   DebugLevel debug_level, DebugParts debug_parts) -> eastl::optional<CombinedShaderStorage>
 {
@@ -2198,6 +2210,9 @@ auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform
   auto dsDecodedMetadata = decode_shader_container(metadata->domainShaderMetadata, true);
   auto gsDecodedMetadata = decode_shader_container(metadata->geomentryShaderMetadata, true);
 
+  auto stageSuffixes = getVertexProgramStageDebugInfoSuffixes(source);
+  auto stagePdbName = [pdb_name](const char *suffix) { return eastl::wstring{pdb_name}.append_convert(suffix); };
+
   auto [rebuildVSMetadata, rebuildVSBytecode] =
     recompile_shader(vsDecodedMetadata.source.data(), vsDecodedMetadata.shader.shaderHeader, vsDecodedMetadata.streamOutputComponents,
       progSignature, platform, hsDecodedMetadata.source.size() && dsDecodedMetadata.source.size(), gsDecodedMetadata.source.size(),
@@ -2211,9 +2226,10 @@ auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform
   eastl::vector<uint8_t> rebuildHSMetadata, rebuildHSBytecode;
   if (hsDecodedMetadata.source.size())
   {
-    eastl::tie(rebuildHSMetadata, rebuildHSBytecode) = recompile_shader(hsDecodedMetadata.source.data(),
-      hsDecodedMetadata.shader.shaderHeader, hsDecodedMetadata.streamOutputComponents, progSignature, platform, true,
-      gsDecodedMetadata.source.size(), pdb_dir, pdb_name, debug_level, debug_parts, metadata->rootSignature.hasStreamOutput);
+    eastl::tie(rebuildHSMetadata, rebuildHSBytecode) =
+      recompile_shader(hsDecodedMetadata.source.data(), hsDecodedMetadata.shader.shaderHeader,
+        hsDecodedMetadata.streamOutputComponents, progSignature, platform, true, gsDecodedMetadata.source.size(), pdb_dir,
+        stagePdbName(stageSuffixes.hs).data(), debug_level, debug_parts, metadata->rootSignature.hasStreamOutput);
     if (rebuildHSMetadata.empty() || rebuildHSBytecode.empty())
     {
       return eastl::nullopt;
@@ -2223,9 +2239,9 @@ auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform
   eastl::vector<uint8_t> rebuildDSMetadata, rebuildDSBytecode;
   if (dsDecodedMetadata.source.size())
   {
-    eastl::tie(rebuildDSMetadata, rebuildDSBytecode) =
-      recompile_shader(dsDecodedMetadata.source.data(), dsDecodedMetadata.shader.shaderHeader, {}, progSignature, platform, true,
-        gsDecodedMetadata.source.size(), pdb_dir, pdb_name, debug_level, debug_parts, metadata->rootSignature.hasStreamOutput);
+    eastl::tie(rebuildDSMetadata, rebuildDSBytecode) = recompile_shader(dsDecodedMetadata.source.data(),
+      dsDecodedMetadata.shader.shaderHeader, {}, progSignature, platform, true, gsDecodedMetadata.source.size(), pdb_dir,
+      stagePdbName(stageSuffixes.ds).data(), debug_level, debug_parts, metadata->rootSignature.hasStreamOutput);
     if (rebuildDSMetadata.empty() || rebuildDSBytecode.empty())
     {
       return eastl::nullopt;
@@ -2237,8 +2253,8 @@ auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform
   {
     eastl::tie(rebuildGSMetadata, rebuildGSBytecode) = recompile_shader(gsDecodedMetadata.source.data(),
       gsDecodedMetadata.shader.shaderHeader, gsDecodedMetadata.streamOutputComponents, progSignature, platform,
-      hsDecodedMetadata.source.size() && dsDecodedMetadata.source.size(), true, pdb_dir, pdb_name, debug_level, debug_parts,
-      metadata->rootSignature.hasStreamOutput);
+      hsDecodedMetadata.source.size() && dsDecodedMetadata.source.size(), true, pdb_dir, stagePdbName(stageSuffixes.gs).data(),
+      debug_level, debug_parts, metadata->rootSignature.hasStreamOutput);
     if (rebuildGSMetadata.empty() || rebuildGSBytecode.empty())
     {
       return eastl::nullopt;

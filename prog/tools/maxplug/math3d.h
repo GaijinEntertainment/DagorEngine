@@ -25,17 +25,6 @@ public:
   real m[3][3];
   INLINE Matrix33() {}
 
-  INLINE Point3 operator*(const Point3 &p) const
-  {
-    Point3 r;
-    r[0] = m[0][0] * p[0] + m[1][0] * p[1] + m[2][0] * p[2];
-    r[1] = m[0][1] * p[0] + m[1][1] * p[1] + m[2][1] * p[2];
-    r[2] = m[0][2] * p[0] + m[1][2] * p[1] + m[2][2] * p[2];
-    return r;
-  }
-
-  INLINE real det() const;
-
   INLINE void setcol(int i, const Point3 &v)
   {
     m[i][0] = v[0];
@@ -44,28 +33,6 @@ public:
   }
   INLINE Point3 getcol(int i) const { return Point3(m[i][0], m[i][1], m[i][2]); }
 };
-
-INLINE real Matrix33::det() const
-{
-  return m[0][0] * m[1][1] * m[2][2] + m[0][1] * m[1][2] * m[2][0] + m[1][0] * m[2][1] * m[0][2] - m[0][2] * m[1][1] * m[2][0] -
-         m[0][1] * m[1][0] * m[2][2] - m[1][2] * m[2][1] * m[0][0];
-}
-
-INLINE Matrix33 inverse(const Matrix33 &a)
-{
-  Matrix33 r;
-  real d = a.det();
-  r.m[0][0] = (a.m[1][1] * a.m[2][2] - a.m[2][1] * a.m[1][2]) / d;
-  r.m[0][1] = (-a.m[0][1] * a.m[2][2] + a.m[2][1] * a.m[0][2]) / d;
-  r.m[0][2] = (a.m[0][1] * a.m[1][2] - a.m[1][1] * a.m[0][2]) / d;
-  r.m[1][0] = (-a.m[1][0] * a.m[2][2] + a.m[2][0] * a.m[1][2]) / d;
-  r.m[1][1] = (a.m[0][0] * a.m[2][2] - a.m[2][0] * a.m[0][2]) / d;
-  r.m[1][2] = (-a.m[0][0] * a.m[1][2] + a.m[1][0] * a.m[0][2]) / d;
-  r.m[2][0] = (a.m[1][0] * a.m[2][1] - a.m[2][0] * a.m[1][1]) / d;
-  r.m[2][1] = (-a.m[0][0] * a.m[2][1] + a.m[2][0] * a.m[0][1]) / d;
-  r.m[2][2] = (a.m[0][0] * a.m[1][1] - a.m[1][0] * a.m[0][1]) / d;
-  return r;
-}
 
 INLINE unsigned real2uchar(float p)
 {

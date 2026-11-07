@@ -85,7 +85,8 @@ class Image:
     def dispatch(self):
         """The shared dispatch block of Execute<false>: the opcode load, the range check, the jump
         table load and the indirect jmp. A reload of the table base right before the block counts
-        as part of it, since handlers enter there. Returns dict(start, length)."""
+        as part of it, since handlers enter there. Returns dict(start, length), or None when no
+        site matches, as in a build with computed goto."""
         rva, end = self.function(EXECUTE)
         asm = self.disassemble(rva, end)
         for i, (_, ins) in enumerate(asm):
@@ -102,16 +103,21 @@ class Image:
             ja = re.fullmatch(r"ja @(0x[0-9a-f]+)", asm[j][1])
             if not (ja and asm[j - 1][1].startswith("cmp")):
                 continue
-            # the range check jumps back to the start of the block (opcode 0 is a no-op)
+            # the range check jumps back to the start of the block (opcode 0 is a no-op);
+            # an inner switch of a handler jumps forward to its default
             start = int(ja.group(1), 16)
+            if start >= asm[i][0]:
+                continue
             k = next(n for n, (a, _) in enumerate(asm) if a == start)
             if asm[k - 1][1].startswith(lea):
                 start = asm[k - 1][0]
             return dict(start=start, length=asm[i + 1][0] - start)
-        raise SystemExit(f"{self.exe}: the dispatch block of SQVM::Execute was not found")
+        return None
 
 
 def describe_dispatch(d):
     """The bytes of its 64-byte line that the block takes, e.g. "48-83 CROSSES"."""
+    if d is None:
+        return "none found"
     offset = d["start"] % 64
     return f"{offset}-{offset + d['length'] - 1}" + (" CROSSES" if offset + d["length"] > 64 else "")

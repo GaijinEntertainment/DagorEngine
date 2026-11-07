@@ -92,21 +92,14 @@ static void init_threads(const DataBlock &cfg)
 #if _TARGET_PC_WIN || _TARGET_XBOX
   if (cfg.getBool("boostMainThreadPriority", true)) // boost main thread priority in order to overrule loading threads (resources,
                                                     // textures, etc...)
-    DaThread::applyThisThreadPriority(THREAD_PRIORITY_ABOVE_NORMAL); // we increase main thread priority by one step. We only support
-                                                                     // two priorities: high and low
+    DaThread::applyThisThreadPriority(MAIN_THREAD_PRIORITY); // Above the pool workers, which may share main's CPU
   G_VERIFY(SetThreadAffinityMask(GetCurrentThread(), MAIN_THREAD_AFFINITY));
 #endif
 #if _TARGET_C1
 
 #endif
 }
-static int log_callback(int lev_tag, const char * /*fmt*/, const void * /*arg*/, int /*anum*/, const char * /*ctx_file*/,
-  int /*ctx_line*/)
-{
-  if (lev_tag == LOGLEVEL_ERR || lev_tag == LOGLEVEL_FATAL)
-    debug_dump_stack();
-  return 1;
-}
+static void log_callback(void *, LogMessage &) { debug_dump_stack(); }
 
 int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 {
@@ -181,7 +174,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 #if _TARGET_PC
   ::win32_set_window_title("testGI");
 #endif
-  debug_set_log_callback(&log_callback);
+  debug_add_log_handler(&log_callback, nullptr, {.levelMask = LOGMASK_ERRORS});
   game_demo_init();
 
   ::dagor_reset_spent_work_time();

@@ -109,7 +109,7 @@ public:
   virtual void renderLandMeshVSM(LandMeshRenderer &r, LandMeshManager &p) const = 0;
   virtual void renderLandMeshDepth(LandMeshRenderer &r, LandMeshManager &p) const = 0;
   virtual void renderLandMeshHeight(LandMeshRenderer &r, LandMeshManager &p) const = 0;
-  virtual void renderDecals(LandMeshRenderer &r, LandMeshManager &p) const = 0;
+  virtual void renderDecals(LandMeshRenderer &r, LandMeshManager &p, bool water_decals) const = 0;
   virtual void renderLandMeshGrassMask(LandMeshRenderer &r, LandMeshManager &p) const = 0;
   virtual void startUAVFeedback() const = 0;
   virtual void endUAVFeedback() const = 0;

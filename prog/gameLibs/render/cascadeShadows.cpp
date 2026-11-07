@@ -52,6 +52,12 @@ float shadow_render_expand_from_sun_mul = 0.0f;
 
 #define USE_SHADOW_DEPTH_CLAMP 1
 
+#define CONSTANT_CASCADE_SIZE_STEP 1.07f
+
+#define CONSTANT_CASCADE_SIZE_SNAP_AFTER_CHANGES         4
+#define CONSTANT_CASCADE_SIZE_MAX_CHANGE_GAP_FRAMES      30
+#define CONSTANT_CASCADE_SIZE_UNSNAP_AFTER_STABLE_FRAMES 120
+
 static int csmShadowFadeOutVarId = -1, shadowCascadeDepthRangeVarId = -1, deferredShadowPassVarId = -1;
 
 #define GLOBAL_VARS_OPTIONAL_LIST             \
@@ -217,6 +223,8 @@ public:
 
   float getMaxShadowDistance() const { return csmDistance; }
 
+  float getCasterReach() const { return casterReach; }
+
   float getCascadeDistance(int cascade_no) const { return shadowSplits[cascade_no].to; }
 
   const Frustum &getWholeCoveredFrustum() const { return wholeCoveredSpaceFrustum; }
@@ -239,10 +247,12 @@ public:
 private:
   struct ShadowSplit
   {
-    ShadowSplit() : from(0), to(1), frames(0xFFFF), shouldUpdate(1), shadowRegionPlaneCount(0), shadowRegionBackPlaneCount(0) {}
+    ShadowSplit() :
+      from(0), to(1), znzf(0, 1), frames(0xFFFF), shouldUpdate(1), shadowRegionPlaneCount(0), shadowRegionBackPlaneCount(0)
+    {}
     float from, to;
     Point2 znzf;
-    Point3 shadowWidth;
+    Point3 shadowWidth = Point3(0, 0, 0);
     Point3 viewPos; // for shadowFromCamldViewProjMatrix
     TMatrix shadowViewItm;
     TMatrix4_vec4 cameraCullingMatrix; // made with camViewTm
@@ -260,6 +270,35 @@ private:
     carray<plane3f, CSM_MAX_SHADOW_REGION_PLANES> shadowRegionPlanes;
     int shadowRegionPlaneCount;
     int shadowRegionBackPlaneCount;
+  };
+
+  struct DiameterChangeTracker
+  {
+    float lastDiameter = 0.f;
+    int changes = 0;
+    int stableFrames = 0;
+    bool changing = false;
+
+    bool keepsChanging(float diameter)
+    {
+      if (diameter != lastDiameter)
+      {
+        changes = min(changes + 1, CONSTANT_CASCADE_SIZE_SNAP_AFTER_CHANGES);
+        stableFrames = 0;
+      }
+      else
+      {
+        stableFrames = min(stableFrames + 1, CONSTANT_CASCADE_SIZE_UNSNAP_AFTER_STABLE_FRAMES);
+        if (stableFrames > CONSTANT_CASCADE_SIZE_MAX_CHANGE_GAP_FRAMES)
+          changes = 0;
+      }
+      lastDiameter = diameter;
+      if (changes >= CONSTANT_CASCADE_SIZE_SNAP_AFTER_CHANGES)
+        changing = true;
+      else if (stableFrames >= CONSTANT_CASCADE_SIZE_UNSNAP_AFTER_STABLE_FRAMES)
+        changing = false;
+      return changing;
+    }
   };
 
   ICascadeShadowsClient *client;
@@ -280,6 +319,7 @@ private:
   int numManualCascades = 0;
   carray<ShadowSplit, CascadeShadows::MAX_CASCADES> shadowSplits;
   carray<ShadowSplit, CascadeShadows::MAX_CASCADES> sparsedShadowSplits;
+  carray<DiameterChangeTracker, CascadeShadows::MAX_CASCADES> diameterTrackers;
   carray<Color4, CascadeShadows::MAX_CASCADES * 3> shadowCascadeTm;
   carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeTcMulOffset;
   // Cascades only differ in scale and offset between each other,
@@ -306,6 +346,7 @@ private:
   };
 
   float csmDistance = 0.0f;
+  float casterReach = 0.0f;
   carray<shaders::UniqueOverrideStateId, CascadeShadows::MAX_CASCADES> cascadeOverride;
   void destroyOverrides();
   void createOverrides();
@@ -319,7 +360,7 @@ private:
 
   void buildShadowProjectionMatrix(const Point3 &dir_to_sun, const TMatrix &view_matrix, const Point3 &camera_pos,
     const TMatrix4 &projtm, float z_near, float z_far, float next_z_far, const Point3 &anchor, float anchor_radius,
-    ShadowSplit &split);
+    float prev_box_side, DiameterChangeTracker *diameter_tracker, ShadowSplit &split);
 
   UniqueBuf csmBuffer;
   bool needSsss = false;
@@ -600,6 +641,7 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
   {
     numCascadesToRender = 0;
     csmDistance = 0.f;
+    casterReach = 0.f;
     return;
   }
 
@@ -682,21 +724,7 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
     ss.viewport = getViewPort(cascadeNo, {shadowCascadesTexInfo.w, shadowCascadesTexInfo.h});
 
     buildShadowProjectionMatrix(dir_to_sun, view_matrix, camera_pos, proj_tm, ss.from, ss.to, nextCascadeDist,
-      Point3::xyz(anchors[cascadeNo]), anchors[cascadeNo].w, ss);
-
-    if (needSsss && cascadeNo < CascadeShadows::SSSS_CASCADES)
-    {
-      ShaderGlobal::set_float(csm_range_cascade_vars[cascadeNo], ss.znzf.y - ss.znzf.x);
-
-      Point3 cascadeWidth = ss.shadowWidth;
-      float shadowTexW = shadowCascadesTexInfo.w, shadowTexH = shadowCascadesTexInfo.h;
-      Point2 cascadeUv = Point2(float(ss.viewport.width().x) / shadowTexW, float(ss.viewport.width().y) / shadowTexH);
-      Point2 meterToUv = div(cascadeUv, Point2::xy(cascadeWidth));
-      ShaderGlobal::set_float(csm_meter_to_uv_cascade_vars[cascadeNo], max(meterToUv.x, meterToUv.y));
-      Point4 uvMinMax = Point4(ss.viewport.getMin().x / shadowTexW, ss.viewport.getMin().y / shadowTexH,
-        ss.viewport.getMax().x / shadowTexW, ss.viewport.getMax().y / shadowTexH);
-      ShaderGlobal::set_float4(csm_uv_minmax_cascade_vars[cascadeNo], uvMinMax);
-    }
+      Point3::xyz(anchors[cascadeNo]), anchors[cascadeNo].w, shadowSplits[cascadeNo].shadowWidth.x, &diameterTrackers[cascadeNo], ss);
 
     if (force_update_shadows)
       shadowSplits[cascadeNo].frames = 0xFFFF;
@@ -759,6 +787,21 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
         shadowSplits[cascadeNo].viewPos = ss.viewPos;
       }
     }
+
+    if (needSsss && cascadeNo < CascadeShadows::SSSS_CASCADES)
+    {
+      const ShadowSplit &atlasSplit = shadowSplits[cascadeNo];
+      ShaderGlobal::set_float(csm_range_cascade_vars[cascadeNo], atlasSplit.znzf.y - atlasSplit.znzf.x);
+
+      Point3 cascadeWidth = atlasSplit.shadowWidth;
+      float shadowTexW = shadowCascadesTexInfo.w, shadowTexH = shadowCascadesTexInfo.h;
+      Point2 cascadeUv = Point2(float(atlasSplit.viewport.width().x) / shadowTexW, float(atlasSplit.viewport.width().y) / shadowTexH);
+      Point2 meterToUv = div(cascadeUv, Point2::xy(cascadeWidth));
+      ShaderGlobal::set_float(csm_meter_to_uv_cascade_vars[cascadeNo], max(meterToUv.x, meterToUv.y));
+      Point4 uvMinMax = Point4(atlasSplit.viewport.getMin().x / shadowTexW, atlasSplit.viewport.getMin().y / shadowTexH,
+        atlasSplit.viewport.getMax().x / shadowTexW, atlasSplit.viewport.getMax().y / shadowTexH);
+      ShaderGlobal::set_float4(csm_uv_minmax_cascade_vars[cascadeNo], uvMinMax);
+    }
   }
 
   {
@@ -768,7 +811,7 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
     ss.to = min(modeSettings.maxDist, scene_z_near_far.y);
     Point4 anchor = client->getCascadeShadowAnchor(-1);
     buildShadowProjectionMatrix(dir_to_sun, view_matrix, camera_pos, proj_tm, ss.from, ss.to,
-      min(SHADOW_FAR_CASCADE_DEPTH_MUL * ss.to, scene_z_near_far.y), Point3::xyz(anchor), anchor.w, ss);
+      min(SHADOW_FAR_CASCADE_DEPTH_MUL * ss.to, scene_z_near_far.y), Point3::xyz(anchor), anchor.w, 0.f, nullptr, ss);
     wholeCoveredSpaceFrustum.construct(ss.worldCullingMatrix);
   }
 
@@ -921,7 +964,8 @@ TMatrix4 CascadeShadowsPrivate::getShadowViewMatrix(const Point3 &dir_to_sun, co
 }
 
 void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun, const TMatrix &view_matrix, const Point3 &camera_pos,
-  const TMatrix4 &projTM, float z_near, float z_far, float next_z_far, const Point3 &anchor, float anchor_radius, ShadowSplit &split)
+  const TMatrix4 &projTM, float z_near, float z_far, float next_z_far, const Point3 &anchor, float anchor_radius, float prev_box_side,
+  DiameterChangeTracker *diameter_tracker, ShadowSplit &split)
 {
   if (!internalCascades && settings.resourceAccessStrategy != CascadeShadows::Settings::ResourceAccessStrategy::External)
     return;
@@ -931,6 +975,7 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
 
   float expandZfar = min(2.f * modeSettings.shadowCascadeZExpansion, safediv(modeSettings.shadowCascadeZExpansion, dir_to_sun.y));
   float expandZnear = expandZfar + max(shadowCascadeZExpansion_znearOffset, 0.0f);
+  casterReach = max(expandZnear, 0.f);
 
   TMatrix4 shadowViewMatrix = getShadowViewMatrix(dir_to_sun, camera_pos, false); // always the same for all splits! Depends on light
                                                                                   // direction only
@@ -1026,9 +1071,19 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
           for (int j = i + 1; j < 8; ++j)
             diameterSq = v_max(diameterSq, v_length3_sq_x(v_sub(viewFrustumPoints[i], viewFrustumPoints[j])));
 
-        const float diameter = ceilf(v_extract_x(v_sqrt_x(diameterSq)));
         const float minMapSize = min(mapWidth, mapHeight);
-        const float boxSide = diameter * minMapSize / (minMapSize - 2 * borderPixels);
+        const float borderScale = minMapSize / (minMapSize - 2 * borderPixels);
+        const float exactDiameter = v_extract_x(v_sqrt_x(diameterSq));
+        float diameter = ceilf(exactDiameter);
+        if (diameter_tracker && diameter_tracker->keepsChanging(exactDiameter))
+        {
+          const float logStep = logf(CONSTANT_CASCADE_SIZE_STEP);
+          int sizeStep = int(ceilf(logf(exactDiameter) / logStep));
+          if (prev_box_side > 0.f)
+            sizeStep = clamp(int(roundf(logf(prev_box_side / borderScale) / logStep)), sizeStep, sizeStep + 1);
+          diameter = powf(CONSTANT_CASCADE_SIZE_STEP, float(sizeStep));
+        }
+        const float boxSide = diameter * borderScale;
         const float halfSize = 0.5f * boxSide;
         const float texelWidth = boxSide / mapWidth;
         const float texelHeight = boxSide / mapHeight;
@@ -1467,6 +1522,8 @@ void CascadeShadows::copyFromSparsed(int cascade_no) { d->copyFromSparsed(cascad
 float CascadeShadows::getMaxDistance() const { return d->getMaxDistance(); }
 
 float CascadeShadows::getMaxShadowDistance() const { return d->getMaxShadowDistance(); }
+
+float CascadeShadows::getCasterReach() const { return d->getCasterReach(); }
 
 float CascadeShadows::getCascadeDistance(int cascade_no) const { return d->getCascadeDistance(cascade_no); }
 

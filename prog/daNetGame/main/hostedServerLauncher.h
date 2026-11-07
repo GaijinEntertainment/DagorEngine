@@ -56,9 +56,9 @@ bool poll_hosted_ready_watchdog();
 void hosted_internal_server_management_update();
 
 // HIS file-log mirror (daNetGame default path, no Eden).
-// Host stores a forwarder into the DLL; DagorWinMain arms an in-DLL on_log
-// above visuallog that chains prev then calls the host forwarder (default
-// signature below).
+// Host stores a forwarder into the DLL; DagorWinMain arms an in-DLL log
+// handler that runs last and calls the host forwarder (default signature
+// below).
 //
 // Eden override: set_hosted_log_mirror(eden_fn,
 // /*dll_side_override_expect_later*/ true). Launcher passes that flag into the
@@ -88,9 +88,7 @@ void *hosted_server_get_log_forwarder();
 // Log-side stamp (decimal of HostedServerUid, or host argv override).
 void hosted_server_store_instance_uid(const char *uid);
 #endif
-void hosted_server_arm_log_mirror_callback(); // HIS DLL: after
-                                              // visual_err_log_setup (default
-                                              // path only)
+void hosted_server_arm_log_mirror_callback(); // HIS DLL: default path only
 
 // Hosted-ready latch: each path signals a flag; ready when (got & required) ==
 // required. Default required = Entities (DNG). Callers set the mask with
@@ -116,7 +114,7 @@ inline void format_hosted_dedic_log_line(String &out, const char *message)
   out.printf(0, "%s %s", HOSTED_DEDIC_LOG_TAG, message ? message : "");
 }
 
-// Format a debug_log_callback payload. anum >= 0 is DagorSafeArg[]; anum < 0 is
+// Format a LogMessage payload. anum >= 0 is DagorSafeArg[]; anum < 0 is
 // va_list* (clogmessage / matching g_message).
 inline void format_hosted_log_message(String &out, const char *fmt, const void *arg, int anum)
 {

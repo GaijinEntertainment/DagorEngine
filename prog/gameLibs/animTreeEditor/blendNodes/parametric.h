@@ -15,7 +15,6 @@ class DataBlock;
 
 void parametric_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx,
   bool default_foreign);
-void parametric_set_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
 void parametric_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, bool default_foreign);
 void parametric_init_block_settings(PropPanel::ContainerPropertyControl *prop_panel, const DataBlock *settings,
   dag::ConstSpan<AnimCtrlData> controllers);

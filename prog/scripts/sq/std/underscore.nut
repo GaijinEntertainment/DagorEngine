@@ -262,7 +262,7 @@ function isEqualSimple(list1, list2, compareFunc=null): bool {
 //create from one-dimentional array two-dimentional array by slice it to rows with fixed amount of columns
 function arrayByRows(arr, columns): array {
   let res = []
-  for(local i = 0; i < arr.len(); i += columns)
+  for(local i = 0; columns > 0 && i < arr.len(); i += columns)
     res.append(arr.slice(i, i + columns))
   return res
 }

@@ -1468,7 +1468,7 @@ TEST_CASE("color and depth resolve targets can be untracked", "[irGraphBuilder][
     f.depData.resourceLifetimes[resId].introducedBy = resolver;
   }
 
-  auto &pass = node.renderingRequirements.emplace();
+  auto &pass = node.renderingRequirements.emplace<dafg::VirtualPassRequirements>();
   pass.colorAttachments.push_back({msaaColor});
   pass.depthAttachment = {msaaDepth};
   pass.depthReadOnly = false;
@@ -1797,4 +1797,46 @@ TEST_CASE("a resource named as debug is flagged in the IR and stays equal on a r
   f.rebuildWithDeclarationsChanged({}, {plain});
   REQUIRE(f.lastMapping.mapRes(plain, dafg::intermediate::MultiplexingIndex{0}) == plainIdx);
   CHECK_FALSE(f.graph.resources[plainIdx].debugRelated);
+}
+
+TEST_CASE("a no-effect node state may keep a pruned resource", "[irGraphBuilder][incremental]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  const auto otherProducer = f.addNodeCreatingResource("X", "other");
+  f.addNodeCreatingResource("S", "sampler", dafg::SideEffects::None);
+  f.addNodeCreatingResource("A", "texture");
+  const auto renamer = f.addNodeRenamingResource("C", "texture", "texture_2", dafg::SideEffects::None);
+  f.addNodeReadingResource("D", "texture_2");
+  const auto samplerReader = f.addNodeReadingResource("E", "sampler");
+
+  dafg::ResourceRequest req;
+  req.usage = {dafg::Usage::SHADER_RESOURCE, dafg::Access::READ_ONLY, dafg::Stage::PS};
+  const auto sampler = f.resourceId("sampler");
+  const auto other = f.resourceId("other");
+  f.registry.nodes[renamer].readResources.insert(sampler);
+  f.registry.nodes[renamer].resourceRequests[sampler] = req;
+  f.depData.resourceLifetimes[sampler].readers.push_back(renamer);
+  dafg::Binding binding;
+  binding.type = dafg::BindingType::ShaderVar;
+  binding.resource = sampler;
+  f.registry.nodes[renamer].bindings[7] = binding;
+
+  f.finalize();
+  f.validityInfo.nodeValid.set(otherProducer, false);
+  f.build();
+
+  const auto samplerIdx = f.lastMapping.mapRes(sampler, dafg::intermediate::MultiplexingIndex{0});
+  f.rebuildWithNodesRemoved({samplerReader}, {sampler});
+  REQUIRE_FALSE(f.graph.resources.isMapped(samplerIdx));
+  f.rebuildWithNodesAdded({otherProducer}, {other});
+  f.rebuildWithNodesAdded({samplerReader}, {sampler});
+
+  const auto renamerIdx = f.lastMapping.mapNode(renamer, dafg::intermediate::MultiplexingIndex{0});
+  const auto &bindings = f.graph.nodeStates[renamerIdx].bindings;
+  const auto samplerBinding = bindings.find(7);
+  REQUIRE(samplerBinding != bindings.end());
+  REQUIRE(samplerBinding->second.resource.has_value());
+  CHECK(*samplerBinding->second.resource == f.lastMapping.mapRes(sampler, dafg::intermediate::MultiplexingIndex{0}));
 }

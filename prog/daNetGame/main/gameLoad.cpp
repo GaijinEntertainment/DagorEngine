@@ -31,11 +31,10 @@
 #include "net/userid.h"
 #include "render/renderer.h"
 #include "render/hdrRender.h"
+#include "render/fx/fx.h"
 #include "sound/dngSound.h"
-#include "ui/userUi.h"
+#include <soundSystem/occlusionGPU.h>
 #include "ui/uiShared.h"
-#include "ui/uiRender.h"
-#include <daRg/dag_guiScene.h>
 #include <math/random/dag_random.h>
 
 #include <gameRes/dag_gameResources.h>
@@ -47,6 +46,7 @@
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_delayedAction.h>
@@ -156,7 +156,8 @@ static void mem_collect_threads(bool loading_job_only = false)
 
 extern void init_component_replication_filters();
 
-extern void dng_load_localization();
+extern const char *const EMPTY_LEVEL_NAME;
+extern const char *const DEFAULT_WR_LEVEL_NAME;
 
 void add_search_path(const char *path_name)
 {
@@ -239,8 +240,10 @@ void apply_scene_level(eastl::string &&name, eastl::string &&lblk_path)
   current_game.levelBlkPath = eastl::move(lblk_path);
 
   // Before loading common game scenes which might request game resources which might interfere with this settings setup
+  const char *levelPath = current_game.levelBlkPath.c_str();
   DataBlock levelBlk;
-  if (!current_game.levelBlkPath.empty() && dblk::load(levelBlk, current_game.levelBlkPath.c_str(), dblk::ReadFlag::ROBUST_IN_REL))
+  if (*levelPath && strcmp(levelPath, EMPTY_LEVEL_NAME) != 0 && strcmp(levelPath, DEFAULT_WR_LEVEL_NAME) != 0 &&
+      dblk::load(levelBlk, levelPath, dblk::ReadFlag::ROBUST_IN_REL))
     prepare_united_vdata_setup(&levelBlk);
 
   load_common_game_client_scenes();
@@ -272,8 +275,10 @@ void setup_base_resources(const GamePackage &game_info, dag::ConstSpan<VromLoadI
     {
       TIME_PROFILE(load_res_package);
       load_res_package(addon.c_str());
-      // process inputs to avoid application not responding status (we load on main thread in blocking fashion)
-      ::dagor_idle_cycle();
+      // process inputs to avoid application not responding status when run on main thread.
+      // can be invoked from InitialLoadingThread where we don't need to pump messages.
+      if (is_main_thread())
+        ::dagor_idle_cycle();
     }
     if (app_profile::get().devMode)
       for (const eastl::string &rawAddon : game_info.rawAddons) // we use this for CDK only, rework to some commandline or options
@@ -371,9 +376,9 @@ bool parse_addons(GamePackage &gameInfo, const DataBlock &addons_blk, bool useAd
 
     if (dd_file_exists(vrom_fn) && (!useAddonVromSrc || src == nullptr))
     {
-      bool vpack = addon.getBool("mountAsPack", false);
-      debug("[%s] use addon vroms %s", vpack ? "VPACK" : "VROM", vrom_fn);
-      gameInfo.addonVroms.push_back({path.str(), vrom_fn.str(), addon.getStr("vrom_strip_prefixes", ""), vpack});
+      bool vpack = addon.getBool("mountAsPack", false), keep = addon.getBool("keepFileOpen", false);
+      debug("[%s%s] use addon vroms %s", vpack ? "VPACK" : "VROM", keep ? " KEEP_FILE_OPEN" : "", vrom_fn);
+      gameInfo.addonVroms.push_back({path.str(), vrom_fn.str(), addon.getStr("vrom_strip_prefixes", ""), vpack, keep});
     }
     else if (useAddonVromSrc && src != nullptr)
     {
@@ -425,7 +430,7 @@ void load_package_files(const GamePackage &game_info, bool load_game_res)
   extraVroms.reserve((int)game_info.addonVroms.size() + 1);
   for (const GamePackage::VromInfo &vromInfo : game_info.addonVroms)
     extraVroms.push_back(VromLoadInfo{vromInfo.vromFile.c_str(), vromInfo.mount.c_str(), vromInfo.stripPrefixes.c_str(),
-      vromInfo.mountAsPack, true, vromInfo.mountAsPack ? ReqVromSign::No : ReqVromSign::Yes});
+      vromInfo.mountAsPack, true, vromInfo.mountAsPack ? ReqVromSign::No : ReqVromSign::Yes, vromInfo.keepFileOpen});
 
   for (const GamePackage::VromInfo &vrom : game_info.ugmVroms)
     extraVroms.push_back(
@@ -581,7 +586,6 @@ void unload_current_game()
   unload_in_progress = true;
   g_entity_mgr->broadcastEventImmediate(EventOnGameUnloadStart());
   hdrrender::shutdown();
-  user_ui::term();
   destroy_glob_input();
   reset_all_cameras();
   if (ecs::g_scenes)
@@ -598,6 +602,9 @@ void unload_current_game()
   flush_delayed_actions();
 
   net_on_about_to_clear_all_entities(*g_entity_mgr);
+
+  // before the clear, which destroys the collision and rendinsts that the propagation jobs still trace
+  sndsys::occlusion_gpu::level_unloaded();
 
   {
     debug("clear g_entity_mgr");
@@ -707,7 +714,27 @@ static void load_scene(const char *name, const eastl::vector<eastl::string> &imp
   if (app_profile::get().haveGraphicsWindow && (is_server() || !app_profile::get().replay.playFile.empty()))
     load_common_game_client_scenes(&load_game_scene); // Otherwise it will be loaded on connect to server (see `apply_scene_level`)
   if (!is_server() || !app_profile::get().replay.playFile.empty())
+  {
+    // Eden manifest createSceneOnClient via project settings override; UserNet only
+    // (MainNet/replay stay preload-only -- ServerInfo / ECS replication).
+    if (dgs_get_settings()->getBool("createSceneOnClient", false) && !is_main_thread_network() &&
+        app_profile::get().replay.playFile.empty())
+    {
+      if (sceneLoaded)
+      {
+        if (app_profile::get().haveGraphicsWindow)
+          load_common_game_client_scenes(&load_game_scene);
+        da_editor4_setup_scene(df_get_real_name(name));
+        debug("scene selected <%s> (client)", name);
+        ecs::SceneManager::CounterGuard cntg;
+        load_import_scenes(imports);
+        load_game_scene(sceneBlk, name, sceneLoaded, /*import_depth*/ 0, ecs::Scene::IMPORT);
+      }
+      else if (*name)
+        logerr("Failed to load scene from '%s' on client", name);
+    }
     return;
+  }
 
   da_editor4_setup_scene(df_get_real_name(name));
   debug("scene selected <%s>", name);
@@ -1001,7 +1028,8 @@ static void load_scene_impl(const eastl::string_view &scene_name,
   // ui init can be long, process inputs to avoid application not responding status
   ::dagor_idle_cycle();
   uishared::init();
-  user_ui::init();
+  if (uishared::is_ui_available_in_build())
+    g_entity_mgr->tick(); // create/destroy delayed entities
   ::dagor_idle_cycle();
 
   int width, height;
@@ -1024,6 +1052,8 @@ static void prepare_to_switch_scene()
   start_animated_splash_screen_in_thread();
   if (!d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH))
     animated_splash_screen_allow_watchdog_kick(false);
+  // tick() and unload can create/destroy fx
+  acesfx::wait_fx_managers_update_and_allow_accum_cmds();
   g_entity_mgr->tick(); // create/destroy delayed entities
   unload_current_game();
   animated_splash_screen_allow_watchdog_kick(true);
@@ -1255,10 +1285,6 @@ static void switch_scene_and_apply_update(eastl::string_view scene)
     {
       statsd::counter("gameload.reload_scripts", 1, {"reload", "das"});
 
-      // in-flight daRg das jobs reference shared modules deleted by the unload below
-      for (darg::IGuiScene *scn : uirender::get_all_scenes())
-        scn->waitAllDasJobsDone();
-
       gamescripts::unload_all_das_scripts_without_debug_agents();
       // game_init.das is very small and contains only events, load it synchronously before sq
       debug("Reload synchronously game_init.das.");
@@ -1343,8 +1369,8 @@ void connect_to_session(net::ConnectParams &&connect_params, UserGameModeContext
     {
       debug("connect to session (switch current scene), server_urls=[%s]",
         eastl::accumulate(connectParams.serverUrls.begin(), connectParams.serverUrls.end(), eastl::string{},
-          [](eastl::string &a, const eastl::string &s) {
-            a += !s.empty() ? s : "\"\"";
+          [](eastl::string &a, const net::SessionUrl &s) {
+            a += !s.url.empty() ? s.url : "\"\"";
             a += ',';
             return a;
           })

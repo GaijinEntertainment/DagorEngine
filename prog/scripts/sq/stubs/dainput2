@@ -47,6 +47,7 @@ return {
   set_main_gamepad_stick_dead_zone = @(_idx, _val) null
   set_joystick_stick_dead_zone = @(_idx, _val) null
   get_main_gamepad_stick_dead_zone = @(_idx) 0.1
+  suspend_stick_dead_zones = @(_suspend) null
   get_user_config_base_preset = @() "default"
   is_user_config_customized = @() true
   get_default_preset_prefix = @() "content/common/config/default"
@@ -56,6 +57,7 @@ return {
   set_analog_stick_action_smooth_value = @(_action, _aim_smooth_amount) null
   load_user_config = @(_blk) false
   save_user_config = @(_cfg, _save_all_bindings_if_any_changed) null
+  load_actions_binding = @(_blk, _column) null
   reset_user_config_to_preset = @(_name, _move = false) null
   is_action_internal = @(...) true
   get_action_name = @(_action) ""
@@ -75,7 +77,11 @@ return {
   send_action_event = @(_a) null
   enable_joystick_gyroscope = @(_e) null
   get_overall_button_clicks_count = @(_) 0
+  get_last_used_device_mask = @(_) 0
   set_digital_event_progress_monitor = @(_) null
+  ST_in_progress = 0
+  ST_finished = 1
+  ST_cancelled = 2
   enable_debug_traces = @(_1,_2) null
   SingleButtonId = class {}
   TYPEGRP__MASK = 0x3 << 14

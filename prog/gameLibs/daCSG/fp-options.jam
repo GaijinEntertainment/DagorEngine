@@ -1,0 +1,11 @@
+# both kernels need IEEE rounding, spec.md 11
+if $(Platform) in windows xboxOne scarlett { CPPopt += -fp:precise ; }
+if $(PlatformSpec) in gcc clang {
+  local xclang = - ;
+  if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }
+  if $(PlatformSpec) = clang { CPPopt += -Wno-overriding-option ; } # for -fno-trapping-math after -fno-unsafe-math-optimizations
+  if $(Platform) in macOS iOS ps4 ps5 nswitch linux { CPPopt += -Wno-overriding-t-option ; } # the same for older clang versions
+  CPPopt += $(xclang)fno-unsafe-math-optimizations $(xclang)fno-trapping-math $(xclang)ffp-contract=off $(xclang)fno-finite-math-only $(xclang)fsigned-zeros ;
+  if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }
+}
+CPPopt += -DVECMATH_NO_FMA ; # v_madd on NEON is explicit vfmaq that ignores ffp-contract=off

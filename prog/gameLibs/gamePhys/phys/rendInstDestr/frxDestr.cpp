@@ -27,6 +27,7 @@
 #include <gamePhys/phys/destructableObject.h>
 #include <rendInst/rendInstAccess.h>
 #include <rendInst/rendInstExtra.h>
+#include <rendInst/rendInstExtraAccess.h>
 
 #include "riDestrInternal.h"
 #include "riDestrProps.h"
@@ -37,7 +38,7 @@ namespace convar
 CONSOLE_BOOL_VAL("ridestr", ri_debug_fracture_slicing, false);
 }
 
-frx::ShatterImpactProfile rendinstdestr::make_shatter_impact_profile(const Point3 &impact_pos)
+static frx::ShatterImpactProfile make_shatter_impact_profile(const Point3 &impact_pos)
 {
   frx::ShatterImpactProfile impactProfile;
   impactProfile.pos = impact_pos;
@@ -50,30 +51,66 @@ frx::ShatterImpactProfile rendinstdestr::make_shatter_impact_profile(const Point
   return impactProfile;
 }
 
-bool rendinstdestr::frx_destroy_ri(frx::DestrContext &ctx, frx::DestrSystem &sys, const RenderableInstanceLodsResource *res,
-  const rendinst::RendInstBufferData &buffer, const FrxDestrProps &frx_destr, const frx::ShatterImpactProfile &impact, int &seed)
+void rendinstdestr::frx_prepare_destr_input(const rendinst::RendInstBufferData &buffer, const Point3 &impact_pos, FrxDestrInput &out)
 {
-  G_ASSERT_RETURN(
-    !res->getUsedLods().empty() && res->getUsedLods()[0].scene != nullptr && res->getUsedLods()[0].scene->getMesh() != nullptr, false);
-  const ShaderMesh *mesh = res->getUsedLods()[0].scene->getMesh()->getMesh()->getMesh();
+  const RiDestrProps *props = get_ri_destr_props(buffer.desc);
+  out.buffer = buffer;
+  out.frxProps = props ? props->frxDestr : nullptr;
+  out.impact = make_shatter_impact_profile(impact_pos);
+  out.meshes.clear();
+  const RenderableInstanceLodsResource *res = rendinst::getRIGenExtraRes(buffer.desc.pool);
+  G_ASSERT_RETURN(res, );
+  out.meshes.push_back({.res = res, .tm = TMatrix::IDENT, .seed = uint32_t(buffer.riExUserData[0])});
 
-  ctx.dbgDraw.withHeight = true;
-
+  if (!props)
+    return;
   TMatrix riTm;
   v_mat_43cu_from_mat44(riTm.array, buffer.tm);
-  frx::PerInstRenderData perInstData;
-  perInstData.basePosAndHash = v_perm_xyzd(v_ldu(&riTm.getcol(3).x), v_cast_vec4f(v_splatsi(buffer.riExUserData[0])));
+  const TMatrix riItm = inverse(riTm);
+  for_each_nearby_ri(props->nearbyGroups, {.frxInclude = 1}, buffer,
+    [&](rendinst::riex_handle_t handle, RiNearbyGroupsProps::Actions group_actions) {
+      mat44f tm44;
+      rendinst::getRIGenExtra44(handle, tm44);
+      TMatrix tm;
+      v_mat_43cu_from_mat44(tm.array, tm44);
+      out.meshes.push_back({.res = rendinst::getRIGenExtraRes(rendinst::handle_to_ri_type(handle)),
+        .tm = riItm * tm,
+        .seed = rendinst::get_riextra_instance_seed(handle),
+        .invertWinding = group_actions.frxInvert != 0});
+    });
+}
+
+bool rendinstdestr::frx_destroy_ri(frx::DestrContext &ctx, frx::DestrSystem &sys, const FrxDestrInput &input, int &seed)
+{
+  G_ASSERT_RETURN(input.frxProps, false);
+  const FrxDestrProps &frxProps = *input.frxProps;
+
+  TMatrix riTm;
+  v_mat_43cu_from_mat44(riTm.array, input.buffer.tm);
 
   frx::DestrMesh riMesh;
-  frx::ShaderGeomLoadRequest geomLoadReq{
-    .outMesh = &riMesh, .smvd = res->getSmvd()[0], .shaderMesh = mesh, .tm = TMatrix::IDENT, .instData = perInstData};
-  frx::add_destr_geometry(ctx, make_span(&geomLoadReq, 1));
+  dag::Vector<frx::ShaderGeomLoadRequest, framemem_allocator> geomLoadReqs;
+  for (const FrxDestrInput::Mesh &mesh : input.meshes)
+  {
+    const dag::ConstSpan<RenderableInstanceLodsResource::Lod> lods = mesh.res->getUsedLods();
+    G_ASSERT_CONTINUE(!lods.empty() && lods[0].scene != nullptr && lods[0].scene->getMesh() != nullptr);
+    const TMatrix worldTm = riTm * mesh.tm;
+    frx::PerInstRenderData instData;
+    instData.basePosAndHash = v_perm_xyzd(v_ldu(&worldTm.getcol(3).x), v_cast_vec4f(v_splatsi(mesh.seed)));
+    geomLoadReqs.push_back({.outMesh = &riMesh,
+      .smvd = mesh.res->getSmvd()[0],
+      .shaderMesh = lods[0].scene->getMesh()->getMesh()->getMesh(),
+      .tm = mesh.tm,
+      .instData = instData,
+      .invertWinding = mesh.invertWinding});
+  }
+  frx::add_destr_geometry(ctx, make_span(geomLoadReqs));
   riMesh.tm = riTm;
   if (riMesh.faces.empty())
     return false;
 
   int16_t interiorMatId = -1;
-  if (const RiDestrMaterial *interiorMat = frx_destr.interiorMat)
+  if (const RiDestrMaterial *interiorMat = frxProps.interiorMat)
     interiorMatId = frx::add_render_material(ctx, interiorMat->shMat,
       {.shElem = interiorMat->shElem, .stage = ShaderMesh::STG_opaque, .instData = {}});
 
@@ -88,7 +125,7 @@ bool rendinstdestr::frx_destroy_ri(frx::DestrContext &ctx, frx::DestrSystem &sys
     if (sys.pieces[0].faces.empty())
       return false;
   }
-  frx::shatter_into_pieces(ctx, sys, /* start piece */ 0, interiorMatId, impact, frx_destr.shatterProfile, seed);
+  frx::shatter_into_pieces(ctx, sys, /* start piece */ 0, interiorMatId, input.impact, frxProps.shatterProfile, seed);
   return true;
 }
 
@@ -101,12 +138,9 @@ struct AsyncFractureJob : cpujobs::IJob
   int seed = grnd();
 
   rendinst::riex_handle_t sentinelHandle = rendinst::RIEX_HANDLE_NULL;
-  const RenderableInstanceLodsResource *res = nullptr;
-  rendinst::RendInstBufferData buffer;
+  FrxDestrInput input;
   destructables::DestructableCreationParams destr;
 
-  const RiDestrProps *props = nullptr;
-  frx::ShatterImpactProfile shatterImpactProfile;
   Point3 impactImpulse = Point3::ZERO;
   PhysMat::MatID physMatId = PHYSMAT_DEFAULT;
 
@@ -123,8 +157,9 @@ struct AsyncFractureJob : cpujobs::IJob
 
     frx::DestrContext ctx;
     ctx.dbgDraw.drawCutEdgeGraph = convar::ri_debug_fracture_slicing;
+    ctx.dbgDraw.heightScale = 1.f;
     frx::DestrSystem sys;
-    if (!frx_destroy_ri(ctx, sys, res, buffer, *props->frxDestr, shatterImpactProfile, seed))
+    if (!frx_destroy_ri(ctx, sys, input, seed))
       return;
 
     if (interlocked_relaxed_load(isTermRequested))
@@ -147,8 +182,8 @@ struct AsyncFractureJob : cpujobs::IJob
         pbcd.materialId = PhysMat::getPhysBodyMaterial(physMatId);
         pbcd.autoInertia = true;
         pbcd.addToWorld = false;
-        pbcd.group = destructables::get_config().defaultFGroup;
-        pbcd.mask = destructables::get_config().defaultFMask;
+        pbcd.group = destructables::DEFAULT_PHYS_GROUP;
+        pbcd.mask = destructables::DEFAULT_PHYS_MASK;
         frx::mesh_prepare_convex_hull(ctx, piece, 0.1f, convexHull);
         if (!convexHull.empty())
         {
@@ -182,8 +217,8 @@ struct AsyncFractureJob : cpujobs::IJob
       return;
 
     TMatrix riTm;
-    v_mat_43cu_from_mat44(riTm.array, buffer.tm);
-    bbox3f lbb = rendinst::riex_get_lbb(buffer.desc.pool);
+    v_mat_43cu_from_mat44(riTm.array, input.buffer.tm);
+    bbox3f lbb = rendinst::riex_get_lbb(input.buffer.desc.pool);
     BBox3 riLocalBB;
     v_stu_bbox3(riLocalBB, lbb);
 
@@ -194,13 +229,12 @@ struct AsyncFractureJob : cpujobs::IJob
       physWorld->addBody(body, false);
     }
 
-    fill_destr_obj_params(destr, props->destrObj);
     gamephys::DestructableObject *destrPtr = nullptr;
     destructables::addDestructable(&destrPtr, eastl::move(destr), physWorld);
     if (destrPtr)
-      destrPtr->setupInitialPhysState(riTm, riLocalBB, shatterImpactProfile.pos, impactImpulse);
+      destrPtr->setupInitialPhysState(riTm, riLocalBB, input.impact.pos, impactImpulse);
 
-    queue_ri_collision_for_debris_if_enabled(buffer.tm, lbb);
+    queue_ri_collision_for_debris_if_enabled(input.buffer.tm, lbb);
   }
 
   ~AsyncFractureJob() override = default;
@@ -261,7 +295,7 @@ bool rendinstdestr::perform_procedural_destruction(const rendinst::RendInstBuffe
 
   const RiDestrProps *props = get_ri_destr_props(buffer.desc);
   const FrxDestrProps *frxDestr = props ? props->frxDestr : nullptr;
-  if (!frxDestr || !(frxDestr->flags & FrxDestrFlag::Shatter))
+  if (!frxDestr || !props || !(frxDestr->flags & FrxDestrFlag::Shatter))
     return false;
 
   {
@@ -271,13 +305,9 @@ bool rendinstdestr::perform_procedural_destruction(const rendinst::RendInstBuffe
     last_dbg_draw_time = get_sync_time();
   }
 
-  RenderableInstanceLodsResource *res = rendinst::getRIGenExtraRes(buffer.desc.pool);
-  G_ASSERT_RETURN(res, false);
   AsyncFractureJob *job = new AsyncFractureJob();
-  job->res = res;
-  job->buffer = buffer;
-  job->props = props;
-  job->shatterImpactProfile = make_shatter_impact_profile(impact_pos);
+  frx_prepare_destr_input(buffer, impact_pos, job->input);
+  job->destr.destrObjProps = props->destrObj;
   job->impactImpulse = impact_impulse;
   if (const auto physMatId = get_destructable_physmat_for_ri(buffer.desc); physMatId != PHYSMAT_INVALID)
     job->physMatId = physMatId;

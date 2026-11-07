@@ -73,6 +73,7 @@ class DecalsMatrices
     // return the matrix id, which is associated with the item id
     uint32_t matrixByItem(uint32_t id) const;
 
+    eastl::optional<uint32_t> peekReusableItem() const;
     // returns and resets an item, which is marked for reuse (associated with removedNode)
     eastl::optional<uint32_t> popReusableItem();
 
@@ -117,6 +118,7 @@ public:
   void clearDeletedMatrices();
   bool isMatrixRemoved(uint32_t matrix_id) const;
   uint32_t numRemovedMatrices() const;
+  eastl::optional<uint32_t> peekReusableItem() const { return itemMap.peekReusableItem(); }
   eastl::optional<uint32_t> popReusableItem() { return itemMap.popReusableItem(); }
   void resetItem(uint32_t item_id) { itemMap.resetItem(item_id); }
   int getMatrixItemCount(uint32_t matrix_id) const;

@@ -28,8 +28,8 @@ static const int update_stage = 0;
 BhvTrackMouse::BhvTrackMouse() : Behavior(update_stage, F_HANDLE_MOUSE) {}
 
 
-int BhvTrackMouse::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/,
-  int button_id, Point2 pos, int accum_res)
+int BhvTrackMouse::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int /*pointer_id*/, int button_id, Point2 pos, int accum_res)
 {
 #if _TARGET_XBOX
 

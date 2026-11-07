@@ -278,6 +278,9 @@ struct ScopedUvValidation
 bool can_combine_elems(const ShaderMeshData::RElem &left, const ShaderMeshData::RElem &right, bool allow_32_bit = false,
   int additional_verices_num = 0, int additional_faces_num = 0);
 
+// Byte offset in the packed stream 0 vertex, or -1 when the shader variant did not take the channel; out_type is set only when found.
+int find_vertex_channel_offset(const GlobalVertexDataSrc &vd, int usage, int usage_index, int *out_type = nullptr);
+
 void create_vertex_color_data(Mesh &m, int usage, int usage_index);
 
 void add_per_vertex_domain_uv(Mesh &m, int usage, int usage_index_0, int usage_index_1);

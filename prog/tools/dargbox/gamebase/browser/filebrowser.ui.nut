@@ -1,4 +1,4 @@
-from "frp"import set_subscriber_validation, warn_on_deprecated_methods
+from "frp"import set_subscriber_validation
 from "%darg/ui_imports.nut" import *
 from "math" import min
 import "samples_prog/_basic/components/textInput.nut" as textInput
@@ -13,7 +13,6 @@ let { listdir, startPath, startFile } = require("filetree.nut")
 let { is_in_vr } = require("dargbox.vr")
 
 set_subscriber_validation( true )
-warn_on_deprecated_methods( true )
 
 enum BM {
   ADDITIVE
@@ -282,7 +281,7 @@ function previewComp() {
         {rendObj =ROBJ_TEXT text=path color=Color(128,128,128)}
         {
           rendObj = ROBJ_TEXTAREA
-          textOverflowY = TOVERFLOW_LINE
+          textOverflow = TOVERFLOW_ELLIPSIS
           halign = ALIGN_LEFT
           text = $"we do not have function to load file to text: {path}"
           behavior = [Behaviors.TextArea, Behaviors.WheelScroll]
@@ -472,7 +471,7 @@ function search_results(){
         let cpath = curPath.get()
         let searchS = searchString.get() ?? ""
         let children = []
-        let files = searchS == "" ? [] : scan_folder({path=cpath, recursive=true, realfs=true, vromfs=false}).filter(@(v) v.contains(searchS)).sort(@(a,b) a<=>b)
+        let files = searchS == "" ? [] : scan_folder({path=cpath, recursive=true, realfs=true, vromfs=false}).filter(@(v) v.contains(searchS)).sort()
         foreach (file in files) {
           children.append(fs_node(file.split("/").top(), file, false, true))
         }

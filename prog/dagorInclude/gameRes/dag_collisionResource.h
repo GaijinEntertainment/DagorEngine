@@ -139,6 +139,8 @@ enum CollisionResourceFlags : uint32_t
   // test (same answer). The builder derives it for the export; a stream that carries it clear
   // derives it at load.
   COLLISION_RES_FLAG_NODES_COVER_ROOT_BOX = 1 << 8,
+  // RiExtraPool::isTree; set only by writeRaw extra_flags
+  COLLISION_RES_FLAG_RI_TREE = 1 << 9,
 };
 
 struct CollisionNode
@@ -908,6 +910,14 @@ public:
   using BoxTriVisitor = dag::FunctionRef<bool(vec3f v0, vec3f v1, vec3f v2, int phys_mat_id, int node_index) const>;
   bool visitTrianglesInBox(bbox3f_cref box, uint16_t behavior_filter, BoxTriVisitor visitor) const;
 
+  // Visits the triangles of one mesh node that come within local_pad (per axis) of the node-local ray from local_from along the
+  // unit local_dir, up to local_len: the node's BLAS boxes, widened by local_pad, are pruned by the ray. A triangle can be visited
+  // that does not come that close; the visitor runs the exact test. Verts are node-local with the source winding, tri_ref is the
+  // triangle's BLAS identity. Return true from the visitor to stop; the call answers whether it was stopped.
+  using NodeTriVisitor = dag::FunctionRef<bool(vec3f v0, vec3f v1, vec3f v2, tri_ref_t tri_ref) const>;
+  bool visitNodeTrianglesNearRay(const CollisionNode &node, vec3f local_from, vec3f local_dir, float local_len, vec3f local_pad,
+    const NodeTriVisitor &visitor) const;
+
   CollisionNode *getNode(uint32_t index);
   const CollisionNode *getNode(uint32_t index) const;
   int getNodeIndexByName(const char *name) const;
@@ -1609,6 +1619,10 @@ public:
       [&](int fi, uint32_t i0, uint32_t i1, uint32_t i2) { cb(fi, p.vert(i0), p.vert(i1), p.vert(i2)); });
   }
 
+  // Both vectors must come in empty.
+  void materializeNodeMesh(int node_id, dag::Vector<Point3_vec4, framemem_allocator> &verts,
+    dag::Vector<uint32_t, framemem_allocator> &indices) const;
+
 
   // Walks the node's OWN per-node BLAS chunk tree (single node: every leaf is this
   // node's). Emits cb(face_idx, i0, i1, i2) per sub-triangle in DFS order; local indices are
@@ -2191,7 +2205,7 @@ protected:
 
   bool geomNodeTreeBound = false; // initializeWithGeomNodeTree ran at least once
   // Mesh nodes a legacy tree trace sizes by the live wtm: scaled or sheared at any tree stamp, or remapped per node.
-  // constraint: the first mark publishes the words once, as stamps mark while other threads trace
+  // the first mark publishes the words once, as stamps mark while other threads trace
   mutable uint32_t *volatile liveBoundWords = nullptr;
   bool isLiveBoundNode(uint32_t node_index) const
   {

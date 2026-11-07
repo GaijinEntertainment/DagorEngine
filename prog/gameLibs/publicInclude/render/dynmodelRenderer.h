@@ -6,7 +6,6 @@
 
 #include <vecmath/dag_vecMathDecl.h>
 #include <3d/dag_textureIDHolder.h>
-#include <EASTL/functional.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <EASTL/vector_set.h>
@@ -250,6 +249,7 @@ void set_local_offset_hint(const Point3 &hint);
 
 void set_context_view_proj(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj,
   const TMatrix4 &prev_view = TMatrix4::IDENT, const TMatrix4 &prev_proj = TMatrix4::IDENT);
+void set_context_lod_dist_mul(ContextId context_id, float lod_dist_mul);
 void enable_separate_atest_pass(bool enable);
 
 ShaderElement *get_replaced_shader();
@@ -280,8 +280,8 @@ struct MaterialFilterScope
   ~MaterialFilterScope() { set_material_filters_by_name({}); }
 };
 
-ContextId create_context(const char *name);
-ContextId get_or_create_context(const char *name);
+ContextId create_context(const char *name, int ring_buffer_size_in_vec4 = 0);
+ContextId get_or_create_context(const char *name, int ring_buffer_size_in_vec4 = 0);
 ContextId find_context(const char *name);
 
 // NOTE: delete_context(ctx) requires is_user_context(ctx) == true
@@ -322,9 +322,10 @@ bool can_render(const DynamicRenderableSceneInstance *instance);
 Statistics &get_statistics();
 void reset_statistics();
 
-using InstanceIterator = void(ContextId, const DynamicRenderableSceneResource &, const DynamicRenderableSceneInstance &, bool,
-  const dynrend::AddedPerInstanceRenderData &, const Tab<bool> &, int, float, int, int, const dynrend::InitialNodes *, int, void *);
-void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, void *user_data);
+using InstanceIterator =
+  dag::FunctionRef<void(ContextId, const DynamicRenderableSceneResource &, const DynamicRenderableSceneInstance &, bool,
+    const dynrend::AddedPerInstanceRenderData &, const Tab<bool> &, int, float, int, int, const dynrend::InitialNodes *, int) const>;
+void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter);
 
 // Animchar batch processing: produces DipChunks into the context, supports both
 // standard and packed/multidraw draw paths based on material type.
@@ -342,7 +343,7 @@ void add_animchar(ContextId context_id, uint32_t start_stage,
   RenderPriority priority = RenderPriority::DEFAULT, const GlobalVariableStates *gvars_state = nullptr,
   TexStreamingContext texCtx = TexStreamingContext(0), eastl::vector<int, framemem_allocator> *output_offsets = nullptr);
 
-// Legacy overload: gets DynamicRenderableSceneResource from scene->getCurSceneResource()
+// Legacy overload: draws the current LOD of the scene, or the LOD for the context's LOD distance multiplier
 void add_animchar(ContextId context_id, uint32_t start_stage, uint32_t end_stage, const DynamicRenderableSceneInstance *scene,
   const animchar_additional_data::AnimcharAdditionalDataView additional_data,
   NeedPreviousMatrices need_previous_matrices = NeedPreviousMatrices::No, DynamicShaderOverrides shader_overrides = {},
@@ -359,10 +360,14 @@ bool context_has_data(ContextId context_id);
 D3DRESID get_context_buffer_id(ContextId context_id);
 int get_context_buffer_pos(ContextId context_id);
 
-// Merge all DipChunks and render data from src context into dst context.
-// Used for parallel job patterns where multiple contexts are filled concurrently
-// and then merged before prepare_render/render.  Clears src after merge.
+// Call it from the job that filled the context, so the merge below only merges sorted runs
+void presort_packed(ContextId context_id);
+
+// Merges src DipChunks and render data into dst, then clears src
 void merge_context(ContextId dst, ContextId src);
+
+// Same for several sources at once: dst grows once, and presorted runs are merged, not re-sorted
+void merge_multiple_contexts(ContextId dst, dag::ConstSpan<ContextId> srcs);
 
 using DipsIterator = dag::FunctionRef<void(const shaders::CombinedDynVariantState &, GlobalVertexData *data, ShaderElement *shader,
   uint32_t base_vertex, uint32_t offset_and_size, uint32_t offset_to_chunk) const>;

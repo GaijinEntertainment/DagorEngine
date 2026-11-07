@@ -89,6 +89,12 @@ SQInteger SQFuncState::GetConstant(const SQObjectPtr &cons, int max_const_no)
     return iv <= max_const_no ? iv : -1;
 }
 
+bool SQFuncState::IsNullConstant(SQInteger idx) const
+{
+    SQObjectPtr nullidx;
+    return _table(_literals)->Get(SQObjectPtr(), nullidx) && _integer(nullidx) == idx;
+}
+
 void SQFuncState::SetInstructionParams(SQInteger pos,SQInteger arg0,SQInteger arg1,SQInteger arg2,SQInteger arg3)
 {
     _instructions[pos]._arg0=(unsigned char)*((SQUnsignedInteger *)&arg0);
@@ -182,7 +188,8 @@ void SQFuncState::SetStackSize(SQInteger n)
                 _outers--;
             }
             lvi._end_op = GetCurrentPos();
-            _localvarinfos.push_back(lvi);
+            if (!(_vlocals_info.back().var_flags & VF_PARAM)) // the proto names params by _parameters
+                _localvarinfos.push_back(lvi);
         }
         _vlocals.pop_back();
         _vlocals_info.pop_back();
@@ -209,7 +216,6 @@ SQInteger SQFuncState::PushLocalVariable(const SQObject &name, const SQCompileti
     lvi._name=name;
     lvi._start_op=GetCurrentPos()+1;
     lvi._pos=_vlocals.size();
-    lvi._varFlags=ct_var_info.var_flags;
     _vlocals.push_back(lvi);
     _vlocals_info.push_back(ct_var_info);
     if(_vlocals.size()>((SQUnsignedInteger)_stacksize))_stacksize=_vlocals.size();
@@ -255,19 +261,32 @@ SQInteger SQFuncState::GetOuterVariable(const SQObject &name, SQCompiletimeVarIn
         if(pos == -1) {
             pos = _parent->GetOuterVariable(name, varInfo);
             if(pos != -1) {
-                _outervalues.push_back(SQOuterVar(SQObjectPtr(name), SQObjectPtr(SQInteger(pos)), otOUTER, varInfo.var_flags)); //local
+                _outervalues.push_back({SQObjectPtr(name), uint32_t(pos), otOUTER});
                 _outervalues_info.push_back(varInfo);
                 return _outervalues.size() - 1;
             }
         }
         else {
-            _parent->MarkLocalAsOuter(pos);
-            _outervalues.push_back(SQOuterVar(SQObjectPtr(name), SQObjectPtr(SQInteger(pos)), otLOCAL, varInfo.var_flags)); //local
+            bool bycopy = varInfo.hasFinalValue();
+            if (!bycopy)
+                _parent->MarkLocalAsOuter(pos);
+            _outervalues.push_back({SQObjectPtr(name), uint32_t(pos), bycopy ? otCOPY : otLOCAL});
             _outervalues_info.push_back(varInfo);
             return _outervalues.size() - 1;
         }
     }
     return -1;
+}
+
+bool SQFuncState::FindOuterVariable(const SQObject &name, SQCompiletimeVarInfo &varInfo)
+{
+    for(SQUnsignedInteger i = 0; i < _outervalues.size(); i++) {
+        if(_string(_outervalues[i]._name) == _string(name)) {
+            varInfo = _outervalues_info[i];
+            return true;
+        }
+    }
+    return _parent && (_parent->GetLocalVariable(name, varInfo) != -1 || _parent->FindOuterVariable(name, varInfo));
 }
 
 void SQFuncState::AddParameter(const SQObject &name, SQUnsignedInteger32 type_mask) // TODO: initializer node
@@ -318,7 +337,7 @@ void SQFuncState::AddInstruction(SQInstruction &i)
 
         SQInstruction &pi = _instructions[size-1];//previous instruction
         switch(i.op) {
-        case _OP_JZ:
+        case _OP_JZ: {
             if( pi.op == _OP_CMP && pi._arg1 < 0xFF) {
                 pi.op = _OP_JCMP;
                 pi._arg0 = (unsigned char)pi._arg1;
@@ -326,7 +345,21 @@ void SQFuncState::AddInstruction(SQInstruction &i)
                 pi._arg1 = i._arg1;
                 return;
             }
+            // x == null: ObjCmp with a null operand neither throws nor calls _cmp,
+            // and gives 0 only for null, so JCMPK on the EQUAL relation is exact
+            const bool isNullTest = (pi.op == _OP_EQ || pi.op == _OP_NE) &&
+                pi._arg3 != 0 && IsNullConstant(pi._arg1); // arg3 != 0: arg1 is a constant
+            if( isNullTest && pi._arg1 <= 0xFF && pi._arg0 == i._arg0 && !IsLocal(pi._arg0)) {
+                const uint8_t trueRels = pi.op == _OP_EQ ? CMP_REL_EQUAL : (CMP_REL_LESS | CMP_REL_GREATER);
+                const uint8_t jumpOnTrue = i._arg2 ? 8 : 0;
+                pi.op = _OP_JCMPK;
+                pi._arg0 = (unsigned char)pi._arg1; // the null constant
+                pi._arg1 = i._arg1;
+                pi._arg3 = trueRels | jumpOnTrue;
+                return;
+            }
             break;
+        }
         case _OP_SET:
             if(i._arg0 == i._arg3) {
                 i._arg0 = 0xFF;
@@ -502,9 +535,12 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             }
             break;
         case _OP_EQ:case _OP_NE:
-            if((pi.op == _OP_LOAD || pi.op == _OP_LOADINT || pi.op == _OP_LOADFLOAT || pi.op == _OP_LOADBOOL) && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0) ))
+            if((pi.op == _OP_LOAD || pi.op == _OP_LOADINT || pi.op == _OP_LOADFLOAT || pi.op == _OP_LOADBOOL ||
+                (pi.op == _OP_LOADNULLS && pi._arg1 == 1)) && pi._arg0 == i._arg1 && (!IsLocal(pi._arg0) ))
             {
-                if (pi.op != _OP_LOAD)
+                if (pi.op == _OP_LOADNULLS)
+                    pi._arg1 = GetConstant(SQObjectPtr());
+                else if (pi.op != _OP_LOAD)
                 {
                     pi._arg1 = pi.op == _OP_LOADINT ? GetNumericConstant((SQInteger)pi._arg1) : pi.op == _OP_LOADFLOAT ? GetNumericConstant(pi._farg1) : GetConstant(SQObjectPtr(bool(pi._arg1)));
                 }
@@ -534,21 +570,6 @@ SQObjectPtr SQFuncState::CreateString(const char *s,SQInteger len)
     return SQObjectPtr(SQString::Create(_sharedstate,s,len));
 }
 
-void SQFuncState::CheckForPurity()
-{
-    // Only set pure flag to true.
-    // Don't reset it to false, don't assume that non-pure operations make the function impure.
-    // Allow calls, arithmetics and other operations.
-    int count = _instructions.size();
-    for (int i = 0; i < count; i += sq_opcode_length(_instructions[i].op)) {
-        if (!sq_is_pure_op(_instructions[i].op)) {
-            return;
-        }
-    }
-
-    _purefunction = true;
-}
-
 SQFunctionProto *SQFuncState::BuildProto()
 {
     bool useCompressedLineInfos = true;
@@ -568,9 +589,14 @@ SQFunctionProto *SQFuncState::BuildProto()
     if (lastLine - firstLine > 127)
         useCompressedLineInfos = false;
 
-    SQFunctionProto *f=SQFunctionProto::Create(_ss,lang_features,_instructions.size(),
+    bool typedParams = false;
+    for(SQUnsignedInteger np = 0; np < _param_type_masks.size(); np++)
+        typedParams = typedParams || _param_type_masks[np] != SQFunctionProto::DefaultParamTypeMask(np);
+
+    SQFunctionProto *f=SQFunctionProto::Create(_ss,_instructions.size(),
         _nliterals,_parameters.size(),_functions.size(),_outervalues.size(),
-        _full_line_infos.size(),useCompressedLineInfos,_localvarinfos.size(),_defaultparams.size());
+        _full_line_infos.size(),useCompressedLineInfos,_localvarinfos.size(),_defaultparams.size(),
+        typedParams);
 
     SQObjectPtr refidx,key,val;
     SQInteger idx;
@@ -581,7 +607,14 @@ SQFunctionProto *SQFuncState::BuildProto()
     f->_purefunction = _purefunction;
     f->_nodiscard = _nodiscard;
     f->_isAsync = _isAsync;
-    f->_name = _name;
+    bool derivedName = _stringval(_name)[0] == '(';
+    if (derivedName) {
+        char buf[256];
+        SQFunctionProto::FormatDerivedName(buf, sizeof(buf), _stringval(_sourcename), firstLine);
+        derivedName = strcmp(buf, _stringval(_name)) == 0;
+    }
+    if (!derivedName)
+        f->_name = _name;
     f->_inside_hoisted_scope = _hoistLevel > 0;
     f->_result_type_mask = _result_type_mask;
 
@@ -591,12 +624,27 @@ SQFunctionProto *SQFuncState::BuildProto()
     }
 
     for(SQUnsignedInteger nf = 0; nf < _functions.size(); nf++) f->_functions[nf] = _functions[nf];
-    for(SQUnsignedInteger no = 0; no < _outervalues.size(); no++) f->_outervalues[no] = _outervalues[no];
-    for(SQUnsignedInteger nl = 0; nl < _localvarinfos.size(); nl++) f->_localvarinfos[nl] = _localvarinfos[nl];
+    for(SQUnsignedInteger no = 0; no < _outervalues.size(); no++) {
+        SQFuncOuterVar &ov = f->_outervalues[no];
+        ov._name = _string(_outervalues[no]._name);
+        __ObjAddRef(ov._name);
+        ov._src = _outervalues[no]._src;
+        ov._type = _outervalues[no]._type;
+    }
+    uint8_t *localSlots = f->GetLocalVarSlots();
+    for(SQUnsignedInteger nl = 0; nl < _localvarinfos.size(); nl++) {
+        SQFuncLocalVar &lv = f->_localvarinfos[nl];
+        lv._name = _string(_localvarinfos[nl]._name);
+        __ObjAddRef(lv._name);
+        lv._start_op = _localvarinfos[nl]._start_op;
+        lv._end_op = _localvarinfos[nl]._end_op;
+        localSlots[nl] = uint8_t(_localvarinfos[nl]._pos);
+    }
 
     for(SQUnsignedInteger np = 0; np < _parameters.size(); np++) {
         f->_parameters[np] = _parameters[np];
-        f->_param_type_masks[np] = _param_type_masks[np];
+        if (typedParams)
+            f->_param_type_masks[np] = _param_type_masks[np];
     }
 
     f->_lineinfos->_is_compressed = useCompressedLineInfos;

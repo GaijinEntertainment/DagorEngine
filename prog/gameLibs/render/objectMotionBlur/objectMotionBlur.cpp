@@ -47,6 +47,7 @@ struct Context
   ShaderVariableInfo vignetteStrengthVarId = ShaderVariableInfo("object_motion_blur_vignette_strength");
   ShaderVariableInfo useAllSamplesVarId = ShaderVariableInfo("object_motion_blur_use_all_samples");
   ShaderVariableInfo cancelCameraMotionVarId = ShaderVariableInfo("object_motion_blur_cancel_camera_motion");
+  ShaderVariableInfo flattenedVelTexVarId = ShaderVariableInfo("object_motion_blur_flattened_vel_tex");
 
   bool debugEnabled = true;
   int maxBlurPx = 32;
@@ -217,14 +218,18 @@ void apply(BaseTexture *source_target_ptr, BaseTexture *resultTex, float current
     resultTex->getinfo(resultTi);
   }
 
+  TextureInfo velocityTi = resultTi;
+  if (BaseTexture *velocityTex = ShaderGlobal::get_tex_ptr(g_ctx->flattenedVelTexVarId.get_var_id()))
+    velocityTex->getinfo(velocityTi);
+  const int tileCountX = (velocityTi.w + TILE_SIZE - 1) / TILE_SIZE;
+  const int tileCountY = (velocityTi.h + TILE_SIZE - 1) / TILE_SIZE;
+
   {
     TIME_D3D_PROFILE(objectmotionblur::tileMax);
-    g_ctx->tileMaxCs->dispatchThreads(resultTi.w, resultTi.h, 1);
+    g_ctx->tileMaxCs->dispatch(tileCountX, tileCountY, 1);
   }
   {
     TIME_D3D_PROFILE(objectmotionblur::neighborMax);
-    int tileCountX = ceilf((float)resultTi.w / TILE_SIZE);
-    int tileCountY = ceilf((float)resultTi.h / TILE_SIZE);
     g_ctx->neighborMaxCs->dispatch(tileCountX, tileCountY, 1);
   }
   {

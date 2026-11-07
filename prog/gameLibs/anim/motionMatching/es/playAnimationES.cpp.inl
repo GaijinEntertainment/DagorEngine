@@ -127,10 +127,10 @@ public:
   const char *getJobName(bool &) const override { return DAPROFILER_STRING("motion_matching_job"); }
   void doJob() override
   {
-    int processedMotionMatchingCount = 0;
+    int processedMotionMatchingCount = 0, searchesOverLimit = 0;
     ecs::EntityManager::ScopeSetMtConstrained constrainedMTMode(*g_entity_mgr);
     motion_matching_ecs_query(*g_entity_mgr,
-      [this, &processedMotionMatchingCount](MotionMatchingController &motion_matching__controller,
+      [this, &processedMotionMatchingCount, &searchesOverLimit](MotionMatchingController &motion_matching__controller,
         float &motion_matching__updateProgress, float &motion_matching__metricaTolerance, float &motion_matching__presetBlendTimeLeft,
         float motion_matching__blendTimeToAnimtree, float motion_matching__distanceFactor, FrameFeatures &motion_matching__goalFeature,
         int motion_matching__presetIdx, bool motion_matching__enabled, const Point3 &mm_trajectory__linearVelocity,
@@ -185,17 +185,13 @@ public:
           if (maxMotionMatchingPerFrame > 0 && performSearch &&
               interlocked_increment(processedMotionMatchingCount) > maxMotionMatchingPerFrame)
           {
-            performSearch = false;
+            // todo: we should prioritize animchars with finished animations. This way we maybe won't exceed this limit.
+            performSearch = animFinished;
             if (animFinished)
-            {
-              // todo: we should prioritize animchars with finished animations. This way we maybe won't exceed this limit.
-              logwarn("Motion Matching: Limit of searches per frame was exceeded (%d/%d)", processedMotionMatchingCount,
-                maxMotionMatchingPerFrame);
-              performSearch = true;
-            }
+              interlocked_increment(searchesOverLimit);
           }
 
-          if (!DISABLE_MOTION_MATCHING && performSearch)
+          if (performSearch)
           {
             motion_matching__updateProgress -= (int)motion_matching__updateProgress;
             TIME_PROFILE(motion_matching);
@@ -220,6 +216,9 @@ public:
         // Call update after MM search to finish transition faster
         motion_matching__controller.updateAnimationProgress(dt);
       });
+    if (searchesOverLimit > 0)
+      logwarn("Motion Matching: Limit of searches per frame was exceeded by %d (%d/%d)", searchesOverLimit,
+        processedMotionMatchingCount, maxMotionMatchingPerFrame);
   }
 } motion_matching_job;
 

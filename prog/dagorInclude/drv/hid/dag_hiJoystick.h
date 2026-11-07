@@ -7,7 +7,7 @@
 #include <drv/hid/dag_hiDecl.h>
 #include <drv/hid/dag_hiHidClassDrv.h>
 #include <drv/hid/dag_hiJoyData.h>
-#include <drv/hid/dag_hiPointingData.h>
+#include <generic/dag_span.h>
 #include <util/dag_globDef.h>
 
 class DataBlock;
@@ -121,12 +121,23 @@ public:
   virtual void setMicLed(JoystickMicLed /*mode*/) {}
   // adaptive trigger effects (DualSense); see dag_hiJoyTriggerEffect.h
   virtual void setTriggerEffect(const TriggerEffectParam & /*param*/) {}
+  virtual bool getTriggerEffectState(TriggerEffectStateInfo & /*out*/) const { return false; }
   // latest calibrated gyro and accelerometer sample; false when the device has none
   virtual bool getMotionState(JoystickMotionState & /*out*/) const { return false; }
-  // false when the device has no touchpad
-  virtual bool getTouchpadState(JoystickTouchpadState & /*out*/) const { return false; }
-  // main thread: touchpad gestures since the last call, oldest first (see dag_hiTouchpadGestures.h); false without a touchpad
-  virtual bool fetchTouchpadGestures(GestureCb /*cb*/) { return false; }
+  // off by default; see drv/CLAUDE.md
+  virtual void enableMotionHistory(bool /*enable*/) {}
+  static constexpr int MOTION_HISTORY_CAPACITY = 256;
+  // samples since last call; see drv/CLAUDE.md
+  virtual int fetchMotionSamples(dag::Span<JoystickMotionSample> /*out*/, uint32_t &dropped)
+  {
+    dropped = 0;
+    return 0;
+  }
+  static constexpr int TOUCHPAD_FRAME_CAPACITY = 32; // one frame per report: ~550/s Bluetooth
+  // with stg_pnt.touchPadTouches on: the touch pad frames since the last call, or the last frame again when no report came,
+  // oldest first, at most out.size(): older frames that do not fit are lost; -1 without a touch pad or when the pad is lost.
+  // Call it with global_cls_drv_update_cs locked.
+  virtual int fetchTouchpadFrames(dag::Span<JoystickTouchpadFrame> /*out*/) { return -1; }
   // returns device connection status
   virtual bool isConnected() = 0;
   virtual bool isRemoteController() const { return false; }
@@ -139,6 +150,8 @@ public:
 
   virtual void enableSensorsTiltCorrection(bool /*enable*/) { /* VOID */ }
   virtual void reportGyroSensorsAngDelta(bool /*report_ang_delta*/) { /* VOID */ }
+  // the gyro bias is measured anew once the pad rests a few seconds (JoystickMotionFilter::calibrate); a no-op without the filter
+  virtual void calibrateGyro() {}
 
 protected:
   bool isFxEnabled = true;
@@ -184,7 +197,9 @@ public:
   //! returns absolute dead zone for stick in device (optional for_joy may be specified to its private deadzone)
   virtual float getStickDeadZoneAbs(int /*stick_idx*/, bool /*main_gamepad*/, IGenJoystick * /*for_joy*/ = nullptr) const { return 0; }
 
-  //! enable/disable gyroscope in device (main_gamepad means XInput devices for PC/XboxOne, gamepad for PS4)
+  //! enable/disable gyroscope in device (main_gamepad means XInput devices for PC/XboxOne, gamepad for PS4;
+  //! on iOS main_dev means the phone and !main_dev the active gamepad, one of them works at a time; the two switches are
+  //! independent and both start off; with the gamepad switch on, an active gamepad without motion sensors gives the phone gyro)
   virtual void enableGyroscope(bool /*enable*/, bool /*main_dev*/) {}
 
   //! return vendor identifer of the current gamepad (return -1 for default), maybe usefull if a platform can use different gamepad

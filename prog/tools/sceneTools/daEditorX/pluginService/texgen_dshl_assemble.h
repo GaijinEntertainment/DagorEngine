@@ -57,3 +57,6 @@ struct TexgenDshlResult
 // nodes are reported via out_err (particle-field substitution is not yet wired).
 bool assemble_texgen_dshl(const DataBlock &main_graph_blk, const DataBlock &shader_sources, const TexgenDshlSkeleton &skeleton,
   TexgenDshlResult &out_result, String &out_err);
+
+// Hash of everything assemble_texgen_dshl reads, the key that gates reuse of its result.
+uint64_t texgen_dshl_input_hash(const DataBlock &main_graph_blk, const DataBlock &shader_sources, const TexgenDshlSkeleton &skeleton);

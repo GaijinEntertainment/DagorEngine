@@ -485,6 +485,7 @@ struct Link final: Object
     void UpdateEndpoints();
 
     ImCubicBezierPoints GetCurve() const;
+    float GetDistance(const ImVec2& point) const; // MODIFICATION BY GAIJIN
 
     virtual bool TestHit(const ImVec2& point, float extraThickness = 0.0f) const override final;
     virtual bool TestHit(const ImRect& rect, bool allowIntersect = true) const override final;

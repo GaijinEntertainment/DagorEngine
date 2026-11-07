@@ -40,13 +40,13 @@ typedef enum D3D12XBOX_PIX_CAPTURE_FLAGS
                                                     // useful if you want to capture only graphics commands and avoid capturing async
                                                     // compute commands. However, because the CPU replicates the effects of the async
                                                     // compute commands as memory updates, performance analysis in PIX might not
-                                                    // accurately reflect the title’s performance.
+                                                    // accurately reflect the title's performance.
 
   D3D12XBOX_PIX_CAPTURE_DMA_AS_CPU = 0x8, // Instead of capturing the DMA commands themselves, capture the effects of DMA work as
                                           // memory modifications made by the CPU. This can be useful if you want to capture only
                                           // graphics commands and avoid capturing DMA commands. However, because the CPU replicates
                                           // the effects of the Direct Memory Access (DMA) commands as memory updates, performance
-                                          // analysis in PIX might not accurately reflect the title’s performance.
+                                          // analysis in PIX might not accurately reflect the title's performance.
 
   D3D12XBOX_PIX_CAPTURE_ALL_MEMORY = 0x10, // Instead of capturing the memory used by the captured frame, capture all graphics memory
                                            // allocated by the title. This produces a large capture file. Specifying this flag might
@@ -61,55 +61,55 @@ typedef enum D3D12XBOX_PIX_CAPTURE_FLAGS
 
 
 // Example:
-// PIX_GPU_BEGIN_CAPTURE(D3D12XBOX_PIX_CAPTURE_API, L"D:\\PIXCaptureFileName.pix3");
+// GPU_BEGIN_CAPTURE(D3D12XBOX_PIX_CAPTURE_API, L"D:\\PIXCaptureFileName.pix3");
 // ...
-// PIX_GPU_END_CAPTURE()
+// GPU_END_CAPTURE()
 
 #include <drv/3d/dag_commands.h>
 #include <util/dag_preprocessor.h>
 #include <workCycle/dag_gameSettings.h>
 
-#define PIX_GPU_BEGIN_CAPTURE(flags, output_filename)                                                    \
-  do                                                                                                     \
-  {                                                                                                      \
-    dgctrl_need_screen_shot = true;                                                                      \
-    d3d::driver_command(Drv3dCommand::PIX_GPU_BEGIN_CAPTURE, reinterpret_cast<void *>(uintptr_t(flags)), \
-      const_cast<wchar_t *>(output_filename));                                                           \
+#define GPU_BEGIN_CAPTURE(flags, output_filename)                                                    \
+  do                                                                                                 \
+  {                                                                                                  \
+    dgctrl_need_screen_shot = true;                                                                  \
+    d3d::driver_command(Drv3dCommand::GPU_BEGIN_CAPTURE, reinterpret_cast<void *>(uintptr_t(flags)), \
+      const_cast<wchar_t *>(output_filename));                                                       \
   } while (0)
 
-#define PIX_GPU_END_CAPTURE() d3d::driver_command(Drv3dCommand::PIX_GPU_END_CAPTURE);
+#define GPU_END_CAPTURE() d3d::driver_command(Drv3dCommand::GPU_END_CAPTURE);
 
-#define PIX_GPU_CAPTURE_NEXT_FRAME(flags, output_filename)                                                     \
-  do                                                                                                           \
-  {                                                                                                            \
-    dgctrl_need_screen_shot = true;                                                                            \
-    d3d::driver_command(Drv3dCommand::PIX_GPU_CAPTURE_NEXT_FRAMES, reinterpret_cast<void *>(uintptr_t(flags)), \
-      const_cast<wchar_t *>(output_filename), reinterpret_cast<void *>(uintptr_t(1)));                         \
+#define GPU_CAPTURE_NEXT_FRAME(flags, output_filename)                                                     \
+  do                                                                                                       \
+  {                                                                                                        \
+    dgctrl_need_screen_shot = true;                                                                        \
+    d3d::driver_command(Drv3dCommand::GPU_CAPTURE_NEXT_FRAMES, reinterpret_cast<void *>(uintptr_t(flags)), \
+      const_cast<wchar_t *>(output_filename), reinterpret_cast<void *>(uintptr_t(1)));                     \
   } while (0)
 
-#define PIX_GPU_CAPTURE_NEXT_FRAMES(flags, output_filename, frame_count)                                       \
-  do                                                                                                           \
-  {                                                                                                            \
-    dgctrl_need_screen_shot = true;                                                                            \
-    d3d::driver_command(Drv3dCommand::PIX_GPU_CAPTURE_NEXT_FRAMES, reinterpret_cast<void *>(uintptr_t(flags)), \
-      const_cast<wchar_t *>(output_filename), reinterpret_cast<void *>(uintptr_t(frame_count)));               \
+#define GPU_CAPTURE_NEXT_FRAMES(flags, output_filename, frame_count)                                       \
+  do                                                                                                       \
+  {                                                                                                        \
+    dgctrl_need_screen_shot = true;                                                                        \
+    d3d::driver_command(Drv3dCommand::GPU_CAPTURE_NEXT_FRAMES, reinterpret_cast<void *>(uintptr_t(flags)), \
+      const_cast<wchar_t *>(output_filename), reinterpret_cast<void *>(uintptr_t(frame_count)));           \
   } while (0)
 
-#define PIX_GPU_CAPTURE_NCALLS_IMPL(N, CounterName, flags, output_filename) \
-  do                                                                        \
-  {                                                                         \
-    static uint(CounterName) = (N);                                         \
-    if ((CounterName) == (N))                                               \
-      PIX_GPU_BEGIN_CAPTURE(flags, output_filename);                        \
-    if (!(CounterName--))                                                   \
-      PIX_GPU_END_CAPTURE();                                                \
+#define GPU_CAPTURE_NCALLS_IMPL(N, CounterName, flags, output_filename) \
+  do                                                                    \
+  {                                                                     \
+    static uint(CounterName) = (N);                                     \
+    if ((CounterName) == (N))                                           \
+      GPU_BEGIN_CAPTURE(flags, output_filename);                        \
+    if (!(CounterName--))                                               \
+      GPU_END_CAPTURE();                                                \
   } while (0)
 
-#define PIX_GPU_CAPTURE_NCALLS(N, flags, output_filename) \
-  PIX_GPU_CAPTURE_NCALLS_IMPL(N, DAG_CONCAT(calls_counter, __LINE__), flags, output_filename)
+#define GPU_CAPTURE_NCALLS(N, flags, output_filename) \
+  GPU_CAPTURE_NCALLS_IMPL(N, DAG_CONCAT(calls_counter, __LINE__), flags, output_filename)
 
-#define PIX_GPU_CAPTURE_SCOPE(flags, output_filename, enabled) \
-  PixGpuCaptureScope DAG_CONCAT(captureScope, __LINE__)(flags, output_filename, enabled)
+#define GPU_CAPTURE_SCOPE(flags, output_filename, enabled) \
+  GpuCaptureScope DAG_CONCAT(captureScope, __LINE__)(flags, output_filename, enabled)
 
 struct CaptureAfterLongFrameParams
 {
@@ -119,20 +119,20 @@ struct CaptureAfterLongFrameParams
   int captureCountLimit = -1;
 };
 
-struct PixGpuCaptureScope
+struct GpuCaptureScope
 {
   bool enabled;
-  PixGpuCaptureScope(uintptr_t flags, const wchar_t *output_filename, bool enabled = true) : enabled(enabled)
+  GpuCaptureScope(uintptr_t flags, const wchar_t *output_filename, bool enabled = true) : enabled(enabled)
   {
     if (enabled)
     {
-      PIX_GPU_BEGIN_CAPTURE(flags, output_filename);
+      GPU_BEGIN_CAPTURE(flags, output_filename);
     }
   }
-  ~PixGpuCaptureScope()
+  ~GpuCaptureScope()
   {
     if (enabled)
-      PIX_GPU_END_CAPTURE();
+      GPU_END_CAPTURE();
   }
 };
 

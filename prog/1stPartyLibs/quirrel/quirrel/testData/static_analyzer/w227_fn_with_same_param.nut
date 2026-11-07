@@ -1,1 +1,2 @@
-function txt(txt) {} //-declared-never-used
+function txt() {} //-declared-never-used
+function other(txt) {} //-declared-never-used

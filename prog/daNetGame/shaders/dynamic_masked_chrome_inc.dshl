@@ -103,11 +103,9 @@ macro COMMON_MASKED_CHROME_PS()
       #define THERMAL_TWEAK_ALBEDO_OFFSET     (-0.5)
       #define THERMAL_TWEAK_SMOOTHNESS_OFFSET  (0.5)
       #define THERMAL_TWEAK_METALNESS_OFFSET  (-0.75)
+      #define THERMAL_TWEAK_SKINNED_ALBEDO_MUL (0.35)
     }
-    if (num_bones != no_bones)
-    {
-      hlsl(ps) { #define THERMAL_TWEAK_SKINNED_ALBEDO_MUL (0.35) }
-    }
+    (ps) { thermal_tweak_skinned@i1 = num_bones; }
     USE_GAMMA_CONVERSION()
     USE_PROJECTIVE_WOUNDS()
     USE_DYNAMIC_THERMAL_SIGNATURE()

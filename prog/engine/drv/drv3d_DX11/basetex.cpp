@@ -326,7 +326,7 @@ static bool createTexView(TextureView &tv, BaseTex *tex, uint32_t face, uint32_t
         D3D11_TEX2D_ARRAY_RTV d;
         d.MipSlice = mip_level;
         d.FirstArraySlice = face < d3d::RENDER_TO_WHOLE_ARRAY ? face : 0;
-        d.ArraySize = face < d3d::RENDER_TO_WHOLE_ARRAY ? 1 : tex->depth;
+        d.ArraySize = face < d3d::RENDER_TO_WHOLE_ARRAY ? 1 : (tex->cube_array ? 6 : 1) * tex->depth;
         desc.Texture2DArray = d;
         desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
         D3D_CONTRACT_ASSERT(mip_count == 1);
@@ -658,7 +658,7 @@ int BaseTex::texmiplevel(int minlev, int maxlev)
 
   maxMipLevel = (minlev >= 0) ? minlev : 0;
   minMipLevel = (maxlev >= 0) ? maxlev : topLevel;
-  modified = 0b1111;
+  modified = ALL_STAGES_MODIFIED;
   return 1;
 }
 
@@ -739,17 +739,6 @@ ID3D11ShaderResourceView *BaseTex::getResView(uint32_t face, uint32_t mip_level,
   return ptv->shaderResView;
 }
 
-ID3D11UnorderedAccessView *BaseTex::getExistingUaView(uint32_t face, uint32_t mip_level, bool as_uint)
-{
-  ResAutoLock resLock;
-  if (!tex.texRes)
-    return NULL;
-  TextureView tv;
-  TextureView::Key texture_view_key = TextureView::key(as_uint ? TextureView::UAV_UINT : TextureView::UAV, face, mip_level, 0);
-  TextureView *ptv = viewCache.find(texture_view_key);
-  return ptv ? ptv->uaView : nullptr;
-}
-
 ID3D11UnorderedAccessView *BaseTex::getUaView(uint32_t face, uint32_t mip_level, bool as_uint)
 {
   ResAutoLock resLock;
@@ -784,7 +773,7 @@ ID3D11UnorderedAccessView *BaseTex::getUaView(uint32_t face, uint32_t mip_level,
     {
       descView.Texture3D.MipSlice = mip_level;
       descView.Texture3D.FirstWSlice = 0;
-      descView.Texture3D.WSize = depth >> mip_level;
+      descView.Texture3D.WSize = max(depth >> mip_level, 1);
       descView.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
       D3D_CONTRACT_ASSERT(face == 0);
     }
@@ -792,7 +781,7 @@ ID3D11UnorderedAccessView *BaseTex::getUaView(uint32_t face, uint32_t mip_level,
     {
       descView.Texture2DArray.MipSlice = mip_level;
       descView.Texture2DArray.FirstArraySlice = face;
-      descView.Texture2DArray.ArraySize = depth - face;
+      descView.Texture2DArray.ArraySize = (cube_array ? 6 : 1) * depth - face;
       descView.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
     }
 
@@ -925,7 +914,7 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
     eastl::swap(mipLevels, other->mipLevels);
     eastl::swap(maxMipLevel, other->maxMipLevel);
     eastl::swap(minMipLevel, other->minMipLevel);
-    modified = 0b1111;
+    modified = ALL_STAGES_MODIFIED;
 
     // swap wasUsed flag
     wasUsed = other->wasUsed;
@@ -983,14 +972,15 @@ bool BaseTex::markTexelsUninitialized() const
   return true;
 }
 
-void BaseTex::removeUavViewsFromStates()
+void BaseTex::removeUavViewsFromStates(uint32_t first_mip, uint32_t last_mip)
 {
   if (!hasUavViews)
     return;
   for (auto &e : viewCache.table)
   {
     const uint32_t viewType = (e.key - 1) >> 24;
-    if (viewType == TextureView::UAV || viewType == TextureView::UAV_UINT)
+    const uint32_t mipLevel = ((e.key - 1) >> 4) & 0xF;
+    if ((viewType == TextureView::UAV || viewType == TextureView::UAV_UINT) && first_mip <= mipLevel && mipLevel <= last_mip)
       remove_view_from_uav(e.val.uaView);
   }
 }

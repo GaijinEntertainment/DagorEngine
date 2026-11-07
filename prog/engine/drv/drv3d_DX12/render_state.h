@@ -56,7 +56,7 @@ inline constexpr D3D12_VIEW_INSTANCE_LOCATION VIEW_INSTANCE_LOCATIONS[4] = {{0, 
 //
 // IDs handed out are identifiers of unique states, the system tries to be
 // smart to detect duplicates and hand out IDs of compatible states
-// (eg if depthTest is off, all depth test related state is ignored on compare).
+// (eg if depthTest and depth write is off, all depth test related state is ignored on compare).
 //
 // NOTE: for later xbox port, move all depth biases and depth clip to dynamic state
 // RSSetDepthBiasX overrides compiled pipeline values.
@@ -108,9 +108,9 @@ public:
   struct StaticState : StaticStateBits
   {
     // fourth 32 bits
-    float depthBias = 0.0;
+    float depthBias = 0.f;
     // fifth 32 bits
-    float depthBiasSloped = 0.0;
+    float depthBiasSloped = 0.f;
 
     struct BlendFactors
     {
@@ -213,7 +213,7 @@ public:
 
     // Unused blendParams entries are not normalized on creation, so only the
     // bytes selected by the blend mode take part in the comparison.
-    size_t usedBlendParamsSize() const
+    size_t usedBlendParamsSizeInBytes() const
     {
       if (enableIndependentBlend)
         return sizeof(blendParams);
@@ -224,7 +224,7 @@ public:
     {
       return static_cast<const StaticStateBits &>(*this) == static_cast<const StaticStateBits &>(other) &&
              depthBias == other.depthBias && depthBiasSloped == other.depthBiasSloped &&
-             0 == memcmp(blendParams, other.blendParams, usedBlendParamsSize());
+             0 == memcmp(blendParams, other.blendParams, usedBlendParamsSizeInBytes());
     }
 
     uint32_t distance(const StaticState &other) const
@@ -291,8 +291,6 @@ public:
       if (def.ztest && 0 == def.forcedSampleCount)
       {
         result.enableDepthTest = 1;
-        result.depthBias = def.zBias;
-        result.depthBiasSloped = def.slopeZBias;
         result.depthFunc = def.zFunc - D3D12_COMPARISON_FUNC_NEVER;
       }
       else
@@ -308,6 +306,13 @@ public:
       result.enableDepthClip = def.zClip;
       result.enableDepthWrite = def.zwrite;
       result.enableDepthBounds = def.depthBoundsEnable;
+
+      // compare to already set depth test enable to correctly handle case when the above assert may fire and we fix the wrong settings
+      if (result.enableDepthTest || def.zwrite)
+      {
+        result.depthBias = def.zBias;
+        result.depthBiasSloped = def.slopeZBias;
+      }
 
       if (def.stencil.func)
       {
@@ -712,9 +717,15 @@ private:
 
     // fromRenderState forces ztest off when forcedSampleCount is set, so
     // depth func and biases do not reach the static state in that case
-    if (l.ztest && 0 == l.forcedSampleCount)
+    const bool usesDepthCompareFunc = l.ztest && 0 == l.forcedSampleCount;
+
+    if (usesDepthCompareFunc)
     {
       MEMBER_COMPARE(zFunc);
+    }
+
+    if (usesDepthCompareFunc || l.zwrite)
+    {
       MEMBER_COMPARE(zBias);
       MEMBER_COMPARE(slopeZBias);
     }

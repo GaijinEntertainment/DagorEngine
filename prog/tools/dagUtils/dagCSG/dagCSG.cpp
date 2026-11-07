@@ -1,162 +1,234 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <generic/dag_smallTab.h>
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_localConv.h>
 
 #include <libTools/util/strUtil.h>
 #include <libTools/util/fileUtils.h>
+#include <libTools/meshCSG/meshCSG.h>
 
 #include <debug/dag_debug.h>
-#include <memory/dag_mem.h>
 #include <3d/dag_materialData.h>
-#include <3d/dag_texMgr.h>
 #include <math/dag_mesh.h>
-#include <libTools/util/strUtil.h>
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <libTools/dagFileRW/dagExporter.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <util/dag_bitArray.h>
 #if _TARGET_PC_WIN
 #include <startup/dag_mainCon.inc.cpp>
 #endif
 
 #include <stdio.h>
-#include "csg.h"
 
-#define PARALLELIZED_UNION  true
 #define MIN_ARGUMENTS_COUNT 3
 
 static void initDagor(const char *base_path);
-Tab<Node *> node_list(tmpmem_ptr());
 
 static void enum_nodes(Node *root, Tab<Node *> &node_list)
 {
-  if (root->obj && root->obj->isSubOf(OCID_MESHHOLDER))
+  if (root->obj && root->obj->isSubOf(OCID_MESHHOLDER) && ((MeshHolderObj *)root->obj)->mesh)
     node_list.push_back(root);
   for (int i = 0; i < root->child.size(); ++i)
     enum_nodes(root->child[i], node_list);
 }
 
-static Node *attach_scene(AScene &scn)
-{
-  scn.root->invalidate_wtm();
-  scn.root->calc_wtm();
-  Tab<Node *> node_list;
-  enum_nodes(scn.root, node_list);
-  if (!node_list.size())
-    return NULL;
-  Mesh &mesh1 = *((MeshHolderObj *)node_list[0]->obj)->mesh;
-  mesh1.transform(node_list[0]->wtm);
-  for (int i = 1; i < node_list.size(); ++i)
-  {
-    ((MeshHolderObj *)node_list[i]->obj)->mesh->transform(node_list[i]->wtm);
-    mesh1.attach(*((MeshHolderObj *)node_list[i]->obj)->mesh);
-  }
-  return node_list[0];
-}
+static Mesh &node_mesh(Node *n) { return *((MeshHolderObj *)n->obj)->mesh; }
 
-
-// could be even parallalized
-static void *recursive_union(BaseCSG *csg, void **at, int cnt)
+static void collect_nodes(Node *root, Tab<Node *> &nodes, Tab<mesh_csg::Input> &inputs)
 {
-  if (!cnt)
-    return 0;
-  if (cnt == 1)
-    return *at;
-  int lcnt = cnt / 2;
-  void *left = recursive_union(csg, at, lcnt);
-  void *right = recursive_union(csg, at + lcnt, cnt - lcnt);
-  void *opres = csg->op(BaseCSG::UNION, left, NULL, right, NULL);
-  // csg->delete_poly(left);  //no memory clearing, faster!
-  // csg->delete_poly(right);  //no memory clearing, faster!
-  return opres;
-}
-
-static void attache_nodes(Node *&root, bool remove_internal_faces)
-{
-  if (!root)
-    return;
-  enum_nodes(root, node_list);
   root->invalidate_wtm();
   root->calc_wtm();
-  if (!node_list.size())
-    return;
-  BaseCSG *csg = make_new_csg(1);
-  int64_t reft;
-  printf("converting\n");
-  reft = ::ref_time_ticks();
-  SmallTab<void *, TmpmemAlloc> poly_list;
-  clear_and_resize(poly_list, node_list.size());
-  SmallTab<int, TmpmemAlloc> poly_list_id;
-  clear_and_resize(poly_list_id, node_list.size());
-  int polycnt = 0;
-  BBox3 box;
-  for (int i = 0; i < node_list.size(); ++i)
-  {
-    poly_list[polycnt] = csg->create_poly(&node_list[i]->wtm, *((MeshHolderObj *)node_list[i]->obj)->mesh, i, true, box);
-    poly_list_id[polycnt] = i;
-    if (!poly_list[polycnt])
-      printf("node %s not closed\n", node_list[i]->name);
-    else
-      polycnt++;
-  }
-  printf("converted in %g mseconds\n", ::get_time_usec(reft) / 1000.0);
-  if (!polycnt)
-    return;
+  const uint32_t first = nodes.size();
+  enum_nodes(root, nodes);
+  for (Node *n : make_span_const(nodes).subspan(first))
+    inputs.push_back(mesh_csg::Input{&node_mesh(n), n->wtm, n->name.str()});
+}
 
-  reft = ::ref_time_ticks();
-  printf("union");
-  void *result;
-  if (PARALLELIZED_UNION)
+// kept: a refused node stays in the scene uncut, as -r leaves it, else the result leaves it out
+static bool report(const mesh_csg::Result &r, dag::ConstSpan<Node *> nodes, bool ok, bool kept)
+{
+  for (int i = 0; i < r.refused.size(); ++i)
+    if (!r.refused[i].empty())
+      printf("node %s %s: %s\n", nodes[i]->name.str(), kept ? "not cut" : "skipped", r.refused[i].c_str());
+  for (const eastl::string &w : r.warnings)
+    printf("warning: %s\n", w.c_str());
+  if (!ok)
+    printf("CSG failed: %s\n", r.error.c_str());
+  return ok;
+}
+
+// node-local mat ids, modulo as in Max; a node without materials, or a face of no input, takes an empty one, not another
+// node's; a refused node has no face in the result, so no material either; false: a merged id does not fit Face::mat
+static bool merge_materials(dag::ConstSpan<Node *> nodes, const mesh_csg::Result &r, Mesh &mesh, Node &out)
+{
+  MaterialDataList *list = new MaterialDataList;
+  Tab<int> base, count;
+  bool bare = false;
+  for (int k = 0; k < nodes.size(); ++k)
   {
-    result = recursive_union(csg, poly_list.data(), polycnt);
-  }
-  else
-  {
-    result = poly_list[0];
-    for (int i = 1; i < polycnt; ++i)
+    const Node *n = nodes[k];
+    const bool refused = !r.refused[k].empty();
+    base.push_back(list->list.size());
+    count.push_back(n->mat && !refused ? n->mat->list.size() : 0);
+    bare |= !count.back() && !refused;
+    // the exporter skips a null slot, which would shift every later slot under its faces' ids
+    for (int i = 0; i < count.back(); ++i)
     {
-      void *opres = csg->op(BaseCSG::UNION, result, NULL, poly_list[i], NULL);
-      // if (result != poly_list[0])
-      //   csg->delete_poly(result);
-      // csg->delete_poly(poly_list[i]);//no memory clearing, faster!
-      result = opres;
-      printf(".");
+      MaterialData *m = n->mat->getSubMat(i);
+      list->list.push_back(m ? m : new MaterialData);
     }
   }
-  printf("\nunion in %g mseconds\n", ::get_time_usec(reft) / 1000.0);
-  reft = ::ref_time_ticks();
+  for (const uint32_t in : r.faceInput)
+    bare |= in == mesh_csg::Result::NO_INPUT;
+  const int empty = list->list.size();
+  if (bare)
+    list->list.push_back(new MaterialData);
+  for (int f = 0; f < mesh.face.size(); ++f)
+  {
+    const uint32_t in = r.faceInput[f];
+    mesh.face[f].mat = in < nodes.size() && count[in] ? base[in] + mesh.face[f].mat % count[in] : empty;
+  }
+  delete out.mat;
+  out.mat = list;
+  if (list->subMatCount() <= 0x10000)
+    return true;
+  printf("the result needs %d materials, more than the 65536 a face can index: no .dag written\n", list->subMatCount());
+  return false;
+}
 
-  ///*
+// node becomes the scene's only node, the result's: every other node and its own mesh are deleted
+static void set_result(Node *&root, Node *node, Mesh *mesh)
+{
+  if (node->parent)
+    erase_item_by_value(node->parent->child, node);
+  if (root != node)
+    delete root;
+  root = node;
+  for (Node *child : node->child)
+    delete child;
+  node->child.clear();
+  ((MeshHolderObj *)node->obj)->setmesh(mesh);
+  node->name = "UNION";
+  node->tm = TMatrix::IDENT;
+  node->parent = NULL;
+  node->invalidate_wtm();
+  node->calc_wtm();
+}
+
+static bool union_nodes(Node *&root, bool remove_internal_faces)
+{
+  if (!root)
+    return true;
+  Tab<Node *> nodes;
+  Tab<mesh_csg::Input> inputs;
+  collect_nodes(root, nodes, inputs);
+  if (!nodes.size())
+    return true;
+  printf("union of %d nodes\n", nodes.size());
+  int64_t reft = ::ref_time_ticks();
+  mesh_csg::Result r;
+  const bool ok = mesh_csg::evaluate(inputs, mesh_csg::Op::Union, {}, r);
+  printf("union in %g mseconds\n", ::get_time_usec(reft) / 1000.0);
+  if (!report(r, nodes, ok, remove_internal_faces))
+    return false;
+
   if (remove_internal_faces)
   {
     int totalFaces = 0, totalNewfaces = 0;
-    for (int i = 0; i < polycnt; ++i)
+    for (int i = 0; i < nodes.size(); ++i)
     {
-      int node_id = poly_list_id[i];
-      Mesh *mesh = ((MeshHolderObj *)node_list[node_id]->obj)->mesh;
-      totalFaces += mesh->getFace().size();
-      csg->removeUnusedFaces(*mesh, result, node_id);
-      mesh->optimize_tverts(-1);
-      mesh->kill_unused_verts(-1);
-      totalNewfaces += mesh->getFace().size();
+      Mesh &mesh = node_mesh(nodes[i]);
+      if (r.refused[i].empty())
+      {
+        totalFaces += mesh.face.size();
+        mesh_csg::keep_surface_faces(r, i, mesh);
+        mesh.optimize_tverts(-1);
+        mesh.kill_unused_verts(-1);
+        totalNewfaces += mesh.face.size();
+      }
+      // no mesh object, as a reader loads such a node: the exporter reads an empty mesh's first vertex and face
+      if (!mesh.face.size() && r.refused[i].empty())
+        nodes[i]->setobj(nullptr);
     }
     printf("%d out of %d faces removed\n", totalFaces - totalNewfaces, totalFaces);
+    return true;
   }
-  else
+  if (!r.mesh.faceCount())
   {
-    Mesh *resultMesh = new Mesh;
-    csg->convert(result, *resultMesh);
-    // result->canonicalize();
-    ((MeshHolderObj *)node_list[0]->obj)->mesh = resultMesh;
-    node_list[0]->name = "UNION";
-    node_list[0]->tm = TMatrix::IDENT;
-    node_list[0]->child.clear();
-    root = node_list[0];
+    printf("the union has no faces: the scene is kept\n");
+    return true;
   }
-  root->invalidate_wtm();
-  root->calc_wtm();
-  printf("write back %g mseconds\n", ::get_time_usec(reft) / 1000.0);
+  Mesh *mesh = new Mesh;
+  mesh_csg::to_engine_mesh(r, *mesh);
+  const bool fits = merge_materials(nodes, r, *mesh, *nodes[0]);
+  set_result(root, nodes[0], mesh);
+  return fits;
+}
+
+static int two_scenes(mesh_csg::Op op, bool slice, const char *path_a, const char *path_b, const char *path_out)
+{
+  AScene scn1, scn2;
+  if (!::load_ascene(path_a, scn1, LASF_MATNAMES | LASF_NULLMATS, false))
+  {
+    printf("\nFATAL: error loading file \"%s\"", path_a);
+    return 1;
+  }
+  if (!::load_ascene(path_b, scn2, LASF_MATNAMES | LASF_NULLMATS, false))
+  {
+    printf("\nFATAL: error loading file \"%s\"", path_b);
+    return 1;
+  }
+  Tab<Node *> nodes;
+  Tab<mesh_csg::Input> a, b;
+  collect_nodes(scn1.root, nodes, a);
+  collect_nodes(scn2.root, nodes, b);
+  if (!a.size() || !b.size())
+  {
+    printf("\nFATAL: no meshes in file \"%s\"", a.size() ? path_b : path_a);
+    return 1;
+  }
+
+  int64_t reft = ::ref_time_ticks();
+  mesh_csg::Result r;
+  const bool ok = mesh_csg::evaluate(a, op, b, r);
+  printf("performed in %g mseconds\n", ::get_time_usec(reft) / 1000.0);
+  if (!report(r, nodes, ok, false))
+    return 1;
+  for (int i = 0; i < r.refused.size(); ++i)
+    if (!r.refused[i].empty())
+    {
+      printf("a refused node of A or B stops the run: no .dag written\n");
+      return 1;
+    }
+
+  Mesh *mesh = new Mesh;
+  mesh_csg::to_engine_mesh(r, *mesh);
+  // a slice keeps A's faces alone
+  const bool fits = merge_materials(slice ? make_span_const(nodes.data(), a.size()) : make_span_const(nodes), r, *mesh, *nodes[0]);
+  if (slice)
+  {
+    Bitarray ofA;
+    ofA.resize(mesh->face.size());
+    ofA.reset();
+    for (int f = 0; f < mesh->face.size(); ++f)
+      if (r.faceInput[f] < a.size())
+        ofA.set(f);
+    mesh->removeFacesFast(ofA);
+    mesh->kill_unused_verts(-1);
+  }
+  if (!mesh->face.size())
+  {
+    delete mesh;
+    printf("the result is empty: no .dag written\n");
+    return 1;
+  }
+  set_result(scn1.root, nodes[0], mesh);
+  if (!fits)
+    return 1;
+  printf(" exporting...\n");
+  DagExporter::exportGeometry(path_out, scn1.root);
+  printf(" OK\n");
+  return 0;
 }
 
 void show_usage()
@@ -174,29 +246,28 @@ void show_usage()
   printf("-|A_MINUS_B    \n");
   printf("INTERSECTION   \n");
   printf("DIFFERENCE     \n");
-  printf("SLICE_IN    \n");
-  printf("SLICE_OUT    \n");
+  printf("SLICE_IN       keeps A's faces of the intersection\n");
+  printf("SLICE_OUT      keeps A's faces of A minus B\n");
+  printf("each mesh node of A and B is repaired first; one that still fails is refused with its reason, and no .dag is written\n");
 }
 
-static BaseCSG::OpType parse_type(const char *tp)
+static bool parse_type(const char *tp, mesh_csg::Op &op, bool &slice)
 {
+  slice = stricmp(tp, "SLICE_IN") == 0 || stricmp(tp, "SLICE_OUT") == 0;
   if (stricmp(tp, "+") == 0 || stricmp(tp, "UNION") == 0)
-    return BaseCSG::UNION;
-  else if (stricmp(tp, "-") == 0 || stricmp(tp, "A_MINUS_B") == 0)
-    return BaseCSG::A_MINUS_B;
-  else if (stricmp(tp, "INTERSECTION") == 0)
-    return BaseCSG::INTERSECTION;
+    op = mesh_csg::Op::Union;
+  else if (stricmp(tp, "-") == 0 || stricmp(tp, "A_MINUS_B") == 0 || stricmp(tp, "SLICE_OUT") == 0)
+    op = mesh_csg::Op::Subtract;
+  else if (stricmp(tp, "INTERSECTION") == 0 || stricmp(tp, "SLICE_IN") == 0)
+    op = mesh_csg::Op::Intersect;
   else if (stricmp(tp, "DIFFERENCE") == 0)
-    return BaseCSG::SYMMETRIC_DIFFERENCE;
-  else if (stricmp(tp, "SLICE_IN") == 0)
-    return BaseCSG::SLICE_IN;
-  else if (stricmp(tp, "SLICE_OUT") == 0)
-    return BaseCSG::SLICE_OUT;
-  return BaseCSG::UNKNOWN;
+    op = mesh_csg::Op::Xor;
+  else
+    return false;
+  return true;
 }
 
 void DagorWinMainInit(bool /*debugmode*/) {}
-// int __cdecl main(int argc, char** argv)
 int DagorWinMain(bool /*debugmode*/)
 {
   static char *const *argv = dgs_argv;
@@ -243,126 +314,32 @@ int DagorWinMain(bool /*debugmode*/)
     printf("Dag CSG tool\n");
     printf("Copyright (c) Gaijin Games KFT, 2026\n");
   }
-  BaseCSG::OpType op_tp = parse_type(argv[2]);
-  if (argc > 4 && op_tp != BaseCSG::UNKNOWN && strstr(argv[3], ".dag") && strstr(argv[4], ".dag"))
+  mesh_csg::Op op;
+  bool slice;
+  if (argc > 4 && parse_type(argv[2], op, slice) && strstr(argv[3], ".dag") && strstr(argv[4], ".dag"))
   {
-    AScene scn1, scn2;
-    if (!::load_ascene(argv[1], scn1, LASF_MATNAMES | LASF_NULLMATS, false))
-    {
-      printf("\nFATAL: error loading file \"%s\"", argv[1]);
-      return 1;
-    }
-    if (!::load_ascene(argv[3], scn2, LASF_MATNAMES | LASF_NULLMATS, false))
-    {
-      printf("\nFATAL: error loading file \"%s\"", argv[3]);
-      return 1;
-    }
     printf("Perform: <%s> %s <%s>\n", argv[1], argv[2], argv[3]);
-    int64_t reft;
-    printf("converting\n");
-    reft = ::ref_time_ticks();
-    Node *A, *B;
-    if (!(A = attach_scene(scn1)))
-      printf("\nFATAL: no meshes in file \"%s\"", argv[1]);
-    if (!(B = attach_scene(scn2)))
-      printf("\nFATAL: no meshes in file \"%s\"", argv[3]);
-    BBox3 box;
-    int tcUsed = 0;
-    for (; tcUsed < NUMMESHTCH; ++tcUsed)
-      if (!((MeshHolderObj *)A->obj)->mesh->tface[tcUsed].size() && !((MeshHolderObj *)B->obj)->mesh->tface[tcUsed].size())
-        break;
-    BaseCSG *csg = make_new_csg(tcUsed);
-    void *poly_A =
-      csg->create_poly(NULL, *((MeshHolderObj *)A->obj)->mesh, 0, !(op_tp == BaseCSG::SLICE_IN || op_tp == BaseCSG::SLICE_OUT), box);
-    if (!poly_A)
-    {
-      printf("Can not convert %s to CSG poly", argv[1]);
-      return 1;
-    }
-    void *poly_B = csg->create_poly(NULL, *((MeshHolderObj *)B->obj)->mesh, 0, true, box);
-    if (!poly_B)
-    {
-      printf("Can not convert %s to CSG poly", argv[3]);
-      return 1;
-    }
-    G_ASSERT(poly_A);
-
-    printf("converted in %g mseconds\n", ::get_time_usec(reft) / 1000.0);
-    reft = ::ref_time_ticks();
-    Mesh *resultMesh = new Mesh;
-    if (op_tp == BaseCSG::SLICE_IN || op_tp == BaseCSG::SLICE_OUT)
-    {
-      void *in, *on_in;
-      void *out, *on_out;
-      bool ret = csg->slice_and_classify(poly_A, NULL, poly_B, NULL, in, on_in, out, on_out);
-      if (!ret)
-      {
-        printf("error\n");
-        return 1;
-      }
-      printf("performed %d in %g mseconds\n", ret, ::get_time_usec(reft) / 1000.0);
-      reft = ::ref_time_ticks();
-      Mesh onMesh;
-      if (op_tp == BaseCSG::SLICE_IN)
-      {
-        csg->convert(in, *resultMesh);
-        if (on_in)
-        {
-          csg->convert(on_in, onMesh);
-          resultMesh->attach(onMesh);
-        }
-      }
-      else
-      {
-        csg->convert(out, *resultMesh);
-        if (on_out)
-        {
-          csg->convert(on_out, onMesh);
-          resultMesh->attach(onMesh);
-        }
-      }
-      printf("saved in %g mseconds\n", ::get_time_usec(reft) / 1000.0);
-    }
-    else
-    {
-      void *result = csg->op(op_tp, poly_A, NULL, poly_B, NULL);
-      printf("performed in %g mseconds\n", ::get_time_usec(reft) / 1000.0);
-      reft = ::ref_time_ticks();
-      csg->convert(result, *resultMesh);
-      printf("saved in %g mseconds\n", ::get_time_usec(reft) / 1000.0);
-    }
-    // result->canonicalize();
-    ((MeshHolderObj *)node_list[0]->obj)->mesh = resultMesh;
-    scn1.root = node_list[0];
-    scn1.root->name = "UNION";
-    scn1.root->tm = TMatrix::IDENT;
-    scn1.root->child.clear();
-    printf(" exporting...\n");
-    DagExporter::exportGeometry(argv[4], scn1.root);
-    printf(" OK\n");
+    return two_scenes(op, slice, argv[1], argv[3], argv[4]);
   }
-  else
+
+  if (hasIN != 2)
   {
-    if (hasIN != 2)
-    {
-      printf("no input/output specified\n");
-      show_usage();
-      return 1;
-    }
-    AScene scn;
-    if (!::load_ascene(dagPath, scn, LASF_MATNAMES | LASF_NULLMATS, false))
-    {
-      printf("\nFATAL: error loading file \"%s\"", dagPath.data());
-      return 1;
-    }
-    printf(" attaching...\n");
-    attache_nodes(scn.root, remove_internal_faces);
-    printf(" OK\n");
-    printf(" exporting...\n");
-    DagExporter::exportGeometry(dagPathOUT, scn.root);
-    printf(" OK\n");
+    printf("no input/output specified\n");
+    show_usage();
+    return 1;
   }
-
+  AScene scn;
+  if (!::load_ascene(dagPath, scn, LASF_MATNAMES | LASF_NULLMATS, false))
+  {
+    printf("\nFATAL: error loading file \"%s\"", dagPath.data());
+    return 1;
+  }
+  printf(" union...\n");
+  if (!union_nodes(scn.root, remove_internal_faces))
+    return 1;
+  printf(" exporting...\n");
+  DagExporter::exportGeometry(dagPathOUT, scn.root);
+  printf(" OK\n");
   return 0;
 }
 

@@ -90,9 +90,10 @@ AutoPreset PresetDatabaseSampler::getAutoPreset() const
   };
 
   // We can't set autoPreset/targetFps to USE_REFRESH_RATE by default because it would break existing users' settings.
-  // Use laucnhCnt==0 to enable auto preset on first launch instead
+  // Use autoPreset/enableOnFirstLaunch for new users, or disable it so that users can choose the auto preset only through UI.
   const bool firstLaunch = ::dgs_get_settings()->getInt("launchCnt", 0) == 0;
-  int targetFps = firstLaunch ? USE_REFRESH_RATE : autoPreset->getInt("targetFps", DISABLED_AUTO_SELECTOR);
+  const bool enableOnFirstLaunch = autoPreset->getBool("enableOnFirstLaunch", true);
+  int targetFps = firstLaunch && enableOnFirstLaunch ? USE_REFRESH_RATE : autoPreset->getInt("targetFps", DISABLED_AUTO_SELECTOR);
 
   switch (targetFps)
   {

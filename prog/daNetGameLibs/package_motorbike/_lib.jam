@@ -1,0 +1,2 @@
+gamePulls += daNetGameLibs_package_motorbike_DAS_pull_AOT ;
+UseProgLibs += daNetGameLibs/package_motorbike ;

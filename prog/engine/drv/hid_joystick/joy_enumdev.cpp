@@ -1,8 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x400
-#endif
 #include "include_dinput.h"
 #include "joy_enumdev.h"
 #include "joy_classdrv.h"
@@ -11,7 +8,6 @@
 #include <drv/hid/dag_hiGlobals.h>
 #include <drv/hid/dag_hiJoyFF.h>
 #include <drv/hid/dag_hiXInputMappings.h>
-#include <EASTL/vector.h>
 #include <generic/dag_sort.h>
 #include <osApiWrappers/dag_stackHlp.h>
 #include <osApiWrappers/dag_progGlobals.h>
@@ -27,8 +23,6 @@ static BOOL CALLBACK add_joystick_inputs(const DIDEVICEOBJECTINSTANCE *pdidoi, V
 static BOOL CALLBACK set_axis_limits(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext);
 static BOOL CALLBACK detect_hid_usage(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext);
 
-template <typename F>
-static VidPidList populate_xinput_blacklist(F &&should_abort);
 static const DWORD COOP_LEVEL = DISCL_FOREGROUND | DISCL_EXCLUSIVE;
 
 
@@ -69,6 +63,7 @@ static Di8JoystickDevice *create_new_joystick(const Di8Device &d, bool remap_as_
   Di8JoystickDevice *j = new (inimem) Di8JoystickDevice(d.device, needsPoll, remap_as_x360, true /*quiet*/, guid);
 
   j->setDeviceName(d.instance.tszInstanceName);
+  j->setInstanceGuid((const unsigned *)&d.instance.guidInstance);
   // can't j->setId() yet, can only be done when we transfer data to the destination array
 
   DEL_RET_NULL_ON_FAIL(j, d.device->EnumObjects(detect_hid_usage, j, DIDFT_COLLECTION), HID_DI8_EnumObjects_usage);
@@ -83,6 +78,30 @@ static Di8JoystickDevice *create_new_joystick(const Di8Device &d, bool remap_as_
     j->applyRemapHats();
 
   return j;
+}
+
+
+// An XInput device has "IG_" in its HID path (ex. "\\?\hid#vid_045e&pid_02ff&ig_00#..."). Ask the device itself: a snapshot taken
+// before EnumDevices can miss a pad that is still being plugged in.
+static bool is_xinput_device(IDirectInputDevice8 *device)
+{
+  DIPROPGUIDANDPATH prop = {};
+  prop.diph.dwSize = sizeof(prop);
+  prop.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+  prop.diph.dwHow = DIPH_DEVICE;
+  if (FAILED(device->GetProperty(DIPROP_GUIDANDPATH, &prop.diph)))
+    return false;
+  CharUpperW(prop.wszPath);
+  return wcsstr(prop.wszPath, L"IG_") != nullptr;
+}
+
+
+static bool setup_device(Di8Device &d)
+{
+  RETURN_ON_FAIL(d.device->SetDataFormat(&c_dfDIJoystick2), HID_DI8_SetDataFormat, false);
+  RETURN_ON_FAIL(d.device->SetCooperativeLevel((HWND)win32_get_main_wnd(), COOP_LEVEL), HID_DI8_SetCooperativeLevel, false);
+  RETURN_ON_FAIL(d.device->GetCapabilities(&d.caps), HID_DI8_GetCapabilities, false);
+  return true;
 }
 
 
@@ -106,20 +125,27 @@ static BOOL CALLBACK add_di8_device(const DIDEVICEINSTANCE *inst, VOID *user_dat
     return DIENUM_STOP;
   }
 
-  const auto &blacklist = self->blacklist;
-  if (blacklist.end() != eastl::find(blacklist.begin(), blacklist.end(), inst->guidProduct.Data1) ||
-      (self->excludeSonyPads && sonypad::is_sony_pad(LOWORD(inst->guidProduct.Data1), HIWORD(inst->guidProduct.Data1))))
+  if (self->excludeDsPads && dspad::is_dspad(LOWORD(inst->guidProduct.Data1), HIWORD(inst->guidProduct.Data1)))
   {
-    debug("[HID][DI8][ENUM] skip device vid:pid=%04x:%04x: blacklisted or an excluded Sony pad", LOWORD(inst->guidProduct.Data1),
+    debug("[HID][DI8][ENUM] skip device vid:pid=%04x:%04x: an excluded dsPad", LOWORD(inst->guidProduct.Data1),
       HIWORD(inst->guidProduct.Data1));
     return DIENUM_CONTINUE;
   }
 
   Di8Device d{.instance = *inst};
   RET_CONT_ON_FAIL(dinput8->CreateDevice(d.instance.guidInstance, &d.device, nullptr), HID_DI8_CreateDevice);
-  RET_CONT_ON_FAIL(d.device->SetDataFormat(&c_dfDIJoystick2), HID_DI8_SetDataFormat);
-  RET_CONT_ON_FAIL(d.device->SetCooperativeLevel((HWND)win32_get_main_wnd(), COOP_LEVEL), HID_DI8_SetCooperativeLevel);
-  RET_CONT_ON_FAIL(d.device->GetCapabilities(&d.caps), HID_DI8_GetCapabilities);
+  if (self->excludeXinputDevices && is_xinput_device(d.device))
+  {
+    debug("[HID][DI8][ENUM] skip device vid:pid=%04x:%04x: an XInput device", LOWORD(inst->guidProduct.Data1),
+      HIWORD(inst->guidProduct.Data1));
+    d.device->Release();
+    return DIENUM_CONTINUE;
+  }
+  if (!setup_device(d))
+  {
+    d.device->Release();
+    return DIENUM_CONTINUE;
+  }
 
   d.joy = create_new_joystick(d, self->remapAsX360);
   if (d.joy)
@@ -142,15 +168,8 @@ void DeviceEnumerator::execute()
   TIME_PROFILE(HID_DI8_DeviceEnumerator_execute);
   debug("[HID][DI8][ENUM] starting");
   auto shouldAbort = [this]() -> bool { return this->isThreadTerminating(); };
-  VidPidList devicesToIgnore = excludeXinputDevices ? populate_xinput_blacklist(shouldAbort) : VidPidList{};
-  if (shouldAbort())
-  {
-    debug("[HID][DI8][ENUM] aborted before enumeration, will not report devices");
-    return;
-  }
 
   WinAutoLock l(cs);
-  this->blacklist = devicesToIgnore;
   releaseFound();
   this->startedAtMs = get_time_msec();
   dinput8->EnumDevices(DI8DEVCLASS_GAMECTRL, add_di8_device, this, DIEDFL_ATTACHEDONLY);
@@ -383,128 +402,4 @@ static BOOL CALLBACK set_axis_limits(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID 
   }
 
   return DIENUM_CONTINUE;
-}
-
-
-#include <wbemidl.h>
-#include <oleauto.h>
-#include <stdio.h>
-#pragma comment(lib, "Oleaut32.lib")
-
-//-----------------------------------------------------------------------------
-// Enum each PNP device using WMI and check each device ID to see if it contains
-// "IG_" (ex. "VID_045E&PID_028E&IG_00").  If it does, then it's an XInput device
-// Unfortunately this information can not be found by just using DirectInput
-//-----------------------------------------------------------------------------
-template <typename F>
-static VidPidList populate_xinput_blacklist(F &&should_abort)
-{
-  TIME_PROFILE(HID_DI8_populate_xinput_blacklist);
-  IWbemLocator *pIWbemLocator = NULL;
-  IEnumWbemClassObject *pEnumDevices = NULL;
-  IWbemClassObject *pDevices[20] = {0};
-  IWbemServices *pIWbemServices = NULL;
-  BSTR bstrNamespace = NULL;
-  BSTR bstrDeviceID = NULL;
-  BSTR bstrClassName = NULL;
-  DWORD uReturned = 0;
-  UINT iDevice = 0;
-  VARIANT var;
-  HRESULT hr;
-
-  // CoInit if needed
-  hr = CoInitialize(NULL);
-  bool bCleanupCOM = SUCCEEDED(hr);
-  VidPidList xinputVidPids;
-
-  // Create WMI
-  hr = CoCreateInstance(__uuidof(WbemLocator), NULL, CLSCTX_INPROC_SERVER, __uuidof(IWbemLocator), (LPVOID *)&pIWbemLocator);
-  if (FAILED(hr) || pIWbemLocator == NULL)
-    goto LCleanup;
-
-  bstrNamespace = SysAllocString(L"\\\\.\\root\\cimv2");
-  if (bstrNamespace == NULL)
-    goto LCleanup;
-  bstrClassName = SysAllocString(L"Win32_PNPEntity");
-  if (bstrClassName == NULL)
-    goto LCleanup;
-  bstrDeviceID = SysAllocString(L"DeviceID");
-  if (bstrDeviceID == NULL)
-    goto LCleanup;
-
-  // Connect to WMI
-  hr = pIWbemLocator->ConnectServer(bstrNamespace, NULL, NULL, 0, 0, NULL, NULL, &pIWbemServices);
-  if (FAILED(hr) || pIWbemServices == NULL)
-    goto LCleanup;
-
-  // Switch security level to IMPERSONATE.
-  CoSetProxyBlanket(pIWbemServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE,
-    NULL, EOAC_NONE);
-
-  hr = pIWbemServices->CreateInstanceEnum(bstrClassName, 0, NULL, &pEnumDevices);
-  if (FAILED(hr) || pEnumDevices == NULL)
-    goto LCleanup;
-
-  // Loop over all devices
-  while (!should_abort())
-  {
-    // Get 20 at a time
-    hr = pEnumDevices->Next(10000, 20, pDevices, &uReturned);
-    if (FAILED(hr))
-      goto LCleanup;
-    if (uReturned == 0)
-      break;
-
-    for (iDevice = 0; iDevice < uReturned && !should_abort(); iDevice++)
-    {
-      // For each device, get its device ID
-      hr = pDevices[iDevice]->Get(bstrDeviceID, 0L, &var, NULL, NULL);
-      if (SUCCEEDED(hr) && var.vt == VT_BSTR && var.bstrVal != NULL)
-      {
-        // Check if the device ID contains "IG_".  If it does, then it's an XInput device
-        // This information can not be found from DirectInput
-        if (wcsstr(var.bstrVal, L"IG_"))
-        {
-          // If it does, then get the VID/PID from var.bstrVal
-          DWORD dwPid = 0, dwVid = 0;
-          WCHAR *strVid = wcsstr(var.bstrVal, L"VID_");
-          if (strVid && swscanf(strVid, L"VID_%4X", &dwVid) != 1)
-            dwVid = 0;
-          WCHAR *strPid = wcsstr(var.bstrVal, L"PID_");
-          if (strPid && swscanf(strPid, L"PID_%4X", &dwPid) != 1)
-            dwPid = 0;
-
-          xinputVidPids.push_back(MAKELONG(dwVid, dwPid));
-        }
-      }
-      if (pDevices[iDevice])
-      {
-        pDevices[iDevice]->Release();
-        pDevices[iDevice] = NULL;
-      }
-    }
-  }
-
-LCleanup:
-  if (bstrNamespace)
-    SysFreeString(bstrNamespace);
-  if (bstrDeviceID)
-    SysFreeString(bstrDeviceID);
-  if (bstrClassName)
-    SysFreeString(bstrClassName);
-  for (iDevice = 0; iDevice < 20; iDevice++)
-    if (pDevices[iDevice])
-      pDevices[iDevice]->Release();
-  if (pEnumDevices)
-    pEnumDevices->Release();
-  if (pIWbemLocator)
-    pIWbemLocator->Release();
-  if (pIWbemServices)
-    pIWbemServices->Release();
-
-  if (bCleanupCOM)
-    CoUninitialize();
-
-  debug("[HID][DI8] found %d xinput devices to blacklist", xinputVidPids.size());
-  return xinputVidPids;
 }

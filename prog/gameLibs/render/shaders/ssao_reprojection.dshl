@@ -52,8 +52,6 @@ hlsl(stage) {
 }
 
 hlsl(stage) {
-  #include <fp16_aware_lerp.hlsl>
-
   void get_ssao_disocclusion_weight(float3 historyUVZ, inout SSAO_TYPE historySample, inout float newFrameWeight)
   {
 #if FIX_DISCONTINUTIES
@@ -121,8 +119,7 @@ hlsl(stage) {
     ##if ssao_has_green
       newFrameWeightSSAO.y = newFrameWeight;
     ##endif
-    ssao = fp16_aware_lerp(ssaoHistory, ssao, newFrameWeightSSAO, 1/0.03);
-    //ssao = lerp(ssao, historySample, historyWeight);
+    ssao = lerp(ssaoHistory, ssao, newFrameWeightSSAO);
   }
 
   float get_velocity_weight(float2 current_velocity, float2 history_velocity)
@@ -166,7 +163,7 @@ hlsl(stage) {
       ssaoHistory = clamp(ssaoHistory, min_ao, max_ao);
     }
 
-    ssao = fp16_aware_lerp(ssaoHistory, ssao, saturate(newFrameWeight + 0.04), 1/0.07);
+    ssao = lerp(ssaoHistory, ssao, saturate(newFrameWeight + 0.04));
   }
 }
 endmacro

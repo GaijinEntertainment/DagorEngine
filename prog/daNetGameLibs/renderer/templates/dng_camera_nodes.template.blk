@@ -3,6 +3,7 @@ dng_camera_nodes {
   _tags:t="render"
   dafg_camera_registrator__name:t="dng_camera_nodes"
   "dng_camera_nodes_registrator:tag"{}
+  system_owned_entity:b=yes
 }
 
 dng_ao_camera_nodes {
@@ -13,6 +14,7 @@ dng_ao_camera_nodes {
   dng_ao_camera_nodes__h:i=0
   "dng_ao_camera_nodes__creation_flags:u32"{ value:i=0 }
   dng_ao_camera_nodes__useGTAO:b=no
+  system_owned_entity:b=yes
 }
 
 dng_ssr_camera_nodes {
@@ -20,4 +22,14 @@ dng_ssr_camera_nodes {
   _tags:t="render"
   dafg_camera_registrator__name:t="screen_space_reflections"
   "dng_ssr_camera_nodes__config:SsrNodesConfig"{}
+  system_owned_entity:b=yes
+}
+
+camera_indoor {
+  _singleton:b=yes
+  _tags:t="render"
+  camera_indoor__pos:p3=0, -100000, 0 // unreachable: the first frame is a cut
+  camera_indoor__target:r=0
+  camera_indoor__value:r=0
+  system_owned_entity:b=yes
 }

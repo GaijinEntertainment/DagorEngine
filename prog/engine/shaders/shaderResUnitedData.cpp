@@ -3,6 +3,7 @@
 #include <shaders/dag_shaderResUnitedData.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_dynSceneRes.h>
+#include <shaders/dag_shaderMeshlets.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_perfTimer.h>
 #include <memory/dag_framemem.h>
@@ -18,6 +19,7 @@
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <gameRes/dag_resourceNameResolve.h>
+#include <debug/dag_streamingLog.h>
 #include <mutex>
 
 #if CAM_STUB
@@ -717,7 +719,7 @@ void ShaderResUnitedVdata<RES>::prepareVdataBaseOfs(dag::ConstSpan<Ptr<ShaderMat
 }
 
 template <class RES>
-bool ShaderResUnitedVdata<RES>::updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, unitedvdata::BufPool &buf,
+bool ShaderResUnitedVdata<RES>::updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, const RES *r, unitedvdata::BufPool &buf,
   Tab<uint8_t> &buf_stor, dag::ConstSpan<BufChunk> chunks, uint32_t layout_gen)
 {
   if (layout_gen != interlocked_acquire_load(buf.layoutGen))
@@ -752,9 +754,11 @@ bool ShaderResUnitedVdata<RES>::updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> 
   if (!chunks.size())
     for (int i = 0; i < buf.pool.size(); i++)
       bufUsed[i] = buf.pool[i].getUsed();
-  for (ShaderMatVdata *smvd : smvd_list)
-    if (smvd && smvd->getGlobVDataCount() > 0)
-      smvd->unpackBuffersTo(make_span(buf.sbuf), chunks.size() ? nullptr : bufUsed, make_span(start_end_stride_triples), buf_stor);
+  const shader_meshlets::VdataElemSet meshletElems = gatherMeshletElems(r);
+  for (int i = 0; i < smvd_list.size(); i++)
+    if (ShaderMatVdata *smvd = smvd_list[i]; smvd && smvd->getGlobVDataCount() > 0)
+      smvd->unpackBuffersTo(make_span(buf.sbuf), chunks.size() ? nullptr : bufUsed, make_span(start_end_stride_triples), buf_stor,
+        shader_meshlets::VdataElemSpan(meshletElems).forShaderMatVdataIndex(i));
 
   if (!chunks.size())
   {
@@ -826,12 +830,45 @@ void ShaderResUnitedVdata<RES>::rebaseElemOfs(const RES *r, dag::ConstSpan<int> 
   on_mesh_relems_updated.fire(r, false, 0);
 }
 
+// Call it before the unpack changes vOfs/iOfs: the RElem offsets are local + vOfs/iOfs of their vdata until rebaseElemOfs()
+template <class RES>
+shader_meshlets::VdataElemSet ShaderResUnitedVdata<RES>::gatherMeshletElems(const RES *r)
+{
+  shader_meshlets::VdataElemSet elems;
+  if (!shader_meshlets::is_enabled())
+    return elems;
+
+  dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list = r->getSmvd();
+  Tab<dag::ConstSpan<ShaderMesh::RElem>> relems(framemem_ptr());
+  RES::lockClonesList();
+  for (const RES *rx = r->getFirstOriginal(); rx; rx = rx->getNextClone())
+    for (const typename RES::Lod &lod : rx->lods)
+    {
+      lod.getAllElems(relems);
+      for (dag::ConstSpan<ShaderMesh::RElem> &r_list : relems)
+        for (const ShaderMesh::RElem &e : r_list)
+        {
+          if (e.si == RELEM_NO_INDEX_BUFFER || e.numf <= 0)
+            continue;
+          for (int i = 0; i < smvd_list.size(); i++)
+            if (int vd_idx = smvd_list[i] ? smvd_list[i]->findGlobVDataIdx(e.vertexData) : -1; vd_idx >= 0)
+            {
+              elems.insert({uint16_t(i), uint16_t(vd_idx), uint32_t(e.si - int(e.vertexData->getIOffs())), uint32_t(e.numf),
+                int32_t(e.baseVertex - int(e.vertexData->getVOffs()))});
+              break;
+            }
+        }
+    }
+  RES::unlockClonesList();
+  return elems;
+}
+
 template <class RES>
 void ShaderResUnitedVdata<RES>::updateVdata(RES *r, unitedvdata::BufPool &buf, Tab<int> &dviOfs_stor, Tab<uint8_t> &buf_stor,
   dag::ConstSpan<unitedvdata::BufChunk> c, uint32_t layout_gen)
 {
   prepareVdataBaseOfs(r->getSmvd(), dviOfs_stor);
-  if (!updateVdata(r->getSmvd(), buf, buf_stor, c, layout_gen))
+  if (!updateVdata(r->getSmvd(), r, buf, buf_stor, c, layout_gen))
     return;
   rebaseElemOfs(r, dviOfs_stor);
   load_voxel_data(r, r->getQlBestLod());
@@ -909,6 +946,7 @@ void ShaderResUnitedVdata<RES>::addResToTightVdata(RES *r, Tab<int> &dviOfs, Tab
           tb_size += bc.sz;
         if (r->lods.size() > 1 || tb_size < (1 << 20))
           bad_tight_detected = true;
+        STREAMING_LOG("%s add-tight res=%p lod=%d/%d", RES::getStaticClassName(), r, r->getQlBestLod(), r->lods.size());
         updateVdata(r, tmp_buf, dviOfs, buf_stor, c, tmp_buf.layoutGen);
 
         // reset vbIdx to mark buffers as not combined
@@ -998,6 +1036,7 @@ void ShaderResUnitedVdata<RES>::rebuildUnitedVdata(dag::Span<RES *> res, bool in
   }
 
   ShaderMatVdata::closeTlsReloadCrd();
+  STREAMING_LOG("%s rebuild %d res (+%d)", RES::getStaticClassName(), resList.size(), res_added);
   int t_usec = get_time_usec(reft);
   char fctx[4 << 10];
   for (int i = 0; i < buf.pool.size(); i++)
@@ -1030,6 +1069,8 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
     // std::lock_guard scopedLock(appendMutex);
     // if (ctx.reqLod > prev_lod)
     //   downgradeRes(ctx.res, ctx.reqLod);
+    STREAMING_LOG("%s load-skip res=%p bvhId=%08X lod=%d req=%d", RES::getStaticClassName(), ctx.res.get(), ctx.res->getBvhId(),
+      prev_lod, ctx.reqLod);
     ceaseUpdateJob(ctx);
     return;
   }
@@ -1081,6 +1122,8 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
         interlocked_add(normAtlasToFree, normToFree);
         failedVdataReloadResSet.insert(ctx.res.get());
       }
+      STREAMING_LOG("%s load-fail res=%p bvhId=%08X lod=%d vbShort=%dK ibShort=%dK", RES::getStaticClassName(), ctx.res.get(),
+        ctx.res->getBvhId(), prev_lod, vb_to_free >> 10, ib_to_free >> 10);
       ceaseUpdateJob(ctx);
       return;
     }
@@ -1095,6 +1138,7 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
       for (auto &lod : ctx.res->lods)
         if (auto vd = lod.getVoxelSurface())
           vd->releaseAtlas();
+      STREAMING_LOG("%s load-drop res=%p bvhId=%08X removed", RES::getStaticClassName(), ctx.res.get(), ctx.res->getBvhId());
       ceaseUpdateJob(ctx);
       return;
     }
@@ -1110,7 +1154,7 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
     logerr("unitedVdata<%s>: failed allocate one or more pre-reserved buffers (%d VBs, %s)", RES::getStaticClassName(),
       buf.getVbCount(), buf.getStatStr());
   Tab<uint8_t> buf_stor;
-  if (updateVdata(make_span_const(ctx.tmp_smvd, res_smvd.size()), buf, buf_stor, c_new, ctx.layoutGen))
+  if (updateVdata(make_span_const(ctx.tmp_smvd, res_smvd.size()), ctx.res.get(), buf, buf_stor, c_new, ctx.layoutGen))
     load_voxel_data(ctx.res.get(), ctx.reqLod);
   ShaderMatVdata::closeTlsReloadCrd();
 }
@@ -1151,6 +1195,7 @@ inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
     for (int lod = ctx.reqLod, best = ctx.res->getQlBestLod(); lod < best; lod++)
       if (auto vd = ctx.res->lods[lod].getVoxelSurface())
         vd->releaseAtlas();
+    STREAMING_LOG("%s load-drop res=%p bvhId=%08X relayout", RES::getStaticClassName(), ctx.res.get(), ctx.res->getBvhId());
     ceaseUpdateJob(ctx);
     return;
   }
@@ -1162,6 +1207,7 @@ inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
     for (auto &lod : ctx.res->lods)
       if (auto vd = lod.getVoxelSurface())
         vd->releaseAtlas();
+    STREAMING_LOG("%s load-drop res=%p bvhId=%08X removed", RES::getStaticClassName(), ctx.res.get(), ctx.res->getBvhId());
     ceaseUpdateJob(ctx);
     return;
   }
@@ -1174,6 +1220,8 @@ inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
       logerr("ctx.reqLod=%d while ctx.res->lods.size()=%d", ctx.reqLod, ctx.res->lods.size());
       ctx.reqLod = ctx.res->lods.size() - 1;
     }
+    STREAMING_LOG("%s loaded res=%p bvhId=%08X lod %d->%d", RES::getStaticClassName(), ctx.res.get(), ctx.res->getBvhId(), prev_lod,
+      ctx.reqLod);
     for (RES *rx = ctx.res->getFirstOriginal(); rx; rx = rx->getNextClone())
       rx->applyQlBestLod(ctx.reqLod);
     for (int i = 0; i < res_smvd.size(); i++)
@@ -1296,6 +1344,9 @@ cpujobs::IJob *ShaderResUnitedVdata<RES>::reloadResNoLock(RES *res)
   };
 
   auto j = new UpdateModelVdataJob(this, res);
+  if (j->res)
+    STREAMING_LOG("%s load-req res=%p bvhId=%08X lod %d->%d", RES::getStaticClassName(), res, res->getBvhId(), res->getQlBestLod(),
+      j->reqLod);
   return j->res ? j : (delete j, nullptr); //-V680
 }
 
@@ -1335,6 +1386,9 @@ void ShaderResUnitedVdata<RES>::doDowngradeRes(int idx, int upper_lod)
       get_inst_count(res) != 0)
     return;
 
+  const int prevLod = res->getQlBestLod();
+  const unsigned prevReqLod = res->getQlReqLodEff();
+  const unsigned reqAge = dagor_frame_no() - res->getQlReqLFU();
   BufChunkTab out_c1, out_c2;
   if (upper_lod < res->getQlReqLodEff())
     res->updateReqLod(upper_lod);
@@ -1351,7 +1405,21 @@ void ShaderResUnitedVdata<RES>::doDowngradeRes(int idx, int upper_lod)
     rx->applyQlBestLod(upper_lod);
 
   if (!out_c2.size())
+  {
+    STREAMING_LOG("%s discard res=%p bvhId=%08X lod %d->%d nothing freed", RES::getStaticClassName(), res, res->getBvhId(), prevLod,
+      upper_lod);
     return;
+  }
+
+  if (is_streaming_log_enabled())
+  {
+    unsigned freedSz = 0;
+    for (const BufChunk &c : out_c2)
+      freedSz += c.sz;
+    STREAMING_LOG("%s discard res=%p bvhId=%08X lod %d->%d req=%d age=%u rc=%d inst=%d freed=%dK toFree vb=%dK ib=%dK blas=%dK",
+      RES::getStaticClassName(), res, res->getBvhId(), prevLod, upper_lod, prevReqLod, reqAge, res->getRefCount(), get_inst_count(res),
+      freedSz >> 10, vbSizeToFree >> 10, ibSizeToFree >> 10, int(blasBytesToFree() >> 10));
+  }
 
   on_mesh_relems_about_to_be_updated.fire(res, true, upper_lod);
 
@@ -1659,6 +1727,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
       const uint32_t layoutGen = buf.layoutGen;
       appendMutex.unlock(); // Unlock to avoid stalling main thread (e.g. in `releaseUpdateJob`)
 
+      STREAMING_LOG("%s add res=%p lod=%d/%d", RES::getStaticClassName(), r.get(), r->getQlBestLod(), r->lods.size());
       updateVdata(r, buf, dviOfs, buf_stor, make_span_const(chunks), layoutGen);
 
       appendMutex.lock(); // Re-lock
@@ -1695,6 +1764,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
       const uint32_t layoutGen = buf.layoutGen;
       appendMutex.unlock(); // Unlock to avoid stalling main thread (e.g. in `releaseUpdateJob`)
 
+      STREAMING_LOG("%s add res=%p lod=%d/%d", RES::getStaticClassName(), r, r->getQlBestLod(), r->lods.size());
       updateVdata(r, buf, dviOfs, buf_stor, c, layoutGen);
 
       appendMutex.lock(); // Re-lock
@@ -1836,6 +1906,8 @@ bool ShaderResUnitedVdata<RES>::delRes(RES *res)
   if (idx < 0)
     return false;
 
+  STREAMING_LOG("%s del res=%p bvhId=%08X lod=%d/%d", RES::getStaticClassName(), res, res->getBvhId(), res->getQlBestLod(),
+    res->lods.size());
   on_mesh_relems_about_to_be_updated.fire(res, true, INT_MAX);
 
   updateLocalMaximum(dbg_level >= 0);

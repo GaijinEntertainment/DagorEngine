@@ -365,6 +365,7 @@ static String getShaderNodesJS(NodeBasedShaderType type, char *exePath)
     case NodeBasedShaderType::Clouds:
       result.aprintf(0, "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\shaderEditors\\shaderNodes\\shaderNodesClouds.js ", exePath);
       break;
+    default: logerr("Unknown shader type: %d", int(type)); break;
   }
   result.aprintf(0, "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\shaderEditors\\shaderNodes\\shaderNodesCommon.js ", exePath);
 #if _TARGET_PC_LINUX | _TARGET_PC_MACOSX

@@ -34,7 +34,9 @@ static ecs::EntitySystemDesc volfog_convar_init_es_es_desc
 ,nullptr,"render_settings__HQVolfog,render_settings__volumeFogQuality");
 static constexpr ecs::ComponentDesc volfog_convar_change_es_comps[] =
 {
-//start of 2 rw components at [0]
+//start of 1 ro components at [0]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+//start of 2 rq components at [1]
   {ECS_HASH("render_settings__HQVolfog"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("render_settings__volumeFogQuality"), ecs::ComponentTypeInfo<ecs::string>()}
 };
@@ -44,8 +46,7 @@ static void volfog_convar_change_es_all_events(const ecs::Event &__restrict evt,
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     volfog_convar_change_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
         , components.manager()
-    , ECS_RW_COMP(volfog_convar_change_es_comps, "render_settings__HQVolfog", bool)
-    , ECS_RW_COMP(volfog_convar_change_es_comps, "render_settings__volumeFogQuality", ecs::string)
+    , ECS_RO_COMP(volfog_convar_change_es_comps, "eid", ecs::EntityId)
     );
   while (++comp != compE);
 }
@@ -54,9 +55,9 @@ static ecs::EntitySystemDesc volfog_convar_change_es_es_desc
   "volfog_convar_change_es",
   "prog/daNetGame/render/world/volfogSettingsManagerES.cpp.inl",
   ecs::EntitySystemOps(nullptr, volfog_convar_change_es_all_events),
-  make_span(volfog_convar_change_es_comps+0, 2)/*rw*/,
   empty_span(),
-  empty_span(),
+  make_span(volfog_convar_change_es_comps+0, 1)/*ro*/,
+  make_span(volfog_convar_change_es_comps+1, 2)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0

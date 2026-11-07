@@ -210,7 +210,7 @@ struct FontInfo
     unicode_range_t include, exclude;
     FreeTypeFont f;
     bool forceAutoHinting = true;
-    bool ttfLazyLoad = false;
+    bool ttfLazyLoad = true;
     bool optional = false;
     bool sysFontMark = false;
     dag::Vector<String> systemNames;
@@ -246,7 +246,7 @@ struct FontInfo
   double size;
   bool monochrome;
   bool forceAutoHinting = true, checkExtents = false;
-  bool ttfLazyLoad = false;
+  bool ttfLazyLoad = true;
   bool optional = false;
   Tab<int> hRes;
   dag::Vector<FontInfo> additional;
@@ -336,7 +336,7 @@ struct FontInfo
     symbCharMap = blk.getBool("symbCharMap", false);
     remapPrivate = blk.getBool("remapPrivate", false);
     file = blk.getStr("file", NULL);
-    bool def_lazy = fbFontsBlk ? fbFontsBlk->getBool("def_ttfLazyLoad", false) : false;
+    bool def_lazy = fbFontsBlk ? fbFontsBlk->getBool("def_ttfLazyLoad", true) : true;
     if (const DataBlock *b = blk.getBlockByName("fallback_fonts"))
     {
       fbFontsBlk = b;
@@ -422,7 +422,7 @@ struct FontInfo
 
     monochrome = blk.getBool("bw", false);
     forceAutoHinting = blk.getBool("forceAutoHinting", true);
-    ttfLazyLoad = blk.getBool("ttfLazyLoad", false);
+    ttfLazyLoad = blk.getBool("ttfLazyLoad", true);
     optional = blk.getBool("optional", false);
     checkExtents = blk.getBool("checkExtents", false);
 
@@ -2282,8 +2282,8 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
       b2.setReal("htScale", sz_scale);
       if (!af.forceAutoHinting)
         b2.setBool("forceAutoHint", af.forceAutoHinting);
-      if (af.ttfLazyLoad)
-        b2.setBool("lazyLoad", af.ttfLazyLoad);
+      if (!af.ttfLazyLoad)
+        b2.setBool("lazyLoad", false);
       if (af.optional)
         b2.setBool("optional", true);
 

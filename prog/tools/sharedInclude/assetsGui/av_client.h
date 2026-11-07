@@ -33,6 +33,7 @@ public:
   virtual bool assetBrowserIsOpen() const = 0;
   virtual void assetBrowserSetOpen(bool open) = 0;
   virtual void assetBrowserOnAssetSelected(DagorAsset *asset, bool double_clicked) = 0;
+  virtual void assetBrowserOnFolderSelected(const DagorAssetFolder &folder) = 0;
   virtual void assetBrowserOnContextMenu(DagorAsset *asset) = 0;
 };
 

@@ -81,6 +81,7 @@ delete the row rather than leaving a future bump hunting for it.
 | `include/daScript/daScriptModule.h` | `NEED_MODULE` pulls through `das_pull_##ClassName` and declares it itself, so the ~970 game module entries need no `DECLARE_MODULE` |
 | `include/daScript/daScriptBind.h` | `das_bind_no_fold`, wrapped around `DAS_ADD_FUN_BIND` and `DAS_ADD_FUN_BIND_VALUE_RET` |
 | `src/ast/ast_const_folding.cpp` | `foldableBuiltin()` on the four folding sites, and the `noFolding` check in `isConstExprFunc` |
+| `src/ast/ast_module.cpp` | `functionContentHash` hashes `BuiltInFunction::noFolding`, so a binding that changes only the fold mark changes its module's content hash and a cached AST folded under the old mark is rejected |
 | `src/ast/ast_parse.cpp` | `get_file_access` stays a declaration; the executable supplies it |
 | `src/misc/alloc_tracker.cpp` | `std::_Exit(1)` in the leak dump stays commented |
 | `src/misc/daScriptC.cpp` | `initialize_modules_impl` at global scope, not the anonymous namespace upstream puts it in (see the `NEED_MODULE` note in step 4) |
@@ -97,6 +98,7 @@ delete the row rather than leaving a future bump hunting for it.
 | `utils/daScript/main.cpp` (copy of upstream `utils/daslang/main.cpp`) | no `modules/external_declare.inc` / `external_pull.inc` (dagor has no daspkg-generated modules), and the leaked-smart-pointer `exit(1)` sits under `#ifndef DAS_AOT_COMPILER` - game contexts live to exit by design |
 | `modules/dasStdDlg/src/dasStdDlgWin.cpp` | `std::` qualification and `.c_str()` - dagor `string` is eastl |
 | `include/daScript/daScriptC.h`, `include/daScript/misc/platform.h`, `include/daScript/misc/wyhash.h`, `include/daScript/simulate/aot.h`, `src/misc/job_que.cpp`, `src/builtin/module_builtin_runtime.cpp` | ARM64EC (`_M_ARM64EC`, which also defines `_M_X64`) takes the ARM64 branches: NEON, popcount, 128-bit multiply, spin hint, CPU-feature detection; `get_architecture_name` answers `"arm64ec"`. Belongs upstream |
+| `src/builtin/module_builtin_ast_serialize.cpp` | `Program::serialize` sets `failToCompile` when the read failed (`ser.failed`). The version gate in `serializeProgramImpl` sets only `ser.failed`, so upstream reports a stream of another serializer version as a successful read of an empty program. Belongs upstream |
 | `src/runtime/context.cpp` | `makeWorkerFor` copies `maxFastCallDepth`. Upstream leaves the worker at 0, so a capped program's checked fastcall nodes panic on the first call in a parallel ES. Belongs upstream |
 
 ### Test adaptations
@@ -216,6 +218,16 @@ Build with clang and keep the load down (`-j10`, or `-j15` under `nice`).
        cd tests && ../../../../tools/util/das-dev -dasroot .. \
          _dasroot_/dastest/dastest.das -- --color --test .
 
+   In a 32-bit x86 clang build (x86 is the windows default `PlatformArch`), `%=` with a
+   denormal float on the left gives 0, and `%` gives the denormal. When the `%=` case of
+   `tests/jit_tests/arithmetics.das` fails in that build, this is the cause, not a
+   language bug. The dagor kernel sets MXCSR FTZ/DAZ in every process
+   (`prog/engine/kernel/cpuControl.cpp`). The 32-bit clang code converts the `%=` operand
+   that it reads from memory to double with SSE `cvtss2sd`, and DAZ changes a denormal
+   input to zero. The `%` operands come back from `evalFloat` on the x87 stack, and MXCSR
+   has no effect on x87. The `dascompile` job builds with vc17, which compiles x86 dev
+   with `/arch:IA32`: all scalar float math is x87, so the two operators agree.
+
 3. Each game's AOT tool: `cd <game>/prog/aot && jam -j8 -sPlatformSpec=clang -sConfig=dev
    -sUseDlss=no`. Build the tool before using it; a pre-bump binary reads the new `daslib`
    and fails in ways that look like script bugs.
@@ -248,13 +260,15 @@ back to the interpreter. Build one game with C++ AOT and run it.
     cd <game>/prog && jam -j8 -sPlatformSpec=clang -sConfig=dev -sUseDlss=no \
         -sNeedDasAotCompile=yes
     # repeat until it links: generated AOT sources are only picked up on a following pass
-    cd <game>/prog && ../../tools/dagor_cdk/linux-x86_64/vromfsPacker-dev prog.vromfs.blk
+    cd <game>/prog && bash compile_all_prog_vromfs.sh
     cd ../game && ./linux64/<game>-dev gamedata/scenes/test_all.blk \
         -config:circuit:t=am-dev -config:game_das_enable_serialization:b=no \
         -config:sound/enabled:b=no -nosound -quiet
 
 The vromfs repack is mandatory: `game.vromfs.bin` packs `daslib/*.das`, so a stale pack
-feeds pre-bump daslib to the new compiler. `-nosound` skips a `dngsound::init()` fatal on
+feeds pre-bump daslib to the new compiler. The `active_matter` script packs `prog.vromfs.blk`
+and also builds `lang_extra.vromfs.bin`, which `settings.blk` in
+`active_matter-game.vromfs.bin` requires. `-nosound` skips a `dngsound::init()` fatal on
 content that has gone stale against git HEAD, which is unrelated to das. Then start the game
 twice more without `game_das_enable_serialization:b=no`: the first start writes the AST cache
 and the second loads every script from it, the only path that reads the game's own strings

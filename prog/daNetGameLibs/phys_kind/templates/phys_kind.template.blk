@@ -1,0 +1,11 @@
+phys_kind_base{
+  replication{
+    _tags:t="net"
+  }
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  net__physId:i=-1
+  base_net_phys_ptr{}
+  phys_kind_net_phys{}
+  phys_kind_net_phys__blk:t="%danetlibs/phys_kind/phys_kind_default.blk"
+  phys_kind__shadowSim:b=no
+}

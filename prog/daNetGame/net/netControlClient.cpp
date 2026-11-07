@@ -117,7 +117,7 @@ struct NetControlClient final : public net::INetworkObserver
       if (const char *nextSurl = select_next_server_url(/*rotate*/ false))
       {
         logwarn("Connect to %s failed, try connect to next server url: %s...",
-          net_context->serverUrls[net_context->currentServerUrlIdx - 1].c_str(), nextSurl);
+          net_context->serverUrls[net_context->currentServerUrlIdx - 1].url.c_str(), nextSurl);
         net_context->getNet().getDriver()->connect(nextSurl, NET_PROTO_VERSION);
         return;
       }

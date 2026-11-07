@@ -42,7 +42,10 @@ float4 world_view_pos;
 float global_transp_r;
 
 // used by bvh_process_tree_vertices_inc.dshl (daNetGame tree wind fadeout); default = no fade
-float4 tree_wind_anim_fade_params = (0, 1, 0, 0);
+float tree_wind_anim_distance = 0; // distance where the tree wind fades out, 0 = no fade
+float tree_wind_anim_fade_range = 0;
+float dagdp_wind_anim_distance = 0; // same for daGdp instances, which are small plants with a short draw range
+float dagdp_wind_anim_fade_range = 0;
 
 int is_gather4_supported = 0;
 interval is_gather4_supported: unsupported <1, supported;

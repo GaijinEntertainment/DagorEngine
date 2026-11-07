@@ -294,6 +294,23 @@ int add_vprog(const ShaderStageData &vs, const ShaderStageData &hs, const Shader
     comp_unp[1] = (vs_len + hs_len + ds_len + gs_len) * sizeof(uint32_t);
     comp_unp[2] = vs_meta[2];
     comp_unp[3] = vs_meta[3];
+#if _CROSS_TARGET_DX11 // constraint: PS4 and PS5 reuse this layout, but their stage headers have no UAV masks
+    uint8_t uavReadMask = 0, uavWriteMask = 0;
+    for (const ShaderStageData *stage : {&vs, &hs, &ds, &gs})
+    {
+      if (stage->empty())
+        continue;
+      G_ASSERT(stage->metadata.size() >= sizeof(uint32_t) + dx11::SIMPLE_METADATA_SIZE);
+      dx11::SimpleHeader stageHeader;
+      memcpy(&stageHeader, stage->metadata.data() + sizeof(uint32_t), sizeof(stageHeader));
+      uavReadMask |= dx11::get_uav_read_mask(stageHeader);
+      uavWriteMask |= dx11::get_uav_write_mask(stageHeader);
+    }
+    dx11::SimpleHeader combinedHeader;
+    memcpy(&combinedHeader, comp_unp + 1, sizeof(combinedHeader));
+    dx11::set_uav_masks(combinedHeader, uavReadMask, uavWriteMask);
+    memcpy(comp_unp + 1, &combinedHeader, sizeof(combinedHeader));
+#endif
     comp_unp[4] = dx11::COMBINED_SHADERS_IDENT;
     comp_unp[5] = vs_len;
     comp_unp[6] = hs_len | (!hs.empty() ? hs_meta[2] & ~dx11::COMBINED_LEN_MASK : 0);
@@ -622,6 +639,7 @@ struct RecompileVPRogJob : RecompileJobBase
   using RecompileJobBase::RecompileJobBase;
 
   size_t compProgIndex = 0;
+  dx12::dxil::VertexProgramStageDebugInfoSuffixes stageSuffixes{};
   RecompileVPRogJob(size_t ct, size_t ci, shc::TargetContext &cref) : RecompileJobBase{ct, cref}, compProgIndex{ci} {}
 
   void doJobBody() override
@@ -631,6 +649,7 @@ struct RecompileVPRogJob : RecompileJobBase
     static const char cache_name[] = "vp";
     bool writeCache = false;
     dx12::dxil::CombinedShaderData uncompiled{stor.shadersVprMetadata[compileTarget], stor.shadersVpr[compileTarget]};
+    stageSuffixes = dx12::dxil::getVertexProgramStageDebugInfoSuffixes(uncompiled.metadata);
     auto recompiledVProgBlob = load_cache(uncompiled, cache_name);
     if (!recompiledVProgBlob.metadata || !recompiledVProgBlob.bytecode)
     {
@@ -669,6 +688,16 @@ struct RecompileVPRogJob : RecompileJobBase
         *(ref + 1) = recompiledVProgBlob.bytecode.release();
       }
     }
+  }
+
+  void releaseJobBody() override
+  {
+    RecompileJobBase::releaseJobBody();
+    if (shc::config().hlslDebugLevel == DebugLevel::NONE)
+      return;
+    for (const char *suffix : {stageSuffixes.hs, stageSuffixes.ds, stageSuffixes.gs})
+      if (suffix)
+        ctx.storage().usedSepDebugInfoNames.emplace_back((eastl::string{ilHashString} + suffix).c_str());
   }
 };
 
@@ -1179,13 +1208,44 @@ RenderPassLinkTables link_render_pass_tables(ShadersBindump &shaders, shc::Targe
   return tbls;
 }
 
+namespace
+{
+class BoundedMemoryReader final : public bindump::IReader
+{
+  const uint8_t *mData;
+  uint64_t mSize;
+
+public:
+  BoundedMemoryReader(const uint8_t *data, uint64_t size) : mData(data), mSize(size) {}
+
+  void begin() override {}
+  void end() override {}
+
+  void read(uint64_t offset, void *dest_data, uint64_t dest_size) override
+  {
+    if (offset > mSize || dest_size > mSize - offset)
+      DAGOR_THROW(IGenLoad::LoadException("read past end of data", (int)offset));
+    eastl::copy(mData + offset, mData + offset + dest_size, (uint8_t *)dest_data);
+  }
+};
+} // namespace
+
 bool load_shaders_bindump(ShadersBindump &shaders, ShadersBindumpHeader &header, bindump::IReader &full_file_reader,
   shc::TargetContext &ctx)
 {
   ShadersDeSerializationScope deSerScope{ctx};
 
   CompressedShadersBindump compressed;
-  bindump::streamRead(compressed, full_file_reader);
+  try
+  {
+    bindump::streamRead(compressed, full_file_reader);
+  }
+  catch (IGenLoad::LoadException &e)
+  {
+    sh_debug(SHLOG_NORMAL, "Cannot read shader cache: %s, offset %i", e.excDesc, e.fileOffset);
+    bindump::close();
+    return false;
+  }
 
   if (compressed.eof != SHADER_CACHE_EOF)
     return false;
@@ -1196,15 +1256,25 @@ bool load_shaders_bindump(ShadersBindump &shaders, ShadersBindumpHeader &header,
     decompressed_data.resize(compressed.decompressed_size);
     size_t decompressed_size = zstd_decompress(decompressed_data.data(), decompressed_data.size(),
       compressed.compressed_shaders.data(), compressed.compressed_shaders.size());
-    G_ASSERT(decompressed_size == compressed.decompressed_size);
+    if (decompressed_size != compressed.decompressed_size)
+      return false;
   }
   else
   {
     decompressed_data = eastl::move(compressed.compressed_shaders);
   }
 
-  bindump::MemoryReader reader(decompressed_data.data(), decompressed_data.size());
-  bindump::streamRead(shaders, reader);
+  BoundedMemoryReader reader(decompressed_data.data(), decompressed_data.size());
+  try
+  {
+    bindump::streamRead(shaders, reader);
+  }
+  catch (IGenLoad::LoadException &e)
+  {
+    sh_debug(SHLOG_NORMAL, "Cannot read shader cache data: %s, offset %i", e.excDesc, e.fileOffset);
+    bindump::close();
+    return false;
+  }
 
   header = eastl::move(static_cast<ShadersBindumpHeader &>(compressed));
   return true;
@@ -1215,9 +1285,9 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
 {
   ShadersBindump shaders;
   ShadersBindumpHeader header;
-  bindump::MemoryReader compressed_reader(mapped_data, data_size);
+  BoundedMemoryReader compressed_reader(mapped_data, data_size);
   if (!load_shaders_bindump(shaders, header, compressed_reader, ctx))
-    sh_debug(SHLOG_FATAL, "corrupted OBJ file: %s", filename);
+    sh_debug(SHLOG_FATAL, "Corrupted or truncated shader cache file '%s', delete it or rebuild with -r", filename);
 
   // Load render states
   int renderStatesCount = shaders.renderStates.size();

@@ -91,7 +91,11 @@ static void build_base_graph(GraphHandles &gh)
 
   reg_modify_n(gh, "opaque_draw", "gbuffer", OPAQUE_MODIFIER_COUNT);
 
-  reg_read_create(gh, "downsample_depth_create", "depth", "downsampled_depth", DEPTH_TEX);
+  gh.handles.push_back(dafg::register_node("downsample_depth_create", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("depth").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+    registry.create("downsampled_depth").texture(DEPTH_TEX).atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT);
+  }));
 
   gh.handles.push_back(dafg::register_node("deferred_shading", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);

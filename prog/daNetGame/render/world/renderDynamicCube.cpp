@@ -27,7 +27,7 @@
 RENDER_DYNAMIC_CUBE_VARS
 #undef VAR
 
-constexpr float z_near = 0.25, z_far = 400, ri_zf = 75.f;
+constexpr float z_near = 0.25, z_far = 400;
 
 struct ScopedNoExposure
 {
@@ -87,7 +87,7 @@ TMatrix4_vec4 RenderDynamicCube::getGlobTmForFace(int face_num, const Point3 &po
   cameraMatrix.setcol(3, pos);
   TMatrix view = orthonormalized_inverse(cameraMatrix);
 
-  return TMatrix4(view) * matrix_perspective(1, 1, z_near, ri_zf);
+  return TMatrix4(view) * matrix_perspective(1, 1, z_near, RI_FAR_PLANE);
 }
 
 void RenderDynamicCube::update(const ManagedTex *cubeTarget, const Point3 &pos, int face_num, RenderMode mode)
@@ -100,11 +100,12 @@ void RenderDynamicCube::update(const ManagedTex *cubeTarget, const Point3 &pos, 
 
   SCOPE_VIEW_PROJ_MATRIX;
   SCOPE_RENDER_TARGET;
-  ShaderGlobal::set_float4(world_view_posVarId, pos.x, pos.y, pos.z, 1);
+  STATE_GUARD(ShaderGlobal::set_float4(world_view_posVarId, VALUE), Color4(pos.x, pos.y, pos.z, 1),
+    ShaderGlobal::get_float4(world_view_posVarId));
   Driver3dPerspective persp = Driver3dPerspective(1, 1, z_near, z_far, 0, 0);
   TMatrix4 projTm;
   d3d::setpersp(persp, &projTm);
-  ShaderGlobal::set_float4(zn_zfarVarId, z_near, z_far, 0, 0);
+  STATE_GUARD(ShaderGlobal::set_float4(zn_zfarVarId, VALUE), Color4(z_near, z_far, 0, 0), ShaderGlobal::get_float4(zn_zfarVarId));
   const int faceBegin = face_num == -1 ? 0 : face_num;
   const int faceEnd = face_num == -1 ? 6 : face_num + 1;
   WorldRenderer &cb = *((WorldRenderer *)get_world_renderer());
@@ -129,7 +130,7 @@ void RenderDynamicCube::update(const ManagedTex *cubeTarget, const Point3 &pos, 
 
     if (mode == RenderMode::WHOLE_SCENE)
     {
-      const TMatrix4_vec4 riPerspMatrix = TMatrix4(view) * matrix_perspective(1, 1, z_near, ri_zf);
+      const TMatrix4_vec4 riPerspMatrix = TMatrix4(view) * matrix_perspective(1, 1, z_near, RI_FAR_PLANE);
       Frustum frustum(riPerspMatrix);
       if (face_num < 0)
         cb.prepareLightProbeRIVisibility(reinterpret_cast<const mat44f &>(riPerspMatrix), pos);

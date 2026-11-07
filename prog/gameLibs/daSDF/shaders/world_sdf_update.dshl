@@ -17,6 +17,7 @@ shader world_sdf_clear_cs
 {
   READ_WORLD_SDF_MATH(cs)
   WSDF_COORD_UPDATE(cs)
+  WORLD_SDF_UPDATE_BOXES(cs)
   PROJECT_WORLD_SDF(cs)
   PROJECT_WORLD_SDF_CLEAR(cs)
 
@@ -41,15 +42,20 @@ shader world_sdf_clear_cs
       float3 worldPos = (world_coord.xzy + 0.5)*voxelSize;
       float minDistance = get_project_world_sdf(worldPos, maxEncodedDistance);
       minDistance /= maxEncodedDistance;
-      float3 radiance = 0; float alpha = 0;
 
-      #if PROJECT_SDF_HAS_RADIANCE
-      BRANCH
-      if (abs(minDistance) < 1)
-        get_project_world_sdf_radiance(worldPos, radiance, alpha);
-      #endif
-
-      project_world_sdf_clear(world_coord, world_sdf_update_mip, radiance, alpha);
+      bool updated = false;
+      for (int bi = 0; bi < world_sdf_cull_grid_boxes_count && !updated; ++bi)
+        updated = all(worldPos > world_sdf_cull_grid_lt[bi].xyz) && all(worldPos < world_sdf_cull_grid_rb[bi].xyz);
+      if (updated)
+      {
+        float3 radiance = 0; float alpha = 0;
+        #if PROJECT_SDF_HAS_RADIANCE
+        BRANCH
+        if (abs(minDistance) < 1)
+          get_project_world_sdf_radiance(worldPos, radiance, alpha);
+        #endif
+        project_world_sdf_clear(world_coord, world_sdf_update_mip, radiance, alpha);
+      }
 
       storeBuffer(world_sdf_clipmap_rasterize, 4*world_sdf_raster_index(targetRasterCoord), encode_world_sdf(minDistance));
     }

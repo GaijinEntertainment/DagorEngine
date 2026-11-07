@@ -460,7 +460,7 @@ bool d3d::set_depth(BaseTexture *tex, int face, DepthAccess access)
 #endif
     if (bt->needs_clear)
       bt->clear();
-    if (access == DepthAccess::RW && bt->maxMipLevel <= face && face <= bt->minMipLevel)
+    if (access == DepthAccess::RW)
       remove_texture_from_samplers(tex);
     rs.nextRtState.setDepth(tex, face, access == DepthAccess::SampledRO);
   }

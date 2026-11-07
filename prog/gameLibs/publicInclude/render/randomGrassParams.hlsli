@@ -6,9 +6,9 @@ struct GrassLayersVS
   float4 grassLodRange;
   uint mask0_31;
   uint mask32_63;
-  uint padding;
+  float lodNoiseFreq;
   float grassInstanceSize;
-  float4 grassFade;
+  float4 grassFade; // z: switch noise amplitude, w: fadeOut is lod switch
   float4 grassScales;
 };
 

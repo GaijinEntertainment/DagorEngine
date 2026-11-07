@@ -7,7 +7,9 @@
 #include <generic/dag_tab.h>
 #include <supp/dag_zstdObfuscate.h>
 #include <ioSys/dag_memIo.h>
+#include <ioSys/dag_baseIo.h>
 #include <ioSys/dag_zstdIo.h>
+#include <limits.h>
 
 // vrom header:
 // 'VRFs' or 'VRFx': 4 bytes
@@ -264,10 +266,7 @@ const char *VromfsCompression::compress(const void *in_, int inLen, void *out_, 
   if (outLen < reqOutLen)
     return NULL;
   const char *in = (const char *)in_;
-  const VirtualRomFsDataHdr *inVromHeader = (const VirtualRomFsDataHdr *)in_;
   char *out = (char *)out_;
-  char newVromHeaderStorage[FULL_VROM_HEADER_SIZE];
-  VirtualRomFsDataHdr *outVromHeader = (VirtualRomFsDataHdr *)newVromHeaderStorage;
   InputDataType inputType = IDT_DATA;
   if (in[0] == 'V')
     inputType = getDataType(&in[1], inLen - 1, CHECK_STRICT);
@@ -277,49 +276,10 @@ const char *VromfsCompression::compress(const void *in_, int inLen, void *out_, 
     {
       G_ASSERT(outLen >= VROM_HEADER_SIZE);
       G_ASSERT(out != NULL);
-      unsigned extHeaderSize = 0;
-      if (inVromHeader->label == VRFX_4C)
-      {
-        const VirtualRomFsExtHdr *extHdr = (const VirtualRomFsExtHdr *)&in[FULL_VROM_HEADER_SIZE];
-        extHeaderSize = extHdr->size;
-      }
-      unsigned signatureOffset = FULL_VROM_HEADER_SIZE + extHeaderSize + inVromHeader->fullSz + MD5_HASH_SIZE;
-      if (inLen < signatureOffset)
-      {
-        logwarn("%s: signature offset is out of file, %u > %d", __FUNCTION__, signatureOffset, inLen);
+      ConstrainedMemSaveCB cwr(out, outLen);
+      if (!writePackedVrom(in, inLen, cwr, outLen))
         return NULL;
-      }
-      int signatureSize = inLen - signatureOffset;
-      G_ASSERT(!checkerFactoryCb || signatureSize > 0);
-      G_ASSERT(!checkerFactoryCb || signatureSize <= REASONABLE_SIGNATURE_SIZE);
-      const char *signaturePtr = &in[signatureOffset];
-
-      // do vrom compression
-      ConstrainedMemSaveCB cwr(out + VROM_HEADER_SIZE + extHeaderSize, outLen - VROM_HEADER_SIZE - extHeaderSize);
-      InPlaceMemLoadCB crd(in + FULL_VROM_HEADER_SIZE + extHeaderSize, inVromHeader->fullSz);
-      int sz = zstd_compress_data(cwr, crd, crd.getTargetDataSize(), 1 << 20, 11);
-      if (sz <= 0 || outLen < sz + VROM_HEADER_SIZE + extHeaderSize + MD5_HASH_SIZE + signatureSize)
-        return NULL;
-
-      OBFUSCATE_ZSTD_DATA(out + VROM_HEADER_SIZE + extHeaderSize, sz);
-      outLen = sz + VROM_HEADER_SIZE + extHeaderSize;
-
-      G_ASSERT(outLen >= VROM_HEADER_SIZE + extHeaderSize);
-      outVromHeader->label = inVromHeader->label;
-      outVromHeader->target = inVromHeader->target;
-      outVromHeader->fullSz = inVromHeader->fullSz;
-      // 0x80000000: packed, 0x40000000: zstd compression
-      outVromHeader->hw32 = (outLen - VROM_HEADER_SIZE - extHeaderSize) | 0xC0000000;
-      // copy headers
-      memcpy(out, &newVromHeaderStorage[1], VROM_HEADER_SIZE);
-      if (extHeaderSize > 0)
-        memcpy(&out[VROM_HEADER_SIZE], &in[FULL_VROM_HEADER_SIZE], extHeaderSize);
-      // copy MD5 hash
-      memcpy(&out[outLen], &in[FULL_VROM_HEADER_SIZE + extHeaderSize + inVromHeader->fullSz], MD5_HASH_SIZE);
-      outLen += MD5_HASH_SIZE;
-      // copy signature
-      memcpy(&out[outLen], &in[signatureOffset], signatureSize);
-      outLen += signatureSize;
+      outLen = cwr.size();
       return out;
     }
     case IDT_VROM_COMPRESSED:
@@ -342,6 +302,102 @@ const char *VromfsCompression::compress(const void *in_, int inLen, void *out_, 
   }
   G_ASSERTF(0, "Should never get here (getDataType returned something unexpected?)");
   return NULL;
+}
+
+
+namespace
+{
+class BodyEdgesSaveCB final : public IBaseSave
+{
+public:
+  explicit BodyEdgesSaveCB(IGenSave &dest_) : dest(dest_) {}
+
+  void write(const void *ptr, int size) override
+  {
+    const char *data = (const char *)ptr;
+    if (written < HEAD_SIZE)
+      memcpy(head + written, data, min(size, HEAD_SIZE - written));
+    if (size >= TAIL_SIZE)
+      memcpy(tail, data + size - TAIL_SIZE, TAIL_SIZE);
+    else
+    {
+      memmove(tail, tail + size, TAIL_SIZE - size);
+      memcpy(tail + TAIL_SIZE - size, data, size);
+    }
+    dest.write(ptr, size);
+    written += size;
+  }
+  int tell() override { return dest.tell(); }
+  void seekto(int ofs) override { dest.seekto(ofs); }
+  void seektoend(int ofs) override { dest.seektoend(ofs); }
+  const char *getTargetName() override { return dest.getTargetName(); }
+  void flush() override { dest.flush(); }
+
+  void obfuscateWritten(int body_pos)
+  {
+    const int headSize = min(written, HEAD_SIZE), tailSize = min(written, TAIL_SIZE);
+    char *tailData = tail + TAIL_SIZE - tailSize;
+    OBFUSCATE_ZSTD_DATA_PARTIAL(head, headSize, 0, written);
+    OBFUSCATE_ZSTD_DATA_PARTIAL(tailData, tailSize, written - tailSize, written);
+    dest.seekto(body_pos);
+    dest.write(head, headSize);
+    dest.seekto(body_pos + written - tailSize);
+    dest.write(tailData, tailSize);
+  }
+
+private:
+  static constexpr int HEAD_SIZE = 16, TAIL_SIZE = 20;
+  IGenSave &dest;
+  int written = 0;
+  char head[HEAD_SIZE], tail[TAIL_SIZE];
+};
+} // namespace
+
+
+bool VromfsCompression::writePackedVrom(const char *in, int in_len, IGenSave &cwr, int max_size) const
+{
+  const VirtualRomFsDataHdr *inVromHeader = (const VirtualRomFsDataHdr *)in;
+  unsigned extHeaderSize = 0;
+  if (inVromHeader->label == VRFX_4C)
+    extHeaderSize = ((const VirtualRomFsExtHdr *)&in[FULL_VROM_HEADER_SIZE])->size;
+  unsigned signatureOffset = FULL_VROM_HEADER_SIZE + extHeaderSize + inVromHeader->fullSz + MD5_HASH_SIZE;
+  if (in_len < signatureOffset)
+  {
+    logwarn("%s: signature offset is out of file, %u > %d", __FUNCTION__, signatureOffset, in_len);
+    return false;
+  }
+  int signatureSize = in_len - signatureOffset;
+  G_ASSERT(!checkerFactoryCb || signatureSize > 0);
+  G_ASSERT(!checkerFactoryCb || signatureSize <= REASONABLE_SIGNATURE_SIZE);
+
+  const int hdrPos = cwr.tell();
+  cwr.write(&in[1], VROM_HEADER_SIZE + extHeaderSize);
+  const int bodyPos = cwr.tell();
+  BodyEdgesSaveCB bodyCwr(cwr);
+  InPlaceMemLoadCB crd(in + FULL_VROM_HEADER_SIZE + extHeaderSize, inVromHeader->fullSz);
+  int sz = zstd_compress_data(bodyCwr, crd, crd.getTargetDataSize(), 1 << 20, 11);
+  if (sz <= 0 || VROM_HEADER_SIZE + extHeaderSize + sz + MD5_HASH_SIZE + signatureSize > max_size)
+    return false;
+  bodyCwr.obfuscateWritten(bodyPos);
+
+  VirtualRomFsDataHdr outVromHeader = *inVromHeader;
+  // 0x80000000: packed, 0x40000000: zstd compression
+  outVromHeader.hw32 = sz | 0xC0000000;
+  cwr.seekto(hdrPos);
+  cwr.write((const char *)&outVromHeader + 1, VROM_HEADER_SIZE);
+  cwr.seekto(bodyPos + sz);
+  cwr.write(&in[FULL_VROM_HEADER_SIZE + extHeaderSize + inVromHeader->fullSz], MD5_HASH_SIZE);
+  cwr.write(&in[signatureOffset], signatureSize);
+  return true;
+}
+
+
+bool VromfsCompression::compressPlainVrom(const void *in_, int in_len, IGenSave &cwr) const
+{
+  const char *in = (const char *)in_;
+  if (!in || in_len <= 1 || in[0] != 'V' || getDataType(&in[1], in_len - 1, CHECK_STRICT) != IDT_VROM_PLAIN)
+    return false;
+  return writePackedVrom(in, in_len, cwr, INT_MAX);
 }
 
 

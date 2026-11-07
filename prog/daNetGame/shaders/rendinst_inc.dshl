@@ -179,6 +179,12 @@ macro RENDINST_INSTANCING()
       #define HW_INSTANCE_OFFSET(a) a.x += INST_OFFSET_GETTER
       #define IMPOSTOR_DATA_OFFSET (impostor_data_offset)
       #define IS_DYNAMIC_RI (is_dynamic)
+
+      ##if instancing_type == tm_vb
+        bool is_dagdp_draw() { return (cb_inst_offset.z & RI_CBUFFER_FLAGS__DAGDP_INSTANCES) != 0; }
+      ##else
+        bool is_dagdp_draw() { return false; } // daGdp draws are always tm_vb
+      ##endif
     #endif
 
     #ifndef INSTANCE_ID_DIVISOR
@@ -445,7 +451,7 @@ macro ENABLE_MULTI_DRAW(use_drawid_vs_only)
   //Common code
   if (instancing_type == tm_vb)
   {
-    hlsl {
+    hlsl(vs) {
       #define RI_EX_MULTIDRAW 1
     }
   }

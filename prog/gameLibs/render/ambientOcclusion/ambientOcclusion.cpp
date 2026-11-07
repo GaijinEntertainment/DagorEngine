@@ -11,6 +11,7 @@
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_consts.h>
 #include <shaders/dag_shaders.h>
+#include <debug/dag_log.h>
 #include <EASTL/optional.h>
 #include <EASTL/unique_ptr.h>
 
@@ -163,7 +164,7 @@ void declare_contact_shadows_and_gbuffer(dafg::Registry registry, const Resource
   bool material_gbuffer_before_root_publish)
 {
   if (names.contactShadowTex)
-    registry.root().read(names.contactShadowTex).texture().atStage(stage).useAs(dafg::Usage::SHADER_RESOURCE).optional();
+    registry.root().read(names.contactShadowTex).texture().atStage(stage).bindToShaderVar("swrt_shadow_target").optional();
 
   if (!names.materialGbufferTex)
     return;
@@ -231,6 +232,14 @@ dafg::NodeHandle make_ssao_prepare_node(const dafg::NameSpace &ns, const SsaoPre
 
       auto state = eastl::make_unique<detail::SsaoNodeState>();
       state->resources = ssao_pass::create_render_resources(params->creationFlags);
+      if (params->creationFlags & SSAO_USE_SPATIAL_TEMPORAL_FILTER)
+      {
+        if (params->creationFlags & SSAO_SKIP_POISSON_POINTS_GENERATION)
+          logerr("SSAO_USE_SPATIAL_TEMPORAL_FILTER does not support SSAO_SKIP_POISSON_POINTS_GENERATION, "
+                 "SSAO_USE_SPATIAL_TEMPORAL_FILTER is disabled");
+        else
+          state->spatialTemporalFilter = gtao_pass::create_filter_resources(params->target.stage == dafg::Stage::CS);
+      }
 
       return [stateHndl, state = eastl::move(state)]() { stateHndl.ref() = state.get(); };
     });
@@ -341,21 +350,27 @@ dafg::NodeHandle make_ssao_filter_node(const dafg::NameSpace &ns, const SsaoFilt
   return ns.registerNode("ssao_filter", DAFG_PP_NODE_SRC,
     [params = eastl::make_unique<const SsaoFilterParameters>(params)](dafg::Registry registry) {
       auto aoTex = modify_ao_tex(registry, params->target);
+      auto aoHistTex = read_ao_tex_history(registry, params->target);
       auto aoTmpTex = modify_ao_tmp_tex(registry, params->target);
       auto nodeState = registry.renameBlob<detail::SsaoNodeState *>(ao_node_state, ao_filter_node_state).handle();
       auto resolution = registry.getResolution<2>("main_view", 0.5f);
 
       declare_depth_and_motion_inputs(registry, params->names, params->target.stage);
       registry.readBlob<d3d::SamplerHandle>(ao_sampler).bindToShaderVar("ssao_tex_samplerstate");
+      declare_contact_shadows_and_gbuffer(registry, params->names, params->target.stage, params->materialGbufferBeforeRootPublish);
+      detail::read_current_camera(registry);
 
-      return [aoTex, aoTmpTex, nodeState, resolution]() {
+      return [aoTex, aoHistTex, aoTmpTex, nodeState, resolution]() {
         detail::SsaoNodeState &state = *nodeState.ref();
         const IPoint2 res = resolution.get();
 
         BaseTexture *ssaoTex = aoTex.get();
         BaseTexture *tmpTex = aoTmpTex.get();
 
-        ssao_pass::two_pass_blur(state.resources, state.frameState.current().frameNo, ssaoTex, tmpTex, res.x, res.y);
+        if (state.spatialTemporalFilter)
+          gtao_pass::spatiotemporal_filter(*state.spatialTemporalFilter, ssaoTex, aoHistTex.get(), tmpTex, res.x, res.y, 1.0f);
+        else
+          ssao_pass::two_pass_blur(state.resources, state.frameState.current().frameNo, ssaoTex, tmpTex, res.x, res.y);
       };
     });
 }
@@ -383,7 +398,7 @@ dafg::NodeHandle make_gtao_filter_node(const dafg::NameSpace &ns, const GtaoFilt
         BaseTexture *prevGtaoTex = aoHistTex.get();
         BaseTexture *spatialTex = aoTmpTex.get();
 
-        gtao_pass::spatiotemporal_filter(state.resources.filter, rawTex, prevGtaoTex, spatialTex, res.x, res.y);
+        gtao_pass::spatiotemporal_filter(state.resources.filter, rawTex, prevGtaoTex, spatialTex, res.x, res.y, HALFPI);
       };
     });
 }

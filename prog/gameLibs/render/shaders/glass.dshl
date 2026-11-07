@@ -68,7 +68,10 @@ macro INIT_COMMON_GLASS(generate_transparent_gbuffer_pass)
 endmacro
 
 macro INIT_GLASS_BACKFACE_SPECULAR_LIGHT(code)
-  bool glass_has_backface_specular_light = two_sided && (use_glass_backface_light == yes);
+  static int is_hollow = 0;
+  interval is_hollow: no < 1, yes;
+
+  bool glass_has_backface_specular_light = two_sided && is_hollow == yes && (use_glass_backface_light == yes);
 
   if (glass_has_backface_specular_light)
   {

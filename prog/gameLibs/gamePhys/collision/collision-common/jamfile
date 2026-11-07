@@ -1,5 +1,3 @@
-UseApex = no ;
-
 Root    ?= ../../../../.. ;
 Location = prog/gameLibs/gamePhys/collision/collision-common/.. ;
 

@@ -16,6 +16,7 @@
 #include <startup/dag_globalSettings.h>
 #include <EASTL/optional.h>
 #include <EASTL/shared_ptr.h>
+#include <EASTL/tuple.h>
 #include <EASTL/unique_ptr.h>
 #include <imgui/imgui.h>
 #include <gui/dag_imgui.h>
@@ -29,12 +30,13 @@ static ComputeShaderElement *sunTilesPass = nullptr;
 static ComputeShaderElement *sunBlurPass = nullptr;
 static ComputeShaderElement *localPass = nullptr;
 static ComputeShaderElement *stabilizePass = nullptr;
+static ComputeShaderElement *rayReconstructionPass = nullptr;
 
 static int rt_direct_lighting_resolutionVarId = -1;
 static int rt_direct_lighting_resolutionIVarId = -1;
 static int rt_direct_lighting_full_resolutionIVarId = -1;
 static int rtsm_bindless_slotVarId = -1;
-static int rtsm_is_translucentVarId = -1;
+static int rtsm_renderedVarId = -1;
 static int csm_bindless_slotVarId = -1;
 static int csm_sampler_bindless_slotVarId = -1;
 static int vsm_bindless_slotVarId = -1;
@@ -49,6 +51,7 @@ static int rt_direct_lighting_frame_paramsVarId = -1;
 static int rt_direct_lighting_dynamic_lightsVarId = -1;
 static int precomputed_dynamic_lightsVarId = -1;
 static int render_direct_lights_use_tilingVarId = -1;
+static int render_direct_lights_screen_sizeVarId = -1;
 static int use_precomputed_dynamic_lightsVarId = -1;
 static int rtsm_has_nukeVarId = -1;
 static int world_view_posVarId = -1;
@@ -104,7 +107,7 @@ void initialize()
   rt_direct_lighting_resolutionIVarId = get_shader_variable_id("rt_direct_lighting_resolutionI");
   rt_direct_lighting_full_resolutionIVarId = get_shader_variable_id("rt_direct_lighting_full_resolutionI");
   rtsm_bindless_slotVarId = get_shader_variable_id("rtsm_bindless_slot");
-  rtsm_is_translucentVarId = get_shader_variable_id("rtsm_is_translucent", true);
+  rtsm_renderedVarId = get_shader_variable_id("rtsm_rendered");
   csm_bindless_slotVarId = get_shader_variable_id("csm_bindless_slot", true);
   csm_sampler_bindless_slotVarId = get_shader_variable_id("csm_sampler_bindless_slot", true);
   vsm_bindless_slotVarId = get_shader_variable_id("vsm_bindless_slot", true);
@@ -119,6 +122,7 @@ void initialize()
   rt_direct_lighting_dynamic_lightsVarId = get_shader_variable_id("rt_direct_lighting_dynamic_lights");
   precomputed_dynamic_lightsVarId = get_shader_variable_id("precomputed_dynamic_lights");
   render_direct_lights_use_tilingVarId = get_shader_variable_id("render_direct_lights_use_tiling", true);
+  render_direct_lights_screen_sizeVarId = get_shader_variable_id("render_direct_lights_screen_size", true);
   use_precomputed_dynamic_lightsVarId = get_shader_variable_id("use_precomputed_dynamic_lights", true);
   rtsm_has_nukeVarId = get_shader_variable_id("rtsm_has_nuke");
   world_view_posVarId = get_shader_variable_id("world_view_pos");
@@ -136,6 +140,8 @@ void initialize()
     localPass = new_compute_shader("rt_direct_lighting_local");
   if (!stabilizePass)
     stabilizePass = new_compute_shader("rt_direct_lighting_stabilize");
+  if (!rayReconstructionPass)
+    rayReconstructionPass = new_compute_shader("rt_direct_lighting_rr");
 
   if (bindless_range < 0)
     bindless_range = d3d::allocate_bindless_resource_range(D3DResourceType::TEX, bindless_texture_count);
@@ -176,6 +182,7 @@ void teardown()
   safe_delete(sunBlurPass);
   safe_delete(localPass);
   safe_delete(stabilizePass);
+  safe_delete(rayReconstructionPass);
   if (bindless_range >= 0)
   {
     d3d::free_bindless_resource_range(D3DResourceType::TEX, bindless_range, bindless_texture_count);
@@ -183,25 +190,17 @@ void teardown()
   }
   frame_state = FrameState();
   ShaderGlobal::set_int(rtsm_bindless_slotVarId, -1);
+  ShaderGlobal::set_int(rtsm_renderedVarId, 0);
   clean_shvars();
 }
 
 bool is_initialized()
 {
-  return sunTracePass && sunFillPass && sunTilesPass && sunBlurPass && localPass && stabilizePass && bindless_range >= 0;
+  return sunTracePass && sunFillPass && sunTilesPass && sunBlurPass && localPass && stabilizePass && rayReconstructionPass &&
+         bindless_range >= 0;
 }
 
-using TexHandle = dafg::VirtualResourceHandle<BaseTexture, true, false>;
-using FrameParamsHandle = dafg::VirtualResourceHandle<const FrameParams, false, false>;
-using RenderedHandle = dafg::VirtualResourceHandle<bool, false, false>;
 using SharedNodeParams = eastl::shared_ptr<const NodeParams>;
-
-struct PassContext
-{
-  SharedNodeParams params;
-  FrameParamsHandle frameParams;
-  dafg::AutoResolutionRequest<2> resolution;
-};
 
 static IPoint2 tile_count(const IPoint2 &resolution)
 {
@@ -216,64 +215,6 @@ static uint32_t sun_sample_dwords(const IPoint2 &resolution)
 {
   const IPoint2 tiles = tile_count(resolution);
   return tiles.x * tiles.y * (RTDL_TILE_W / RTDL_SUN_BLOCK) * (RTDL_TILE_H / RTDL_SUN_BLOCK);
-}
-
-static dafg::Texture2dCreateInfo screen_texture(dafg::Registry registry, const NodeParams &params, unsigned int fmt)
-{
-  return {TEXCF_UNORDERED | fmt, registry.getResolution<2>(params.resolutionName)};
-}
-
-static dafg::Texture2dCreateInfo screen_texture_array(dafg::Registry registry, const NodeParams &params, unsigned int fmt,
-  uint32_t layers)
-{
-  return {TEXCF_UNORDERED | fmt, registry.getResolution<2>(params.resolutionName), 1, layers};
-}
-
-static dafg::Texture2dCreateInfo tile_texture(const NodeParams &params)
-{
-  return {TEXCF_UNORDERED | TEXFMT_R32UI, tile_count(params.resolution)};
-}
-
-static void read_texture(dafg::Registry registry, const char *name)
-{
-  registry.readTexture(name).atStage(dafg::Stage::CS).bindToShaderVar(name);
-}
-
-static void read_buffer(dafg::Registry registry, const char *name)
-{
-  registry.read(name).buffer().atStage(dafg::Stage::CS).bindToShaderVar(name);
-}
-
-static void read_buffer_history(dafg::Registry registry, const char *name, const char *shader_var)
-{
-  registry.historyFor(name).buffer().atStage(dafg::Stage::CS).bindToShaderVar(shader_var);
-}
-
-static void read_history(dafg::Registry registry, const char *name, const char *shader_var)
-{
-  registry.readTextureHistory(name).atStage(dafg::Stage::CS).bindToShaderVar(shader_var);
-}
-
-static TexHandle create_texture(dafg::Registry registry, const char *name, const dafg::Texture2dCreateInfo &info)
-{
-  return registry.create(name).texture(info).atStage(dafg::Stage::CS).bindToShaderVar(name).handle();
-}
-
-static TexHandle create_history_texture(dafg::Registry registry, const char *name, const dafg::Texture2dCreateInfo &info)
-{
-  return registry.create(name)
-    .texture(info)
-    .withHistory(dafg::History::ClearZeroOnFirstFrame)
-    .atStage(dafg::Stage::CS)
-    .bindToShaderVar(name)
-    .handle();
-}
-
-static PassContext declare_pass(dafg::Registry registry, const SharedNodeParams &params)
-{
-  if (params->declareInputs)
-    params->declareInputs(registry);
-  return {params, registry.readBlob<FrameParams>(frame_params_blob_name).handle(), registry.getResolution<2>(params->resolutionName)};
 }
 
 static void set_frame_shader_vars(const FrameParams &params, const IPoint2 &full_resolution)
@@ -296,14 +237,14 @@ static void set_frame_shader_vars(const FrameParams &params, const IPoint2 &full
   ShaderGlobal::set_int(rtsm_has_nukeVarId, params.hasNuke ? 1 : 0);
 }
 
-static const FrameParams *begin_pass(const PassContext &ctx)
+static const FrameParams *begin_pass(const NodeParams &node, const FrameParams &params,
+  const dafg::AutoResolutionRequest<2> &full_resolution)
 {
-  const FrameParams &params = ctx.frameParams.ref();
   if (!params.render || !params.ctxId || !is_initialized())
     return nullptr;
 
   const int frame = int(dagor_frame_no());
-  const IPoint2 fullResolution = ctx.resolution.get();
+  const IPoint2 fullResolution = full_resolution.get();
   if (frame_state.frame != frame)
   {
     const IPoint2 &dynamic = params.dynamicResolution;
@@ -316,12 +257,12 @@ static const FrameParams *begin_pass(const PassContext &ctx)
     frame_state.historyValid = consecutive && !params.resetHistory;
   }
 
-  if (ctx.params->setShaderState)
-    ctx.params->setShaderState();
+  if (node.setShaderState)
+    node.setShaderState();
   set_viewvecs_to_shader(params.viewTm, params.projTm);
   ShaderGlobal::set_float4(zn_zfarVarId, params.znear, params.zfar, 0, 0);
   set_frame_shader_vars(params, fullResolution);
-  ShaderGlobal::set_int(rt_direct_lighting_dynamic_lightsVarId, ctx.params->dynamicLights ? 1 : 0);
+  ShaderGlobal::set_int(rt_direct_lighting_dynamic_lightsVarId, node.dynamicLights ? 1 : 0);
   return &params;
 }
 
@@ -339,7 +280,7 @@ static void publish_outputs(const FrameParams &params, BaseTexture *sun_shadow, 
 {
   d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + sun_shadow_bindless_index, sun_shadow);
   ShaderGlobal::set_int(rtsm_bindless_slotVarId, bindless_range + sun_shadow_bindless_index);
-  ShaderGlobal::set_int(rtsm_is_translucentVarId, 0);
+  ShaderGlobal::set_int(rtsm_renderedVarId, 1);
 
   if (params.csmTexture)
   {
@@ -347,6 +288,8 @@ static void publish_outputs(const FrameParams &params, BaseTexture *sun_shadow, 
     ShaderGlobal::set_int(csm_bindless_slotVarId, bindless_range + csm_bindless_index);
     ShaderGlobal::set_int(csm_sampler_bindless_slotVarId, d3d::register_bindless_sampler(params.csmSampler));
   }
+  else
+    ShaderGlobal::set_int(csm_bindless_slotVarId, -1);
   if (params.vsmTexture)
   {
     d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + vsm_bindless_index, params.vsmTexture);
@@ -360,6 +303,7 @@ static void publish_outputs(const FrameParams &params, BaseTexture *sun_shadow, 
   if (dynamic_lights)
   {
     ShaderGlobal::set_int(render_direct_lights_use_tilingVarId, 0);
+    ShaderGlobal::set_int4(render_direct_lights_screen_sizeVarId, resolution.x, resolution.y, 0, 0);
     ShaderGlobal::set_int(use_precomputed_dynamic_lightsVarId, 1);
   }
 }
@@ -371,13 +315,27 @@ static dafg::NodeHandle make_sun_trace_node(dafg::NameSpace ns, const SharedNode
       .byteAddressBuffer(sun_sample_dwords(params->resolution))
       .atStage(dafg::Stage::CS)
       .bindToShaderVar("rt_direct_lighting_sun_samples");
-    create_texture(registry, "rt_direct_lighting_tiles", tile_texture(*params));
-    create_texture(registry, "rt_direct_lighting_sun_hit", screen_texture(registry, *params, TEXFMT_R8UI));
-    read_history(registry, "rt_direct_lighting_tiles_dilated", "rt_direct_lighting_tiles_dilated_prev");
-    read_history(registry, "rt_direct_lighting_history", "rt_direct_lighting_history_prev");
+    registry.create("rt_direct_lighting_tiles")
+      .texture({TEXFMT_R32UI | TEXCF_UNORDERED, tile_count(params->resolution)})
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_tiles");
+    registry.create("rt_direct_lighting_sun_hit")
+      .texture({TEXFMT_R8UI | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_sun_hit");
+    registry.readTextureHistory("rt_direct_lighting_tiles_dilated")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_tiles_dilated_prev");
+    registry.readTextureHistory("rt_direct_lighting_history")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_history_prev");
+    if (params->declareInputs)
+      params->declareInputs(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>(frame_params_blob_name).handle();
+    auto resolution = registry.getResolution<2>(params->resolutionName);
 
-    return [ctx = declare_pass(registry, params)]() {
-      const FrameParams *fp = begin_pass(ctx);
+    return [params, frameParamsHndl, resolution]() {
+      const FrameParams *fp = begin_pass(*params, frameParamsHndl.ref(), resolution);
       if (!fp)
         return;
 
@@ -392,16 +350,30 @@ static dafg::NodeHandle make_sun_trace_node(dafg::NameSpace ns, const SharedNode
 static dafg::NodeHandle make_sun_tiles_node(dafg::NameSpace ns, const SharedNodeParams &params)
 {
   return ns.registerNode("sun_tiles", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
-    read_texture(registry, "rt_direct_lighting_tiles");
-    create_history_texture(registry, "rt_direct_lighting_tiles_dilated", tile_texture(*params));
+    registry.readTexture("rt_direct_lighting_tiles").atStage(dafg::Stage::CS).bindToShaderVar("rt_direct_lighting_tiles");
+    registry.create("rt_direct_lighting_tiles_dilated")
+      .texture({TEXFMT_R32UI | TEXCF_UNORDERED, tile_count(params->resolution)})
+      .withHistory(dafg::History::ClearZeroOnFirstFrame)
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_tiles_dilated");
     if (params->dynamicLights)
     {
-      create_history_texture(registry, "rt_direct_lighting_change_tiles", tile_texture(*params));
-      read_history(registry, "rt_direct_lighting_change_tiles", "rt_direct_lighting_change_tiles_prev");
+      registry.create("rt_direct_lighting_change_tiles")
+        .texture({TEXFMT_R32UI | TEXCF_UNORDERED, tile_count(params->resolution)})
+        .withHistory(dafg::History::ClearZeroOnFirstFrame)
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("rt_direct_lighting_change_tiles");
+      registry.readTextureHistory("rt_direct_lighting_change_tiles")
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("rt_direct_lighting_change_tiles_prev");
     }
+    if (params->declareInputs)
+      params->declareInputs(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>(frame_params_blob_name).handle();
+    auto resolution = registry.getResolution<2>(params->resolutionName);
 
-    return [ctx = declare_pass(registry, params)]() {
-      if (!begin_pass(ctx))
+    return [params, frameParamsHndl, resolution]() {
+      if (!begin_pass(*params, frameParamsHndl.ref(), resolution))
         return;
 
       const IPoint2 tiles = tile_count(frame_state.resolution);
@@ -413,25 +385,33 @@ static dafg::NodeHandle make_sun_tiles_node(dafg::NameSpace ns, const SharedNode
 static dafg::NodeHandle make_sun_fill_node(dafg::NameSpace ns, const SharedNodeParams &params)
 {
   return ns.registerNode("sun_fill", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
-    read_history(registry, "rt_direct_lighting_tiles_dilated", "rt_direct_lighting_tiles_dilated_prev");
-    read_history(registry, "rt_direct_lighting_history", "rt_direct_lighting_history_prev");
-    auto sunSamples = registry.modify("rt_direct_lighting_sun_samples")
-                        .buffer()
+    registry.readTextureHistory("rt_direct_lighting_tiles_dilated")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_tiles_dilated_prev");
+    registry.readTextureHistory("rt_direct_lighting_history")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_history_prev");
+    auto sunSamplesHndl = registry.modify("rt_direct_lighting_sun_samples")
+                            .buffer()
+                            .atStage(dafg::Stage::CS)
+                            .bindToShaderVar("rt_direct_lighting_sun_samples")
+                            .handle();
+    auto sunHitHndl = registry.modifyTexture("rt_direct_lighting_sun_hit")
                         .atStage(dafg::Stage::CS)
-                        .bindToShaderVar("rt_direct_lighting_sun_samples")
+                        .bindToShaderVar("rt_direct_lighting_sun_hit")
                         .handle();
-    auto sunHit = registry.modifyTexture("rt_direct_lighting_sun_hit")
-                    .atStage(dafg::Stage::CS)
-                    .bindToShaderVar("rt_direct_lighting_sun_hit")
-                    .handle();
+    if (params->declareInputs)
+      params->declareInputs(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>(frame_params_blob_name).handle();
+    auto resolution = registry.getResolution<2>(params->resolutionName);
 
-    return [ctx = declare_pass(registry, params), sunSamples, sunHit]() {
-      const FrameParams *fp = begin_pass(ctx);
+    return [params, frameParamsHndl, resolution, sunSamplesHndl, sunHitHndl]() {
+      const FrameParams *fp = begin_pass(*params, frameParamsHndl.ref(), resolution);
       if (!fp || sun_quality(*fp) == 0)
         return;
 
-      flush_uav(sunSamples.get());
-      flush_uav(sunHit.get());
+      flush_uav(sunSamplesHndl.get());
+      flush_uav(sunHitHndl.get());
       bvh::bind_resources(fp->ctxId, frame_state.resolution.x);
       sunFillPass->dispatchThreads((frame_state.resolution.x + 1) / 2, frame_state.resolution.y, 1);
       bvh::unbind_resources();
@@ -442,13 +422,25 @@ static dafg::NodeHandle make_sun_fill_node(dafg::NameSpace ns, const SharedNodeP
 static dafg::NodeHandle make_sun_blur_node(dafg::NameSpace ns, const SharedNodeParams &params)
 {
   return ns.registerNode("sun_blur", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
-    read_buffer(registry, "rt_direct_lighting_sun_samples");
-    read_texture(registry, "rt_direct_lighting_tiles_dilated");
-    read_texture(registry, "rt_direct_lighting_sun_hit");
-    create_texture(registry, "rt_direct_lighting_sun_spatial", screen_texture(registry, *params, TEXFMT_R8));
+    registry.read("rt_direct_lighting_sun_samples")
+      .buffer()
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_sun_samples");
+    registry.readTexture("rt_direct_lighting_tiles_dilated")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_tiles_dilated");
+    registry.readTexture("rt_direct_lighting_sun_hit").atStage(dafg::Stage::CS).bindToShaderVar("rt_direct_lighting_sun_hit");
+    registry.create("rt_direct_lighting_sun_spatial")
+      .texture({TEXFMT_R8 | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_sun_spatial");
+    if (params->declareInputs)
+      params->declareInputs(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>(frame_params_blob_name).handle();
+    auto resolution = registry.getResolution<2>(params->resolutionName);
 
-    return [ctx = declare_pass(registry, params)]() {
-      if (!begin_pass(ctx))
+    return [params, frameParamsHndl, resolution]() {
+      if (!begin_pass(*params, frameParamsHndl.ref(), resolution))
         return;
 
       sunBlurPass->dispatchThreads(frame_state.resolution.x, frame_state.resolution.y, 1);
@@ -459,17 +451,39 @@ static dafg::NodeHandle make_sun_blur_node(dafg::NameSpace ns, const SharedNodeP
 static dafg::NodeHandle make_local_node(dafg::NameSpace ns, const SharedNodeParams &params)
 {
   return ns.registerNode("local", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
-    read_buffer_history(registry, "rt_direct_lighting_shadows", "rt_direct_lighting_shadows_prev");
-    read_history(registry, "rt_direct_lighting_history", "rt_direct_lighting_history_prev");
-    read_history(registry, "rt_direct_lighting_change_tiles", "rt_direct_lighting_change_tiles_prev");
-    create_texture(registry, "rt_direct_lighting_shadow_samples", screen_texture(registry, *params, TEXFMT_R32G32UI));
-    create_texture(registry, "rt_direct_lighting_normals", screen_texture(registry, *params, TEXFMT_R8UI));
-    create_texture(registry, "rt_direct_lighting_radiance",
-      screen_texture_array(registry, *params, TEXFMT_R11G11B10F, RTDL_RADIANCE_LAYERS));
-    create_texture(registry, "rt_direct_lighting_unshadowed", screen_texture(registry, *params, TEXFMT_R11G11B10F));
+    registry.historyFor("rt_direct_lighting_shadows")
+      .buffer()
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_shadows_prev");
+    registry.readTextureHistory("rt_direct_lighting_history")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_history_prev");
+    registry.readTextureHistory("rt_direct_lighting_change_tiles")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_change_tiles_prev");
+    registry.create("rt_direct_lighting_shadow_samples")
+      .texture({TEXFMT_R32G32UI | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_shadow_samples");
+    registry.create("rt_direct_lighting_normals")
+      .texture({TEXFMT_R8UI | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_normals");
+    registry.create("rt_direct_lighting_radiance")
+      .texture({TEXFMT_R11G11B10F | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName), 1, RTDL_RADIANCE_LAYERS})
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_radiance");
+    registry.create("rt_direct_lighting_unshadowed")
+      .texture({TEXFMT_R11G11B10F | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_unshadowed");
+    if (params->declareInputs)
+      params->declareInputs(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>(frame_params_blob_name).handle();
+    auto resolution = registry.getResolution<2>(params->resolutionName);
 
-    return [ctx = declare_pass(registry, params)]() {
-      const FrameParams *fp = begin_pass(ctx);
+    return [params, frameParamsHndl, resolution]() {
+      const FrameParams *fp = begin_pass(*params, frameParamsHndl.ref(), resolution);
       if (!fp)
         return;
 
@@ -480,67 +494,130 @@ static dafg::NodeHandle make_local_node(dafg::NameSpace ns, const SharedNodePara
   });
 }
 
-struct LocalOutputs
-{
-  TexHandle changeTiles;
-  TexHandle output;
-};
-
 static dafg::NodeHandle make_stabilize_node(dafg::NameSpace ns, const SharedNodeParams &params)
 {
   return ns.registerNode("stabilize", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
-    read_buffer(registry, "rt_direct_lighting_sun_samples");
-    read_texture(registry, "rt_direct_lighting_tiles_dilated");
-    read_texture(registry, "rt_direct_lighting_sun_hit");
-    read_texture(registry, "rt_direct_lighting_sun_spatial");
-    read_history(registry, "rt_direct_lighting_history", "rt_direct_lighting_history_prev");
-    create_history_texture(registry, "rt_direct_lighting_history", screen_texture(registry, *params, TEXFMT_R32G32UI));
-    auto sunShadow = create_texture(registry, sun_shadow_texture_name, screen_texture(registry, *params, TEXCF_RTARGET | TEXFMT_R8));
-    auto rendered = registry.createBlob<bool>(rendered_blob_name).handle();
+    registry.read("rt_direct_lighting_sun_samples")
+      .buffer()
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_sun_samples");
+    registry.readTexture("rt_direct_lighting_tiles_dilated")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_tiles_dilated");
+    registry.readTexture("rt_direct_lighting_sun_hit").atStage(dafg::Stage::CS).bindToShaderVar("rt_direct_lighting_sun_hit");
+    registry.readTexture("rt_direct_lighting_sun_spatial").atStage(dafg::Stage::CS).bindToShaderVar("rt_direct_lighting_sun_spatial");
+    registry.readTextureHistory("rt_direct_lighting_history")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_history_prev");
+    registry.create("rt_direct_lighting_history")
+      .texture({TEXFMT_R32G32UI | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+      .withHistory(dafg::History::ClearZeroOnFirstFrame)
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_history");
+    auto sunShadowHndl = registry.create(sun_shadow_texture_name)
+                           .texture({TEXFMT_R8 | TEXCF_RTARGET | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+                           .atStage(dafg::Stage::CS)
+                           .bindToShaderVar("rt_direct_lighting_sun_shadow")
+                           .handle();
+    auto renderedHndl = registry.createBlob<bool>(rendered_blob_name).handle();
 
-    eastl::unique_ptr<LocalOutputs> local;
+    eastl::optional<dafg::VirtualResourceHandle<BaseTexture, true, false>> outputHndl, changeTilesHndl;
     if (params->dynamicLights)
     {
-      read_texture(registry, "rt_direct_lighting_shadow_samples");
-      read_texture(registry, "rt_direct_lighting_normals");
-      read_texture(registry, "rt_direct_lighting_radiance");
-      read_texture(registry, "rt_direct_lighting_unshadowed");
-      read_buffer_history(registry, "rt_direct_lighting_shadows", "rt_direct_lighting_shadows_prev");
+      registry.readTexture("rt_direct_lighting_shadow_samples")
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("rt_direct_lighting_shadow_samples");
+      registry.readTexture("rt_direct_lighting_normals").atStage(dafg::Stage::CS).bindToShaderVar("rt_direct_lighting_normals");
+      registry.readTexture("rt_direct_lighting_radiance").atStage(dafg::Stage::CS).bindToShaderVar("rt_direct_lighting_radiance");
+      registry.readTexture("rt_direct_lighting_unshadowed").atStage(dafg::Stage::CS).bindToShaderVar("rt_direct_lighting_unshadowed");
+      registry.historyFor("rt_direct_lighting_shadows")
+        .buffer()
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("rt_direct_lighting_shadows_prev");
       registry.create("rt_direct_lighting_shadows")
         .byteAddressBuffer(shadow_dwords(params->resolution))
         .withHistory(dafg::History::ClearZeroOnFirstFrame)
         .atStage(dafg::Stage::CS)
         .bindToShaderVar("rt_direct_lighting_shadows");
-      auto output = registry.create(output_texture_name)
-                      .texture(screen_texture(registry, *params, TEXFMT_R11G11B10F))
-                      .atStage(dafg::Stage::CS)
-                      .useAs(dafg::Usage::SHADER_RESOURCE)
-                      .handle();
-      auto changeTiles = registry.modifyTexture("rt_direct_lighting_change_tiles")
-                           .atStage(dafg::Stage::CS)
-                           .bindToShaderVar("rt_direct_lighting_change_tiles")
-                           .handle();
-      local = eastl::make_unique<LocalOutputs>(LocalOutputs{changeTiles, output});
+      outputHndl = registry.create(output_texture_name)
+                     .texture({TEXFMT_R11G11B10F | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+                     .atStage(dafg::Stage::CS)
+                     .useAs(dafg::Usage::SHADER_RESOURCE)
+                     .handle();
+      changeTilesHndl = registry.modifyTexture("rt_direct_lighting_change_tiles")
+                          .atStage(dafg::Stage::CS)
+                          .bindToShaderVar("rt_direct_lighting_change_tiles")
+                          .handle();
     }
+    if (params->declareInputs)
+      params->declareInputs(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>(frame_params_blob_name).handle();
+    auto resolution = registry.getResolution<2>(params->resolutionName);
 
-    return [ctx = declare_pass(registry, params), local = eastl::move(local), sunShadow, rendered]() {
-      rendered.ref() = false;
-      const FrameParams *fp = begin_pass(ctx);
+    auto resources = eastl::make_tuple(frameParamsHndl, resolution, sunShadowHndl, renderedHndl, outputHndl, changeTilesHndl);
+    return [params, resources = eastl::make_unique<decltype(resources)>(resources)]() {
+      auto [frameParamsHndl, resolution, sunShadowHndl, renderedHndl, outputHndl, changeTilesHndl] = *resources;
+      renderedHndl.ref() = false;
+      const FrameParams *fp = begin_pass(*params, frameParamsHndl.ref(), resolution);
       if (!fp)
       {
         ShaderGlobal::set_int(rtsm_bindless_slotVarId, -1);
+        ShaderGlobal::set_int(rtsm_renderedVarId, 0);
         return;
       }
 
-      if (local)
+      if (outputHndl)
       {
-        ShaderGlobal::set_texture(precomputed_dynamic_lightsVarId, local->output.get());
-        flush_uav(local->changeTiles.get());
+        ShaderGlobal::set_texture(precomputed_dynamic_lightsVarId, outputHndl->get());
+        flush_uav(changeTilesHndl->get());
       }
       stabilizePass->dispatchThreads(frame_state.resolution.x, frame_state.resolution.y, 1);
 
-      publish_outputs(*fp, sunShadow.get(), local != nullptr);
-      rendered.ref() = true;
+      publish_outputs(*fp, sunShadowHndl.get(), outputHndl.has_value());
+      renderedHndl.ref() = true;
+    };
+  });
+}
+
+static dafg::NodeHandle make_ray_reconstruction_node(dafg::NameSpace ns, const SharedNodeParams &params)
+{
+  return ns.registerNode("rr_trace", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
+    auto sunShadowHndl = registry.create(sun_shadow_texture_name)
+                           .texture({TEXFMT_R8 | TEXCF_RTARGET | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+                           .atStage(dafg::Stage::CS)
+                           .bindToShaderVar("rt_direct_lighting_sun_shadow")
+                           .handle();
+    auto renderedHndl = registry.createBlob<bool>(rendered_blob_name).handle();
+    eastl::optional<dafg::VirtualResourceHandle<BaseTexture, true, false>> outputHndl;
+    if (params->dynamicLights)
+      outputHndl = registry.create(output_texture_name)
+                     .texture({TEXFMT_R11G11B10F | TEXCF_UNORDERED, registry.getResolution<2>(params->resolutionName)})
+                     .atStage(dafg::Stage::CS)
+                     .useAs(dafg::Usage::SHADER_RESOURCE)
+                     .handle();
+    if (params->declareInputs)
+      params->declareInputs(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>(frame_params_blob_name).handle();
+    auto resolution = registry.getResolution<2>(params->resolutionName);
+
+    return [params, frameParamsHndl, resolution, outputHndl, sunShadowHndl, renderedHndl]() {
+      renderedHndl.ref() = false;
+      const FrameParams *fp = begin_pass(*params, frameParamsHndl.ref(), resolution);
+      if (!fp)
+      {
+        ShaderGlobal::set_int(rtsm_bindless_slotVarId, -1);
+        ShaderGlobal::set_int(rtsm_renderedVarId, 0);
+        return;
+      }
+
+      if (outputHndl)
+        ShaderGlobal::set_texture(precomputed_dynamic_lightsVarId, outputHndl->get());
+      bvh::bind_resources(fp->ctxId, frame_state.resolution.x);
+      rayReconstructionPass->dispatchThreads(frame_state.resolution.x, frame_state.resolution.y, 1);
+      bvh::unbind_resources();
+
+      publish_outputs(*fp, sunShadowHndl.get(), outputHndl.has_value());
+      renderedHndl.ref() = true;
     };
   });
 }
@@ -590,37 +667,56 @@ static bool is_radiance_debug_view(int view)
          view == RTDL_DEBUG_SLOT_RADIANCE;
 }
 
-static void read_optional_texture(dafg::Registry registry, const char *name)
-{
-  registry.readTexture(name).atStage(dafg::Stage::CS).bindToShaderVar(name).optional();
-}
-
-static void read_optional_buffer(dafg::Registry registry, const char *name)
-{
-  registry.read(name).buffer().atStage(dafg::Stage::CS).bindToShaderVar(name).optional();
-}
-
 static dafg::NodeHandle make_debug_node(dafg::NameSpace ns, const SharedNodeParams &params)
 {
   return ns.registerNode("debug", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
-    read_optional_buffer(registry, "rt_direct_lighting_sun_samples");
-    read_optional_texture(registry, "rt_direct_lighting_tiles_dilated");
-    read_optional_texture(registry, "rt_direct_lighting_sun_spatial");
-    read_optional_texture(registry, "rt_direct_lighting_history");
+    registry.read("rt_direct_lighting_sun_samples")
+      .buffer()
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_sun_samples")
+      .optional();
+    registry.readTexture("rt_direct_lighting_tiles_dilated")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_tiles_dilated")
+      .optional();
+    registry.readTexture("rt_direct_lighting_sun_spatial")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_sun_spatial")
+      .optional();
+    registry.readTexture("rt_direct_lighting_history")
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("rt_direct_lighting_history")
+      .optional();
     if (params->dynamicLights)
     {
-      read_optional_texture(registry, "rt_direct_lighting_shadow_samples");
-      read_optional_texture(registry, "rt_direct_lighting_radiance");
-      read_optional_texture(registry, "rt_direct_lighting_unshadowed");
-      read_optional_texture(registry, "rt_direct_lighting_change_tiles");
-      read_optional_texture(registry, output_texture_name);
-      read_optional_buffer(registry, "rt_direct_lighting_shadows");
+      registry.readTexture("rt_direct_lighting_shadow_samples")
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("rt_direct_lighting_shadow_samples")
+        .optional();
+      registry.readTexture("rt_direct_lighting_radiance")
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("rt_direct_lighting_radiance")
+        .optional();
+      registry.readTexture("rt_direct_lighting_unshadowed")
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("rt_direct_lighting_unshadowed")
+        .optional();
+      registry.readTexture("rt_direct_lighting_change_tiles")
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("rt_direct_lighting_change_tiles")
+        .optional();
+      registry.readTexture(output_texture_name).atStage(dafg::Stage::CS).bindToShaderVar("rt_direct_lighting_output").optional();
+      registry.read("rt_direct_lighting_shadows")
+        .buffer()
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("rt_direct_lighting_shadows")
+        .optional();
     }
-    auto frameParams = registry.readBlob<FrameParams>(frame_params_blob_name).optional().handle();
+    auto frameParamsHndl = registry.readBlob<FrameParams>(frame_params_blob_name).optional().handle();
 
-    return [frameParams, resolution = registry.getResolution<2>(params->resolutionName), dynamicLights = params->dynamicLights]() {
-      const FrameParams *fp = frameParams.get();
+    return [frameParamsHndl, resolution = registry.getResolution<2>(params->resolutionName), dynamicLights = params->dynamicLights]() {
+      const FrameParams *fp = frameParamsHndl.get();
       Texture *target = debug_texture.getTex2D();
       if (!fp || !fp->render || !debugPass || !target || frame_state.frame != int(dagor_frame_no()) ||
           (is_lights_debug_view(debug_view) && !dynamicLights))
@@ -654,7 +750,8 @@ static void close_debug_view()
 
 static void update_debug_view()
 {
-  if (debug_view == RTDL_DEBUG_OFF || !debug_name_space || !debug_node_params || !is_initialized())
+  if (debug_view == RTDL_DEBUG_OFF || !debug_name_space || !debug_node_params || debug_node_params->rayReconstruction ||
+      !is_initialized())
   {
     if (debug_node || debugPass)
       close_debug_view();
@@ -759,6 +856,12 @@ void register_nodes(dafg::NameSpace ns, const NodeParams &params, dag::Vector<da
   G_ASSERT_RETURN(params.resolution.x > 0 && params.resolution.y > 0, );
 
   SharedNodeParams shared = eastl::make_shared<NodeParams>(params);
+  if (params.rayReconstruction)
+  {
+    nodes.emplace_back(make_ray_reconstruction_node(ns, shared));
+    track_debug_node_params(ns, shared);
+    return;
+  }
   nodes.emplace_back(make_sun_trace_node(ns, shared));
   nodes.emplace_back(make_sun_tiles_node(ns, shared));
   nodes.emplace_back(make_sun_fill_node(ns, shared));
@@ -772,6 +875,13 @@ void register_nodes(dafg::NameSpace ns, const NodeParams &params, dag::Vector<da
 #if DAGOR_DBGLEVEL > 0
 static void imguiWindow()
 {
+  if (debug_node_params && debug_node_params->rayReconstruction)
+  {
+    ImGui::TextWrapped("Ray reconstruction: each pixel traces one sun ray, and one ray to a shadow casting light picked in "
+                       "proportion to its unshadowed light. There is no history and no filter, these settings and the debug views "
+                       "do not apply.");
+    return;
+  }
   ImGui::SliderInt("Shadow rays per pixel", &shadow_rays_per_pixel, 1, 3);
   ImGui::SliderInt("Max sun history", &max_sun_history, 1, 63);
   ImGui::SliderFloat("Sun blur scale", &sun_blur_scale, 0, 2);

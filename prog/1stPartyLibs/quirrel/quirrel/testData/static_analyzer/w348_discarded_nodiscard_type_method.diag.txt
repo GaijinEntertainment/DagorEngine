@@ -1,0 +1,213 @@
+WARNING: w348 (discarded-nodiscard) The result of 'len' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:17:0
+
+"abc".len();                  //warning:discarded-nodiscard
+^----------
+"abc".contains("a");          //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'contains' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:18:0
+
+"abc".len();                  //warning:discarded-nodiscard
+"abc".contains("a");          //warning:discarded-nodiscard
+^------------------
+([1, 2]).map(f);              //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'map' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:19:0
+
+"abc".contains("a");          //warning:discarded-nodiscard
+([1, 2]).map(f);              //warning:discarded-nodiscard
+^--------------
+({}).keys();                  //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'keys' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:20:0
+
+([1, 2]).map(f);              //warning:discarded-nodiscard
+({}).keys();                  //warning:discarded-nodiscard
+^----------
+({ a = 1 }).keys();           //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'keys' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:21:0
+
+({}).keys();                  //warning:discarded-nodiscard
+({ a = 1 }).keys();           //warning:discarded-nodiscard
+^-----------------
+(const { a = 1 }).keys();     //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'keys' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:22:0
+
+({ a = 1 }).keys();           //warning:discarded-nodiscard
+(const { a = 1 }).keys();     //warning:discarded-nodiscard
+^-----------------------
+({ map = @(_) null }).map(f);
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'keys' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:24:0
+
+({ map = @(_) null }).map(f);
+({ keys = 1 }).$keys()        //warning:discarded-nodiscard
+^---------------------
+late.$map(f)                  //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'map' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:25:0
+
+({ keys = 1 }).$keys()        //warning:discarded-nodiscard
+late.$map(f)                  //warning:discarded-nodiscard
+^-----------
+a.map(f)                      //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'map' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:26:0
+
+late.$map(f)                  //warning:discarded-nodiscard
+a.map(f)                      //warning:discarded-nodiscard
+^-------
+C.map(f)                      //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'map' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:27:0
+
+a.map(f)                      //warning:discarded-nodiscard
+C.map(f)                      //warning:discarded-nodiscard
+^-------
+s.toupper();                  //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'toupper' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:28:0
+
+C.map(f)                      //warning:discarded-nodiscard
+s.toupper();                  //warning:discarded-nodiscard
+^----------
+(1.5).tointeger();            //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'tointeger' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:29:0
+
+s.toupper();                  //warning:discarded-nodiscard
+(1.5).tointeger();            //warning:discarded-nodiscard
+^----------------
+(1).tostring()                //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'tostring' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:30:0
+
+(1.5).tointeger();            //warning:discarded-nodiscard
+(1).tostring()                //warning:discarded-nodiscard
+^-------------
+true.tostring()               //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'tostring' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:31:0
+
+(1).tostring()                //warning:discarded-nodiscard
+true.tostring()               //warning:discarded-nodiscard
+^--------------
+array(2).map(f)               //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'map' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:32:0
+
+true.tostring()               //warning:discarded-nodiscard
+array(2).map(f)               //warning:discarded-nodiscard
+^--------------
+format("%d", 1).len()         //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'len' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:33:0
+
+array(2).map(f)               //warning:discarded-nodiscard
+format("%d", 1).len()         //warning:discarded-nodiscard
+^--------------------
+split_by_chars("a,b", ",").map(f) //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'map' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:34:0
+
+format("%d", 1).len()         //warning:discarded-nodiscard
+split_by_chars("a,b", ",").map(f) //warning:discarded-nodiscard
+^--------------------------------
+newthread(f).getstatus()      //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'getstatus' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:35:0
+
+split_by_chars("a,b", ",").map(f) //warning:discarded-nodiscard
+newthread(f).getstatus()      //warning:discarded-nodiscard
+^-----------------------
+function mk(): string { return "a" }
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'len' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:39:0
+
+let fs = format("%d", 1)
+fs.len()                      //warning:discarded-nodiscard
+^-------
+math.sqrt(4.0).tointeger()    //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'tointeger' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:40:0
+
+fs.len()                      //warning:discarded-nodiscard
+math.sqrt(4.0).tointeger()    //warning:discarded-nodiscard
+^-------------------------
+s?.len()                      //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'len' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:41:0
+
+math.sqrt(4.0).tointeger()    //warning:discarded-nodiscard
+s?.len()                      //warning:discarded-nodiscard
+^-------
+format?("%d", 1).len()        //warning:named-like-should-return
+
+
+WARNING: w238 (named-like-should-return) Function name 'len' implies a return value, but its result is never used.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:42:0
+
+s?.len()                      //warning:discarded-nodiscard
+format?("%d", 1).len()        //warning:named-like-should-return
+^---------------------
+
+
+WARNING: w238 (named-like-should-return) Function name 'len' implies a return value, but its result is never used.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:57:0
+
+getroottable().keys()
+$"{s}".len()                  //warning:named-like-should-return
+^-----------
+let _ = a.map(f)
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'subst' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_nodiscard_type_method.nut:70:0
+
+"abc".len() //-discarded-nodiscard
+$"x={s}"                      //warning:discarded-nodiscard
+^-------
+
+

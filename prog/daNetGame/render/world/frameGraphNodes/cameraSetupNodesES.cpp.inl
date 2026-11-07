@@ -7,6 +7,7 @@
 #include <ecs/camera/getActiveCameraSetup.h>
 #include <render/daFrameGraph/daFG.h>
 #include <render/motionVectorAccess.h>
+#include <render/compressedRtOverrideFlag.h>
 
 #include <math/dag_TMatrix4D.h>
 
@@ -150,7 +151,8 @@ static void create_camera_setup_nodes_es(const OnCameraNodeConstruction &evt)
     else
     {
       registry.create("opaque_resolved")
-        .texture({get_frame_render_target_format() | TEXCF_RTARGET | TEXCF_UNORDERED, registry.getResolution<2>("main_view")})
+        .texture({get_frame_render_target_format() | TEXCF_RTARGET | TEXCF_UNORDERED | COMPRESSED_RT_OVERRIDE_FLAG,
+          registry.getResolution<2>("main_view")})
         .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
     }
     {

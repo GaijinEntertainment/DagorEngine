@@ -8,7 +8,6 @@
 #include <shaders/dag_computeShaders.h>
 #include <EASTL/unique_ptr.h>
 
-class TextureIDPair;
 class BaseTexture;
 class ComputeShaderElement;
 

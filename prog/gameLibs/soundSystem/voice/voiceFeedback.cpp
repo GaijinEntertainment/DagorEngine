@@ -28,7 +28,7 @@ static FMOD_RESULT F_CALL dsp_process(FMOD_DSP_STATE *dsp_state, unsigned int le
   return FMOD_OK;
 }
 
-// constraint: the DSP runs at the mixer rate, the software format rate of the FMOD system.
+// the DSP runs at the mixer rate, the software format rate of the FMOD system.
 // The ring holds two windows: below capacity less a window no mixer block can have been rejected.
 VoiceFeedback::VoiceFeedback(unsigned int sample_rate, unsigned int frame_samples, unsigned int mixer_rate, int window_ms) :
   ring(2 * ms_to_samples(window_ms, mixer_rate)),
@@ -83,7 +83,7 @@ VoiceFeedback::~VoiceFeedback()
     speex_resampler_destroy(resampler);
 }
 
-// constraint: the FMOD mixer thread must not wait or allocate, so it only downmixes into the ring
+// the FMOD mixer thread must not wait or allocate, so it only downmixes into the ring
 void VoiceFeedback::processEchoSource(const float *inbuffer, unsigned int nsamples, int nchannels)
 {
   if (!interlocked_acquire_load(enabled))

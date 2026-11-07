@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <unordered_set>
+
 #include "common.h"
 #include "datablk.h"
 
@@ -22,30 +24,28 @@ class RollupPanel
 public:
   RollupPanel(Interface *ip, const HWND dlg_hwnd);
   ~RollupPanel();
-  void onPPChange(const char *group, SchemeType type, const char *name);
+  void onPPChange(const char *group, SchemeType type, const char *name, int component = 0);
   void fillPanel();
 
-  static void correctUserProp(INode *n);
+  static bool correctUserProp(INode *n);
 
   static DataBlock &getTemplateBlk();
 
 private:
   friend class FillCB;
-  friend class SyncMaxParams;
-  friend class SyncPanelParams;
 
   Interface *ip;
   static RollupPanel *instance;
   ControlPtr<IRollupWindow> iRoll;
   static std::unique_ptr<DataBlock> templateBlk;
+  std::unordered_set<AnimHandle> reportedUnparsed;
 
-  void addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable,
-    const std::vector<std::string> &items);
-  void addIntInput(const HWND group_hwnd, int idc, const char *name, int val, bool enable);
-  void addRealInput(const HWND group_hwnd, int idc, const char *name, real val, bool enable);
-  void addStrInput(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable);
-  void addCheck(const HWND group_hwnd, int idc, const char *name, bool val, bool enable);
-  void setNotCommon(const char *group, const char *name, bool nc);
+  void addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, const std::vector<std::string> &items);
+  void addIntInput(const HWND group_hwnd, int idc, const char *name, int val);
+  void addRealInput(const HWND group_hwnd, int idc, const char *name, real val);
+  void addStrInput(const HWND group_hwnd, int idc, const char *name, const char *val);
+  void addCheck(const HWND group_hwnd, int idc, const char *name, bool val);
+  void setNotCommon(const char *group, const char *name, bool nc, int component);
   bool getCheck(const char *group, const char *name);
   std::string getInput(const char *group, const char *name);
   std::string getCombo(const char *group, const char *name);
@@ -53,13 +53,14 @@ private:
   real getRealInput(const char *group, const char *name);
   void bindCommand(INode *n, const char *name, const DataBlock &blk);
 
-  void fillFromBlk(const DataBlock &blk, bool enable);
+  void fillFromBlk(const DataBlock &blk);
 
   struct UserProp
   {
     DataBlock blk{std::make_shared<NameMap>()};
     std::string blkText;
     std::string nonBlkText;
+    bool blkParsed = true;
     bool cfgMigrated = false;
   };
 
@@ -67,7 +68,6 @@ private:
   static void saveCorrectedUserProp(INode *n, const UserProp &prop);
   static void saveBlkToUserPropBuffer(const DataBlock &blk, INode *n, std::string_view additional = {});
 
-  void saveToUserPropBuffer(INode *n, std::string_view additional = {});
   bool updateNCFromUserPropBuffer(INode *n, UserProp &prop);
   bool updateFromUserPropBuffer(INode *n, UserProp &prop);
 

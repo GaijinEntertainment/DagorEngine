@@ -14,7 +14,7 @@ void init(ContextId) {}
 void teardown(ContextId) {}
 void on_unload_scene(ContextId) {}
 void prepare_ri_extra_instances() {}
-void update_ri_gen_instances(ContextId, const dag::Vector<RiGenVisibility *> &, const Point3 &, const Point3 &, const Frustum &,
+void update_ri_gen_instances(ContextId, dag::ConstSpan<RiGenVisibility *>, const Point3 &, const Point3 &, const Frustum &,
   threadpool::JobPriority)
 {}
 void update_ri_extra_instances(ContextId, const Point3 &, const Point3 &, const Frustum &, const Frustum &, const Point3 &,

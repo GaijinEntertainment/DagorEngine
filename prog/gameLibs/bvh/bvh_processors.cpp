@@ -20,6 +20,32 @@
 namespace bvh
 {
 
+void log_process_buffers(ContextId context_id)
+{
+  static constexpr uint32_t logPeriodFrames = 1024;
+  static uint32_t frames = 0;
+  if (++frames % logPeriodFrames != 0)
+    return;
+  size_t live = 0, total = 0, biggestChunk = 0;
+  int allocatorCount = 0, empty = 0;
+  {
+    WinAutoLock lock(context_id->processBufferAllocatorLock);
+    allocatorCount = int(context_id->processBufferAllocator.size());
+    for (auto &allocator : context_id->processBufferAllocator)
+    {
+      live += allocator.first.allocated();
+      total += allocator.first.getHeapSize();
+      empty += allocator.first.getHeapSize() && !allocator.first.allocated();
+      biggestChunk = max(biggestChunk, allocator.first.biggestContigousChunkLeft());
+    }
+  }
+  // the duplicate count is per logged window: exchange, not load + store, since the tidy-up job increments it while this logs
+  if (total)
+    logdbg("BVH process buffers: %d allocators, %dMB live of %dMB, %d empty, %dKB biggest free chunk, %u duplicate regions",
+      allocatorCount, int(live >> 20), int(total >> 20), empty, int(biggestChunk >> 10),
+      context_id->processBufferDuplicateDrops.exchange(0));
+}
+
 static bool allocate(ContextId context_id, UniqueOrReferencedBVHBuffer &buffer, uint32_t &bindless_id, uint32_t size,
   const String &name)
 {
@@ -34,18 +60,25 @@ static bool allocate(ContextId context_id, UniqueOrReferencedBVHBuffer &buffer, 
   {
     static constexpr int pageSize = 4 << 20;
 
+    // pick the page whose biggest free chunk is the smallest that still fits: it keeps the big holes for big requests
     int allocatorUsed = -1;
-    LinearHeapAllocatorSbuffer::RegionId id = {};
-    LinearHeapAllocatorSbuffer::Region region = {};
+    size_t bestChunk = ~size_t(0);
     for (auto [index, allocator] : enumerate(context_id->processBufferAllocator))
     {
-      id = allocator.first.allocateInHeap(size);
-      region = allocator.first.get(id);
-      if (region.size)
+      size_t chunk = allocator.first.biggestContigousChunkLeft();
+      if (chunk >= size && chunk < bestChunk)
       {
         allocatorUsed = index;
-        break;
+        bestChunk = chunk;
       }
+    }
+    LinearHeapAllocatorSbuffer::RegionId id = {};
+    LinearHeapAllocatorSbuffer::Region region = {};
+    if (allocatorUsed >= 0)
+    {
+      auto &allocator = context_id->processBufferAllocator[allocatorUsed].first;
+      id = allocator.allocateInHeap(size);
+      region = allocator.get(id);
     }
 
     if (allocatorUsed < 0)
@@ -115,6 +148,76 @@ static void set_source_offset(int off)
   static int bvh_process_source_offsetVarId = get_shader_variable_id("bvh_process_source_offset");
 
   ShaderGlobal::set_int(bvh_process_source_offsetVarId, off);
+}
+
+static uint32_t processed_vertex_size(const BufferProcessor::ProcessArgs &args, unsigned tc_size)
+{
+  uint32_t vertexSize = sizeof(Point3);
+  if (args.normalOffset != -1)
+    vertexSize += sizeof(uint32_t);
+  if (args.colorOffset != -1)
+    vertexSize += sizeof(uint32_t);
+  if (args.texcoordOffset != -1)
+    vertexSize += tc_size;
+  return vertexSize;
+}
+
+static void set_processed_layout(BufferProcessor::ProcessArgs &args, unsigned tc_size)
+{
+  args.vertexStride = processed_vertex_size(args, tc_size);
+  args.startVertex = 0;
+  args.positionOffset = 0;
+
+  uint32_t offset = sizeof(Point3);
+  if (args.texcoordOffset != -1)
+  {
+    args.texcoordOffset = offset;
+    offset += tc_size;
+  }
+  if (args.normalOffset != -1)
+  {
+    args.normalOffset = offset;
+    offset += sizeof(uint32_t);
+  }
+  if (args.colorOffset != -1)
+    args.colorOffset = offset;
+}
+
+template <typename DispatchDataMapping>
+static void upload_batched_instances(Sbuffer *buffer, const DispatchDataMapping &dispatch_data_mapping, uint32_t byte_size)
+{
+  auto upload = lock_sbuffer<uint8_t>(buffer, 0, byte_size, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+  HANDLE_LOST_DEVICE_STATE(upload, );
+
+  auto cursor = upload.get();
+  for (auto &[_, mapping] : dispatch_data_mapping)
+    for (auto &[_, dispatchData] : mapping)
+    {
+      if (dispatchData.instanceData.empty())
+        continue;
+      size_t dataSize = data_size(dispatchData.instanceData);
+      memcpy(cursor, dispatchData.instanceData.data(), dataSize);
+      cursor += dataSize;
+    }
+}
+
+template <typename DispatchData>
+static void dispatch_and_clear_batch(const ComputeShaderElement *shader, int output_uav_no, Sbuffer *target,
+  DispatchData &dispatch_data, int &dispatches, int &instances)
+{
+  G_ASSERT(dispatch_data.maxVertexCount > 0);
+  d3d::set_rwbuffer(STAGE_CS, output_uav_no, target);
+  uint32_t immediateConst[] = {(uint32_t)instances, (uint32_t)dispatch_data.instanceData.size()};
+  d3d::set_immediate_const(STAGE_CS, immediateConst, 2);
+
+  G_ASSERT(shader);
+  shader->dispatchThreads(dispatch_data.maxVertexCount, dispatch_data.instanceData.size(), 1);
+  dispatches++;
+  instances += dispatch_data.instanceData.size();
+
+  // clear() keeps the capacity for the next frame
+  dispatch_data.instanceData.clear();
+  dispatch_data.maxVertexCount = 0;
 }
 
 void IndexProcessor::process(Sbuffer *source, BVHGeometryBufferWithOffset &processed_buffer, int index_format, int index_count,
@@ -215,13 +318,7 @@ bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, int 
   unsigned tcSize;
   channel_size(args.texcoordFormat == bvhAttributeShort2TC ? VSDT_SHORT2 : args.texcoordFormat, tcSize);
 
-  auto vertexSize = sizeof(Point3);
-  if (args.normalOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.colorOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.texcoordOffset != -1)
-    vertexSize += tcSize;
+  auto vertexSize = processed_vertex_size(args, tcSize);
 
   if (processed_buffer.needAllocation())
   {
@@ -263,26 +360,7 @@ bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, int 
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.vertexStride = vertexSize;
-  args.startVertex = 0;
-  args.positionOffset = 0;
-
-  int offset = sizeof(Point3);
-  if (args.texcoordOffset != -1)
-  {
-    args.texcoordOffset = offset;
-    offset += tcSize;
-  }
-  if (args.normalOffset != -1)
-  {
-    args.normalOffset = offset;
-    offset += sizeof(uint32_t);
-  }
-  if (args.colorOffset != -1)
-  {
-    args.colorOffset = offset;
-    offset += sizeof(uint32_t);
-  }
+  set_processed_layout(args, tcSize);
   return !skip_processing;
 }
 
@@ -298,13 +376,7 @@ bool SkinnedVertexProcessorBatched::process(ContextId context_id, Sbuffer *sourc
   unsigned tcSize;
   channel_size(args.texcoordFormat == bvhAttributeShort2TC ? VSDT_SHORT2 : args.texcoordFormat, tcSize);
 
-  auto vertexSize = sizeof(Point3);
-  if (args.normalOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.colorOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.texcoordOffset != -1)
-    vertexSize += tcSize;
+  auto vertexSize = processed_vertex_size(args, tcSize);
 
   if (processed_buffer.needAllocation())
   {
@@ -360,26 +432,7 @@ bool SkinnedVertexProcessorBatched::process(ContextId context_id, Sbuffer *sourc
     params.morph_uv_size = args.skin.faceMorph.uvSize;
   }
 
-  args.vertexStride = vertexSize;
-  args.startVertex = 0;
-  args.positionOffset = 0;
-
-  int offset = sizeof(Point3);
-  if (args.texcoordOffset != -1)
-  {
-    args.texcoordOffset = offset;
-    offset += tcSize;
-  }
-  if (args.normalOffset != -1)
-  {
-    args.normalOffset = offset;
-    offset += sizeof(uint32_t);
-  }
-  if (args.colorOffset != -1)
-  {
-    args.colorOffset = offset;
-    offset += sizeof(uint32_t);
-  }
+  set_processed_layout(args, tcSize);
   return !skip_processing;
 }
 
@@ -396,8 +449,6 @@ void SkinnedVertexProcessorBatched::unpackVariants(VariantKey key, bool &is_clot
   is_cloth_wind = (key & clothWindVariantBit) != 0;
   is_face_morph = (key & faceMorphVariantBit) != 0;
 }
-
-void SkinnedVertexProcessorBatched::begin() const {}
 
 void SkinnedVertexProcessorBatched::end(bool is_protype_building) const
 {
@@ -441,31 +492,14 @@ void SkinnedVertexProcessorBatched::end(bool is_protype_building) const
       {
         if (dispatchData.instanceData.empty())
           continue;
-        G_ASSERT(dispatchData.maxVertexCount > 0);
-
         if (dispatchKey.instanceDataBuffer != BAD_D3DRESID)
           ShaderGlobal::set_buffer(instance_data_bufferVarId, dispatchKey.instanceDataBuffer);
-        d3d::set_rwbuffer(STAGE_CS, output_uav_no, dispatchKey.targetBuffer);
-        uint32_t immediateConst[] = {(uint32_t)instances, (uint32_t)dispatchData.instanceData.size()};
-        d3d::set_immediate_const(STAGE_CS, immediateConst, 2);
-
-        G_ASSERT(shader);
-        shader->dispatchThreads(dispatchData.maxVertexCount, dispatchData.instanceData.size(), 1);
-        dispatches++;
-        instances += dispatchData.instanceData.size();
+        dispatch_and_clear_batch(shader.get(), output_uav_no, dispatchKey.targetBuffer, dispatchData, dispatches, instances);
       }
     }
     d3d::set_immediate_const(STAGE_CS, nullptr, 0);
   }
   DA_PROFILE_TAG(SkinnedVertexProcessorBatched::end, "dispatches: %d, instances: %d", dispatches, instances);
-
-  // Do NOT free memory, it'll just need to be reallocated next frame and that's slow
-  for (auto &[_, mapping] : dispatchDataMapping)
-    for (auto &[_, dispatchData] : mapping)
-    {
-      dispatchData.instanceData.clear();
-      dispatchData.maxVertexCount = 0;
-    }
 }
 
 void SkinnedVertexProcessorBatched::updateData() const
@@ -487,22 +521,7 @@ void SkinnedVertexProcessorBatched::updateData() const
   }
 
   if (targetSize > 0)
-  {
-    auto upload = lock_sbuffer<uint8_t>(instanceDataBuffer.getBuf(), 0, targetSize * sizeof(BvhSkinnedInstanceData),
-      VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-    HANDLE_LOST_DEVICE_STATE(upload, );
-
-    auto cursor = upload.get();
-    for (auto &[_, mapping] : dispatchDataMapping)
-      for (auto &[_, dispatchData] : mapping)
-      {
-        if (dispatchData.instanceData.empty())
-          continue;
-        size_t dataSize = data_size(dispatchData.instanceData);
-        memcpy(cursor, dispatchData.instanceData.data(), dataSize);
-        cursor += dataSize;
-      }
-  }
+    upload_batched_instances(instanceDataBuffer.getBuf(), dispatchDataMapping, targetSize * sizeof(BvhSkinnedInstanceData));
 }
 
 SkinnedVertexProcessorBatched::DispatchData::~DispatchData() = default;
@@ -596,26 +615,10 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
     params.source_slot = source_buffer_bindless;
   }
 
-  args.vertexStride = vertexSize;
-  args.startVertex = 0;
-  args.positionOffset = 0;
   args.colorOffset = -1;
-
-  int offset = sizeof(Point3);
-  if (args.texcoordOffset != -1)
-  {
-    args.texcoordOffset = offset;
-    offset += tcSize;
-  }
-  if (args.normalOffset != -1)
-  {
-    args.normalOffset = offset;
-    offset += sizeof(uint32_t);
-  }
+  set_processed_layout(args, tcSize);
   return !skip_processing;
 }
-
-void TreeVertexProcessor::begin() const {}
 
 void TreeVertexProcessor::updateData() const
 {
@@ -637,24 +640,7 @@ void TreeVertexProcessor::updateData() const
   }
 
   if (targetSize > 0)
-  {
-    auto upload = lock_sbuffer<uint8_t>(instanceDataBuffer.getBuf(), 0, targetSize * sizeof(BvhTreeInstanceData),
-      VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-    HANDLE_LOST_DEVICE_STATE(upload, );
-
-    auto cursor = upload.get();
-    for (auto &[variantKey, mapping] : dispatchDataMapping)
-    {
-      for (auto &[targetBuffer, dispatchData] : mapping)
-      {
-        if (dispatchData.instanceData.empty())
-          continue;
-        size_t dataSize = data_size(dispatchData.instanceData);
-        memcpy(cursor, dispatchData.instanceData.data(), dataSize);
-        cursor += dataSize;
-      }
-    }
-  }
+    upload_batched_instances(instanceDataBuffer.getBuf(), dispatchDataMapping, targetSize * sizeof(BvhTreeInstanceData));
 }
 
 void TreeVertexProcessor::end(bool is_prototype_buidling) const
@@ -693,31 +679,12 @@ void TreeVertexProcessor::end(bool is_prototype_buidling) const
       ShaderGlobal::set_int(bvh_process_tree_vertices_is_pivotedVarId, isPivoted);
 
       for (auto &[targetBuffer, dispatchData] : mapping)
-      {
-        if (dispatchData.instanceData.empty())
-          continue;
-        G_ASSERT(dispatchData.maxVertexCount > 0);
-        d3d::set_rwbuffer(STAGE_CS, output_uav_no, targetBuffer);
-        uint32_t immediateConst[] = {(uint32_t)instances, (uint32_t)dispatchData.instanceData.size()};
-        d3d::set_immediate_const(STAGE_CS, immediateConst, 2);
-
-        G_ASSERT(shader);
-        shader->dispatchThreads(dispatchData.maxVertexCount, dispatchData.instanceData.size(), 1);
-        dispatches++;
-        instances += dispatchData.instanceData.size();
-      }
+        if (!dispatchData.instanceData.empty())
+          dispatch_and_clear_batch(shader.get(), output_uav_no, targetBuffer, dispatchData, dispatches, instances);
     }
     d3d::set_immediate_const(STAGE_CS, nullptr, 0);
   }
   DA_PROFILE_TAG(TreeVertexProcessor::end, "dispatches: %d, instances: %d", dispatches, instances);
-
-  // Do NOT free memory, it'll just need to be reallocated next frame and that's slow
-  for (auto &[_, mapping] : dispatchDataMapping)
-    for (auto &[_, dispatchData] : mapping)
-    {
-      dispatchData.instanceData.clear();
-      dispatchData.maxVertexCount = 0;
-    }
 }
 
 TreeVertexProcessor::DispatchData::~DispatchData() = default;
@@ -999,13 +966,7 @@ bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, in
   unsigned tcSize;
   channel_size(args.texcoordFormat == bvhAttributeShort2TC ? VSDT_SHORT2 : args.texcoordFormat, tcSize);
 
-  auto vertexSize = sizeof(Point3);
-  if (args.normalOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.colorOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.texcoordOffset != -1)
-    vertexSize += tcSize;
+  auto vertexSize = processed_vertex_size(args, tcSize);
 
   if (processed_buffer.needAllocation())
   {
@@ -1049,26 +1010,7 @@ bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, in
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.vertexStride = vertexSize;
-  args.startVertex = 0;
-  args.positionOffset = 0;
-
-  int offset = sizeof(Point3);
-  if (args.texcoordOffset != -1)
-  {
-    args.texcoordOffset = offset;
-    offset += tcSize;
-  }
-  if (args.normalOffset != -1)
-  {
-    args.normalOffset = offset;
-    offset += sizeof(uint32_t);
-  }
-  if (args.colorOffset != -1)
-  {
-    args.colorOffset = offset;
-    offset += sizeof(uint32_t);
-  }
+  set_processed_layout(args, tcSize);
   return !skip_processing;
 }
 
@@ -1115,13 +1057,7 @@ bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
   unsigned tcSize;
   channel_size(args.texcoordFormat == bvhAttributeShort2TC ? VSDT_SHORT2 : args.texcoordFormat, tcSize);
 
-  auto vertexSize = sizeof(Point3);
-  if (args.normalOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.colorOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.texcoordOffset != -1)
-    vertexSize += tcSize;
+  auto vertexSize = processed_vertex_size(args, tcSize);
 
   if (processed_buffer.needAllocation())
   {
@@ -1184,26 +1120,7 @@ bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.vertexStride = vertexSize;
-  args.startVertex = 0;
-  args.positionOffset = 0;
-
-  int offset = sizeof(Point3);
-  if (args.texcoordOffset != -1)
-  {
-    args.texcoordOffset = offset;
-    offset += tcSize;
-  }
-  if (args.normalOffset != -1)
-  {
-    args.normalOffset = offset;
-    offset += sizeof(uint32_t);
-  }
-  if (args.colorOffset != -1)
-  {
-    args.colorOffset = offset;
-    offset += sizeof(uint32_t);
-  }
+  set_processed_layout(args, tcSize);
   return !skip_processing;
 }
 
@@ -1237,13 +1154,7 @@ bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, int
   unsigned tcSize;
   channel_size(args.texcoordFormat == bvhAttributeShort2TC ? VSDT_SHORT2 : args.texcoordFormat, tcSize);
 
-  auto vertexSize = sizeof(Point3);
-  if (args.normalOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.colorOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.texcoordOffset != -1)
-    vertexSize += tcSize;
+  auto vertexSize = processed_vertex_size(args, tcSize);
 
   G_ASSERT(args.getDeformParamsFn);
 
@@ -1294,25 +1205,7 @@ bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, int
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.vertexStride = vertexSize;
-  args.startVertex = 0;
-
-  int offset = sizeof(Point3);
-  if (args.texcoordOffset != -1)
-  {
-    args.texcoordOffset = offset;
-    offset += tcSize;
-  }
-  if (args.normalOffset != -1)
-  {
-    args.normalOffset = offset;
-    offset += sizeof(uint32_t);
-  }
-  if (args.colorOffset != -1)
-  {
-    args.colorOffset = offset;
-    offset += sizeof(uint32_t);
-  }
+  set_processed_layout(args, tcSize);
   return !skip_processing;
 }
 
@@ -1404,11 +1297,8 @@ bool SplineGenVertexProcessor::process(ContextId context_id, Sbuffer *source, in
   unsigned tcSize;
   channel_size(args.texcoordFormat == bvhAttributeShort2TC ? VSDT_SHORT2 : args.texcoordFormat, tcSize);
 
-  auto vertexSize = sizeof(Point3);
-  if (args.normalOffset != -1)
-    vertexSize += sizeof(uint32_t);
-  if (args.texcoordOffset != -1)
-    vertexSize += tcSize;
+  args.colorOffset = -1;
+  auto vertexSize = processed_vertex_size(args, tcSize);
 
   G_ASSERT(args.getSplineDataFn);
 
@@ -1443,20 +1333,7 @@ bool SplineGenVertexProcessor::process(ContextId context_id, Sbuffer *source, in
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.vertexStride = vertexSize;
-  args.startVertex = 0;
-
-  int offset = sizeof(Point3);
-  if (args.texcoordOffset != -1)
-  {
-    args.texcoordOffset = offset;
-    offset += tcSize;
-  }
-  if (args.normalOffset != -1)
-  {
-    args.normalOffset = offset;
-    offset += sizeof(uint32_t);
-  }
+  set_processed_layout(args, tcSize);
   return !skip_processing;
 }
 

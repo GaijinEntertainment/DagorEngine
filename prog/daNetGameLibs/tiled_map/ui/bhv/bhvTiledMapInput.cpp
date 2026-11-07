@@ -42,7 +42,9 @@ struct TiledMapInputTouchData
 };
 
 
-BhvTiledMapInput::BhvTiledMapInput() : Behavior(STAGE_ACT, F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_INTERNALLY_HANDLE_GAMEPAD_R_STICK) {}
+BhvTiledMapInput::BhvTiledMapInput() :
+  Behavior(STAGE_ACT, F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_HANDLE_TOUCHPAD_PAIR | F_INTERNALLY_HANDLE_GAMEPAD_R_STICK)
+{}
 
 
 void BhvTiledMapInput::initActions()
@@ -98,8 +100,61 @@ static int get_mouse_pan_button(const darg::Element *elem, const BhvTiledMapInpu
 }
 
 
-int BhvTiledMapInput::pointingEvent(
-  ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id, Point2 pos, int accum_res)
+// the world point under pos stays in place, unless the view follows the character
+static void zoom_at(Element *elem, TiledMapContext *ctx, const Point2 &pos, float radius)
+{
+  const float oldRadius = ctx->getVisibleRadius();
+  const Point3 posWorld = ctx->mapToWorld(pos - elem->clippedScreenRect.center());
+  const Point3 oldDelta = ctx->getWorldPos() - posWorld;
+  ctx->setVisibleRadius(radius);
+  g_entity_mgr->broadcastEvent(EventTiledMapZoomed());
+
+  // Most of the time equals to the requested step, but when we reach max or min visible radius =>
+  // `newToOldRadiusRatio` is equals to 1
+  if (!ctx->isViewCentered)
+  {
+    const float newToOldRadiusRatio = ctx->getVisibleRadius() / oldRadius;
+    ctx->setWorldPos(posWorld + Point3(oldDelta.x * newToOldRadiusRatio, oldDelta.y, oldDelta.z * newToOldRadiusRatio));
+  }
+}
+
+
+static void pan_by(Element *elem, TiledMapContext *ctx, const Point2 &screen_delta)
+{
+  const float visRadius = ctx->getVisibleRadius();
+  TMatrix itm;
+  ctx->calcItmFromView(itm);
+  const float minDim = eastl::min(elem->screenCoord.size.x, elem->screenCoord.size.y);
+  const Point2 d(screen_delta.x * visRadius * 2.f / minDim, screen_delta.y * visRadius * 2.f / minDim);
+  ctx->setWorldPos(ctx->getWorldPos() + itm % Point3(-d.x, 0, -d.y));
+  if (ctx->isViewCentered)
+    ctx->setViewCentered(false);
+  g_entity_mgr->broadcastEvent(EventTiledMapPanned());
+}
+
+
+// two pointers move and scale the map: the world point under their center follows it, the scale follows their distance
+static void move_and_scale(Element *elem, TiledMapContext *ctx, const Point2 (&prev)[2], const Point2 (&cur)[2])
+{
+  const Point2 prevCenter = (prev[0] + prev[1]) * 0.5f;
+  const Point2 centerDelta = (cur[0] + cur[1]) * 0.5f - prevCenter;
+  const float prevDist = length(prev[1] - prev[0]), curDist = length(cur[1] - cur[0]);
+  if (prevDist > 20 && curDist > 20 && prevDist != curDist)
+    zoom_at(elem, ctx, prevCenter, ctx->getVisibleRadius() * prevDist / curDist);
+  if (centerDelta != Point2(0, 0))
+    pan_by(elem, ctx, centerDelta);
+}
+
+
+int BhvTiledMapInput::pointingEvent(ElementTree *,
+  Element *elem,
+  InputDevice device,
+  TouchSource /*touch_src*/,
+  InputEvent event,
+  int pointer_id,
+  int button_id,
+  Point2 pos,
+  int accum_res)
 {
   auto strings = cstr.resolveVm(elem->getVM());
   G_ASSERT_RETURN(strings, 0);
@@ -117,26 +172,9 @@ int BhvTiledMapInput::pointingEvent(
   {
     if (elem->hitTest(pos) && !(accum_res & R_PROCESSED))
     {
-      const float oldRadius = tiledMapContext->getVisibleRadius();
-      const Point2 mouseMapPosition = Point2(pos.x - (elem->clippedScreenRect.left() + elem->clippedScreenRect.size().x / 2),
-        pos.y - (elem->clippedScreenRect.top() + elem->clippedScreenRect.size().y / 2));
-      const Point3 mouseWorldPosition = tiledMapContext->mapToWorld(mouseMapPosition);
-      const Point3 oldDelta = tiledMapContext->getWorldPos() - mouseWorldPosition;
-
       int step = button_id; // special case
       const float zoomStep = step > 0 ? 0.9f : 1.1f;
-      tiledMapContext->setVisibleRadius(oldRadius * zoomStep);
-      g_entity_mgr->broadcastEvent(EventTiledMapZoomed());
-
-      // Most of the time equals to `zoomStep`, but when we reach max or min visible radius =>
-      // `newToOldRadiusRatio` is equals to 1 when `zoomStep` could be not equal to 1
-
-      if (!tiledMapContext->isViewCentered)
-      {
-        const float newToOldRadiusRatio = tiledMapContext->getVisibleRadius() / oldRadius;
-        const Point3 delta = Point3(oldDelta.x * newToOldRadiusRatio, oldDelta.y, oldDelta.z * newToOldRadiusRatio);
-        tiledMapContext->setWorldPos(mouseWorldPosition + delta);
-      }
+      zoom_at(elem, tiledMapContext, pos, tiledMapContext->getVisibleRadius() * zoomStep);
       return R_PROCESSED;
     }
     return 0;
@@ -168,48 +206,20 @@ int BhvTiledMapInput::pointingEvent(
     if (itTouch == touchData->touches.end())
       return 0;
 
-    float visRadius = tiledMapContext->getVisibleRadius();
-    TMatrix itm;
-    tiledMapContext->calcItmFromView(itm);
-
     auto idx = eastl::distance(touchData->touches.begin(), itTouch);
     G_ASSERTF_RETURN(idx == 0 || idx == 1, R_PROCESSED, "Distance = %d", int(idx));
 
-    const size_t nTouches = touchData->touches.size();
-
     if (!(accum_res & R_PROCESSED))
     {
-      // zoom
-      if (nTouches == 2)
+      if (touchData->touches.size() == 2)
       {
-        Point2 prevScreen[2] = {touchData->touches[0].curPos, touchData->touches[1].curPos};
-        Point2 curScreen[2] = {touchData->touches[0].curPos, touchData->touches[1].curPos};
+        const Point2 prevScreen[2] = {touchData->touches[0].curPos, touchData->touches[1].curPos};
+        Point2 curScreen[2] = {prevScreen[0], prevScreen[1]};
         curScreen[idx] = pos;
-        float prevDist = length(curScreen[1] - curScreen[0]);
-        float curDist = length(prevScreen[1] - prevScreen[0]);
-        if (prevDist > 20 && curDist > 20)
-        {
-          tiledMapContext->setVisibleRadius(visRadius * curDist / prevDist);
-          visRadius = tiledMapContext->getVisibleRadius();
-
-          g_entity_mgr->broadcastEvent(EventTiledMapZoomed());
-        }
+        move_and_scale(elem, tiledMapContext, prevScreen, curScreen);
       }
-
-      // move
-      if (itTouch->deviceId != DEVID_MOUSE || (itTouch->buttonId == get_mouse_pan_button(elem, cstr)))
-      {
-        Point2 screenDelta = pos - itTouch->curPos;
-        float minDim = eastl::min(elem->screenCoord.size.x, elem->screenCoord.size.y);
-        Point2 d(screenDelta.x * visRadius * 2.f / minDim, screenDelta.y * visRadius * 2.f / minDim);
-        Point3 worldDelta;
-        worldDelta = itm % Point3(-d.x, 0, -d.y);
-
-        tiledMapContext->setWorldPos(tiledMapContext->getWorldPos() + worldDelta / nTouches);
-        if (tiledMapContext->isViewCentered)
-          tiledMapContext->setViewCentered(false);
-        g_entity_mgr->broadcastEvent(EventTiledMapPanned());
-      }
+      else if (itTouch->deviceId != DEVID_MOUSE || (itTouch->buttonId == get_mouse_pan_button(elem, cstr)))
+        pan_by(elem, tiledMapContext, pos - itTouch->curPos);
     }
 
     itTouch->curPos = pos;
@@ -286,7 +296,7 @@ int BhvTiledMapInput::update(UpdateStage /*stage*/, Element *elem, float dt)
   return 0;
 }
 
-SQ_DEF_AUTO_BINDING_MODULE_EX(bind_tiled_map_input_events, "tiledMap.inputEvents", sq::VM_UI_ALL)
+SQ_DEF_AUTO_BINDING_MODULE_EX(bind_tiled_map_input_events, "tiledMap.inputEvents", sq::VM_UI)
 {
   Sqrat::Table tbl = ecs::sq::EventsBind<EventTiledMapZoomed, EventTiledMapPanned>::bindall(vm);
 

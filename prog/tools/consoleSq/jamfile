@@ -3,6 +3,13 @@ Location = prog/tools/consoleSq ;
 include $(Root)/prog/tools/tools_setup.jam ;
 ConsoleExe = yes ;
 
+# -sGameCodegen=yes: the float mode and SSE level of games (TBAA follows -fp:fast),
+# to measure the VM as games run it (bench/vmperf)
+if $(GameCodegen) = yes {
+  VCMathOption = -fp:fast ;
+  SSEVersion = 4 ;
+}
+
 if $(Config) = rel
 {
   PlatformSpec ?= clang ;
@@ -22,20 +29,18 @@ UseQuirrel = yes ;
 TargetType  = exe ;
 Target      = util/csq ;
 include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
+if $(GameCodegen) = yes { OutDir = $(Root)/_output/csq-game-codegen ; } # keep the tools csq.exe
 
 AddIncludes =
   $(Root)/prog/3rdPartyLibs/jsoncpp/include
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/gameLibs
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/squirrel
 ;
 
 AddLibs =
 ;
-
-if $(Platform) in windows {
-  AddLibs += Shell32.lib ;
-}
 
 Sources =
   consoleSq.cpp
@@ -73,6 +78,7 @@ UseProgLibs =
   gameLibs/quirrel/frp
   gameLibs/quirrel/sqJwt
   gameLibs/quirrel/base64
+  gameLibs/quirrel/sqPacked
   gameLibs/quirrel/asyncRuntime
 
   gameLibs/asyncHTTPClient

@@ -48,7 +48,7 @@ public:
   unsigned __stdcall getGameResClassId() const override { return RendInstGameResClassId; }
   unsigned __stdcall getGameResVersion() const override
   {
-    const int ord_ver = 11;
+    const int ord_ver = 13;
     const int base_ver = 26 + ord_ver * 6 + (splitMatToDescBin && !shadermeshbuilder_strip_d3dres ? 3 : 0);
     return base_ver + (ShaderMeshData::preferZstdPacking ? (ShaderMeshData::allowOodlePacking ? 2 : 1) : 0);
   }
@@ -63,8 +63,7 @@ public:
     auto vblk = a.props.getBlockByName("voxel_impostor");
     if (vblk ? vblk->getBool("enabled", true) : defaultVoxelParams.getBool("enabled", false))
     {
-      const char *basePath = a.getFolderPath();
-      voxel_cache_filename.printf(260, "%s/impostors/%s_%s", basePath, a.getName(), voxelcache::VOXEL_CACHE_NAME);
+      voxel_cache_filename = voxelcache::make_cache_fname(voxelCachePath, a.getName());
       return true;
     }
     return false;
@@ -181,6 +180,7 @@ public:
       a.props.getBool("allowProxyMat", false) ? &a.getMgr() : nullptr, &log);
     RenderableInstanceLodsResSrc *resSrc = new RenderableInstanceLodsResSrc(&pm);
     resSrc->log = &log;
+    resSrc->atestValidationCtx = atest_validation_ctx;
     resSrc->assetName = a.getName();
 
     const DataBlock *ri_blk = appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("rendInst");
@@ -342,6 +342,7 @@ public:
   LodValidationSettings lvs;
   UvValidationSettings uvs;
   DataBlock defaultVoxelParams;
+  String voxelCachePath;
   bool splitMatToDescBin = false;
   bool skipMostDetailedLOD = false;
   RendInstExporter()
@@ -370,6 +371,7 @@ public:
                             ->getBool("skipMostDetailedLOD", false);
 
     defaultVoxelParams = *appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("voxel_impostor");
+    voxelCachePath = voxelcache::get_cache_path(appBlkCopy);
   }
 };
 

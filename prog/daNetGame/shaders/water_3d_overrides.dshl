@@ -29,6 +29,9 @@ float water_reflection_hdr_multiplier = 1;
 float object_reflection_distortion = 0.05;
 float foam_shadow_brightness_artistic = 0.02;
 
+// Radius around the camera where the water height is modified.
+float water_height_override_radius = 8;
+
 int water_rt_enabled = 0;
 interval water_rt_enabled: no<1, yes;
 
@@ -104,6 +107,17 @@ macro USE_WATER_RAIN_RIPPLES(stage)
   }
 endmacro
 
+macro USE_WATER_HEIGHT_OVERRIDE(stage)
+  (stage) { water_height_override_radius_sq@f1 = water_height_override_radius * water_height_override_radius; }
+  hlsl(stage) {
+    // force_cpu_water_level_around_camera moves this water off the water heightmap.
+    bool isWaterHeightOverridden(float3 worldPos)
+    {
+      return lengthSq(worldPos.xz - world_view_pos.xz) < water_height_override_radius_sq;
+    }
+  }
+endmacro
+
 macro INIT_WATER_REFLECTIONS_SAMPLING(code)
   USING_SKY_ATTENUATION(code)
   (code)
@@ -119,12 +133,21 @@ macro INIT_WATER_REFLECTIONS_SAMPLING(code)
   }
   if (clouds_panorama_mip == NULL)
   {
-    (ps) { water_planar_reflection_clouds@smp2d = water_planar_reflection_clouds; }
-    hlsl
+    hlsl(code)
     {
       #define NUM_PROBE_MIPS 5.h
     }
-    WATER_PLANAR_PS()
+    if (water_planar_reflection_clouds == NULL)
+    {
+      SKIP_SKY_POLARIZATION_FILTER_TERM_INIT()
+      INIT_ENVI_SPECULAR_BASE(ps)
+      INIT_ENVI_SPECULAR_SAMPLE(ps)
+    }
+    else
+    {
+      (ps) { water_planar_reflection_clouds@smp2d = water_planar_reflection_clouds; }
+      WATER_PLANAR_PS()
+    }
   }
   else
   {
@@ -140,6 +163,13 @@ macro INIT_WATER_REFLECTIONS_SAMPLING(code)
 endmacro
 
 macro USE_WATER_REFLECTIONS_SAMPLING(code)
+  if (clouds_panorama_mip == NULL)
+  {
+    if (water_planar_reflection_clouds == NULL)
+    {
+      USE_ENVI_SPECULAR_SAMPLE(code)
+    }
+  }
   hlsl(code)
   {
     struct PlanarReflections
@@ -214,33 +244,37 @@ macro USE_WATER_REFLECTIONS_SAMPLING(code)
 
     EnvReflections getEnvReflections(const ViewData vd, const PlanarReflections planarReflections)
     {
-      ##if clouds_panorama_mip == NULL
+      ##if clouds_panorama_mip == NULL && water_planar_reflection_clouds == NULL
+        half3 enviReflection = sample_envi_probe(float4(vd.reflectSampleDir, vd.enviMip * water_reflection_roughness_mip_scale)).rgb;
+        half cloudsAlpha = 0;
+        half enviMask = 1;
+      ##elif clouds_panorama_mip == NULL
         float2 reflectionTC = reflectionToPlanarTC(vd.worldPos, vd.reflectSampleDir);
         half4 enviReflectionA = tex2Dbias(water_planar_reflection_clouds, reflectionTC, vd.enviMip * water_reflection_roughness_mip_scale);
         float3 reflectWaterPlaneDirNormalized = reflect(-vd.pointToEyeNormalized, float3(0,1,0));
         float enviMask = saturate(dot(vd.reflectDirNormalized, reflectWaterPlaneDirNormalized));
         enviReflectionA.rgb = unpack_hdr(enviReflectionA.rgb) * enviMask;
-        half3 enviReflection = enviReflectionA.rgb;
+        half3 enviReflection = enviReflectionA.rgb * skylight_sky_atten;
         half cloudsAlpha = enviReflectionA.a;
       ##else
         float2 sky_uv = get_panorama_uv(vd.worldPos, vd.reflectSampleDir);
-        half3 enviReflection = tex2Dbias(clouds_panorama_mip, sky_uv, vd.enviMip * water_reflection_roughness_mip_scale).rgb;
+        half3 enviReflection = tex2Dbias(clouds_panorama_mip, sky_uv, vd.enviMip * water_reflection_roughness_mip_scale).rgb * skylight_sky_atten;
         half cloudsAlpha = 1 - get_clouds_alpha_panorama_uv(sky_uv);
         half enviMask = 1;
       ##endif
-      enviReflection *= skylight_sky_atten;
 
       BRANCH
       if (planarReflections.objectReflection.a > 0.01)
       {
         #define PANORAMA_MIP_FOR_BLENDING 3
         ##if clouds_panorama_mip != NULL
-          half3 envi_smooth = tex2Dlod(clouds_panorama_mip, float4(sky_uv,0,PANORAMA_MIP_FOR_BLENDING)).rgb;
+          half3 envi_smooth = tex2Dlod(clouds_panorama_mip, float4(sky_uv,0,PANORAMA_MIP_FOR_BLENDING)).rgb * skylight_sky_atten;
+        ##elif water_planar_reflection_clouds == NULL
+          half3 envi_smooth = sample_envi_probe(float4(vd.reflectSampleDir, PANORAMA_MIP_FOR_BLENDING)).rgb;
         ##else
           half4 enviReflectionB = tex2Dlod(water_planar_reflection_clouds, float4(reflectionTC, 0, PANORAMA_MIP_FOR_BLENDING));
-          half3 envi_smooth = unpack_hdr(enviReflectionB.rgb) * saturate(dot(vd.reflectDirNormalized, reflectWaterPlaneDirNormalized));
+          half3 envi_smooth = unpack_hdr(enviReflectionB.rgb) * saturate(dot(vd.reflectDirNormalized, reflectWaterPlaneDirNormalized)) * skylight_sky_atten;
         ##endif
-        envi_smooth *= skylight_sky_atten;
         enviReflection = lerp(enviReflection, envi_smooth, saturate(2*planarReflections.objectReflection.a));
       }
       ##if in_editor_assume == no

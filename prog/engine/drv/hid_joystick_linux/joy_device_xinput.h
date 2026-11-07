@@ -62,7 +62,6 @@ public:
 
 private:
   bool updateSelfState();
-  void applyCircularDeadZone(int axis_x, int axis_y, int deadzone);
 
   int getVirtualPOVAxis(int hat_id, int axis_id) const;
 

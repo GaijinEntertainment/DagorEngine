@@ -2,6 +2,7 @@
 
 #include "blendNodeTreeEventHandler.h"
 #include "blendNodeType.h"
+#include "../animTreeEditorHost.h"
 #include "../animTreeUtils.h"
 #include "../animTreePanelPids.h"
 
@@ -12,21 +13,9 @@
 #include <assets/asset.h>
 #include <assets/assetUtils.h>
 
-namespace ContextMenu
-{
-enum
-{
-  COPY_NODE_NAME = 0,
-  COPY_A2D_NAME,
-  COPY_FILEPATH,
-  COPY_FOLDER_PATH,
-  COPY_RESOLVED_FOLDER_PATH,
-  REVEAL_IN_EXPLORER,
-};
-}
-
-BlendNodeTreeEventHandler::BlendNodeTreeEventHandler(dag::Vector<BlendNodeData> &blend_nodes, dag::Vector<String> &paths) :
-  blendNodes(blend_nodes), paths(paths)
+BlendNodeTreeEventHandler::BlendNodeTreeEventHandler(dag::Vector<BlendNodeData> &blend_nodes, dag::Vector<String> &paths,
+  IAnimTreeEditorHost &host) :
+  blendNodes(blend_nodes), paths(paths), host(host)
 {}
 
 bool BlendNodeTreeEventHandler::onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id,
@@ -44,6 +33,8 @@ bool BlendNodeTreeEventHandler::onTreeContextMenu(PropPanel::ContainerPropertyCo
       {
         menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::COPY_NODE_NAME, "Copy blend node name");
         menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::COPY_A2D_NAME, "Copy a2d name");
+        if (host.canSelectInGraph())
+          menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::SELECT_IN_GRAPH, "Select in graph");
       }
       else if (data->type == BlendNodeType::A2D)
         menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::COPY_NODE_NAME, "Copy a2d name");
@@ -80,6 +71,7 @@ int BlendNodeTreeEventHandler::onMenuItemClick(unsigned id)
       clipboard::set_clipboard_ansi_text(find_resolved_folder_path(paths, *asset, nodesTree, selLeaf));
       break;
     case ContextMenu::REVEAL_IN_EXPLORER: dag_reveal_in_explorer(find_full_path(paths, *asset, nodesTree, selLeaf)); break;
+    case ContextMenu::SELECT_IN_GRAPH: host.selectInGraph(nodesTree->getCaption(selLeaf)); break;
   }
   return 0;
 }
@@ -89,6 +81,8 @@ void BlendNodeTreeEventHandler::setAsset(DagorAsset *cur_asset) { asset = cur_as
 String BlendNodeTreeEventHandler::getA2dName()
 {
   PropPanel::TLeafHandle includeLeaf = nodesTree->getParentLeaf(selLeaf);
+  if (nodesTree->getUserData(includeLeaf) == &ANIM_BLEND_NODE_A2D)
+    includeLeaf = nodesTree->getParentLeaf(includeLeaf);
   String fullPath;
   DataBlock props = get_props_from_include_leaf(paths, *asset, nodesTree, includeLeaf, fullPath);
   if (DataBlock *settings = find_a2d_node_settings(props, nodesTree->getCaption(selLeaf)))

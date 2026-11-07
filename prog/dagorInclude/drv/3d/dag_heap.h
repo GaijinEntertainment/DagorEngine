@@ -34,6 +34,7 @@ enum class ResourceActivationAction : unsigned
   CLEAR_AS_RTV_DSV,   ///< Clear the resource as a render target or depth-stencil view.
   DISCARD_AS_UAV,     ///< Discard the resource as an unordered access view.
   DISCARD_AS_RTV_DSV, ///< Discard the resource as a render target or depth-stencil view.
+  MAX_VAL = DISCARD_AS_RTV_DSV,
 };
 
 /**

@@ -170,12 +170,13 @@ static ecs::EntitySystemDesc effect_attached_anim_es_es_desc
 ,nullptr,nullptr,nullptr,"effect_attached_es");
 static constexpr ecs::ComponentDesc bound_camera_effect_es_comps[] =
 {
-//start of 4 rw components at [0]
-  {ECS_HASH("effect__offset"), ecs::ComponentTypeInfo<Point3>()},
+//start of 3 rw components at [0]
   {ECS_HASH("camera_prev_pos"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("camera_prev_vel"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("effect_animation__transform"), ecs::ComponentTypeInfo<TMatrix>()},
+//start of 5 ro components at [3]
+  {ECS_HASH("effect__offset"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 3 ro components at [4]
   {ECS_HASH("effect__smooth_coef"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("effect__bias_coef"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("effect__use_deprecated_bound_camera_logic"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
@@ -185,10 +186,11 @@ static void bound_camera_effect_es_all(const ecs::UpdateStageInfo &__restrict in
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     bound_camera_effect_es(*info.cast<ecs::UpdateStageInfoAct>()
-    , ECS_RW_COMP(bound_camera_effect_es_comps, "effect__offset", Point3)
+    , ECS_RO_COMP(bound_camera_effect_es_comps, "effect__offset", Point3)
     , ECS_RW_COMP(bound_camera_effect_es_comps, "camera_prev_pos", Point3)
     , ECS_RW_COMP(bound_camera_effect_es_comps, "camera_prev_vel", Point3)
-    , ECS_RW_COMP(bound_camera_effect_es_comps, "transform", TMatrix)
+    , ECS_RO_COMP(bound_camera_effect_es_comps, "transform", TMatrix)
+    , ECS_RW_COMP(bound_camera_effect_es_comps, "effect_animation__transform", TMatrix)
     , ECS_RO_COMP(bound_camera_effect_es_comps, "effect__smooth_coef", float)
     , ECS_RO_COMP(bound_camera_effect_es_comps, "effect__bias_coef", float)
     , ECS_RO_COMP_OR(bound_camera_effect_es_comps, "effect__use_deprecated_bound_camera_logic", bool(true))
@@ -200,13 +202,13 @@ static ecs::EntitySystemDesc bound_camera_effect_es_es_desc
   "bound_camera_effect_es",
   "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
   ecs::EntitySystemOps(bound_camera_effect_es_all),
-  make_span(bound_camera_effect_es_comps+0, 4)/*rw*/,
-  make_span(bound_camera_effect_es_comps+4, 3)/*ro*/,
+  make_span(bound_camera_effect_es_comps+0, 3)/*rw*/,
+  make_span(bound_camera_effect_es_comps+3, 5)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
-,"render",nullptr,"effect_es","camera_animator_update_es");
+,"render",nullptr,"effect_anim_es,effect_es","camera_animator_update_es");
 static constexpr ecs::ComponentDesc biome_query_update_es_comps[] =
 {
 //start of 4 rw components at [0]
@@ -290,34 +292,37 @@ static ecs::EntitySystemDesc fx_magnification_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,"render",nullptr,"*");
-static constexpr ecs::ComponentDesc alwasy_in_viewport_effects_es_comps[] =
+static constexpr ecs::ComponentDesc always_in_viewport_effects_es_comps[] =
 {
 //start of 1 rw components at [0]
+  {ECS_HASH("effect_animation__transform"), ecs::ComponentTypeInfo<TMatrix>()},
+//start of 1 ro components at [1]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 1 rq components at [1]
+//start of 1 rq components at [2]
   {ECS_HASH("alwaysInViewportEffect"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
-static void alwasy_in_viewport_effects_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
+static void always_in_viewport_effects_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
-    alwasy_in_viewport_effects_es(*info.cast<ecs::UpdateStageInfoAct>()
-    , ECS_RW_COMP(alwasy_in_viewport_effects_es_comps, "transform", TMatrix)
+    always_in_viewport_effects_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , ECS_RO_COMP(always_in_viewport_effects_es_comps, "transform", TMatrix)
+    , ECS_RW_COMP(always_in_viewport_effects_es_comps, "effect_animation__transform", TMatrix)
     );
   while (++comp != compE);
 }
-static ecs::EntitySystemDesc alwasy_in_viewport_effects_es_es_desc
+static ecs::EntitySystemDesc always_in_viewport_effects_es_es_desc
 (
-  "alwasy_in_viewport_effects_es",
+  "always_in_viewport_effects_es",
   "prog/daNetGame/render/fx/effectEntityES.cpp.inl",
-  ecs::EntitySystemOps(alwasy_in_viewport_effects_es_all),
-  make_span(alwasy_in_viewport_effects_es_comps+0, 1)/*rw*/,
-  empty_span(),
-  make_span(alwasy_in_viewport_effects_es_comps+1, 1)/*rq*/,
+  ecs::EntitySystemOps(always_in_viewport_effects_es_all),
+  make_span(always_in_viewport_effects_es_comps+0, 1)/*rw*/,
+  make_span(always_in_viewport_effects_es_comps+1, 1)/*ro*/,
+  make_span(always_in_viewport_effects_es_comps+2, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
-,"render",nullptr,"effect_es");
+,"render",nullptr,"effect_anim_es,effect_es");
 static constexpr ecs::ComponentDesc effect_scale_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]

@@ -66,9 +66,9 @@ void workcycleperf::enable_debug(bool on) { perf_debug_req_on = on; }
 #include <util/dag_string.h>
 #include <osApiWrappers/dag_unicode.h>
 
-static constexpr int MAX_PIX_CAPTURE_FRAMES = 50;
-static int pix_capture_frames_requested = 0;
-static SimpleString pix_capture_file_name;
+static constexpr int MAX_GPU_CAPTURE_FRAMES = 50;
+static int gpu_capture_frames_requested = 0;
+static SimpleString gpu_capture_file_name;
 
 #if _TARGET_XBOX || _TARGET_PC_WIN
 #include <perfMon/dag_pixTimingCapture.h>
@@ -92,18 +92,17 @@ static bool is_uint_arg(const char *s) { return s[0] && !s[strspn(s, "0123456789
 static bool pix_capture_console_handler(const char *argv[], int argc)
 {
   int found = 0;
-  CONSOLE_CHECK_NAME_EX("render", "pix_capture_n_frames", 1, 3, "make a PIX GPU capture of the next frames",
-    "[file_name] [frame_count]")
+  CONSOLE_CHECK_NAME_EX("render", "capture", 1, 3, "make a GPU capture of the next frames", "[file_name] [frame_count]")
   {
     int frames = 1;
-    pix_capture_file_name.clear();
+    gpu_capture_file_name.clear();
     for (int i = 1; i < argc; i++)
       if (is_uint_arg(argv[i]))
         frames = console::to_int(argv[i]);
       else
-        pix_capture_file_name = argv[i];
+        gpu_capture_file_name = argv[i];
 
-    pix_capture_frames_requested = min(max(frames, 1), MAX_PIX_CAPTURE_FRAMES);
+    gpu_capture_frames_requested = min(max(frames, 1), MAX_GPU_CAPTURE_FRAMES);
   }
 #if _TARGET_XBOX || _TARGET_PC_WIN
   CONSOLE_CHECK_NAME_EX("render", "pix_cpu_capture", 1, 3, "make a PIX timing (CPU) capture for N seconds", "[file_name] [seconds]")
@@ -451,10 +450,10 @@ static void act()
   }
 }
 
-static void handle_programmatic_pix_capture()
+static void handle_programmatic_gpu_capture()
 {
 #if DAGOR_DBGLEVEL > 0 && (_TARGET_XBOX || _TARGET_PC_WIN || _TARGET_C1)
-  if (pix_capture_frames_requested == 0)
+  if (gpu_capture_frames_requested == 0)
     return;
 
   static int framesToCapture = 0;
@@ -467,7 +466,7 @@ static void handle_programmatic_pix_capture()
     if (framesToCapture == 0)
     {
       da_profiler::set_mode(modeBackup);
-      pix_capture_frames_requested = 0;
+      gpu_capture_frames_requested = 0;
       console::print_d("GPU capture finished");
     }
   }
@@ -476,7 +475,7 @@ static void handle_programmatic_pix_capture()
     --framesToWaitBeforeCapture;
     if (framesToWaitBeforeCapture == 0)
     {
-      String name(pix_capture_file_name.c_str());
+      String name(gpu_capture_file_name.c_str());
       if (name.empty())
       {
         DagorDateTime time;
@@ -490,7 +489,7 @@ static void handle_programmatic_pix_capture()
       static wchar_t capture_name[1024];
       utf8_to_wcs(name.c_str(), capture_name, countof(capture_name));
 
-      PIX_GPU_CAPTURE_NEXT_FRAMES(0, capture_name, framesToCapture);
+      GPU_CAPTURE_NEXT_FRAMES(0, capture_name, framesToCapture);
       console::print_d("Capturing %d frames to %s", framesToCapture, name.c_str());
       framesToCapture += 2; // Add a little buffer before turning off GPU mode
     }
@@ -498,7 +497,7 @@ static void handle_programmatic_pix_capture()
   else
   {
     framesToWaitBeforeCapture = 2;
-    framesToCapture = pix_capture_frames_requested;
+    framesToCapture = gpu_capture_frames_requested;
 
     modeBackup = da_profiler::get_current_mode();
     da_profiler::add_mode(da_profiler::EVENTS | da_profiler::UNIQUE_EVENTS | da_profiler::GPU | da_profiler::TAGS);
@@ -567,7 +566,7 @@ static void draw(bool enable_stereo, int elapsed_usec, float gametime_elapsed, b
   G_ASSERTF_RETURN(d3d::is_inited(), , "Drawing with uninitialized d3d");
   TIME_D3D_PROFILE(draw);
 
-  handle_programmatic_pix_capture();
+  handle_programmatic_gpu_capture();
 
   int present_start_t = workcycleperf::get_frame_timepos_usec();
   eastl::optional<d3d::GpuAutoLock> gpuLock{eastl::in_place}; // acquire the GPU

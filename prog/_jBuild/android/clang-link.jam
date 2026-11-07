@@ -365,6 +365,7 @@ rule ProcessLinkTarget
     local build_cfg_bundle = none ;
     local build_command = none ;
     local build_command_bundle = none ;
+    local gradle_libs_export = ;
     local apk_name = none ;
     local apk_name_full = none ;
     local bundle_name = none ;
@@ -403,6 +404,33 @@ rule ProcessLinkTarget
       }
 
       case gradle : {
+
+        GradleLibAllowDownload ?= no ;
+        GradleLibExportDir ?= $(_DEVTOOL)/android_libs ;
+        local libs_dir = [ GradleAbsPath $(GradleLibExportDir) ] ;
+        local gradle_opt = --init-script [ GradleAbsPath $(jbuild_dir)/gradle/dagor_repos.init.gradle ]
+          -PDAGOR_GRADLE_LIBS_DIR=$(libs_dir) -PDAGOR_GRADLE_ALLOW_DOWNLOAD=$(GradleLibAllowDownload) ;
+        local gradle_deps_opt = ;
+        local gradle_home = ;
+        if $(GradleLibAllowDownload) != yes {
+          if $(GradleLibExport) = yes { Echo warning: GradleLibExport is ignored, it needs -sGradleLibAllowDownload=yes ; }
+          local builds_apk = yes ;
+          if $(BuildApk) = no || $(CheckOnly) = yes || $(GLOBAL_CleanObj) || $(GLOBAL_CacheDryRun) ||
+             ( clean-android-output in $(JAMTARGETS) ) { builds_apk = ; }
+          if $(builds_apk) && ! [ GLOB $(libs_dir) : * ] {
+            exit "FATAL: \"$(libs_dir)\" is empty or not found!  Please, update DEVTOOLS or build with -sGradleLibAllowDownload=yes" ;
+          }
+          gradle_deps_opt = --prebuilt-dir $(libs_dir) --no-download ;
+        } else if $(GradleLibExport) = yes {
+          local profile = $(USERPROFILE) ;
+          profile ?= $(HOME) ;
+          gradle_home = \"$(profile)/.gradle-dagor-export\" ;
+          gradle_opt += --gradle-user-home $(gradle_home) ;
+          gradle_libs_export =
+            call $(PYTHON_EXE) $(jbuild_dir)/gradle/export_gradle_libs.py --gradle-home $(gradle_home) --dest $(libs_dir) "
+"           if errorlevel 1 goto failed "
+"         ;
+        }
 
         build_cfg = assembleDebug ;
         build_cfg_bundle = bundleDebug ;
@@ -483,16 +511,25 @@ rule ProcessLinkTarget
         # step is needed here anymore (see gradle/build.gradle release block).
 
         postlink +=
-          call $(PYTHON_EXE) $(jbuild_dir)/gradle/make_gradle_deps.py $(stage_dir) "
+          call $(PYTHON_EXE) $(jbuild_dir)/gradle/make_gradle_deps.py $(stage_dir) $(gradle_deps_opt) "
+"         if errorlevel 1 goto failed "
 "
         ;
+
+        if $(gradle_home) {
+          postlink +=
+            call $(PYTHON_EXE) $(jbuild_dir)/gradle/export_gradle_libs.py --prepare-home $(gradle_home) "
+"           if errorlevel 1 goto failed "
+"
+          ;
+        }
 
         local crashlytics_task = ;
         if $(AndroidUploadCrashlyticsSymbols) = yes && $(Config) = rel {
           crashlytics_task = uploadCrashlyticsSymbolFileRelease ;
         }
-        build_command = call $(_A_GRADLE_CMD) $(build_cfg) $(crashlytics_task) -PDAGOR_OBFUSCATE=$(AndroidObfuscate) --quiet --no-daemon --project-dir=$(stage_dir) ;
-        build_command_bundle = call $(_A_GRADLE_CMD) $(build_cfg_bundle) -PDAGOR_OBFUSCATE=$(AndroidObfuscate) --quiet --no-daemon --project-dir=$(stage_dir) ;
+        build_command = call $(_A_GRADLE_CMD) $(build_cfg) $(crashlytics_task) -PDAGOR_OBFUSCATE=$(AndroidObfuscate) $(gradle_opt) --quiet --no-daemon --project-dir=$(stage_dir) ;
+        build_command_bundle = call $(_A_GRADLE_CMD) $(build_cfg_bundle) -PDAGOR_OBFUSCATE=$(AndroidObfuscate) $(gradle_opt) --quiet --no-daemon --project-dir=$(stage_dir) ;
 
       }
     }
@@ -569,6 +606,8 @@ rule ProcessLinkTarget
  "      ;
       }
     }
+
+    if $(gradle_libs_export) { postlink += $(gradle_libs_export) ; }
 
     if $(AndroidObfuscate) = yes {
       postlink +=
@@ -808,6 +847,16 @@ rule ProcessAndroidProguard
   raw_copy_file $(out)/$(dest) : $(src) ;
 
   if $(1[2]) { ProcessAndroidProguard $(1[2-]) ; }
+}
+
+rule GradleAbsPath
+{
+  switch $(1) {
+    case /* : return $(1) ;
+    case \\* : return $(1) ;
+    case ?:* : return $(1) ;
+  }
+  return $(JAM_CWD)/$(1) ;
 }
 
 rule ProcessAndroidLibs

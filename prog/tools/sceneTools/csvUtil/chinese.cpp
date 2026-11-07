@@ -16,8 +16,7 @@ const dag_char8_t *cant_break_before =
   u8"\r\n\t !%),.:;>?]}¢¨°·ˇˉ―‖’”„‟†‡›℃∶、。〃〆〈《「『〕〗〞︵︹︽︿﹃﹘﹚﹜！＂％＇），．：；？］｀｜｝～";
 const dag_char8_t *cant_break_after = u8"\r\n\t $(*,£¥·‘“〈《「『【〔〖〝﹗﹙﹛＄（．［｛￡￥";
 
-#define IS_LOWER(x)   ((x) < 0x100)
-#define IS_CHINESE(x) (((x) >= 0x4E00) && ((x) <= 9FFF))
+#define IS_LOWER(x) ((x) < 0x100)
 
 static bool can_break(unsigned short first, unsigned short second)
 {

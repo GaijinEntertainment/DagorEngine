@@ -30,7 +30,8 @@ the actual class, so it can tell one class of instance from another. Unlike
 `typeof`, whose result a class can change by defining `_typeof`, `classof`
 always returns the real class object read straight from `obj`.
 
-Marked `pure` because the result depends only on `obj`.
+Marked `pure` because the result depends only on `obj`, and `fastcall` because
+it calls nothing back and pushes at most one value.
 
 ## Example
 

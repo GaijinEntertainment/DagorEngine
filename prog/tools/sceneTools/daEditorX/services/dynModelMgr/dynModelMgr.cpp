@@ -2,6 +2,7 @@
 
 #include <de3_interface.h>
 #include <de3_dataBlockIdHolder.h>
+#include <de3_dynModel.h>
 #include <de3_objEntity.h>
 #include <de3_entityPool.h>
 #include <de3_entityFilter.h>
@@ -15,6 +16,7 @@
 #include <oldEditor/de_common_interface.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
+#include <dag/dag_vector.h>
 #include <EditorCore/ec_interface.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
@@ -30,6 +32,9 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_debug3d.h>
 #include <regExp/regExp.h>
+
+#include <EASTL/algorithm.h>
+#include <EASTL/unique_ptr.h>
 
 extern bool(__stdcall *external_traceRay_for_rigen)(const Point3 &from, const Point3 &dir, float &current_t, Point3 *out_norm);
 static unsigned decal3d_gather_gen = 0, current_dynmodel_gen = 1;
@@ -409,7 +414,8 @@ class DynModelEntityManagementService : public IEditorService,
                                         public IObjEntityMgr,
                                         public IRenderingService,
                                         public IDagorAssetChangeNotify,
-                                        public ILightingChangeClient
+                                        public ILightingChangeClient,
+                                        public IDynModelIsolatedRender
 {
 public:
   DynModelEntityManagementService()
@@ -493,6 +499,7 @@ public:
     RETURN_INTERFACE(huid, IObjEntityMgr);
     RETURN_INTERFACE(huid, IRenderingService);
     RETURN_INTERFACE(huid, ILightingChangeClient);
+    RETURN_INTERFACE(huid, IDynModelIsolatedRender);
     return NULL;
   }
 
@@ -558,6 +565,45 @@ public:
       ShaderGlobal::set_int(editor_dynmodel_render_gvid, 0);
   }
 
+  // IDynModelIsolatedRender interface
+  bool getIsolatedRenderData(const DagorAsset &asset, BBox3 &local_box, TextureIdSet &tex_ids) override
+  {
+    VirtualDynModelEntity *ent = findOrAddIsolatedEntity(asset);
+    if (!ent)
+      return false;
+
+    const DynamicRenderableSceneResource *scene = ent->sceneInstance->getCurSceneResource();
+    if (!scene || (scene->getRigidsConst().empty() && scene->getSkinsCount() == 0))
+      return false;
+
+    local_box = ent->getBbox();
+    scene->gatherUsedTex(tex_ids);
+    return true;
+  }
+
+  void renderIsolatedOpaque(const DagorAsset &asset, const TMatrix &tm, int per_instance_seed) override
+  {
+    IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+    if (!rs)
+      return;
+
+    VirtualDynModelEntity *ent = findOrAddIsolatedEntity(asset);
+    if (!ent)
+      return;
+
+    ent->setTm(tm);
+    rs->renderOneDynModelInstance(ent->sceneInstance, STG_RENDER_DYNAMIC_OPAQUE, &per_instance_seed, ent->noDynRender);
+  }
+
+  void releaseIsolatedEntity(int asset_name_id) override
+  {
+    isolatedEntities.erase(
+      eastl::remove_if(isolatedEntities.begin(), isolatedEntities.end(),
+        [asset_name_id](const eastl::unique_ptr<VirtualDynModelEntity> &e) { return e->getAssetNameId() == asset_name_id; }),
+      isolatedEntities.end());
+  }
+
+  void releaseIsolatedRenderData() override { isolatedEntities.clear(); }
 
   void initCamoMicroNoise()
   {
@@ -637,6 +683,7 @@ public:
     for (int i = 0; i < ent.size(); i++)
       if (ent[i] && ent[i]->getAssetNameId() == asset_name_id)
         ent[i]->clear();
+    releaseIsolatedEntity(asset_name_id);
     current_dynmodel_gen++;
     EDITORCORE->invalidateViewportCache();
   }
@@ -649,6 +696,7 @@ public:
         ent[i]->clear();
         ent[i]->setup(asset);
       }
+    releaseIsolatedEntity(asset_name_id);
     current_dynmodel_gen++;
     EDITORCORE->invalidateViewportCache();
   }
@@ -689,10 +737,34 @@ public:
   }
 
 protected:
+  // Returns null when the asset is not a dynModel or cannot be loaded.
+  VirtualDynModelEntity *findOrAddIsolatedEntity(const DagorAsset &asset)
+  {
+    if (asset.getType() != dynModelEntityClassId)
+      return nullptr;
+
+    auto it = eastl::find_if(isolatedEntities.begin(), isolatedEntities.end(),
+      [&asset](const eastl::unique_ptr<VirtualDynModelEntity> &e) { return e->getAssetNameId() == asset.getNameId(); });
+    VirtualDynModelEntity *ent = it == isolatedEntities.end() ? nullptr : it->get();
+    if (!ent)
+    {
+      ent = static_cast<VirtualDynModelEntity *>(createEntity(asset, true));
+      isolatedEntities.emplace_back(ent);
+      if (ent->sceneInstance)
+        ent->sceneInstance->setLod(0);
+    }
+
+    return ent->sceneInstance ? ent : nullptr;
+  }
+
   DynModelEntityPool objPool;
   bool visible;
 
   TEXTUREID camoMicroNoiseTexId;
+
+  // A dynModel references its textures only while it has an instance. Keeping one here lets the textures load while a
+  // thumbnail is being generated.
+  dag::Vector<eastl::unique_ptr<VirtualDynModelEntity>> isolatedEntities;
 
   static DynModelEntityManagementService *self;
   static Tab<DynModelEntity *> tmpDecalsList;

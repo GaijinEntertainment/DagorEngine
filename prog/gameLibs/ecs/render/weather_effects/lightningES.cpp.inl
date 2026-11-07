@@ -6,6 +6,7 @@
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
+#include <ecs/render/updateStageRender.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_mathBase.h>
@@ -137,10 +138,10 @@ struct LightningFX
     ShaderGlobal::set_float(clouds_steps_per_sequenceVarId, defaultStepsPerSequence);
   };
 
-  void updateTM(TMatrix &transform, const float azimuth, const float dist, const float meshOffset)
+  void updateTM(TMatrix &transform, const float azimuth, const float meshOffset)
   {
     float cloudsHeight = getCloudsAlt();
-    Point3 pos = Point3(cos(azimuth) * dist, cloudsHeight + meshOffset, sin(azimuth) * dist);
+    Point3 pos = Point3(strikeXZ.x, cloudsHeight + meshOffset, strikeXZ.y);
     TMatrix scaleTM;
     scaleTM.identity();
     scaleTM *= cloudsHeight + meshOffset;
@@ -155,6 +156,7 @@ struct LightningFX
     strikeEndTime = strikeStartTime + _rnd_float(rngSeed, strikeInterval.x, strikeInterval.y);
     azimuthCurrent = _rnd_float(rngSeed, azimuthInterval.x, azimuthInterval.y);
     distanceCurrent = _rnd_float(rngSeed, distanceInterval.x, distanceInterval.y);
+    strikeXZ = originCurrent + Point2(cos(azimuthCurrent * TWOPI), sin(azimuthCurrent * TWOPI)) * distanceCurrent;
     radiusMultiplierCurrent = _rnd_float(rngSeed, radiusInterval.x, radiusInterval.y);
     strengthMultiplierCurrentSeries = _rnd_float(rngSeed, strengthInterval.x, strengthInterval.y);
   }
@@ -174,6 +176,8 @@ struct LightningFX
   float strengthCurrent = 0.0f;
   float azimuthCurrent = 0.0f;
   float distanceCurrent = 0.0f;
+  Point2 originCurrent = Point2(0, 0);
+  Point2 strikeXZ = Point2(0, 0);
   float radiusMultiplierCurrent = 1.0f;
   float strengthMultiplierCurrentSeries = 1.0f;
   int seriesSizeCurrent = 1;
@@ -190,19 +194,22 @@ struct LightningFX
   bool isFadingOut = false;
   bool isNextSeries = false;
   bool finished = false;
+  bool wasUnmatchedSkies = false;
+  bool camPosValid = false;
+  bool doFlickering = false;
+  bool cloudPresent = true; // verdict for the current strike (default/fail-open: allow)
+  bool suppressed = false;  // current strike hidden (no clouds at its XZ)
   int finishedFrames = -1;
 
   uint32_t currentAnimcharId = -1;
   uint32_t animcharNum = 0;
 
   Point3 sunDir;
-  bool doFlickering = false;
+  Point3 camPos = Point3(0, 0, 0);
 
   // Sky-trace cloud gating: a vertical ray is traced through the cloud layer at
   // the upcoming strike's XZ to only spawn lightning where clouds exist
-  int cloudTraceId = -1;    // in-flight trace id, -1 = none
-  bool cloudPresent = true; // verdict for the current strike (default/fail-open: allow)
-  bool suppressed = false;  // current strike hidden (no clouds at its XZ)
+  int cloudTraceId = -1; // in-flight trace id, -1 = none
 
 private:
   TMatrix defaultRotTM;
@@ -239,6 +246,7 @@ static void lightning_manager_destroy_es(const ecs::Event &, ecs::EidList &light
   auto skies = lightning_get_skies();
 
   ShaderGlobal::set_int(lightning_scene_illuminationVarId, 0);
+  setPointLightEnable(false);
 
   if (skies)
     skies->enablePanoramaDownsampledDepth(false);
@@ -294,6 +302,14 @@ static void lightning_created_es(const ecs::Event &, ecs::EntityManager &manager
 
 ECS_TAG(render)
 ECS_NO_ORDER
+static void lightning_cam_pos_es(const UpdateStageInfoBeforeRender &evt, LightningFX &lightning)
+{
+  lightning.camPos = evt.camPos;
+  lightning.camPosValid = true;
+}
+
+ECS_TAG(render)
+ECS_NO_ORDER
 static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityManager &manager, LightningFX &lightning,
   TMatrix &transform, bool lightning__is_volumetric, Point2 lightning__base_strike_time_interval,
   Point2 lightning__base_sleep_time_interval, Point2 lightning__base_distance_interval, Point2 lightning__base_azimuth_interval,
@@ -309,10 +325,12 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
   Point2 lightning__point_light_strength_interval, float lightning__point_light_extinction_threshold,
   bool lightning__point_light_natural_fade, Point3 lightning__point_light_color, float lightning__scene_illumination_multiplier,
   bool lightning__scene_illumination_enable_for_flash, float lightning__scene_illumination_near_sun_threshold,
-  ecs::EidList &lightning__animchars_eids, bool lightning__cloud_density_check = false)
+  ecs::EidList &lightning__animchars_eids, bool lightning__cloud_density_check = false, bool lightning__follow_camera = false)
 {
   auto skies = lightning_get_skies();
   if (!skies || !lightning.animcharNum)
+    return;
+  if (lightning__follow_camera && !lightning.camPosValid)
     return;
 
   if (debug_mode)
@@ -321,6 +339,35 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
 
   float currentTime = evt.curTime;
   lightning.sunDir = skies->getSunDir();
+
+  // restrict execution to only one of lightning entities dependin on current skies setting.
+  bool earlyExitOnUnmatchedSkies = lightning__is_volumetric != !skies->panoramaEnabled();
+  if (earlyExitOnUnmatchedSkies)
+  {
+    lightning.cloudPresent = true;
+    lightning.cloudTraceId = -1;
+    lightning.wasUnmatchedSkies = true;
+
+    if (lightning.started || lightning.isFadingOut || lightning.finished)
+    {
+      setPointLightEnable(false);
+      ShaderGlobal::set_int(lightning_scene_illuminationVarId, 0);
+      lightning.startLowQualityFrames();
+      // disable current animchar when swtiching skies settings
+      if (lightning.started && !lightning__animchars_eids.empty())
+        disable_lightning_animchar_ecs_query(manager, lightning__animchars_eids[lightning.currentAnimcharId],
+          [&](bool &animchar_render__enabled) { animchar_render__enabled = false; });
+      lightning.started = lightning.isFadingOut = lightning.finished = false;
+      lightning.finishedFrames = 0;
+    }
+    return;
+  }
+
+  if (lightning.wasUnmatchedSkies)
+  {
+    lightning.wasUnmatchedSkies = false;
+    return;
+  }
 
   // make sure clouds are fully update before disabling high quality frames
   // otherwise there could be lightspots.
@@ -339,25 +386,6 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
     return;
   }
 
-  // restrict execution to only one of lightning entities dependin on current skies setting.
-  bool earlyExitOnUnmatchedSkies = lightning__is_volumetric != !lightning_get_skies()->panoramaEnabled();
-  if (earlyExitOnUnmatchedSkies)
-  {
-    lightning.cloudPresent = true;
-    lightning.suppressed = false;
-    lightning.cloudTraceId = -1;
-
-    // disable current animchar when swtiching skies settings
-    if (lightning.started)
-    {
-      lightning.started = false;
-      if (lightning__animchars_eids.empty())
-        return;
-      disable_lightning_animchar_ecs_query(manager, lightning__animchars_eids[lightning.currentAnimcharId],
-        [&](bool &animchar_render__enabled) { animchar_render__enabled = false; });
-    }
-    return;
-  }
   bool isSeries = lightning.isNextSeries;
 
   if (lightning__cloud_density_check && lightning.cloudTraceId >= 0)
@@ -396,18 +424,18 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
         return;
 
       lightning.startHighQualityFrames();
-      lightning.updateTM(transform, lightning.azimuthCurrent * TWOPI, lightning.distanceCurrent, lightning__base_offset);
+      lightning.updateTM(transform, lightning.azimuthCurrent * TWOPI, lightning__base_offset);
       float cloudsHeight = getCloudsAlt();
       Point3 lightPos = transform.getcol(3);
       lightPos.y = cloudsHeight + lightning__point_light_offset;
-      Point2 lightPos2D = Point2(lightPos.x, lightPos.z);
+      Point3 towardsLightDir = lightPos - Point3(lightning.camPos.x, 0, lightning.camPos.z);
+      Point2 lightDir2D = Point2(towardsLightDir.x, towardsLightDir.z);
       Point2 sunDir2D = Point2(lightning.sunDir.x, lightning.sunDir.z);
-      lightPos2D.normalize();
+      lightDir2D.normalize();
       sunDir2D.normalize();
-      bool isNearSun = dot(lightPos2D, sunDir2D) > cos(lightning__scene_illumination_near_sun_threshold * DEG_TO_RAD);
+      bool isNearSun = dot(lightDir2D, sunDir2D) > cos(lightning__scene_illumination_near_sun_threshold * DEG_TO_RAD);
       if ((doBolt || lightning__scene_illumination_enable_for_flash) && isNearSun)
       {
-        Point3 towardsLightDir = lightPos;
         towardsLightDir.normalize();
         ShaderGlobal::set_int(lightning_scene_illuminationVarId, 1);
         ShaderGlobal::set_float4(lightning_scene_illumination_dirVarId, towardsLightDir);
@@ -531,6 +559,8 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
       sleepInterval = lightning__base_sleep_time_interval;
       azimuthInterval = lightning__base_azimuth_interval;
       distanceInterval = lightning__base_distance_interval;
+      if (lightning__follow_camera)
+        lightning.originCurrent = Point2::xz(lightning.camPos);
     }
 
     if (lightning.isNextSeries)
@@ -563,9 +593,7 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
     if (startAlt >= 0.f && topAlt > startAlt)
     {
       lightning.cloudPresent = true;
-      float azimuth = lightning.azimuthCurrent * TWOPI;
-      float dist = lightning.distanceCurrent;
-      Point3 traceOrigin = Point3(cos(azimuth) * dist, topAlt + cloud_trace_margin, sin(azimuth) * dist);
+      Point3 traceOrigin = Point3(lightning.strikeXZ.x, topAlt + cloud_trace_margin, lightning.strikeXZ.y);
       float traceDist = (topAlt - startAlt) + 2.0f * cloud_trace_margin;
       lightning.cloudTraceId = skies->addCloudsTrace(traceOrigin, Point3(0.0f, -1.0f, 0.0f), traceDist, cloud_trace_threshold, 0.0f);
     }

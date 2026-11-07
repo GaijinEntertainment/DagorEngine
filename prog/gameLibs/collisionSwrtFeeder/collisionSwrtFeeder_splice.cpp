@@ -155,7 +155,7 @@ bool CollisionGeometryFeeder::buildSwrtChunkSpliceBLAS(const CollisionResource &
   built.data.resize_noinit(vertsOfs + vertCount * 8);
   memset(built.data.data() + treeBytes, 0, vertsOfs - treeBytes);
 
-  // constraint: writeTLASLeaf decodes the model with this same floored extent.
+  // writeTLASLeaf decodes the model with this same floored extent.
   const vec4f halfU = v_mul(V_C_HALF, v_max(v_bbox3_size(built.box), v_splats(build_bvh::blas_size_eps)));
   const vec4f centerU = v_bbox3_center(built.box);
   uint8_t *dst = built.data.data();

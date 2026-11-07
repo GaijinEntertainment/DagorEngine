@@ -9,6 +9,7 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector_map.h>
+#include <memory/dag_framemem.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/integer/dag_IPoint2.h>
 #include <render/renderEvent.h>
@@ -95,12 +96,13 @@ private:
     int wakeId;
   };
   eastl::vector_map<ecs::EntityId, ShipEffectContext> knownShips;
+  using FrameShipsMap = eastl::vector_map<ecs::EntityId, ShipEffectContext, eastl::less<ecs::EntityId>, framemem_allocator>;
 
 public:
   struct GatherEmittersEventCtx
   {
     FFTWater &water;
-    eastl::vector_map<ecs::EntityId, ShipEffectContext> &processedShips;
+    FrameShipsMap &processedShips;
     eastl::vector_map<ecs::EntityId, ShipEffectContext> &knownShips;
     ShipWakeFx &shipWakeFx;
     float minSpeed, maxSpeed, waveScale;

@@ -41,15 +41,16 @@ void NameSpace::setResolution(const char *type_name, T value)
     return;
   }
 
+  const auto *oldValues = eastl::get_if<ResolutionValues<T>>(&resData.values);
   // No-op, skip
-  if (auto values = eastl::get_if<ResolutionValues<T>>(&resData.values);
-      values && values->staticResolution == value && values->dynamicResolution == value)
+  if (oldValues && oldValues->staticResolution == value && oldValues->dynamicResolution == value)
     return;
+  const bool needsResize = oldValues && oldValues->lastAppliedDynamicResolution != oldValues->staticResolution;
 
   Runtime::get().onStaticResolutionChange(id);
   registry.autoResTypesChanged.set(id, true);
   resData.values = ResolutionValues<T>{value, value, value};
-  resData.dynamicResolutionCountdown = 0;
+  resData.dynamicResolutionCountdown = needsResize ? dafg::SCHEDULE_FRAME_WINDOW : 0;
 }
 
 template void NameSpace::setResolution<IPoint2>(const char *, IPoint2);

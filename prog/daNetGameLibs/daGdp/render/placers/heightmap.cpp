@@ -64,11 +64,9 @@ static ShaderVariableInfo use_decals("dagdp_heightmap__use_decals", true);
 static ShaderVariableInfo discard_on_grass_erasure("dagdp_heightmap__discard_on_grass_erasure", true);
 
 static ShaderVariableInfo base_tile_pos_xz("dagdp_heightmap__base_tile_pos_xz", true);
-static ShaderVariableInfo base_tile_int_pos_xz("dagdp_heightmap__base_tile_int_pos_xz", true);
 static ShaderVariableInfo viewport_pos("dagdp_heightmap__viewport_pos", true);
 static ShaderVariableInfo viewport_max_distance("dagdp_heightmap__viewport_max_distance", true);
 static ShaderVariableInfo viewport_index("dagdp_heightmap__viewport_index", true);
-static ShaderVariableInfo visible_tiles_start_offset("dagdp_heightmap__visible_tiles_start_offset", true);
 } // namespace var
 
 namespace dagdp
@@ -106,6 +104,7 @@ struct HeightmapPersistentData
 
   UniqueBuf placeableTileLimitsBuffer;
   UniqueBuf tilePositionsBuffer;
+  UniqueBuf viewportDataBuffer;
   UniqueBuf biomesBuffer;
   UniqueBuf densityMaskChannelWeightsBuffer;
   SharedTex densityMask;
@@ -198,6 +197,12 @@ static void create_grid_nodes(const ViewInfo &view_info,
       logerr("daGdp: could not update buffer %s", bufferName.c_str());
       return;
     }
+  }
+
+  {
+    TmpName bufferName(TmpName::CtorSprintf(), "%s_viewports", bufferNamePrefix.c_str());
+    persistentData->viewportDataBuffer = dag::buffers::create_one_frame_cb(
+      dag::buffers::cb_array_reg_count<DagdpViewportGpuData>(DAGDP_MAX_VIEWPORTS), bufferName.c_str());
   }
 
   {

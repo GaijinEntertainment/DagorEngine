@@ -48,7 +48,11 @@ public:
   DagorAsset *getSelectedAsset() const;
   DagorAssetFolder *getSelectedAssetFolder() const;
   const char *getSelObjName();
-  void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const;
+
+  // sub_folders: the subfolders of the current folder.
+  // Returns the folder whose direct assets were appended, or nullptr when there is none.
+  DagorAssetFolder *getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets,
+    dag::Vector<DagorAssetFolder *> &sub_folders) const;
 
   DagorAssetMgr *getCurAssetBase() { return curMgr; }
 
@@ -58,6 +62,7 @@ public:
   void connectToAssetBase(DagorAssetMgr *mgr, dag::ConstSpan<int> allowed_type_indexes, const DataBlock *expansion_state = nullptr);
 
   bool selectAsset(const DagorAsset &asset, bool reset_filter_if_needed);
+  bool selectAssetFolder(const DagorAssetFolder &folder);
   bool selectObjInBase(const char *name);
 
   void saveTreeData(DataBlock &blk);

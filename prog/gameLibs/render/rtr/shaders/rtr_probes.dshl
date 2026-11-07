@@ -12,6 +12,8 @@ int rtr_res_mul = 1;
 
 int4 rtr_resolutionI = (1, 1, 1, 1);
 int rtr_fix_probes = 0;
+texture rtr_probes_prev;
+texture rtr_probe_locations_prev;
 float rtr_probe_debug_size = 20;
 int rtr_probe_debug_display_back = 0;
 
@@ -20,16 +22,10 @@ int blue_noise_frame_index;
 
 int rtr_probe_randomize_rays = 1;
 
-// probes trace from scattered positions: 0 stops their hits from keeping content alive
-int rtr_probes_mark_voxel_activity = 1;
 float rtr_back_probes_max_range = 50;
 float rtr_back_front_diff_threshold = 0.5;
 
 int rtr_probes_filter_nans = 1;
-
-hlsl {
-  #include <rtr_constants.hlsli>
-}
 
 shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
 {
@@ -52,8 +48,9 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
   USE_CALC_GEOMETRY_NORMAL_HALF(cs)
 
   (cs) {
-    rtr_probe_locations@uav = rtr_probe_locations hlsl { RWByteAddressBuffer rtr_probe_locations@uav; };
-    probe_count@u2 = rtr_probes_count;
+    rtr_probe_locations@uav = rtr_probe_locations hlsl { RWTexture2D<float4> rtr_probe_locations@uav; };
+    rtr_probe_locations_prev@tex2d = rtr_probe_locations_prev;
+    fix_probes@u1 = rtr_fix_probes;
     resolution@u2 = rtr_resolutionI;
     inv_aligned_resolution@f2 = (rtr_res_mul * screen_pos_to_texcoord.xy);
     world_view_pos@f3 = world_view_pos;
@@ -63,10 +60,21 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
   }
 
   hlsl (cs) {
-    void write_probe_location(uint probeIndex, uint2 tci, float w, uint backProbe)
+    void clear_probe_location(uint2 probe_index, uint layer)
     {
-      uint probeOffset = probeIndex * PROBE_SLOT_STRIDE + backProbe * PROBE_SIZE;
-      float4 oldProbeData = asfloat(loadBuffer4(rtr_probe_locations, probeOffset));
+      texture2DAt(rtr_probe_locations, rtr_probe_cell(probe_index, layer)) = 0;
+    }
+
+    void keep_probe_locations(uint2 probe_index)
+    {
+      texture2DAt(rtr_probe_locations, rtr_probe_cell(probe_index, 0)) = texture2DAt(rtr_probe_locations_prev, rtr_probe_cell(probe_index, 0));
+      texture2DAt(rtr_probe_locations, rtr_probe_cell(probe_index, 1)) = texture2DAt(rtr_probe_locations_prev, rtr_probe_cell(probe_index, 1));
+    }
+
+    void write_probe_location(uint2 probe_index, uint2 tci, float w, uint backProbe)
+    {
+      uint2 cell = rtr_probe_cell(probe_index, backProbe);
+      float4 oldProbeData = texture2DAt(rtr_probe_locations_prev, cell);
       float3 probePos = calc_world_pos(tci, w, inv_aligned_resolution, world_view_pos);
       probePos += normalize(world_view_pos - probePos) * 0.1;
       float t; // How much weight the new sample will have?
@@ -81,7 +89,7 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
         t = lerp(0.03, 1, moveT);
       }
 
-      storeBuffer4(rtr_probe_locations, probeOffset, asuint(float4(probePos, t)));
+      texture2DAt(rtr_probe_locations, cell) = float4(probePos, t);
     }
 
     ##if use64BitAtomics
@@ -100,8 +108,6 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
         }
 
         GroupMemoryBarrierWithGroupSync();
-
-        uint probeIndex = gid.y * probe_count.x + gid.x;
 
         uint2 tci = gid * GROUP_SIZE + gtid;
         tci = min(tci, resolution - 1);
@@ -130,10 +136,16 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
         if (any(gtid != 0))
           return;
 
+        if (fix_probes)
+        {
+          keep_probe_locations(gid);
+          return;
+        }
+
         if (locationMaxKey == 0)
         {
-          storeBuffer4(rtr_probe_locations, probeIndex * PROBE_SLOT_STRIDE, uint4(0,0,0,0));
-          storeBuffer4(rtr_probe_locations, probeIndex * PROBE_SLOT_STRIDE + PROBE_SIZE, uint4(0,0,0,0));
+          clear_probe_location(gid, 0);
+          clear_probe_location(gid, 1);
           return;
         }
 
@@ -141,7 +153,7 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
         float frontW = linearize_z(rawDepth, zn_zfar.zw);
         tci.x = uint(locationMaxKey >> 16) & 0xFFFF;
         tci.y = uint(locationMaxKey) & 0xFFFF;
-        write_probe_location(probeIndex, tci, frontW, 0);
+        write_probe_location(gid, tci, frontW, 0);
 
         rawDepth = asfloat(uint(locationMinKey >> 32));
         float backW = linearize_z(rawDepth, zn_zfar.zw);
@@ -149,9 +161,9 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
         tci.y = uint(locationMinKey) & 0xFFFF;
 
         if (rtr_back_probes_max_range >= backW && rtr_back_front_diff_threshold < backW - frontW)
-          write_probe_location(probeIndex, tci, backW, 1);
+          write_probe_location(gid, tci, backW, 1);
         else
-          storeBuffer4(rtr_probe_locations, probeIndex * PROBE_SLOT_STRIDE + PROBE_SIZE, uint4(0,0,0,0));
+          clear_probe_location(gid, 1);
 
       }
     ##else
@@ -163,7 +175,6 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
       [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
       void rt_reflection_probe_location_cs(uint2 gtid : SV_GroupThreadID, uint2 gid : SV_GroupID)
       {
-        uint probeIndex = gid.y * probe_count.x + gid.x;
         uint gsIndex = gtid.y * GROUP_SIZE + gtid.x;
 
         uint2 tci = gid * PROBE_AREA + gtid * STEPPING;
@@ -181,6 +192,12 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
 
         if (any(gtid != 0))
           return;
+
+        if (fix_probes)
+        {
+          keep_probe_locations(gid);
+          return;
+        }
 
         float maxDepth = locationDepths[0];
         float minDepth = locationDepths[0];
@@ -207,19 +224,19 @@ shader rt_reflection_probe_location, rt_reflection_probe_location_64bit_atomics
 
         if (maxDepth <= 0)
         {
-          storeBuffer4(rtr_probe_locations, probeIndex*PROBE_SLOT_STRIDE, uint4(0,0,0,0));
-          storeBuffer4(rtr_probe_locations, probeIndex*PROBE_SLOT_STRIDE + PROBE_SIZE, uint4(0,0,0,0));
+          clear_probe_location(gid, 0);
+          clear_probe_location(gid, 1);
           return;
         }
 
         float fronW = linearize_z(maxDepth, zn_zfar.zw);
         float backW = linearize_z(minDepth, zn_zfar.zw);
-        write_probe_location(probeIndex, tci, fronW, 0);
+        write_probe_location(gid, tci, fronW, 0);
 
         if (rtr_back_probes_max_range >= backW && rtr_back_front_diff_threshold < backW - fronW)
-          write_probe_location(probeIndex, tciMin, backW, 1);
+          write_probe_location(gid, tciMin, backW, 1);
         else
-          storeBuffer4(rtr_probe_locations, probeIndex * PROBE_SLOT_STRIDE + PROBE_SIZE, uint4(0,0,0,0));
+          clear_probe_location(gid, 1);
       }
     ##endif
   }
@@ -260,9 +277,9 @@ shader rt_reflection_probe_color
 
   (cs) {
     rtr_probes@uav = rtr_probes hlsl { RWTexture2D<float4> rtr_probes@uav; };
-    probe_count@u2 = rtr_probes_count;
+    rtr_probes_prev@tex2d = rtr_probes_prev;
     usable_probe_count@u2 = rtr_usable_probes_count;
-    rtr_probe_locations@buf = rtr_probe_locations hlsl { ByteAddressBuffer rtr_probe_locations@buf; };
+    rtr_probe_locations@tex2d = rtr_probe_locations;
     sky_mips@u1 = max(get_dimensions(envi_probe_specular, 0).w, 3);
     world_view_pos@f3 = world_view_pos;
     frame_index@u1 = blue_noise_frame_index;
@@ -276,6 +293,8 @@ shader rt_reflection_probe_color
 
   INIT_BVH_ATMOSPHERE(cs)
   USE_BVH_ATMOPHERE(cs)
+  INIT_RT_WATER_MEDIUM(cs)
+  USE_RT_WATER_MEDIUM(cs)
 
   hlsl (cs) {
     #define NRD_FP16_MAX 65504.0
@@ -348,11 +367,11 @@ shader rt_reflection_probe_color
       if (any(gid.xy >= usable_probe_count.xy))
         return;
 
-      uint probeIndex = gid.y * probe_count.x * PROBE_LAYER_MUL + gid.x * PROBE_LAYER_MUL + gid.z;
+      uint2 cell = rtr_probe_cell(gid.xy, gid.z);
 
       uint skyMip = sky_mips - 3;
 
-      float4 probePosition = asfloat(loadBuffer4(rtr_probe_locations, probeIndex * PROBE_SIZE));
+      float4 probePosition = texture2DAt(rtr_probe_locations, cell);
       float2 uv = (gtid + 0.5) / PROBE_RESOLUTION;
       float3 direction = octDecode(uv * 2 - 1);
 
@@ -377,15 +396,15 @@ shader rt_reflection_probe_color
         float3 relPos = probePosition.xyz - bvh_origin;
         float w = length(relPos);
         HitInfo hitInfo;
-        bool isHit = trace_ray(bvhMain, relPos, direction, 0, 1000, w, bvhGroupProbe, hitInfo);
+        bool isHit = trace_ray(bvhMain, relPos, direction, 0, rt_water_trace_end(relPos, direction, 1000), w, bvhGroupProbe, hitInfo);
         if (isHit && mark_voxel_activity != 0)
           bvh_voxel_activity_mark(hitInfo.position);
 
         BRANCH
         if (isHit)
         {
-          SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, -5);
-          color = light_hit_surface(hitSurface, -direction, w + hitInfo.t, hitInfo.t, 1000);
+          SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, -5, w);
+          color = light_hit_surface(hitSurface, -direction, w + hitInfo.t, hitInfo.t, 1000, 1, mark_voxel_activity != 0);
           calc_atmosphere(color, hitInfo.position, hitInfo.t);
           distance = hitInfo.t;
         }
@@ -398,10 +417,9 @@ shader rt_reflection_probe_color
 
       // Very simple reprojection. Is it a fully stable reflection probe? No. Does it
       // need to be? No. Will be used in case of noisy reflection anyways.
-      uint2 cell = uint2(gid.x * PROBE_LAYER_MUL + gid.z, gid.y);
       uint2 tciBase = cell * PROBE_RESOLUTION_WITH_BORDER + PROBE_BORDER;
       uint2 tci = tciBase + gtid;
-      float4 oldSample = texture2DAt(rtr_probes, tci);
+      float4 oldSample = texture2DAt(rtr_probes_prev, tci);
       float4 result = lerp(oldSample, float4(color, distance), probePosition.w);
       if (rtr_probes_filter_nans)
         result = all(isfinite(result)) ? result : 0;
@@ -478,8 +496,7 @@ shader rt_reflection_probe_debug
     VsOutput rt_reflection_probe_debug_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
     {
       uint2 probeIndex = uint2(instanceId % usable_probe_count.x, instanceId / usable_probe_count.x);
-      uint probeIndexLinear = (probeIndex.y * probe_count.x + probeIndex.x) * PROBE_LAYER_MUL + (display_back_probes ? 1 : 0);
-      float4 probeData = asfloat(loadBuffer4(rtr_probe_locations, probeIndexLinear * PROBE_SIZE));
+      float4 probeData = rtr_probe_location(probeIndex, display_back_probes ? 1 : 0);
 
       VsOutput output = (VsOutput)0;
       if (probeData.w == 0)

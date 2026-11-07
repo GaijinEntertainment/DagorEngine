@@ -6,7 +6,8 @@
 #include <util/dag_string.h>
 #include <propPanel/commonWindow/treeviewPanel.h>
 #include <propPanel/control/treeInterface.h>
-#include <propPanel/imguiHelper.h>
+
+#include <ska_hash_map/flat_hash_map2.hpp>
 
 class CompositeEditorTreeData;
 
@@ -24,21 +25,27 @@ public:
   void updateImgui(float control_height = 0.0f) override;
 
 private:
+  enum class NodeState : uint8_t
+  {
+    Missing,
+    ContainsMissing,
+    Disabled,
+    ParentDisabled,
+  };
+
   long onWcKeyDown(WindowBase *source, unsigned v_key) override;
 
   PropPanel::IconId getImageId(CompositeEditorTreeDataNode &treeDataNode) const;
 
   void fillInternal(CompositeEditorTreeDataNode &treeDataNode, PropPanel::TLeafHandle parent,
     CompositeEditorTreeDataNode *treeDataNodeToSelect, const dag::Vector<CompositeEditorTreeDataNode *> &dataBlocksToMultiSelect,
-    eastl::hash_map<const void *, bool> &closedNodes);
+    eastl::hash_map<const void *, bool> &closedNodes, bool parentDisabled = false);
 
+  bool collectMissingStates(const CompositeEditorTreeDataNode &treeDataNode);
   void getClosedNodes(eastl::hash_map<const void *, bool> &closedNodes);
 
-  eastl::optional<ImU32> getBorderColor() const override;
-  bool treeNodeStart(const NodeStartData &data) override;
-  void treeNodeRender(PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool show_arrow) override;
-  void treeNodeEnd(PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data) override;
-  void treeItemRenderEx(const ItemRenderData &data) override;
+  eastl::optional<E3DCOLOR> getBorderColor() const override;
+  void drawTreeNode(PropPanel::TreeNodeDrawContext &ctx) override;
 
   PropPanel::IconId animCharImageId;
   PropPanel::IconId compositImageId;
@@ -53,4 +60,6 @@ private:
 
   String headerTooltip;
   int headerTooltipDepth = 0;
+
+  ska::flat_hash_map<const void *, NodeState> nodeStates;
 };

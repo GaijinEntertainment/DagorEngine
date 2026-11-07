@@ -122,7 +122,7 @@ extern ConVarT<bool, false> vehicle_cockpit_in_depth_prepass;
 
 static auto request_opaque_prepass(dafg::Registry registry)
 {
-  render_to_gbuffer_prepass(registry);
+  render_to_gbuffer_prepass(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
 
   auto [cameraHndl, stateRequest] = request_common_opaque_state(registry);
 
@@ -134,6 +134,15 @@ static auto request_opaque_pass(dafg::Registry registry)
   render_to_gbuffer(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
 
   auto [cameraHndl, stateRequest] = request_common_opaque_state(registry);
+
+  return cameraHndl;
+}
+
+static auto request_cockpit_opaque_pass(dafg::Registry registry)
+{
+  render_to_gbuffer(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
+
+  auto [cameraHndl, stateRequest] = request_common_opaque_state(registry, true);
 
   return cameraHndl;
 }
@@ -274,18 +283,18 @@ eastl::fixed_vector<dafg::NodeHandle, 8> makeOpaqueStaticNodes(bool prepassEnabl
     }));
 
     result.push_back(ns.registerNode("vehicle_cockpit_prepass", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      auto cameraHndl = request_opaque_pass(registry);
+      auto cameraHndl = request_cockpit_opaque_pass(registry);
+      auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle();
       auto strmCtxHndl = registry.read("tex_ctx").blob<TexStreamingContext>().handle();
 
-      return [cameraHndl = cameraHndl, strmCtxHndl, dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass")](
-               const dafg::multiplexing::Index &multiplexing_index) {
+      return [cameraHndl = cameraHndl, prevCameraHndl, strmCtxHndl,
+               dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass")] {
         if (!vehicle_cockpit_in_depth_prepass.get())
           return;
-        const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
 
         // TODO: this shouldn't be within /opaque/statics :/
         ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
-        g_entity_mgr->broadcastEventImmediate(VehicleCockpitPrepass(cameraHndl.ref().viewTm, strmCtxHndl.ref()));
+        g_entity_mgr->broadcastEventImmediate(VehicleCockpitPrepass(&cameraHndl.ref(), &prevCameraHndl.ref(), strmCtxHndl.ref()));
       };
     }));
   }

@@ -219,7 +219,7 @@ bool rendinst::isValidRILayerAndPool(const RendInstDesc &desc)
 
 bool rendinst::isDestroyedRIExtraFromNextRes(const RendInstDesc &desc)
 {
-  return desc.isRiExtra() && riExtra[desc.pool].parentForDestroyedRiIdx > 0;
+  return desc.isRiExtra() && riExtra[desc.pool].parentForDestroyedRiIdx >= 0;
 }
 
 int rendinst::getRIExtraNextResIdx(int pool_id) { return riExtra.isValid(pool_id) ? riExtra[pool_id].destroyedRiIdx : -1; }
@@ -350,7 +350,7 @@ const char *rendinst::getRIGenDestrFxTemplateName(const RendInstDesc &desc)
   {
     RendInstGenData *rgl = getRgLayer(riExtra[desc.pool].riPoolRefLayer);
     int pool = riExtra[desc.pool].riPoolRef;
-    return (rgl && pool) ? rgl->rtData->riDebrisMap[pool].fxTemplate.str() : nullptr;
+    return (rgl && pool >= 0 && pool < rgl->rtData->riDebrisMap.size()) ? rgl->rtData->riDebrisMap[pool].fxTemplate.str() : nullptr;
   }
   RendInstGenData *rgl = getRgLayer(desc.layer);
   return rgl && desc.pool >= 0 && desc.pool < rgl->rtData->riDebrisMap.size() ? rgl->rtData->riDebrisMap[desc.pool].fxTemplate.str()
@@ -363,7 +363,7 @@ const char *rendinst::getRIGenDestrName(const RendInstDesc &desc)
   {
     RendInstGenData *rgl = getRgLayer(riExtra[desc.pool].riPoolRefLayer);
     int pool = riExtra[desc.pool].riPoolRef;
-    return (rgl && pool) ? rgl->rtData->riDestr[pool].destrName.str() : nullptr;
+    return (rgl && pool >= 0 && pool < rgl->rtData->riDestr.size()) ? rgl->rtData->riDestr[pool].destrName.str() : nullptr;
   }
   RendInstGenData *rgl = getRgLayer(desc.layer);
   return rgl && desc.pool >= 0 && desc.pool < rgl->rtData->riDestr.size() ? rgl->rtData->riDestr[desc.pool].destrName.str() : nullptr;
@@ -667,7 +667,7 @@ int rendinst::getRIGenPoolsCount(int layer_ix)
   return rgl && rgl->rtData ? rgl->rtData->riRes.size() : 0;
 }
 
-static inline vec4f v_frac(vec4f value) { return v_sub(value, v_round(value)); }
+static inline vec4f v_frac(vec4f value) { return v_sub(value, v_floor(value)); }
 
 static inline void unpack_entity_data(vec4f pos, vec4f &scale, vec4i &palette_id)
 {

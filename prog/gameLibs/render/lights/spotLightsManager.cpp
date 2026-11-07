@@ -36,14 +36,14 @@ SpotLightMaskType &operator|=(SpotLightMaskType &lhs, SpotLightMaskType rhs)
   return lhs;
 }
 
-SpotLightsManager::SpotLightsManager(const char *name) : LightsManager(name)
+SpotLightsManager::SpotLightsManager(LightsManagerSharedStorage *shared_storage) :
+  LightsManager("spot", shared_storage, SCENE_SPOT_MANAGED_LIGHTS_FIRST_INDEX * sizeof(ManagedLight),
+    SCENE_SPOT_RENDER_LIGHTS_BYTE_OFFSET)
 {
   mem_set_0(boundingSpheres);
   mem_set_0(boundingBoxes);
   mem_set_0(cosHalfAngles);
 }
-
-SpotLightsManager::SpotLightsManager() : SpotLightsManager("spot") {}
 
 template <>
 bool LightsManager<SpotLight, RenderSpotLight, SpotLightMaskType, MAX_SCENE_SPOT_LIGHTS>::isInvalidatingShadowsNeed(

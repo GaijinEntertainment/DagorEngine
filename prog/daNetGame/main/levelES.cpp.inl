@@ -72,12 +72,14 @@
 #include "render/skies.h"
 #include <render/renderEvent.h>
 #include "sound/dngSound.h"
+#include <soundSystem/occlusionGPU.h>
 #include "render/fx/fx.h"
 #include "net/net.h"
 #include "main/ecsUtils.h"
 #include "main/water.h"
 #include "main/appProfile.h"
 #include "main/gameLoad.h"
+#include "main/settings.h"
 #include <animated_splash_screen_api.h>
 #include <perfMon/dag_perfTimer.h>
 #include <main/weatherPreset.h>
@@ -415,9 +417,6 @@ public:
         {
           const char *fname = levelBlk->getStr(LEVEL_BIN_NAME, "undefined");
           get_world_renderer()->onLandmeshLoaded(*levelBlk, fname, lmeshMgr.get());
-          LmeshMirroringParams lmeshMirror = load_lmesh_mirroring(*levelBlk);
-          dacoll::set_landmesh_mirroring(lmeshMirror.numBorderCellsXPos, lmeshMirror.numBorderCellsXNeg,
-            lmeshMirror.numBorderCellsZPos, lmeshMirror.numBorderCellsZNeg);
           needLmeshLoadedCall = false;
         }
         lmeshMgr->filterHeighLandmeshDecals(*levelBlk);
@@ -480,6 +479,9 @@ public:
 
       crd.seekrel(crd.getBlockRest());
       dacoll::add_collision_landmesh(lmeshMgr.get(), crd.getTargetName());
+      LmeshMirroringParams lmeshMirror = load_lmesh_mirroring(*levelBlk);
+      dacoll::set_landmesh_mirroring(lmeshMirror.numBorderCellsXPos, lmeshMirror.numBorderCellsXNeg, lmeshMirror.numBorderCellsZPos,
+        lmeshMirror.numBorderCellsZNeg);
       return true;
     }
     if (tag == _MAKE4C('FRT'))
@@ -626,12 +628,7 @@ public:
     if (get_world_renderer())
     {
       if (needLmeshLoadedCall)
-      {
-        LmeshMirroringParams lmeshMirror = load_lmesh_mirroring(*levelBlk);
-        dacoll::set_landmesh_mirroring(lmeshMirror.numBorderCellsXPos, lmeshMirror.numBorderCellsXNeg, lmeshMirror.numBorderCellsZPos,
-          lmeshMirror.numBorderCellsZNeg);
         get_world_renderer()->onLandmeshLoaded(*levelBlk, levelBlk->getStr(LEVEL_BIN_NAME, "undefined"), lmeshMgr.get());
-      }
       if (FFTWater *water = dacoll::get_water(); waterHeightmapLoaded)
       {
         fft_water::reset_render(water);
@@ -1094,6 +1091,7 @@ void OnLevelLoadedAction::performAction()
   if (auto scn = g_entity_mgr->getNullable<LocationHolder>(levelEid, ECS_HASH("level")))
     scn->level->onLoaded();
   // else assume edge case of level entity already destroyed (unload/shutdown code path?)
+  apply_settings_deferred_by_level_load();
 }
 
 ECS_REQUIRE(LocationHolder level)
@@ -1109,6 +1107,7 @@ static inline void level_es(const EventLevelLoaded &, bool *level__loaded)
 {
   if (level__loaded)
     *level__loaded = true;
+  sndsys::occlusion_gpu::level_loaded(); // the collision world the sound rays trace is standing by now
 }
 
 ECS_REQUIRE(ecs::Tag world_renderer_tag)
@@ -1192,7 +1191,7 @@ void save_weather_settings_to_screenshot(DataBlock &blk)
   String presetName;
 
   query_get_level_weather_and_time_seeds_ecs_query(*g_entity_mgr, levelEid,
-    [&](const int level__weatherSeed, const int level__timeSeed, ecs::string level__weather, float level__latitude,
+    [&](const int level__weatherSeed, const int level__timeSeed, const ecs::string &level__weather, float level__latitude,
       float level__longtitude, int level__day, int level__month, int level__year) {
       weatherSeed = level__weatherSeed;
       timeSeed = level__timeSeed;
@@ -1231,7 +1230,9 @@ void save_weather_settings_to_screenshot(DataBlock &blk)
   const ecs::TemplateDB &db = g_entity_mgr->getTemplateDB();
   DataBlock *entitiesBlkPtr = nullptr;
   bool isPresetNameValid = strcmp(presetName.c_str(), "") != 0;
-  if (!isPresetNameValid)
+  const ecs::Object *weatherChoice =
+    isPresetNameValid ? nullptr : g_entity_mgr->getNullable<ecs::Object>(levelEid, ECS_HASH("level__weatherChoice"));
+  if (weatherChoice && !weatherChoice->empty())
     logerr("'level__weather' is not set! This probably indicates a bug!");
   query_weather_entity_for_export_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag weather_choice_tag)) {
     eastl::string templateName = g_entity_mgr->getEntityTemplateName(eid);
@@ -1426,7 +1427,7 @@ void reroll_weather_choice(
   skiesData.latitude = wdt.lat;
   skiesData.longtitude = wdt.lon;
   skiesData.seed = skies_seed;
-  // constraint: callers set origins before a reroll
+  // callers set origins before a reroll
   const DPoint2 cloudsOrigin = get_clouds_origin(), strataCloudsOrigin = get_strata_clouds_origin();
   load_daskies(*saved_level_blk.getBlockByNameEx("skies"), skiesData, wdt.weatherBlk);
   set_clouds_origin(cloudsOrigin);
@@ -1457,7 +1458,7 @@ static bool skies_setting_test_console_handler(const char *argv[], int argc)
       timeOfDay = console::to_real(argv[4]);
     if (argc >= 6)
       presetName = argv[5];
-    // constraint: webui, ESes and PUFD cannot tick
+    // webui, ESes and PUFD cannot tick
     add_delayed_action(make_delayed_action([=]() {
       reroll_weather_choice(weatherSeed, skiesSeed, timeSeed, timeOfDay, presetName.empty() ? nullptr : presetName.c_str());
     }));
@@ -1490,7 +1491,7 @@ static bool skies_setting_test_console_handler(const char *argv[], int argc)
     DPoint2 cloudsOrigin = get_clouds_origin();
     DPoint2 strataCloudsOrigin = get_strata_clouds_origin();
     query_get_level_seeds_ecs_query(*g_entity_mgr, levelEid,
-      [&](const int level__weatherSeed, const int level__timeSeed, ecs::string level__weather) {
+      [&](const int level__weatherSeed, const int level__timeSeed, const ecs::string &level__weather) {
         weatherSeed = level__weatherSeed;
         timeSeed = level__timeSeed;
         presetName = String(level__weather.c_str());

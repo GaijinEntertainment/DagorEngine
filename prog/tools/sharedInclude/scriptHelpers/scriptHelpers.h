@@ -3,6 +3,8 @@
 
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
+#include <EASTL/string.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 
 
 class String;
@@ -66,6 +68,12 @@ extern ObjectEditor *obj_editor;
 
 void set_param_change_cb(ParamChangeCB *cb);
 void on_param_change();
+
+// Warning text per parameter path. A path joins element names with '/', starting at a child of the element given to
+// set_tuned_element(), like "FxEmission_data/enabled"; the name of that root element is never part of it.
+using ParamWarnings = ska::flat_hash_map<eastl::string, eastl::string>;
+
+void set_param_warnings(ParamWarnings warnings);
 
 void set_tuned_element(TunedElement *elem);
 

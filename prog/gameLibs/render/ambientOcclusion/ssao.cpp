@@ -11,6 +11,7 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
 #include <perfMon/dag_statDrv.h>
+#include <debug/dag_log.h>
 #include <render/viewVecs.h>
 #include "ssao_public.h"
 #include <render/set_reprojection.h>
@@ -82,7 +83,8 @@ RenderResources create_render_resources(uint32_t flags, const char *poisson_tag)
     }
     else
     {
-      ShaderGlobal::set_int(ssao_modeVarId, SSAO_MODE_TEMPORAL);
+      ShaderGlobal::set_int(ssao_modeVarId,
+        (flags & SSAO_USE_SPATIAL_TEMPORAL_FILTER) ? SSAO_MODE_TEMPORAL_NO_REPROJECTION : SSAO_MODE_TEMPORAL);
       generate_poisson_points(res.poissonPoints, poisson_tag, 4, 8);
     }
   }
@@ -175,6 +177,12 @@ SSAORenderer::SSAORenderer(int w, int h, int num_views, uint32_t flags, bool use
     smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
     ssao_prev_tex_samplerstateVarId.set_sampler(d3d::request_sampler(smpInfo));
     ssao_tex_samplerstateVarId.set_sampler(d3d::request_sampler(smpInfo));
+  }
+
+  if (flags & SSAO_USE_SPATIAL_TEMPORAL_FILTER)
+  {
+    logerr("SSAORenderer does not support SSAO_USE_SPATIAL_TEMPORAL_FILTER, the blur is used");
+    flags &= ~uint32_t(SSAO_USE_SPATIAL_TEMPORAL_FILTER);
   }
 
   resources = ssao_pass::create_render_resources(flags, tag);

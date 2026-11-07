@@ -119,15 +119,6 @@ static void appendIndexData(const Mesh &m, int sf, int numf, VertToFaceVertMap &
   }
 }
 
-static unsigned real2int10(real a)
-{
-  int ret = real2int(a);
-  if (ret >= 0)
-    return ((unsigned)ret) & ((1 << 9) - 1);
-  else
-    return ((unsigned)ret & ((1 << 9) - 1)) | (1 << 9);
-}
-
 static unsigned real2uint(real a) { return real2int(a < 0 ? 0 : a); }
 
 static int addVertices(Mesh &m, int sf, int numf, VertToFaceVertMap &f2vmap, uint8_t *vb, uint16_t *ib,
@@ -331,7 +322,7 @@ static int addVertices(Mesh &m, int sf, int numf, VertToFaceVertMap &f2vmap, uin
           p += 2;
           break;
         case SCTYPE_DEC3N:
-          *(unsigned int *)p = (real2int10(val[0] * 511.0)) | (real2int10(val[1] * 511.0) << 10) | (real2int10(val[2] * 511.0) << 20);
+          *(unsigned int *)p = pack_dec3n(real2int(val[0] * 511.0), real2int(val[1] * 511.0), real2int(val[2] * 511.0));
           p += 4;
           break;
         case SCTYPE_UDEC3:

@@ -14,7 +14,6 @@ let typeMap = [
   ["<",       @(a, b) b < a],
   ["=",       @(a, b) b == a],
   ["!",       @(a, b) b != a],
-  ["",        @(a, b) b == a],
 ]
 
 function checkVersion(verWildcard, verCurrent, compFn: function) {
@@ -57,11 +56,11 @@ function check_version_impl(vermask, game_version) {
   let maskVer = stripVerCondition(vermask).split(".")
   let checkVer = stripVerCondition(game_version).split(".")
 
-  local cmpFn = null
+  local cmpFn = @(a, b) b == a
   foreach ([prefix, fn] in typeMap) {
     if (startsWith(vermask, prefix)) {
-      cmpFn = fn;
-      break;
+      cmpFn = fn
+      break
     }
   }
 

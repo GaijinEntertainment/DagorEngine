@@ -1,8 +1,8 @@
-from "math" import floor, clamp
+from "math" import srand, rand
 
 if (__name__ == "__analysis__")
   return
 
-let _x = floor()
-let _y = floor(111.111, 222.222)
-let _z = clamp(1, 2)
+let _x = srand()
+let _y = srand(111, 222)
+let _z = rand(1)

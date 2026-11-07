@@ -21,7 +21,7 @@ struct CaptureTuning
   float agc2MaxGainDb = 30;
 };
 
-// constraint: each buffered playback ring is sized for these, so a load never outgrows it
+// each buffered playback ring is sized for these, so a load never outgrows it
 static constexpr int MAX_PLAYBACK_START_MARGIN_MS = 200;
 static constexpr int MAX_PLAYBACK_LEAD_FRAMES = 6;
 
@@ -41,7 +41,7 @@ struct PlaybackTuning
 // the FMOD 3D level for a speaker at this distance from the listener
 float pan_level_at(const PlaybackTuning &tuning, float distance);
 
-// constraint: any thread may call every function here
+// any thread may call every function here
 
 // the first call loads voice{tuning{}} of the game settings; generation gets the generation of the returned values
 CaptureTuning capture_tuning(int *generation = nullptr);

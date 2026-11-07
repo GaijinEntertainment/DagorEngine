@@ -12,6 +12,7 @@
 #include <gui/dag_imguiUtil.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/daFrameGraph/singleShaders.h>
+#include <render/compressedRtOverrideFlag.h>
 
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
@@ -143,7 +144,7 @@ static dafg::NodeHandle makeSsssReflectanceHorizontalNode(bool is_rr_enable)
       const auto target_fmt = get_frame_render_target_format();
 
       registry.create("ssss_intermediate_target")
-        .texture({target_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+        .texture({target_fmt | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view")})
         .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
       if (is_rr_enable)
       {

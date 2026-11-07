@@ -20,16 +20,14 @@ def destroy_composit_tree(eid : EntityId)
       destroy_composit_tree(child)
   destroyEntity(eid)
 
-require DagorSystem
 [es]
 def on_composit_changed(evt : AssetChangedEvent)
-  if true
-    let name = *evt.asset |> getName()
-    query() <| $ [es] (composit__name : string; eid : EntityId; transform : float3x4)
-      if composit__name != name
-        return
-      destroy_composit_tree(eid)
-      create_composit_entity(name, transform)
+  let name = *evt.asset |> getName()
+  query() <| $ [es] (composit__name : string; eid : EntityId; transform : float3x4)
+    if composit__name != name
+      return
+    destroy_composit_tree(eid)
+    create_composit_entity(name, transform)
 
 
 [es(track=transform)]

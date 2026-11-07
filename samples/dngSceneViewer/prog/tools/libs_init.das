@@ -16,6 +16,7 @@ require danetlibs.sound.environment_sounds.environment_sounds_init
 require danetlibs.sound.sound_utils.sound_utils_init
 require danetlibs.sound.sound_utils_net.sound_utils_net_init
 require danetlibs.composite_entity.composite_entity_init
+require gameLibs.imgui_daeditor.imgui_daeditor_init
 
 def load_libs() : bool
   var ok = true
@@ -32,6 +33,7 @@ def load_libs() : bool
   ok = load_sound_utils("%danetlibs/sound/sound_utils") && ok
   ok = load_sound_utils_net("%danetlibs/sound/sound_utils_net") && ok
   ok = load_composite_entity("%danetlibs/composite_entity") && ok
+  ok = load_imgui_daeditor("%gameLibs/imgui_daeditor") && ok
 
   return ok
 

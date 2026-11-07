@@ -9,6 +9,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_events.h>
+#include <osApiWrappers/dag_localConv.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_delayedAction.h>
 #include <math/random/dag_random.h>
@@ -96,6 +97,33 @@ static size_t put_read_callback(char *ptr, size_t size, size_t nmemb, void *user
 static int progress_callback(void *userdata, progress_off_t dltotal, progress_off_t dlnow, progress_off_t, progress_off_t);
 static bool verbose_debug = false;
 
+static bool is_credential_header(const char *name, size_t length)
+{
+  auto is = [&](const char *header) { return strlen(header) == length && dd_strnicmp(name, header, (int)length) == 0; };
+  return is("Authorization") || is("Proxy-Authorization");
+}
+
+// libcurl dumps the request headers it sent; a credential value must not reach the log with them.
+static eastl::string redact_credential_headers(eastl::string_view headers)
+{
+  eastl::string result;
+  while (!headers.empty())
+  {
+    const size_t end = headers.find('\n');
+    const eastl::string_view line = headers.substr(0, end == eastl::string_view::npos ? headers.size() : end + 1);
+    headers.remove_prefix(line.size());
+    const size_t colon = line.find(':');
+    if (colon != eastl::string_view::npos && is_credential_header(line.data(), colon))
+    {
+      result.append(line.data(), colon + 1);
+      result += " <redacted>\r\n";
+    }
+    else
+      result.append(line.data(), line.size());
+  }
+  return result;
+}
+
 static size_t curl_debug(CURL *, curl_infotype it, char *msg, size_t n, void *)
 {
   if (it == CURLINFO_DATA_IN || it == CURLINFO_SSL_DATA_IN)
@@ -118,6 +146,12 @@ static size_t curl_debug(CURL *, curl_infotype it, char *msg, size_t n, void *)
   eastl::string_view message = "";
   if (it != CURLINFO_SSL_DATA_IN && it != CURLINFO_SSL_DATA_OUT && it != CURLINFO_DATA_IN && it != CURLINFO_DATA_OUT && n > 1)
     message = eastl::string_view(msg, n - 1);
+  eastl::string redacted;
+  if (it == CURLINFO_HEADER_OUT)
+  {
+    redacted = redact_credential_headers(message);
+    message = redacted;
+  }
 
   debug("[http] %s %.*s", prefix, (int)message.size(), message.data());
   return 0;
@@ -146,7 +180,6 @@ static void logerr_http_in_retail(const eastl::string &url)
 static CURL *make_curl_handle(const char *url, const char *user_agent, bool verify_peer, bool verify_host, void *user_data,
   const char *chunk_range, bool need_resp_headers)
 {
-  G_UNUSED(need_resp_headers);
   CURL *curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   // To consider: always pass header callback for pre-reserve `response` using `Content-Length` header
@@ -249,7 +282,8 @@ public:
       hstr += ": ";
       hstr += h.second;
       headersList = curl_slist_append(headersList, hstr.c_str());
-      DEBUG_VERBOSE("append header:%s", hstr.c_str());
+      // A credential would otherwise reach the debug log of every user who turns verbose logging on.
+      DEBUG_VERBOSE("append header:%s: %s", h.first, is_credential_header(h.first, strlen(h.first)) ? "<redacted>" : h.second);
     }
 
     if (params.postData.size())
@@ -539,7 +573,7 @@ static void move_queue_to_active_requests_nolock()
   if (queue_mutex)
   {
     WinAutoLock lock(*queue_mutex);
-    while (active_requests.size() <= MAX_ACTIVE_REQUESTS && !requests_queue.empty())
+    while (active_requests.size() < MAX_ACTIVE_REQUESTS && !requests_queue.empty())
     {
       RequestStatePtr &context = requests_queue.front();
       curl_multi_add_handle(curlm, context->getCurlHandle());
@@ -818,9 +852,6 @@ void init_async(InitAsyncParams const &params)
     curl_multi_setopt(curlm, CURLMOPT_TIMERFUNCTION, &timer_func);
     curl_multi_setopt(curlm, CURLMOPT_TIMERDATA, NULL);
     curl_multi_setopt(curlm, CURLMOPT_PIPELINING, 1);
-#if LIBCURL_VERSION_NUM >= 0x071E00 // 7.30.0, no equivalent cap before that
-    curl_multi_setopt(curlm, CURLMOPT_MAX_TOTAL_CONNECTIONS, 10);
-#endif
 
     curlsh = curl_share_init();
     curl_share_setopt(curlsh, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
@@ -841,6 +872,13 @@ void init_async(InitAsyncParams const &params)
     else
       register_regular_action_to_idle_cycle(&poll_on_idle_cycle, NULL);
   }
+
+#if LIBCURL_VERSION_NUM >= 0x071E00 // 7.30.0, no equivalent cap before that
+  {
+    WinAutoLock lock(*mutex);
+    curl_multi_setopt(curlm, CURLMOPT_MAX_TOTAL_CONNECTIONS, long(params.maxTotalConnections));
+  }
+#endif
 
   if (params.defaultUserAgent)
     default_user_agent = params.defaultUserAgent;

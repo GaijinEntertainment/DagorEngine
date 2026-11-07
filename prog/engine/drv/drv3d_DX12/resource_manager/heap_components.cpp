@@ -2,9 +2,12 @@
 
 #include "heap_components.h"
 #include <device.h>
+#include <debug/memory_heap_reporter.h>
 #include <debug/names.h>
 
 #include <ioSys/dag_dataBlock.h>
+#include <osApiWrappers/dag_miscApi.h>
+#include <util/dag_watchdog.h>
 #include <3d/tql.h>
 
 using namespace drv3d_dx12;
@@ -332,12 +335,12 @@ MemoryBudgetObserver::BudgetPressureLevels MemoryBudgetObserver::calculateSystem
 
 MemoryBudgetObserver::BudgetPressureLevels MemoryBudgetObserver::updateSystemCommitLevel(const MEMORYSTATUSEX &status)
 {
-  auto previousLevel = systemCommitLevel.load(std::memory_order_relaxed);
+  auto previousLevel = systemCommitLevel.load(dag::memory_order_relaxed);
   BudgetPressureLevels level;
   do
   {
     level = calculateSystemCommitLevel(status.ullAvailPageFile, status.ullTotalPageFile, previousLevel);
-  } while (!systemCommitLevel.compare_exchange_weak(previousLevel, level, std::memory_order_relaxed));
+  } while (!systemCommitLevel.compare_exchange_weak(previousLevel, level, dag::memory_order_relaxed, dag::memory_order_relaxed));
 
   if (level != previousLevel)
   {
@@ -534,7 +537,6 @@ uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, Reso
   // dedicated heaps do not scale
   if (flags.dedicatedHeap)
   {
-    scale = 1;
     pageCount = 1;
   }
 
@@ -554,7 +556,7 @@ uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, Reso
     budget = min(budget, maxPerHeapBudget);
   }
 
-  return min(budget, align_value(align_value(size * scale, pageCount * page_size), properties.getAlignment()));
+  return min(budget, align_value(align_value(size, pageCount * page_size), properties.getAlignment()));
 }
 
 MemoryAllocationError MemoryBudgetObserver::makeMemoryAllocationError(HRESULT error_code, uint64_t size,
@@ -582,6 +584,46 @@ MemoryAllocationError MemoryBudgetObserver::makeMemoryAllocationError(HRESULT er
     .pageFileSpace = systemMemoryStatus.ullAvailPageFile,
     .systemMemoryLoadPercentage = systemMemoryStatus.dwMemoryLoad,
   };
+}
+
+void MemoryBudgetObserver::waitForSystemCommit(uint64_t size)
+{
+  const uint64_t neededCommit = size * MemoryAllocationError::requested_memory_size_pool_exhaustion_scale + system_commit_wait_reserve;
+  MEMORYSTATUSEX status{sizeof(MEMORYSTATUSEX)};
+  if (!GlobalMemoryStatusEx(&status) || status.ullAvailPageFile >= neededCommit)
+    return;
+  updateSystemCommitLevel(status);
+
+  const int64_t startTicks = ref_time_ticks();
+  if (startTicks < systemCommitWaitBlockedUntilTicks.load())
+    return;
+
+  ByteUnits commitAvail = status.ullAvailPageFile;
+  ByteUnits commitNeeded = neededCommit;
+  logwarn("DX12: System commit avail %.2f %s is below %.2f %s, waiting up to %d ms for it", commitAvail.units(), commitAvail.name(),
+    commitNeeded.units(), commitNeeded.name(), system_commit_wait_timeout_msec);
+  tql::schedule_trim_discardable_tex_mem();
+
+  const int64_t endTicks = rel_ref_time_ticks(startTicks, system_commit_wait_timeout_msec * 1000);
+  bool isEnough = false;
+  while (!isEnough && ref_time_ticks() < endTicks)
+  {
+    watchdog_kick();
+    sleep_msec(system_commit_wait_poll_msec);
+    if (!GlobalMemoryStatusEx(&status))
+      break;
+    updateSystemCommitLevel(status);
+    isEnough = status.ullAvailPageFile >= neededCommit;
+  }
+
+  if (!isEnough)
+    systemCommitWaitBlockedUntilTicks.store(rel_ref_time_ticks(ref_time_ticks(), system_commit_wait_cooldown_msec * 1000));
+
+  commitAvail = status.ullAvailPageFile;
+  ByteUnits commitLimit = status.ullTotalPageFile;
+  logdbg("DX12: System commit wait %s after %d ms (commit avail/limit %.2f %s / %.2f %s)", isEnough ? "succeeded" : "timed out",
+    int(ref_time_delta_to_usec(ref_time_ticks() - startTicks) / 1000), commitAvail.units(), commitAvail.name(), commitLimit.units(),
+    commitLimit.name());
 }
 
 #else
@@ -705,7 +747,6 @@ uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, Reso
   // dedicated heaps do not scale
   if (flags.dedicatedHeap)
   {
-    scale = 1;
     minSize = page_size;
   }
 
@@ -725,13 +766,7 @@ uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, Reso
     budget = min(budget, maxPerHeapBudget);
   }
 
-  const auto pressureLevel = getDeviceLocalBudgetLevel();
-  if ((BudgetPressureLevels::HIGH == pressureLevel) || (BudgetPressureLevels::PANIC == pressureLevel))
-  {
-    scale = min(scale, max_high_memory_pressure_heap_size_scale);
-  }
-
-  return min(budget, align_value(size * scale, minSize));
+  return min(budget, align_value(size, minSize));
 }
 
 MemoryAllocationError MemoryBudgetObserver::makeMemoryAllocationError(HRESULT error_code, uint64_t size, ResourceHeapProperties)
@@ -1030,6 +1065,7 @@ ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapPro
       auto &heap = group[heapID.index];
 
       debug::name_object(heap.heap.Get(), debug::format_object_name("MemoryHeap.%s#%u", heap_properties.typeName(), heapID.index));
+      debug::register_memory_heap(device, heap.heap.Get(), heap_properties.typeName(), heapID.index);
 
       result = first_allocate_from_heap(alloc_info, heap, heapID);
 
@@ -1132,6 +1168,7 @@ void ResourceMemoryHeapProvider::freeNoLock(ResourceMemory allocation, bool is_h
     subtractHeapGroupFreeSpace(heapID.group, heap.totalSize);
 
     recordHeapFreed(heap.totalSize, properties.isOnDevice(getFeatureSet()));
+    debug::unregister_memory_heap(heap.heap.Get());
     heap = {};
   }
 }

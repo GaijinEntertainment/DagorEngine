@@ -77,7 +77,7 @@ void ConvexHullComputerProcessing::renderComputedConvex(bool is_faded)
 
   for (int i = 0; i < computers.size(); ++i)
   {
-    drawConvex(computers[i], is_faded, E3DCOLOR(colors[(i) % (sizeof(colors) / sizeof(colors[0]))]));
+    drawConvex(computers[i], is_faded, collision_node_color(i));
   }
 
   if (showConvexComputed && !selectedComputer.vertices.empty())

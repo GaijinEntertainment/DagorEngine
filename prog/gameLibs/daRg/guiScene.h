@@ -13,12 +13,12 @@
 #include "scriptBinding.h"
 #include "gamepadCursor.h"
 #include "hotkeys.h"
-#include <daRg/dag_joystick.h>
 #include "panel.h"
 #include "screen.h"
 #include "mousePointer.h"
 #include "sceneStatus.h"
 #include "touchPointers.h"
+#include "padTouchpad.h"
 #include "kbFocus.h"
 #include "perfStats.h"
 
@@ -111,8 +111,6 @@ public:
     const HumanInput::ButtonBits &buttons, int prev_result = 0) override;
   // returns a combination of BehaviorResult flags
   virtual int onVrInputEvent(InputEvent event, int hand, int button_id, int prev_result = 0) override;
-  virtual int onTouchPadGesture(int state, const HumanInput::Gesture &gesture, int prev_result = 0) override;
-  virtual int getTouchPadGesturesAtPointer() const override;
 
   virtual void setVrStickScroll(int hand, const Point2 &scroll) override;
 
@@ -188,7 +186,7 @@ public:
 
   CursorPosState &activePointerState();
   const CursorPosState &activePointerState() const;
-  virtual Point2 activePointerPos() const override;
+  Point2 activePointerPos() const;
   void setMousePos(const Point2 &p, bool reset_target);
   void moveActiveCursorToElem(Element *elem, bool use_transform);
   void moveActiveCursorToElemBox(Element *elem, const BBox2 &bbox, bool jump);
@@ -222,6 +220,17 @@ public:
 
   bool useCircleAsActionButton() const;
   bool isInputActive() const { return isInputEnabledByHost && isInputEnabledByScript; }
+
+  // On Xbox and PlayStation, false from a key press until the next gamepad, touch or VR input.
+  // Mouse input does not change it: the PS touchpad emulates a mouse.
+  bool isScreenKeyboardWanted() const
+  {
+#if _TARGET_XBOX || _TARGET_C1 || _TARGET_C2
+    return !keyboardInUse;
+#else
+    return true;
+#endif
+  }
 
   void doSetXmbFocus(Element *elem);
   void queueXmbNodeHandler(Element *elem, const Sqrat::Object &key);
@@ -304,6 +313,9 @@ private:
   void doJoystickScroll(const Point2 &delta);
   void updatePointers(float dt, bool &hover_dirty);
   void updateGamepadCursor(float dt, bool &hover_dirty);
+  bool haveCursor() const;
+  void activateGamepadCursor();
+  void onGamepadCursorMoved();
   void requestActivePointerNextFramePos(const Point2 &p);
   void requestActivePointerTargetPos(const Point2 &p);
   void updateVrStickScroll(float dt);
@@ -311,21 +323,21 @@ private:
   bool scrollIntoViewCenter(Element *elem, const BBox2 &viewport, const Point2 &max_scroll, const Element *scroll_root);
   bool hierScroll(Element *elem, Point2 delta, const Element *scroll_root);
   void scrollToXmbFocus(float dt);
-  void validateOverlaidXmbFocus();
+  void validateBlockedXmbFocus();
   void tryRestoreSavedXmbFocus();
 
   int handleMouseClick(Screen *screen, InputEvent event, InputDevice device, int btn_idx, Point2 pos, int accum_res);
+  int clickAtActivePointer(InputEvent event, InputDevice device, int accum_res, int btn_idx = 0);
+  int dispatchTouchEvent(Screen *screen, InputEvent event, int touch_idx, TouchSource touch_src, Point2 pos, int prev_result);
+  int onPadTouchpadEvent(InputEvent event, int touch_idx, const HumanInput::PointingRawState::Touch &touch, int prev_result);
+  int clickWithPadTouchpad(int btn_idx, int prev_result);
+  bool canPointWithPadTouchpad() const;
+  int sendPadPair(InputEvent event, int prev_result);
+  int cancelPadPair(int prev_result);
   int onMouseEventInternal(Screen *screen, InputEvent event, InputDevice device, int data, Point2 pos, int buttons, int accum_res);
   int onPanelMouseEvent(Panel *panel, int hand, InputEvent event, InputDevice device, int button_id, short mx, short my,
     int prev_result = 0);
   int onPanelTouchEvent(Panel *panel, int hand, InputEvent event, short tx, short ty, int prev_result = 0);
-
-  struct TouchPadGestureCapture
-  {
-    Element *elem = nullptr;
-    TouchPadGesture last;
-  };
-  void cancelTouchPadGesture(TouchPadGestureCapture &capture);
 
   template <void (ElementTree::*method)(const Sqrat::Object &)>
   static SQInteger call_anim_method(HSQUIRRELVM vm);
@@ -420,9 +432,9 @@ private:
   MousePointer mousePointer;
   GamepadCursor gamepadCursor;
   InputDevice activePointingDevice = DEVID_MOUSE;
+  bool keyboardInUse = false;
 
   eastl::vector_set<HotkeyButton> pressedClickButtons;
-  TouchPadGestureCapture touchPadGestures[HumanInput::Gesture::DOUBLE_TAP + 1];
 
   HSQUIRRELVM sqvm = nullptr;
 
@@ -461,7 +473,6 @@ private:
   IGuiSceneCallback *guiSceneCb = nullptr;
 
   Hotkeys hotkeys;
-  JoystickHandler joystickHandler;
 
   eastl::unique_ptr<Profiler> profiler;
   // AutoProfileScope holds a raw Profiler* and script can disable it mid-scope; destroy only in update()
@@ -486,14 +497,8 @@ private:
 
   IPoint2 deviceScreenSize = IPoint2(0, 0);
 
-  enum class UpdateHoverRequestState
-  {
-    None,
-    WaitingForRender,
-    NeedToUpdate
-  };
-
-  UpdateHoverRequestState updateHoverRequestState = UpdateHoverRequestState::None;
+  bool hoverUpdateAfterRender = false;
+  bool hoverUpdatePending = false;
 
   eastl::vector_map<int, eastl::unique_ptr<Panel>> panels;
 
@@ -501,9 +506,18 @@ private:
   struct SpatialInteractionState
   {
     eastl::optional<float> hitDistances[NUM_VR_POINTERS];
-    int closestHitPanelIdxs[NUM_VR_POINTERS] = {-1, -1, -1};
-    Point2 hitPos[NUM_VR_POINTERS] = {{-1.f, -1.f}, {-1.f, -1.f}, {-1.f, -1.f}};
-    bool isHandTouchingPanel[NUM_VR_POINTERS] = {false, false, false};
+    int closestHitPanelIdxs[NUM_VR_POINTERS];
+    Point2 hitPos[NUM_VR_POINTERS];
+    bool isHandTouchingPanel[NUM_VR_POINTERS] = {};
+
+    SpatialInteractionState()
+    {
+      for (int i = 0; i < NUM_VR_POINTERS; ++i)
+      {
+        closestHitPanelIdxs[i] = -1;
+        hitPos[i].set(-1.f, -1.f);
+      }
+    }
 
     bool wasVrSurfaceHit(int hand) const { return hitDistances[hand].has_value() && closestHitPanelIdxs[hand] < 0; }
     bool wasPanelHit(int hand) const { return hitDistances[hand].has_value() && closestHitPanelIdxs[hand] >= 0; }
@@ -524,6 +538,7 @@ private:
   VrPointer vrPointers[NUM_VR_POINTERS];
 
   TouchPointers touchPointers;
+  PadTouchpad padTouchpad;
 
   bool panelBufferInitialized = false;
   void ensurePanelBufferInitialized();

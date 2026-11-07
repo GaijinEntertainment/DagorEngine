@@ -10,7 +10,7 @@ struct ClipmapDebugStats
 {
   eastl::array<int, TEX_MIPS> tilesFromFeedback;
   eastl::array<int, TEX_MIPS> tilesNeedUpdate;
-  eastl::array<int, TEX_MIPS> tilesInvalid;
+  eastl::array<int, TEX_MIPS> tilesDirty;
   eastl::array<int, TEX_MIPS> tilesUsed;
   eastl::array<int, TEX_MIPS> tilesUnused;
   int tilesUnassigned = 0;
@@ -25,7 +25,7 @@ struct ClipmapDebugStats
   void reset()
   {
     for (int i = 0; i < TEX_MIPS; ++i)
-      tilesFromFeedback[i] = tilesNeedUpdate[i] = tilesInvalid[i] = tilesUsed[i] = tilesUnused[i] = 0;
+      tilesFromFeedback[i] = tilesNeedUpdate[i] = tilesDirty[i] = tilesUsed[i] = tilesUnused[i] = 0;
     tilesUnassigned = 0;
   }
 };

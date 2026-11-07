@@ -18,7 +18,6 @@
 #include "main/main.h"
 #include "main/settings.h"
 #include "squirrel.h"
-#include "ui/userUi.h"
 #include <daRg/dag_guiScene.h>
 
 #include <drv/3d/dag_renderTarget.h>
@@ -278,7 +277,7 @@ static SQInteger get_current_window_resolution(HSQUIRRELVM vm)
 
 static SQInteger get_antialiasing_options(HSQUIRRELVM vm)
 {
-  const char *options = render::antialiasing::get_available_methods(false, false);
+  const char *options = render::antialiasing::get_available_methods(false, true);
 
   sq_pushstring(vm, options, -1);
 

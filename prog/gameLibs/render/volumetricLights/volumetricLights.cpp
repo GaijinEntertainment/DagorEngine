@@ -417,19 +417,8 @@ void VolumeLight::init()
     smpInfo.filter_mode = d3d::FilterMode::Linear;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
-    vars.prev_volfog_shadow_samplerstate.set_sampler(sampler);
-    vars.volfog_shadow_samplerstate.set_sampler(sampler);
     vars.prev_distant_fog_inscatter_samplerstate.set_sampler(sampler);
     vars.distant_fog_result_inscatter_samplerstate.set_sampler(sampler);
-  }
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-    d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
-    vars.prev_initial_inscatter_samplerstate.set_sampler(sampler);
-    vars.prev_initial_extinction_samplerstate.set_sampler(sampler);
-    vars.initial_media_samplerstate.set_sampler(sampler);
-    vars.prev_volfog_weight_samplerstate.set_sampler(sampler);
   }
   {
     d3d::SamplerInfo smpInfo;

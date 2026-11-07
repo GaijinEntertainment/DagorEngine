@@ -61,8 +61,8 @@ macro PROJECTIVE_DECALS_MATRICES(decal_matrices_var, count, code)
 endmacro
 
 macro PROJECTIVE_DECALS_VS_COMMON()
-  INIT_HEIGHTMAP_OFS(vs)
-  USE_HEIGHTMAP_OFS(vs)
+  INIT_HEIGHTMAP_OFS_WITH_GRASS(vs)
+  USE_HEIGHTMAP_OFS_WITH_GRASS(vs)
   hlsl(vs) {
     #define NO_GRADIENTS_IN_SHADER 1
   }

@@ -22,7 +22,7 @@ namespace voicechat
 static constexpr int capture_cycle_ms = 5;
 static constexpr int stats_period_s = 300;
 static constexpr int client_queue_ms = 500;
-// constraint: a read carries up to one 10 ms recorder frame and the resampler delay of older audio
+// a read carries up to one 10 ms recorder frame and the resampler delay of older audio
 static constexpr int joining_client_skip_ms = 15;
 
 class SharedVoiceCapture final : public DaThread
@@ -90,7 +90,7 @@ void SharedVoiceCapture::stopRecord(const char *reason)
   recording = false;
   // the next start drops the gate preroll unsent, so this recording's line counts it
   recorder.dropSpeechGatePreroll();
-  // constraint: VoiceRecorder::startRecord clears the recorder counts, so they are taken before the next start
+  // VoiceRecorder::startRecord clears the recorder counts, so they are taken before the next start
   collectStats();
   // from the destructor the switch can have turned off after the last step read it
   if (statsEnabled && are_stats_enabled())

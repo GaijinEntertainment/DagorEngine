@@ -1,0 +1,292 @@
+include "local_tone_inc.dshl"
+
+texture local_tone_half_frame;
+texture local_tone_source;
+texture local_tone_history;
+texture local_tone_sums;
+texture local_tone_frame_history;
+texture local_tone_target;
+texture local_tone_motion;
+
+int local_tone_blur_pass = 0;
+interval local_tone_blur_pass : horizontal < 1, vertical;
+// Half frame texels per pooled texel side.
+int local_tone_pool_size = 4;
+interval local_tone_pool_size : pool4 < 5, pool5 < 6, pool6;
+
+hlsl {
+  #define BLOCK 8
+  #define FETCH_BATCH 4
+}
+
+shader local_tone_pool
+{
+  INIT_EXPOSURE(cs)
+  USE_EXPOSURE(cs)
+  LOCAL_TONE_LUMINANCE(cs)
+
+  (cs) {
+    half_frame@tex2d = local_tone_half_frame;
+    target@uav = local_tone_target hlsl { RWTexture2D<float> target@uav; }
+    size@i4 = local_tone_size;
+  }
+
+  hlsl(cs) {
+    #define POOL_GROUP 4
+    // Threads divide the tile: no bound check.
+    ##if local_tone_pool_size == pool4
+      #define POOL 4
+      #define POOL_THREADS 64
+      // Padded: fewer LDS bank conflicts.
+      #define POOL_TILE_PITCH 18
+    ##elif local_tone_pool_size == pool5
+      #define POOL 5
+      #define POOL_THREADS 100
+      #define POOL_TILE_PITCH 20
+    ##else
+      #define POOL 6
+      #define POOL_THREADS 192
+      #define POOL_TILE_PITCH 24
+    ##endif
+    #define POOL_TILE (POOL_GROUP * POOL)
+    #define POOL_LOADS (POOL_TILE * POOL_TILE / POOL_THREADS)
+    groupshared float tileLogLuminance[POOL_TILE * POOL_TILE_PITCH];
+
+    // Lanes read consecutive texels: coalesced fetches.
+    [numthreads(POOL_THREADS, 1, 1)]
+    void main(uint3 gId : SV_GroupID, uint gi : SV_GroupIndex)
+    {
+      float exposure = getPrevExposureRatio();
+      int2 origin = int2(gId.xy) * POOL_TILE;
+      // All loads first, so they wait once.
+      float3 texels[POOL_LOADS];
+      uint slots[POOL_LOADS];
+      UNROLL
+      for (uint k = 0; k < POOL_LOADS; ++k)
+      {
+        uint i = k * POOL_THREADS + gi;
+        uint2 at = uint2(i % POOL_TILE, i / POOL_TILE);
+        texels[k] = texelFetch(half_frame, min(origin + int2(at), size.xy / 2 - 1), 0).rgb;
+        slots[k] = at.y * POOL_TILE_PITCH + at.x;
+      }
+      UNROLL
+      for (uint j = 0; j < POOL_LOADS; ++j)
+        tileLogLuminance[slots[j]] = local_tone_log_luminance(texels[j] * exposure);
+      GroupMemoryBarrierWithGroupSync();
+
+      uint2 pooled = uint2(gi % POOL_GROUP, gi / POOL_GROUP);
+      uint2 dtId = gId.xy * POOL_GROUP + pooled;
+      if (gi >= POOL_GROUP * POOL_GROUP || any(dtId >= uint2(size.zw)))
+        return;
+      float sum = 0;
+      for (int y = 0; y < POOL; ++y)
+        for (int x = 0; x < POOL; ++x)
+          sum += tileLogLuminance[(pooled.y * POOL + y) * POOL_TILE_PITCH + pooled.x * POOL + x];
+      texture2DAt(target, dtId) = sum / float(POOL * POOL);
+    }
+  }
+
+  compile("target_cs", "main");
+}
+
+shader local_tone_blur
+{
+  LOCAL_TONE_MEAN_BIAS(cs)
+
+  (cs) {
+    guide@tex2d = local_tone_guide;
+    target@uav = local_tone_target hlsl { RWTexture2D<float> target@uav; }
+    size@i4 = local_tone_size;
+    kernel@f4 = local_tone_kernel;
+  }
+
+  if (local_tone_blur_pass == vertical)
+  {
+    (cs) {
+      source@tex2d = local_tone_source;
+      history@tex2d = local_tone_history;
+      sums@tex2d = local_tone_sums;
+      frame_history@tex2d = local_tone_frame_history;
+      frame_mean@uav = local_tone_frame_mean hlsl { RWTexture2D<float> frame_mean@uav; }
+      motion@tex2d = local_tone_motion;
+      view_size@i4 = local_tone_view_size;
+      pool@i1 = local_tone_pool_size;
+    }
+  }
+  else
+  {
+    (cs) { sums@uav = local_tone_sums hlsl { RWTexture2D<float> sums@uav; } }
+  }
+
+  hlsl(cs) {
+    #define GROUP_THREADS (BLOCK * BLOCK)
+    groupshared float partial[GROUP_THREADS];
+
+    // NaN and inf fail this test too.
+    bool has_mean(float texel) { return texel > 0 && texel < 2 * LOCAL_TONE_BIAS; }
+
+    float biased_history(float mean, float previous, float weight)
+    {
+      return has_mean(previous) ? lerp(mean + LOCAL_TONE_BIAS, previous, weight) : mean + LOCAL_TONE_BIAS;
+    }
+
+    // All group threads must call it.
+    float group_sum(uint thread, float value)
+    {
+      partial[thread] = value;
+      GroupMemoryBarrierWithGroupSync();
+      UNROLL
+      for (uint step = GROUP_THREADS / 2; step > 0; step /= 2)
+      {
+        if (thread < step)
+          partial[thread] += partial[thread + step];
+        GroupMemoryBarrierWithGroupSync();
+      }
+      return partial[0];
+    }
+
+    void frame_sum(uint2 group, uint thread)
+    {
+      ##if local_tone_blur_pass == vertical
+        BRANCH
+        if (any(group != 0))
+          return;
+        int2 groups = (size.zw + BLOCK - 1) / BLOCK;
+        int count = groups.x * groups.y;
+        float sum = 0;
+        for (int i = int(thread); i < count; i += GROUP_THREADS * FETCH_BATCH)
+        {
+          float blockSums[FETCH_BATCH];
+          UNROLL
+          for (int fetch = 0; fetch < FETCH_BATCH; ++fetch)
+          {
+            int block = min(i + fetch * GROUP_THREADS, count - 1);
+            blockSums[fetch] = texelFetch(sums, int2(block % groups.x, block / groups.x), 0).x;
+          }
+          UNROLL
+          for (int j = 0; j < FETCH_BATCH; ++j)
+            sum += (i + j * GROUP_THREADS < count) ? blockSums[j] : 0;
+        }
+        sum = group_sum(thread, sum);
+        if (thread == 0)
+          texture2DAt(frame_mean, uint2(0, 0)) =
+            biased_history(sum / float(size.z * size.w), texelFetch(frame_history, int2(0, 0), 0).x, kernel.z);
+      ##else
+        int2 pos = int2(group * BLOCK + uint2(thread % BLOCK, thread / BLOCK));
+        float texel = 0;
+        if (all(pos < size.zw))
+          texel = texelFetch(guide, pos, 0).x;
+        float sum = group_sum(thread, texel);
+        if (thread == 0)
+          texture2DAt(sums, group) = sum;
+      ##endif
+    }
+
+    ##if local_tone_blur_pass == vertical
+    float2 block_center_uv(int2 pos) { return (float2(pos) + 0.5) * (2 * pool) / float2(size.xy); }
+
+    float2 fetch_motion(int2 pos)
+    {
+      float2 uvMotion = 0;
+      BRANCH
+      if (view_size.z > 0)
+        uvMotion = texelFetch(motion, int2(block_center_uv(pos) * float2(view_size.xy)), 0).xy;
+      return uvMotion;
+    }
+
+    // 0: off screen or no history.
+    float reprojected_history(int2 pos, int2 last, float2 uv_motion)
+    {
+      float2 lowMotion = 0;
+      if (view_size.z > 0)
+      {
+        float2 uv = block_center_uv(pos);
+        if (!all(abs(uv + uv_motion - 0.5) <= 0.5))
+          return 0;
+        lowMotion = uv_motion * float2(size.xy) / (2 * pool);
+      }
+      float2 at = float2(pos) + lowMotion;
+      int2 lo = int2(floor(at));
+      float2 f = at - float2(lo);
+      float taps[4];
+      UNROLL
+      for (int fetch = 0; fetch < 4; ++fetch)
+        taps[fetch] = texelFetch(history, clamp(lo + int2(fetch & 1, fetch >> 1), int2(0, 0), last), 0).x;
+      float result = 0;
+      bool valid = true;
+      UNROLL
+      for (int i = 0; i < 4; ++i)
+      {
+        int2 corner = int2(i & 1, i >> 1);
+        float weight = (corner.x ? f.x : 1 - f.x) * (corner.y ? f.y : 1 - f.y);
+        bool used = weight > 0;
+        valid = valid && (!used || has_mean(taps[i]));
+        result += used ? weight * taps[i] : 0;
+      }
+      return valid ? result : 0;
+    }
+    ##endif
+
+    [numthreads(BLOCK, BLOCK, 1)]
+    void main(uint2 dtId : SV_DispatchThreadID, uint3 gId : SV_GroupID, uint gi : SV_GroupIndex)
+    {
+      frame_sum(gId.xy, gi);
+      int2 pos = int2(dtId);
+      int2 last = size.zw - 1;
+      if (any(pos > last))
+        return;
+
+      ##if local_tone_blur_pass == vertical
+        int2 axis = int2(0, 1);
+        // Before the taps, so they hide its latency.
+        float2 uvMotion = fetch_motion(pos);
+      ##else
+        int2 axis = int2(1, 0);
+      ##endif
+
+      float center = texelFetch(guide, pos, 0).x;
+      int radius = int(kernel.w);
+      float invSigma = 1.0 / kernel.x;
+      float total = 0;
+      float weightSum = 0;
+      for (int first = -radius; first <= radius; first += FETCH_BATCH)
+      {
+        float guideTaps[FETCH_BATCH];
+        float sourceTaps[FETCH_BATCH];
+        UNROLL
+        for (int fetch = 0; fetch < FETCH_BATCH; ++fetch)
+        {
+          int2 tap = clamp(pos + axis * (first + fetch), int2(0, 0), last);
+          guideTaps[fetch] = texelFetch(guide, tap, 0).x;
+          ##if local_tone_blur_pass == vertical
+            sourceTaps[fetch] = texelFetch(source, tap, 0).x;
+          ##else
+            sourceTaps[fetch] = guideTaps[fetch];
+          ##endif
+        }
+        UNROLL
+        for (int j = 0; j < FETCH_BATCH; ++j)
+        {
+          int k = first + j;
+          float spatial = float(k) * invSigma;
+          float range = (guideTaps[j] - center) * kernel.y;
+          float weight = k <= radius ? exp(-0.5 * (spatial * spatial + range * range)) : 0;
+          total += weight * sourceTaps[j];
+          weightSum += weight;
+        }
+      }
+      float mean = total / weightSum;
+
+      ##if local_tone_blur_pass == vertical
+        float previous = reprojected_history(pos, last, uvMotion);
+        // Drops the history of an uncovered block.
+        float range = (previous - LOCAL_TONE_BIAS - mean) * kernel.y;
+        mean = biased_history(mean, previous, kernel.z * exp(-0.5 * range * range));
+      ##endif
+
+      texture2DAt(target, dtId) = mean;
+    }
+  }
+
+  compile("target_cs", "main");
+}

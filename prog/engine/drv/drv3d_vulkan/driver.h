@@ -4,6 +4,7 @@
 #include <drv/3d/dag_consts.h>
 #include <util/dag_stdint.h>
 #include <util/dag_hash.h>
+#include <math/dag_bits.h>
 
 #include "vulkan_api.h"
 
@@ -213,24 +214,30 @@ VkBufferImageCopy make_copy_info(FormatStore format, uint32_t mip, uint32_t base
 const char *formatActiveExecutionStage(ActiveExecutionStage stage);
 const char *formatShaderStage(ShaderStage stage);
 
-template <typename T>
-static uint32_t get_binary_size_unit_prefix_index(T size, uint32_t max_power)
+inline static uint32_t get_binary_size_unit_prefix_index(uint64_t usize, uint32_t max_power)
 {
-  const uint64_t usize = uint64_t(size);
-  const uint32_t shift = 10;
-  uint32_t power = 0;
-  for (; power < max_power; ++power)
-    if (0 == (usize >> ((power + 1) * shift)))
-      break;
-  return power;
+  const uint32_t hi = uint32_t(usize >> 32);
+  const uint32_t highBit = hi ? 32 + __bsr_unsafe(hi) : (usize ? __bsr_unsafe(uint32_t(usize)) : 0);
+  const uint32_t power = highBit / 10;
+  return power < max_power ? power : max_power;
 }
 
-template <typename T>
-static String byte_size_unit(T size)
+inline static String byte_size_unit(int64_t size)
 {
   static const char *suffix[] = {"", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"};
-  uint32_t power = get_binary_size_unit_prefix_index(size, countof(suffix) - 1);
-  return String(128, "%0.2f %sB", double(size) / (1ull << (power * 10)), suffix[power]);
+  const uint64_t usize = size < 0 ? 0 : uint64_t(size);
+  const uint32_t power = get_binary_size_unit_prefix_index(usize, countof(suffix) - 1);
+  const uint32_t unitShift = power * 10;
+  const uint32_t whole = uint32_t(usize >> unitShift);
+  uint32_t frac = 0;
+  if (power)
+  {
+    const uint64_t rem = usize & ((1ull << unitShift) - 1);
+    const uint32_t lowShift = unitShift - 10;
+    const uint64_t lowCarry = ((rem & ((1ull << lowShift) - 1)) * 100) >> lowShift;
+    frac = uint32_t(((rem >> lowShift) * 100 + lowCarry) >> 10);
+  }
+  return String(128, "%u.%02u %sB", whole, frac, suffix[power]);
 }
 
 enum RegisterType

@@ -108,7 +108,7 @@ static void clipmapImguiWindow()
     clipmapImguiMipHeaderRow();
     ImGui::TableSetupColumn("Total");
     ImGui::TableHeadersRow();
-    clipmapImguiTableRowTiles("Invalid", clipmapDebugStats.tilesInvalid);
+    clipmapImguiTableRowTiles("Dirty", clipmapDebugStats.tilesDirty);
     clipmapImguiTableRowTiles("NeedUpdate", clipmapDebugStats.tilesNeedUpdate);
     clipmapImguiTableRowTiles("Used", clipmapDebugStats.tilesUsed);
     clipmapImguiTableRowTiles("Feedback", clipmapDebugStats.tilesFromFeedback);

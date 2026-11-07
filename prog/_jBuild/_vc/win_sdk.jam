@@ -13,7 +13,7 @@ if $(WinSdkVer) = win.sdk.81 {
   _WIN_SDK_LIB = $(_WIN_SDK_LIB)/winv6.3/um ;
 }
 if $(PlatformArch) = arm64ec {
-  # constraint: older SDKs lack softintrin.h and ARM64X import libs
+  # older SDKs lack softintrin.h and ARM64X import libs
   if $(WinSdkVer) != win.sdk.100 { exit "FATAL: PlatformArch=arm64ec requires WinSdkVer=win.sdk.100" ; }
   WinSdkUpdateVer ?= 22621 ;
   if $(WinSdkUpdateVer) < 22000 { exit "FATAL: PlatformArch=arm64ec requires WinSdkUpdateVer 22000+ ($(WinSdkUpdateVer) is set)" ; }

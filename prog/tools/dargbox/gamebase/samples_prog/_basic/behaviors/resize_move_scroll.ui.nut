@@ -18,9 +18,8 @@ Quisque ipsum purus,  hendrerit eget  ex  eget, tempus  condimentum ligula. Morb
 function sText(text, params={}) {
   return {
     rendObj = ROBJ_TEXT
-    ellipsis = true
     color = Color(198,198,128)
-    textOverflowX = TOVERFLOW_CHAR
+    textOverflow = TOVERFLOW_ELLIPSIS
     text
   }.__update(params, {rendObj = ROBJ_TEXT})
 }
@@ -42,7 +41,7 @@ function textAreaContainer() {
 
     children = {
       rendObj = ROBJ_TEXTAREA
-      textOverflowY = TOVERFLOW_LINE
+      textOverflow = TOVERFLOW_ELLIPSIS
       halign = ALIGN_LEFT
       text = textFish
       behavior = [Behaviors.TextArea, Behaviors.WheelScroll]

@@ -13,3 +13,4 @@ inline void visual_err_log_setup_dev_only(bool red_window)
   (void)red_window;
 }
 void visual_err_log_check_any();
+void visual_err_log_show_on_screen(bool show);

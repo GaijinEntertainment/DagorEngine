@@ -3,13 +3,45 @@
 #include <render/lights/lightsManager.h>
 #include <render/lights/shadowSystem.h>
 
-BaseLightsManager::BaseLightsManager(const char *name) : name(name) { photometryTextures = IesTextureCollection::acquireRef(); }
 
-DynLightsFeatures BaseLightsManager::getRuntimeFeatures() const
+LightsManagerSharedStorage::LightsManagerSharedStorage(const LightsResourcesManager *lights_res_mgr) : lightsResMgr(lights_res_mgr) {}
+
+void LightsManagerSharedStorage::init(DynLightsFeatures requested_features)
+{
+  sceneManagedLightsBuffer.close();
+  sceneRenderLightsBuffer.close();
+
+  if (static_cast<bool>(requested_features & DynLightsFeatures::GpuLightsManagerPersistentStorage))
+  {
+    sceneManagedLightsBuffer = dag::buffers::create_persistent_sr_structured(sizeof(ManagedLight), SCENE_MANAGED_LIGHTS_COUNT,
+      lightsResMgr->getResName("scene_managed_lights"), d3d::buffers::Init::Zero);
+    sceneRenderLightsBuffer = dag::buffers::create_persistent_sr_byte_address(
+      dag::divide_align_up(uint32_t(SCENE_RENDER_LIGHTS_BYTE_SIZE), d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE),
+      lightsResMgr->getResName("scene_render_lights"), d3d::buffers::Init::Zero);
+  }
+}
+
+DynLightsFeatures LightsManagerSharedStorage::getRuntimeFeatures() const
 {
   return (sceneManagedLightsBuffer && sceneRenderLightsBuffer) ? DynLightsFeatures::GpuLightsManagerPersistentStorage
                                                                : DynLightsFeatures::CpuOnly;
 }
+
+Sbuffer *LightsManagerSharedStorage::getSceneManagedLightsBuffer() const { return sceneManagedLightsBuffer.getBuf(); }
+
+Sbuffer *LightsManagerSharedStorage::getSceneRenderLightsBuffer() const { return sceneRenderLightsBuffer.getBuf(); }
+
+BaseLightsManager::BaseLightsManager(const char *type_name, LightsManagerSharedStorage *shared_storage) :
+  name(type_name), sharedStorage(shared_storage)
+{
+  photometryTextures = IesTextureCollection::acquireRef();
+}
+
+void BaseLightsManager::init(DynLightsFeatures) { fullSyncToGPULights = false; }
+
+void BaseLightsManager::afterResetDevice() { fullSyncToGPULights = false; }
+
+DynLightsFeatures BaseLightsManager::getRuntimeFeatures() const { return sharedStorage->getRuntimeFeatures(); }
 
 BaseLightsManager::~BaseLightsManager()
 {
@@ -95,7 +127,3 @@ void BaseLightsManager::destroyShadowVolume(uint32_t light_id)
   shadowSystem->destroyVolume(getShadowId(light_id));
   clearShadowVolumeSlot(light_id);
 }
-
-Sbuffer *BaseLightsManager::getSceneManagedLightsBuffer() { return sceneManagedLightsBuffer.getBuf(); }
-
-Sbuffer *BaseLightsManager::getSceneRenderLightsBuffer() { return sceneRenderLightsBuffer.getBuf(); }

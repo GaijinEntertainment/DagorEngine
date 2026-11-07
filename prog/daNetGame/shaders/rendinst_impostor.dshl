@@ -143,8 +143,8 @@ shader rendinst_baked_impostor
     hlsl {
       struct VsOutput
       {
-        VS_OUT_POSITION(pos)
-        nointerpolation uint colorMul_paletteId         : TEXCOORD0;
+        PRECISE VS_OUT_POSITION(pos)
+        nointerpolation uint colorMul_paletteId_flags         : TEXCOORD0;
         ##if (compatibility_mode == compatibility_mode_on)
           float3 pointToEye                 : TEXCOORD4;
         ##endif
@@ -195,11 +195,10 @@ shader rendinst_baked_impostor
         float4 screenpos = GET_SCREEN_POS(input.pos);
         float noise = interleavedGradientNoiseFramed(screenpos.xy, dissolve_frame);
 
-        // For dissolving trees we do a prepass, so shouldn't clip with dissolve twice, it causes artifacts with VRS.
-        ##if rendinst_render_pass != rendinst_render_pass_normal
         float dissolveVal = opacityVal - noise;
-        ##else
-        float dissolveVal = 1.0f;
+        // For dissolving trees we do a prepass, so shouldn't clip with dissolve twice, it causes artifacts with VRS.
+        ##if rendinst_render_pass == rendinst_render_pass_normal && use_cross_dissolve == on
+          dissolveVal = 1.0f;
         ##endif
 
         float2 ds = float2(1-input.fadeout_sliceDet_cosSin.y,input.fadeout_sliceDet_cosSin.y);
@@ -225,7 +224,7 @@ shader rendinst_baked_impostor
           float3 albedo = albedo_alpha1.rgb;
 #endif
         clip(min(alpha-0.5, dissolveVal));
-        ImpostorProperties properties = read_impostor_properties(input.slice_data1.xy, input.slice_data2.xy, ds, input.colorMul_paletteId);
+        ImpostorProperties properties = read_impostor_properties(input.slice_data1.xy, input.slice_data2.xy, ds, input.colorMul_paletteId_flags);
         // Combine.
         half translucency_coloring = properties.normal_translucency.w;
         half translucency = saturate(translucency_coloring*2 - 1);
@@ -504,8 +503,7 @@ shader rendinst_baked_impostor
       // Special render.
 ##if rendinst_render_pass != rendinst_render_pass_to_shadow
       // Normal render.
-      bool hasPreshadow = has_impostor_preshadow(IMPOSTOR_DATA_OFFSET);
-      output.colorMul_paletteId = encode_impostor_vertex_output(color.rgb, paletteId, hasPreshadow);
+      output.colorMul_paletteId_flags = encode_impostor_vertex_output(color.rgb, paletteId, get_impostor_flags(IMPOSTOR_DATA_OFFSET));
       ##if (compatibility_mode == compatibility_mode_on)
         output.pointToEye = pointToEye;
       ##endif

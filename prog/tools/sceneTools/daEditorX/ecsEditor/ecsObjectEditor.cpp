@@ -225,11 +225,12 @@ void ECSObjectEditor::reset()
     sceneOutliner->resetPanel([this](const eastl::function<void(ecs::EntityId eid)> &cb) { onOutlinerPanelFill(cb); });
   }
 
+  if (ecs::g_scenes)
+    ecs::g_scenes->clearNonSystemScenes();
+
   // Make sure that nothing leaks to the next loaded level.
   g_entity_mgr->tick(true);
 
-  if (ecs::g_scenes)
-    ecs::g_scenes->clearScene();
   ecs::SceneManager::resetEntityCreationCounter();
 
   ecs_editor_release_ri_extra_substitutes();
@@ -289,6 +290,9 @@ uint32_t ECSObjectEditor::writeSceneToBlk(DataBlock &blk, const ecs::Scene::Scen
   const bool isMain = record.importDepth == 0;
   eastl::vector<ECSSceneItemSaveObj, framemem_allocator> saveItems;
   saveItems.reserve(record.orderedEntries.size());
+
+  if (record.isSystemOwned)
+    blk.addBool("system_owned_scene", true);
 
   const ecs::TemplateDB &templates = g_entity_mgr->getTemplateDB();
   int hierarchySaveId = 2;
@@ -610,9 +614,17 @@ ecs::EntityId ECSObjectEditor::createEntityDirect(ECSEntityCreateData *data)
 
   ecs::Scene &scene = ecs::g_scenes->getActiveScene();
   const ecs::Scene::SceneId prevTargetSceneId = scene.getTargetSceneId();
-  const bool overrideTargetScene = data->scene != ecs::Scene::C_INVALID_SCENE_ID && data->scene != prevTargetSceneId;
+  const ecs::Scene::SceneId targetSceneId = data->scene != ecs::Scene::C_INVALID_SCENE_ID ? data->scene : prevTargetSceneId;
+
+  if (scene.isSystemScene(targetSceneId))
+  {
+    DAEDITOR3.conWarning("attempting to create an entity templ='%s' under system owned scene id=%u", data->templName, targetSceneId);
+    return ecs::INVALID_ENTITY_ID;
+  }
+
+  const bool overrideTargetScene = targetSceneId != prevTargetSceneId;
   if (overrideTargetScene)
-    scene.setTargetSceneId(data->scene);
+    scene.setTargetSceneId(targetSceneId);
 
   ECSEntityCreateData::createCb(data);
   if (data->eid != ecs::INVALID_ENTITY_ID)
@@ -628,12 +640,18 @@ ecs::EntityId ECSObjectEditor::createEntityDirect(ECSEntityCreateData *data)
 
 void ECSObjectEditor::destroyEntityDirect(ecs::EntityId eid)
 {
-  if (eid == ecs::INVALID_ENTITY_ID)
+  if (eid == ecs::INVALID_ENTITY_ID || isSystemOwnedEntity(eid) ||
+      (ecs::g_scenes && ecs::g_scenes->getActiveScene().isSystemEntity(eid)))
     return;
   eidsCreated.erase(eid);
   if (ecs::g_scenes.get())
     ecs::g_scenes->getActiveScene().eraseEntityRecord(eid);
   g_entity_mgr->destroyEntity(eid);
+}
+
+bool ECSObjectEditor::isSystemOwnedEntity(ecs::EntityId eid)
+{
+  return eid != ecs::INVALID_ENTITY_ID && g_entity_mgr->getOr(eid, ECS_HASH("system_owned_entity"), false);
 }
 
 void ECSObjectEditor::addEntityEx(ecs::EntityId eid, bool use_undo)
@@ -889,7 +907,12 @@ void ECSObjectEditor::createObjectBySample(RenderableEditableObject *so)
       (unsigned)(ecs::entity_id_t)o->getEid());
 
     ECSEntityCreateData cd(templName.c_str());
-    no = new ECSEntityObject(createEntityDirect(&cd));
+    const ecs::EntityId newEid = createEntityDirect(&cd);
+
+    if (newEid == ecs::INVALID_ENTITY_ID)
+      return;
+
+    no = new ECSEntityObject(newEid);
     newObjTemplate.clear();
   }
 
@@ -1072,14 +1095,19 @@ void ECSObjectEditor::saveObjects(const char *new_fpath)
   int numObjects = -1;
   const ecs::Scene &saveScene = ecs::g_scenes->getActiveScene();
   const ecs::Scene::ScenesConstPtrList &importsRecords = saveScene.getScenes(ecs::Scene::LoadType::IMPORT);
-  if (const auto it = eastl::find_if(importsRecords.begin(), importsRecords.end(), [](auto &&val) { return val->importDepth == 0; });
-      it != importsRecords.end())
-  {
+  auto it = importsRecords.end();
+  if (new_fpath)
+    it = eastl::find_if(importsRecords.begin(), importsRecords.end(), [&](auto &&val) { return val->path == new_fpath; });
+
+  if (it == importsRecords.end())
+    it = eastl::find_if(importsRecords.begin(), importsRecords.end(),
+      [](auto &&val) { return val->importDepth == 0 && !val->isSystemOwned; });
+
+  if (it != importsRecords.end())
     numObjects = saveObjectsInternal(new_fpath, (*it)->id, true);
-  }
   else
   {
-    DAEDITOR3.conError("Failed to save scene '%s'. Main import was not found", new_fpath);
+    DAEDITOR3.conError("Failed to save scene '%s'. Main import was found neither by path nor through order fallback", new_fpath);
     return;
   }
 
@@ -1190,8 +1218,13 @@ void ECSObjectEditor::fillDeleteDepsObjects(Tab<RenderableEditableObject *> &lis
   const ecs::EidList &linkedEntitiesToDelete = evt.get<0>();
   list.reserve(originalSize + linkedEntitiesToDelete.size());
   for (const ecs::EntityId &eid : linkedEntitiesToDelete)
+  {
+    if (isSystemOwnedEntity(eid))
+      continue;
+
     if (RenderableEditableObject *object = getObjectFromEntityId(eid))
       list.emplace_back(object);
+  }
   list.erase(eastl::unique(list.begin(), list.end()), list.end());
 }
 
@@ -1228,6 +1261,8 @@ void ECSObjectEditor::cloneSelection()
     G_ASSERT(editableObject);
 
     ECSEntityObject *cloneObject = editableObject->cloneObject();
+    if (!cloneObject)
+      continue;
     addObject(cloneObject);
     cloneObject->selectObject();
 
@@ -1281,6 +1316,9 @@ int ECSObjectEditor::getEntityRecordSceneId(ecs::EntityId eid)
 
 ecs::EntityId ECSObjectEditor::reCreateEditorEntity(ecs::EntityId eid)
 {
+  if (ECSObjectEditor::isSystemOwnedEntity(eid))
+    return ecs::INVALID_ENTITY_ID;
+
   ECSEntityObject *obj = nullptr;
   forEachEditableObject([&eid, &obj](ECSEntityObject *o) {
     if (o->getEid() == eid)

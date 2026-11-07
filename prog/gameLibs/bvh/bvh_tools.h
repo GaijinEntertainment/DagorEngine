@@ -14,6 +14,7 @@
 #include <atomic>
 #include <math/dag_frustum.h>
 #include <util/dag_strUtil.h>
+#include <gameRes/dag_resourceNameResolve.h>
 
 #include "bvh_context.h"
 #include "bvh_ri_common.h"
@@ -39,6 +40,94 @@ extern dag::AtomicInteger<uint32_t> bvh_id_gen;
 
 static constexpr auto max_light_dist_for_bvh_shadow = 20.0f;
 
+template <typename Resource>
+inline String get_resource_name(const Resource *resource)
+{
+  String name;
+  if (!resolve_game_resource_name(name, resource))
+    name = "<unknown>";
+  return name;
+}
+
+inline int calc_face_cnt(const RenderableInstanceLodsResource *resource)
+{
+  int faceCnt = 0;
+  for (auto &lod : resource->lods)
+    for (auto &e : lod.scene->getMesh()->getMesh()->getMesh()->getAllElems())
+      faceCnt += e.numf;
+  return faceCnt;
+}
+
+inline int calc_face_cnt(const DynamicRenderableSceneLodsResource *resource)
+{
+  int faceCnt = 0;
+  for (auto &lod : resource->lods)
+  {
+    for (auto &r : lod.scene->getRigidsConst())
+      for (auto &e : r.mesh->getMesh()->getAllElems())
+        faceCnt += e.numf;
+    for (auto &s : lod.scene->getSkins())
+      for (auto &e : s->getMesh()->getShaderMesh().getAllElems())
+        faceCnt += e.numf;
+  }
+  return faceCnt;
+}
+
+template <typename Resource>
+class SingleLodFilter
+{
+public:
+  void init(const AdditionalSettings &settings)
+  {
+    maxFaces = settings.singleLodFilterMaxFaces;
+    maxRange = settings.singleLodFilterMaxRange;
+  }
+
+  bool accepts(const Resource *resource, bool log_broken_assets)
+  {
+    G_ASSERT_RETURN(resource->lods.size() > 0, true);
+    if (maxFaces <= 0 || maxRange <= 0 || resource->lods.size() != 1)
+      return true;
+    const float range = resource->lods[0].range;
+    if (range >= lod_range_exception_threshold || range <= maxRange)
+      return true;
+    const int faceCnt = calc_face_cnt(resource);
+    if (faceCnt <= maxFaces)
+      return true;
+    if (log_broken_assets)
+      brokenAssets.push_back({resource, range, faceCnt});
+    return false;
+  }
+
+  void report(const char *tag)
+  {
+#if DAGOR_DBGLEVEL > 0
+    for (const auto &asset : brokenAssets)
+      logwarn("BVH %s: resource %s has a single lod!! (range = %f, faceCnt = %d)", tag, get_resource_name(asset.resource).data(),
+        asset.range, asset.faceCnt);
+#else
+    G_UNUSED(tag);
+#endif
+    brokenAssets.clear();
+  }
+
+  void clear() { brokenAssets.clear(); }
+
+private:
+  static constexpr float lod_range_exception_threshold = 10000.0f;
+
+  struct BrokenAsset
+  {
+    const Resource *resource;
+    float range;
+    int faceCnt;
+  };
+  // deferred logging because of its name not being ready at the moment of detection
+  eastl::vector<BrokenAsset> brokenAssets;
+  int maxFaces = 0;
+  float maxRange = 0;
+};
+
 inline uint64_t make_relem_mesh_id(uint32_t res_id, uint32_t lod_id, uint32_t elem_id)
 {
   return (uint64_t(res_id) << 32) | uint64_t(lod_id << 28) | elem_id; //-V629 //-V1028
@@ -52,6 +141,8 @@ inline void decompose_relem_mesh_id(uint64_t object_id, uint32_t &res_id, uint32
 }
 
 inline uint32_t make_dyn_elem_id(uint32_t mesh_no, uint32_t elem_id) { return mesh_no << 14 | elem_id; }
+
+inline E3DCOLOR pack_normal(const Point3 &normal) { return e3dcolor(Color3::xyz(normal * 0.5 + 0.5), 0); }
 
 inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const ShaderMesh::RElem &elem,
   eastl::optional<const BufferProcessor *> vertex_processor, const Point4 &pos_mul, const Point4 &pos_add, const BSphere3 &bounding,
@@ -221,19 +312,15 @@ inline void process_relems(ContextId context_id, const char *tag, const dag::Spa
 
 inline bool instance_needs_animation_narrow_phase(const vec4f &world_bounds, const Frustum &frustum, const vec4f &light_direction)
 {
-  static const auto vMaxLightDistForBvhShadow = v_splats(max_light_dist_for_bvh_shadow);
-
   const vec4f radius = v_splat_w(world_bounds);
-  const vec4f sweep = v_mul(light_direction, vMaxLightDistForBvhShadow);
+  const vec4f sweep = v_mul(light_direction, v_splats(max_light_dist_for_bvh_shadow));
   return frustum.testSweptSphere(world_bounds, radius, sweep);
 }
 
 inline bool instance_needs_animation_broad_phase(const vec4f &world_bounds, const Frustum &frustum, const vec4f &light_direction)
 {
-  static const auto vMaxLightDistForBvhShadow = v_splats(max_light_dist_for_bvh_shadow);
-
   bbox3f worldBoundsBox;
-  vec3f light_direction_scaled = v_mul(light_direction, vMaxLightDistForBvhShadow);
+  vec3f light_direction_scaled = v_mul(light_direction, v_splats(max_light_dist_for_bvh_shadow));
   vec3f far_point = v_add(world_bounds, light_direction_scaled);
   worldBoundsBox.bmin = v_min(world_bounds, far_point);
   worldBoundsBox.bmax = v_max(world_bounds, far_point);
@@ -258,6 +345,17 @@ inline bool instance_needs_animation_broad_phase_with_distance_rate(const vec4f 
       return true;
   }
   return false;
+}
+
+inline constexpr uint16_t quad_indices[] = {0, 1, 2, 0, 2, 3};
+
+inline bool create_quad_ib(UniqueBuf &ib, const char *name)
+{
+  ib = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(quad_indices), 4), name, d3d::buffers::Init::No, RESTAG_BVH);
+  HANDLE_LOST_DEVICE_STATE(ib, false);
+  ib->updateData(0, sizeof(quad_indices), quad_indices, VBLOCK_WRITEONLY);
+  d3d::resource_barrier(ResourceBarrierDesc(ib.getBuf(), bindlessSRVBarrier));
+  return true;
 }
 
 } // namespace bvh

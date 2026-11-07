@@ -129,7 +129,8 @@ static SQInteger async_next_frame_native(HSQUIRRELVM vm)
   if (!ctx)
     return SQ_ERROR;
 
-  if (SQ_FAILED(sqasync::post_on_vm_thread(vm, &resolve_with_null_cb, ctx)))
+  // Inbox posts wait for the next pump
+  if (SQ_FAILED(sqasync::post_from_any_thread(vm, &resolve_with_null_cb, ctx)))
   {
     sq_pop(vm, 1); // drop the future we pushed for return
     delete ctx;

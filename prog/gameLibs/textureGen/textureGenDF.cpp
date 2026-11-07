@@ -43,12 +43,11 @@ public:
       return true;
     }
 
-    for (int i = 0; i < inputs.size(); i++)
-      if (inputs[i].tex == NULL)
-      {
-        texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "Distance Field: input #%d is NULL", i));
-        return false;
-      }
+    if (!inputs[0].tex)
+    {
+      texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "input #0 is NULL for %s", getName()));
+      return false;
+    }
 
 #define REQUIRE(a)                                                                                             \
   TextureGenShader *a = texgen_get_shader(&gen, #a);                                                           \
@@ -73,30 +72,38 @@ public:
     carray<int, 2> tempReg;
     tempReg[0] = regs.createTexture(String(128, "df_%dx%d_0", w, h), TEXFMT_G16R16, w, h, 1);
     tempReg[1] = regs.createTexture(String(128, "df_%dx%d_1", w, h), TEXFMT_G16R16, w, h, 1);
+    if (!regs.keepAllOrNone(tempReg))
+      return false;
     TextureInput temp[2] = {{regs.getTexture(tempReg[0]), false}, {regs.getTexture(tempReg[1]), false}};
     int cTemp = 0;
+    bool ok;
     {
       DataBlock selectPointsParams;
       // selectPointsParams.setInt("distanceI", 1);
       selectPointsParams.setReal("threshold", parameters.getReal("threshold", 0.5));
       selectPointsParams.setBool("wrap", wrap);
-      selectPoints->processAll(gen, regs,
+      ok = selectPoints->processAll(gen, regs,
         TextureGenNodeData(w, h, NO_BLENDING, false, selectPointsParams, make_span_const(&inputs[0], 1),
           make_span_const((D3dResource **)&temp[1 - cTemp].tex, 1), NULL));
       cTemp = 1 - cTemp;
     }
 
     DataBlock jumpFloodingParams;
-    for (int i = log2Len; i >= -1; --i)
+    for (int i = log2Len; i >= -1 && ok; --i)
     {
       jumpFloodingParams.setInt("distanceI", 1 << max(i, (int)0));
       jumpFloodingParams.setBool("wrap", wrap);
-      jumpFlooding->processAll(gen, regs,
+      ok = jumpFlooding->processAll(gen, regs,
         TextureGenNodeData(w, h, NO_BLENDING, false, jumpFloodingParams, make_span_const(&temp[cTemp], 1),
           make_span_const((D3dResource **)&temp[1 - cTemp].tex, 1), NULL));
       cTemp = 1 - cTemp;
     }
     regs.textureUsed(tempReg[1 - cTemp]);
+    if (!ok)
+    {
+      regs.textureUsed(tempReg[cTemp]);
+      return false;
+    }
 
     DataBlock write;
     write.setBool("wrap", wrap);
@@ -104,23 +111,27 @@ public:
     write.setBool("signed", signedDist);
 
 
-    TextureInfo tinfo;
-    inputs[1].tex->getinfo(tinfo, 0);
-    bool isColorConnected = tinfo.w > 1;
+    bool isColorConnected = false;
+    if (inputs.size() > 1 && inputs[1].tex)
+    {
+      TextureInfo tinfo;
+      inputs[1].tex->getinfo(tinfo, 0);
+      isColorConnected = tinfo.w > 1;
+    }
 
     if (isColorConnected == false)
     {
-      writeDistance->processAll(gen, regs,
+      ok = writeDistance->processAll(gen, regs,
         TextureGenNodeData(w, h, data.blending, data.use_depth, write, make_span_const(&temp[cTemp], 1), outputs, NULL));
     }
     else
     {
       TextureInput defColors[2] = {temp[cTemp], inputs[1]};
-      writeVoronoiColor->processAll(gen, regs,
+      ok = writeVoronoiColor->processAll(gen, regs,
         TextureGenNodeData(w, h, data.blending, data.use_depth, write, make_span_const(defColors, 2), outputs, NULL));
     }
     regs.textureUsed(tempReg[cTemp]);
-    return true;
+    return ok;
   }
 } texgen_df;
 

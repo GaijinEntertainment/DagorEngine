@@ -44,7 +44,7 @@ def get_validator_cmds(commands, csq, filesListList, do_analysis):
     disabledWarnings = [f"--D:{w}" for w in disabledWarnings]
 
     for cfg in configs:
-      fcmd = [csq, cmd]
+      fcmd = [csq, "--check-fname-case", cmd]
 
       if do_analysis:
         fileList = tempfile.NamedTemporaryFile(delete=False)

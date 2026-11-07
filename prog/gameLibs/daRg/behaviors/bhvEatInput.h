@@ -12,8 +12,8 @@ class BhvEatInput : public Behavior
 public:
   BhvEatInput();
 
-  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent /*event*/, int /*pointer_id*/,
-    int /*btn_idx*/, Point2 pos, int /*accum_res*/) override;
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, TouchSource /*touch_src*/, InputEvent /*event*/,
+    int /*pointer_id*/, int /*btn_idx*/, Point2 pos, int /*accum_res*/) override;
 
 private:
 };

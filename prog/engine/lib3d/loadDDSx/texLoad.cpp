@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "../texMgrData.h"
+#include <debug/dag_logSys.h>
 #include <drv/3d/dag_tex3d.h>
 #include <drv/3d/dag_resUpdateBuffer.h>
 #include <drv/3d/dag_info.h>
@@ -175,7 +176,7 @@ static TexLoadRes load_tex_data_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID pa
   while (!load_ddsx_slice(crd, d3d::get_update_buffer_addr_for_write(rub), d3d::get_update_buffer_pitch(rub), src_level,
     mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg, tex))
   {
-    logmessage(_MAKE4C('D3DE'), "load_ddsx_slice failed on '%s' errno=%d", TEX_NAME(tex, tid), errno);
+    logmessage(LOGTAG_D3D_ERROR, "load_ddsx_slice failed on '%s' errno=%d", TEX_NAME(tex, tid), errno);
     if (errno == EFAULT && retry--)
     {
       memset(d3d::get_update_buffer_addr_for_write(rub), 0, d3d::get_update_buffer_slice_pitch(rub));
@@ -219,7 +220,7 @@ static TexLoadRes load_ddsx_faces_2d(BaseTexture *tex, TEXTUREID tid, TEXTUREID 
       while (!load_ddsx_slice(crd, d3d::get_update_buffer_addr_for_write(rub), d3d::get_update_buffer_pitch(rub), src_level,
         mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat, cflg, tex))
       {
-        logmessage(_MAKE4C('D3DE'), "load_ddsx_slice failed on '%s' errno=%d", TEX_NAME(tex, tid), errno);
+        logmessage(LOGTAG_D3D_ERROR, "load_ddsx_slice failed on '%s' errno=%d", TEX_NAME(tex, tid), errno);
         if (errno == EFAULT && retry--)
         {
           memset(d3d::get_update_buffer_addr_for_write(rub), 0, d3d::get_update_buffer_slice_pitch(rub));
@@ -263,7 +264,7 @@ static TexLoadRes load_ddsx_faces_3d(BaseTexture *tex, const ddsx::Header &hdr, 
       while (!load_ddsx_slice(crd, dst, dst_pitch, src_level, mip_data_pitch, mip_data_lines, mip_data_w, mip_data_h, hdr.d3dFormat,
         cflg, tex))
       {
-        logmessage(_MAKE4C('D3DE'), "load_ddsx_slice failed on '%s' errno=%d", tex ? tex->getTexName() : "", errno);
+        logmessage(LOGTAG_D3D_ERROR, "load_ddsx_slice failed on '%s' errno=%d", tex ? tex->getTexName() : "", errno);
         if (errno == EFAULT && retry--)
         {
           memset(d3d::get_update_buffer_addr_for_write(rub), 0, d3d::get_update_buffer_slice_pitch(rub));
@@ -331,7 +332,7 @@ static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUR
     d3d::SamplerInfo smpInfo = get_sampler_info(get_texture_meta_data(tid));
     smpInfo.address_mode_u = (d3d::AddressMode)hdr.getAddrU();
     smpInfo.address_mode_v = (d3d::AddressMode)hdr.getAddrV();
-    set_texture_separate_sampler(tid, smpInfo);
+    texmgr_internal::set_texture_derived_sampler(tid, smpInfo);
     texmgr_internal::apply_mip_bias_rules(tex, RMGR.getName(tid.index()));
   }
 

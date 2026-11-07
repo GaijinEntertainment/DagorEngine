@@ -83,7 +83,7 @@ void BhvTouchScreenStick::setActionValue(TouchStickState *stick_state, Point2 va
 }
 
 int BhvTouchScreenStick::pointingEvent(
-  ElementTree *, Element *elem, InputDevice, InputEvent event, int touch_idx, int /*btn_id*/, Point2 pos, int accum_res)
+  ElementTree *, Element *elem, InputDevice, TouchSource, InputEvent event, int touch_idx, int /*btn_id*/, Point2 pos, int accum_res)
 {
   auto strings = cstr.resolveVm(elem->getVM());
   G_ASSERT_RETURN(strings, 0);

@@ -44,7 +44,7 @@ struct GPUGrassDecal
 {
   eastl::string name;
 
-  int id = 0;
+  eastl::vector<int> ids;
   eastl::vector<eastl::pair<eastl::string, float>> channels;
 };
 

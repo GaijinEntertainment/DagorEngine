@@ -1046,8 +1046,8 @@ void GeomObject::recompileNode(int idx)
   o->vdata.set((GlobalVertexData *)memalloc(sizeof(GlobalVertexData) * vdata.size(), midmem), vdata.size());
   for (int i = 0; i < vdata.size(); ++i)
     o->vdata[i].initGvdMem(vdata[i]->numv, vdata[i]->stride,
-      vdata[i]->numv <= 65536 ? data_size(vdata[i]->iData) : data_size(vdata[i]->iData32), 0, vdata[i]->vData.data(),
-      vdata[i]->numv <= 65536 ? (void *)vdata[i]->iData.data() : (void *)vdata[i]->iData32.data());
+      vdata[i]->is32bit() ? data_size(vdata[i]->iData32) : data_size(vdata[i]->iData), vdata[i]->gvdFlags, vdata[i]->vData.data(),
+      vdata[i]->is32bit() ? (void *)vdata[i]->iData32.data() : (void *)vdata[i]->iData.data());
 
 
   o->mesh = meshData.makeShaderMesh(vdata, make_span(o->vdata));
@@ -1286,6 +1286,17 @@ void GeomObject::RenderObject::beforeRenderCheck()
 
 const char *filter_class_name = NULL;
 
+// The scene block id can be stale after an auto block change and cannot be set again.
+// the id can be stale and not supported by the new FRAME block, so clear it instead
+static void rebind_scene_block()
+{
+  const int sceneBlk = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);
+  if (ShaderGlobal::checkBlockCompatible(sceneBlk, ShaderGlobal::LAYER_SCENE))
+    ShaderGlobal::setBlock(sceneBlk, ShaderGlobal::LAYER_SCENE);
+  else
+    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
+}
+
 void GeomObject::RenderObject::render()
 {
   ShaderGlobal::set_float(hdrLightmapScaleId, LIGHTMAP_SCALE);
@@ -1313,7 +1324,7 @@ void GeomObject::RenderObject::render()
       ShaderGlobal::set_float4(landCellShortDecodeYVarId, LAND_SHORT_DECODE_NORM, 0, 0, 0);
     }
   }
-  SCENE_LAYER_GUARD(ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE));
+  rebind_scene_block();
   if (filter_class_name)
   {
     for (int mi = 0; mi < lods[curLod].mesh->getAllElems().size(); ++mi)
@@ -1379,7 +1390,7 @@ void GeomObject::RenderObject::renderTrans()
       ShaderGlobal::set_float4(landCellShortDecodeYVarId, LAND_SHORT_DECODE_NORM, 0, 0, 0);
     }
   }
-  SCENE_LAYER_GUARD(ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE));
+  rebind_scene_block();
   ShaderGlobal::set_float(hdrLightmapScaleId, LIGHTMAP_SCALE);
 
   lods[curLod].mesh->render_trans();

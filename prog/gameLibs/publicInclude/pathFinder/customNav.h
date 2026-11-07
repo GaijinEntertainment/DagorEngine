@@ -40,8 +40,8 @@ public:
 
   // Setup area as y-oriented cylinder, w1 is weight at the center of cylinder, w2 - on the sides.
   void areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, bool optimize = true, float posThreshold = 0.25f);
-  void areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, float fadeTimeStart, float fadeTimeEnd,
-    bool optimize = true, float posThreshold = 0.25f);
+  void areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, float fade_time_start, float fade_time_end,
+    uint32_t usage_mask, bool optimize = true, float posThreshold = 0.25f);
 
   // Remove area.
   void areaRemove(uint32_t area_id);
@@ -50,7 +50,7 @@ public:
 
   // Used internally by the navmesh to get weight from a p1 -> p2 path. Optimized to be fast.
   float getWeight(uint32_t tile_id, const Point3 &p1, const Point3 &p2, const Point3 &norm_dir, float len, float inv_len,
-    bool &optimize) const;
+    uint32_t usage_mask, bool &optimize) const;
 
   float getWeightAtPointFromCylinderAreasOnly(const Point3 &p) const;
   Point2 getAreaCurrentWeight(uint32_t area_id) const;
@@ -101,6 +101,7 @@ private:
 
     float fadeTimeStart = -1.0f;
     float fadeTimeEnd = -1.0f;
+    uint32_t usageMask = 0;
   };
 
   struct Tile

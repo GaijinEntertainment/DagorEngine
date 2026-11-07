@@ -151,6 +151,11 @@ void CanvasClipboard::pasteShifted(GraphTab &graph_tab, const GraphData &graph, 
     copy.id = idRemap[original.id];
     copy.x += dx;
     copy.y += dy;
+    // A boundary id is as old as the copy, and a deleted boundary's id can be taken since: the pins match by name.
+    for (GraphData::Pin &p : copy.pins)
+    {
+      p.boundaryId = -1;
+    }
     pasted.push_back(copy.id);
     out_nodes.push_back(copy);            // snapshot for the paste undo entry
     graph_tab.addNode(eastl::move(copy)); // also pushes the new id into pendingPositionIds

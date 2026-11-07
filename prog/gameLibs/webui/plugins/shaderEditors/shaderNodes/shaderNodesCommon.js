@@ -218,6 +218,8 @@ var genColorGradFunctions = function()
 
 }
 
+var GE_nbsTextureSlotNames = ["nbs_slot_tex_0", "nbs_slot_tex_1", "nbs_slot_tex_2", "nbs_slot_tex_3", "nbs_slot_tex_4", "nbs_slot_tex_5"];
+
 var GE_implicitGroupConversionOrder =
   ["bool", "int", "float", "float2", "float3", "float4"];
 
@@ -356,6 +358,21 @@ var GE_nodeDescriptionsCommon = [
     width:120,
   },
 
+  {
+    name:"nbs slot texture",
+    category:"Input",
+    synonyms:"slot, texture, nbs",
+    pins:[
+      {name:"texture", caption:"%name:display%", selectableTypes:texTypes, singleConnect:false, role:"out", data:{}}
+    ],
+    properties:[
+      {name:"name", type:"combobox", items:GE_nbsTextureSlotNames, val:GE_nbsTextureSlotNames[0]},
+      {name:"type", type:"multitype_combobox", items:Object.keys(texTypes), value:Object.keys(texTypes)[0], linkedPin:"texture"}
+    ],
+    isExternal:true,
+    allowLoop:false,
+    width:300
+  },
 
   {
     name:"external texture",
@@ -2288,7 +2305,7 @@ var GE_nodeDescriptionsCommon = [
   },
 ]
 
-// constraint: a single-type pin proves this editor's shaders define the type, a multi-type one does not
+// a single-type pin proves this editor's shaders define the type, a multi-type one does not
 function GE_collectSubgraphPinTypes()
 {
   var lists = [GE_nodeDescriptionsCommon, GE_nodeDescriptionsAdditional];
@@ -2318,7 +2335,7 @@ function GE_collectSubgraphPinTypes()
 }
 var GE_subgraphPinTypes = GE_collectSubgraphPinTypes();
 
-// constraint: graphEditor.js finds these markers by exact name, "subgraph out" and "subgraph in: <pin type>"
+// graphEditor.js finds these markers by exact name, "subgraph out" and "subgraph in: <pin type>"
 GE_nodeDescriptionsCommon.push({
   name:"subgraph out",
   category:"Subgraph",
@@ -2337,7 +2354,7 @@ GE_nodeDescriptionsCommon.push({
 
 (function()
 {
-  // constraint: editing a subgraph alone compiles its markers, so an input marker has to emit a value
+  // editing a subgraph alone compiles its markers, so an input marker has to emit a value
   var previewScalar = {
     "bool":  {type:"bool", val:"true"},
     "int":   {type:"int", minVal:"-65535", maxVal:"65535", step:"1", val:"1"},
@@ -2345,7 +2362,7 @@ GE_nodeDescriptionsCommon.push({
     "float": {type:"float", minVal:"-1e10", maxVal:"1e10", step:"0.001", val:"1.0"},
   };
   var componentNames = ["x", "y", "z", "w"];
-  // constraint: materialDict belongs to the editor addon file, which shaderEditors.cpp concatenates before this one
+  // materialDict belongs to the editor addon file, which shaderEditors.cpp concatenates before this one
   var materials = typeof materialDict !== "undefined" ? materialDict : ["SHADING_NORMAL"];
   var previewByType = {
     "NBSGbuffer": {code:"nbsGbuffer"},
@@ -2363,7 +2380,7 @@ GE_nodeDescriptionsCommon.push({
   for (var typeIdx = 0; typeIdx < GE_subgraphPinTypes.length; typeIdx++)
   {
     var pinType = GE_subgraphPinTypes[typeIdx];
-    // constraint: graphEditor.js reads the external pin name as properties[0]
+    // graphEditor.js reads the external pin name as properties[0]
     var props = [{name:"name", type:"string", val:""}];
     var preview = previewByType[pinType];
     var previewCode = preview ? (preview.code ? preview.code : "%" + preview.prop.name + "%") : null;
@@ -2401,7 +2418,7 @@ GE_nodeDescriptionsCommon.push({
          data:previewCode ? {code:previewCode} : {}},
       ],
       properties:props,
-      // constraint: a texture has no hlsl literal; isExternal makes the name a sampler input, as external texture does
+      // a texture has no hlsl literal; isExternal makes the name a sampler input, as external texture does
       isExternal:!previewCode,
       inOutMarker:true,
       allowLoop:false,
@@ -3081,7 +3098,7 @@ function generateAdditionalText(graph, useVarPool)
 
           if (!foundInExternals)
           {
-            // constraint: a gvar name is a dshl identifier, and "texture", the name of every texture pin, is not
+            // a gvar name is a dshl identifier, and "texture", the name of every texture pin, is not
             if (e.descName && e.descName.indexOf("subgraph in: ") === 0)
               name = "subgraph_" + makeSafeFilename(name) + "_" + i;
 
@@ -3996,4 +4013,13 @@ function GE_setExternalNames(nodeName, items)
 
       break;
     }
+}
+
+function GE_setPropertyDisplayMap(nodeName, propName, map)
+{
+  for (var i = 0; i < GE_nodeDescriptions.length; i++)
+    if (GE_nodeDescriptions[i].name === nodeName)
+        for (var j = 0; j < GE_nodeDescriptions[i].properties.length; j++)
+            if (GE_nodeDescriptions[i].properties[j].name === propName)
+              GE_nodeDescriptions[i].properties[j].displayMap = map;
 }

@@ -36,11 +36,13 @@ hint and a default can appear together, in that order.
 
 {{example:language/destructuring-hints}}
 
-The hint is checked against the value that arrives. A mismatch throws
+In a build that checks annotations, the hint is checked against the value that
+arrives, and a mismatch throws
 `type 'string' differs from the declared type 'int'`. Because a present `null` is
 not missing, it reaches the hint and the hint rejects it: `{ crew : int = 2 }`
-does not turn a `null` crew into `2`. See
-[Type annotations](page:language/annotations).
+does not turn a `null` crew into `2`. A
+[build without checks](page:language/annotations#builds-without-checks) binds
+the value as it arrives.
 
 ## There is no rename syntax
 

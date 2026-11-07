@@ -178,8 +178,7 @@ private:
   shaders::UniqueOverrideStateId delta(const eastl::optional<shaders::OverrideState> &current,
     const eastl::optional<shaders::OverrideState> &) const;
 
-  RenderPassDelta delta(const eastl::optional<intermediate::RenderPass> &current,
-    const eastl::optional<intermediate::RenderPass> &previous, uint16_t schedule_position);
+  RenderPassDelta delta(const intermediate::NodePass &current, const intermediate::NodePass &previous, uint16_t schedule_position);
 
   sd::BindingsMap delta(const intermediate::BindingsMap &old_binding, const intermediate::BindingsMap &new_binding) const;
 

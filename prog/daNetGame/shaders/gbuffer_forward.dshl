@@ -12,7 +12,7 @@ include "sky_shader_global.dshl"
 include "apply_shadow_modifications.dshl"
 
 macro INIT_AND_USE_CLOUD_SHADOW_FORWARD()
-  hlsl
+  hlsl(ps)
   {
     #define USE_CLOUD_SHADOW_SAMPLE 1
   }
@@ -31,7 +31,7 @@ macro INIT_AND_USE_GI_FORWARD()
   }
   if (gi_quality == colored)
   {
-    hlsl { #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE }
+    hlsl(ps) { #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE }
     DAGI_IRRADIANCE_GRID_SAMPLE(ps)
   }
   if (gi_quality == screen_probes)
@@ -48,7 +48,7 @@ macro INIT_AND_USE_VOLFOG_FORWARD()
     USE_SCREENPOS_TO_TC()
     INIT_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
     USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
-    hlsl { #define USE_VOLFOG APPLY_BRUNETON_FOG }
+    hlsl(ps) { #define USE_VOLFOG APPLY_BRUNETON_FOG }
   }
 endmacro
 

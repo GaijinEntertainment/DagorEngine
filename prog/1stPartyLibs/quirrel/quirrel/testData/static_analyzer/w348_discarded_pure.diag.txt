@@ -1,0 +1,62 @@
+WARNING: w348 (discarded-nodiscard) The result of 'rangeOf' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_pure.nut:17:0
+
+rangeOf(10)                   //warning:discarded-nodiscard
+^----------
+scaleOf(2)                    //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'scaleOf' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_pure.nut:18:0
+
+rangeOf(10)                   //warning:discarded-nodiscard
+scaleOf(2)                    //warning:discarded-nodiscard
+^---------
+armorClass(60)                //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'armorClass' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_pure.nut:19:0
+
+scaleOf(2)                    //warning:discarded-nodiscard
+armorClass(60)                //warning:discarded-nodiscard
+^-------------
+armory.armorClass(60)         //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'armorClass' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_pure.nut:20:0
+
+armorClass(60)                //warning:discarded-nodiscard
+armory.armorClass(60)         //warning:discarded-nodiscard
+^--------------------
+type(scaleOf)                 //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'type' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_pure.nut:21:0
+
+armory.armorClass(60)         //warning:discarded-nodiscard
+type(scaleOf)                 //warning:discarded-nodiscard
+^------------
+math.sqrt(16)                 //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'sqrt' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_pure.nut:22:0
+
+type(scaleOf)                 //warning:discarded-nodiscard
+math.sqrt(16)                 //warning:discarded-nodiscard
+^------------
+reloadOf(5)                   //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'reloadOf' is discarded, but it is a pure function.
+testData/static_analyzer/w348_discarded_pure.nut:23:0
+
+math.sqrt(16)                 //warning:discarded-nodiscard
+reloadOf(5)                   //warning:discarded-nodiscard
+^----------
+penetration(7, 900)
+
+

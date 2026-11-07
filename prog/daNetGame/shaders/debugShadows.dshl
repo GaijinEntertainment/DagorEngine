@@ -70,12 +70,7 @@ shader debug_shadows
       ##elif show_shadows == clouds_shadows
         return float4(shadows.cloudsShadow.xxx, 1.f);
       ##elif show_shadows == static_shadows_cascades
-        float4 shadowColor = float4(0, 0, 0, 1);
-        switch(shadows.staticCascadeId)
-        {
-          case 0: shadowColor = float4(1, 0, 0, 1); break;
-          case 1: shadowColor = float4(0, 1, 0, 1); break;
-        }
+        float4 shadowColor = shadows.staticCascadeId == 0 ? float4(1, 0, 0, 1) : float4(0, 0, 0, 1);
         return lerp(shadowColor, float4(1, 1, 1, 1), shadows.staticShadow);
       ##elif show_shadows == ssss
         return float4(decode_ssss_transmittance(shadows.ssssTransmittance).xxx, 1);
@@ -86,101 +81,4 @@ shader debug_shadows
     }
   }
   compile("target_ps", "debug_shadows_ps");
-}
-
-float4x4 static_shadow_matrix_inverse;
-int static_shadow_size;
-float static_shadow_sampling_range;
-
-shader static_shadow_debug_mesh_shader
-{
-  z_test = false;
-  z_write = false;
-  cull_mode = none;
-
-  hlsl {
-    struct VsOutput
-    {
-      VS_OUT_POSITION(position)
-    };
-  }
-  (vs)
-  {
-    globtm@f44 = globtm;
-    static_shadow_tex@tex2d = static_shadow_tex;
-    inverseViewProjectionMatrix@f44 = static_shadow_matrix_inverse;
-    texture_size@i1 = static_shadow_size;
-    sampling_range@f1 = static_shadow_sampling_range;
-    toroidal_center@f2 = (static_shadow_cascade_0_scale_ofs_z_tor.z, static_shadow_cascade_0_scale_ofs_z_tor.w, 0, 0);
-  }
-  INIT_GLOBAL_POINT_CLAMP_SAMPLER(vs)
-  hlsl(vs) {
-    #define static_shadow_tex_samplerstate global_point_clamp_sampler
-  }
-  hlsl(vs)
-  {
-    float3 get_texture_space_position(const uint vertexIndex)
-    {
-      const uint pointsPerTexel = 8;
-      const float samplingSize = texture_size * sampling_range;
-      const float halfTexelSize = 1.0f / texture_size / 2.0f;
-      const float almostHalfTexelSize = halfTexelSize * 0.99f;
-      const uint texelIndex = vertexIndex / pointsPerTexel;
-
-      float3 textureSpacePosition = floor(float3(texelIndex % uint(samplingSize), texelIndex / uint(samplingSize), 0.0f));
-      textureSpacePosition.xy = textureSpacePosition.xy / texture_size + halfTexelSize;
-
-      if (vertexIndex % pointsPerTexel == 1u)
-      {
-        textureSpacePosition.x += almostHalfTexelSize;
-      }
-      else if (vertexIndex % pointsPerTexel == 3u)
-      {
-        textureSpacePosition.y += almostHalfTexelSize;
-      }
-      else if (vertexIndex % pointsPerTexel == 5u)
-      {
-        textureSpacePosition.x -= almostHalfTexelSize;
-      }
-      else if (vertexIndex % pointsPerTexel == 7u)
-      {
-        textureSpacePosition.y -= almostHalfTexelSize;
-      }
-
-      textureSpacePosition.xy += toroidal_center - sampling_range * 0.5f;
-      textureSpacePosition.z = tex2Dlod(static_shadow_tex, float4(textureSpacePosition.xy, 0.0f, 0.0f)).x;
-
-      return textureSpacePosition;
-    }
-
-    float3 get_world_space_position(float3 textureSpacePosition)
-    {
-      float3 worldSpacePosition = textureSpacePosition;
-      worldSpacePosition.xy -= toroidal_center;
-      worldSpacePosition.xy /= 0.5f;
-      worldSpacePosition = mulPointTm(worldSpacePosition, inverseViewProjectionMatrix).xyz;
-      return worldSpacePosition;
-    }
-
-    VsOutput test_vs(uint vertexIndex : SV_VertexID)
-    {
-      const float3 textureSpacePosition = get_texture_space_position(vertexIndex);
-      const float3 worldSpacePosition = get_world_space_position(textureSpacePosition);
-
-      VsOutput output;
-      output.position = mulPointTm(worldSpacePosition, globtm);
-
-      return output;
-    }
-  }
-  compile("target_vs", "test_vs");
-
-  hlsl(ps)
-  {
-    float4 test_ps() : SV_Target
-    {
-      return float4(1.0f, 1.0f, 1.0f, 1.0f);
-    }
-  }
-  compile("target_ps", "test_ps");
 }

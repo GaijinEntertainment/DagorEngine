@@ -3,4 +3,4 @@ clamp(15, 0, 10) = 10
 clamp(-1.5, 0.5, 1.0) = 0.5
 type(clamp(15, 0, 10.0)) = float
 type(clamp(5, 0.0, 10.0)) = integer
-clamp(1, 10, 0) throws: Invalid clamp range: min>max
+clamp(x, 10, 0) throws: Invalid clamp range: min>max

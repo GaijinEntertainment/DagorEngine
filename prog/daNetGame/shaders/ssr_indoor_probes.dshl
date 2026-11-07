@@ -1,0 +1,5 @@
+include "indoor_light_probes.dshl"
+
+macro SSR_ALTERNATE_INDOOR_PROBES(code)
+  USE_INDOOR_LIGHT_PROBES(code, false)
+endmacro

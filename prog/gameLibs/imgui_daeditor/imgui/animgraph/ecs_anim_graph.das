@@ -42,19 +42,19 @@ def private char_has_anim_graph(animchar : AnimcharBaseComponent&)
 // The in-graph consume runs only when a graph is drawn; reject a graphless focus
 // here so a pending select request cannot wait forever.
 def private reject_pending_select_without_graph(selected_char_eid : EntityId)
-  var requested = ""
-  query() <| $ [es] (animgraph_prop_panel__select_request : das_string)
-    requested = "{animgraph_prop_panel__select_request}"
-  if requested == ""
+  var pending = false
+  query() <| $ [es] (animgraph_prop_panel__select_request : StringList)
+    pending = !empty(animgraph_prop_panel__select_request)
+  if !pending
     return
   var hasGraph = false
   query(selected_char_eid) <| $ [es] (animchar : AnimcharBaseComponent&)
     hasGraph = char_has_anim_graph(animchar)
   if hasGraph
     return
-  query() <| $ [es] (var animgraph_prop_panel__select_request : das_string&; var animgraph_prop_panel__select_status : das_string&)
+  query() <| $ [es] (var animgraph_prop_panel__select_request : StringList&; var animgraph_prop_panel__select_status : das_string&)
     animgraph_prop_panel__select_status := "Select failed: no anim graph is drawn in the viewer"
-    animgraph_prop_panel__select_request := ""
+    clear(animgraph_prop_panel__select_request)
 
 // imgui_perform_registered skips the window function when Begin is false (collapsed).
 // Keep focus_eid fresh for daeditor follow / last pin while the viewer stays opened.

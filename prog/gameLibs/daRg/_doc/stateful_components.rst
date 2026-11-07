@@ -63,10 +63,10 @@ per-instance FRP state:
   tearing down inside the callback, so it must not create state or subscribe.
 - ``scope.WatchedImmediate(value)`` and ``scope.ComputedImmediate(fn)`` create
   observables whose subscribers run synchronously inside ``set()`` instead of
-  at the next frame. Values are always fresh on read either way, so treat
-  these as a last resort. ``ComputedImmediate`` also makes all of the
-  computed's upstream observables propagate synchronously, shared ones
-  included.
+  at the deferred FRP flush in ``update()``. Values are always fresh on read
+  either way, so treat these as a last resort. ``ComputedImmediate`` also
+  makes all of the computed's upstream observables propagate synchronously,
+  shared ones included.
 
 A plain ``Watched`` or ``Computed`` made in the constructor is not owned by the
 instance; it lives as long as something references it. Use the plain form for

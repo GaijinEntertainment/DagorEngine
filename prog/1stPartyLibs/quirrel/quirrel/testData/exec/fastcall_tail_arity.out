@@ -1,0 +1,7 @@
+wrong number of parameters passed to native closure 'sqrt' (1 passed, 2 required)
+wrong number of parameters passed to native closure 'sqrt' (3 passed, 2 required)
+wrong number of parameters passed to native closure 'min' (2 passed, at least 3 required)
+4
+1.5
+-2
+OK

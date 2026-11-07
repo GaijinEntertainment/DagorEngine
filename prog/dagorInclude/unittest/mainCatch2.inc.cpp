@@ -11,6 +11,8 @@
 
 #include <debug/dag_fatal.h>
 #include <osApiWrappers/dag_symHlp.h>
+#include <perfMon/dag_cpuFreq.h>
+#include <perfMon/dag_perfTimer.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_globDef.h>
 #include <util/dag_string.h>
@@ -90,6 +92,8 @@ extern KRNLIMP void init_main_thread_id();
 
 int main(int argc, char *argv[])
 {
+  ::measure_cpu_freq();
+  ::init_profile_timer();
   ::init_main_thread_id();
   ::symhlp_init_default();
   ::dgs_fatal_handler = fatal_handler;

@@ -162,12 +162,13 @@ void rifx::composite::setEntityApproved(rendinst::riex_handle_t ri_idx, bool kee
     return;
   }
 
-  if (!keep_on_playing)
+  // The handles are locked, drop them only after stop or unlock, else the fx is never reaped
+  for (AcesEffect *fx : fxDesc->second)
   {
-    for (AcesEffect *fx : fxDesc->second)
-    {
+    if (keep_on_playing)
+      rifx::composite::detail::unlockEffect(fx);
+    else
       rifx::composite::detail::stopEffect(fx);
-    }
   }
   riHandleToFxDesc.erase(fxDesc);
 }

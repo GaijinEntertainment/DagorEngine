@@ -49,11 +49,13 @@
 #define SORT_SQUARE_SIZE 2.f
 #define MAX_INSTANCES    72
 
-#define DEFAULT_MIN_DENSITY    0.1f
-#define DEFAULT_MAX_DENSITY    1.f
-#define DEFAULT_LOD_FADE_DELTA 10.f
-#define DEFAULT_MAX_RADIUS     300.f
-#define DEFAULT_FADE_DELTA     70.f
+#define DEFAULT_MIN_DENSITY          0.1f
+#define DEFAULT_MAX_DENSITY          1.f
+#define DEFAULT_LOD_FADE_DELTA       10.f
+#define DEFAULT_LOD_FADE_NOISE       0.5f
+#define DEFAULT_LOD_NOISE_WAVELENGTH 80.f
+#define DEFAULT_MAX_RADIUS           300.f
+#define DEFAULT_FADE_DELTA           70.f
 
 enum
 {
@@ -84,6 +86,7 @@ enum
   SHV_GRASS_ALPHA_TO_COVERAGE,
   SHV_WORLD_VIEW_POS,
   SHV_GRASS_GENERATE_UNDERWATER,
+  SHV_GRASS_INSTANCE_LOD_FADE,
   SHV_COUNT
 };
 
@@ -189,6 +192,7 @@ RandomGrass::RandomGrass(const DataBlock &level_grass_blk, const DataBlock &para
   shaderVars[SHV_GRASS_ALPHA_TO_COVERAGE] = ::get_shader_variable_id("grass_alpha_to_coverage", true);
   shaderVars[SHV_WORLD_VIEW_POS] = ::get_shader_variable_id("world_view_pos");
   shaderVars[SHV_GRASS_GENERATE_UNDERWATER] = ::get_shader_variable_id("grass_generate_underwater", true);
+  shaderVars[SHV_GRASS_INSTANCE_LOD_FADE] = ::get_shader_variable_id("grass_instance_lod_fade", true);
 
   shaderVars[SHV_CELL_TO_SQUARE_WORLD_REG] = ShaderGlobal::get_int_fast(get_shader_variable_id("cell_to_square_world_const_no"));
   shaderVars[SHV_GRASS_LAYER_IMMEDIATE_NO] = ShaderGlobal::get_int_fast(get_shader_variable_id("grass_layer_no_immediate_const_no"));
@@ -254,6 +258,9 @@ void RandomGrass::loadParams(const DataBlock &level_grass_blk, const DataBlock &
   refFadeDelta = curFadeDelta = level_grass_blk.getReal("fadeDelta", DEFAULT_FADE_DELTA);
 
   lodFadeDelta = level_grass_blk.getReal("lodFadeDelta", DEFAULT_LOD_FADE_DELTA);
+  lodFadeNoise = level_grass_blk.getReal("lodFadeNoise", DEFAULT_LOD_FADE_NOISE);
+  lodNoiseWaveLength = level_grass_blk.getReal("lodNoiseWaveLength", DEFAULT_LOD_NOISE_WAVELENGTH);
+  instanceLodFade = ShaderGlobal::get_interval_current_value(shaderVars[SHV_GRASS_INSTANCE_LOD_FADE]) != 0;
 
   Point2 noiseRnd = Point2(level_grass_blk.getReal("noise_first_rnd", 0.f), level_grass_blk.getReal("noise_second_rnd", 0.f));
 
@@ -859,18 +866,33 @@ void RandomGrass::resetLayersVB()
 
         const GrassLod &lod = layer.lods[lodNo];
 
-        float fadeIn = max(lod.fadeIn, FLT_EPSILON);
+        const bool hasFadeIn = lod.fadeIn > 0.f;
+        const bool fadesOutToLod = lodNo + 1 < layer.lods.size();
         float fadeOut = max(lod.fadeOut, FLT_EPSILON);
+        // the noisy far edge stays inside the bounds
+        const float fadeOutEnd = fadesOutToLod ? lod.maxRadius : lod.maxRadius - lod.lodNoiseAmp;
 
-        layerData[maxLayerCount * lodNo + layerIdx].grassLodRange =
-          Point4(lod.minRadius, lod.maxRadius, (lod.minRadius + fadeIn) / fadeIn, -(lod.maxRadius - fadeOut) / fadeOut);
+        if (instanceLodFade)
+        {
+          layerData[maxLayerCount * lodNo + layerIdx].grassLodRange = Point4(lod.minRadius, lod.boundsMaxRadius,
+            hasFadeIn ? (lod.minRadius + lod.fadeIn) / lod.fadeIn : 0.f, -(fadeOutEnd - fadeOut) / fadeOut);
+          layerData[maxLayerCount * lodNo + layerIdx].grassFade =
+            Point4(hasFadeIn ? -1.f / lod.fadeIn : 0.f, 1.f / fadeOut, lod.lodNoiseAmp, fadesOutToLod ? 1.f : 0.f);
+        }
+        else
+        {
+          const float fadeIn = max(lod.fadeIn, FLT_EPSILON);
+          layerData[maxLayerCount * lodNo + layerIdx].grassLodRange =
+            Point4(lod.minRadius, lod.maxRadius, (lod.minRadius + fadeIn) / fadeIn, -(lod.maxRadius - fadeOut) / fadeOut);
+          layerData[maxLayerCount * lodNo + layerIdx].grassFade = Point4(-1.f / fadeIn, 1.f / fadeOut, 0, 0);
+        }
         uint64_t mask = layer.info.bitMask;
         layerData[maxLayerCount * lodNo + layerIdx].mask0_31 = mask & 0xFFFFFFFF;
         layerData[maxLayerCount * lodNo + layerIdx].mask32_63 = mask >> 32ULL;
 
         layerData[maxLayerCount * lodNo + layerIdx].grassInstanceSize = lod.maxInstanceSize;
 
-        layerData[maxLayerCount * lodNo + layerIdx].grassFade = Point4(-1.f / fadeIn, 1.f / fadeOut, 0, 0);
+        layerData[maxLayerCount * lodNo + layerIdx].lodNoiseFreq = lodNoiseWaveLength > 0.f ? TWOPI / lodNoiseWaveLength : 0.f;
 
         layerData[maxLayerCount * lodNo + layerIdx].grassScales =
           Point4(layer.info.minScale.x, layer.info.maxScale.x, layer.info.minScale.y, layer.info.maxScale.y);
@@ -1043,22 +1065,45 @@ void RandomGrass::fillLayerLod(GrassLayer &layer, unsigned int lod_idx, int rand
 
   float maxLodRange = layer.resource->getMaxDist();
 
-  const float dissolveRange = layer.info.radiusMul * lodFadeDelta;
-  lod.fadeIn = lod_idx == 0 ? 0 : dissolveRange / 2;
-  lod.fadeOut = lod_idx < (layer.lods.size() - 1) ? dissolveRange / 2 : layer.info.radiusMul * curFadeDelta;
+  const bool fadesIn = lod_idx > 0;
+  const bool fadesOut = lod_idx + 1 < layer.lods.size();
+  const float layerRadius = layer.info.radiusMul * curMaxRadius;
+  const float halfBand = 0.5f * layer.info.radiusMul * lodFadeDelta;
+  // the noisy switch covers the two-sided fade band
+  auto switchSpan = [&](unsigned int from_lod) {
+    const float range = layer.resource->lods[from_lod].range / maxLodRange * layerRadius;
+    float farEdge = min(range + halfBand, layerRadius);
+    if (from_lod == 0)
+      farEdge = max(farEdge, minFarLodRadius + 2.f * halfBand);
+    return Point2(max(range - halfBand, minFarLodRadius + halfBand), farEdge);
+  };
 
-  lod.minRadius = lod_idx > 0 ? layer.resource->lods[lod_idx - 1].range / maxLodRange : 0.f;
-  lod.maxRadius = (lod_idx < (layer.lods.size() - 1)) ? layer.resource->lods[lod_idx].range / maxLodRange : 1;
+  const float noiseFraction = instanceLodFade && lodNoiseWaveLength > 0.f ? lodFadeNoise : 0.f;
+  const Point2 firstSpan = layer.lods.size() > 1 ? switchSpan(0) : Point2(0.f, 2.f * halfBand);
+  // the far fade must not start behind the camera
+  const float maxNoiseAmp = layer.info.radiusMul * (curMaxRadius - curFadeDelta);
+  lod.lodNoiseAmp = min((firstSpan.y - firstSpan.x) * noiseFraction / (1.f + 2.f * noiseFraction), maxNoiseAmp);
+  auto fadeWidth = [&](const Point2 &span) { return instanceLodFade ? span.y - span.x - 2.f * lod.lodNoiseAmp : halfBand; };
 
-  lod.minRadius = max(lod.minRadius * layer.info.radiusMul * curMaxRadius - lod.fadeIn, 0.f);
-  lod.maxRadius = min(lod.maxRadius * layer.info.radiusMul * curMaxRadius + lod.fadeOut, layer.info.radiusMul * curMaxRadius);
-
-  if (lod_idx == 0)
-    lod.maxRadius = max(lod.maxRadius, minFarLodRadius + dissolveRange);
-  else
-    lod.minRadius = max(lod.minRadius, minFarLodRadius + dissolveRange * 0.5f);
+  lod.minRadius = 0.f;
+  lod.fadeIn = 0.f;
+  if (fadesIn)
+  {
+    const Point2 span = switchSpan(lod_idx - 1);
+    lod.minRadius = span.x + lod.lodNoiseAmp;
+    lod.fadeIn = max(fadeWidth(span), FLT_EPSILON);
+  }
+  lod.maxRadius = layerRadius;
+  lod.fadeOut = layer.info.radiusMul * curFadeDelta;
+  if (fadesOut)
+  {
+    const Point2 span = switchSpan(lod_idx);
+    lod.maxRadius = span.y - lod.lodNoiseAmp;
+    lod.fadeOut = fadeWidth(span);
+  }
 
   lod.maxRadius = max(lod.minRadius, lod.maxRadius);
+  lod.boundsMaxRadius = fadesOut ? lod.maxRadius + lod.lodNoiseAmp : lod.maxRadius;
 
   unsigned int numInstancesInCell = (unsigned int)(baseNumInstances * lod.density * globalDensityMul / (GRID_SIZE * GRID_SIZE) + 0.5f);
 
@@ -1081,7 +1126,7 @@ void RandomGrass::fillLayerLod(GrassLayer &layer, unsigned int lod_idx, int rand
   lod.gpuCellSize = cellSize / sqrt((float)lod.numInstancesInCell / (float)(GRASS_WARP_SIZE_X * GRASS_WARP_SIZE_Y));
 
   lod.numInstancesInCell = GRASS_COUNT_PER_INSTANCE;
-  int quadSize = ceilf(lod.maxRadius / lod.gpuCellSize);
+  int quadSize = ceilf(lod.boundsMaxRadius / lod.gpuCellSize);
   lod.warpSize = (quadSize * 2 + 1);
   int maxInstancesInBuffer = lod.warpSize * lod.warpSize * (GRASS_WARP_SIZE_X * GRASS_WARP_SIZE_Y); // we can't see all instances
   lod.maxInstancesCount = maxInstancesInBuffer;

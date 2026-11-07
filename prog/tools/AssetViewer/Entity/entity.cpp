@@ -10,6 +10,7 @@
 #include <de3_animCtrl.h>
 #include <de3_objEntity.h>
 #include <de3_rendInstGen.h>
+#include <de3_entityGetSceneLodsRes.h>
 #include <de3_randomSeed.h>
 #include <de3_entityGatherTex.h>
 #include <rendInst/rendInstExtra.h>
@@ -59,6 +60,7 @@
 #include "compositeEditor.h"
 #include "compositeEditorViewport.h"
 #include "entity_cm.h"
+#include "entityLodControl.h"
 #include "entityMatEditor.h"
 #include "entityViewPluginInterface.h"
 #include "objPropEditor.h"
@@ -79,6 +81,9 @@ static void register_entity_console_command_processor();
 
 static bool trace_ray_enabled = true;
 static float coll_plane_ht_front = 0.0, coll_plane_ht_rear = 0.05;
+static constexpr float MOVING_FLOOR_CELL = 0.5f;
+static constexpr int MOVING_FLOOR_HALF_CELLS = 10;
+static constexpr float MOVING_FLOOR_HT = 0.001f;
 static constexpr int SAVE_LAST_STATES_COUNT = 4;
 static const int auto_inst_seed0 = mem_hash_fnv1(ZERO_PTR<const char>(), 12);
 
@@ -331,6 +336,9 @@ public:
     PID_ANIM_SHOW_WABB,
     PID_ANIM_SHOW_BSPH,
     PID_ANIM_DRAW_FLOOR,
+    PID_ANIM_MOVING_FLOOR,
+    PID_ANIM_MOVING_FLOOR_DIR,
+    PID_ANIM_MOVING_FLOOR_SPEED,
     PID_ANIM_LOG_IRQ,
     PID_ANIM_ACT_RESTART,
     PID_ANIM_ACT_PAUSE,
@@ -872,7 +880,7 @@ public:
       compositeEditorViewport.handleViewportAcceleratorCommand(id, wnd, entity);
   }
 
-  void changeLod(int lod)
+  int changeLod(int lod)
   {
     IObjEntity *objEntity = entity ? entity : riex.vEntity;
     ILodController *lodCtrl = objEntity ? objEntity->queryInterface<ILodController>() : nullptr;
@@ -908,6 +916,50 @@ public:
     {
       rimgr_set_force_lod_no(lod);
     }
+    return max(lod, -1);
+  }
+
+  const RenderableInstanceLodsResource *getRiLodsRes() const
+  {
+    if (riex.res)
+      return riex.res;
+    const IEntityGetRISceneLodsRes *lodsRes = entity ? entity->queryInterface<IEntityGetRISceneLodsRes>() : nullptr;
+    return lodsRes ? lodsRes->getSceneLodsRes() : nullptr;
+  }
+
+  bool getRiLodsInfo(EntityRiLodsInfo &out_info) const
+  {
+    const RenderableInstanceLodsResource *res = getRiLodsRes();
+    if (!res)
+      return false;
+
+    out_info.assetName = assetName.c_str();
+    out_info.center = res->bbox.center();
+    out_info.radius = length(res->bbox.width()) * 0.5f;
+    out_info.lods.clear();
+    for (int i = 0; i < res->lods.size(); ++i)
+    {
+      EntityRiLodInfo &lod = out_info.lods.push_back();
+      if (res->hasImpostor() && i == res->lods.size() - 1)
+        lod.kind = EntityRiLodInfo::Kind::Billboard;
+      else if (res->lods[i].getVoxelSurface())
+        lod.kind = EntityRiLodInfo::Kind::Voxel;
+      else
+        lod.kind = EntityRiLodInfo::Kind::Mesh;
+      lod.range = res->lods[i].range;
+      const ShaderMesh *mesh = AssetStatsFiller::getRenderableInstanceLodMesh(*res, i);
+      lod.triangleCount = mesh ? mesh->calcTotalFaces() : 0;
+      lod.gpuMemorySize = AssetStatsFiller::calcRenderableInstanceLodGpuMemory(*res, i);
+      if (mesh)
+      {
+        TextureIdSet textures;
+        for (const ShaderMesh::RElem &elem : mesh->getAllElems())
+          if (elem.mat)
+            elem.mat->gatherUsedTex(textures);
+        lod.textures.assign(textures.begin(), textures.end());
+      }
+    }
+    return true;
   }
 
   bool reloadOnAssetChanged(const DagorAsset *changed_asset) override
@@ -1236,8 +1288,33 @@ public:
 
           if (animPersCourseDeltaPid > 0)
             updateRot();
+
+          if (movingFloor)
+          {
+            const float speed = getMovingFloorSpeed(*anim, *st);
+            if (!animCtrl->isPaused())
+              movingFloorScroll = fmodf(movingFloorScroll + speed * animCtrl->getTimeScale() * dt, 2 * MOVING_FLOOR_CELL);
+            if (getPluginPanel()->getFloat(PID_ANIM_MOVING_FLOOR_SPEED) != speed)
+              getPluginPanel()->setFloat(PID_ANIM_MOVING_FLOOR_SPEED, speed);
+          }
         }
       }
+  }
+
+  // The game enqueues locomotion states with the character speed as force_spd, so "Force speed" is the character speed.
+  // Without it, the speed is the distance the current state anims cover: moveDist / time, scaled by their time scale.
+  float getMovingFloorSpeed(AnimV20::AnimationGraph &anim, AnimV20::AnimGraphStateHolder &st) const
+  {
+    if (forceSpd > 0)
+      return forceSpd;
+    float speed = 0;
+    for (const AnimV20::AnimationGraph::StateDestRec &dest : anim.getStDest())
+      if (AnimV20::IAnimBlendNode *n = dest.fifo->getNextInQueue(st))
+      {
+        const int tsp = n->getTimeScaleParamId(st);
+        speed = max(speed, n->getAvgSpeed(st) * (tsp > 0 ? st.getParam(tsp) : 1.f));
+      }
+    return speed;
   }
   void beforeRenderObjects() override
   {
@@ -1325,7 +1402,10 @@ public:
   {
     IGenViewportWnd *wnd = EDITORCORE->getRenderViewport();
     if (wnd)
+    {
       compositeEditorViewport.renderObjects(*wnd, entity);
+      matEditor.renderMaterialHighlight(entity ? rendinst::RIEX_HANDLE_NULL : riex.handle);
+    }
 
     fillAssetStats();
   }
@@ -1365,6 +1445,8 @@ public:
     {
       AnimV20::AnimationGraph *anim = animCtrl->getAnimGraph();
       AnimV20::AnimGraphStateHolder *st = animCtrl->getAnimState();
+      if (movingFloor)
+        drawMovingFloor(rotY + movingFloorDir, movingFloorScroll);
       if (auto *ac = animCtrl->getAnimCharBase(); ac && showSkeleton)
       {
         ac->getNodeTree().partialCalcWtm(dag::Index16(ac->getNodeTree().nodeCount()));
@@ -1505,6 +1587,31 @@ public:
   }
 
   void updateImgui() override { compositeEditorViewport.updateImgui(); }
+
+  static void drawMovingFloor(float move_dir_deg, float scroll)
+  {
+    constexpr float halfSize = MOVING_FLOOR_CELL * MOVING_FLOOR_HALF_CELLS;
+    TMatrix tm = rotyTM(move_dir_deg * DEG_TO_RAD); // local -Z is the move direction, the animChar forward
+    tm.setcol(3, Point3(0, MOVING_FLOOR_HT, 0));
+
+    begin_draw_cached_debug_lines();
+    set_cached_debug_lines_wtm(tm);
+    for (int j = -MOVING_FLOOR_HALF_CELLS - 2; j < MOVING_FLOOR_HALF_CELLS; j++)
+    {
+      const float z0 = max(j * MOVING_FLOOR_CELL + scroll, -halfSize);
+      const float z1 = min((j + 1) * MOVING_FLOOR_CELL + scroll, halfSize);
+      if (z1 <= z0)
+        continue;
+      for (int i = -MOVING_FLOOR_HALF_CELLS; i < MOVING_FLOOR_HALF_CELLS; i++)
+      {
+        const float x0 = i * MOVING_FLOOR_CELL, x1 = x0 + MOVING_FLOOR_CELL;
+        const Point3 tri[6] = {{x0, 0, z0}, {x1, 0, z0}, {x1, 0, z1}, {x0, 0, z0}, {x1, 0, z1}, {x0, 0, z1}};
+        draw_cached_debug_trilist(tri, 2, ((i + j) & 1) ? E3DCOLOR(150, 150, 150, 255) : E3DCOLOR(90, 90, 90, 255));
+      }
+    }
+    set_cached_debug_lines_wtm(TMatrix::IDENT);
+    end_draw_cached_debug_lines();
+  }
 
   static void drawIKStructure(Tab<Tab<vec3f>> &chains, bool initial)
   {
@@ -1695,6 +1802,12 @@ public:
       animPanel->createCheckBox(PID_ANIM_SHOW_WABB, "Show WABB", showWABB);
       animPanel->createCheckBox(PID_ANIM_SHOW_BSPH, "Show BSphere", showBSPH);
       animPanel->createCheckBox(PID_ANIM_DRAW_FLOOR, "Draw Floor", drawFloor);
+      animPanel->createCheckBox(PID_ANIM_MOVING_FLOOR, "Moving floor (foot sliding test)", movingFloor);
+      animPanel->setTooltipId(PID_ANIM_MOVING_FLOOR,
+        "The floor moves at Force speed. With no Force speed set, it moves at the speed of the current state anims "
+        "(moveDist / time, scaled by their time scale param).");
+      animPanel->createTrackFloat(PID_ANIM_MOVING_FLOOR_DIR, "Walk direction, deg (0 = forward)", movingFloorDir, -180, 180, 1);
+      animPanel->createEditFloat(PID_ANIM_MOVING_FLOOR_SPEED, "Moving floor speed, m/s", 0, 2, false);
       animPanel->createCheckBox(PID_ANIM_LOG_IRQ, "Log IRQs to console", logIrqs);
       animPanel->createButton(PID_ANIM_ACT_RESTART, "restart", true);
       animPanel->createButton(PID_ANIM_ACT_PAUSE, animCtrl->isPaused() ? "resume" : "pause", true, false);
@@ -2077,6 +2190,10 @@ public:
       showBSPH = panel->getBool(pcb_id);
     else if (pcb_id == PID_ANIM_DRAW_FLOOR)
       drawFloor = panel->getBool(pcb_id);
+    else if (pcb_id == PID_ANIM_MOVING_FLOOR)
+      movingFloor = panel->getBool(pcb_id);
+    else if (pcb_id == PID_ANIM_MOVING_FLOOR_DIR)
+      movingFloorDir = panel->getFloat(pcb_id);
     else if (pcb_id == PID_ANIM_LOG_IRQ)
       logIrqs = panel->getBool(pcb_id);
     else if (pcb_id >= PID_ANIM_PARAM0 && pcb_id < PID_ANIM_PARAM_LAST)
@@ -2886,6 +3003,9 @@ private:
   bool showWABB;
   bool showBSPH;
   bool drawFloor;
+  bool movingFloor = false;
+  float movingFloorDir = 0.f;
+  float movingFloorScroll = 0.f;
   bool logIrqs;
   bool pnTriangulation;
   bool layeredBumpmapping;
@@ -2977,6 +3097,18 @@ public:
 };
 
 static void register_entity_console_command_processor() { add_con_proc(new EntityConsoleCommandProcessor()); }
+
+static bool is_entity_plugin_active() { return plugin && get_app().curPlugin() == plugin.get(); }
+
+bool entity_view_set_lod(int lod, int &out_lod)
+{
+  if (!is_entity_plugin_active())
+    return false;
+  out_lod = plugin->changeLod(lod);
+  return true;
+}
+
+bool entity_view_get_ri_lods_info(EntityRiLodsInfo &out_info) { return is_entity_plugin_active() && plugin->getRiLodsInfo(out_info); }
 
 AnimV20::AnimcharBaseComponent *try_get_entity_animchar_base_comp()
 {

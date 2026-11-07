@@ -46,31 +46,35 @@ inline int remap_sensor(float value)
 }
 
 
-inline void apply_stick_deadzone(uint8_t &inout_x, uint8_t &inout_y, float deadzone)
+// every form: dead_zone in parts of deflection
+inline void apply_stick_deadzone(float &inout_x, float &inout_y, float dead_zone)
 {
-  deadzone = clamp(deadzone, 0.f, STICK_MAX_VAL - 1.f);
-  int x = inout_x - 0x80;
-  int y = inout_y - 0x80;
-  if (deadzone > 0)
+  dead_zone = max(dead_zone, 0.f);
+  float d = sqrtf(inout_x * inout_x + inout_y * inout_y);
+  if (d <= dead_zone || dead_zone >= 1.f)
   {
-    int d2 = x * x + y * y;
-    if (d2 < deadzone * deadzone)
-      x = y = 0;
-    else
-    {
-      float d = sqrtf(d2), s = float(STICK_MAX_VAL) / (STICK_MAX_VAL - deadzone);
-      x = (int)::roundf((x - deadzone / d * x) * s);
-      y = (int)::roundf((y - deadzone / d * y) * s);
-    }
+    inout_x = inout_y = 0.f;
+    return;
   }
+  float s = min((d - dead_zone) / (1.f - dead_zone), 1.f) / d;
+  inout_x *= s;
+  inout_y *= s;
+}
 
-  int d2 = x * x + y * y;
-  if (d2 > STICK_MAX_VAL * STICK_MAX_VAL)
-  {
-    float d = sqrtf(d2);
-    x = (int)::roundf(x * STICK_MAX_VAL / d);
-    y = (int)::roundf(y * STICK_MAX_VAL / d);
-  }
+
+inline void apply_stick_deadzone(int &inout_x, int &inout_y, float dead_zone, int full_deflection)
+{
+  float x = float(inout_x) / full_deflection, y = float(inout_y) / full_deflection;
+  apply_stick_deadzone(x, y, dead_zone);
+  inout_x = (int)::roundf(x * full_deflection);
+  inout_y = (int)::roundf(y * full_deflection);
+}
+
+
+inline void apply_stick_deadzone(uint8_t &inout_x, uint8_t &inout_y, float dead_zone)
+{
+  int x = inout_x - 0x80, y = inout_y - 0x80;
+  apply_stick_deadzone(x, y, dead_zone, STICK_MAX_VAL);
   inout_x = x + 0x80;
   inout_y = y + 0x80;
 }

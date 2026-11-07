@@ -33,8 +33,6 @@ DAS_BIND_VECTOR(MotionMatchingSearchFeatures, MotionMatchingSearchFeatures, das:
 
 inline void clearAnimations(MotionMatchingController &controller) { controller.currentClipInfo = {}; }
 
-inline int get_root_node_id(const AnimationDataBase &data_base) { return data_base.rootNode.index(); }
-
 inline void init_feature_weights(FeatureWeights &weights, int node_count, int trajectory_size)
 {
   weights.rootPositions.resize(trajectory_size, 0.f);
@@ -122,9 +120,9 @@ inline bool animation_database_need_lock_foot(const AnimationDataBase &database,
 
 inline int get_post_blend_controller_idx(const AnimationDataBase &data_base, const char *pbc_name)
 {
-  if (!pbc_name)
-    return -1;
   const AnimV20::AnimationGraph *anim_graph = data_base.referenceAnimGraph;
+  if (!pbc_name || !anim_graph)
+    return -1;
   for (int pbcIdx = 0, pbcCnt = anim_graph->getPBCCount(); pbcIdx < pbcCnt; ++pbcIdx)
   {
     const char *pbcName = anim_graph->getPBCName(pbcIdx);

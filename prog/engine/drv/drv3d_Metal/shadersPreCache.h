@@ -167,6 +167,7 @@ class ShadersPreCache
 
   ska::flat_hash_map<uint64_t, QueuedShader> shader_compiler_cache;
   ska::flat_hash_map<uint64_t, CachedShader *> shader_compiler_done;
+  bool compiler_busy = false;
 
 public:
   ShadersPreCache();

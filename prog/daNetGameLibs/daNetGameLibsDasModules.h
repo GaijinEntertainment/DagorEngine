@@ -15,5 +15,6 @@
 #include <package_ship/pullDas.h>
 #include <package_soldier/pullDas.h>
 #include <package_vehicle/pullDas.h>
+#include <phys_kind/pullDas.h>
 
 #include <weaponry_render/pullDas.h>

@@ -38,7 +38,7 @@ macro USE_RT_DIRECT_SURFACE_REFLECTION(stage)
       if (maxReflectionDistance > rtr_sky_probe_ray_length_threshold)
         return texCUBElod(envi_probe_specular, float4(sampleDir, 0)).rgb * apply_sky_polarization_filter();
 
-      if (rtr_probes_bindless_enabled())
+      if (rtr_probes_enabled())
       {
         int2 probeIndex = tci / PROBE_AREA;
         int2 probeCountI = usable_probe_count;
@@ -49,9 +49,8 @@ macro USE_RT_DIRECT_SURFACE_REFLECTION(stage)
         {
           for (int x = max(probeIndex.x - borderCount, 0); x < min(probeIndex.x + borderCount + 1, probeCountI.x); ++x)
           {
-            uint cellIndex = x + y * probe_count.x;
-            float4 frontProbeData = asfloat(loadBuffer4(rtr_probe_locations, cellIndex * PROBE_SLOT_STRIDE));
-            float4 backProbeData = asfloat(loadBuffer4(rtr_probe_locations, cellIndex * PROBE_SLOT_STRIDE + PROBE_SIZE));
+            float4 frontProbeData = rtr_probe_location(uint2(x, y), 0);
+            float4 backProbeData = rtr_probe_location(uint2(x, y), 1);
 
             BRANCH
             if (frontProbeData.w != 0)

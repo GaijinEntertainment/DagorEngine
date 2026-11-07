@@ -107,7 +107,7 @@ let Preferences = kwarg(function(
   let presets = Computed(@() prefContent.get()
       ?.filter(@(_, k) k!=lastChangesName)
       .map(@(v, name) {atime = v.atime, ctime=v.ctime, name})
-      .values().sort(@(a,b) b.atime<=>a.atime) ?? []
+      .values().sortby(@(a) -a.atime) ?? []
     )
 
 

@@ -41,6 +41,12 @@ public:
   void invalidateControls() { forceRebuild = true; }
 
   void toggleGraphView() { graphView = !graphView; }
+  void setGraphView(bool graph_view)
+  {
+    graphView = graph_view;
+    viewPicked = lastRenderedTabId < 0; // a shown panel already took its view from the selection
+  }
+  bool isGraphView() const { return graphView; }
 
   // Lands a half-made edit in the document it was typed into, before the tab strip switches away.
   void commitPendingEdit();
@@ -57,6 +63,7 @@ private:
     None,
     Graph,
     Node,
+    NoSelection,
     Subgraph,
   };
 
@@ -83,7 +90,11 @@ private:
   // Two untitled graphs share the empty source path, so the tab is what tells them apart.
   int lastRenderedTabId = -1;
   bool forceRebuild = false; // one-shot rebuild request from invalidateControls() (undo/redo refresh)
-  bool graphView = false;
+  // A surface move cut the edit short: no commit sends the focus loss until the controls are dropped.
+  bool letGoPendingEdit = false;
+  bool graphView = true;
+  // A view the user picked outranks the one a new panel takes from the selection on its first frame.
+  bool viewPicked = false;
   int lastSeenSelectedId = -1;
   // The subgraph view lists boundary nodes by y, which the canvas edits while they are shown.
   uint64_t lastRenderedRevision = 0;

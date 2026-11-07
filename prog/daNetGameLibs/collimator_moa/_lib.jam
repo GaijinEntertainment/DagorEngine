@@ -1,5 +1,5 @@
 if $(HaveRenderer) = yes {
-  gamePulls += framework_collimator_moa_pull daNetGameLibs_collimator_moa_DAS_pull_AOT ;
+  gamePulls += framework_collimator_moa_pull ;
   UseProgLibs +=
     daNetGameLibs/collimator_moa
   ;

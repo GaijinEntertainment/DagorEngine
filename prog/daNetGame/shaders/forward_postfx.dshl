@@ -5,6 +5,10 @@ include "screenEffects/concussion_effect.dshl"
 define_macro_if_not_defined INIT_FORWARD_POSTFX_OPTIONAL_FEATURES()
 endmacro
 
+define_macro_if_not_defined INIT_SHADER_GAMMA_MODIFIER()
+  INIT_SHADER_GAMMA()
+endmacro
+
 define_macro_if_not_defined USE_FORWARD_POSTFX_OPTIONAL_FEATURES()
   hlsl(ps)
   {
@@ -38,7 +42,7 @@ shader forward_postfx
   USE_FORWARD_POSTFX_OPTIONAL_FEATURES()
   INIT_AND_USE_CONCUSSION_EFFECT(ps, frame_tex)
 
-  INIT_SHADER_GAMMA()
+  INIT_SHADER_GAMMA_MODIFIER()
   USE_SHADER_GAMMA()
   COMMON_POSTFX()
   HDR_PS_OUTPUT(POSTFX_OUTPUT, float4)

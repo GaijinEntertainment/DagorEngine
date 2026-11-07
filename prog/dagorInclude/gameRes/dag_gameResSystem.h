@@ -136,6 +136,11 @@ void load_res_packs_from_list(const char *pack_list_blk_fname, bool load_grp = t
 void load_res_packs_from_list_blk(const DataBlock &list_blk, const char *ref_pack_list_blk_fname, bool load_grp, bool load_tex,
   const char *res_base_dir);
 
+// Returns "dir/" made absolute at the first base path where it holds grp_hdr.vromfs.bin, so packs open without the base path search.
+// Stays relative when not found, an absolute 'dir' stays as is. Each res dir must be self-contained (see on_missing_pack_resolve).
+// Mount the grp_hdr vromfs at the result via a separate buffer: add_vromfs keeps and lowercases it.
+String resolve_res_base_dir(const char *dir);
+
 // Patch resource viad loading pack list BLK from specified filename and
 // load-update respacks according to list;
 // patching is allowed only when base_grp_vromfs file mathes the one used to build patch;

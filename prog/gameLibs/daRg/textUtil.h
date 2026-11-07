@@ -20,6 +20,7 @@ int get_next_text_pos_u(const wchar_t *str, int len, int pos, bool is_increment,
 int wchar_to_symbol(wchar_t wc, char *buffer, int buffer_sz);
 int utf_calc_bytes_for_symbols(const char *str, int utf_len, int n_symbols);
 
+int font_mono_width_from_str(int font_id, int font_ht, const char *str, int len);
 int font_mono_width_from_sq(int font_id, int font_ht, const Sqrat::Object &obj);
 Point2 calc_text_size(const char *str, int len, int font_id, int spacing, int mono_width, int font_ht);
 Point2 calc_text_size_u(const wchar_t *str, int len, int font_id, int spacing, int mono_width, int font_ht);

@@ -297,7 +297,7 @@ static bool material_uses_extra_channel(ShaderMaterial **shmat_tab, int mat_coun
   return cb.found;
 }
 
-// constraint: must match cor_offset_decode in cor_skinning.hlsl
+// must match cor_offset_decode in cor_skinning.hlsl
 static Point4 encode_cor_offset(const Point3 &offset)
 {
   const float maxAbs = max(max(fabsf(offset.x), fabsf(offset.y)), fabsf(offset.z));

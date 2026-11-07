@@ -1322,15 +1322,7 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
   iterate_names(debris_nm, [&](int id, const char *name) {
     const int refNameId = riResNameIds.getNameId(name);
     const int ref = refNameId >= 0 ? riResRefIdx[refNameId] : -1;
-    int riExId = rendinst::addRIGenExtraResIdx(name, ref, layerIdx, rendinst::AddRIFlag::UseShadow);
-    riDebris[id].resIdx = riExId;
-    if (riExId >= 0 && !RendInstGenData::renderResRequired)
-      if (rendinst::riExtra[riExId].destroyedPhysRes)
-      {
-        release_game_resource_ex(rendinst::riExtra[riExId].destroyedPhysRes, PhysObjGameResClassId);
-        rendinst::riExtra[riExId].destroyedPhysRes = nullptr;
-        rendinst::riExtra[riExId].setupDestrPhysResLodMask(name);
-      }
+    riDebris[id].resIdx = rendinst::addRIGenExtraResIdx(name, ref, layerIdx, rendinst::AddRIFlag::UseShadow);
   });
 
   if (!RendInstGenData::renderResRequired) // after rendinst::addRIGenExtraResIdx() to ensure that riExtraMap is the same on client &

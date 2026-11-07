@@ -10,9 +10,6 @@
 #include <3d/dag_resPtr.h>
 
 class ComputeShaderElement;
-class TextureIDPair;
-class TextureIDHolder;
-class TextureIDHolderWithVar;
 
 /* Compute shader and pixel shader fallback
 Key idea is using compute or pixel shader to render values to voltex.

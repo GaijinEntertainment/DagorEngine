@@ -36,7 +36,7 @@ def mm_choose_imgui_selected_entity(act : ParallelUpdateFrameDelayed;
     mmEntity = eid
   mm_imguiAnimcharEid = mmEntity
 
-[es(tag=dev, before=motion_matching_job_es)]
+[es(tag=dev, before=(motion_matching_job_es, disable_mm_for_debug_lock_anim_state))]
 def mm_enable_for_animation_player(act : ParallelUpdateFrameDelayed;
                                    mm_imguiAnimcharEid : EntityId;
                                    mm_clips_animationPlayMode : int)

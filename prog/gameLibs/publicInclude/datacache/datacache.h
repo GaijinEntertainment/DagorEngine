@@ -33,6 +33,7 @@ struct FileBackendConfig
   const char *roMountPath = nullptr;
   int64_t maxSize = 0;
   bool manualEviction = false;
+  bool syncPopulate = false; // scan the folder inside create() (blocking, even with maxSize 0)
   int traceLevel = 1;
   int aioJobId = -1;
 };
@@ -133,5 +134,7 @@ Backend *create(BackendType bt, const DataBlock &blk);
 
 Backend *create(FileBackendConfig const &config);
 Backend *create(WebBackendConfig &config);
+
+const char *make_url_entry_key(const char *url, char *buf, int buf_size);
 
 }; // namespace datacache

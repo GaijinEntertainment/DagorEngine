@@ -291,7 +291,7 @@ shader dafx_modfx_bvh
       particleData.flags |= GET_BVH_MODFX_RFLAG( flags, BLEND_ADD );
 
       #if MODFX_USE_GI
-        particleData.ambient = ambient_calculating(wpos, gdata.world_view_pos, gdata.sky_color, 0);
+        particleData.ambient = dafx_directional_gi_ambient(wpos, gdata.world_view_pos, gdata.sky_color, 0, view_dir_norm, false, view_dir_norm, view_dir_dist);
       #else
         particleData.ambient = gdata.sky_color;
       #endif

@@ -2,12 +2,14 @@
 
 #include <render/cameraInCamera/cameraInCameraNodes.h>
 
+#include <ecs/render/aimRender.h>
 #include <math/dag_TMatrix4.h>
 #include <render/cameraInCamera/cameraInCamera.h>
 #include <render/cameraParams.h>
 #include <render/daFrameGraph/daFG.h>
 #include <render/reprojectionTm.h>
 #include <render/viewVecs.h>
+#include <render/viewportEllipse_api.h>
 
 namespace camera_in_camera
 {
@@ -30,32 +32,34 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> make_camera_nodes()
     auto lensCameraHndl = registry.createBlob<CameraParams>("lens_area_camera").withHistory().handle();
     auto prevLensCameraHndl = registry.readBlobHistory<CameraParams>("lens_area_camera").handle();
     auto cockpitCameraHndl = registry.readBlob<CameraParams>("current_cockpit_camera").handle();
-    auto prevCockpitCameraHndl = registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle();
+    auto lensEllipseHndl = registry.readBlob<ViewportEllipse>(SCOPE_LENS_ELLIPSE_BLOB).handle();
+    auto prevLensEllipseHndl = registry.readBlobHistory<ViewportEllipse>(SCOPE_LENS_ELLIPSE_BLOB).handle();
 
-    return [mainCameraHndl, srcCameraHndl, lensCameraHndl, prevLensCameraHndl, cockpitCameraHndl, prevCockpitCameraHndl]() {
-      if (!camera_in_camera::is_lens_render_active())
-        return;
+    return
+      [mainCameraHndl, srcCameraHndl, lensCameraHndl, prevLensCameraHndl, cockpitCameraHndl, lensEllipseHndl, prevLensEllipseHndl]() {
+        if (!camera_in_camera::is_lens_render_active())
+          return;
 
-      const auto &camera = cockpitCameraHndl.ref();
+        const auto &camera = cockpitCameraHndl.ref();
 
-      auto &lensCamera = lensCameraHndl.ref();
-      lensCamera = srcCameraHndl.ref();
-      lensCamera.jitterPersp.ox = camera.jitterPersp.ox;
-      lensCamera.jitterPersp.oy = camera.jitterPersp.oy;
-      const Point2 jitterNdc(camera.jitterOffsetUv.x * 2.0f, -camera.jitterOffsetUv.y * 2.0f);
-      matrix_perspective_add_jitter(lensCamera.jitterProjTm, jitterNdc.x, jitterNdc.y);
-      lensCamera.jitterGlobtm = TMatrix4(lensCamera.viewTm) * lensCamera.jitterProjTm;
-      lensCamera.viewRotJitterProjTm = lensCamera.viewRotTm * lensCamera.jitterProjTm;
-      lensCamera.jitterOffsetUv = camera.jitterOffsetUv;
-      lensCamera.jitterOffset = camera.jitterOffset;
+        auto &lensCamera = lensCameraHndl.ref();
+        lensCamera = srcCameraHndl.ref();
+        lensCamera.jitterPersp.ox = camera.jitterPersp.ox;
+        lensCamera.jitterPersp.oy = camera.jitterPersp.oy;
+        const Point2 jitterNdc(camera.jitterOffsetUv.x * 2.0f, -camera.jitterOffsetUv.y * 2.0f);
+        matrix_perspective_add_jitter(lensCamera.jitterProjTm, jitterNdc.x, jitterNdc.y);
+        lensCamera.jitterGlobtm = TMatrix4(lensCamera.viewTm) * lensCamera.jitterProjTm;
+        lensCamera.viewRotJitterProjTm = lensCamera.viewRotTm * lensCamera.jitterProjTm;
+        lensCamera.jitterOffsetUv = camera.jitterOffsetUv;
+        lensCamera.jitterOffset = camera.jitterOffset;
 
-      ReprojectionTransforms reprojectionTms = calc_reprojection_transforms(prevLensCameraHndl.ref(), lensCameraHndl.ref());
-      lensCamera.jitteredCamPosToUnjitteredHistoryClip = reprojectionTms.jitteredCamPosToUnjitteredHistoryClip;
+        ReprojectionTransforms reprojectionTms = calc_reprojection_transforms(prevLensCameraHndl.ref(), lensCameraHndl.ref());
+        lensCamera.jitteredCamPosToUnjitteredHistoryClip = reprojectionTms.jitteredCamPosToUnjitteredHistoryClip;
 
-      lensCamera.viewVecs = calc_view_vecs(lensCamera.viewTm, lensCamera.jitterProjTm);
+        lensCamera.viewVecs = calc_view_vecs(lensCamera.viewTm, lensCamera.jitterProjTm);
 
-      camera_in_camera::update_transforms(mainCameraHndl.ref(), cockpitCameraHndl.ref(), prevCockpitCameraHndl.ref(), lensCamera);
-    };
+        camera_in_camera::update_transforms(mainCameraHndl.ref(), lensCamera, lensEllipseHndl.ref(), prevLensEllipseHndl.ref());
+      };
   }));
 
   nodes.emplace_back(dafg::register_node("lens_camera_multiplex_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {

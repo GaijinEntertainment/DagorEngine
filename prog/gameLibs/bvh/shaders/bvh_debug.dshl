@@ -86,9 +86,10 @@ shader bvh_debug
     #define BVH_DEBUG_MODE_INTERSECTION_COUNT 9
     #define BVH_DEBUG_MODE_INSTANCES 10
     #define BVH_DEBUG_MODE_NAN 11
-    #define BVH_DEBUG_MODE_LOD 12
-    #define BVH_DEBUG_MODE_LRU_COLLISION 13
-    #define BVH_DEBUG_MODE_VOXEL_ACTIVITY 14
+    #define BVH_DEBUG_MODE_EMISSION 12
+    #define BVH_DEBUG_MODE_LOD 13
+    #define BVH_DEBUG_MODE_LRU_COLLISION 14
+    #define BVH_DEBUG_MODE_VOXEL_ACTIVITY 15
 
     #define RAY_FLAG_FORCE_OMM_2_STATE_MANUAL 1
   }
@@ -220,10 +221,10 @@ shader bvh_debug
       if (trace_ray_safe(0, direction, bvh_debug_min_t, 100000, 0, bvhGroupRender, hitInfo, 0))
       {
         isHit = true;
-        SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, 0);
+        SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, 0, 0);
         if (bvh_debug_mode == BVH_DEBUG_MODE_LIT || bvh_debug_mode == BVH_DEBUG_MODE_NAN)
         {
-          result = light_hit_surface(hitSurface, -direction, hitInfo.t, hitInfo.t, 100000);
+          result = light_hit_surface(hitSurface, -direction, hitInfo.t, hitInfo.t, 100000, 1, false);
           if (bvh_debug_mode == BVH_DEBUG_MODE_NAN)
             result = select(isfinite(result), 1, 0);
         }
@@ -289,6 +290,10 @@ shader bvh_debug
         else if (bvh_debug_mode == BVH_DEBUG_MODE_VOXEL_ACTIVITY)
         {
           result = dot(hitSurface.albedo, float3(0.299, 0.587, 0.114)) * 0.5;
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_EMISSION)
+        {
+          result = hitSurface.emission;
         }
         ##if hardware.pc
         else if (bvh_debug_mode == BVH_DEBUG_MODE_INTERSECTION_COUNT)
@@ -376,9 +381,10 @@ shader bvh_debug
         {
           result = texCUBElod(envi_probe_specular, float4(direction, 0)).rgb;
         }
-        else if (bvh_debug_mode != BVH_DEBUG_MODE_LOD && bvh_debug_mode != BVH_DEBUG_MODE_VOXEL_ACTIVITY)
+        else if (bvh_debug_mode != BVH_DEBUG_MODE_LOD && bvh_debug_mode != BVH_DEBUG_MODE_VOXEL_ACTIVITY &&
+                 bvh_debug_mode != BVH_DEBUG_MODE_EMISSION)
         {
-          // LOD and voxel activity views keep the sky/miss black
+          // LOD, voxel activity and emission views keep the sky/miss black
           result = float3(0, 0, 1);
         }
       }
@@ -467,7 +473,7 @@ shader bvh_debug
         float translucentT;
         trace_ray_fx_translucent(0, direction, 0, hitInfo.t, 0, result, translucentT, 1.0);
       }
-      else
+      else if (bvh_debug_mode != BVH_DEBUG_MODE_EMISSION)
         result = pow(result, 1/2.2);
 
       debug_target[thread] = float4(result, 1);

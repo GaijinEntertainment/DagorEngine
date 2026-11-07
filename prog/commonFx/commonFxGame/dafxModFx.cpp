@@ -19,11 +19,6 @@
 
 GravityZoneDescriptor_buffer dafx_gravity_zone_buffer = nullptr;
 
-enum
-{
-  HUID_ACES_RESET = 0xA781BF24u
-};
-
 static dafx::ContextId g_dafx_ctx;
 
 void dafx_report_broken_res(int game_res_id, const char *fx_type)
@@ -215,7 +210,7 @@ struct DafxModFx : BaseParticleEffect
         {
           iid = dafx::create_instance(g_dafx_ctx, sid);
           G_ASSERT_RETURN(iid, );
-          dafx::set_instance_status(g_dafx_ctx, iid, false);
+          dafx::set_instance_status(g_dafx_ctx, iid, {.enabled = false});
         }
         break;
       }
@@ -225,15 +220,15 @@ struct DafxModFx : BaseParticleEffect
           iid = dafx::create_instance(g_dafx_ctx, sid);
         if (iid)
         {
-          G_ASSERT(value);
-          BaseEffectEnabled *dafxe = static_cast<BaseEffectEnabled *>(value);
-          distanceToCamOnSpawn = dafxe->distanceToCam;
+          G_ASSERT_BREAK(value);
+          const BaseEffectEnabled &dafxe = *static_cast<BaseEffectEnabled *>(value);
+          distanceToCamOnSpawn = dafxe.distanceToCam;
           currentCalcdDistanceScale = sinfo.distanceScale.calcScale(distanceToCamOnSpawn);
 #if DAFX_USE_GRAVITY_ZONE
           gravityUp = Point3(0, 1, 0);
           rotateToLocalSpace = Matrix3::IDENT;
 #endif
-          dafx::set_instance_status(g_dafx_ctx, iid, dafxe->enabled, dafxe->distanceToCam);
+          dafx::set_instance_status(g_dafx_ctx, iid, dafxe);
         }
         break;
       }
@@ -248,7 +243,6 @@ struct DafxModFx : BaseParticleEffect
       case HUID_TM: setTm((TMatrix *)value); break;
       case HUID_EMITTER_TM: setEmitterTm((TMatrix *)value); break;
       case HUID_VELOCITY: setVelocity((Point3 *)value); break;
-      case HUID_ACES_RESET: reset(); break;
       case HUID_COLOR_MULT: setColorMult((Color3 *)value); break;
       case HUID_COLOR4_MULT: setColor4Mult((Color4 *)value); break;
       case _MAKE4C('PFXG'):
@@ -419,20 +413,6 @@ struct DafxModFx : BaseParticleEffect
     sinfo.rflags |= 1 << MODFX_RFLAG_BACKGROUND_POS_INITED;
   }
 
-  void reset()
-  {
-    if (!iid)
-      return;
-
-    dafx::reset_instance(g_dafx_ctx, iid);
-
-    setTm(&TMatrix::IDENT);
-    setEmitterTm(&TMatrix::IDENT);
-
-    float spawnRate = 1.f;
-    setSpawnRate(&spawnRate);
-  }
-
   void setSpawnRate(const real *v) override
   {
     if (!iid)
@@ -463,7 +443,7 @@ struct DafxModFx : BaseParticleEffect
         if (t != BAD_TEXTUREID)
           acquire_managed_tex(t);
 
-      dafx::set_instance_status(g_dafx_ctx, v->iid, false);
+      dafx::set_instance_status(g_dafx_ctx, v->iid, {.enabled = false});
       return v;
     }
     return nullptr;

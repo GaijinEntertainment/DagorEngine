@@ -24,7 +24,7 @@ public:
   eastl::unique_ptr<class scene::TiledScene> windows;
   Point3 centerPos = {-10000, 1000, -10000};
   float dist = 128.f;
-  int bufferCount = 0, currentCount = -1, currentGridSize = 0, currentIndSize = 0;
+  int bufferCount = 0, currentCount = -1, currentIndSize = 0;
   eastl::vector<mat43f> activeList;
   eastl::vector<bbox3f> activeListBox;
   UniqueBufWithShaderVar currentWindowsSB, currentWindowsSBInd, currentWindowsGridSB;

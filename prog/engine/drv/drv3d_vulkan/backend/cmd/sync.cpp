@@ -40,7 +40,9 @@ bool d3d_resource_barrier_to_layout(bool is_depth, VkImageLayout &layout, Filter
       break;
     case RB_RW_UAV | RB_STAGE_PIXEL:                    // fallthru
     case RB_RW_UAV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE: // fallthru
-    case RB_RW_UAV | RB_STAGE_COMPUTE: layout = VK_IMAGE_LAYOUT_GENERAL; break;
+    case RB_RW_UAV | RB_STAGE_COMPUTE:                  // fallthru
+    case RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_FLUSH_UAV | RB_SOURCE_STAGE_PIXEL | RB_SOURCE_STAGE_COMPUTE:
+    case RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE: layout = VK_IMAGE_LAYOUT_GENERAL; break;
     case RB_RW_RENDER_TARGET:
       layout = is_depth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
       break;
@@ -101,11 +103,13 @@ bool d3d_resource_barrier_to_laddr(bool is_tex, bool is_depth, LogicAddress &lad
                     VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT |
                     VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
       break;
-    case RB_RW_UAV | RB_STAGE_COMPUTE:
+    case RB_RW_UAV | RB_STAGE_COMPUTE: // fallthru
+    case RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE:
       laddr.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
       laddr.stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
       break;
-    case RB_RW_UAV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE:
+    case RB_RW_UAV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE: // fallthru
+    case RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_FLUSH_UAV | RB_SOURCE_STAGE_PIXEL | RB_SOURCE_STAGE_COMPUTE:
       laddr.access = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
       laddr.stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
       break;
@@ -154,6 +158,9 @@ static VkPipelineStageFlags enhanced_stage_to_vk(d3d::PipelineStageFlags stages)
     out |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
   if (stages & d3d::PipelineStageFlag::OutputMerging)
     out |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  if (stages & d3d::PipelineStageFlag::ClearView)
+    out |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+           VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
   if (stages & d3d::PipelineStageFlag::ComputeShading)
     out |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
   // clear/blit/resolve are native transfer ops on vulkan, unlike dx where they run through shaders
@@ -190,7 +197,8 @@ static VkAccessFlags enhanced_access_to_vk(d3d::AccessFlags access)
     out |= VK_ACCESS_SHADER_READ_BIT;
   if (access & (d3d::AccessFlag::CopyRead | d3d::AccessFlag::BlitRead | d3d::AccessFlag::ResolveRead))
     out |= VK_ACCESS_TRANSFER_READ_BIT;
-  if (access & (d3d::AccessFlag::CopyWrite | d3d::AccessFlag::BlitWrite | d3d::AccessFlag::ResolveWrite | d3d::AccessFlag::ClearWrite))
+  if (access & (d3d::AccessFlag::CopyWrite | d3d::AccessFlag::BlitWrite | d3d::AccessFlag::ResolveWrite | d3d::AccessFlag::ClearWrite |
+                 d3d::AccessFlag::ClearTargetWrite))
     out |= VK_ACCESS_TRANSFER_WRITE_BIT;
   if (access & d3d::AccessFlag::ShadingRate)
     out |= VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;

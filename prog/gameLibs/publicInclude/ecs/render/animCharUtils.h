@@ -6,6 +6,7 @@
 
 #include <EASTL/vector.h>
 #include <generic/dag_functionRef.h>
+#include <generic/dag_span.h>
 #include <memory/dag_framemem.h>
 
 class ShaderMaterial;
@@ -28,3 +29,8 @@ bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_
 bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,
   const eastl::vector<const char *, framemem_allocator> &shader_names_filter,
   dag::FunctionRef<void(ShaderMaterial *) const> shader_var_setter);
+
+// per-node copies of rigid mesh materials; unknown and repeated names are skipped
+// name_idx indexes node_names; false when nothing was copied
+bool recreate_node_materials(AnimV20::AnimcharRendComponent &animchar_render, dag::ConstSpan<const char *> node_names,
+  dag::FunctionRef<void(int name_idx, ShaderMaterial *) const> shader_var_setter);

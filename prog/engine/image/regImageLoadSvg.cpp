@@ -15,6 +15,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <zlib.h>
 
 // route nanosvg allocations through the engine allocator
 #define malloc  memalloc_default   //-V1059
@@ -30,6 +31,77 @@
 #include <nanosvg/nanosvgrast.h>
 #include "decodeFnameSuffix.h"
 
+static bool check_svg_size(const char *fn, uint32_t size)
+{
+  if (size > (1 << 20))
+  {
+    logerr("SVG '%.128s' is too big: %u bytes, more than 1 MB, not loaded", fn, size);
+    return false;
+  }
+  if (size > (100 << 10))
+    logerr("SVG '%.128s' is too big: %u bytes, keep it under 100 KB", fn, size);
+  return true;
+}
+
+static bool is_gzip(const char *data, int size) { return size >= 18 && uint8_t(data[0]) == 0x1F && uint8_t(data[1]) == 0x8B; }
+
+static bool gunzip(dag::ConstSpan<char> src, Tab<char> &dst, const char *fn)
+{
+  uint32_t unpacked_sz; // gzip trailer ends with the unpacked size
+  memcpy(&unpacked_sz, src.data() + src.size() - sizeof(unpacked_sz), sizeof(unpacked_sz));
+  z_stream zs = {};
+  if (!check_svg_size(fn, unpacked_sz) || inflateInit2(&zs, MAX_WBITS + 16) != Z_OK)
+    return false;
+  dst.reserve(unpacked_sz + 1);
+  dst.resize(unpacked_sz);
+  zs.next_in = (Bytef *)src.data();
+  zs.avail_in = src.size();
+  zs.next_out = (Bytef *)dst.data();
+  zs.avail_out = unpacked_sz;
+  int res = inflate(&zs, Z_FINISH);
+  inflateEnd(&zs);
+  return res == Z_STREAM_END && zs.total_out == unpacked_sz;
+}
+
+static bool finish_svg_text(Tab<char> &svg, const char *fn)
+{
+  if (is_gzip(svg.data(), svg.size()))
+  {
+    Tab<char> unpacked(tmpmem);
+    if (!gunzip(svg, unpacked, fn))
+    {
+      logerr("cannot unpack gzipped SVG <%s>", fn);
+      return false;
+    }
+    svg.swap(unpacked);
+  }
+  svg.push_back('\0');
+  return true;
+}
+
+static bool read_svg_file(const char *fn, int df_flags, Tab<char> &svg)
+{
+  const char *fn_ext = dd_get_fname_ext(fn);
+  const char *suffix = fn_ext ? strchr(fn_ext, ':') : nullptr;
+  file_ptr_t filePtr = df_open(suffix ? String::mk_sub_str(fn, suffix).c_str() : fn, df_flags);
+  if (!filePtr)
+  {
+    if (!(df_flags & DF_IGNORE_MISSING))
+      logerr("no such file %s", fn);
+    return false;
+  }
+  int file_sz = df_length(filePtr);
+  if (!check_svg_size(fn, file_sz))
+  {
+    df_close(filePtr);
+    return false;
+  }
+  svg.resize(file_sz + 1);
+  svg.resize(max(df_read(filePtr, svg.data(), file_sz), 0));
+  df_close(filePtr);
+  return finish_svg_text(svg, fn);
+}
+
 class SvgLoadImageFactory : public ILoadImageFactory
 {
 public:
@@ -43,17 +115,12 @@ public:
     if (out_w && out_h && !keep_ar)
       return true;
 
-    char svg_buf[512];
-    fn_ext = dd_get_fname_ext(fn);
-    file_ptr_t filePtr =
-      df_open(dd_strnicmp(fn_ext, ".svg:", 5) == 0 ? String(0, "%.*s", fn_ext + 4 - fn, fn) : fn, DF_READ | DF_IGNORE_MISSING);
-    if (!filePtr)
+    Tab<char> svg(tmpmem);
+    if (!read_svg_file(fn, DF_READ | DF_IGNORE_MISSING, svg))
       return false;
-    svg_buf[df_read(filePtr, svg_buf, sizeof(svg_buf) - 1)] = '\0';
-    df_close(filePtr);
 
     float w = 0.f, h = 0.f;
-    if (NSVGimage *image = nsvgParse(svg_buf, "px", 96.0f))
+    if (NSVGimage *image = nsvgParse(svg.data(), "px", 96.0f))
     {
       w = image->width;
       h = image->height;
@@ -99,19 +166,9 @@ public:
     if (!decodeSvgSuffix(fn_ext, w, h, keep_ar, premul))
       return NULL;
 
-    fn_ext = dd_get_fname_ext(fn);
-    file_ptr_t filePtr = df_open(dd_strnicmp(fn_ext, ".svg:", 5) == 0 ? String(0, "%.*s", fn_ext + 4 - fn, fn) : fn, DF_READ);
-    if (!filePtr)
-    {
-      logerr("no such file %s", fn);
-      return NULL;
-    }
     Tab<char> svg(tmpmem);
-    int file_sz = df_length(filePtr);
-    svg.resize(file_sz + 1);
-    df_read(filePtr, svg.data(), file_sz);
-    svg[file_sz] = '\0';
-    df_close(filePtr);
+    if (!read_svg_file(fn, DF_READ, svg))
+      return NULL;
     if (out_used_alpha)
       *out_used_alpha = true;
     return rasterize_svg(make_span(svg), mem, w, h, keep_ar, premul, fn);
@@ -130,10 +187,16 @@ public:
       int rd = crd.tryRead(buf, BUF_SZ);
       if (rd)
         append_items(svg, rd, buf);
+      if (svg.size() > (4 << 20))
+      {
+        logerr("SVG stream '%.128s' is too big: more than 4 MB, not loaded", crd.getTargetName());
+        return NULL;
+      }
       if (rd < BUF_SZ)
         break;
     }
-    svg.push_back('\0');
+    if (!finish_svg_text(svg, crd.getTargetName()))
+      return NULL;
     if (out_used_alpha)
       *out_used_alpha = true;
     return rasterize_svg(make_span(svg), mem, w, h, keep_ar, premul, crd.getTargetName());
@@ -145,15 +208,16 @@ public:
   {
     out_keep_ar = true;
     out_premul = false;
-    if (!fn_ext)
+    if (!fn_ext || dd_strnicmp(fn_ext, ".svg", 4) != 0)
       return false;
-    if (dd_stricmp(fn_ext, ".svg") == 0)
+    const char *suffix = fn_ext + 4 + (tolower(fn_ext[4]) == 'z');
+    if (!*suffix)
     {
       out_w = out_h = 0;
       return true;
     }
-    if (dd_strnicmp(fn_ext, ".svg:", 5) == 0)
-      return decode_fname_suffix(fn_ext + 5, out_w, out_h, out_keep_ar, out_premul, fn_ext);
+    if (*suffix == ':')
+      return decode_fname_suffix(suffix + 1, out_w, out_h, out_keep_ar, out_premul, fn_ext);
     return false;
   }
 

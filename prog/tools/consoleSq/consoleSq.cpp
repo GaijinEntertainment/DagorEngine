@@ -26,6 +26,7 @@
 #include <quirrel/frp/dag_frp.h>
 #include <quirrel/sqJwt/sqJwt.h>
 #include <quirrel/base64/base64.h>
+#include <quirrel/sqPacked/sqPacked_api.h>
 #include <quirrel/asyncRuntime/dagorAsyncRuntime.h>
 #include <asyncHTTPClient/asyncHTTPClient.h>
 #if _TARGET_PC_WIN
@@ -349,6 +350,7 @@ static Module modules[] = {
     [] { bindquirrel::register_iso8601_time(module_manager); }},
   {"register_jwt", "JWT decode", [] { bindquirrel::bind_jwt(module_manager); }},
   {"register_base64", "base64 encode/decode", [] { bindquirrel::bind_base64_utils(module_manager); }},
+  {"register_packed", "'packed' module: pack, unpack, query ...", [] { bindquirrel::register_packed_module(module_manager); }},
   {"register_frp", "Watched/Computed",
     [] {
       sqfrp::bind_frp_classes(module_manager);
@@ -838,6 +840,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 
   drain_async_until_idle(sqvm);
 
+  module_manager->callUnloadHandlersOnClose();
   if (frp_graph)
     frp_graph->shutdown(true);
   del_it(module_manager);
@@ -965,22 +968,25 @@ static String find_sqconfig_path(String &sq_config_dir)
 }
 
 
-static int log_err_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void log_err_callback(void *, LogMessage &msg)
 {
-  if (lev_tag != LOGLEVEL_ERR)
-    return use_debug_file ? 1 : 0;
+  if (msg.levTag != LOGLEVEL_ERR)
+  {
+    if (!use_debug_file)
+      msg.flags |= LOGMSG_SKIP_FILE;
+    return;
+  }
 
   has_errors = true;
 
   String s;
-  if (ctx_file)
-    s.printf(0, "[E] %s,%d: ", ctx_file, ctx_line);
+  if (msg.ctxFile)
+    s.printf(0, "[E] %s,%d: ", msg.ctxFile, msg.ctxLine);
   else
     s.printf(0, "[E] ");
-  s.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+  s.avprintf(0, msg.fmt, (const DagorSafeArg *)msg.arg, msg.anum);
 
   printf("LOG ERROR: %s\n", s.str());
-  return 1;
 }
 
 
@@ -1057,7 +1063,7 @@ static void on_file_open(const char *fname, void * /*file_handle*/, int flags)
 
   if (flags & DF_READ)
     if (dd_file_exists(fname))
-      if (!is_file_case_valid(fname))
+      if (!dd_is_fname_case_valid(fname))
       {
         printf("\nERROR: Invalid file case\nTrying to open file '%s'\n", fname);
         has_errors = true;
@@ -1083,7 +1089,7 @@ int DagorWinMain(bool debugmode)
   G_UNUSED(debugmode);
   argc_limit = __argc;
   dgs_report_fatal_error = stderr_report_fatal_error;
-  debug_set_log_callback(log_err_callback);
+  debug_add_log_handler(&log_err_callback, nullptr, {.levelMask = LOGMASK_ALL});
   bindquirrel::set_sq_exit_function_ptr(sq_exit_func);
 
   dag_on_file_open = on_file_open;

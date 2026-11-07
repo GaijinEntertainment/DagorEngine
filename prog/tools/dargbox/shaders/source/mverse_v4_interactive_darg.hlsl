@@ -183,5 +183,5 @@ float4 darg_ps(float2 uv)
     col = 1.0 - exp(-col * 2.0);
     col.b += 0.008 * (1.0 - col.b);
 
-    return float4(col, darg_opacity);
+    return float4(col * darg_opacity, darg_opacity);
 }

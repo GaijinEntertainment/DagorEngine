@@ -663,6 +663,7 @@ void Scripts::gatherDependencies(const das::string &fname, das::smart_ptr<DagFil
     }
   }
 
+  das::lock_guard guard(mutex); // changedFileToScripts, dirsOpened
   for (const auto &[file, time] : filesOpened)
   {
     auto &info = changedFileToScripts[file];
@@ -682,7 +683,6 @@ void Scripts::gatherDependencies(const das::string &fname, das::smart_ptr<DagFil
     memcpy(buf, realName, fnameExt - realName - 1);
     buf[fnameExt - realName - 1] = 0;
     dd_simplify_fname_c(buf);
-    das::lock_guard guard(mutex); // dirsOpened
     if (dirsOpened.find_as((const char *)buf) != dirsOpened.end())
       continue;
     bool hasUpperPath = false;
@@ -765,7 +765,6 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
   policies.aot = ldr_ctx.aotMode == AotMode::AOT;
   policies.fail_on_lack_of_aot_export = true;
   policies.no_global_variables = true;
-  policies.fail_on_no_aot = false;
   policies.debugger = ldr_ctx.enableDebugger == EnableDebugger::YES;
   policies.no_unsafe = sandboxMode;
   policies.very_safe_context = ldr_ctx.verySafeContext;
@@ -775,6 +774,7 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
   policies.jit_enabled = das_jit_runtime_enabled();
   const DataBlock *dgsSettings = ::dgs_get_settings();
   policies.jit_jit_all_functions = dgsSettings && dgsSettings->getBool("llvm_jit_all_functions", false);
+  policies.fail_on_no_aot = dgsSettings && dgsSettings->getBlockByNameEx("debug")->getBool("das_fail_on_no_aot", false);
   policies.gen2_make_syntax = ldr_ctx.syntax == DasSyntax::V1_5;
   policies.version_2_syntax = ldr_ctx.syntax == DasSyntax::V2_0;
   policies.heap_size_hint = DAS_INITIAL_HEAP_SIZE;

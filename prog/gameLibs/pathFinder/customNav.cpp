@@ -115,8 +115,8 @@ void CustomNav::areaUpdateBox(uint32_t area_id, const TMatrix &tm, const BBox3 &
     });
 }
 
-void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, float fadeTimeStart, float fadeTimeEnd,
-  bool optimize, float posThreshold)
+void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, float fade_time_start, float fade_time_end,
+  uint32_t usage_mask, bool optimize, float posThreshold)
 {
   CylArea area;
   area.id = area_id;
@@ -124,12 +124,15 @@ void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1
   area.weight[0] = w1;
   area.weight[1] = w2;
   area.optimize = optimize;
-  area.fadeTimeStart = fadeTimeStart;
-  area.fadeTimeEnd = fadeTimeEnd;
+  area.fadeTimeStart = fade_time_start;
+  area.fadeTimeEnd = fade_time_end;
+  area.usageMask = usage_mask;
 
   areaUpdate(
     area, cylAreas, boxAreas, [](Tile &tile) { return &tile.cylinderAreas; },
-    [&area, &posThreshold](const CylArea &existing_area) {
+    [&area, &posThreshold, &usage_mask](const CylArea &existing_area) {
+      if (existing_area.usageMask != usage_mask)
+        return true;
       if ((existing_area.weight[0] == area.weight[0]) && (existing_area.weight[1] == area.weight[1]) &&
           (existing_area.optimize == area.optimize))
       {
@@ -145,7 +148,7 @@ void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1
 
 void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, bool optimize, float posThreshold)
 {
-  areaUpdateCylinder(area_id, aabb, w1, w2, -1.0f, -1.0f, optimize, posThreshold);
+  areaUpdateCylinder(area_id, aabb, w1, w2, -1.0f, -1.0f, 0, optimize, posThreshold);
 }
 
 template <typename AreaT, typename AreaHashMapT, typename AltAreaHashMapT, typename GetTileAreasCB, typename AllowUpdateCB>
@@ -460,7 +463,7 @@ void CustomNav::areaRemove(uint32_t area_id)
 }
 
 float CustomNav::getWeight(uint32_t tile_id, const Point3 &p1, const Point3 &p2, const Point3 &norm_dir, float len, float inv_len,
-  bool &optimize) const
+  uint32_t usage_mask, bool &optimize) const
 {
   auto it = tiles.find(tile_id);
   if (it == tiles.end())
@@ -503,6 +506,8 @@ float CustomNav::getWeight(uint32_t tile_id, const Point3 &p1, const Point3 &p2,
   {
     // For cylinders there's only one path that's fast, since
     // the math is quite simple.
+    if (area.usageMask && !(area.usageMask & usage_mask))
+      continue;
     Point3 c = area.oobb.center();
     float t = (c - p1) * norm_dir;
     Point3 fPt;

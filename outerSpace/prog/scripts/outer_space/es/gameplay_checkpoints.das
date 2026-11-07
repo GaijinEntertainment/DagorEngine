@@ -4,6 +4,7 @@ require math.base
 require outer_space.events_outer_space
 require DagorMath
 require DngPhysObj
+require DngPhysKind
 require DngNet
 require GameTimers
 
@@ -13,16 +14,14 @@ def get_total_checkpoints()
     total_checkpoints += 1
   return total_checkpoints
 
-[es(tag=server, after=spaceship_thrust_es_event_handler)]
-def spaceship_visit_checkpoints_es(evt : CmdPostPhysUpdate; phys_obj_net_phys : PhysObjActor; possessedByPlr : EntityId)
-  let ship_pos = float3(phys_obj_net_phys.phys.currentState.location.P)
+def visit_checkpoints(pos : float3; radius : float; possessedByPlr : EntityId)
   let total_checkpoints = get_total_checkpoints()
   var player_winner_eid = INVALID_ENTITY_ID
   query() <| $ [es(REQUIRE=check_pt)] (eid : EntityId;
                                        transform : float3x4;
                                        var checkpoint__visited_by_player : EidList&;
                                        checkpoint__score : float)
-    if length_sq(transform[3] - ship_pos) < square(7.f)
+    if length_sq(transform[3] - pos) < square(radius)
       for v in checkpoint__visited_by_player
         if v == possessedByPlr
           return
@@ -61,6 +60,15 @@ def spaceship_visit_checkpoints_es(evt : CmdPostPhysUpdate; phys_obj_net_phys : 
           set(scores, "{eid}", plinfo)
       net::broadcast_net_event(EventSessionFinishedOnWin(byPlayer = player_winner_eid, scores = ecs_addr(scores)))
     broadcastEvent(EventSetExitTimerOnWin(exit_in_sec = 15.0))
+
+[es(tag=server, after=spaceship_thrust_es_event_handler)]
+def spaceship_visit_checkpoints_es(evt : CmdPostPhysUpdate; phys_obj_net_phys : PhysObjActor; possessedByPlr : EntityId)
+  visit_checkpoints(float3(phys_obj_net_phys.phys.currentState.location.P), 7.f, possessedByPlr)
+
+[es(tag=server, REQUIRE=jolt_vehicle)]
+def motorbike_visit_checkpoints_es(evt : CmdPostPhysUpdate; phys_kind_net_phys : PhysKindActor; possessedByPlr : EntityId)
+  // the road keeps a bike within a few meters of a checkpoint above it
+  visit_checkpoints(float3(phys_kind_net_phys.phys.currentState.location.P), 3.f, possessedByPlr)
 
 
 [es(tag=server, tag=net)]

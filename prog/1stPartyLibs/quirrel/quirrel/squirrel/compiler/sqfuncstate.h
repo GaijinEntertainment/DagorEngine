@@ -15,6 +15,8 @@ struct SQCompiletimeVarInfo
     SQUnsignedInteger32 type_mask;
     Expr *initializer;
     const VarDecl *forward_decl;
+    // Inferred where a 'let' is defined: in a nested function the names of the initializer can mean other bindings
+    SQUnsignedInteger32 init_type_mask = ~0u;
 
     SQCompiletimeVarInfo() : var_flags(0), type_mask(~0u), initializer(nullptr), forward_decl(nullptr) {}
 
@@ -24,6 +26,10 @@ struct SQCompiletimeVarInfo
 
     bool isForwardDeclaration() const { return forward_decl != nullptr; }
     bool isUndefinedForwardDeclaration() const { return forward_decl != nullptr && initializer == nullptr; }
+    // The slot has its final value: a closure can capture a copy
+    bool hasFinalValue() const {
+        return !(var_flags & (VF_ASSIGNABLE | VF_VALUE_PENDING)) && !isUndefinedForwardDeclaration();
+    }
 };
 
 struct SQFuncState
@@ -53,6 +59,8 @@ struct SQFuncState
     SQInteger GetLocalVariable(const SQObject &name, SQCompiletimeVarInfo &ct_var_info);
     void MarkLocalAsOuter(SQInteger pos);
     SQInteger GetOuterVariable(const SQObject &name, SQCompiletimeVarInfo &ct_var_info);
+    // As GetOuterVariable, but captures nothing
+    bool FindOuterVariable(const SQObject &name, SQCompiletimeVarInfo &ct_var_info);
     SQInteger GetStackSize();
     void AddLineInfos(SQInteger line, bool is_dbg_step_point, bool force);
     SQFunctionProto *BuildProto();
@@ -64,7 +72,6 @@ struct SQFuncState
     void DiscardTarget();
     bool IsLocal(SQUnsignedInteger stkpos);
     SQObjectPtr CreateString(const char *s,SQInteger len = -1);
-    void CheckForPurity();
     SQUnsignedInteger lang_features;
     SQInteger _returnexp;
     SQLocalVarInfoVec _vlocals;
@@ -105,6 +112,7 @@ struct SQFuncState
     SQSharedState *_sharedstate;
     sqvector<SQFuncState*> _childstates;
     SQInteger GetConstant(const SQObjectPtr &cons, int max_const_no = 0x7FFFFFFF);//will return value <= max_const_no, or -1
+    bool IsNullConstant(SQInteger idx) const;
 private:
     SQCompilationContext &_ctx;
     SQSharedState *_ss;

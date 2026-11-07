@@ -7,11 +7,13 @@
 #include <propPanel/control/treeInterface.h>
 
 class DagorAsset;
+class IAnimTreeEditorHost;
 
 class CtrlTreeEventHandler : public PropPanel::ITreeControlEventHandler, public PropPanel::IMenuEventHandler
 {
 public:
-  CtrlTreeEventHandler(dag::Vector<AnimCtrlData> &controllers, dag::Vector<String> &paths, ChildsDialog &dialog);
+  CtrlTreeEventHandler(dag::Vector<AnimCtrlData> &controllers, dag::Vector<String> &paths, ChildsDialog &dialog,
+    IAnimTreeEditorHost &host);
   bool onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id, PropPanel::ITreeInterface &tree_interface) override;
   int onMenuItemClick(unsigned id) override;
   void setAsset(DagorAsset *cur_asset);
@@ -21,6 +23,7 @@ private:
   PropPanel::ContainerPropertyControl *ctrlsTree = nullptr;
   DagorAsset *asset = nullptr;
   ChildsDialog &dialog;
+  IAnimTreeEditorHost &host;
   dag::Vector<AnimCtrlData> &controllers;
   dag::Vector<String> &paths;
 };

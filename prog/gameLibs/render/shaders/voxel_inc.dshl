@@ -466,7 +466,7 @@ macro USE_VOXEL_PS(use_overlay_map)
         init_ao(result, 1);
         init_shadow(result, 1);
 
-        init_material(result, SHADING_NORMAL);
+        init_material(result, material.w > 0 ? SHADING_FOLIAGE : SHADING_NORMAL);
         init_order(result, GBUFFER_ORDER_STATIC);
 
         return encode_gbuffer(result, p2e.xyz, screenpos);

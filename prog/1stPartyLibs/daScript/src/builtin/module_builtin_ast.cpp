@@ -847,7 +847,8 @@ namespace das {
     TypeDeclPtr builtin_fieldType ( TypeDeclPtr ptr, const char * field, bool constant ) {
         if ( !field || !ptr ) return nullptr;
         if ( ptr->baseType==Type::tStructure ) {
-            return ptr->structType->findField(field)->type;
+            auto fd = ptr->structType->findField(field);
+            return fd ? fd->type : nullptr;
         } else if ( ptr->baseType==Type::tTuple ) {
             auto idx = ptr->tupleFieldIndex(field);
             return idx!=-1 ? ptr->argTypes[idx] : nullptr;

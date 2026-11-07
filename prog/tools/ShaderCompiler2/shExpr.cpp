@@ -1121,13 +1121,17 @@ void ColorValueExpression::assembleBytecode(CodeTable &code, Register &dest_reg,
   // make vector
   code.push_back(shaderopcode::makeOp3(SHCOD_MAKE_VEC, int(dest_reg), int(opRegs[0]), int(opRegs[1])));
   code.push_back(shaderopcode::makeData2(int(opRegs[2]), int(opRegs[3])));
+
+  Expression::assembleBytecode(code, dest_reg, reg_allocator, is_integer);
 }
 
 void ColorValueExpression::assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const
 {
+  cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::COMPLEX_SINGLE_OP);
   cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::COLORVAL, is_integer ? "int" : "float");
   for (int i = 0; i < getOperandCount(); i++)
     getOperand(shexpr::OperandType(i))->assembleCpp(cpp_expr, is_integer);
+  Expression::assembleCpp(cpp_expr, is_integer);
 }
 
 
@@ -1548,14 +1552,18 @@ void FunctionExpression::assembleBytecode(CodeTable &code, Register &dest_reg, S
   }
   else
     addFunctionCall(int(dest_reg));
+
+  Expression::assembleBytecode(code, dest_reg, reg_allocator, is_integer);
 }
 
 void FunctionExpression::assembleCpp(StcodeExpression &cpp_expr, bool is_integer) const
 {
   int argCount = getOperandCount();
+  cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::COMPLEX_SINGLE_OP);
   cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::FUNC, getTerminal()->text, &argCount);
   for (int i = 0; i < getOperandCount(); i++)
     getOperand(shexpr::OperandType(i))->assembleCpp(cpp_expr, is_integer);
+  Expression::assembleCpp(cpp_expr, is_integer);
 }
 
 

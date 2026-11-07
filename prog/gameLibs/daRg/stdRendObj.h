@@ -48,9 +48,8 @@ public:
   int spacing = 0;
   int monoWidth = 0;
   wchar_t passChar = 0;
-  bool ellipsis = true;
 
-  TextOverflow overflowX = TOVERFLOW_CLIP;
+  TextOverflow textOverflow = TOVERFLOW_CLIP;
   FontFxType fontFx = FFT_NONE;
   E3DCOLOR fxColor = 0;
   int fxFactor = 48, fxOffsX = 0, fxOffsY = 0;
@@ -58,6 +57,7 @@ public:
   int fontTexSu = 32, fontTexSv = 32, fontTexBov = 0;
   int strWidth = 0;
   GuiTextCache guiText;
+  float guiTextMaxWidth = 0;
   Point2 textSizeCache = Point2(-1, -1);
 
   virtual bool load(const Element *elem) override;
@@ -74,16 +74,16 @@ public:
 class RobjParamsTextArea : public RobjParamsColorOnly
 {
 public:
-  TextOverflow overflowY = TOVERFLOW_CLIP;
-
-  int lowLineCount = 0;
-  ElemAlign lowLineCountAlign = PLACE_DEFAULT;
+  TextOverflow textOverflow = TOVERFLOW_CLIP;
 
   FontFxType fontFx = FFT_NONE;
   E3DCOLOR fxColor = 0;
   int fxFactor = 48, fxOffsX = 0, fxOffsY = 0;
 
+  GuiTextCache ellipsisText;
+
   virtual bool load(const Element *elem) override;
+  virtual void discardTextCache() override { ellipsisText.discard(); }
 };
 
 

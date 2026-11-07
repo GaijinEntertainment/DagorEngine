@@ -12,7 +12,7 @@
 
 #include <websocketJsonRpc/wsJsonRpcPersistentConnection.h>
 
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 #include <variant>
 
 
@@ -178,7 +178,7 @@ private:
   const details::RpcContextSettings defaultContextSettings;
   const int maxSimultaneousRequests = -1;
 
-  mutable std::mutex mutex; // protects all members below
+  mutable dag::mutex mutex; // protects all members below
 
   AuthenticationFailureCallback authenticationFailureCallback;
   IncomingNotificationCallback notificationCallback;

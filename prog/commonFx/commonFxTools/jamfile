@@ -22,6 +22,7 @@ Sources =
   $(fxList)_tools.cpp
   dafxEmitter_tools.cpp
   lightfxShadow_tools.cpp
+  dafxModFx_checks.cpp
 ;
 
 if $(DabuildEmbeddedInGame) = yes {

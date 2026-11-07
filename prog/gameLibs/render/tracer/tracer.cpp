@@ -34,6 +34,8 @@
 #include <util/dag_convar.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <3d/dag_ringDynBuf.h>
+#include <render/smokeTracers.h>
+#include <shaders/dag_shaders.h>
 #include "tracer.hlsli"
 
 struct TailVertex
@@ -61,6 +63,9 @@ struct TrailType
   float particleHalfSizeTo;
   float deviation;
   E3DCOLOR color;
+  float smokeRadius;
+  Color4 smokeColor;
+  Point2 smokeTimeSecRange;
 };
 
 #define TRACER_UNITIALIZED          0x501502f9
@@ -85,10 +90,16 @@ CONSOLE_BOOL_VAL("render", oldTracers, false);
   VAR(head_projection_hk)
 
 
-#define OPTIONAL_VARS_LIST          \
-  VAR(fx_instancing_type)           \
-  VAR(tracer_tail_tex_samplerstate) \
-  VAR(tracer_tails_batched_render)
+#define OPTIONAL_VARS_LIST            \
+  VAR(fx_instancing_type)             \
+  VAR(tracer_tail_tex_samplerstate)   \
+  VAR(tracer_tails_batched_render)    \
+  VAR(smoke_tracer_turbulence_params) \
+  VAR(smoke_tracer_hg_g)              \
+  VAR(smoke_tracer_hg_softness)       \
+  VAR(smoke_tracer_turbulence_speed)  \
+  VAR(smoke_tracer_spread)            \
+  VAR(smoke_tracer_tex_tile)
 
 #define VAR(a) static int a##VarId = -1;
 NONOPTIONAL_VARS_LIST
@@ -171,7 +182,9 @@ Tracer::Tracer(TracerManager *in_owner, uint32_t in_idx, const Point3 &start_pos
   minLen(0),
   queueSegmentAddition(false),
   amplificationBehavior(amplification_behavior),
-  positionQueued(0, 0, 0)
+  positionQueued(0, 0, 0),
+  smokeId(-1),
+  smokeTrailTypeNo(-1)
 {
   G_UNREFERENCED(in_caliber);
   G_ASSERT(TRACER_UNITIALIZED == *(uint32_t *)&timeLeft);
@@ -210,9 +223,10 @@ void Tracer::flushSegmentAdditions()
     }
 
     // do not pilled up append. This is especially true when window is minimized
+    segments[segmentsNum].pos = positionQueued;
     if (appendToSegmentBuffer(segmentsNum, MAX_SEGMENTS_BUFFER_QUEUE))
     {
-      segments[segmentsNum++].pos = positionQueued;
+      ++segmentsNum;
       queueSegmentAddition = false;
     }
   }
@@ -268,7 +282,7 @@ float Tracer::getCurLifeTime() const { return owner->curTime - spawnTime; }
 bool Tracer::appendToSegmentBuffer(uint32_t segment_id, int max_cmd_count)
 {
   GPUFxSegment segment;
-  segment.worldPos = pos;
+  segment.worldPos = segments[segment_id].pos;
   return owner->segmentBuffer.append(idx * MAX_FX_SEGMENTS + segment_id,
     dag::ConstSpan<uint8_t>((uint8_t *)&segment, sizeof(GPUFxSegment)), 1, max_cmd_count);
 }
@@ -518,6 +532,7 @@ TracerManager::TracerManager(const DataBlock *blk) :
   initTrails();
 
   clear();
+  initSmokeTails();
 }
 
 TracerManager::~TracerManager()
@@ -569,6 +584,17 @@ void TracerManager::readBlk(const DataBlock *blk)
 
   ShaderGlobal::set_float(tail_length_metersVarId, tailLengthMeters);
 
+  smokeTailsRequested = tracersBlk->getBool("smokeTails", false);
+  smokeTailTexture = tracersBlk->getStr("smokeTailTexture", "perlin_noise_ati1n");
+  ShaderGlobal::set_float(smoke_tracer_turbulence_speedVarId, tracersBlk->getReal("smokeTurbulenceSpeed", 0.f));
+  ShaderGlobal::set_float(smoke_tracer_spreadVarId, tracersBlk->getReal("smokeSpread", 0.f));
+  ShaderGlobal::set_float(smoke_tracer_tex_tileVarId, tracersBlk->getReal("smokeTexTile", 0.2f));
+  ShaderGlobal::set_float4(smoke_tracer_turbulence_paramsVarId,
+    Color4(tracersBlk->getReal("smokeTurbulenceRadius", 0.25f), tracersBlk->getReal("smokeTurbulenceScale", 2.f),
+      tracersBlk->getReal("smokeWindScale", 0.1f), tracersBlk->getReal("smokeNoiseFreq", 1.f)));
+  ShaderGlobal::set_float(smoke_tracer_hg_gVarId, tracersBlk->getReal("smokePhaseG", 0.75f));
+  ShaderGlobal::set_float(smoke_tracer_hg_softnessVarId, tracersBlk->getReal("smokePhaseSoftness", 0.f));
+
   const DataBlock *tracerColorsBlk = blk->getBlockByNameEx("tracerColors");
   G_ASSERT(tracerColorsBlk->blockCount() > 0);
   for (unsigned int blockNo = 0; blockNo < tracerColorsBlk->blockCount(); blockNo++)
@@ -612,6 +638,13 @@ void TracerManager::readBlk(const DataBlock *blk)
     trailType.particleHalfSizeTo = tracerTrailBlk->getReal("particleHalfSizeTo", 1.f);
     trailType.deviation = tracerTrailBlk->getReal("deviation", 2.f);
     trailType.color = tracerTrailBlk->getE3dcolor("color", 0xFFFFFFFF);
+    trailType.smokeRadius = tracerTrailBlk->getReal("smokeRadius", trailType.particleHalfSizeFrom);
+    trailType.smokeColor = color4(tracerTrailBlk->getE3dcolor("smokeColor", trailType.color));
+    trailType.smokeColor.a *= tracerTrailBlk->getReal("smokeDensity", 1.f);
+    const int smokeTimeParam = tracerTrailBlk->findParam("smokeTimeSec");
+    trailType.smokeTimeSecRange = tracerTrailBlk->getParamType(smokeTimeParam) == DataBlock::TYPE_POINT2
+                                    ? tracerTrailBlk->getPoint2(smokeTimeParam)
+                                    : Point2(1.f, 1.f) * tracerTrailBlk->getReal("smokeTimeSec", 0.f);
   }
 }
 
@@ -629,6 +662,8 @@ void TracerManager::clear()
   mem_set_0(trCulledOrNotInitialized);
   numTracers = numVisibleTracers = 0;
   curTime = 0;
+  if (smokeTails)
+    initSmokeTails();
 }
 
 void TracerManager::resetConfig()
@@ -637,6 +672,22 @@ void TracerManager::resetConfig()
   releaseRes();
   initHeads();
   initTrails();
+  initSmokeTails();
+}
+
+void TracerManager::reloadBlk(const DataBlock *blk)
+{
+  finishPreparingIfNecessary();
+  TracerMgrThreadGuard guard(this);
+  const bool wasRequested = smokeTailsRequested;
+  const String prevTexture = smokeTailTexture;
+  readBlk(blk);
+  releaseHeadTrailRes(false);
+  initHeads();
+  initTrails();
+  if (smokeTailsRequested != wasRequested || prevTexture != smokeTailTexture)
+    initSmokeTails();
+  restoreBuffers();
 }
 
 void TracerManager::afterResetDevice()
@@ -648,8 +699,65 @@ void TracerManager::afterResetDevice()
   releaseRes(false);
   initHeads();
   initTrails();
+  initSmokeTails();
 
   restoreBuffers();
+}
+
+void TracerManager::initSmokeTails()
+{
+  smokeTails.reset();
+  smokeDt = 0.f;
+  for (Tracer &tracer : tracers)
+    tracer.smokeId = -1;
+
+  if (!smokeTailsRequested)
+    return;
+  if (!computeAndBaseVertexSupported || !instanceIdSupported || !shader_exists("cull_tracers_cs") ||
+      !shader_exists("smoke_tracers_tail"))
+  {
+    debug("Smoke tails are not supported");
+    return;
+  }
+
+  DataBlock settings;
+  settings.setStr("tail_texture", smokeTailTexture);
+  settings.setBool("heads", false);
+  smokeTails = eastl::make_unique<SmokeTracerManager>();
+  smokeTails->init(settings);
+}
+
+void TracerManager::updateSmokeTails()
+{
+  for (uint32_t tn = 0, bit = 1, processed = 0; tn < tracers.size() && processed < numTracers; ++tn, bit = (bit << 1) | (bit >> 31))
+  {
+    if (!(trExist[tn >> 5] & bit))
+      continue;
+    ++processed;
+    Tracer &tracer = tracers[tn];
+    if (tracer.smokeId >= 0)
+    {
+      smokeTails->updateTracerPos(tracer.smokeId, tracer.pos);
+      if (tracer.delayedDecay)
+      {
+        smokeTails->leaveTracer(tracer.smokeId);
+        tracer.smokeId = -1;
+      }
+      continue;
+    }
+    if (tracer.delayedDecay || tracer.smokeTrailTypeNo < 0)
+      continue;
+
+    const TrailType &trailType = trailTypes[tracer.smokeTrailTypeNo];
+    const float smokeTimeSec = rnd_float(trailType.smokeTimeSecRange.x, trailType.smokeTimeSecRange.y);
+    const float timeToLive = smokeTimeSec > 0.f ? smokeTimeSec : tailLengthMeters / max(tracer.speed, 1.f);
+    Point3 smokeDir = tracer.dir;
+    normalizeDef(smokeDir, Point3(1.f, 0.f, 0.f));
+    tracer.smokeId = smokeTails->createTracer(tracer.segments[0].pos, smokeDir, trailType.smokeRadius, trailType.smokeColor,
+      Color3(0.f, 0.f, 0.f), 0.f, 0.f, timeToLive, Color3(0.f, 0.f, 0.f), 0.f);
+    if (tracer.smokeId >= 0)
+      smokeTails->updateTracerPos(tracer.smokeId, tracer.pos);
+  }
 }
 
 void TracerManager::restoreBuffers()
@@ -661,10 +769,10 @@ void TracerManager::restoreBuffers()
     ++processed;
     Tracer *__restrict t = &tracers[tn];
 
+    t->updateSegments();
     t->appendToTracerBuffer(tn);
-
-    segmentBuffer.append(t->idx * MAX_FX_SEGMENTS,
-      dag::ConstSpan<uint8_t>((uint8_t *)&t->segments, sizeof(GPUFxSegment) * t->segmentsNum), t->segmentsNum);
+    for (int segmentNo = 0; segmentNo < t->segmentsNum; ++segmentNo)
+      t->appendToSegmentBuffer(segmentNo);
   }
 }
 
@@ -674,6 +782,8 @@ void TracerManager::update(float dt)
   G_ASSERT(!preparing);
 
   curTime += dt;
+  if (smokeTails)
+    smokeDt += dt;
   float vibX = fmodf(curTime * headVibratingRate, 1.0f);
   ShaderGlobal::set_float(tracer_beam_timeVarId, 0.5f + 0.5f * (int(curTime * headVibratingRate) % 2 ? 1.0f - vibX : vibX));
 
@@ -1329,6 +1439,12 @@ void TracerManager::renderHeads(const Point3 &view_pos, const TMatrix &view_itm)
 
 void TracerManager::releaseRes(bool release_tracers_data)
 {
+  smokeTails.reset();
+  releaseHeadTrailRes(release_tracers_data);
+}
+
+void TracerManager::releaseHeadTrailRes(bool release_tracers_data)
+{
   if (tailMat)
     tailMat->delRef();
   tailMat = NULL;
@@ -1360,6 +1476,15 @@ void TracerManager::beforeRender(const Frustum *f, const Point3 &view_pos, const
 {
   finishPreparingIfNecessary();
 
+  if (smokeTails)
+  {
+    G_ASSERT(f);
+    updateSmokeTails();
+    smokeTails->update(smokeDt);
+    smokeDt = 0.f;
+    smokeTails->beforeRender(*f, 1.f / 60.f, 0.f);
+  }
+
   if (!numTracers)
   {
     numVisibleTracers = 0;
@@ -1383,6 +1508,14 @@ void TracerManager::renderTrans(const Point3 &view_pos, const TMatrix &view_itm,
 {
   threadpool::wait(this);
   preparing = false;
+
+  if (trails && smokeTails)
+  {
+    TIME_D3D_PROFILE(render_smoke_tails);
+    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
+    smokeTails->renderTrans();
+  }
+
   if (!numVisibleTracers)
     return;
 
@@ -1485,9 +1618,14 @@ space_found_:
                          ? tracerTypes[tracerType].amplifyScale
                          : (amplify == Tracer::INGOING_TRACER ? tracerTypes[tracerType].enemyAmplifyScale : 1.0f);
 
+  const bool smokeTail =
+    smokeTails && !forceNoTrail && trailTypes[trailType].smokeRadius > 0.f && trailTypes[trailType].smokeColor.a > 0.f;
+  const bool spriteTail = !forceNoTrail && !smokeTail;
   Tracer *tracer = new (&tracers[fi], _NEW_INPLACE) Tracer(this, fi, start_pos, speed, tracerType, grnd(),
-    forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeFrom, forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeTo,
+    spriteTail ? trailTypes[trailType].particleHalfSizeFrom : 0.f, spriteTail ? trailTypes[trailType].particleHalfSizeTo : 0.f,
     tailDeviation, color4(trailTypes[trailType].color), caliber, curTime - cur_life_time, amplifyScale, amplify);
+  if (smokeTail)
+    tracer->smokeTrailTypeNo = trailType;
   return tracer;
 }
 

@@ -25,7 +25,6 @@
 #include <gui/dag_imguiUtil.h>
 #include <util/dag_console.h>
 #include <util/dag_convar.h>
-#include <render/denoiser.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <3d/dag_lockSbuffer.h>
@@ -230,7 +229,7 @@ static void gather_rt_memory_overhead(ContextId context_id, RtMemoryOverhead &o)
     for (auto &mesh : object.second.meshes)
     {
       const int64_t proc = bs(mesh.geometry.processedVertexBuffer);
-      const int64_t src = context_id->getSourceBufferSize(mesh.geometry.heapIndex, mesh.geometry.bufferRegion);
+      const int64_t src = context_id->getSourceGeometryRegion(mesh.geometry.heapIndex, mesh.geometry.bufferRegion).size;
       const int64_t ahs = bs(mesh.ahsVertices);
       if (combinedGeom)
         *combinedGeom += proc + src + ahs;
@@ -251,7 +250,7 @@ static void gather_rt_memory_overhead(ContextId context_id, RtMemoryOverhead &o)
     for (auto &mesh : object.second.meshes)
     {
       staticProcGeom += bs(mesh.geometry.processedVertexBuffer);
-      staticSrcGeom += context_id->getSourceBufferSize(mesh.geometry.heapIndex, mesh.geometry.bufferRegion);
+      staticSrcGeom += context_id->getSourceGeometryRegion(mesh.geometry.heapIndex, mesh.geometry.bufferRegion).size;
     }
   }
   ommPending += bs(context_id->ommContext.globalConstantBuffer);
@@ -290,108 +289,61 @@ static void gather_rt_memory_overhead(ContextId context_id, RtMemoryOverhead &o)
   o.add("Dynamic model BLAS", "dyn model", dynModelBlas, note("x%d vb %dM", dynModelCnt, int(dynMeshGeom >> 20)));
 
   // 2) Unique (per-instance) BLAS + their geometry.
-  int64_t skinBlas = 0, skinGeom = 0;
-  int skinCnt = 0, splineCnt = 0, rigenTreeCnt = 0, riExTreeCnt = 0, flagCnt = 0, statTreeCnt = 0;
-  for (auto &uu : context_id->uniqueSkinBuffers)
-    for (auto &u : uu.second.elems)
+  struct BlasTotal
+  {
+    int64_t blas = 0, geom = 0;
+    int count = 0;
+    void add(int64_t blas_bytes, int64_t geom_bytes)
     {
-      skinBlas += as(u.second.blas);
-      skinGeom += u.second.buffer.size;
-      skinCnt++;
+      blas += blas_bytes;
+      geom += geom_bytes;
+      count++;
     }
-  for (auto &uu : context_id->uniqueHeliRotorBuffers)
-    for (auto &u : uu.second)
-    {
-      skinBlas += as(u.second.blas);
-      skinGeom += u.second.buffer.size;
-      skinCnt++;
-    }
-  for (auto &uu : context_id->uniqueDeformedBuffers)
-    for (auto &u : uu.second)
-    {
-      skinBlas += as(u.second.blas);
-      skinGeom += u.second.buffer.size;
-      skinCnt++;
-    }
-  int64_t splineBlas = 0, splineGeom = 0;
+  };
+  auto addUnique = [&](BlasTotal &total, auto &data) { total.add(as(data.blas), data.buffer.size); };
+  auto addInstances = [&](BlasTotal &total, auto &instances) {
+    for (auto &uu : instances)
+      for (auto &u : uu.second.elems)
+        addUnique(total, u.second);
+  };
+  BlasTotal skin, spline, rigenTree, riExTree, flag, statTree;
+  addInstances(skin, context_id->uniqueSkinBuffers);
+  for (auto *buffers : {&context_id->uniqueHeliRotorBuffers, &context_id->uniqueDeformedBuffers})
+    for (auto &uu : *buffers)
+      for (auto &u : uu.second)
+        addUnique(skin, u.second);
   for (auto &u : context_id->uniqueSplinegenBuffers)
+    addUnique(spline, u.second);
+  for (int lod = 0; lod < Context::maxUniqueLods; ++lod)
   {
-    splineBlas += as(u.second.blas);
-    splineGeom += u.second.buffer.size;
-    splineCnt++;
+    addInstances(rigenTree, context_id->uniqueTreeBuffers[lod]);
+    addInstances(riExTree, context_id->uniqueRiExtraTreeBuffers[lod]);
+    addInstances(flag, context_id->uniqueRiExtraFlagBuffers[lod]);
   }
-  int64_t rigenTreeBlas = 0, rigenTreeGeom = 0;
-  for (auto &lod : context_id->uniqueTreeBuffers)
-    for (auto &uu : lod)
-      for (auto &u : uu.second.elems)
-      {
-        rigenTreeBlas += as(u.second.blas);
-        rigenTreeGeom += u.second.buffer.size;
-        rigenTreeCnt++;
-      }
-  int64_t riExTreeBlas = 0, riExTreeGeom = 0;
-  for (auto &lod : context_id->uniqueRiExtraTreeBuffers)
-    for (auto &uu : lod)
-      for (auto &u : uu.second.elems)
-      {
-        riExTreeBlas += as(u.second.blas);
-        riExTreeGeom += u.second.buffer.size;
-        riExTreeCnt++;
-      }
-  int64_t flagBlas = 0, flagGeom = 0;
-  for (auto &lod : context_id->uniqueRiExtraFlagBuffers)
-    for (auto &uu : lod)
-      for (auto &u : uu.second.elems)
-      {
-        flagBlas += as(u.second.blas);
-        flagGeom += u.second.buffer.size;
-        flagCnt++;
-      }
-  int64_t statTreeBlas = 0, statTreeGeom = 0;
-  for (auto &[id, tree] : context_id->stationaryTreeBuffers)
-  {
-    statTreeBlas += as(tree.blas);
-    statTreeGeom += tree.buffer.size;
-    statTreeCnt++;
-  }
-  o.add("Unique BLAS", "skin", skinBlas, note("x%d vb %dM", skinCnt, int(skinGeom >> 20)));
-  o.add("Unique BLAS", "splinegen", splineBlas, note("x%d vb %dM", splineCnt, int(splineGeom >> 20)));
-  o.add("Unique BLAS", "RiGen tree", rigenTreeBlas, note("x%d vb %dM", rigenTreeCnt, int(rigenTreeGeom >> 20)));
-  o.add("Unique BLAS", "RiEx tree", riExTreeBlas, note("x%d vb %dM", riExTreeCnt, int(riExTreeGeom >> 20)));
-  o.add("Unique BLAS", "flag", flagBlas, note("x%d vb %dM", flagCnt, int(flagGeom >> 20)));
-  o.add("Unique BLAS", "stationary tree", statTreeBlas, note("x%d vb %dM", statTreeCnt, int(statTreeGeom >> 20)));
+  for (auto &u : context_id->stationaryTreeBuffers)
+    addUnique(statTree, u.second);
+  o.add("Unique BLAS", "skin", skin.blas, note("x%d vb %dM", skin.count, int(skin.geom >> 20)));
+  o.add("Unique BLAS", "splinegen", spline.blas, note("x%d vb %dM", spline.count, int(spline.geom >> 20)));
+  o.add("Unique BLAS", "RiGen tree", rigenTree.blas, note("x%d vb %dM", rigenTree.count, int(rigenTree.geom >> 20)));
+  o.add("Unique BLAS", "RiEx tree", riExTree.blas, note("x%d vb %dM", riExTree.count, int(riExTree.geom >> 20)));
+  o.add("Unique BLAS", "flag", flag.blas, note("x%d vb %dM", flag.count, int(flag.geom >> 20)));
+  o.add("Unique BLAS", "stationary tree", statTree.blas, note("x%d vb %dM", statTree.count, int(statTree.geom >> 20)));
 
   // 3) Unique BLAS caches (recycled free pool).
-  int64_t skinCache = 0, rigenTreeCache = 0, riExTreeCache = 0, riExFlagCache = 0;
-  int skinCacheCnt = 0, rigenTreeCacheCnt = 0, riExTreeCacheCnt = 0, riExFlagCacheCnt = 0;
-  for (auto &uu : context_id->freeUniqueSkinBLASes)
-    for (auto &pooled : uu.second.blases)
-    {
-      skinCache += as(pooled.blas);
-      skinCacheCnt++;
-    }
-  for (auto &uu : context_id->freeUniqueTreeBLASes)
-    for (auto &pooled : uu.second.blases)
-    {
-      rigenTreeCache += as(pooled.blas);
-      rigenTreeCacheCnt++;
-    }
-  for (auto &uu : context_id->freeUniqueRiExtraTreeBLASes)
-    for (auto &pooled : uu.second.blases)
-    {
-      riExTreeCache += as(pooled.blas);
-      riExTreeCacheCnt++;
-    }
-  for (auto &uu : context_id->freeUniqueRiExtraFlagBLASes)
-    for (auto &pooled : uu.second.blases)
-    {
-      riExFlagCache += as(pooled.blas);
-      riExFlagCacheCnt++;
-    }
-  o.add("Unique BLAS cache", "skin", skinCache, note("x%d", skinCacheCnt));
-  o.add("Unique BLAS cache", "RiGen tree", rigenTreeCache, note("x%d", rigenTreeCacheCnt));
-  o.add("Unique BLAS cache", "RiEx tree", riExTreeCache, note("x%d", riExTreeCacheCnt));
-  o.add("Unique BLAS cache", "flag", riExFlagCache, note("x%d", riExFlagCacheCnt));
+  auto addPool = [&](BlasTotal &total, auto &pool) {
+    for (auto &uu : pool)
+      for (auto &pooled : uu.second.blases)
+        total.add(as(pooled.blas), 0);
+  };
+  BlasTotal skinCache, rigenTreeCache, riExTreeCache, flagCache;
+  addPool(skinCache, context_id->freeUniqueSkinBLASes);
+  addPool(rigenTreeCache, context_id->freeUniqueTreeBLASes);
+  addPool(riExTreeCache, context_id->freeUniqueRiExtraTreeBLASes);
+  addPool(flagCache, context_id->freeUniqueRiExtraFlagBLASes);
+  o.add("Unique BLAS cache", "skin", skinCache.blas, note("x%d", skinCache.count));
+  o.add("Unique BLAS cache", "RiGen tree", rigenTreeCache.blas, note("x%d", rigenTreeCache.count));
+  o.add("Unique BLAS cache", "RiEx tree", riExTreeCache.blas, note("x%d", riExTreeCache.count));
+  o.add("Unique BLAS cache", "flag", flagCache.blas, note("x%d", flagCache.count));
 
   // 4) Landscape BLAS + geometry.
   int64_t terrainBlas = 0, terrainGeom = 0;
@@ -464,7 +416,8 @@ static void gather_rt_memory_overhead(ContextId context_id, RtMemoryOverhead &o)
   o.add("Geometry buffers", "static mesh: AHS verts", staticAhsGeom);
   o.add("Geometry buffers", "tree/flag rendinst mesh", treeFlagMeshGeom);
   o.add("Geometry buffers", "dynamic model mesh", dynMeshGeom);
-  o.add("Geometry buffers", "unique (skin/tree/...)", skinGeom + splineGeom + rigenTreeGeom + riExTreeGeom + flagGeom + statTreeGeom);
+  o.add("Geometry buffers", "unique (skin/tree/...)",
+    skin.geom + spline.geom + rigenTree.geom + riExTree.geom + flag.geom + statTree.geom);
   o.add("Geometry buffers", "landscape", terrainGeom + waterGeom + cableGeom + grassVB + grassIB + smokeVB,
     note("terr %dK grass %d/%dK cbl %d/%dK wtr %d/%dK", int(terrainGeom >> 10), int(grassVB >> 10), int(grassIB >> 10),
       int(cableVB >> 10), int(cableIB >> 10), int(waterVB >> 10), int(waterIB >> 10)));
@@ -664,6 +617,7 @@ inline const char *operator!(bvh::DebugMode mode)
     case bvh::DebugMode::IntersectionCount: return "Intersection count";
     case bvh::DebugMode::Instances: return "Instances";
     case bvh::DebugMode::NaN: return "NaN";
+    case bvh::DebugMode::Emission: return "Emission";
     case bvh::DebugMode::Lod: return "LOD (RI)";
     case bvh::DebugMode::LruCollision: return "LRU collision";
     case bvh::DebugMode::VoxelActivity: return "Voxel activity";
@@ -826,7 +780,7 @@ static void imguiWindow()
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGui::Button("Make capture"))
-      console::command("render.pix_capture_n_frames");
+      console::command("render.capture");
 
     int availableWidth = max(ImGui::GetContentRegionAvail().x * (do_super_sampling ? 2 : 1), 10.0f);
 
@@ -1052,7 +1006,6 @@ void render_debug_context(ContextId context_id, float min_t)
   static int bvh_postx_source = ::get_shader_variable_id("bvh_postfx_source");
   static int bvh_debug_mode = ::get_shader_variable_id("bvh_debug_mode");
   static int bvh_debug_use_atmosphere = ::get_shader_variable_id("bvh_debug_use_atmosphere");
-  static int rtr_shadowVarId = get_shader_variable_id("rtr_shadow", true);
   static int bvh_debug_intersection_count_thresholdVarId = get_shader_variable_id("bvh_debug_intersection_count_threshold", true);
   static int bvh_debug_min_tVarId = get_shader_variable_id("bvh_debug_min_t", true);
   static int bvh_debug_back_viewVarId = get_shader_variable_id("bvh_debug_back_view", true);
@@ -1060,10 +1013,11 @@ void render_debug_context(ContextId context_id, float min_t)
   static int bvh_disable_ahs_with_ommVarId = get_shader_variable_id("bvh_disable_ahs_with_omm", true);
   static int bvh_debug_voxel_activity_active_valueVarId = get_shader_variable_id("bvh_debug_voxel_activity_active_value", true);
 
-  ShaderGlobal::set_texture(bvh_debug_target, debug_mode == DebugMode::Lit ? intermediateDebugTex.getTexId() : debugTex.getTexId());
+  const bool needsTonemap = debug_mode == DebugMode::Lit || debug_mode == DebugMode::Emission;
+
+  ShaderGlobal::set_texture(bvh_debug_target, needsTonemap ? intermediateDebugTex.getTexId() : debugTex.getTexId());
   ShaderGlobal::set_int(bvh_debug_mode, *debug_mode - *DebugMode::Lit);
   ShaderGlobal::set_int(bvh_debug_use_atmosphere, use_atmosphere ? 1 : 0);
-  ShaderGlobal::set_int(rtr_shadowVarId, 1);
   ShaderGlobal::set_float(bvh_debug_intersection_count_thresholdVarId, intersection_count_threshold);
   ShaderGlobal::set_float(bvh_debug_min_tVarId, min_t);
   ShaderGlobal::set_int(bvh_debug_back_viewVarId, show_back_view ? 1 : 0);
@@ -1078,7 +1032,7 @@ void render_debug_context(ContextId context_id, float min_t)
 
   bvh::unbind_resources();
 
-  if (debug_mode == DebugMode::Lit)
+  if (needsTonemap)
   {
     ShaderGlobal::set_texture(bvh_postx_source, intermediateDebugTex.getTexId());
     ShaderGlobal::set_texture(bvh_debug_target, debugTex.getTexId());
@@ -1190,32 +1144,23 @@ void render_rt_mem_overlay(ContextId context_id)
 
 } // namespace bvh
 
-#else // DAGOR_DBGLEVEL > 0
-
-namespace bvh
-{
-void render_rt_mem_overlay(ContextId) {}
-} // namespace bvh
-
-namespace bvh::debug
-{
-void init(ContextId) {}
-void teardown(ContextId) {}
-void render_debug_context(ContextId, float) {}
-void teardown() {}
-} // namespace bvh::debug
-
 #endif // DAGOR_DBGLEVEL > 0
 
 #else
-
-#include <bvh/bvh.h>
 
 namespace bvh
 {
 RtMemoryOverhead get_rt_memory_overhead(ContextId) { return RtMemoryOverhead{}; }
 void log_rt_memory_overhead(ContextId) {}
 void try_log_rt_memory_overhead(ContextId) {}
+} // namespace bvh
+
+#endif
+
+#if DAGOR_DBGLEVEL <= 0
+
+namespace bvh
+{
 void render_rt_mem_overlay(ContextId) {}
 } // namespace bvh
 

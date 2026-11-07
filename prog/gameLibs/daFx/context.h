@@ -82,6 +82,7 @@ struct AsyncCpuCullJob final : public cpujobs::IJob
 struct AsyncCpuDefragJob final : public cpujobs::IJob
 {
   ContextId cid;
+  uint32_t queuePos = 0;
   const char *getJobName(bool &) const override { return DAPROFILER_STRING("AsyncCpuDefragJob"); }
   void doJob() override;
 };

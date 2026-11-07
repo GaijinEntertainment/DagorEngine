@@ -164,7 +164,7 @@ static void post_shutdown_handler()
   DEBUG_CTX("shutdown!");
   shutdown_game(RESTART_INPUT);
   shutdown_game(RESTART_ALL);
-  cpujobs::term(false, 0);
+  cpujobs::term(false);
 
 #if DAGOR_DBGLEVEL > 0
   const DataBlock *debugBlk = dgs_get_settings()->getBlockByNameEx("debug");
@@ -372,7 +372,7 @@ static void dagor_main(int nCmdShow)
   ::dargbox_init_joystick();
   HumanInput::stg_pnt.touchScreen = ::dgs_get_settings()->getBool("touchScreen", false);
   HumanInput::stg_pnt.emuTouchScreenWithMouse = ::dgs_get_settings()->getBool("emuTouchScreenWithMouse", false);
-  HumanInput::stg_pnt.touchpadAsTouch = ::dgs_get_settings()->getBool("touchpadAsTouch", false);
+  HumanInput::stg_pnt.touchPadTouches = ::dgs_get_settings()->getBool("touchPadTouches", true);
 
   ::startup_game(RESTART_ALL);
   shaders_register_console(true);

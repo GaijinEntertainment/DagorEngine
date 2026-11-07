@@ -44,5 +44,6 @@ incDir:t="../../../prog/3rdPartyLibs/nvapi"
     bvh_use_group_water:i=1
     bvh_use_group_camo_net:i=0
     ptgi_use_fx:i=1
+    rtr_has_path_tracing:i=1
   }
 }

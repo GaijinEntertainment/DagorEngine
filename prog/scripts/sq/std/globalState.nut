@@ -5,10 +5,10 @@ from "eventbus" import eventbus_send_foreign, eventbus_subscribe
 from "dagor.debug" import logerr
 from "dagor.memtrace" import is_quirrel_object_larger_than, set_huge_alloc_threshold
 from "dagor.time" import get_time_msec
-from "frp" import this_subscriber_call_may_take_up_to_usec, get_slow_subscriber_threshold_usec
 from "iostream" import blob
 from "types" import String
 
+let packed = require_optional("packed")
 let serialazableClasses = {}.__update(math)
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -60,7 +60,7 @@ eventbus_subscribe(EVT_NEW_DATA, readNewData)
 let usedKeysForPersist = {}
 local uniqueKey = null
 function setUniqueNestKey(key) {
-  if (uniqueKey != null) { //constraint: two UI trees share one VM
+  if (uniqueKey != null) { // two UI trees share one VM
     assert(uniqueKey == key, @() $"setUniqueNestKey({key}) after {uniqueKey}")
     return
   }
@@ -96,11 +96,55 @@ function findNotPlainPath(v, path) {
   return null
 }
 
+// a packed view lives in this VM only: one inside other data goes to nestdb as plain data
+function toPlain(v) {
+  if (packed == null)
+    return v
+  if (packed.is_view(v))
+    return packed.unpack(v)
+  let t = type(v)
+  return t == "table" || t == "array" ? v.map(toPlain) : v
+}
+
 let persistOnHardReloadData = persist("PERSIST_ON_RELOAD_DATA", @() {})
 let _big_datas = persist("_big_datas", @() {})
+let hardPersistWatcheds = {}
 
 const size_threshold_to_store_as_big_data = 100 << 10
+
+function storePlainValue(key, val) {
+  local is_big_data = false
+  local info = ""
+  if (key in _big_datas) {
+    info = "manually set to store as big data"
+    is_big_data = true
+  }
+  else if (is_quirrel_object_larger_than(val, size_threshold_to_store_as_big_data)) {
+    is_big_data = true
+    info = $"store as big data as size is bigger than {size_threshold_to_store_as_big_data}"
+  }
+  if (is_big_data) {
+    println($"store compressed version in hard reload storage for: {key}, {info}")
+  }
+
+  local data
+  if (is_big_data) {
+    data = blob()
+    data.writeobject(val, serialazableClasses)
+  }
+  else {
+    let notPlainPath = isPlainDataCheckOn ? findNotPlainPath(val, key) : null
+    if (notPlainPath != null)
+      logerr($"ERROR: on hard reload storage save: {notPlainPath} is not plain data")
+    data = val
+  }
+
+  ndbWrite(mkPersistOnHardReloadKey(key), {data, is_big_data = !!is_big_data })
+}
+
 on_module_unload(function(is_closing) {
+  foreach (key, watched in hardPersistWatcheds)
+    persistOnHardReloadData[key] <- watched.get()
   if (isExiting) {
     print("App exiting, not writing PersistentOnReload data")
   }
@@ -109,33 +153,11 @@ on_module_unload(function(is_closing) {
     foreach (key, val in persistOnHardReloadData) {
       let prevAllocThreshold = set_huge_alloc_threshold(66560 << 10)
       try {
-        local is_big_data = false
-        local info = ""
-        if (key in _big_datas) {
-          info = "manually set to store as big data"
-          is_big_data = true
-        }
-        else if (is_quirrel_object_larger_than(val, size_threshold_to_store_as_big_data)) {
-          is_big_data = true
-          info = $"store as big data as size is bigger than {size_threshold_to_store_as_big_data}"
-        }
-        if (is_big_data) {
-          println($"store compressed version in hard reload storage for: {key}, {info}")
-        }
-
-        local data
-        if (is_big_data) {
-          data = blob()
-          data.writeobject(val, serialazableClasses)
-        }
-        else {
-          let notPlainPath = isPlainDataCheckOn ? findNotPlainPath(val, key) : null
-          if (notPlainPath != null)
-            logerr($"ERROR: on hard reload storage save: {notPlainPath} is not plain data")
-          data = val
-        }
-
-        ndbWrite(mkPersistOnHardReloadKey(key), {data, is_big_data = !!is_big_data })
+        // the buffer stays in the process under a token: the new VM makes a view of it with no tables in between
+        if (packed?.is_view(val) ?? false)
+          ndbWrite(mkPersistOnHardReloadKey(key), { data = packed.save(val), is_packed = true })
+        else
+          storePlainValue(key, toPlain(val))
       }
       catch(e){
         println($"ERROR: on hard reload storage {key} = {type(val)}")
@@ -172,8 +194,10 @@ function loadHardPersistValue(key, def, big_immutable_data) {
     let prevAllocThreshold = set_huge_alloc_threshold(66560 << 10)
     let stored = ndbRead(ndbKey)
     try {
-      let {is_big_data=null, data=null} = stored
-      if (is_big_data) {
+      let {is_big_data=null, data=null, is_packed=false} = stored
+      if (is_packed)
+        val = packed?.load(data)
+      else if (is_big_data) {
         val = data?.readobject(serialazableClasses)
         if (big_immutable_data) {
           let t3 = get_time_msec()
@@ -198,13 +222,7 @@ function loadHardPersistValue(key, def, big_immutable_data) {
 
 function hardPersistWatched(key, def=null, big_immutable_data = null) {
   let res = Watched(loadHardPersistValue(key, def, big_immutable_data))
-  if (!big_immutable_data)
-    res.subscribe(@(v) persistOnHardReloadData[key] <- v)
-  else
-    res.subscribe(function(v) {
-      this_subscriber_call_may_take_up_to_usec(10 * get_slow_subscriber_threshold_usec())
-      persistOnHardReloadData[key] <- v
-    })
+  hardPersistWatcheds[key] <- res
   return res
 }
 

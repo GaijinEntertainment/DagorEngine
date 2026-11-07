@@ -1,3 +1,3 @@
-get_function_decl_string(add) = pure (table|userdata|instance|class|null).add(a, b: int): any
+get_function_decl_string(add) = (table|userdata|instance|class|null).add(a, b: int): any
 get_function_decl_string([].insert) = array.insert(arg1: number, arg2): any
 get_function_decl_string("not a function") throws: parameter 1 of 'get_function_decl_string' has an invalid type 'string' ; expected: 'function|function'

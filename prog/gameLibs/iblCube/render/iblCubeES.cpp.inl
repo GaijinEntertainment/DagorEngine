@@ -121,7 +121,7 @@ void IBLCubeRegistry::release(const char *source)
 {
   if (!source || !*source)
     return;
-  auto it = atlases.find(source);
+  auto it = atlases.find_as(source, eastl::less<>());
   if (it != atlases.end() && --it->second.refCount <= 0)
     atlases.erase(it);
 }
@@ -138,7 +138,7 @@ bool IBLCubeRegistry::isBaked(const char *source) const
 {
   if (!source || !*source)
     return false;
-  auto it = atlases.find(source);
+  auto it = atlases.find_as(source, eastl::less<>());
   return it != atlases.end() && it->second.baked;
 }
 
@@ -146,7 +146,7 @@ void IBLCubeRegistry::markBaked(const char *source)
 {
   if (!source || !*source)
     return;
-  auto it = atlases.find(source);
+  auto it = atlases.find_as(source, eastl::less<>());
   if (it != atlases.end())
     it->second.baked = true;
 }

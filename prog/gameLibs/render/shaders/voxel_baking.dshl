@@ -71,6 +71,14 @@ macro USE_VOXEL_BAKING()
         return o;
       }
 
+      VOXEL_BAKER_OUTPUT init_baker_output(float depth, VOXEL_DECAL_OUTPUT data)
+      {
+        VOXEL_BAKER_OUTPUT o;
+        o.data = data;
+        o.depth = depth;
+        return o;
+      }
+
       struct VoxelMaterial
       {
         half smoothness;

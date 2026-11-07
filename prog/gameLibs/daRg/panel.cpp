@@ -216,21 +216,23 @@ bool Panel::isInThisPass(darg_panel_renderer::RenderPass render_pass) const
 }
 
 
-void Panel::setCursorState(int hand, bool enabled, Point2 pos)
+bool Panel::setCursorState(int hand, bool enabled, Point2 pos)
 {
   if (hand < 0 || hand >= MAX_POINTERS)
-    G_ASSERTF(0, "Invalid hand %d", hand);
-  else
   {
-    PanelPointer &ptr = pointers[hand];
-    bool needHoverUpdate = (ptr.isPresent != enabled) || (enabled && pos != ptr.pos);
-    ptr.isPresent = enabled;
-    ptr.pos = pos;
-    if (!enabled)
-      ptr.cursor = nullptr; // the cursor queries must track what is drawn, not the last render pass
-    if (needHoverUpdate)
-      updateHover();
+    G_ASSERTF(0, "Invalid hand %d", hand);
+    return false;
   }
+
+  PanelPointer &ptr = pointers[hand];
+  bool needHoverUpdate = (ptr.isPresent != enabled) || (enabled && pos != ptr.pos);
+  ptr.isPresent = enabled;
+  ptr.pos = pos;
+  if (!enabled)
+    ptr.cursor = nullptr; // the cursor queries must track what is drawn, not the last render pass
+  if (needHoverUpdate)
+    updateHover();
+  return needHoverUpdate;
 }
 
 

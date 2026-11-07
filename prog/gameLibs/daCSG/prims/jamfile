@@ -1,0 +1,27 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daCSG/prims ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+include $(Root)/prog/gameLibs/daCSG/daCSG-options.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/daCSG/prims.lib ;
+
+Sources =
+  box.cpp
+  convex.cpp
+  cylinder.cpp
+  import.cpp
+  profile.cpp
+  quadrics.cpp
+  tessellate.cpp
+  torus.cpp
+;
+
+UseProgLibs +=
+  gameLibs/daCSG/mesh
+  gameLibs/daCSG/graph
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

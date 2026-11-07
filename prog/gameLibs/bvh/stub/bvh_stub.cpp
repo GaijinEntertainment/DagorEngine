@@ -44,13 +44,21 @@ void set_ri_dist_mul(float) {}
 void override_out_of_camera_ri_dist_mul(float) {}
 
 void update_instances(ContextId, const Point3 &, const Point3 &, const Point3 &, const TMatrix &, const TMatrix4 &, const Frustum &,
-  const Frustum &, dynrend::ContextId *, dynrend::ContextId *, RiGenVisibility *, dag::Vector<DynamicRenderableSceneInstance *> &&,
+  const Frustum &, dynrend::ContextId *, dynrend::ContextId *, RiGenVisibility *, dag::ConstSpan<DynamicRenderableSceneInstance *>,
   threadpool::JobPriority)
 {}
 
-void update_instances(ContextId, const Point3 &, const Point3 &, const TMatrix &, const TMatrix4 &, const Frustum &, const Frustum &,
-  const dag::Vector<RiGenVisibility *> &, dynrend::BVHIterateCallback, threadpool::JobPriority)
+void update_ri_instances(ContextId, const Point3 &, const Point3 &, const Point3 &, const Frustum &, const Frustum &,
+  threadpool::JobPriority)
 {}
+
+void start_ri_gen_instances_update(ContextId, dag::ConstSpan<RiGenVisibility *>, const Point3 &, const Point3 &, const Frustum &,
+  threadpool::JobPriority)
+{}
+
+void update_dyn_instances(ContextId, const Point3 &, const Point3 &, const TMatrix &, const TMatrix4 &, dynrend::BVHIterateCallback) {}
+
+void wait_ri_instances_jobs(ContextId) {}
 
 void wait_dynamic_instances_jobs() {}
 
@@ -126,7 +134,9 @@ void generate_gpu_grass_instances(ContextId, bool) {}
 
 void tell_active_dynamic_resources(ContextId, const eastl::vector_set<const DynamicRenderableSceneLodsResource *> &) {}
 
-void gather_splinegen_instances(ContextId, Sbuffer *, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &, uint32_t, uint32_t &) {}
+void gather_splinegen_instances(ContextId, Sbuffer *, const MeshInfo &, dag::ConstSpan<uint32_t>, dag::ConstSpan<uint32_t>, uint32_t &)
+{}
+void remove_spline_gen_pending_object_add(ContextId, uint32_t) {}
 void remove_spline_gen_instances(ContextId) {}
 
 void connect_smoke_tracers(ContextId, smoke_tracers_connect_callback) {}
@@ -134,18 +144,6 @@ void connect_smoke_tracers(ContextId, smoke_tracers_connect_callback) {}
 void update_smoke_tracer_instances(SmokeTracerManager *) {}
 
 void ensure_particle_buffer_capacity(int, int) {}
-
-bool connect_lru_collision(ContextId, LRURendinstCollision *, lru_collision_gather_fn, const LruCollisionSettings &)
-{
-  logerr("[BVH] connect_lru_collision: bvh is compiled out (BVHSupport = no)");
-  return false;
-}
-
-void invalidate_lru_collision(ContextId) {}
-
-void set_lru_collision_range(ContextId, float, float) {}
-
-LruCollisionStats get_lru_collision_stats(ContextId) { return {}; }
 
 void set_voxel_activity(ContextId, const VoxelActivitySettings &)
 {

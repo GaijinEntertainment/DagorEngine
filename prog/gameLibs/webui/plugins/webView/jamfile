@@ -21,6 +21,7 @@ actions together quietly make_serve_files
 }
 rule ServeFilesDeps dest_cpp : target
 {
+  Depends $(dest_cpp) : $(WebViewLocation)/$($(target)) ;
   for f in $($(target)) {
     local o_split = [ MATCH "([^\.\-]*)[\.\-]([^\.\-]*)?[\.\-]?([^\.\-]*)?[\.\-]?([^\.\-]*)?[\.\-]?([^\.\-]*)?" : $(f:D=) ] ;
     local o = ;

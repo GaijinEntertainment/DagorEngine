@@ -39,7 +39,7 @@ public:
     TIME_D3D_PROFILE(amd_anti_lag_present);
     VkAntiLagPresentationInfoAMD presentData{
       VK_STRUCTURE_TYPE_ANTI_LAG_PRESENTATION_INFO_AMD, nullptr, VK_ANTI_LAG_STAGE_PRESENT_AMD, frame_id};
-    VkAntiLagDataAMD updData{VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD, nullptr, VK_ANTI_LAG_MODE_ON_AMD, maxFps, &presentData};
+    VkAntiLagDataAMD updData{VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD, nullptr, getVkMode(), maxFps, &presentData};
     Globals::VK::dev.vkAntiLagUpdateAMD(Globals::VK::dev.get(), &updData);
 #else
     G_UNUSED(frame_id);
@@ -51,7 +51,7 @@ public:
     if (modes.size() == 1)
       return;
 
-    maxFps = frame_limit_us ? round(1.0f / frame_limit_us) : 0;
+    maxFps = frame_limit_us ? round(1e6f / frame_limit_us) : 0;
 
     switch (mode)
     {
@@ -63,6 +63,7 @@ public:
 
   void sleep(uint32_t frame_id) override
   {
+    // A call with VK_ANTI_LAG_MODE_OFF_AMD is the only way to turn anti-lag off in the driver
     if (modes.size() == 1)
       return;
 
@@ -70,7 +71,7 @@ public:
     TIME_D3D_PROFILE(amd_anti_lag_input);
     VkAntiLagPresentationInfoAMD presentData{
       VK_STRUCTURE_TYPE_ANTI_LAG_PRESENTATION_INFO_AMD, nullptr, VK_ANTI_LAG_STAGE_INPUT_AMD, frame_id};
-    VkAntiLagDataAMD updData{VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD, nullptr, VK_ANTI_LAG_MODE_ON_AMD, maxFps, &presentData};
+    VkAntiLagDataAMD updData{VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD, nullptr, getVkMode(), maxFps, &presentData};
     Globals::VK::dev.vkAntiLagUpdateAMD(Globals::VK::dev.get(), &updData);
 #else
     G_UNUSED(frame_id);
@@ -95,6 +96,10 @@ public:
   bool isVsyncAllowed() const override { return true; }
 
 private:
+#if VK_AMD_anti_lag
+  VkAntiLagModeAMD getVkMode() const { return isActive ? VK_ANTI_LAG_MODE_ON_AMD : VK_ANTI_LAG_MODE_OFF_AMD; }
+#endif
+
   dag::Vector<Mode> modes = {Mode::Off};
   bool isActive = false;
   uint32_t maxFps = 0;

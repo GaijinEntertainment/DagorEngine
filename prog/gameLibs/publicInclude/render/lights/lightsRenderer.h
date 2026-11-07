@@ -34,6 +34,14 @@ struct LightsRenderer
     const SpotLightsCB *clustered = nullptr;
   };
 
+  struct IndexRanges
+  {
+    uint32_t omniIndexCount = 0;
+    uint32_t omniStartIndex = 0;
+    uint32_t spotIndexCount = 0;
+    uint32_t spotStartIndex = 0;
+  };
+
   LightsRenderer(const LightsResourcesManager *lights_res_mgr);
   ~LightsRenderer();
 
@@ -42,24 +50,15 @@ struct LightsRenderer
   void beforeResetDevice();
   void afterResetDevice();
 
-  void copyInstanceCountsToIndirectArgs(const OmniLightsCBs &omni_lights_cb, const SpotLightsCBs &spot_lights_cb);
+  IndexRanges getIndexRanges() const;
 
-  void renderFarOmniLights(const OmniLightsCB &far_omni_lights_cb);
-  void renderFarSpotLights(const SpotLightsCB &far_spot_lights_cb);
-  void renderDebugOmniLights(const OmniLightsCBs &omni_lights_cb);
-  void renderDebugSpotLights(const SpotLightsCBs &spot_lights_cb);
+  void renderFarOmniLights(const OmniLightsCB &far_omni_lights_cb, Sbuffer *indirect_args);
+  void renderFarSpotLights(const SpotLightsCB &far_spot_lights_cb, Sbuffer *indirect_args);
+  void renderDebugOmniLights(const OmniLightsCBs &omni_lights_cb, Sbuffer *indirect_args);
+  void renderDebugSpotLights(const SpotLightsCBs &spot_lights_cb, Sbuffer *indirect_args);
 
 private:
-  enum IndirectIndices : size_t
-  {
-    OMNI_CLUSTERED = 0,
-    OMNI_FAR = 1,
-    SPOT_CLUSTERED = 2,
-    SPOT_FAR = 3,
-    COUNT = 4
-  };
-
-  void renderPrims(ShaderElement *elem, int buffer_var_id, D3DRESID lights_cb_id, IndirectIndices argsIndex);
+  void renderPrims(ShaderElement *elem, int buffer_var_id, D3DRESID lights_cb_id, Sbuffer *indirect_args, uint32_t args_byte_offset);
 
   void initConeSphere();
   void closeConeSphere();
@@ -82,8 +81,6 @@ private:
   uint32_t v_count = 0, f_count = 0;
   UniqueBuf coneSphereVb;
   UniqueBuf coneSphereIb;
-
-  UniqueBuf indirectArgsBuf;
 
   int omniLightsVarId = -1;
   int spotLightsVarId = -1;

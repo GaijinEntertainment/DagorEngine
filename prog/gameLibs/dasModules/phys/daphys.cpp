@@ -13,6 +13,7 @@ struct ResolveContactParamsAnnotation : das::ManagedStructureAnnotation<daphys::
     addField<DAS_BIND_MANAGED_FIELD(bounce)>("bounce");
     addField<DAS_BIND_MANAGED_FIELD(minSpeedForBounce)>("minSpeedForBounce");
     addField<DAS_BIND_MANAGED_FIELD(energyConservation)>("energyConservation");
+    addField<DAS_BIND_MANAGED_FIELD(useFutureContacts)>("useFutureContacts");
   }
 };
 

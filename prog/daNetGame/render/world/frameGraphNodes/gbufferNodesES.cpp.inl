@@ -14,6 +14,7 @@
 #include <EASTL/fixed_string.h>
 #include <math/dag_Point3.h>
 #include <render/daFrameGraph/singleShaders.h>
+#include <render/compressedRtOverrideFlag.h>
 
 #include <daECS/core/entityManager.h>
 
@@ -23,6 +24,7 @@
 #include <render/antiAliasing_legacy.h>
 #include <render/lights/clusteredLights.h>
 #include <render/world/bvh.h>
+#include <render/denoiser/denoiser_api.h>
 #include <render/world/shadowsManager.h>
 #include <render/world/wrDispatcher.h>
 #include <render/world/depthBounds.h>
@@ -32,7 +34,6 @@ CONSOLE_FLOAT_VAL_MINMAX("render", thin_scattering_start, 32.0f, 0.f, 1024);
 extern ConVarT<bool, false> volfog_enabled;
 extern ConVarT<bool, false> dynamic_lights;
 extern ConVarT<bool, false> process_reactive_gbuffer_data;
-extern ConVarT<int, true> gi_quality;
 
 extern uint32_t get_gi_history_frames();
 
@@ -58,7 +59,7 @@ dafg::NodeHandle makePrepareGbufferNode()
     const auto gbufResolution = registry.getResolution<2>("main_view");
 
     // Weird names are used here for simpler integration with "opaque/closeups"
-    create_gbuffer_targets(registry, "gbuf_%d_done", WRDispatcher::needMotionVectors());
+    create_gbuffer_targets(registry, "gbuf_%d_done", WRDispatcher::needMotionVectors(), true, COMPRESSED_RT_OVERRIDE_FLAG);
 
     registry.requestState().setFrameBlock("global_frame");
 
@@ -89,7 +90,8 @@ dafg::NodeHandle makeReactiveMaskFillNode(bool process_gbuffer_data)
 {
   if (process_gbuffer_data)
     return dafg::register_node("reactive_mask_fill", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      registry.createTexture2d("reactive_mask", {TEXFMT_R8 | TEXCF_RTARGET, registry.getResolution<2>("main_view")});
+      registry.createTexture2d("reactive_mask",
+        {TEXFMT_R8 | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view")});
 
       auto ns = registry.root() / "opaque" / "decorations";
       registry.requestRenderPass().color({"reactive_mask"});
@@ -99,7 +101,9 @@ dafg::NodeHandle makeReactiveMaskFillNode(bool process_gbuffer_data)
     });
   else
     return dafg::register_node("reactive_mask_clear", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      registry.createTexture2d("reactive_mask", {TEXFMT_R8 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+      registry
+        .createTexture2d("reactive_mask",
+          {TEXFMT_R8 | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view")})
         .clear(make_clear_value(0.f, 0));
     });
 }
@@ -153,14 +157,14 @@ eastl::array<dafg::NodeHandle, 2> makeDeferredLightNode(bool reprojectGI)
   auto perCameraResNode = dafg::register_node("deferred_light_per_cam_res_node", DAFG_PP_NODE_SRC,
     [reprojectGI, gi_fmt, giHistory](dafg::Registry registry) {
       registry.create("current_specular")
-        .texture({gi_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view"), 1})
+        .texture({gi_fmt | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view"), 1})
         .withHistory(giHistory)
         .useAs(dafg::Usage::COLOR_ATTACHMENT)
         .atStage(dafg::Stage::PS)
         .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
       registry.create("current_ambient")
-        .texture({gi_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view"), 1})
+        .texture({gi_fmt | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view"), 1})
         .withHistory(giHistory)
         .useAs(dafg::Usage::COLOR_ATTACHMENT)
         .atStage(dafg::Stage::PS)
@@ -279,10 +283,11 @@ static void bindResolvePassResources(dafg::Registry registry)
   use_volfog(registry, dafg::Stage::PS_OR_CS);
   registry.readTexture("ssao_tex").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("ssao_tex").optional();
   registry.bindBlob("ssao_sampler", "ssao_tex_samplerstate").optional();
-  registry.readBlob("rtr_token").optional();
-  registry.readTexture("half_selected_depth_rtr").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("half_selected_depth_rtr").optional();
-  registry.readBlob("rtao_token").optional();
-  registry.readBlob("ptgi_token").optional();
+  // the RT outputs come through bindless, read without a feature check: an RT toggle re-registers only the RT nodes
+  denoiser::read_reflection_output(registry);
+  denoiser::read_selected_depth(registry, "half_selected_depth_rtr");
+  denoiser::read_ao_output(registry);
+  denoiser::read_gi_output(registry);
   // for SSAO&SSR
   registry.read("upscale_sampling_tex").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("upscale_sampling_tex").optional();
 }
@@ -553,7 +558,7 @@ static dafg::NodeHandle makeRenderOtherLightsNode()
     return [enabledDepthBoundsId = shaders::overrides::create(state), thermalVisionHndl, cameraHndl](
              const dafg::multiplexing::Index &multiplexing_index) {
       ClusteredLights &lights = WRDispatcher::getClusteredLights();
-      if (thermalVisionHndl.get() || !dynamic_lights.get() || !lights.hasDeferredLights())
+      if (thermalVisionHndl.get() || !dynamic_lights.get())
         return;
 
       camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cameraHndl.ref(), camera_in_camera::USE_STENCIL};

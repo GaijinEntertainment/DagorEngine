@@ -37,6 +37,7 @@ struct WindowCreationOptions
 KRNLIMP bool init();
 KRNLIMP bool is_wayland();
 KRNLIMP bool is_x11();
+KRNLIMP void init_stub();
 KRNLIMP void shutdown();
 
 KRNLIMP bool change_gamma(float value);
@@ -58,7 +59,7 @@ KRNLIMP void *get_main_window_ptr_handle();
 KRNLIMP bool is_main_window(void *wnd);
 KRNLIMP void destroy_main_window();
 
-KRNLIMP bool init_window(const char *title, int winWidth, int winHeight, const WindowCreationOptions &options);
+KRNLIMP bool init_window(const char *title, int winWidth, int winHeight, const linux_GUI::WindowCreationOptions &options);
 KRNLIMP void get_window_position(void *w, int &cx, int &cy);
 
 // Get the left top position of the visible frame in absolute, screen coordinates.
@@ -75,7 +76,7 @@ KRNLIMP void set_fullscreen_mode(bool enable);
 // Returns with the full, unclipped size of the client area.
 KRNLIMP bool get_window_client_size(void *w, int &width, int &height);
 
-KRNLIMP bool get_window_screen_rect(void *w, RECT *rect, RECT *rect_unclipped);
+KRNLIMP bool get_window_screen_rect(void *w, linux_GUI::RECT *rect, linux_GUI::RECT *rect_unclipped);
 
 KRNLIMP void process_messages();
 

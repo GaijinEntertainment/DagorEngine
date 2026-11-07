@@ -372,7 +372,7 @@ public:
   void showMessageAt() override;
   using GenericEditorAppWindow::renderInTex;
 
-  int getToolbarScalePercent() const { return toolbarScalePercent; }
+  int getToolbarScalePercent() const override { return toolbarScalePercent; }
   void setToolbarScalePercent(int scale_percent);
 
 protected:

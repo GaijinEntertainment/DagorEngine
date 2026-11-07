@@ -429,6 +429,13 @@ inline void occlusion_gpu__set_blob_active_range(const SoundOcclusionBlob &sound
   sndsys::occlusion_gpu::set_blob_active_range(sound_occlusion_blob.handle, active_radius);
 }
 
+inline void occlusion_gpu__set_blob_detour_hint(const SoundOcclusionBlob &sound_occlusion_blob, float delta_m, bool valid,
+  uint64_t measurement_sequence, float measurement_age_seconds)
+{
+  sndsys::occlusion_gpu::set_blob_detour_hint(sound_occlusion_blob.handle, delta_m, valid, measurement_sequence,
+    measurement_age_seconds);
+}
+
 inline void occlusion_gpu__suspend_backend(bool suspend) { sndsys::occlusion_gpu::suspend_backend(suspend); }
 
 // Fills out[] with FFT spectrum bar heights in [0..1]. Resize before calling.

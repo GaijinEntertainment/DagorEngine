@@ -22,12 +22,10 @@ static const char *in_frustum_common_light_shadows_buffer_name(LightBufferSlot s
   return slot != LightBufferSlot::Main ? "common_lights_shadows_secondary" : "common_lights_shadows";
 }
 
-static const char *out_of_frustum_common_light_shadows_buffer_name = "out_of_frustum_common_lights_shadow_data";
 static const char *ssss_shadow_desc_buffer_name = "spot_lights_ssss_shadow_desc";
 
 #define DYNAMIC_LIGHT_SHADOWS_GLOBAL_VARS_LIST \
-  VAR(scene_omni_managed_lights)               \
-  VAR(scene_spot_managed_lights)               \
+  VAR(scene_managed_lights)                    \
   VAR(visible_lights_data_buf)                 \
   VAR(visible_lights_counts_buf)               \
   VAR(dynamic_lights_shadows_data_buf)         \
@@ -115,9 +113,7 @@ static void write_shadow_slot(const ShadowSystem *shadow_system, uint16_t shadow
 
 void DynamicLightShadows::init(DynLightsFeatures requested_features)
 {
-  shadowDataBufferInitialized = false;
-  shadowDataBuffer.close();
-  shadowsTransitBuffer.close();
+  close();
   gatherCS = static_cast<bool>(requested_features & DynLightsFeatures::GpuLightShadowsPersistentStorage)
                ? ComputeShader("dynamic_lights_shadows_gather", true)
                : ComputeShader();
@@ -175,8 +171,6 @@ void DynamicLightShadows::close()
   spotLightSsssShadowDescBuffer.close();
   for (auto &cb : commonLightShadowsBufferCB)
     cb.close();
-  outOfFrustumCommonLightShadowsCB.close();
-  outOfFrustumCommonLightShadowsAreEmpty = false;
 }
 
 void DynamicLightShadows::setShadowSystem(ShadowSystem *shadow_system)
@@ -190,28 +184,13 @@ void DynamicLightShadows::resetShadowVolumeUpdateFlag(uint16_t shadow_id) { dyna
 
 void DynamicLightShadows::resetShadowVolumeUpdateFlags() { dynamicLightsShadowsVolumeSet.reset(); }
 
-bool DynamicLightShadows::lazyInitCommonLightShadowsCB(CommonLightShadowsCBType &cb, const char *buffer_name) const
-{
-  if (cb.getBuf())
-    return false;
-  const Tab<uint16_t> noLights;
-  updateCommonLightShadowsConstBufferCPU(cb, buffer_name, noLights, noLights, true);
-  return true;
-}
-
 const DynamicLightShadows::CommonLightShadowsCBType &DynamicLightShadows::getInFrustumCommonLightShadowsCB(LightBufferSlot slot) const
 {
   const LightBufferSlot bufferSlot = isGpu() ? LightBufferSlot::Main : slot;
   auto &cb = commonLightShadowsBufferCB[size_t(bufferSlot)];
-  lazyInitCommonLightShadowsCB(cb, in_frustum_common_light_shadows_buffer_name(bufferSlot));
+  if (!cb.getBuf())
+    updateCommonLightShadowsConstBufferCPU(cb, in_frustum_common_light_shadows_buffer_name(bufferSlot), {}, {});
   return cb;
-}
-
-const DynamicLightShadows::CommonLightShadowsCBType &DynamicLightShadows::getOutOfFrustumCommonLightShadowsCB() const
-{
-  if (lazyInitCommonLightShadowsCB(outOfFrustumCommonLightShadowsCB, out_of_frustum_common_light_shadows_buffer_name))
-    outOfFrustumCommonLightShadowsAreEmpty = true;
-  return outOfFrustumCommonLightShadowsCB;
 }
 
 void DynamicLightShadows::setLightShadowVolume(BaseLightsManager *lights_manager, int light_id)
@@ -411,8 +390,7 @@ void DynamicLightShadows::updateVisibleLightShadowBuffersGPU(Sbuffer *visible_li
   Sbuffer *transitBuf = shadowsTransitBuffer.getBuf();
   Sbuffer *ssssBuf = spotLightSsssShadowDescBuffer.getBuf();
 
-  scene_omni_managed_lightsVarId.set_buffer(omniLightsManager->getSceneManagedLightsBuffer());
-  scene_spot_managed_lightsVarId.set_buffer(spotLightsManager->getSceneManagedLightsBuffer());
+  scene_managed_lightsVarId.set_buffer(omniLightsManager->getSharedStorage().getSceneManagedLightsBuffer());
   visible_lights_data_bufVarId.set_buffer(visible_lights_data_buf);
   visible_lights_counts_bufVarId.set_buffer(visible_lights_counts_buf);
   dynamic_lights_shadows_data_bufVarId.set_buffer(shadowDataBuffer.getBuf());
@@ -422,8 +400,7 @@ void DynamicLightShadows::updateVisibleLightShadowBuffersGPU(Sbuffer *visible_li
 
   gatherCS.dispatchThreads(ssssBuf ? DYNAMIC_LIGHTS_SHADOWS_GATHER_THREADS_COUNT : COMMON_LIGHTS_SHADOWS_POINT4_FULL_SIZE, 1, 1);
 
-  scene_omni_managed_lightsVarId.set_buffer(nullptr);
-  scene_spot_managed_lightsVarId.set_buffer(nullptr);
+  scene_managed_lightsVarId.set_buffer(nullptr);
   visible_lights_data_bufVarId.set_buffer(nullptr);
   visible_lights_counts_bufVarId.set_buffer(nullptr);
   dynamic_lights_shadows_data_bufVarId.set_buffer(nullptr);
@@ -458,8 +435,7 @@ void DynamicLightShadows::fillLightShadowData(LightsManagerT *lights_manager, Sh
 }
 
 void DynamicLightShadows::updateCommonLightShadowsConstBufferCPU(CommonLightShadowsCBType &shadow_command_buffer,
-  const char *buffer_name, const Tab<uint16_t> &visible_spot_light_ids, const Tab<uint16_t> &visible_omni_light_ids,
-  bool always_write_header) const
+  const char *buffer_name, const Tab<uint16_t> &visible_spot_light_ids, const Tab<uint16_t> &visible_omni_light_ids) const
 {
   const uint32_t commonShadowDataSize = COMMON_LIGHTS_SHADOWS_POINT4_HEADER_SIZE +
                                         visible_spot_light_ids.size() * SPOT_LIGHT_SHADOW_DATA_POINT4_STRIDE +
@@ -468,13 +444,6 @@ void DynamicLightShadows::updateCommonLightShadowsConstBufferCPU(CommonLightShad
   // FIXME: (workaround) buffer is persistent as it referenced by volume lights when data is not updated in clustered lights
   shadow_command_buffer.reallocate(commonShadowDataSize, COMMON_LIGHTS_SHADOWS_POINT4_FULL_SIZE, lightsResMgr->getResName(buffer_name),
     BaseReallocatableLightsConstBuffer::Flags::DefaultPersistent);
-
-  const bool hasLights = !visible_spot_light_ids.empty() || !visible_omni_light_ids.empty();
-  if (!hasLights && !always_write_header)
-  {
-    shadow_command_buffer.update(nullptr, 0);
-    return;
-  }
 
   // Per spot: 4 float4 tex matrix rows + 1 float4 atlas-UV bounds (rectMin.xy, rectMax.xy).
   CommonLightShadowsDataType commonShadowData;
@@ -490,33 +459,6 @@ void DynamicLightShadows::updateCommonLightShadowsConstBufferCPU(CommonLightShad
   shadow_command_buffer.update(commonShadowData.data(), data_size(commonShadowData));
 }
 
-void DynamicLightShadows::updateOutOfFrustumCommonLightShadowsCB(const Tab<uint16_t> &visible_spot_light_ids,
-  const Tab<uint16_t> &visible_omni_light_ids)
-{
-  const bool hasLights = !visible_spot_light_ids.empty() || !visible_omni_light_ids.empty();
-  if (hasLights || !outOfFrustumCommonLightShadowsAreEmpty)
-    updateCommonLightShadowsConstBufferCPU(outOfFrustumCommonLightShadowsCB, out_of_frustum_common_light_shadows_buffer_name,
-      visible_spot_light_ids, visible_omni_light_ids, false);
-  outOfFrustumCommonLightShadowsAreEmpty = !hasLights;
-}
-
-void DynamicLightShadows::setEmptyOutOfFrustumCommonLightShadowsCB()
-{
-  outOfFrustumCommonLightShadowsCB.reallocate(COMMON_LIGHTS_SHADOWS_POINT4_HEADER_SIZE, COMMON_LIGHTS_SHADOWS_POINT4_FULL_SIZE,
-    lightsResMgr->getResName(out_of_frustum_common_light_shadows_buffer_name),
-    BaseReallocatableLightsConstBuffer::Flags::DefaultPersistent);
-  if (!outOfFrustumCommonLightShadowsAreEmpty)
-    outOfFrustumCommonLightShadowsCB.update(nullptr, 0);
-  outOfFrustumCommonLightShadowsAreEmpty = true;
-}
-
-void DynamicLightShadows::afterResetDevice()
-{
-  shadowDataBufferInitialized = false;
-  if (outOfFrustumCommonLightShadowsAreEmpty)
-    outOfFrustumCommonLightShadowsCB.update(nullptr, 0);
-}
-
 void DynamicLightShadows::updateVisibleLightShadowBuffersCPU(LightBufferSlot current_buffer_slot,
   const Tab<uint16_t> &visible_spot_light_ids, const Tab<uint16_t> &visible_omni_light_ids)
 {
@@ -524,7 +466,7 @@ void DynamicLightShadows::updateVisibleLightShadowBuffersCPU(LightBufferSlot cur
 
   auto &commonShadowsCB = commonLightShadowsBufferCB[size_t(current_buffer_slot)];
   updateCommonLightShadowsConstBufferCPU(commonShadowsCB, in_frustum_common_light_shadows_buffer_name(current_buffer_slot),
-    visible_spot_light_ids, visible_omni_light_ids, true);
+    visible_spot_light_ids, visible_omni_light_ids);
 
   // Secondary views keep the main view SSSS data.
   const int numSpotShadows = min<int>(visible_spot_light_ids.size(), MAX_CLUSTERED_SPOT_LIGHTS);

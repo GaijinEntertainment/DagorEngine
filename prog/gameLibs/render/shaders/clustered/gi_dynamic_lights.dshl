@@ -3,7 +3,7 @@ include "light_mask_helpers.dshl"
 include "out_of_frustum_grid.dshl"
 
 //gives omni&spot lights with lambert lighting (no specular)
-//requires  ClusteredLights::cullOutOfFrustumLights() & setOutOfFrustumLightsToShader() to be called
+//requires ClusteredLights::cullOutOfFrustumLights() & setOutOfFrustumLightsToShader() called with the same set
 
 macro GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(code)
   hlsl(code) {

@@ -99,27 +99,24 @@ ModfxDeclLighting ModfxDeclLighting_load( BufferData_cref buf, uint ofs )
   v = unpack_4b( dafx_load_1ui( buf, ofs ) );
   pp.specular_strength = v.x;
   pp.sphere_normal_power = v.y;
+  pp.direction_ambient_min = v.z;
   pp.sphere_normal_radius = dafx_load_1f( buf, ofs );
   return pp;
 }
 
-ModfxDeclAdvancedTranslucency ModfxDeclAdvancedTranslucency_load( BufferData_cref buf, uint ofs )
+ModfxDeclScatterLighting ModfxDeclScatterLighting_load( BufferData_cref buf, uint ofs )
 {
-  ModfxDeclAdvancedTranslucency pp;
-
-  pp.advanced_translucency_flags = dafx_load_1ui( buf, ofs );
-  pp.translucency_color_mul = dafx_load_3f( buf, ofs );
-
-  pp.min_radian = dafx_load_1f( buf, ofs );
-  pp.max_radian = dafx_load_1f( buf, ofs );
-  pp.inv_max_radian_diff = dafx_load_1f( buf, ofs );
-
-  pp.alpha_min = dafx_load_1f( buf, ofs );
-  pp.alpha_max = dafx_load_1f( buf, ofs );
-  pp.trans_min = dafx_load_1f( buf, ofs );
-  pp.trans_max = dafx_load_1f( buf, ofs );
-  pp.alpha_diff_inv = dafx_load_1f( buf, ofs );
-
+  ModfxDeclScatterLighting pp;
+  pp.flags = dafx_load_1ui( buf, ofs );
+  pp.opacity_src_mask = dafx_load_1ui( buf, ofs );
+  pp.density = dafx_load_1f( buf, ofs );
+  pp.max_opacity = dafx_load_1f( buf, ofs );
+  pp.ambient_self_shadow = dafx_load_1f( buf, ofs );
+  pp.sun_phase = dafx_load_3f( buf, ofs );
+  pp.sun_self_shadow = dafx_load_1f( buf, ofs );
+  pp.sun_shadow_fill = dafx_load_2f( buf, ofs );
+  pp.sun_thin_fade = dafx_load_1f( buf, ofs );
+  pp.rim_params = dafx_load_4f( buf, ofs );
   return pp;
 }
 

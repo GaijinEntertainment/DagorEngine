@@ -102,6 +102,7 @@ bool GenericBufferInterface::updateData(uint32_t ofs_bytes, uint32_t size_bytes,
     auto buf = TempBufferHolder(size_bytes, (void *)src);
     ctx.uploadBufferOrdered(buf.getRef(), ref, 0, ofs_bytes, size_bytes);
   }
+  markGpuWrite();
 
   return true;
 }
@@ -110,7 +111,7 @@ bool GenericBufferInterface::updateData(uint32_t ofs_bytes, uint32_t size_bytes,
 
 void GenericBufferInterface::lockDMA(void **ptr)
 {
-  // gpu can only change data via unordered access
+  // the GPU changes data via unordered access, or via a copy that is not complete yet
   if (bufferLockedForGPUReadback())
   {
     auto &ctx = Globals::ctx;
@@ -120,6 +121,11 @@ void GenericBufferInterface::lockDMA(void **ptr)
     lockReadback(
       ptr, [&]() { ctx.flushBufferToHost(ref, lockRange); },
       [&]() { ref.markNonCoherentRange(lockRange.front(), lockRange.size(), false); });
+  }
+  else if (ptr && isNonUAVGpuWriteFlushNeeded())
+  {
+    ref.markNonCoherentRange(lockRange.front(), lockRange.size(), false);
+    gpuWriteEvent.reset();
   }
 
   if (ptr)
@@ -181,6 +187,7 @@ void GenericBufferInterface::unlockWritePush()
     ctx.copyBufferDiscardReorderable(pushAllocation->getRef(), ref, 0, lockRange.front(), lockRange.size());
   else
     ctx.uploadBufferOrdered(pushAllocation->getRef(), ref, 0, lockRange.front(), lockRange.size());
+  markGpuWrite();
   Frontend::tempBuffers.freePooled(pushAllocation);
   pushAllocation = nullptr;
 

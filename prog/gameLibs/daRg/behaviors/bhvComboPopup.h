@@ -13,8 +13,8 @@ class BhvComboPopup : public darg::Behavior
 public:
   BhvComboPopup();
 
-  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent event, int pointer_id, int btn_id, Point2 pos,
-    int /*accum_res*/) override;
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, TouchSource /*touch_src*/, InputEvent event,
+    int pointer_id, int btn_id, Point2 pos, int /*accum_res*/) override;
   virtual bool willHandleClick(Element *) override { return true; }
 };
 

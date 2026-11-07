@@ -3,5 +3,7 @@ EXPORTS
 	LibNumberClasses	@2 PRIVATE
 	LibClassDesc		@3 PRIVATE
 	LibVersion			@4 PRIVATE
+	LibInitialize		@5 PRIVATE
+	LibShutdown			@6 PRIVATE
 SECTIONS
 	.data READ WRITE

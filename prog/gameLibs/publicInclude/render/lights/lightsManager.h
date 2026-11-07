@@ -10,6 +10,7 @@
 #include <generic/dag_carray.h>
 #include <generic/dag_staticTab.h>
 #include <render/lights/lightsBase.h>
+#include <render/lights/lightsResources.h>
 #include <render/lights/omniLight.h>
 #include <render/lights/spotLight.h>
 #include <render/lights/shadowCastersFlags.h>
@@ -34,10 +35,27 @@ inline uint32_t pack_light_source_radius_cm(float radius)
 
 class ShadowSystem;
 
+class LightsManagerSharedStorage final : public IDynLightsPipelineSection
+{
+public:
+  explicit LightsManagerSharedStorage(const LightsResourcesManager *lights_res_mgr);
+
+  void init(DynLightsFeatures requested_features) override;
+  DynLightsFeatures getRuntimeFeatures() const override;
+
+  Sbuffer *getSceneManagedLightsBuffer() const;
+  Sbuffer *getSceneRenderLightsBuffer() const;
+
+private:
+  const LightsResourcesManager *lightsResMgr = nullptr;
+  UniqueBuf sceneManagedLightsBuffer;
+  UniqueBuf sceneRenderLightsBuffer;
+};
+
 class BaseLightsManager : public IDynLightsPipelineSection
 {
 protected:
-  BaseLightsManager(const char *name);
+  BaseLightsManager(const char *type_name, LightsManagerSharedStorage *shared_storage);
   ~BaseLightsManager();
   void resizeDynamicShadowIds(uint32_t light_id);
   void invalidateShadowVolume(uint32_t shadow_id);
@@ -46,14 +64,19 @@ protected:
   virtual void OnShadowVolumeDestroyed(uint32_t light_id) = 0;
 
   eastl::string name;
+  LightsManagerSharedStorage *sharedStorage = nullptr;
   ShadowSystem *shadowSystem = nullptr;
   IesTextureCollection *photometryTextures = nullptr;
+  bool fullSyncToGPULights = false;
 
 public:
   static constexpr float FLOAT_EPS = eastl::numeric_limits<float>::epsilon();
 
   IesTextureCollection::PhotometryData getPhotometryData(int texId) const;
+  void init(DynLightsFeatures requested_features) override;
   DynLightsFeatures getRuntimeFeatures() const override;
+  void afterResetDevice();
+  const LightsManagerSharedStorage &getSharedStorage() const { return *sharedStorage; }
 
   void setShadowSystem(ShadowSystem *shadow_system);
   uint32_t getShadowId(uint32_t light_id) const;
@@ -68,15 +91,8 @@ public:
 
   void destroyShadowVolume(uint32_t light_id);
 
-  Sbuffer *getSceneManagedLightsBuffer();
-  Sbuffer *getSceneRenderLightsBuffer();
-
   template <typename Callback>
   void forEachLightsWithCloseShadow(const Point3 &view_pos, float max_shadow_dist, const Callback &callback) const;
-
-protected:
-  UniqueBuf sceneManagedLightsBuffer;
-  UniqueBuf sceneRenderLightsBuffer;
 
 private:
   void clearShadowVolumeSlot(uint32_t light_id);
@@ -109,7 +125,8 @@ template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32
 class LightsManager : public BaseLightsManager
 {
 protected:
-  LightsManager(const char *name);
+  LightsManager(const char *type_name, LightsManagerSharedStorage *shared_storage, uint32_t scene_managed_lights_byte_offset,
+    uint32_t scene_render_lights_byte_offset);
 
   int allocateLight(const RawLightT &l, LightMaskT mask);
   void deallocateLight(uint32_t light_id);
@@ -126,6 +143,9 @@ protected:
   // for example, we can ignore highly dynamic lights for GI
   carray<LightMaskT, MaxLightsCount> masks;
 
+  const uint32_t sceneManagedLightsByteOffset;
+  const uint32_t sceneRenderLightsByteOffset;
+
 public:
   static constexpr int MAX_LIGHTS = MaxLightsCount;
 
@@ -135,13 +155,11 @@ public:
   using Light = RawLightT;
   using RawLight = Light;
 
-  void init(DynLightsFeatures requested_features) override;
   bool tryInvalidateShadowsIfNeed(uint32_t light_id, const RawLightT &new_light);
   virtual const RawLightT &getLight(uint32_t light_id) const = 0;
   bool isLightValid(uint32_t light_id) const override;
   int maxIndex() const DAG_TS_NO_THREAD_SAFETY_ANALYSIS;
   void flushUpdatesForGPULights();
-  void afterResetDevice();
 
   ManagedLight getManagedLight(uint32_t light_id) const;
   LightMaskT getLightMask(uint32_t light_id) const;
@@ -151,7 +169,7 @@ private:
   static bool isInvalidatingShadowsNeed(const RawLightT &old_light, const RawLightT &new_light);
 
   template <typename TUpdateData>
-  void flushUpdatesForGPULightsImpl(carray<bool, MaxLightsCount> &changed, Sbuffer *buffer);
+  void flushUpdatesForGPULightsImpl(carray<bool, MaxLightsCount> &changed, Sbuffer *buffer, uint32_t buffer_byte_offset);
 
   void OnShadowVolumeAllocated(uint32_t light_id) final;
   void OnShadowVolumeDestroyed(uint32_t light_id) final;
@@ -159,7 +177,6 @@ private:
   OSSpinlock lightAllocationSpinlock;
   StaticTab<uint16_t, MaxLightsCount> freeLightIds DAG_TS_GUARDED_BY(lightAllocationSpinlock);
   int maxLightIndex DAG_TS_GUARDED_BY(lightAllocationSpinlock) = -1;
-  bool fullSyncToGPULights = false;
 
   carray<bool, MaxLightsCount> renderLightChanged;
   carray<bool, MaxLightsCount> managedLightChanged;
@@ -193,7 +210,11 @@ void BaseLightsManager::forEachLightsWithCloseShadow(const Point3 &view_pos, flo
 }
 
 template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
-LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::LightsManager(const char *name) : BaseLightsManager(name)
+LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::LightsManager(const char *type_name,
+  LightsManagerSharedStorage *shared_storage, uint32_t scene_managed_lights_byte_offset, uint32_t scene_render_lights_byte_offset) :
+  BaseLightsManager(type_name, shared_storage),
+  sceneManagedLightsByteOffset(scene_managed_lights_byte_offset),
+  sceneRenderLightsByteOffset(scene_render_lights_byte_offset)
 {
   G_STATIC_ASSERT(1ULL << (sizeof(*freeLightIds.data()) * 8) >= MAX_LIGHTS);
 
@@ -316,27 +337,6 @@ void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::setLigh
 }
 
 template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
-void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::init(DynLightsFeatures requested_features)
-{
-  if (static_cast<bool>(requested_features & DynLightsFeatures::GpuLightsManagerPersistentStorage))
-  {
-    sceneManagedLightsBuffer = dag::buffers::create_persistent_sr_structured(sizeof(ManagedLight), MaxLightsCount,
-      eastl::string(eastl::string::CtorSprintf(), "%s_scene_managed_lights", name.c_str()).c_str(), d3d::buffers::Init::Zero);
-    sceneRenderLightsBuffer = dag::buffers::create_persistent_sr_byte_address(
-      dag::divide_align_up(uint32_t(sizeof(RenderLightT)) * MaxLightsCount, d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE),
-      eastl::string(eastl::string::CtorSprintf(), "%s_scene_render_lights", name.c_str()).c_str(), d3d::buffers::Init::Zero);
-
-    fullSyncToGPULights = false;
-  }
-}
-
-template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
-void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::afterResetDevice()
-{
-  fullSyncToGPULights = false;
-}
-
-template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
 ManagedLight LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::getManagedLight(uint32_t light_id) const
 {
   return ManagedLight{encode_managed_light(getShadowId(light_id), masks[light_id])};
@@ -358,8 +358,10 @@ void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::flushUp
     }
   }
 
-  flushUpdatesForGPULightsImpl<RenderLightT>(renderLightChanged, sceneRenderLightsBuffer.getBuf());
-  flushUpdatesForGPULightsImpl<ManagedLight>(managedLightChanged, sceneManagedLightsBuffer.getBuf());
+  flushUpdatesForGPULightsImpl<RenderLightT>(renderLightChanged, sharedStorage->getSceneRenderLightsBuffer(),
+    sceneRenderLightsByteOffset);
+  flushUpdatesForGPULightsImpl<ManagedLight>(managedLightChanged, sharedStorage->getSceneManagedLightsBuffer(),
+    sceneManagedLightsByteOffset);
 }
 
 template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
@@ -395,7 +397,7 @@ void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::OnShado
 template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
 template <typename TUpdateData>
 void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::flushUpdatesForGPULightsImpl(
-  carray<bool, MaxLightsCount> &changed, Sbuffer *buffer)
+  carray<bool, MaxLightsCount> &changed, Sbuffer *buffer, uint32_t buffer_byte_offset)
 {
   bool anyChanged = false;
   for (uint32_t id = 0; id < MAX_LIGHTS; ++id)
@@ -409,20 +411,18 @@ void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::flushUp
 
   uint32_t regionStartLightId;
   Tab<TUpdateData> regionToUpdate(framemem_ptr());
-  Tab<uint32_t> regionLightIds(framemem_ptr());
 
   auto flushRegion = [&]() {
     if (regionToUpdate.empty())
       return;
-    if (!buffer->updateData(regionStartLightId * sizeof(TUpdateData), data_size(regionToUpdate), regionToUpdate.data(),
-          VBLOCK_WRITEONLY))
+    if (!buffer->updateData(buffer_byte_offset + regionStartLightId * sizeof(TUpdateData), data_size(regionToUpdate),
+          regionToUpdate.data(), VBLOCK_WRITEONLY))
     {
       logerr("%s: failed to update scene buffer", name.c_str());
-      for (uint32_t id : regionLightIds)
-        changed[id] = true;
+      for (uint32_t i = 0; i < regionToUpdate.size(); ++i)
+        changed[regionStartLightId + i] = true;
     }
     regionToUpdate.clear();
-    regionLightIds.clear();
   };
 
   for (uint32_t id = 0; id < MAX_LIGHTS; ++id)
@@ -441,7 +441,6 @@ void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::flushUp
       regionToUpdate.push_back(getManagedLight(id));
     else
       regionToUpdate.push_back(getRenderLight(id));
-    regionLightIds.push_back(id);
   }
 
   flushRegion();

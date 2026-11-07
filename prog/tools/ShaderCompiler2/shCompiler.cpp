@@ -40,6 +40,7 @@
 #endif
 
 extern void parse_shader_script(const char *fn, Tab<SimpleString> *out_filenames, shc::TargetContext &ctx);
+extern String resolve_shader_source_path(const char *fn);
 
 #ifdef PROFILE_OPCODE_USAGE
 int opcode_usage[2][256];
@@ -50,7 +51,6 @@ namespace shc
 
 static bool defTreatInvalidAsNull = false;
 static String updbPath;
-bool relinkOnly = false;
 static SCFastNameMap explicitGlobVarRef;
 
 static unsigned worker_cnt = 0;
@@ -287,30 +287,32 @@ String get_global_rb_layout_name(const ShCompilationInfo &comp)
 bool should_recompile_sh(const CompilationContext &ctx, const String &sourceFileName)
 {
   String objFileName = get_obj_file_name_from_source(sourceFileName, ctx.compInfo());
-  return check_scripted_shader(objFileName, {}, ctx, shc::config().compileCppStcode()) != CompilerAction::NOTHING;
+  String sourcePath = resolve_shader_source_path(sourceFileName);
+  return check_scripted_shader(objFileName, {}, ctx, sourcePath.c_str()) != CompilerAction::NOTHING;
 }
 CompilerAction should_recompile(const CompilationContext &ctx)
 {
   const auto &comp = ctx.compInfo();
-  CompilerAction dumpCheckResult = check_scripted_shader(comp.dest().c_str(), comp.sources(), ctx, false);
+
+  CompilerAction dumpCheckResult = check_scripted_shader(comp.dest().c_str(), comp.sources(), ctx, nullptr);
   if (dumpCheckResult == CompilerAction::COMPILE_AND_LINK)
     return dumpCheckResult;
 
-  int64_t destFileTime;
+  int64_t destFileTime = INT64_MIN;
   if (!get_file_time64(comp.dest().c_str(), destFileTime))
-    return CompilerAction::COMPILE_AND_LINK;
+    dumpCheckResult = CompilerAction::LINK_ONLY;
 
   for (unsigned int sourceFileNo = 0; sourceFileNo < comp.sources().size(); sourceFileNo++)
   {
     const String &sourceFileName = comp.sources()[sourceFileNo];
     String objFileName = get_obj_file_name_from_source(sourceFileName, comp);
 
-    int64_t objFileTime;
+    int64_t objFileTime = INT64_MIN;
     if (!get_file_time64(objFileName, objFileTime))
       return CompilerAction::COMPILE_AND_LINK;
 
     if (objFileTime > destFileTime)
-      return CompilerAction::COMPILE_AND_LINK;
+      dumpCheckResult = CompilerAction::LINK_ONLY;
 
     if (should_recompile_sh(ctx, sourceFileName))
       return CompilerAction::COMPILE_AND_LINK;
@@ -381,8 +383,6 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
 
   if (compiler_action != CompilerAction::LINK_ONLY)
   {
-    dag::Vector<bool> rbLoadFailed;
-    rbLoadFailed.assign(compInfo.sources().size(), false);
     if (config().compileRefinedBlock)
     {
       if (shc::config().singleCompilationShName && shc::config().workerMode)
@@ -391,10 +391,9 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
       {
         for (size_t i = 0; i < compInfo.sources().size(); ++i)
         {
-          if (should_rebuild || should_recompile_sh(comp, compInfo.sources()[i]))
-            continue;
-          if (!load_local_rb_layout(get_obj_file_name_from_source(compInfo.sources()[i], compInfo), comp))
-            rbLoadFailed[i] = true;
+          // A failed load erases the obj, so the should_recompile_sh() below picks the source up
+          if (!should_rebuild && !should_recompile_sh(comp, compInfo.sources()[i]))
+            load_local_rb_layout(get_obj_file_name_from_source(compInfo.sources()[i], compInfo), comp);
         }
       }
     }
@@ -404,14 +403,14 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
       const String &sourceFileName = compInfo.sources()[sourceFileNo];
       String objFileName = get_obj_file_name_from_source(sourceFileName, compInfo);
 
-      bool need_recompile = should_rebuild || should_recompile_sh(comp, sourceFileName) || rbLoadFailed[sourceFileNo];
+      bool need_recompile = should_rebuild || should_recompile_sh(comp, sourceFileName);
       if (!need_recompile)
       {
         sh_debug(SHLOG_INFO, "No changes in '%s', skipping", sourceFileName.str());
       }
       else
       {
-        if (relinkOnly)
+        if (shc::config().relinkOnly)
         {
           sh_debug(SHLOG_FATAL, "need to recompile %s but compilation is denied by -relinkOnly", sourceFileName.str());
           return;

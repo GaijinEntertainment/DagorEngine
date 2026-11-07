@@ -110,6 +110,7 @@ void drv3d_vulkan::WindowState::getRenderWindowSettings()
     h = extent.height;
   }
   get_settings_resolution(settings.resolutionX, settings.resolutionY, isRetina, w, h, isAuto);
+  settings.aspect = (float)settings.resolutionX / settings.resolutionY;
 
   const DataBlock &videoBlk = *dgs_get_settings()->getBlockByNameEx("video");
   const int positionIndex = videoBlk.findParam("position");
@@ -153,7 +154,6 @@ bool drv3d_vulkan::WindowState::setRenderWindowParams()
     currentResolutionX = settings.resolutionX;
     currentResolutionY = settings.resolutionY;
     windowMode = (int)dgs_get_window_mode();
-    settings.aspect = (float)settings.resolutionX / settings.resolutionY;
     ownsWindow = true;
     return true;
   }

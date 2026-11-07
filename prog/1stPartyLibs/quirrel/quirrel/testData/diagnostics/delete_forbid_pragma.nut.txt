@@ -1,22 +1,10 @@
-
+#forbid-delete-operator
 
 let t = {
     a = 10,
-    b = 20,
-    c = 30,
-    d = 40
+    b = 20
 }
 
-delete t.a // FP 1
+t.rawdelete("a")
 
-#forbid-delete-operator
-
-t.rawdelete("b")
-
-#allow-delete-operator
-
-delete t.c // FP 2
-
-#forbid-delete-operator
-
-delete t.d // EXPECTED
+delete t.b // EXPECTED

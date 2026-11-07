@@ -7,12 +7,17 @@
 #include <ioSys/dag_dataBlock.h>
 #include <drv/hid/dag_hiXInputMappings.h>
 #include <startup/dag_globalSettings.h>
+#include <osApiWrappers/dag_miscApi.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include "joy_acc_gyro_classdrv.h"
 
 @implementation iOSInputDevices
-HumanInput::IGenJoystickClient *joy_client = nullptr;
-bool shouldChangeList = false;
-bool changed = false;
+{
+  HumanInput::IGenJoystickClient *joyClient;
+  bool shouldChangeList;
+  bool changed;
+  int vendorId;
+}
 
 static bool gamepad_exist_in_block(const DataBlock *blk, const char * productName, const char *blockName)
 {
@@ -50,10 +55,22 @@ static int get_gamepad_layout(const char * productName)
   return res;
 }
 
+static GCController *get_active_gamepad()
+{
+  GCController *current = GCController.current;
+  if (current.extendedGamepad && [GCController.controllers containsObject:current])
+    return current;
+  for (GCController *gc in GCController.controllers)
+    if (gc.extendedGamepad)
+      return gc;
+  return nil;
+}
+
 - (id)init
 {
   if (self = [super init])
   {
+    vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
     _controllers = [[NSMutableArray alloc] init];
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(controllerDidConnect:)
@@ -62,6 +79,10 @@ static int get_gamepad_layout(const char * productName)
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(controllerDidDisconnect:)
                                                  name:GCControllerDidDisconnectNotification
+                                               object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(controllerDidBecomeCurrent:)
+                                                 name:GCControllerDidBecomeCurrentNotification
                                                object:nil];
     [self reconnectDevices];
   }
@@ -73,19 +94,24 @@ static int get_gamepad_layout(const char * productName)
   changed = true;
   shouldChangeList = true;
 
-  // Disconnect may happen at any time so Apple's GCExtendedGamepad inside controller
-  // may become invalid at any time, so all pointers should be set to null the moment it
-  // happens
+  GCController *gc = notification.object;
   for (iOSJoystickController *controller in _controllers)
-  {
-    [controller clearGamepad];
-  }
+    [controller clearGamepad:gc];
 }
 
 - (void)controllerDidConnect:(NSNotification *)notification
 {
   // For connect it is simpler. Just raise a flag to notify that
   // isDeviceConfigChanged is true and refreshControllerList should work
+  changed = true;
+  shouldChangeList = true;
+}
+
+- (void)controllerDidBecomeCurrent:(NSNotification *)notification
+{
+  GCController *gc = notification.object;
+  if (!gc.extendedGamepad || [[_controllers firstObject] isController:gc])
+    return;
   changed = true;
   shouldChangeList = true;
 }
@@ -105,7 +131,6 @@ static int get_gamepad_layout(const char * productName)
   return false;
 }
 
-int vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
 - (int)readVendor:(NSString *)category
 {
   if ([category caseInsensitiveCompare:GCProductCategoryXboxOne] == NSOrderedSame
@@ -122,7 +147,6 @@ int vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
     return HumanInput::GAMEPAD_VENDOR_SONY;
   }
   if ([category rangeOfString:@"switch" options:NSCaseInsensitiveSearch].location != NSNotFound
-    || [category rangeOfString:@"pro" options:NSCaseInsensitiveSearch].location != NSNotFound
     || [category rangeOfString:@"joycon" options:NSCaseInsensitiveSearch].location != NSNotFound
     || [category rangeOfString:@"joy-con" options:NSCaseInsensitiveSearch].location != NSNotFound)
   {
@@ -136,38 +160,41 @@ int vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
   return vendorId;
 }
 
+- (void)addController:(GCController *)gc name:(const char *)name
+{
+  iOSJoystickController *controller = [[iOSJoystickController alloc] initWith:gc vendorName:name];
+  [_controllers addObject:controller];
+  [controller release];
+}
+
 - (void)reconnectDevices
 {
-  // Remove doesn't send release message to removed object
-  for (iOSJoystickController *controller in _controllers)
-  {
-    [controller release];
-  }
   [_controllers removeAllObjects];
 
-  bool inserted = false;
-  for (GCController *appleController in GCController.controllers)
+  // the active pad goes first: it is the default joystick and gives the vendor id
+  GCController *active = get_active_gamepad();
+  if (active)
   {
-    if (appleController.extendedGamepad != nil)
-    {
-      if (!inserted)
-        logdbg("gamepad: found device, vendor: %s, category: %s", [appleController.vendorName UTF8String], [appleController.productCategory UTF8String]);
-        vendorId = [self readVendor:appleController.productCategory];
-
-      inserted = true;
-      const char *cName = [appleController.vendorName UTF8String];
-      [_controllers addObject:[[iOSJoystickController alloc] initWith:appleController.extendedGamepad vendorName:cName]];
-    }
-    else
-    {
-      debug("iOSInputDevices::reconnectDevices skip unknown device");
-    }
+    NSString *name = active.vendorName ?: active.productCategory;
+    logdbg("gamepad: found device, vendor: %s, category: %s", [name UTF8String], [active.productCategory UTF8String]);
+    vendorId = [self readVendor:active.productCategory];
+    [self addController:active name:[name UTF8String]];
   }
-  if (!inserted)
-  {
-    [_controllers addObject:[[iOSJoystickController alloc] initWith:nil vendorName:"???"]];
+  else
     vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
+
+  for (GCController *gc in GCController.controllers)
+  {
+    if (gc == active)
+      continue;
+    if (gc.extendedGamepad)
+      [self addController:gc name:[(gc.vendorName ?: gc.productCategory) UTF8String]];
+    else
+      debug("iOSInputDevices::reconnectDevices skip unknown device");
   }
+
+  if (![_controllers count])
+    [self addController:nil name:"???"];
   [self updateClient];
 }
 
@@ -190,7 +217,7 @@ int vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
 
 - (void)setClient:(HumanInput::IGenJoystickClient *)cli
 {
-  joy_client = cli;
+  joyClient = cli;
   [self updateClient];
 }
 
@@ -198,7 +225,7 @@ int vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
 {
   for (iOSJoystickController *controller in _controllers)
   {
-    [controller getJoystick]->setClient(joy_client);
+    [controller getJoystick]->setClient(joyClient);
   }
 }
 
@@ -219,16 +246,22 @@ int vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
 {
   eastl::unique_ptr<iOSGamepadEx> controller_impl;
 }
-- (id)initWith:(GCExtendedGamepad *)extendedGamepad vendorName:(const char *)name
+- (id)initWith:(GCController *)gc vendorName:(const char *)name
 {
-  self = [super init];
-  controller_impl = eastl::make_unique<iOSGamepadEx>(extendedGamepad, name);
+  if (self = [super init])
+    controller_impl = eastl::make_unique<iOSGamepadEx>(gc, name);
   return self;
 }
 
-- (void)clearGamepad
+- (void)clearGamepad:(GCController *)gc
 {
-  controller_impl->clearGamepad();
+  if (!gc || controller_impl->isController(gc))
+    controller_impl->clearGamepad();
+}
+
+- (bool)isController:(GCController *)gc
+{
+  return controller_impl->isController(gc);
 }
 
 - (void)dealloc
@@ -247,10 +280,16 @@ int vendorId = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
   return controller_impl.get();
 }
 
+- (iOSGamepadEx *)getGamepad
+{
+  return controller_impl.get();
+}
+
 @end
 
 extern void hid_iOS_init_motion();
 extern void hid_iOS_term_motion();
+extern void hid_iOS_update_motion();
 
 iOSJoystickClassDriver::iOSJoystickClassDriver()
 {
@@ -283,13 +322,8 @@ void iOSJoystickClassDriver::useDefClient(HumanInput::IGenJoystickClient *cli)
 //! selects current default device
 void iOSJoystickClassDriver::setDefaultJoystick(HumanInput::IGenJoystick *ref)
 {
-  // setDefaultJoystick is called after refreshDeviceList
-  // that means that defJoystick is already detached and deleted
-  if (defJoystick && shouldClearClient)
-  {
+  if (defJoystick)
     defJoystick->setClient(nullptr);
-  }
-  shouldClearClient = true;
 
   defJoystick = ref;
 
@@ -299,7 +333,7 @@ void iOSJoystickClassDriver::setDefaultJoystick(HumanInput::IGenJoystick *ref)
 
 
 // enables/disables all devices of class
-void iOSJoystickClassDriver::enable(bool enable) { isEnabled = enable; }
+void iOSJoystickClassDriver::enable(bool en) { HumanInput::stg_joy.enabled = en; }
 
 
 // destroys all devices and class driver
@@ -315,18 +349,11 @@ void iOSJoystickClassDriver::autoSetDefaultJoystick()
 // clears and refreshes list of devices
 void iOSJoystickClassDriver::refreshDeviceList()
 {
-  // After succsesful refreshControllerList defjoystick
-  // is an invalid pointer so we must clear it in advance
-  bool willUpdate = [devices shouldUpdateList];
-  if (willUpdate && defJoystick)
-  {
-    defJoystick->setClient(nullptr);
-  }
+  // refreshControllerList deletes all devices, defJoystick among them
+  if ([devices shouldUpdateList])
+    setDefaultJoystick(nullptr);
 
-  shouldClearClient = !willUpdate;
-  // Also refreshDeviceList is called twice on connect/disconnect
-  // so shouldUpdateList is added to remove needless contoller list
-  // refill with extra allocations
+  // refreshDeviceList is called twice on connect/disconnect, shouldUpdateList skips the second rebuild
   [devices refreshControllerList];
 
   if (enableAutoDefault)
@@ -343,30 +370,51 @@ int iOSJoystickClassDriver::getDeviceCount() const { return [devices count]; }
 // performs update for all devices (needed for poll-class devices)
 void iOSJoystickClassDriver::updateDevices()
 {
+  // device list rebuilds and GameController notifications run on the main thread
+  if (!is_main_thread())
+    return;
+
   if (!defJoystick && enableAutoDefault)
   {
     autoSetDefaultJoystick();
   }
 
+  updateGyroSource();
+  hid_iOS_update_motion();
   [devices update];
 }
 
-void iOSJoystickClassDriver::enableGyroscope(bool enable, bool)
+void iOSJoystickClassDriver::enableGyroscope(bool enable, bool main_dev)
 {
-  if (enable)
+  (main_dev ? deviceGyroEnabled : padGyroEnabled) = enable;
+  updateGyroSource();
+}
+
+// one gyro works at a time: the gyro of the active pad (device 0) when it is enabled and the pad has one, else the phone gyro
+void iOSJoystickClassDriver::updateGyroSource()
+{
+  iOSGamepadEx *pad = [[devices getItem:0] getGamepad];
+  const bool padGyro = pad->setMotionActive(padGyroEnabled);
+
+  const bool deviceGyro = !padGyro && (deviceGyroEnabled || padGyroEnabled);
+  if (deviceGyro == deviceMotionRunning)
+    return;
+  if (deviceGyro)
     hid_iOS_init_motion();
   else
     hid_iOS_term_motion();
+  deviceMotionRunning = deviceGyro;
 }
 
 int iOSJoystickClassDriver::getVendorId() const { return [devices getVendorId]; }
+
+GCController *iOSJoystickClassDriver::getActiveController() const { return [[devices getItem:0] getGamepad]->getController(); }
 
 
 static iOSJoystickClassDriver *iosJoystickClassDriver = nullptr;
 
 namespace HumanInput
 {
-extern JoystickSettings stg_joy;
 IGenJoystickClassDrv *createJoystickClassDriver(bool, bool, bool)
 {
   if (!iosJoystickClassDriver)
@@ -374,6 +422,8 @@ IGenJoystickClassDrv *createJoystickClassDriver(bool, bool, bool)
   stg_joy.present = true;
   return iosJoystickClassDriver;
 }
+
+void *getGamepadController_iOS() { return iosJoystickClassDriver ? (void *)iosJoystickClassDriver->getActiveController() : nullptr; }
 } // namespace HumanInput
 
 namespace hid_ios

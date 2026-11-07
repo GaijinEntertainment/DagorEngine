@@ -118,7 +118,7 @@ public:
     else if (ctx)
     {
       setupDone = true;
-      set_up_dafx_effect(ctx, fx, false, true, &tm, false);
+      set_up_dafx_effect(ctx, fx, false, true, tm, false);
     }
 
     /*== this code is designed for emitter-editing mode

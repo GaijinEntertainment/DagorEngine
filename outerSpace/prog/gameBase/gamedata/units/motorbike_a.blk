@@ -1,0 +1,50 @@
+motorcycle{
+  mass:r=240
+  inertia:p3=30, 60, 80
+  comOffset:p3=0.2, -0.05, 0
+  box:p3=1.3, 0.6, 0.4
+  boxCenter:p3=-0.2, 0.65, 0
+
+  frontWheel{
+    radius:r=0.337
+    width:r=0.081
+    restLength:r=0.29
+    halfTravel:r=0.1
+    maxBrakeTorque:r=500
+    maxSteerAngle:r=30
+  }
+  rearWheel{
+    radius:r=0.337
+    width:r=0.081
+    restLength:r=0.29
+    halfTravel:r=0.1
+    maxBrakeTorque:r=250
+  }
+
+  engine{
+    maxTorque:r=90
+    minRPM:r=1000
+    maxRPM:r=10000
+  }
+  transmission{
+    shiftUpRPM:r=8000
+    shiftDownRPM:r=2000
+    clutchStrength:r=2
+    gearRatios{
+      ratio:r=2.27
+      ratio:r=1.63
+      ratio:r=1.3
+      ratio:r=1.09
+      ratio:r=0.96
+      ratio:r=0.88
+    }
+    reverseGearRatios{
+      ratio:r=-4
+    }
+  }
+  differentialRatio:r=4.825
+  // lean controller, the physics engine defaults: a lower spring rolls into turns slower, closer to a real bike
+  maxLeanAngle:r=45
+  leanSpring:r=5000
+  leanDamping:r=1000
+}

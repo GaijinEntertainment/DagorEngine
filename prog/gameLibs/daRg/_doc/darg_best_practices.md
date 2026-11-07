@@ -128,7 +128,7 @@ values. Memoize only pure functions of plain values, and key the cache on
 every input that affects the result.
 
 Call `memoize()` one time, at module scope: each call makes a new cache
-that the process keeps, so a `memoize()` in a function body makes one more
+that stays until a reload, so a `memoize()` in a function body makes one more
 cache on each call. A cache is dropped whole when it grows past its cap
 (and by `clearMemoizeCaches`), so never memoize a record that holds state:
 a `Watched`, a subscription, or onAttach/onDetach bookkeeping. Keys that
@@ -250,10 +250,6 @@ if (mode == null) ...             if (!mode.get()) ...
 state("newValue")                 state.set("newValue")   // calling throws
 obs?.get().field                  obs.get()?.field        // guard the value
 ```
-
-`.value` reads are deprecated (error log in debug builds); `.value` writes
-and calling the observable throw. New code uses `.get()`, `.set()`,
-`.modify()`.
 
 ### Never mutate the contents of an observable without `.mutate`
 
@@ -463,7 +459,8 @@ again from a subscription to the observable that decides it.
 
 Script hooks (`onAttach`, `onDetach`, a recalc handler) are queued and run
 in a later update, not in the build (after the first render for an element
-that an update builds), and a `.set()` there notifies one frame later still.
+that an update builds). A `.set()` there notifies at the FRP flush of that
+later update, which runs after the hooks.
 A value that `onAttach` publishes is absent from the first build,
 so each reader must watch it.
 
@@ -534,9 +531,10 @@ Hoist components that do not depend on builder inputs to module scope.
 Three values must stay new on each build:
 - a `hotkeys` array whose handler reads a value of the build (a builder
   local, an entry picked by state), or that has an item with no action (it
-  takes the element's `onClick`): `Element::setup` reads `hotkeys` again
-  only when the array is not the same immutable object, so a `const` array,
-  or a frozen one made one time, keeps the handlers of the first build;
+  takes the element's `onClick`): `ElementTree::rebuild` reads `hotkeys`
+  again only when the array is not the same immutable object, so a `const`
+  array, or a frozen one made one time, keeps the handlers of the first
+  build;
 - a description with `RtPropUpdate`: it writes into its own description;
 - a table as `key` (`key = {}`): a new key on purpose, so that the element
   is made again (an animation starts again) on each build.
@@ -706,7 +704,9 @@ is immutable. So a `[pure]` function that reads state (an observable, or a
 module table that other code changes, also through a callback) gives each
 `const` that calls it the compile-time value for good. Mark only functions
 that read their arguments and constants, or state whose change runs
-the scripts again. `[nodiscard]` is checked on natives only. A container
+the scripts again. The analyzer reports a dropped result of a `[pure]` or
+`[nodiscard]` callee it can resolve (w348); the VM checks no dropped result.
+A container
 that a module exports is immutable for the modules that import it.
 
 ### Misc

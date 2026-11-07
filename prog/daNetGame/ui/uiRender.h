@@ -13,16 +13,15 @@ class TMatrix4;
 
 namespace uirender
 {
-using all_darg_scenes_t = dag::RelocatableFixedVector<darg::IGuiScene *, 2, false>;
+using all_darg_scenes_t = dag::RelocatableFixedVector<darg::IGuiScene *, 1, false>;
 
 all_darg_scenes_t get_all_scenes();
-bool has_scenes();
 
 void update_all_gui_scenes_mainthread(float dt);
 void before_render(float dt, const TMatrix &view_itm, const TMatrix &view_tm, const TMatrix4 &proj_tm);
 void start_ui_render_job(bool wake);
 void prepare_to_start_ui_before_render_job();
-void start_ui_before_render_job();
+void start_ui_before_render_job(bool wake = true);
 void skip_ui_render_job();
 void wait_ui_render_job_done();
 void wait_ui_before_render_job_done();

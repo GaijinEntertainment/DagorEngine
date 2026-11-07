@@ -16,7 +16,7 @@ shader dynamic_layered
   {
     channel color8 tc[4] = extra[0];
     channel color8 tc[5] = extra[1];
-    hlsl {
+    hlsl(vs) {
       #define HAS_SKINNING 1
     }
   }
@@ -171,7 +171,7 @@ shader dynamic_layered
     WRITE_GBUFFER()
     USE_CHARACTER_TWO_MICRODETAILS()
 
-    USE_LAYERED_PS(true)
+    USE_LAYERED_PS()
     (ps) {
       mask_tex@staticSmp = mask_tex;
       paint_details@f3 = paint_details;

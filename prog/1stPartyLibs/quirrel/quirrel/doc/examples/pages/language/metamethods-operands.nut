@@ -21,6 +21,9 @@ try {
   println($"int on the left: {e}")
 }
 
-// The one exception: `literal + object` is compiled as `object + literal`, so
-// _add still runs and still sees the object as `this`.
-println(2 + d)
+// An integer literal on the left acts the same as an integer variable.
+try {
+  println(2 + d)
+} catch (e) {
+  println($"literal on the left: {e}")
+}

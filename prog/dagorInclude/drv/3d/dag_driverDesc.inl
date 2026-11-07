@@ -75,6 +75,9 @@ struct DeviceAttributesBase
     LUNARLAKE,
     PANTHERLAKE,
     WILDCATLAKE,
+    NOVALAKE,
+    NOVALAKE_P,
+    CRESCENTISLAND,
   };
 
   // Source nvapi.h
@@ -482,7 +485,7 @@ struct DeviceDriverCapabilitiesBase
   bool hasUAVOnlyForcedSampleCount : 1;
   /**
    * \capbrief supports 64 bit integers shader resource types.
-   * \platformtable{hasShader64BitIntegerResources,c,a,c,a,c,c,c,c,c,c,r}
+   * \platformtable{hasShader64BitIntegerResources,c,c,c,a,c,c,c,c,c,c,r}
    */
   bool hasShader64BitIntegerResources : 1;
   /**
@@ -532,13 +535,13 @@ struct DeviceDriverCapabilitiesBase
    * \capbrief supports the mesh shader pipeline.
    * \details The mesh shader pipeline is a one or two shader stage that replaces the vertex shader based pre raster portion of the
    * graphics pipeline. Mesh shaders are compute shaders that generate vertices and indices which form primitives like triangles or
-   * lines. \platformtable{hasMeshShader,c,a,c,a,r,c,c,c,r,c,r}
+   * lines. \platformtable{hasMeshShader,c,c,c,a,r,c,c,c,r,c,r}
    */
   bool hasMeshShader : 1;
   /**
    * \capbrief supports the mesh shader indirect count function.
    * \details if true the dispatch_mesh_indirect_count is supported
-   * \platformtable{hasMeshShaderIndirectCount,c,a,c,a,r,c,c,c,r,c,r}
+   * \platformtable{hasMeshShaderIndirectCount,c,c,c,a,r,c,c,c,r,c,r}
    */
   bool hasMeshShaderIndirectCount : 1;
   /**
@@ -612,13 +615,13 @@ struct DeviceDriverCapabilitiesBase
    * hasRayQuery and / or hasRayDispatch is supported. The vertex format of VSDT_FLOAT3 is guaranteed, for additional formats
    * d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build needs to be used to check for support.
    * \someNYI
-   * \platformtable{hasRayAccelerationStructure,c,c,c,a,c,c,c,r,c,r,r}
+   * \platformtable{hasRayAccelerationStructure,c,c,c,c,c,c,c,r,c,r,r}
    */
   bool hasRayAccelerationStructure : 1;
   /**
    * \capbrief supports ray queries ("inline ray tracing") in any shader stage.
    * \someNYI
-   * \platformtable{hasRayQuery,c,c,c,a,r,r,c,r,r,r,r}
+   * \platformtable{hasRayQuery,c,c,c,c,r,r,c,r,r,r,r}
    */
   bool hasRayQuery : 1;
   /**
@@ -881,8 +884,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasOptimizedViewInstancing = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAcceleratedViewInstancing}
   static constexpr bool hasAcceleratedViewInstancing = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRenderPassDepthResolve}
-  static constexpr bool hasRenderPassDepthResolve = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasRenderPassDepthResolve}
+  static constexpr bool hasRenderPassDepthResolve = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasStereoExpansion}
   static constexpr bool hasStereoExpansion = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTileBasedArchitecture}
@@ -893,7 +896,7 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasIndirectSupport = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasCompareSampler}
   static constexpr bool hasCompareSampler = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
   static constexpr bool hasShaderFloat16Support = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasUAVOnEveryStage}
   static constexpr bool hasUAVOnEveryStage = true;
@@ -933,7 +936,7 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayTraceShaderExecutionReorder = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNvidiaRayTraceShaderExecutionReorder }
   static constexpr bool hasNvidiaRayTraceShaderExecutionReorder = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarrierNone }
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBarrierNone }
   static constexpr bool hasBarrierNone = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
   static constexpr bool hasPipelineStatisticsQuery = true;
@@ -1136,7 +1139,7 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasWaveOps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
   static constexpr bool hasDualSourceBlending = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceOpacityMicroMapTriangleArrays }
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
@@ -1173,9 +1176,9 @@ struct DeviceDriverCapabilitiesPS5 : DeviceDriverCapabilitiesPS4
 {
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasStereoExpansion}
   static constexpr bool hasStereoExpansion = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayAccelerationStructure}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasRayAccelerationStructure}
   static constexpr bool hasRayAccelerationStructure = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayQuery}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasRayQuery}
   static constexpr bool hasRayQuery = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayDispatch}
   static constexpr bool hasRayDispatch = false;
@@ -1264,7 +1267,7 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasUAVOnlyForcedSampleCount = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources}
   static constexpr bool hasShader64BitIntegerResources = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
   static constexpr bool hasNativeRenderPassSubPasses = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiled2DResources}
   static constexpr bool hasTiled2DResources = false;
@@ -1294,7 +1297,7 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasLazyMemory = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
   static constexpr bool hasShaderFloat16Support = true;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasUAVOnEveryStage}
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasUAVOnEveryStage}
   static constexpr bool hasUAVOnEveryStage = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayDispatch}
   static constexpr bool hasRayDispatch = false;
@@ -1306,7 +1309,7 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasWaveOps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
   static constexpr bool hasDualSourceBlending = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceOpacityMicroMapTriangleArrays }
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
@@ -1411,7 +1414,7 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasUAVOnlyForcedSampleCount = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources}
   static constexpr bool hasShader64BitIntegerResources = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
   static constexpr bool hasNativeRenderPassSubPasses = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiled2DResources}
   static constexpr bool hasTiled2DResources = false;
@@ -1459,7 +1462,7 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasWaveOps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
   static constexpr bool hasDualSourceBlending = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceOpacityMicroMapTriangleArrays }
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
@@ -1550,8 +1553,7 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAliasedTextures}
   //! \NYI
   static constexpr bool hasAliasedTextures = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasResourceHeaps}
-  //! \NYI
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceHeaps}
   static constexpr bool hasResourceHeaps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapCopy}
   static constexpr bool hasBufferOverlapCopy = false;
@@ -1664,7 +1666,7 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   static constexpr bool hasVolMipMap = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAsyncCompute}
   static constexpr bool hasAsyncCompute = false;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
   static constexpr bool hasOcclusionQuery = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAsyncCopy}
   static constexpr bool hasAsyncCopy = true;
@@ -1815,7 +1817,7 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasDepthConversionByTransfer = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources}
   static constexpr bool hasShader64BitIntegerResources = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
   static constexpr bool hasNativeRenderPassSubPasses = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasTiled2DResources}
   static constexpr bool hasTiled2DResources = false;
@@ -1848,7 +1850,7 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShaderFloat16Support}
   //! \NYI
   static constexpr bool hasShaderFloat16Support = false;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasUAVOnEveryStage}
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasUAVOnEveryStage}
   static constexpr bool hasUAVOnEveryStage = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayDispatch}
   static constexpr bool hasRayDispatch = false;
@@ -1860,7 +1862,7 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasWaveOps = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
   static constexpr bool hasDualSourceBlending = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceOpacityMicroMapTriangleArrays }
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
@@ -1968,7 +1970,7 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   static constexpr bool castingFullyTypedFormatsSupported = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
   static constexpr bool hasDualSourceBlending = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasProperUAVSupport}
   static constexpr bool hasProperUAVSupport = true;
@@ -2003,7 +2005,7 @@ struct DeviceDriverCapabilitiesWindows : DeviceDriverCapabilitiesBase
   static constexpr bool hasCompareSampler = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBaseVertexSupport}
   static constexpr bool hasBaseVertexSupport = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
   static constexpr bool hasDualSourceBlending = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthClamp}
   static constexpr bool hasDepthClamp = true;
@@ -2251,6 +2253,16 @@ struct DeviceDriverIssuesBase
    * - \runtimeissue{DeviceDriverIssuesWindows, \win32}
    */
   bool hasBrokenAmplificationShaderDrawID : 1;
+  /**
+   * Draw id of an indirect draw with tessellation gives the pixel shader wrong root arguments (GPU hang or wrong textures).
+   * \note
+   * Known on the following devices:
+   * - \amd RDNA4
+   * \note
+   * - \constissue{DeviceDriverIssuesNoIssues::hasBrokenTessellationDrawID}
+   * - \runtimeissue{DeviceDriverIssuesWindows, \win32}
+   */
+  bool hasBrokenTessellationDrawID : 1;
 };
 
 /**
@@ -2259,7 +2271,7 @@ struct DeviceDriverIssuesBase
 struct DeviceDriverIssuesAndroid : DeviceDriverIssuesBase
 {
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android
    * \baseissue{DeviceDriverIssuesBase::hasClearColorBug}
    **/
   static constexpr bool hasClearColorBug = false;
@@ -2286,77 +2298,77 @@ struct DeviceDriverIssuesAndroid : DeviceDriverIssuesBase
 struct DeviceDriverIssuesWindows : DeviceDriverIssuesBase
 {
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasComputeTimeLimited}
    **/
   static constexpr bool hasComputeTimeLimited = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasComputeCanNotWrite3DTex}
    **/
   static constexpr bool hasComputeCanNotWrite3DTex = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasStrictRenderPassesOnly}
    **/
   static constexpr bool hasStrictRenderPassesOnly = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasSmallSampledBuffers}
    **/
   static constexpr bool hasSmallSampledBuffers = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasRenderPassClearDataRace}
    **/
   static constexpr bool hasRenderPassClearDataRace = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenBaseInstanceID}
    **/
   static constexpr bool hasBrokenBaseInstanceID = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasMultisampledAndInstancingHang}
    **/
   static constexpr bool hasMultisampledAndInstancingHang = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenMultisampledInputAttachment}
    **/
   static constexpr bool hasBrokenMultisampledInputAttachment = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasIgnoreDeviceLost}
    **/
   static constexpr bool hasIgnoreDeviceLost = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasPollDeviceFences}
    **/
   static constexpr bool hasPollDeviceFences = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenShadersAfterAppSwitch}
    **/
   static constexpr bool hasBrokenShadersAfterAppSwitch = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenSRGBConverionWithMRT}
    **/
   static constexpr bool hasBrokenSRGBConverionWithMRT = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenComputeFormattedOutput}
    **/
   static constexpr bool hasBrokenComputeFormattedOutput = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenSubpasses}
    **/
   static constexpr bool hasBrokenSubpasses = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasFloatClearBug}
    **/
   static constexpr bool hasFloatClearBug = false;
@@ -2368,77 +2380,77 @@ struct DeviceDriverIssuesWindows : DeviceDriverIssuesBase
 struct DeviceDriverIssuesIOS : DeviceDriverIssuesBase
 {
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasComputeTimeLimited}
    **/
   static constexpr bool hasComputeTimeLimited = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasComputeCanNotWrite3DTex}
    **/
   static constexpr bool hasComputeCanNotWrite3DTex = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasStrictRenderPassesOnly}
    **/
   static constexpr bool hasStrictRenderPassesOnly = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasSmallSampledBuffers}
    **/
   static constexpr bool hasSmallSampledBuffers = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasRenderPassClearDataRace}
    **/
   static constexpr bool hasRenderPassClearDataRace = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenBaseInstanceID}
    **/
   static constexpr bool hasBrokenBaseInstanceID = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasMultisampledAndInstancingHang}
    **/
   static constexpr bool hasMultisampledAndInstancingHang = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenMultisampledInputAttachment}
    **/
   static constexpr bool hasBrokenMultisampledInputAttachment = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasIgnoreDeviceLost}
    **/
   static constexpr bool hasIgnoreDeviceLost = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasPollDeviceFences}
    **/
   static constexpr bool hasPollDeviceFences = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenShadersAfterAppSwitch}
    **/
   static constexpr bool hasBrokenShadersAfterAppSwitch = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenSRGBConverionWithMRT}
    **/
   static constexpr bool hasBrokenSRGBConverionWithMRT = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenComputeFormattedOutput}
    **/
   static constexpr bool hasBrokenComputeFormattedOutput = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenSubpasses}
    **/
   static constexpr bool hasBrokenSubpasses = false;
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasFloatClearBug}
    **/
   static constexpr bool hasFloatClearBug = false;
@@ -2470,7 +2482,7 @@ struct DeviceDriverIssuesIOS : DeviceDriverIssuesBase
 struct DeviceDriverIssuesNoIssues : DeviceDriverIssuesWindows
 {
   /**
-   * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android
    * \baseissue{DeviceDriverIssuesBase::hasClearColorBug}
    **/
   static constexpr bool hasClearColorBug = false;
@@ -2499,6 +2511,11 @@ struct DeviceDriverIssuesNoIssues : DeviceDriverIssuesWindows
    * \baseissue{DeviceDriverIssuesBase::hasBrokenAmplificationShaderDrawID}
    **/
   static constexpr bool hasBrokenAmplificationShaderDrawID = false;
+  /**
+   * \brief Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac and \linux
+   * \baseissue{DeviceDriverIssuesBase::hasBrokenTessellationDrawID}
+   **/
+  static constexpr bool hasBrokenTessellationDrawID = false;
 };
 
 /**

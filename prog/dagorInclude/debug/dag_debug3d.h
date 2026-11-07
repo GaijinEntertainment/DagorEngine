@@ -228,7 +228,7 @@ inline void draw_debug_capsule_w(const Capsule &, E3DCOLOR) {}
 #define DEBUG3D_DEFAULT_FRAMES_TO_BUFFER 10
 
 void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c = E3DCOLOR_MAKE(255, 32, 32, 255),
-  size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
+  size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER, bool depth_test = true);
 void draw_debug_line_buffered(vec3f v0, vec3f v1, E3DCOLOR c = E3DCOLOR_MAKE(255, 32, 32, 255),
   size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
 void draw_debug_line_buffered(vec3f v0, vec3f dir, float t, E3DCOLOR c = E3DCOLOR_MAKE(255, 32, 32, 255),

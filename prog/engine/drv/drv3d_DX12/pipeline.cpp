@@ -553,8 +553,16 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
   int64_t tCacheLoad = ref_time_ticks();
 
 #if _TARGET_PC_WIN
-  pipeline = pipe_cache.loadGraphicsPipelineVariant(base.cacheId, top, input_layout, is_wire_frame, static_state, fb_layout, gpciDesc,
-    cacheTarget);
+  pipeline = pipe_cache.loadGraphicsPipelineVariant(base.getGroupIndex(), gpciDesc, base.getIdentifier())
+               .transform_error([&](auto &&error_code) {
+                 if (E_INVALIDARG != error_code)
+                 {
+                   logwarn("DX12: loadGraphicsPipelineVariant failed to load pipeline <%s> with: %s", pipelineName,
+                     dxgi_error_code_to_string(error_code));
+                 }
+                 return error_code;
+               })
+               .value_or({});
 
   if (pipeline)
   {
@@ -602,6 +610,7 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
     if (FAILED(DX12_CHECK_RESULTF(result, "CreatePipelineState")))
     {
       loadResult.runtimeError = true;
+      const bool isFirstFailure = buildFailure.set(result);
 
 #if _TARGET_PC_WIN
       if (result == E_OUTOFMEMORY)
@@ -609,12 +618,14 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
         logdbg("DX12: CreatePipelineState E_OUTOFMEMORY for <%s> (graphics), desc size %llu, VS %llu, PS %llu, cachedBlob %llu",
           pipelineName, gpciDesc.SizeInBytes, tmpstorageVs.size(), tmpstoragePs.size(), cacheTarget.CachedBlobSizeInBytes);
       }
-      info.toLog.serialize(base.signature, gpciDesc, pipelineName);
+      if (isFirstFailure)
+        info.toLog.serialize(base.signature, gpciDesc, pipelineName);
 #else
-      info.toLog.serialize(base.signature, desc, pipelineName);
+      if (isFirstFailure)
+        info.toLog.serialize(base.signature, desc, pipelineName);
 #endif
 
-      if (is_recoverable_error(result))
+      if (isFirstFailure && is_recoverable_error(result))
       {
         String fb_layout_info;
         fb_layout_info.printf(64, "hasDepth %u", fb_layout.hasDepth);
@@ -704,7 +715,15 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
       }
       if (!hasBrokenCache)
       {
-        pipe_cache.addGraphicsPipelineVariant(base.cacheId, top, input_layout, is_wire_frame, static_state, fb_layout, pipeline.Get());
+        [[maybe_unused]] auto storeResult =
+          pipe_cache.addGraphicsPipelineVariant(base.getGroupIndex(), pipeline.Get(), gpciDesc, base.getIdentifier())
+            .transform_error([&](auto &&error_code) {
+              if (E_INVALIDARG != error_code)
+              {
+                logwarn("DX12: Was unable to cache pipeline <%s>: %s", pipelineName, dxgi_error_code_to_string(error_code));
+              }
+              return error_code;
+            });
       }
     }
 #endif
@@ -847,7 +866,16 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
   D3D12_CACHED_PIPELINE_STATE &cacheTarget = gpci.append<CD3DX12_PIPELINE_STATE_STREAM_CACHED_PSO>();
 
   D3D12_PIPELINE_STATE_STREAM_DESC gpciDesc = {gpci.rootSize(), gpci.root()};
-  pipeline = pipe_cache.loadGraphicsMeshPipelineVariant(base.cacheId, is_wire_frame, static_state, fb_layout, gpciDesc, cacheTarget);
+  pipeline = pipe_cache.loadGraphicsPipelineVariant(base.getGroupIndex(), gpciDesc, base.getIdentifier())
+               .transform_error([&](auto &&error_code) {
+                 if (E_INVALIDARG != error_code)
+                 {
+                   logwarn("DX12: loadGraphicsPipelineVariant failed to load pipeline <%s> with: %s", pipelineName,
+                     dxgi_error_code_to_string(error_code));
+                 }
+                 return error_code;
+               })
+               .value_or({});
   if (pipeline)
   {
     if (PipelineBuildInitiator::RUNTIME == buildInitiator)
@@ -891,10 +919,12 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
     if (FAILED(DX12_CHECK_RESULTF(result, "CreatePipelineState")))
     {
       loadResult.runtimeError = true;
+      const bool isFirstFailure = buildFailure.set(result);
 
-      info.toLog.serialize(base.signature, gpciDesc, pipelineName);
+      if (isFirstFailure)
+        info.toLog.serialize(base.signature, gpciDesc, pipelineName);
 
-      if (is_recoverable_error(result))
+      if (isFirstFailure && is_recoverable_error(result))
       {
         String fb_layout_info;
         fb_layout_info.printf(64, "hasDepth %u", fb_layout.hasDepth);
@@ -940,7 +970,15 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
     // only write back cache if none exists yet (or is invalid)
     else if (!loadResult.validationFailed && (0 == cacheTarget.CachedBlobSizeInBytes))
     {
-      pipe_cache.addGraphicsMeshPipelineVariant(base.cacheId, is_wire_frame, static_state, fb_layout, pipeline.Get());
+      [[maybe_unused]] auto storeResult =
+        pipe_cache.addGraphicsPipelineVariant(base.getGroupIndex(), pipeline.Get(), gpciDesc, base.getIdentifier())
+          .transform_error([&](auto &&error_code) {
+            if (E_INVALIDARG != error_code)
+            {
+              logwarn("DX12: Was unable to cache pipeline <%s>: %s", pipelineName, dxgi_error_code_to_string(error_code));
+            }
+            return error_code;
+          });
     }
 #endif
   }
@@ -963,9 +1001,14 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
 PipelineLoadResult PipelineVariant::load(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const GraphicsPipelineVariantCreateInfo &info)
 {
+  PipelineBuildClaim::Scope claim{buildClaim};
   if (pipeline)
   {
     return {.objectCreated = true, .objectPreExisted = true};
+  }
+  if (buildFailure.blocksBuild())
+  {
+    return {.runtimeError = true};
   }
 #if _TARGET_PC_WIN
   buildInitiator = info.buildInitiator;
@@ -980,9 +1023,14 @@ PipelineLoadResult PipelineVariant::load(Device &device, backend::ShaderModuleMa
 PipelineLoadResult PipelineVariant::loadMesh(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
   PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const MeshPipelineVariantCreateInfo &info)
 {
+  PipelineBuildClaim::Scope claim{buildClaim};
   if (pipeline)
   {
     return {.objectCreated = true, .objectPreExisted = true};
+  }
+  if (buildFailure.blocksBuild())
+  {
+    return {.runtimeError = true};
   }
 #if _TARGET_PC_WIN
   buildInitiator = info.buildInitiator;
@@ -1042,7 +1090,7 @@ void PipelineManager::setCompilePipelineSetQueueLength()
     queueLength += pipelineSetCompilation2->graphicsPipelineTasks.size() - pipelineSetCompilation2->graphicsPipelineTaskIdx;
     queueLength += pipelineSetCompilation2->computePipelineTasks.size() - pipelineSetCompilation2->computePipelineTaskIdx;
   }
-  compilePipelineSetQueueLength.store(queueLength, std::memory_order_release);
+  compilePipelineSetQueueLength.store(queueLength, dag::memory_order_release);
 }
 
 void PipelineManager::createBlitSignature(D3DDevice *device)
@@ -1170,12 +1218,18 @@ static dag::Expected<ComPtr<ID3D12PipelineState>, HRESULT> createSimplePipeline(
   DXGI_FORMAT out_fmt, ID3D12RootSignature *signature, const VertexShaderT &vs, const PixelShaderT &ps)
 {
   G_ASSERT(signature);
+  bool depthWritePipeline = FormatStore::fromDXGIFormat(out_fmt).isDepth();
 #if _TARGET_PC_WIN
   GraphicsPipelineCreateInfoData gpci;
 
-  D3D12_RT_FORMAT_ARRAY &rtfma = gpci.append<CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS>();
-  rtfma.RTFormats[0] = out_fmt;
-  rtfma.NumRenderTargets = 1;
+  if (depthWritePipeline)
+    gpci.append<CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT>(out_fmt);
+  else
+  {
+    D3D12_RT_FORMAT_ARRAY &rtfma = gpci.append<CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS>();
+    rtfma.RTFormats[0] = out_fmt;
+    rtfma.NumRenderTargets = 1;
+  }
 
   CD3DX12_BLEND_DESC &blendDesc = gpci.append<CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC>();
   blendDesc.AlphaToCoverageEnable = FALSE;
@@ -1196,13 +1250,15 @@ static dag::Expected<ComPtr<ID3D12PipelineState>, HRESULT> createSimplePipeline(
   gpci.append<CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER>(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, FALSE, 0, 0.f, 1.f, TRUE, FALSE,
     FALSE, 0, D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF);
 
-  gpci.append<CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL>(FALSE, D3D12_DEPTH_WRITE_MASK_ZERO, D3D12_COMPARISON_FUNC_ALWAYS, FALSE, 0,
-    0, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS, D3D12_STENCIL_OP_KEEP,
+  gpci.append<CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL>(depthWritePipeline,
+    depthWritePipeline ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO, D3D12_COMPARISON_FUNC_ALWAYS, FALSE, 0, 0,
+    D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS, D3D12_STENCIL_OP_KEEP,
     D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS);
 
   gpci.append<CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE>(signature);
   gpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_VS, CD3DX12_SHADER_BYTECODE>(vs, sizeof(vs));
-  gpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_PS, CD3DX12_SHADER_BYTECODE>(ps, sizeof(ps));
+  if (!depthWritePipeline)
+    gpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_PS, CD3DX12_SHADER_BYTECODE>(ps, sizeof(ps));
   gpci.append<CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY>(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 
   D3D12_PIPELINE_STATE_STREAM_DESC gpciDesc = {gpci.rootSize(), gpci.root()};
@@ -1228,11 +1284,19 @@ static dag::Expected<ComPtr<ID3D12PipelineState>, HRESULT> createSimplePipeline(
   desc.pRootSignature = signature;
   desc.VS.pShaderBytecode = vs;
   desc.VS.BytecodeLength = sizeof(vs);
-  desc.PS.pShaderBytecode = ps;
-  desc.PS.BytecodeLength = sizeof(ps);
+  if (!depthWritePipeline)
+  {
+    desc.PS.pShaderBytecode = ps;
+    desc.PS.BytecodeLength = sizeof(ps);
+  }
   desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-  desc.NumRenderTargets = 1;
-  desc.RTVFormats[0] = out_fmt;
+  if (depthWritePipeline)
+    desc.DSVFormat = out_fmt;
+  else
+  {
+    desc.NumRenderTargets = 1;
+    desc.RTVFormats[0] = out_fmt;
+  }
   desc.BlendState.AlphaToCoverageEnable = FALSE;
   desc.BlendState.IndependentBlendEnable = FALSE;
   desc.BlendState.RenderTarget[0].BlendEnable = FALSE;
@@ -1256,8 +1320,8 @@ static dag::Expected<ComPtr<ID3D12PipelineState>, HRESULT> createSimplePipeline(
   desc.RasterizerState.AntialiasedLineEnable = FALSE;
   desc.RasterizerState.ForcedSampleCount = 0;
   desc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-  desc.DepthStencilState.DepthEnable = FALSE;
-  desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+  desc.DepthStencilState.DepthEnable = depthWritePipeline;
+  desc.DepthStencilState.DepthWriteMask = depthWritePipeline ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
   desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
   desc.DepthStencilState.StencilEnable = FALSE;
   desc.DepthStencilState.StencilReadMask = 0;
@@ -1829,9 +1893,9 @@ void PipelineManager::addCompute(Device &device, ProgramID id, ComputeShaderModu
     if (preloaded == CSPreloaded::Yes && hasFeatureSetInCache)
       needToUpdateCache = true;
 
-    pipelineGroup[index] =
-      eastl::make_unique<ComputePipeline>(*signature, eastl::move(shader), device, cache, on_error, *this, *this, byte_code_cache_hit,
-        build_initiator, PipelineLogSerializer{D3D12SerializeRootSignature, shouldUseRootSignaturesUsesCBVDescriptorRanges()});
+    pipelineGroup[index] = eastl::make_unique<ComputePipeline>(*signature, eastl::move(shader), device, cache, on_error, *this, *this,
+      byte_code_cache_hit, build_initiator,
+      PipelineLogSerializer{D3D12SerializeRootSignature, shouldUseRootSignaturesUsesCBVDescriptorRanges()}, id.getGroup());
   }
 }
 
@@ -1948,7 +2012,7 @@ eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(Device &device, 
   {
     return nullptr;
   }
-  return eastl::make_unique<BasePipeline>(cache, *signature, vertexShader, pixelShader);
+  return eastl::make_unique<BasePipeline>(*signature, vertexShader, pixelShader);
 }
 
 void PipelineManager::shutdown(const ShutdownParameters &params)
@@ -2668,18 +2732,17 @@ struct PipelineInfoCollector
 };
 } // namespace
 
-void PipelineManager::addShaderGroup(Device &device, FramebufferLayoutManager *fbs, uint32_t group, ScriptedShadersBinDumpOwner *dump,
-  ShaderID null_pixel_shader, eastl::string_view name)
+void PipelineManager::addShaderGroup(Device &device, uint32_t group, ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader,
+  eastl::string_view name)
 {
+#if _TARGET_PC_WIN
   auto v2 = dump->getDumpV2();
-  bool cacheIsOk = false;
   if (v2)
-    cacheIsOk = cache.onBindumpLoad(device.getDevice(), {v2->shaderHashes.begin(), v2->shaderHashes.end()});
-
-  if (!cacheIsOk)
   {
-    onCacheInvalidated(*fbs);
+    cache.loadCacheForShaderGroup(device.getDevice(), group, name, {v2->shaderHashes.begin(), v2->shaderHashes.end()});
   }
+#endif
+
   ScriptedShaderBinDumpInspector inspector;
   inspector.group = group;
   inspector.nullPixelShader = null_pixel_shader;
@@ -2830,7 +2893,11 @@ void PipelineManager::ScriptedShaderBinDumpInspector::preloadGraphicsPipeline(Sh
   cacheIdent.ps = target->getPixelShaderHash(psID);
 
   int64_t t0 = ref_time_ticks();
-  bool inCache = target->cache.containsGraphicsPipeline(cacheIdent);
+#if _TARGET_PC_WIN
+  bool inCache = target->cache.hasBasePipeline(vsID.getGroup(), cacheIdent);
+#else
+  constexpr bool inCache = false;
+#endif
   profContainsUsec += get_time_usec(t0);
 
   if (!inCache)
@@ -3200,7 +3267,7 @@ BasePipeline::BaseVariantKey BasePipeline::BaseVariantKey::forMesh(StaticRenderS
   return result;
 }
 
-BasePipeline::BasePipeline(PipelineCache &cache, GraphicsPipelineSignature &s, backend::VertexShaderModuleRefStore vsm,
+BasePipeline::BasePipeline(GraphicsPipelineSignature &s, backend::VertexShaderModuleRefStore vsm,
   backend::PixelShaderModuleRefStore psm) :
   signature(s), vsModule(vsm), psModule(psm)
 {
@@ -3233,8 +3300,6 @@ BasePipeline::BasePipeline(PipelineCache &cache, GraphicsPipelineSignature &s, b
     eastl::transform(eastl::begin(vsCombinedURegisterTypes), eastl::end(vsCombinedURegisterTypes),
       eastl::begin(dsModule->uRegisterTypes), eastl::begin(vsCombinedURegisterTypes), [](auto a, auto b) { return a | b; });
   }
-
-  cacheId = cache.getGraphicsPipeline(getIdentifier());
 }
 
 namespace
@@ -3285,20 +3350,30 @@ PipelineVariant &BasePipeline::getMeshVariantFromConfiguration(StaticRenderState
   return *ref->pipeline;
 }
 
-bool BasePipeline::hasVariantReady(InternalInputLayoutID input_layout_id, StaticRenderStateID static_state_id,
+bool BasePipeline::markReadyVariantAsCached(InternalInputLayoutID input_layout_id, StaticRenderStateID static_state_id,
   FramebufferLayoutID framebuffer_layout_id, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, bool is_wire_frame)
 {
   auto key = BaseVariantKey::forVertex(input_layout_id, static_state_id, framebuffer_layout_id, top, is_wire_frame);
   auto ref = find_variant(variants, key);
-  return is_searched_variant(variants, key, ref) && ref->pipeline->isReady();
+  if (!is_searched_variant(variants, key, ref) || !ref->pipeline->isReady())
+  {
+    return false;
+  }
+  ref->pipeline->markAsStaticCacheEntry();
+  return true;
 }
 
-bool BasePipeline::hasMeshVariantReady(StaticRenderStateID static_state_id, FramebufferLayoutID framebuffer_layout_id,
+bool BasePipeline::markReadyMeshVariantAsCached(StaticRenderStateID static_state_id, FramebufferLayoutID framebuffer_layout_id,
   bool is_wire_frame)
 {
   auto key = BaseVariantKey::forMesh(static_state_id, framebuffer_layout_id, is_wire_frame);
   auto ref = find_variant(variants, key);
-  return is_searched_variant(variants, key, ref) && ref->pipeline->isReady();
+  if (!is_searched_variant(variants, key, ref) || !ref->pipeline->isReady())
+  {
+    return false;
+  }
+  ref->pipeline->markAsStaticCacheEntry();
+  return true;
 }
 
 #if D3D_HAS_RAY_TRACING
@@ -3331,24 +3406,18 @@ ID3D12PipelineState *ComputePipeline::loadAndGetHandle(Device &device, PipelineC
 #endif
   if (!isLoaded() && !isRT)
   {
+    PipelineBuildClaim::Scope claim{buildClaim};
+    if (!isLoaded())
+    {
 #if _TARGET_PC_WIN
-    buildInitiator = build_initiator;
+      buildInitiator = build_initiator;
 #endif
-    loadRegularComputeShader(device, cache, on_error, false, name_generator, true, log_serializer);
+      if (!buildFailure.blocksBuild())
+        loadRegularComputeShader(device, cache, on_error, false, name_generator, true, log_serializer);
+    }
   }
   return computePipeline.Get();
 }
-
-#if _TARGET_PC_WIN
-void ComputePipeline::onCacheInvalidated(PipelineCache &cache)
-{
-  if (!computePipeline)
-  {
-    return;
-  }
-  cache.addCompute(shaderModule.ident.shaderHash, computePipeline.Get());
-}
-#endif
 
 #if D3D_HAS_RAY_TRACING
 BufferResourceReferenceAndAddressRange ComputePipeline::getRayDispatchGroupTableSetBuffer(Device &device,
@@ -3415,56 +3484,6 @@ ID3D12PipelineState *PipelineManager::getClearPipeline(Device &device, DXGI_FORM
 
   return ref->pipeline.Get();
 }
-
-#if _TARGET_PC_WIN
-void PipelineManager::onCacheInvalidated(FramebufferLayoutManager &framebuffer_layouts)
-{
-  // Recreating root signatures would require a mid sized refactor to avoid a chunk of repeated code
-  // and its a "minor optimization" (a few 100 ups is saved each) cache and we can live without
-  // rebuilding it now. It will on later runs be rebuild. So we don't do it for now.
-#if 0
-  for (auto &s : computeSignatures)
-  {
-    // cache.addComputeSignature(s->def, <generate bytecode from s->def>);
-  }
-
-  for (auto &s : graphicsMeshSignatures)
-  {
-    // cache.addGraphicsMeshSignature(s->def, <generate bytecode from s->def>);
-  }
-
-  for (auto &s: graphicsSignatures)
-  {
-    // cache.addGraphicsSignature(s->def, <generate bytecode from s->def>);
-  }
-#endif
-  for (auto &g : graphicsPipelines)
-  {
-    for (auto &p : g)
-    {
-      if (!p)
-      {
-        continue;
-      }
-      p->onCacheInvalidated(cache, *this, *this, framebuffer_layouts);
-    }
-  }
-
-  for (auto &g : computePipelines)
-  {
-    for (auto &p : g)
-    {
-      if (!p)
-      {
-        continue;
-      }
-      p->onCacheInvalidated(cache);
-    }
-  }
-}
-#else
-void PipelineManager::onCacheInvalidated(FramebufferLayoutManager &) {}
-#endif
 
 PipelineManager::ScriptedShaderBinDumpInspector::~ScriptedShaderBinDumpInspector()
 {
@@ -3610,7 +3629,7 @@ bool PipelineManager::ShaderClassFilter::isAllowed(const eastl::string &name) co
 
 uint32_t PipelineManager::getCompilePipelineSetQueueLength() const
 {
-  uint32_t queueLength = compilePipelineSetQueueLength.load(std::memory_order_acquire);
+  uint32_t queueLength = compilePipelineSetQueueLength.load(dag::memory_order_acquire);
 #if _TARGET_PC_WIN
   if (pipelineSetCompileWorker)
     queueLength += pipelineSetCompileWorker->getRemaining();
@@ -4347,12 +4366,14 @@ bool ComputePipeline::loadRayTracePipeline(Device &device, PipelineCache &cache,
 ComputePipeline::ComputePipeline(ComputePipelineSignature &sign, ComputeShaderModule module, Device &device, PipelineCache &cache,
   RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator,
   [[maybe_unused]] ShaderBindingTablePool &shader_binding_table_pool, bool byte_code_cache_hit,
-  [[maybe_unused]] PipelineBuildInitiator build_initiator, const PipelineLogSerializer &log_serializer) :
+  [[maybe_unused]] PipelineBuildInitiator build_initiator, const PipelineLogSerializer &log_serializer,
+  [[maybe_unused]] uint32_t shader_group) :
   shaderModule{eastl::move(module)},
   signature{sign}
 #if _TARGET_PC_WIN
   ,
-  buildInitiator{build_initiator}
+  buildInitiator{build_initiator},
+  shaderGroup{shader_group}
 #endif
 {
 #if D3D_HAS_RAY_TRACING
@@ -4458,7 +4479,16 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
   D3D12_CACHED_PIPELINE_STATE &cacheTarget = cpci.append<CD3DX12_PIPELINE_STATE_STREAM_CACHED_PSO>();
 
   D3D12_PIPELINE_STATE_STREAM_DESC cpciDesc = {cpci.rootSize(), cpci.root()};
-  computePipeline = cache.loadCompute(shaderModule.ident.shaderHash, cpciDesc, cacheTarget);
+  computePipeline = cache.loadComputePipeline(shaderGroup, cpciDesc, shaderModule.ident.shaderHash)
+                      .transform_error([&](auto &&error_code) {
+                        if (E_INVALIDARG != error_code)
+                        {
+                          logwarn("DX12: loadComputePipeline failed to load pipeline <%s> with: %s", pipelineName,
+                            dxgi_error_code_to_string(error_code));
+                        }
+                        return error_code;
+                      })
+                      .value_or({});
   if (computePipeline)
   {
     if (PipelineBuildInitiator::RUNTIME == buildInitiator)
@@ -4538,12 +4568,16 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
     // if it still fails then something else is not ok
     if (FAILED(result))
     {
+      const bool isFirstFailure = buildFailure.set(result);
 
+      if (isFirstFailure)
+      {
 #if _TARGET_PC_WIN
-      log_serializer.serialize(signature, cpciDesc, pipelineName);
+        log_serializer.serialize(signature, cpciDesc, pipelineName);
 #else
-      log_serializer.serialize(signature, desc, pipelineName);
+        log_serializer.serialize(signature, desc, pipelineName);
 #endif
+      }
 
       if (is_recoverable_error(result))
       {
@@ -4567,7 +4601,15 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
     // only write back cache if none exists yet (or is invalid)
     else if (0 == cacheTarget.CachedBlobSizeInBytes)
     {
-      cache.addCompute(shaderModule.ident.shaderHash, computePipeline.Get());
+      [[maybe_unused]] auto storeResult =
+        cache.addComputePipeline(shaderGroup, computePipeline.Get(), cpciDesc, shaderModule.ident.shaderHash)
+          .transform_error([&](auto &&error_code) {
+            if (E_INVALIDARG != error_code)
+            {
+              logwarn("DX12: Was unable to cache pipeline <%s>: %s", pipelineName, dxgi_error_code_to_string(error_code));
+            }
+            return error_code;
+          });
     }
 #endif
   }
@@ -4735,23 +4777,26 @@ bool AsyncPipelineCompiler::enqueueGraphicsPipeline(PipelineVariant *variant, Ba
 {
   G_ASSERT(workerThread.isThreadRunnning());
 
-  OSSpinlockScopedLock lock(queueLock);
-
-  if (isGraphicsPipelinePendingNoLock(variant))
-    return true;
-
-  if (graphicsPipelinesQueue.full())
   {
-    logwarn("DX12: enqueueGraphicsPipeline failed, queue is to big: %d", graphicsPipelinesQueue.size());
-    return false;
+    OSSpinlockScopedLock lock(queueLock);
+
+    if (isGraphicsPipelinePendingNoLock(variant))
+      return true;
+
+    if (graphicsPipelinesQueue.full())
+    {
+      logwarn("DX12: enqueueGraphicsPipeline failed, queue is to big: %d", graphicsPipelinesQueue.size());
+      return false;
+    }
+
+    PendingGraphicsPipeline pending;
+    pending.variant = variant;
+    pending.basePipeline = &base;
+    pending.info = info;
+
+    graphicsPipelinesQueue.push_back(pending);
   }
-
-  PendingGraphicsPipeline pending;
-  pending.variant = variant;
-  pending.basePipeline = &base;
-  pending.info = info;
-
-  graphicsPipelinesQueue.push_back(pending);
+  wakeWorker();
 
   return true;
 }
@@ -4761,23 +4806,26 @@ bool AsyncPipelineCompiler::enqueueMeshPipeline(PipelineVariant *variant, BasePi
 {
   G_ASSERT(workerThread.isThreadRunnning());
 
-  OSSpinlockScopedLock lock(queueLock);
-
-  if (isMeshPipelinePendingNoLock(variant))
-    return true;
-
-  if (meshPipelinesQueue.full())
   {
-    logwarn("DX12: enqueueMeshPipeline failed, queue is to big: %d", meshPipelinesQueue.size());
-    return false;
+    OSSpinlockScopedLock lock(queueLock);
+
+    if (isMeshPipelinePendingNoLock(variant))
+      return true;
+
+    if (meshPipelinesQueue.full())
+    {
+      logwarn("DX12: enqueueMeshPipeline failed, queue is to big: %d", meshPipelinesQueue.size());
+      return false;
+    }
+
+    PendingMeshPipeline pending;
+    pending.variant = variant;
+    pending.basePipeline = &base;
+    pending.info = info;
+
+    meshPipelinesQueue.push_back(pending);
   }
-
-  PendingMeshPipeline pending;
-  pending.variant = variant;
-  pending.basePipeline = &base;
-  pending.info = info;
-
-  meshPipelinesQueue.push_back(pending);
+  wakeWorker();
 
   return true;
 }
@@ -4786,22 +4834,25 @@ bool AsyncPipelineCompiler::enqueueComputePipeline(ComputePipeline *pipeline, Pi
 {
   G_ASSERT(workerThread.isThreadRunnning());
 
-  OSSpinlockScopedLock lock(queueLock);
-
-  if (isComputePipelinePendingNoLock(pipeline))
-    return true;
-
-  if (computePipelinesQueue.full())
   {
-    logwarn("DX12: enqueueComputePipeline failed, queue is to big: %d", computePipelinesQueue.size());
-    return false;
+    OSSpinlockScopedLock lock(queueLock);
+
+    if (isComputePipelinePendingNoLock(pipeline))
+      return true;
+
+    if (computePipelinesQueue.full())
+    {
+      logwarn("DX12: enqueueComputePipeline failed, queue is to big: %d", computePipelinesQueue.size());
+      return false;
+    }
+
+    PendingComputePipeline pending;
+    pending.pipeline = pipeline;
+    pending.buildInitiator = build_initiator;
+
+    computePipelinesQueue.push_back(pending);
   }
-
-  PendingComputePipeline pending;
-  pending.pipeline = pipeline;
-  pending.buildInitiator = build_initiator;
-
-  computePipelinesQueue.push_back(pending);
+  wakeWorker();
 
   return true;
 }
@@ -4811,12 +4862,12 @@ bool AsyncPipelineCompiler::waitForOutstandingCompilationAndSuspend(bool force_e
   if (!workerThread.isThreadRunnning())
     return false;
 
-  isSuspended.store(true, std::memory_order_release);
+  isSuspended.store(true, dag::memory_order_release);
 
   const void *currentlyCompilingValue = nullptr;
   {
     OSSpinlockScopedLock lock(queueLock);
-    currentlyCompilingValue = currentlyCompiling.load(std::memory_order_relaxed);
+    currentlyCompilingValue = currentlyCompiling.load(dag::memory_order_relaxed);
   }
 
   // We won't start compiling anything new after this check since the compiler thread checks isSuspended under the lock.
@@ -4836,74 +4887,69 @@ void AsyncPipelineCompiler::resumeCompilation()
   if (!workerThread.isThreadRunnning())
     return;
 
-  isSuspended.store(false, std::memory_order_relaxed);
+  isSuspended.store(false, dag::memory_order_relaxed);
+  const bool hasQueued = [this] {
+    OSSpinlockScopedLock lock(queueLock);
+    return !graphicsPipelinesQueue.empty() || !meshPipelinesQueue.empty() || !computePipelinesQueue.empty();
+  }();
+  if (hasQueued)
+    wakeWorker();
+}
+
+template <typename Queue, typename Member, typename ReadyFn>
+bool AsyncPipelineCompiler::removeFromQueueOrWait(Queue &queue, Member member, const void *key, ReadyFn &&ready)
+{
+  if (!workerThread.isThreadRunnning())
+    return false;
+
+  if ([&] {
+        OSSpinlockScopedLock lock(queueLock);
+        auto it = eastl::find_if(queue.begin(), queue.end(), [&](const auto &pending) { return pending.*member == key; });
+        if (it == queue.end())
+          return false;
+        queue.erase(it);
+        return true;
+      }())
+  {
+    bumpRoundSeq();
+    return false;
+  }
+  ::wait(currentlyCompiling, key);
+  return ready();
 }
 
 bool AsyncPipelineCompiler::removeGraphicsPipelineFromQueueOrWait(const PipelineVariant *variant)
 {
-  if (!workerThread.isThreadRunnning())
-    return false;
-
-  {
-    OSSpinlockScopedLock lock(queueLock);
-    auto it = eastl::find_if(graphicsPipelinesQueue.begin(), graphicsPipelinesQueue.end(),
-      [variant](const PendingGraphicsPipeline &pending) { return pending.variant == variant; });
-    if (it != graphicsPipelinesQueue.end())
-    {
-      graphicsPipelinesQueue.erase(it);
-      return true;
-    }
-  }
-  ::wait(currentlyCompiling, static_cast<const void *>(variant));
-  return variant->isReady();
+  return removeFromQueueOrWait(graphicsPipelinesQueue, &PendingGraphicsPipeline::variant, variant,
+    [variant] { return variant->isReady(); });
 }
 
 bool AsyncPipelineCompiler::removeMeshPipelineFromQueueOrWait(const PipelineVariant *variant)
 {
-  if (!workerThread.isThreadRunnning())
-    return false;
-
-  {
-    OSSpinlockScopedLock lock(queueLock);
-    auto it = eastl::find_if(meshPipelinesQueue.begin(), meshPipelinesQueue.end(),
-      [variant](const PendingMeshPipeline &pending) { return pending.variant == variant; });
-    if (it != meshPipelinesQueue.end())
-    {
-      meshPipelinesQueue.erase(it);
-      return true;
-    }
-  }
-  ::wait(currentlyCompiling, static_cast<const void *>(variant));
-  return variant->isReady();
+  return removeFromQueueOrWait(meshPipelinesQueue, &PendingMeshPipeline::variant, variant, [variant] { return variant->isReady(); });
 }
 
 bool AsyncPipelineCompiler::removeComputePipelineFromQueueOrWait(const ComputePipeline *pipeline)
 {
-  if (!workerThread.isThreadRunnning())
-    return false;
-
-  {
-    OSSpinlockScopedLock lock(queueLock);
-    auto it = eastl::find_if(computePipelinesQueue.begin(), computePipelinesQueue.end(),
-      [pipeline](const PendingComputePipeline &pending) { return pending.pipeline == pipeline; });
-    if (it != computePipelinesQueue.end())
-    {
-      computePipelinesQueue.erase(it);
-      return true;
-    }
-  }
-  ::wait(currentlyCompiling, static_cast<const void *>(pipeline));
-  return pipeline->isLoaded();
+  return removeFromQueueOrWait(computePipelinesQueue, &PendingComputePipeline::pipeline, pipeline,
+    [pipeline] { return pipeline->isLoaded(); });
 }
 
 void AsyncPipelineCompiler::finishAllCompilations()
 {
   G_ASSERT(!isSuspended.load());
-  spin_wait([this]() {
-    OSSpinlockScopedLock lock(queueLock);
-    return !graphicsPipelinesQueue.empty() || !meshPipelinesQueue.empty() || !computePipelinesQueue.empty() ||
-           currentlyCompiling.load(std::memory_order_relaxed) != nullptr;
-  });
+  for (;;)
+  {
+    const uint32_t seq = roundSeq.load(); // Read before the checks, so the wait returns once the work seen leaves the queue
+    if ([this] {
+          OSSpinlockScopedLock lock(queueLock);
+          return graphicsPipelinesQueue.empty() && meshPipelinesQueue.empty() && computePipelinesQueue.empty() &&
+                 currentlyCompiling.load(dag::memory_order_relaxed) == nullptr;
+        }())
+      return;
+    TIME_PROFILE_DEV(AsyncPipelineCompilerFinishAll);
+    ::wait(roundSeq, seq);
+  }
 }
 
 void AsyncPipelineCompiler::cancelAllCompilations()
@@ -4914,11 +4960,12 @@ void AsyncPipelineCompiler::cancelAllCompilations()
   const void *currentlyCompilingValue = nullptr;
   {
     OSSpinlockScopedLock lock(queueLock);
-    currentlyCompilingValue = currentlyCompiling.load(std::memory_order_relaxed);
+    currentlyCompilingValue = currentlyCompiling.load(dag::memory_order_relaxed);
     computePipelinesQueue.clear();
     meshPipelinesQueue.clear();
     graphicsPipelinesQueue.clear();
   }
+  bumpRoundSeq();
 
   if (currentlyCompilingValue == nullptr)
     return;
@@ -4941,14 +4988,22 @@ void AsyncPipelineCompiler::shutdown()
   if (!workerThread.isThreadRunnning())
     return;
   G_ASSERT(!isSuspended.load());
-  shouldTerminate.store(true, std::memory_order_relaxed);
+  interlocked_release_store(workerThread.terminating, 1);
+  wakeWorker();
   if (workerThread.isThreadRunnning())
     workerThread.terminate(true);
 }
 
+AsyncPipelineCompiler::~AsyncPipelineCompiler()
+{
+  // DaThread::terminate() does not wake the idle wait, so a teardown that skipped shutdown() would leave it parked
+  interlocked_release_store(workerThread.terminating, 1);
+  wakeWorker();
+}
+
 bool AsyncPipelineCompiler::isGraphicsPipelinePendingNoLock(const PipelineVariant *variant) const
 {
-  if (currentlyCompiling.load(std::memory_order_relaxed) == variant)
+  if (currentlyCompiling.load(dag::memory_order_relaxed) == variant)
     return true;
   const auto it = eastl::find_if(graphicsPipelinesQueue.begin(), graphicsPipelinesQueue.end(),
     [variant](const PendingGraphicsPipeline &pending) { return pending.variant == variant; });
@@ -4957,7 +5012,7 @@ bool AsyncPipelineCompiler::isGraphicsPipelinePendingNoLock(const PipelineVarian
 
 bool AsyncPipelineCompiler::isMeshPipelinePendingNoLock(const PipelineVariant *variant) const
 {
-  if (currentlyCompiling.load(std::memory_order_relaxed) == variant)
+  if (currentlyCompiling.load(dag::memory_order_relaxed) == variant)
     return true;
   const auto it = eastl::find_if(meshPipelinesQueue.begin(), meshPipelinesQueue.end(),
     [variant](const PendingMeshPipeline &pending) { return pending.variant == variant; });
@@ -4966,26 +5021,40 @@ bool AsyncPipelineCompiler::isMeshPipelinePendingNoLock(const PipelineVariant *v
 
 bool AsyncPipelineCompiler::isComputePipelinePendingNoLock(const ComputePipeline *pipeline) const
 {
-  if (currentlyCompiling.load(std::memory_order_relaxed) == pipeline)
+  if (currentlyCompiling.load(dag::memory_order_relaxed) == pipeline)
     return true;
   const auto it = eastl::find_if(computePipelinesQueue.begin(), computePipelinesQueue.end(),
     [pipeline](const PendingComputePipeline &pending) { return pending.pipeline == pipeline; });
   return it != computePipelinesQueue.end();
 }
 
+void AsyncPipelineCompiler::wakeWorker()
+{
+  wakeSeq.fetch_add(1);
+  ::notify_one(wakeSeq);
+}
+
+void AsyncPipelineCompiler::bumpRoundSeq()
+{
+  roundSeq.fetch_add(1);
+  ::notify_one(roundSeq);
+}
+
 void AsyncPipelineCompiler::processQueue(volatile int &terminating)
 {
-  while (!terminating && !shouldTerminate.load(std::memory_order_relaxed))
+  while (!interlocked_acquire_load(terminating))
   {
+    // Read before the queue checks, so a push after them changes it and the wait below returns
+    const uint32_t seq = wakeSeq.load();
     bool hasProcessed = false;
     {
       eastl::optional<PendingGraphicsPipeline> pendingGraphics;
       {
         OSSpinlockScopedLock lock(queueLock);
-        if (!graphicsPipelinesQueue.empty() && !isSuspended.load(std::memory_order_relaxed))
+        if (!graphicsPipelinesQueue.empty() && !isSuspended.load(dag::memory_order_relaxed))
         {
           pendingGraphics = graphicsPipelinesQueue.front();
-          currentlyCompiling.store(pendingGraphics->variant, std::memory_order_relaxed);
+          currentlyCompiling.store(pendingGraphics->variant, dag::memory_order_relaxed);
           ::notify_one(currentlyCompiling);
           graphicsPipelinesQueue.pop_front();
           hasProcessed = true;
@@ -5006,10 +5075,10 @@ void AsyncPipelineCompiler::processQueue(volatile int &terminating)
       eastl::optional<PendingMeshPipeline> pendingMesh;
       {
         OSSpinlockScopedLock lock(queueLock);
-        if (!meshPipelinesQueue.empty() && !isSuspended.load(std::memory_order_relaxed))
+        if (!meshPipelinesQueue.empty() && !isSuspended.load(dag::memory_order_relaxed))
         {
           pendingMesh = meshPipelinesQueue.front();
-          currentlyCompiling.store(pendingMesh->variant, std::memory_order_relaxed);
+          currentlyCompiling.store(pendingMesh->variant, dag::memory_order_relaxed);
           ::notify_one(currentlyCompiling);
           meshPipelinesQueue.pop_front();
           hasProcessed = true;
@@ -5029,10 +5098,10 @@ void AsyncPipelineCompiler::processQueue(volatile int &terminating)
       eastl::optional<PendingComputePipeline> pendingCompute;
       {
         OSSpinlockScopedLock lock(queueLock);
-        if (!computePipelinesQueue.empty() && !isSuspended.load(std::memory_order_relaxed))
+        if (!computePipelinesQueue.empty() && !isSuspended.load(dag::memory_order_relaxed))
         {
           pendingCompute = computePipelinesQueue.front();
-          currentlyCompiling.store(pendingCompute->pipeline, std::memory_order_relaxed);
+          currentlyCompiling.store(pendingCompute->pipeline, dag::memory_order_relaxed);
           ::notify_one(currentlyCompiling);
           computePipelinesQueue.pop_front();
           hasProcessed = true;
@@ -5047,21 +5116,15 @@ void AsyncPipelineCompiler::processQueue(volatile int &terminating)
     }
 
     {
-      currentlyCompiling.store(nullptr, std::memory_order_release);
+      currentlyCompiling.store(nullptr, dag::memory_order_release);
       ::notify_one(currentlyCompiling);
     }
 
-    if (!hasProcessed)
-    {
-      spin_wait([this, &terminating]() {
-        if (terminating || shouldTerminate.load(std::memory_order_relaxed))
-          return false;
-        if (isSuspended.load(std::memory_order_relaxed))
-          return true;
-        OSSpinlockScopedLock lock(queueLock);
-        return graphicsPipelinesQueue.empty() && meshPipelinesQueue.empty() && computePipelinesQueue.empty();
-      });
-    }
+    if (hasProcessed)
+      bumpRoundSeq();
+
+    if (!hasProcessed && !interlocked_acquire_load(terminating))
+      ::wait(wakeSeq, seq);
   }
 }
 
@@ -5089,12 +5152,13 @@ static uint32_t get_pipeline_set_compile_thread_count()
 PipelineSetCompileWorker::PipelineSetCompileWorker(Device &device_ref, dag::Vector<GraphicsWorkItem> &&graphics_items,
   dag::Vector<MeshWorkItem> &&mesh_items, dag::Vector<ComputeWorkItem> &&compute_items) :
   device(&device_ref),
+  wakeSeq(device_ref.pipeMan.pipelineSetCompileWakeSeq),
   graphicsItems(eastl::move(graphics_items)),
   meshItems(eastl::move(mesh_items)),
   computeItems(eastl::move(compute_items))
 {
   const uint32_t totalItems = graphicsItems.size() + meshItems.size() + computeItems.size();
-  remaining.store(totalItems, std::memory_order_relaxed);
+  remaining.store(totalItems, dag::memory_order_relaxed);
 
   uint32_t threadCount = get_pipeline_set_compile_thread_count();
   if (totalItems > 0 && threadCount > totalItems)
@@ -5112,29 +5176,38 @@ PipelineSetCompileWorker::~PipelineSetCompileWorker() { cancelAndWait(); }
 
 bool PipelineSetCompileWorker::isPaused() const { return device->pipeMan.isPipelineSetCompilationPaused(); }
 
-void PipelineSetCompileWorker::process(volatile int &terminating, std::atomic<const void *> &slot)
+void PipelineSetCompileWorker::process(volatile int &terminating, dag::AtomicPointer<const void> &slot)
 {
   const PipelineLogSerializer logSerializer{
     device->pipeMan.getD3D12SerializeRootSignature(), device->pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()};
   processItems(terminating, slot, graphicsItems, [this](GraphicsWorkItem &item) {
     if (item.pipeline->isReady())
+    {
+      item.pipeline->markAsStaticCacheEntry();
       return;
+    }
     const auto loadResult =
       item.pipeline->load(*device, device->pipeMan, *item.base, device->pipeMan.getCache(), device->pipeMan, item.info);
     if (!loadResult.objectCreated)
-      needToUpdateCache.store(true, std::memory_order_relaxed);
+      needToUpdateCache.store(true, dag::memory_order_relaxed);
   });
   processItems(terminating, slot, meshItems, [this](MeshWorkItem &item) {
     if (item.pipeline->isReady())
+    {
+      item.pipeline->markAsStaticCacheEntry();
       return;
+    }
     const auto loadResult =
       item.pipeline->loadMesh(*device, device->pipeMan, *item.base, device->pipeMan.getCache(), device->pipeMan, item.info);
     if (!loadResult.objectCreated)
-      needToUpdateCache.store(true, std::memory_order_relaxed);
+      needToUpdateCache.store(true, dag::memory_order_relaxed);
   });
   processItems(terminating, slot, computeItems, [this, &logSerializer](ComputeWorkItem &item) {
     if (item.pipeline->isLoaded())
+    {
+      item.pipeline->markAsStaticCacheEntry();
       return;
+    }
     item.pipeline->loadAndGetHandle(*device, device->pipeMan.getCache(), item.onError, device->pipeMan,
       PipelineBuildInitiator::STATIC_CACHE, logSerializer);
   });
@@ -5157,20 +5230,16 @@ bool PipelineSetCompileWorker::claimOrWaitCompute(const ComputePipeline *pipelin
 
 bool PipelineSetCompileWorker::waitForOutstandingCompilationAndSuspend(bool force_evict)
 {
-  isSuspended.store(true, std::memory_order_release);
-
-  bool anyOutstanding = false;
-  {
-    OSSpinlockScopedLock lock(stateLock);
-    for (auto &thread : workerThreads)
-      if (thread->currentlyCompiling.load(std::memory_order_relaxed) != nullptr)
-      {
-        anyOutstanding = true;
-        break;
-      }
-  }
-
-  if (!anyOutstanding)
+  if ([this] {
+        OSSpinlockScopedLock lock(stateLock);
+        // Workers take items under this lock: when no items are left, no new compile can start and no suspend is needed
+        if (!graphicsItems.empty() || !meshItems.empty() || !computeItems.empty())
+          isSuspended.store(true, dag::memory_order_relaxed);
+        for (auto &thread : workerThreads)
+          if (thread->currentlyCompiling.load(dag::memory_order_relaxed) != nullptr)
+            return false;
+        return true;
+      }())
     return false;
 
   if (!force_evict)
@@ -5179,19 +5248,24 @@ bool PipelineSetCompileWorker::waitForOutstandingCompilationAndSuspend(bool forc
   TIME_PROFILE_DEV(PipelineSetCompileWorkerSync);
   for (auto &thread : workerThreads)
   {
-    const void *value = thread->currentlyCompiling.load(std::memory_order_relaxed);
+    const void *value = thread->currentlyCompiling.load(dag::memory_order_relaxed);
     if (value)
       ::wait(thread->currentlyCompiling, value);
   }
   return false;
 }
 
-void PipelineSetCompileWorker::resumeCompilation() { isSuspended.store(false, std::memory_order_relaxed); }
+void PipelineSetCompileWorker::resumeCompilation()
+{
+  if (isSuspended.exchange(false))
+    device->pipeMan.wakePipelineSetCompileWorkers();
+}
 
 void PipelineSetCompileWorker::cancelAndWait()
 {
   for (auto &thread : workerThreads)
     interlocked_release_store(thread->terminating, 1);
+  device->pipeMan.wakePipelineSetCompileWorkers();
   for (auto &thread : workerThreads)
     thread->terminate(true);
 }
@@ -5357,6 +5431,10 @@ static void print_to_log(const SerializedGpuPipeline &data_store, const eastl::s
   };
   auto startBlob85 = encode_base_85({startBlob.bytes, sizeof(startBlob)});
   auto dataBlob85 = encode_base_85({data_store.data(), data_store.size()});
+  logdbg("DX12: To decode the pipeline blob below, build the tool in prog\\tools\\pipelineDebugger. Run it with \"-i <log file>\". "
+         "Run it with no arguments to see all its options");
+  logdbg("DX12: pipelineDebugger takes only a plain text log file. "
+         "A part of the log is enough if each pipeline blob in it is complete");
   logdbg("DX12: Serializing pipeline for %u bytes -> %u chars (%u%%)", data_store.size(), dataBlob85.size(),
     (100 * dataBlob85.size()) / data_store.size());
   logdbg("DX12: BeginPipelineBlob: ~%s~", startBlob85);

@@ -52,9 +52,7 @@ let view = @() {
 ## FRP primitives (module "frp")
 
 - `Watched(v)` - mutable observable.
-  - `.get()` read. `.value` read still works but logs a deprecation error
-    in debug builds; `.value` write and calling the observable (`state(v)`)
-    throw. Commits migrating `.value` -> `.get()/.set()` are API migrations.
+  - `.get()` read.
   - `.set(v)` assign; the stored value changes at once, but propagation to
     subscribers/computeds is deferred and batched (`update_deferred`), so
     multiple sets in one frame coalesce.
@@ -129,10 +127,15 @@ let view = @() {
 
 ## Rebuild model
 
-Watched change -> element(s) watching it are invalidated -> next frame the
-builder closures re-run -> new description diffed against old -> changed
-subtrees rebuilt, unchanged children reused (matched by key, the same
-description table, or the same behavior list). Consequences:
+Watched change -> element(s) watching it are invalidated -> the builder
+closures re-run in the rebuild step of `update()` -> new description diffed
+against old -> changed subtrees rebuilt, unchanged children reused (matched
+by key, the same description table, or the same behavior list).
+The FRP flush comes just before that rebuild. So a change from hover, timers,
+posted events or queued script handlers (`onElemState`, `onAttach`)
+rebuilds in the same update. A change from input handling between updates,
+the scene `onUpdate` or a behavior update rebuilds in the next one.
+Consequences:
 
 - Descriptions that are re-created identically every time (new closures,
   new arrays/tables inline) defeat reuse and cost CPU. Hoisting static

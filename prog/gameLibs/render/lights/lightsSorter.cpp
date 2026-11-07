@@ -28,6 +28,8 @@ LightsSorter::LightsSorter(OmniLightsManager &omni_lights, SpotLightsManager &sp
 
 void LightsSorter::init(DynLightsFeatures requested_features)
 {
+  close();
+
   if (static_cast<bool>(requested_features & DynLightsFeatures::GpuLightsSort))
   {
     prepareSortCS = ComputeShader("prepare_sort_lights_cs", true);
@@ -47,6 +49,19 @@ void LightsSorter::init(DynLightsFeatures requested_features)
     sortLightsStageDataBuf = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), LIGHTS_SORTER_STAGE_DATA_RECORDS_COUNT,
       stageDataBufName, d3d::buffers::Init::No, RESTAG_LIGHTS);
   }
+}
+
+void LightsSorter::close()
+{
+  prepareSortCS = ComputeShader();
+  sortWaveImplCS = ComputeShader();
+  sortScalarBasicImplCS = ComputeShader();
+  sortScalarMediumImplCS = ComputeShader();
+  sortScalarHighImplCS = ComputeShader();
+  sortBatchedImplCS = ComputeShader();
+  finalizeSortCS = ComputeShader();
+  sortDispatchArgsBuf.close();
+  sortLightsStageDataBuf.close();
 }
 
 DynLightsFeatures LightsSorter::getRuntimeFeatures() const

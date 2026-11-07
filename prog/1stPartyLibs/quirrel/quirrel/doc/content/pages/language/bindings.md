@@ -111,6 +111,45 @@ value is not: inside another `const`, or as an `enum` member's value. The cost
 is that its value must be known without running the program, and that a change
 to it requires recompiling every file that used it.
 
+### Folding outside const
+
+The compiler also folds the constant parts of other expressions: an operator
+on constants, a string template with constant values, and a call to a pure
+function when the function and all its arguments are constants. The function
+can be a constant, an import, or a member of one, such as `"abc".toupper` or
+`math.sqrt`. A call that uses a local, a parameter or another run-time value
+stays a normal call, and so does a nullable call `f?()`.
+
+Outside `const`, an expression with a call in it folds only when its value is
+simple: `null`, a bool, a number, a string or a userpointer. When the value is
+a table, an array, an instance or another object, the expression runs each
+time, so a function that makes an object makes a new one on each call. Only an
+explicit `const` keeps such an object, as one immutable value.
+
+The compiler gets the result by running the call while it compiles the file.
+It runs the call even when the result is an object that it does not keep. So
+when the call fails, the file does not compile, even if that line never runs:
+
+```nut
+from "math" import sqrt
+
+const DEBUG = false
+if (DEBUG)
+  println(sqrt("a"))  // error: the compiler runs sqrt("a"), although DEBUG is false
+```
+
+The same is true in a function that nothing calls. In some places, a `?:`
+whose condition and both branches are constants, such as
+`DEBUG ? sqrt("a") : 0`, runs only the branch that its condition selects. But
+this depends on where the `?:` is and on its result, so do not rely on it to
+skip a call that fails.
+
+To get the error at run time instead, for example in a test, give the call a
+run-time value. After `let text = "a"`, the call `sqrt(text)` stays a normal
+call, and `try` can catch its error.
+
+{{example:language/bindings-call-folding}}
+
 ## enum and global enum
 
 `enum` groups related constants under one name, accessed as `Enum.member`.
@@ -126,29 +165,26 @@ any explicit value written between them.
 
 ## Scope and shadowing
 
-A `local`, `let`, `const` or `enum` lives from its declaration to the end of
-its own block, as in most languages. The difference is this: within one
-function, a nested block cannot declare a new binding under a name already
-used earlier in that function, by any of the four kinds, even a name from a
-block that has already closed. The compiler rejects it as a conflict; it does
-not shadow the name.
-
-Two independent (non-nested) blocks can each use the same name, since neither
-is inside the other. A function body is its own scope regardless of nesting,
-so a parameter can reuse a name from every enclosing scope without conflict.
-This is the only place ordinary shadowing happens.
-
-{{example:language/bindings-scope}}
-
-Nesting the same name one block deeper is rejected, for any kind of
-declaration:
+In one function, a `local`, `let`, `const` or `enum` cannot reuse a name that
+is still in scope. Constants, enums and imports from outside the function
+count too. A parameter, a foreach variable or a catch variable can hide a
+name, but not the name of the function it is declared in. Where such a
+variable hides a constant, the name is the variable, so a constant expression
+there cannot use it: with a parameter `T`, `const (T + 1)` is the error
+`Identifier 'T' is not a compile-time constant`.
 
 ```nut
+const MAX_SQUAD = 8
 let squadSize = 4
 {
   let squadSize = 8  // error: conflicts with existing local variable
 }
+function resize() {
+  let MAX_SQUAD = 4  // error: conflicts with existing constant/enum/import
+}
 ```
+
+{{example:language/bindings-scope}}
 
 ## freeze
 

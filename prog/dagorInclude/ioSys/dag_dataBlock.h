@@ -239,7 +239,7 @@ public:
   // install (or reset when owner_of_shared_namemap=nullptr) shared namemap (may be reused for several BLKs)
   KRNLIMP void setSharedNameMapAndClearData(DataBlock *owner_of_shared_namemap);
 
-  /// Delete all sub-blocks.
+  /// Delete all params and sub-blocks; the block name stays.
   KRNLIMP void clearData();
 
   /// Reset DataBlock object (clear all data & names).
@@ -881,12 +881,12 @@ struct ShrinkStats
 //! return new shared name map with strings from src, but use order from order param
 KRNLIMP DBNameMap *shrink_names_saving_order(const DBNameMap &src, const DBNameMap &order, ShrinkStats &stats);
 
-//! returns shared name map for specified vromfs (acquires reference)
+//! returns shared name map for specified vromfs (acquires reference), nullptr for a file-backed vromfs pack
 KRNLIMP DBNameMap *get_vromfs_shared_name_map(const VirtualRomFsData *fs);
 //! releases reference to shared name map; returns residual ref count
 KRNLIMP int release_vromfs_shared_name_map(DBNameMap *nm);
 
-//! returns ZSTD decoder dictionary for specified vromfs (acquires reference)
+//! returns ZSTD decoder dictionary of fs (acquires reference), nullptr when fs or the vromfs that holds it is a file-backed pack
 KRNLIMP ZSTD_DDict_s *get_vromfs_blk_ddict(const VirtualRomFsData *fs);
 //! releases reference to ZSTD decoder dictionary; returns residual ref count
 KRNLIMP int release_vromfs_blk_ddict(ZSTD_DDict_s *ddict);
@@ -901,7 +901,7 @@ KRNLIMP int discard_unused_shared_name_maps();
 //! discard unused ZSTD decoder dictionaries (that were allocated in get_vromfs_blk_ddict() calls); return residual used count
 KRNLIMP int discard_unused_blk_ddict();
 
-//! returns ZSTD encoder dictionary for specified vromfs created with zstd_create_cdict (to be released with zstd_destroy_cdict)
+//! creates ZSTD encoder dictionary of vromfs (release it with zstd_destroy_cdict), nullptr for a file-backed vromfs pack
 KRNLIMP ZSTD_CDict_s *create_vromfs_blk_cdict(const VirtualRomFsData *fs, int compr_level);
 
 //! ZSTD-packs a binary stream as if it contained a datablock dump

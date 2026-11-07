@@ -4,6 +4,8 @@
 #include <daBVH/swBLASLeafDefs.hlsli>
 #include <daBVH/swBVHDefine.hlsli>
 #include <vecmath/dag_vecMath.h>
+#include <daBVH/dag_swBLAS_leaf.h>
+#include <debug/dag_assert.h>
 #include <string.h>
 
 #include <daBVH/swCommon.h>
@@ -100,6 +102,58 @@ void reencodeQuadBlasToFP16(uint8_t *data, int blasStartOffset, int blasSize, in
   }
 
   reencodeVertsToNorm(data + vertRegionStart, vertCount, fp16_verts);
+}
+
+// the producers' no-hit leaf form
+static bool has_no_triangle(const QuadLeafFields &f) { return f.o1 == 0 && f.o2 == 0 && !f.hasB; }
+
+int compactQuadBlasToBoxLeaves(uint8_t *tree, int tree_bytes)
+{
+  struct OpenNode
+  {
+    int writeOfs, readEnd;
+  };
+  OpenNode open[BVH_MAX_BLAS_DEPTH + 1];
+  int depth = 0, w = 0;
+  for (int r = 0; r < tree_bytes;)
+  {
+    G_ASSERT_RETURN(r + BVH_BLAS_NODE_SIZE <= tree_bytes, -1);
+    uint32_t skip;
+    memcpy(&skip, tree + r + 12, sizeof(skip));
+    if (skip & QUAD_LEAF_FLAG)
+    {
+      G_ASSERT_RETURN(r + BVH_BLAS_LEAF_SIZE <= tree_bytes, -1);
+      uint32_t body[3];
+      memcpy(body, tree + r + BVH_BLAS_NODE_SIZE, sizeof(body));
+      const QuadLeafFields f = decodeQuadLeafFields(skip, body[0], body[1], body[2]);
+      if (!has_no_triangle(f))
+      {
+        const uint32_t w0 = QUAD_LEAF_FLAG | f.user | (f.lightTransparent ? QUAD_LEAF_USER_TRANSPARENT : 0u);
+        memmove(tree + w, tree + r, 12);
+        memcpy(tree + w + 12, &w0, sizeof(w0));
+        w += BVH_BLAS_NODE_SIZE;
+      }
+      r += BVH_BLAS_LEAF_SIZE;
+    }
+    else
+    {
+      G_ASSERT_RETURN(depth <= BVH_MAX_BLAS_DEPTH && skip <= uint32_t(tree_bytes - r - BVH_BLAS_NODE_SIZE), -1);
+      open[depth++] = {w, r + BVH_BLAS_NODE_SIZE + (int)skip};
+      memmove(tree + w, tree + r, 12);
+      w += BVH_BLAS_NODE_SIZE;
+      r += BVH_BLAS_NODE_SIZE;
+    }
+    for (; depth > 0 && open[depth - 1].readEnd <= r; --depth)
+    {
+      const OpenNode &node = open[depth - 1];
+      const uint32_t span = uint32_t(w - node.writeOfs - BVH_BLAS_NODE_SIZE);
+      if (span)
+        memcpy(tree + node.writeOfs + 12, &span, sizeof(span));
+      else
+        w = node.writeOfs; // a node whose leaves all went
+    }
+  }
+  return w;
 }
 
 } // namespace build_bvh

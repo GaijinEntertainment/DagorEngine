@@ -32,6 +32,7 @@ CONSOLE_BOOL_VAL("occlusion", use_hw_reprojection, true);
 CONSOLE_BOOL_VAL("render", sw_occlusion, true);
 CONSOLE_BOOL_VAL("render", sw_hmap_occlusion, true);
 CONSOLE_BOOL_VAL("render", sw_animchars_occlusion, true);
+CONSOLE_BOOL_VAL("render", sw_raster_merge_two_layer, true);
 CONSOLE_BOOL_VAL("render", occlusion_async_readback_gpu, true);
 
 namespace var
@@ -92,6 +93,7 @@ void WorldRenderer::initRendinstVisibility()
   const DataBlock *grCfg = ::dgs_get_settings()->getBlockByNameEx("graphics");
   sw_occlusion.set(grCfg->getBool("sw_occlusion", sw_occlusion.get()));
   sw_hmap_occlusion.set(grCfg->getBool("sw_hmap_occlusion", sw_hmap_occlusion.get()));
+  sw_raster_merge_two_layer.set(grCfg->getBool("sw_raster_merge_two_layer", sw_raster_merge_two_layer.get()));
   rendinst_cube_visibility = rendinst::createRIGenVisibility(midmem);
   toggleProbeReflectionQuality();
   mainCameraVisibilityMgr.init();

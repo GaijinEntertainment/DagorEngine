@@ -30,7 +30,7 @@ void VirtualResourceRequestBase::texture(const Texture2dCreateInfo &info)
   createdRes->creationInfo = info;
   // TODO: get rid of this, simply use createdRes->creationInfo everywhere
   if (auto r = eastl::get_if<AutoResolutionRequest<2>>(&info.resolution); r)
-    createdRes->resolution = AutoResolutionData{r->autoResTypeId, r->multiplier};
+    createdRes->resolution = AutoResolutionData{r->autoResTypeId, r->roundUp, r->multiplier};
   else
     createdRes->resolution = eastl::nullopt;
 }
@@ -50,7 +50,7 @@ void VirtualResourceRequestBase::texture(const Texture3dCreateInfo &info)
   createdRes->creationInfo = info;
   // TODO: get rid of this, simply use createdRes->creationInfo everywhere
   if (auto r = eastl::get_if<AutoResolutionRequest<3>>(&info.resolution); r)
-    createdRes->resolution = AutoResolutionData{r->autoResTypeId, r->multiplier};
+    createdRes->resolution = AutoResolutionData{r->autoResTypeId, r->roundUp, r->multiplier};
   else
     createdRes->resolution = eastl::nullopt;
 }

@@ -53,8 +53,8 @@ protected:
   };
   struct CompletedFrameExecutionInfo : BaseType::CompletedFrameExecutionInfo
   {
-    frontend::BindlessManager *bindlessManager;
-    D3DDevice *device;
+    frontend::BindlessManager *bindlessManager = nullptr;
+    D3DDevice *device = nullptr;
   };
 
   static bool can_use_sub_alloc(uint32_t cflags);
@@ -252,6 +252,16 @@ public:
 #endif
 
   bool isBufferPlacedInUserHeap(const BufferState &buffer) { return bufferHeapState.access()->isBufferPlacedInUserHeap(buffer); }
+
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+  void pinBufferResidency(BufferGlobalId buffer_id)
+  {
+    if (!buffer_id)
+      return;
+    auto bufferHeapStateAccess = bufferHeapState.access();
+    pinMemoryResidency(bufferHeapStateAccess->getConstHeap(buffer_id.index()).getBufferMemory());
+  }
+#endif
 
   template <typename T>
   void visitBuffers(T clb)

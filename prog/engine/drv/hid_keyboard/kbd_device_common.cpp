@@ -123,6 +123,24 @@ void GenericKeyboardDevice::resetKeys()
 }
 
 
+bool GenericKeyboardDevice::injectKeyDown(int dkey, wchar_t wc)
+{
+  if (dkey <= 0 || dkey >= DKEY__MAX_BUTTONS)
+    return false;
+  onKeyDown(dkey, wc);
+  return true;
+}
+
+
+bool GenericKeyboardDevice::injectKeyUp(int dkey)
+{
+  if (dkey <= 0 || dkey >= DKEY__MAX_BUTTONS)
+    return false;
+  onKeyUp(dkey);
+  return true;
+}
+
+
 void GenericKeyboardDevice::syncRawState()
 {
   state.shifts = 0;

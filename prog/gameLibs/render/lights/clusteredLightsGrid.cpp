@@ -40,8 +40,6 @@ DynLightsFeatures ClusteredLightsGrid::getRuntimeFeatures() const
                                    static_cast<bool>(cull_spots_cs) && lightsGridPrecalculatedData && lightsGridFrustumPoints;
   return isGpuGridConfigured ? DynLightsFeatures::GpuClusteredLightsGrid : DynLightsFeatures::CpuOnly;
 }
-uint32_t ClusteredLightsGrid::getOmniWords() const { return dag::divide_align_up(storedOmniCount, 32); }
-uint32_t ClusteredLightsGrid::getSpotWords() const { return dag::divide_align_up(storedSpotCount, 32); }
 
 ClusteredLightsGrid::ClusteredLightsGrid(FrustumClusters &clusters_, const LightsResourcesManager *lights_res_mgr,
   int initial_light_density) :
@@ -82,33 +80,20 @@ void ClusteredLightsGrid::init(DynLightsFeatures requested_features)
       RESTAG_LIGHTS);
   }
 
-  const uint32_t words =
-    clamp((initialLightDensity + 31) / 32, (int)2, (int)(MAX_CLUSTERED_SPOT_LIGHTS + MAX_CLUSTERED_OMNI_LIGHTS + 31) / 32);
-  validateDensity(words);
+  const uint32_t initialWords = clamp(dag::divide_align_up(initialLightDensity, 32), (int)2,
+    (int)dag::divide_align_up(MAX_CLUSTERED_SPOT_LIGHTS + MAX_CLUSTERED_OMNI_LIGHTS, 32));
+  reallocateGridBuffer(initialWords);
 }
 
-void ClusteredLightsGrid::reset()
-{
-  for (auto &buf : lightsFullGridCB)
-    buf.close();
-  lightsGridFrustumPoints.close();
-  lightsGridPrecalculatedData.close();
-  lightsOcclusionZSlice.close();
-  clustersOmniGrid.clear();
-  clustersSpotGrid.clear();
-  clusters = nullptr;
-  allocatedWords = 0;
-  lightsGridFrame = 0;
-}
-
-void ClusteredLightsGrid::validateDensity(uint32_t words)
+void ClusteredLightsGrid::reallocateGridBuffer(uint32_t words)
 {
   if (words <= allocatedWords)
     return;
   allocatedWords = words;
   // GPU path: UAV + SRV (no CPU write access). CPU path: dynamic CPU-writable SRV.
-  const uint32_t bufFlags = isGpu() ? (SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED)
-                                    : (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED);
+  const uint32_t bufFlags = isGpu()
+                              ? (SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED)
+                              : (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED | SBCF_ZEROMEM);
   const int numBuffers = isGpu() ? 1 : (int)lightsFullGridCB.size();
   for (int i = 0; i < numBuffers; ++i)
   {
@@ -120,11 +105,9 @@ void ClusteredLightsGrid::validateDensity(uint32_t words)
 }
 
 void ClusteredLightsGrid::prepareGPUCulling(mat44f_cref view, mat44f_cref proj, float znear, float zfar, float close_dist,
-  float max_dist, uint32_t omni_bounds_size, uint32_t spot_bounds_size)
+  float max_dist)
 {
   G_ASSERT(isGpu());
-  storedOmniCount = omni_bounds_size;
-  storedSpotCount = spot_bounds_size;
 
   v_stu(&cullLightsViewTm.row[0].x, view.col0);
   v_stu(&cullLightsViewTm.row[1].x, view.col1);
@@ -145,10 +128,8 @@ void ClusteredLightsGrid::cullCPU(mat44f_cref view, mat44f_cref proj, float znea
   dag::ConstSpan<vec4f> spot_bounds, Occlusion *occlusion)
 {
   G_ASSERT(!isGpu());
-  storedOmniCount = omni_bounds.size();
-  storedSpotCount = spot_lights_culling_data.size();
-  const uint32_t omniWords = getOmniWords();
-  const uint32_t spotWords = getSpotWords();
+  const uint32_t omniWords = dag::divide_align_up(omni_bounds.size(), 32);
+  const uint32_t spotWords = dag::divide_align_up(spot_lights_culling_data.size(), 32);
   clustersOmniGrid.resize(CLUSTERS_PER_GRID * omniWords);
   clustersSpotGrid.resize(CLUSTERS_PER_GRID * spotWords);
 
@@ -163,35 +144,30 @@ void ClusteredLightsGrid::cullCPU(mat44f_cref view, mat44f_cref proj, float znea
     if (!hasOmniLights)
     {
       clustersOmniGrid.resize(0);
-      storedOmniCount = 0;
     }
     if (!hasSpotLights)
     {
       clustersSpotGrid.resize(0);
-      storedSpotCount = 0;
     }
   }
 }
 
-void ClusteredLightsGrid::fill()
+void ClusteredLightsGrid::fill(Sbuffer *indirect_args, uint32_t indirect_args_offset, uint32_t clustered_omni_count,
+  uint32_t clustered_spot_count)
 {
-  const uint32_t omniWords = getOmniWords();
-  const uint32_t spotWords = getSpotWords();
-
-  if ((omniWords + spotWords) == 0)
-    return;
+  const uint32_t words = dag::divide_align_up(clustered_omni_count, 32u) + dag::divide_align_up(clustered_spot_count, 32u);
+  reallocateGridBuffer(words);
 
   if (!isGpu())
-    fillClusteredCB(clustersOmniGrid.data(), omniWords, clustersSpotGrid.data(), spotWords);
+    fillClusteredCB();
   else
-    executeGPUFillingPipeline();
+    executeGPUFillingPipeline(indirect_args, indirect_args_offset);
 }
 
-void ClusteredLightsGrid::executeGPUFillingPipeline()
+void ClusteredLightsGrid::executeGPUFillingPipeline(Sbuffer *indirect_args, uint32_t indirect_args_offset)
 {
   G_ASSERT(isGpu());
   TIME_D3D_PROFILE(clusteredFill_GPU);
-  validateDensity(getSpotWords() + getOmniWords());
 
   ShaderGlobal::set_buffer(lights_full_gridVarId, lightsFullGridCB[0]);
   ShaderGlobal::set_buffer(clustered_grid_lights_precalculated_dataVarId, lightsGridPrecalculatedData);
@@ -216,18 +192,12 @@ void ClusteredLightsGrid::executeGPUFillingPipeline()
   d3d::zero_rwbufi(lightsFullGridCB[0].getBuf());
   d3d::resource_barrier({lightsFullGridCB[0].getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
 
-  const uint32_t totalLights = storedOmniCount + storedSpotCount;
-  if (totalLights > 0)
-  {
-    precalculate_grid_lights_data_cs.dispatchThreads(totalLights, 1, 1);
-    d3d::resource_barrier({lightsGridPrecalculatedData.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
-    fill_items_spheres_cs.dispatchThreads(CLUSTERS_W, CLUSTERS_H, CLUSTERS_D * totalLights);
-    if (storedSpotCount > 0)
-    {
-      d3d::resource_barrier({lightsFullGridCB[0].getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
-      cull_spots_cs.dispatchThreads(CLUSTERS_W, CLUSTERS_H, CLUSTERS_D * storedSpotCount);
-    }
-  }
+  precalculate_grid_lights_data_cs.dispatchIndirect(indirect_args,
+    indirect_args_offset + CLUSTERED_LIGHTS_GRID_INDIRECT_ARGS_PRECALCULATE_OFFSET);
+  d3d::resource_barrier({lightsGridPrecalculatedData.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+  fill_items_spheres_cs.dispatchIndirect(indirect_args, indirect_args_offset + CLUSTERED_LIGHTS_GRID_INDIRECT_ARGS_FILL_ITEMS_OFFSET);
+  d3d::resource_barrier({lightsFullGridCB[0].getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+  cull_spots_cs.dispatchIndirect(indirect_args, indirect_args_offset + CLUSTERED_LIGHTS_GRID_INDIRECT_ARGS_CULL_SPOTS_OFFSET);
 
   d3d::resource_barrier({lightsFullGridCB[0].getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_PIXEL});
 }
@@ -270,11 +240,22 @@ void ClusteredLightsGrid::clusteredCullLights(mat44f_cref view, mat44f_cref proj
   has_omni_lights = clusteredOmniLights != 0;
 }
 
-void ClusteredLightsGrid::fillClusteredCB(uint32_t *source_omni, uint32_t omni_words, uint32_t *source_spot, uint32_t spot_words)
+void ClusteredLightsGrid::fillClusteredCB()
 {
   G_ASSERT(!isGpu());
   TIME_D3D_PROFILE(clusteredFill_CPU);
-  validateDensity(spot_words + omni_words);
+
+  uint32_t *sourceOmni = clustersOmniGrid.data();
+  uint32_t omniWords = clustersOmniGrid.size() / CLUSTERS_PER_GRID;
+
+  uint32_t *sourceSpot = clustersSpotGrid.data();
+  uint32_t spotWords = clustersSpotGrid.size() / CLUSTERS_PER_GRID;
+
+  if ((omniWords + spotWords) == 0)
+  {
+    ShaderGlobal::set_buffer(lights_full_gridVarId, lightsFullGridCB[lightsGridFrame]);
+    return;
+  }
 
   lightsGridFrame = (lightsGridFrame + 1) % lightsFullGridCB.size();
   ShaderGlobal::set_buffer(lights_full_gridVarId, lightsFullGridCB[lightsGridFrame]);
@@ -283,6 +264,6 @@ void ClusteredLightsGrid::fillClusteredCB(uint32_t *source_omni, uint32_t omni_w
     lock_sbuffer<uint32_t>(lightsFullGridCB[lightsGridFrame].getBuf(), 0, 0, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
   if (!masks)
     return;
-  masks.updateDataRange(0, source_omni, omni_words * CLUSTERS_PER_GRID);
-  masks.updateDataRange(CLUSTERS_PER_GRID * omni_words, source_spot, spot_words * CLUSTERS_PER_GRID);
+  masks.updateDataRange(0, sourceOmni, omniWords * CLUSTERS_PER_GRID);
+  masks.updateDataRange(CLUSTERS_PER_GRID * omniWords, sourceSpot, spotWords * CLUSTERS_PER_GRID);
 }

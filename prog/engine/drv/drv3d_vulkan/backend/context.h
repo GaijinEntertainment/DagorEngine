@@ -141,6 +141,7 @@ private:
   void flushBufferDownloads();
   void flushBufferUploads(bool overlapped);
   void flushOrderedBufferUploads(bool overlapped);
+  void roSealUploadedBuffers(bool overlapped, const dag::Vector<BufferCopyInfo> &uploads, const dag::Vector<VkBufferCopy> &copies);
   void transferOwnershipForOverlappedBufferUploads(DeviceQueueType src, DeviceQueueType dst);
   void transferOwnershipForOverlappedBufferUploads(DeviceQueueType src, DeviceQueueType dst,
     const dag::Vector<BufferCopyInfo> &uploads, const dag::Vector<VkBufferCopy> &copies);

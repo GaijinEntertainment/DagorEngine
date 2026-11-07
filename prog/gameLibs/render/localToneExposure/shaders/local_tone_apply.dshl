@@ -1,0 +1,121 @@
+include "local_tone_inc.dshl"
+include "neural_rendering_transfer_inc.dshl"
+include "camera_indoor_inc.dshl"
+
+// USE without INIT keeps the global exposure.
+macro INIT_LOCAL_TONE_MAPPING(code)
+  bool local_tone_mapping_on = true;
+  if (!maybe(global_frame_has_linear_clamp_sampler))
+  {
+    INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(code)
+  }
+  (code) {
+    local_tone_guide@tex2d = local_tone_guide;
+    local_tone_mean@tex2d = local_tone_mean;
+    local_tone_frame_mean@tex2d = local_tone_frame_mean;
+    local_tone_depth@tex2d = local_tone_depth;
+    local_tone_size@i4 = local_tone_size;
+    local_tone_view_size@i4 = local_tone_view_size;
+    local_tone_has_mean@i1 = exists_tex(local_tone_mean);
+    local_tone_has_depth@i1 = exists_tex(local_tone_depth);
+    local_tone_exp2_range@f1 = local_tone_kernel.y * 0.8493218;
+    local_tone_low_size@f4 = (local_tone_size.z, local_tone_size.w, local_tone_size.z - 1, local_tone_size.w - 1);
+    local_tone_low_texel@f2 = (1.0 / max(get_dimensions(local_tone_guide, 0).x, 1),
+      1.0 / max(get_dimensions(local_tone_guide, 0).y, 1), 0, 0);
+    local_tone_view@f2 = (local_tone_view_size.x, local_tone_view_size.y, 0, 0);
+    local_tone_gain@f4 = local_tone_gain;
+    local_tone_apply_curve@f2 = (local_tone_curve.x, local_tone_curve.y, 0, 0);
+    local_tone_log2e_slope@f1 = local_tone_curve.z * 1.44269502162933349609375;
+    local_tone_sky_gain@f1 = pow(2, max(min(local_tone_curve.w + (local_tone_sky_exposure_indoor - local_tone_curve.w) * camera_indoor,
+      local_tone_gain.y), local_tone_gain.x) * local_tone_gain.z);
+    local_tone_apply_zones@f4 = (local_tone_zones.x, local_tone_zones.y - local_tone_zones.x, local_tone_zones.z,
+      local_tone_zones.w - local_tone_zones.z);
+  }
+endmacro
+
+// The frame values are before the exposure.
+macro USE_LOCAL_TONE_MAPPING(code)
+  if (maybe(local_tone_mapping_on))
+  {
+    LOCAL_TONE_MEAN_BIAS(code)
+    LOCAL_TONE_LUMINANCE(code)
+    NEURAL_RENDERING_HIGHLIGHT_MASK(code)
+    hlsl(code) {
+      #define LOCAL_TONE_GUIDE_FLOOR 1e-4
+
+      float local_tone_biased_guided_mean(float log_lum, float2 tc)
+      {
+        float2 src = clamp(tc * local_tone_low_size.xy - 0.5, 0, local_tone_low_size.zw);
+        float2 hi = ceil(src);
+        // Footprint hi-1..hi, inside the pooled texels.
+        float2 uv = hi * local_tone_low_texel;
+        float4 guides = local_tone_guide.GatherRed(global_linear_clamp_sampler, uv).wzxy;
+        float4 means = local_tone_mean.GatherRed(global_linear_clamp_sampler, uv).wzxy;
+        float2 lowWeight = hi - src;
+        float2 highWeight = 1 - lowWeight;
+        float4 bilinear = float4(lowWeight.x, highWeight.x, lowWeight.x, highWeight.x) *
+                          float4(lowWeight.y, lowWeight.y, highWeight.y, highWeight.y);
+        float4 range = mad(guides, local_tone_exp2_range, -log_lum * local_tone_exp2_range);
+        float4 weight = bilinear * (exp2(-range * range) + LOCAL_TONE_GUIDE_FLOOR);
+        return dot(weight, means) / dot(weight, float4(1, 1, 1, 1));
+      }
+
+      // Reversed depth: sky is 0.
+      bool local_tone_is_sky(float2 tc)
+      {
+        if (local_tone_has_depth == 0)
+          return false;
+        int2 pos = clamp(int2(tc * local_tone_view), int2(0, 0), local_tone_view_size.xy - 1);
+        return texelFetch(local_tone_depth, pos, 0).x <= 0;
+      }
+
+      float local_tone_log2_gain(float log_lum, float biased_mean)
+      {
+        float biasedFrameMean = texelFetch(local_tone_frame_mean, int2(0, 0), 0).x;
+        float fromPivot = biased_mean - biasedFrameMean - local_tone_apply_curve.y;
+        float high = 1.0 / (1.0 + exp2(-fromPivot * local_tone_log2e_slope));
+        float localExposure = local_tone_apply_zones.x + local_tone_apply_zones.y * high;
+        float localContrast = local_tone_apply_zones.z + local_tone_apply_zones.w * high;
+        float localMean = biased_mean - LOCAL_TONE_BIAS;
+        float result = local_tone_apply_curve.x - localExposure * fromPivot + localContrast * (log_lum - localMean);
+        return clamp(result, local_tone_gain.x, local_tone_gain.y) * local_tone_gain.z;
+      }
+
+      float local_tone_kept_part(float3 frame)
+      {
+        float kept = 0;
+        // The mask is 0 below luminance 1.
+        BRANCH
+        if (local_tone_gain.w > 0 && luminance(frame) > 1)
+          kept = local_tone_gain.w * neural_rendering_highlight_mask(frame);
+        return kept;
+      }
+
+      float get_local_tone_gain(float3 frame, float2 tc)
+      {
+        BRANCH
+        if (local_tone_has_mean == 0 || local_tone_size.x <= 0)
+          return 1;
+        // The fitted sky exposure has the recovery.
+        BRANCH
+        if (local_tone_is_sky(tc))
+          return local_tone_sky_gain;
+        float logLum = local_tone_log_luminance(frame * getPrevExposureRatio());
+        float result = exp2(local_tone_log2_gain(logLum, local_tone_biased_guided_mean(logLum, tc)));
+        return lerp(result, 1, local_tone_kept_part(frame));
+      }
+
+      float get_local_exposure(float3 frame, float2 tc)
+      {
+        return getPrevExposureRatio() * get_local_tone_gain(frame, tc);
+      }
+    }
+  }
+  else
+  {
+    hlsl(code) {
+      #define get_local_tone_gain(frame, tc) 1
+      #define get_local_exposure(frame, tc) getPrevExposureRatio()
+    }
+  }
+endmacro

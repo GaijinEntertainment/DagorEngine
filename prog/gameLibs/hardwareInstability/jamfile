@@ -1,0 +1,18 @@
+Root      ?= ../../.. ;
+Location   = prog/gameLibs/hardwareInstability ;
+TargetType = lib ;
+Target     = gameLibs/hardwareInstability.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  gameLibs/folders
+;
+
+Sources =
+  hardwareInstability.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

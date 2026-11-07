@@ -46,9 +46,11 @@ static Tab<BlkDDictRec> blkDDict;
 static WinCritSec ccGlobGuard;
 } // namespace
 
+static bool vrom_data_in_memory(const VirtualRomFsData *fs) { return fs && !static_cast<const VirtualRomFsPack *>(fs)->isValid(); }
+
 static dag::ConstSpan<char> get_name_map_vrom_data(const VirtualRomFsData *fs)
 {
-  int last_fidx = fs ? fs->files.map.size() - 1 : -1;
+  int last_fidx = vrom_data_in_memory(fs) ? fs->files.map.size() - 1 : -1;
   if (last_fidx >= 0 && strcmp(fs->files.map[last_fidx], dblk::SHARED_NAMEMAP_FNAME) == 0) //-V1004
     return fs->data[last_fidx];
   return {};
@@ -60,6 +62,8 @@ bool dblk::check_shared_name_map_valid(const VirtualRomFsData *fs, const char **
     return true;
   if (!fs)
     *out_err_desc = "binary format with shared namemap (\\3, \\4, \\5) may be read from vromfs only";
+  else if (!vrom_data_in_memory(fs))
+    *out_err_desc = "binary format with shared namemap (\\3, \\4, \\5) may not be read from a vromfs pack";
   else
     *out_err_desc = "missing shared namemap for binary format (\\3, \\4, \\5)";
   // if (fs)
@@ -176,7 +180,7 @@ ZSTD_DDict_s *dblk::get_vromfs_blk_ddict(const VirtualRomFsData *fs)
     readHandle = vromfs_get_file_data(dict_name_buf, (VirtualRomFsData **)&r.fs);
     dict_data = readHandle;
   }
-  if (!r.fs)
+  if (!vrom_data_in_memory(r.fs))
     return nullptr;
 
   r.dict = zstd_create_ddict(dag::ConstSpan<char>(dict_data.data(), data_size(dict_data)), true);

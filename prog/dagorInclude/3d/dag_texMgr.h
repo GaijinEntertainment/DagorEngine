@@ -228,6 +228,13 @@ void load_anisotropy_from_settings();
 //! \param id ID of the texture to mark
 void add_anisotropy_exception(TEXTUREID id);
 
+//! \brief Divides the anisotropy of the texture sampler by \p div, now and whenever the sampler is rebuilt
+//! from the texture name (content load, reset_anisotropy): same as an Nd meta data key, but the name is kept.
+//! A \p div of 1 or less removes the divisor. A texture marked by add_anisotropy_exception is not changed.
+//! \param id ID of the texture
+//! \param div Divisor of the anisotropy that the texture name gives
+void set_texture_anisotropy_div(TEXTUREID id, int div);
+
 //! \brief Resets anisotropy for all textures whose name contains
 //! \p tex_name_filter as a substring.
 //! \param tex_name_filter Substring filter to match texture names

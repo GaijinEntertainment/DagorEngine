@@ -130,6 +130,7 @@ public:
     setFocusToPreviousImGuiControlAndScrollToItsTopIfRequested();
     setPreviousImguiControlTooltip();
     showJumpToGroupContextMenuOnRightClick();
+    notifyEventHandlerOnHeaderHover();
 
     if (valueHighlightColorSet)
       ImGui::PopStyleColor();
@@ -192,6 +193,12 @@ protected:
     ImGui::SetScrollHereY(0.0f); // Scroll to the last item's top.
 
     focus_helper.clearRequest();
+  }
+
+  void notifyEventHandlerOnHeaderHover()
+  {
+    if (mEventHandler && ImGui::IsItemHovered(ImGuiHoveredFlags_None))
+      mEventHandler->onHover(mId, getRootParent());
   }
 
   void showJumpToGroupContextMenuOnRightClick()

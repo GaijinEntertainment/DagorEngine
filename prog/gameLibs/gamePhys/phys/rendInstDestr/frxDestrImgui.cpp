@@ -42,18 +42,25 @@ struct FrxPreviewPiece
 
 static struct FrxPreview
 {
-  rendinst::RendInstBufferData buffer;
+  FrxDestrInput input;
   FrxDestrProps riFrxDestr;
-  frx::ShatterImpactProfile impact;
+  FrxDestrProps editedFrxDestr;
   Point3 center = Point3::ZERO;
   frx::ShatterMaterialProfileImGuiState profileState;
   dag::Vector<FrxPreviewPiece> pieces;
+
   int seed = 1;
   float spread = 1.2f;
+  float drawHeightScale = 1.f;
+  bool drawCuts = false;
   bool selected = false;
   bool hasOwnProps = false;
   bool armed = false;
   bool dbgDrawn = false;
+
+  bool measuredTimeValid = false;
+  int measuredTimeUs = 0;
+  int measuredTimeRunCnt = 0;
 } frx_preview;
 
 static void rebuild_frx_preview()
@@ -63,14 +70,14 @@ static void rebuild_frx_preview()
   if (frx_preview.dbgDrawn)
     clear_buffered_debug_lines();
 
-  FrxDestrProps frxDestr = frx_preview.riFrxDestr;
-  frxDestr.shatterProfile = frx_preview.profileState.profile;
+  frx_preview.editedFrxDestr = frx_preview.riFrxDestr;
+  frx_preview.editedFrxDestr.shatterProfile = frx_preview.profileState.profile;
   int seed = frx_preview.seed;
   frx::DestrContext ctx;
-  ctx.dbgDraw.drawCutEdgeGraph = frx_preview.dbgDrawn = frx_preview.spread < DBG_DRAW_MAX_SPREAD;
+  ctx.dbgDraw.drawCutEdgeGraph = frx_preview.dbgDrawn = frx_preview.spread < DBG_DRAW_MAX_SPREAD || frx_preview.drawCuts;
+  ctx.dbgDraw.heightScale = frx_preview.drawHeightScale;
   frx::DestrSystem sys;
-  if (!frx_destroy_ri(ctx, sys, rendinst::getRIGenExtraRes(frx_preview.buffer.desc.pool), frx_preview.buffer, frxDestr,
-        frx_preview.impact, seed))
+  if (!frx_destroy_ri(ctx, sys, frx_preview.input, seed))
     return;
 
   dag::Vector<frx::MeshUploadRequest> uploads;
@@ -101,22 +108,55 @@ static void frx_preview_window()
   if (!frx_preview.selected)
     return;
 
-  ImGui::Text("%s%s: %d pieces", rendinst::getRIGenExtraName(frx_preview.buffer.desc.pool),
+  ImGui::Text("%s%s: %d pieces", rendinst::getRIGenExtraName(frx_preview.input.buffer.desc.pool),
     frx_preview.hasOwnProps ? "" : " (no frxDestr, defaults)", int(frx_preview.pieces.size()));
   if (ImGui::Button("Restore rendinst"))
   {
-    rendinst::restoreRendInst(frx_preview.buffer, true);
+    restore_rendinst(frx_preview.input.buffer);
     frx_preview_clear();
     return;
   }
   ImGui::DragFloat("spread", &frx_preview.spread, 0.01f, 1.f, 2.f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-  bool changed = (frx_preview.spread < DBG_DRAW_MAX_SPREAD) != frx_preview.dbgDrawn;
-  changed |= ImGui::InputInt("seed", &frx_preview.seed);
+  ImGui::Checkbox("Draw cuts", &frx_preview.drawCuts);
+  bool redraw = (frx_preview.spread < DBG_DRAW_MAX_SPREAD || frx_preview.drawCuts) != frx_preview.dbgDrawn;
+  redraw |=
+    ImGui::DragFloat("draw height scale", &frx_preview.drawHeightScale, 0.01f, 0.f, 1.f, "%.2f", ImGuiSliderFlags_AlwaysClamp) &&
+    frx_preview.dbgDrawn;
+  bool changed = ImGui::InputInt("seed", &frx_preview.seed);
   ImGui::SameLine();
   if (ImGui::Button("Reroll"))
   {
     frx_preview.seed = grnd() % 10000;
     changed = true;
+  }
+  if (ImGui::Button("Measure"))
+  {
+    const uint64_t timeStart = profile_ref_ticks();
+    frx_preview.measuredTimeRunCnt = 0;
+    do
+    {
+      FRAMEMEM_REGION;
+      frx::DestrContext ctx;
+      frx::DestrSystem sys;
+      int seed = frx_preview.seed;
+      frx_destroy_ri(ctx, sys, frx_preview.input, seed);
+      frx_preview.measuredTimeRunCnt++;
+    } while ((frx_preview.measuredTimeUs = profile_time_usec(timeStart)) < 500000 && frx_preview.measuredTimeRunCnt < 50);
+    frx_preview.measuredTimeValid = true;
+  }
+  if (frx_preview.measuredTimeRunCnt > 0)
+  {
+    const float runSec = float(frx_preview.measuredTimeUs) / float(frx_preview.measuredTimeRunCnt) * 1e-6f;
+    float runFrames = runSec * ImGui::GetIO().Framerate;
+    if (runFrames > 2.f)
+      runFrames = floorf(runFrames * 2.f + 0.5f) * 0.5f;
+    const ImVec4 color = !frx_preview.measuredTimeValid       ? ImVec4(0.5f, 0.5f, 0.5f, 1.f)
+                         : runFrames < 3.f && runSec < 0.075f ? ImVec4(0.f, 1.f, 0.f, 1.f)
+                         : runFrames < 8.f && runSec < 0.25f  ? ImVec4(1.f, 1.f, 0.f, 1.f)
+                                                              : ImVec4(1.f, 0.f, 0.f, 1.f);
+    ImGui::SameLine();
+    ImGui::TextColored(color, "Avg time %.3fms ~ %.1f frames (%i runs)%s", runSec * 1e3f, runFrames, frx_preview.measuredTimeRunCnt,
+      frx_preview.measuredTimeValid ? "" : " [STALE]");
   }
   if (ImGui::Button("Reset profile"))
   {
@@ -136,6 +176,8 @@ static void frx_preview_window()
   ImGui::Separator();
   changed |= frx::imgui_draw_shatter_material_profile(frx_preview.profileState);
   if (changed)
+    frx_preview.measuredTimeValid = false;
+  if (changed || redraw)
     rebuild_frx_preview();
 }
 
@@ -147,16 +189,17 @@ void rendinstdestr::frx_preview_select(const rendinst::RendInstBufferData &buffe
 {
   G_ASSERT_RETURN(buffer.desc.isRiExtra(), );
   if (frx_preview.selected)
-    rendinst::restoreRendInst(frx_preview.buffer, true);
+    restore_rendinst(frx_preview.input.buffer);
   const RiDestrProps *props = get_ri_destr_props(buffer.desc);
   frx_preview.hasOwnProps = props && props->frxDestr;
   frx_preview.riFrxDestr = frx_preview.hasOwnProps ? *props->frxDestr : FrxDestrProps{};
   frx_preview.selected = true;
-  frx_preview.buffer = buffer;
-  frx_preview.impact = make_shatter_impact_profile(impact_pos);
+  frx_prepare_destr_input(buffer, impact_pos, frx_preview.input);
+  frx_preview.input.frxProps = &frx_preview.editedFrxDestr;
   v_stu_p3(&frx_preview.center.x, v_mat44_mul_vec3p(buffer.tm, v_bbox3_center(rendinst::riex_get_lbb(buffer.desc.pool))));
   frx_preview.profileState = {};
   frx_preview.profileState.setProfile(frx_preview.riFrxDestr.shatterProfile);
+  frx_preview.measuredTimeRunCnt = 0;
   rebuild_frx_preview();
 }
 
@@ -179,6 +222,7 @@ void rendinstdestr::frx_preview_clear()
   frx_preview.selected = false;
   frx_preview.armed = false;
   frx_preview.pieces.clear();
+  frx_preview.input.meshes.clear();
 }
 
 void rendinstdestr::frx_preview_add_meshes(frx::MeshRenderList &list)

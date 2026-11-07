@@ -56,7 +56,7 @@ struct NetContext
   eastl::string disconnectDetails; // from DisconnectDetails msg, consumed by on_client_disconnected
   int timeToSwitchServerAddr = 0;
 
-  eastl::fixed_vector<eastl::string, 16> serverUrls;
+  eastl::fixed_vector<SessionUrl, 16> serverUrls;
   int currentServerUrlIdx = 0;
 
   struct PendingConnect
@@ -133,4 +133,6 @@ bool bootstrap_net_ctx(ecs::EntityManager &mgr, net::INetDriver *drv, net::creat
 
 bool destroy_net_ctx();
 
-void install_session_routes_and_connect(ecs::EntityManager &mgr, dag::Vector<eastl::string> urls, eastl::string relayUrl);
+void install_session_routes_and_connect(ecs::EntityManager &mgr, dag::Vector<net::SessionUrl> urls, eastl::string relayUrl);
+
+net::SessionUrlKind current_server_url_kind();

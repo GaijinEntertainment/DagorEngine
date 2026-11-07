@@ -77,11 +77,11 @@ static bool app_console_handler(const char *argv[], int argc)
       params.captureCountLimit = console::to_int(argv[3]);
     if (argc > 4)
       params.flags = console::to_int(argv[4]);
-    d3d_err(d3d::driver_command(Drv3dCommand::PIX_GPU_CAPTURE_AFTER_LONG_FRAMES, reinterpret_cast<void *>(&params)));
+    d3d_err(d3d::driver_command(Drv3dCommand::GPU_CAPTURE_AFTER_LONG_FRAMES, reinterpret_cast<void *>(&params)));
   }
   CONSOLE_CHECK_NAME("app", "reinit_input", 1, 1)
   {
-    // constraint: called during PUFD
+    // called during PUFD
     delayed_call([] { controls::reinit_control(); });
   }
   return found;

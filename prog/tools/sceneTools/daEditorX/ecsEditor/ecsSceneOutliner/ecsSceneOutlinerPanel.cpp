@@ -482,41 +482,26 @@ void ECSSceneOutlinerPanel::deleteLeaf(PropPanel::TLeafHandle handle, bool edito
   }
 }
 
-bool ECSSceneOutlinerPanel::treeNodeStart(const NodeStartData &data)
+void ECSSceneOutlinerPanel::drawTreeNode(PropPanel::TreeNodeDrawContext &ctx)
 {
-  const auto flags = data.flags | ImGuiTreeNodeFlags_AllowOverlap;
-  return PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(data.id, flags, data.label, data.labelEnd, data.endData, true);
-}
+  ctx.drawDefault();
 
-void ECSSceneOutlinerPanel::treeNodeRender(PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool show_arrow)
-{
-  PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorRender(end_data, false);
-}
-
-void ECSSceneOutlinerPanel::treeNodeEnd(PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data)
-{
-  PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(end_data);
-}
-
-void ECSSceneOutlinerPanel::treeItemRenderEx(const ItemRenderData &data)
-{
   const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
   const float actionButtonsTotalWidth = (fontSizedIconSize.x + ImGui::GetStyle().ItemSpacing.x) * 5;
   const float maxX = PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorGetLabelClipMaxX();
   const float actionButtonsStartX = maxX - actionButtonsTotalWidth;
 
-  RenderableEditableObject *obj = getEditableObjectFromHandle(data.handle);
+  RenderableEditableObject *obj = getEditableObjectFromHandle(ctx.getHandle());
   if (!obj)
   {
     return;
   }
 
-  const ImVec2 prevCursorPos = ImGui::GetCursorScreenPos();
-  ImGui::SetCursorScreenPos(ImVec2(actionButtonsStartX, data.textPos.y));
-  ImGui::PushID(data.handle);
+  ImGui::SetCursorScreenPos(ImVec2(actionButtonsStartX, ctx.getLabelPos().y));
+  ImGui::PushID(ctx.getHandle());
 
   if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("locate_object", locateIconId, fontSizedIconSize, "Locate object",
-        data.isHovered))
+        ctx.isHovered()))
   {
     tree->setSelLeaf(nullptr, false);
     objEditor.getUndoSystem()->begin();
@@ -528,14 +513,14 @@ void ECSSceneOutlinerPanel::treeItemRenderEx(const ItemRenderData &data)
 
   ImGui::SameLine();
   if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("toggle_selection", selectionIconId, fontSizedIconSize,
-        "Toggle selection", data.isHovered))
+        "Toggle selection", ctx.isHovered()))
   {
     const bool wasSelected = obj->isSelected();
     objEditor.getUndoSystem()->begin();
 
     obj->selectObject(!wasSelected);
 
-    const auto *userData = reinterpret_cast<LeafUserData *>(tree->getUserData(data.handle));
+    const auto *userData = reinterpret_cast<LeafUserData *>(tree->getUserData(ctx.getHandle()));
     if (userData->type == LeafType::SCENE)
     {
       ecs::g_scenes->iterateHierarchy(userData->sid, [&](const ecs::Scene::SceneRecord &record) {
@@ -558,7 +543,7 @@ void ECSSceneOutlinerPanel::treeItemRenderEx(const ItemRenderData &data)
   ImGui::SameLine();
   if (const bool isHidden = obj->isHidden();
       PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("toggle_visibility", isHidden ? eyeHiddenIconId : eyeShownIconId,
-        fontSizedIconSize, isHidden ? "Show object" : "Hide object", data.isHovered || isHidden))
+        fontSizedIconSize, isHidden ? "Show object" : "Hide object", ctx.isHovered() || isHidden))
   {
     objEditor.getUndoSystem()->begin();
     obj->hideObject(!isHidden);
@@ -568,7 +553,7 @@ void ECSSceneOutlinerPanel::treeItemRenderEx(const ItemRenderData &data)
   ImGui::SameLine();
   if (const bool isLocked = obj->isLocked();
       PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("lock_object", isLocked ? lockClosedIconId : lockOpenIconId,
-        fontSizedIconSize, isLocked ? "Unlock object" : "Lock object", data.isHovered || isLocked))
+        fontSizedIconSize, isLocked ? "Unlock object" : "Lock object", ctx.isHovered() || isLocked))
   {
     objEditor.getUndoSystem()->begin();
     obj->lockObject(!isLocked);
@@ -577,13 +562,12 @@ void ECSSceneOutlinerPanel::treeItemRenderEx(const ItemRenderData &data)
 
   ImGui::SameLine();
   if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("delete_item", deleteIconId, fontSizedIconSize, "Delete object",
-        data.isHovered && obj->mayDelete()))
+        ctx.isHovered() && obj->mayDelete()))
   {
-    deferredDeletions.emplace(data.handle);
+    deferredDeletions.emplace(ctx.getHandle());
   }
 
   ImGui::PopID();
-  ImGui::SetCursorScreenPos(prevCursorPos);
 }
 
 RenderableEditableObject *ECSSceneOutlinerPanel::getEditableObjectFromHandle(PropPanel::TLeafHandle handle) const

@@ -94,8 +94,7 @@ void LandRayTracerSoA4::buildCellGeom(CellTmp &out, dag::Vector<vec4f> &v4, dag:
   }
   dag::Vector<uint8_t> stk(vertsOfs + bvertCount * 8, 0);
   int dataOffset = 0;
-  build_bvh::writeDoubleQuadBVH2(stk.data(), nodes.data(), dqs.data(), m.scale, m.ofs, vertsOfs, rootNode, rootNode, dataOffset, 8,
-    false /*useHalves: UINT16 quantized boxes*/);
+  build_bvh::writeDoubleQuadBVH2(stk.data(), nodes.data(), dqs.data(), m.scale, m.ofs, vertsOfs, rootNode, rootNode, dataOffset, 8);
   for (int i = 0; i < bvertCount; ++i)
     build_bvh::packVert21(stk.data() + vertsOfs + i * 8, v_madd(bverts[i], m.scale, m.ofs));
 
@@ -852,18 +851,24 @@ bool LandRayTracerSoA4::rayHit(const Point3 &pos, const Point3 &dir, float t) co
 }
 
 template <bool CULL_DOWN>
-bool LandRayTracerSoA4::heightQuery(float x, float z, float limit_y, float &ht, Point3 *out_norm) const
+bool LandRayTracerSoA4::heightQuery(float x, float z, float limit_y, float floor_y, float &ht, Point3 *out_norm) const
 {
   int ci = cellIdxAt(x, z);
   if (ci < 0)
     return false;
   const Cell &c = cellsTab()[ci];
-  if (!c.hasGeom)
+  if (!c.hasGeom || c.maxY <= floor_y)
     return false;
   vec3f p = v_madd(v_make_vec4f(x, limit_y, z, 0), c.scale, c.ofs);
   soa4::HeightAcc acc;
   if (limit_y < 1e29f)
     acc.limit = v_extract_y(p);
+  if (floor_y > -1e29f)
+  {
+    acc.maxHt = floor_y * v_extract_y(c.scale) + c.ofsY;                   // the walk only improves on it
+    if (c.htMaxAt(cellHt(c), v_extract_x(p), v_extract_z(p)) <= acc.maxHt) // the mip texel tops the true max
+      return false;
+  }
   acc.wantNormal = out_norm != nullptr;
   soa4::heightWalk<CULL_DOWN>(cellData(c), (uint32_t)c.root.v, p, acc);
   if (!acc.hit)
@@ -874,24 +879,19 @@ bool LandRayTracerSoA4::heightQuery(float x, float z, float limit_y, float &ht, 
   return true;
 }
 
-bool LandRayTracerSoA4::getHeight(const Point2 &pos, float &ht, Point3 *out_norm) const
+bool LandRayTracerSoA4::getHeight(const Point2 &pos, float &ht, Point3 *out_norm, float floor_y) const
 {
-  if (check_nan(pos.x + pos.y))
+  if (check_nan(pos.x + pos.y + floor_y)) // a NaN floor would disarm the pruning compares
     return false;
-  return heightQuery<false>(pos.x, pos.y, 1e30f, ht, out_norm);
+  return heightQuery<false>(pos.x, pos.y, 1e30f, floor_y, ht, out_norm);
 }
 
 bool LandRayTracerSoA4::getHeightBelow(const Point3 &pos, float &ht, Point3 *out_norm) const
 {
-  if (check_nan(pos.x + pos.y + pos.z + ht)) // a NaN window bound would bypass the res < ht contract check
+  if (check_nan(pos.x + pos.y + pos.z + ht)) // a NaN window bottom would disarm the pruning compares
     return false;
-  float res;
-  if (!heightQuery<true>(pos.x, pos.z, pos.y, res, out_norm))
-    return false;
-  if (res < ht) // the tracer's contract: only surfaces within [ht, pos.y]
-    return false;
-  ht = res;
-  return true;
+  // ht is the floor, surfaces within (ht, pos.y] only; on a hit the surface height replaces it (in/out)
+  return heightQuery<true>(pos.x, pos.z, pos.y, ht, ht, out_norm);
 }
 
 bool LandRayTracerSoA4::getHeightBounding(const Point2 &pos, float &ht) const
@@ -1002,7 +1002,7 @@ int LandRayTracerSoA4::getHeightBelowPacket(const Point3_vec4 *pos, int npts, fl
     {
       ht_out[k] = -1e30f;
       if (!check_nan(pos[k].x + pos[k].y + pos[k].z))
-        hits += heightQuery<true>(pos[k].x, pos[k].z, pos[k].y, ht_out[k], nullptr);
+        hits += heightQuery<true>(pos[k].x, pos[k].z, pos[k].y, -1e30f, ht_out[k], nullptr);
     }
     return hits;
   }
@@ -1016,7 +1016,7 @@ int LandRayTracerSoA4::getHeightBelowPacket(const Point3_vec4 *pos, int npts, fl
     for (int k = 0; k < npts; ++k)
     {
       ht_out[k] = -1e30f;
-      hits += heightQuery<true>(pos[k].x, pos[k].z, pos[k].y, ht_out[k], nullptr);
+      hits += heightQuery<true>(pos[k].x, pos[k].z, pos[k].y, -1e30f, ht_out[k], nullptr);
     }
     return hits;
   }

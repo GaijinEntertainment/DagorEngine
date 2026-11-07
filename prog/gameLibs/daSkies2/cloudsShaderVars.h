@@ -112,6 +112,13 @@
   VAR(clouds_perlin_worley_dilation, true)                                                \
   VAR(clouds_worley_erosion, true)                                                        \
   VAR(clouds_shape_gamma, true)                                                           \
+  VAR(clouds_density_alter_strength, true)                                                \
+  VAR(clouds_anvil_amount, true)                                                          \
+  VAR(clouds_mushroom_amount, true)                                                       \
+  VAR(clouds_anvil_spread, true)                                                          \
+  VAR(clouds_anvil_flare_from, true)                                                      \
+  VAR(clouds_anvil_flare_pow, true)                                                       \
+  VAR(clouds_cumulonimbus_top, true)                                                      \
   VAR(clouds_droplet_diameter_um, true)                                                   \
   VAR(clouds_droplet_phase_params, true)                                                  \
   VAR(clouds_edge_albedo, true)                                                           \

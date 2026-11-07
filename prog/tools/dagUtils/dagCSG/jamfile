@@ -7,11 +7,11 @@ Target      = util/dagCSG.exe ;
 OutDir      = $(Root)/tools/util/ ;
 
 AddIncludes     = $(Root)/prog/tools/sharedInclude
+                  $(Root)/prog
                   ;
 
 Sources =
   dagCSG.cpp
-  csg.cpp
 ;
 
 UseProgLibs =
@@ -29,8 +29,7 @@ UseProgLibs =
   tools/libTools/util
   tools/libTools/staticGeom
   tools/libTools/dagFileRW
-  3rdPartyLibs/math/carve
+  tools/libTools/meshCSG
 ;
 
-include $(Root)/prog/3rdPartyLibs/math/carve/carve-options.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

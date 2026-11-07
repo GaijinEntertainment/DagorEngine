@@ -102,13 +102,9 @@ void LpSearchBox::clear()
 }
 
 // --- Search Widget ---
-LpSearchWidget::LpSearchWidget(LpProfilerTable * /*profiler_table*/, ColumnIndex /*column_index*/, const char *identifier,
-  const char *hint_text, SearchTextChangedCallback on_search_callback, SearchEnterCallback apply_filters_callback)
+LpSearchWidget::LpSearchWidget(const char *identifier, const char *hint_text, SearchTextChangedCallback on_search_callback)
 {
-  searchBox = eastl::make_unique<LpSearchBox>(identifier, hint_text, [on_search_callback, apply_filters_callback](const char *text) {
-    on_search_callback(text);
-    apply_filters_callback();
-  });
+  searchBox = eastl::make_unique<LpSearchBox>(identifier, hint_text, eastl::move(on_search_callback));
 }
 
 
@@ -184,7 +180,5 @@ bool LpSplitter::draw(const ImVec2 &available_area)
 
   return ratioChanged;
 }
-
-void LpSplitter::setRatio(float new_ratio) { ratio = eastl::clamp(new_ratio, minRatio, maxRatio); }
 
 } // namespace levelprofiler

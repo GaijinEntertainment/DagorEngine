@@ -15,36 +15,26 @@
 #include <util/dag_string.h>
 
 
-static debug_log_callback_t original_log_callback = nullptr;
-
 static String *logerr_capture_target = nullptr;
 
 void set_logerr_capture(String *target) { logerr_capture_target = target; }
 
-static int fail_test_on_unexpected_err(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void fail_test_on_unexpected_err(void *, LogMessage &msg)
 {
-  if (original_log_callback)
-    original_log_callback(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
-
-  if (lev_tag > LOGLEVEL_ERR)
-    return 1;
-
   String s;
-  if (ctx_file)
-    s.printf(0, "[E] %s,%d: ", ctx_file, ctx_line);
+  if (msg.ctxFile)
+    s.printf(0, "[E] %s,%d: ", msg.ctxFile, msg.ctxLine);
   else
     s.printf(0, "[E] ");
-  s.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+  s.avprintf(0, msg.fmt, (const DagorSafeArg *)msg.arg, msg.anum);
 
   if (logerr_capture_target)
   {
     *logerr_capture_target += s;
-    return 1;
+    return;
   }
 
   FAIL(s);
-
-  return 1;
 }
 
 #define CUSTOM_UNITTEST_CODE                                             \
@@ -58,7 +48,7 @@ static int fail_test_on_unexpected_err(int lev_tag, const char *fmt, const void 
   d3d::init_driver();                                                    \
   ::dagor_init_video("metronomeTests", 0, nullptr, "");                  \
   ::startup_game(RESTART_ALL);                                           \
-  original_log_callback = debug_set_log_callback(&fail_test_on_unexpected_err);
+  debug_add_log_handler(&fail_test_on_unexpected_err, nullptr, {.levelMask = LOGMASK_ERRORS});
 
 #define CUSTOM_UNITTEST_SHUTDOWN_CODE \
   d3d::release_driver();              \

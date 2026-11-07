@@ -19,14 +19,14 @@ SUSPECT_SPREAD_SECONDS = 0.005
 # relative, for float results of float32 rows
 FLOAT32_TOLERANCE = 1e-3
 
-# release csq: jam -sConfig=rel in prog/tools/consoleSq
+# release csq: jam -sConfig=rel -sUseWholeOpt=yes in prog/tools/consoleSq
 CSQ_REL = os.path.normpath(os.path.join(HERE, "..", "..", "..", "..", "..",
                                         "tools", "dagor_cdk", "windows-x86_64", "csq.exe"))
 
 Lang = namedtuple("Lang", "label folder ext cmd float32")
 
 # games enable closure hoisting; csq does not
-quirrel = Lang("Quirrel-4.43.1", "quirrel", ".nut", [CSQ_REL, "--opt-closure-hoisting"], True)
+quirrel = Lang("Quirrel-4.44.1", "quirrel", ".nut", [CSQ_REL, "--opt-closure-hoisting"], True)
 squirrel = Lang("Squirrel-3.2", "squirrel", ".nut", ["sq3-64.exe"], True)
 lua = Lang("Lua-5.5.1", "lua", ".lua", ["lua.exe"], False)
 luajit_joff = Lang("LuaJIT-2.1-joff", "luajit", ".lua", ["luajit.exe", "-joff"], False)
@@ -197,8 +197,8 @@ def write_results(results_file_name, res, runs=RUNS_PER_CELL):
 
 
 def machine_info():
-  """What the numbers were measured on. run_vm_bench.py imports this too, so the
-  two side-cars describe their machine the same way."""
+  """What the numbers were measured on. vmperf imports this too, so its results
+  describe their machine the same way."""
   return {
     "platform": f"{platform.platform()} ({platform.release()})",
     "arch": platform.machine(),
@@ -224,7 +224,7 @@ if __name__ == "__main__":
   langs = [l for l in ALL_LANGS if l.label in args.lang]
   if quirrel in langs:
     if not os.path.exists(quirrel.cmd[0]):
-      raise SystemExit(f"{quirrel.cmd[0]} is not there; build it with jam -sConfig=rel in "
+      raise SystemExit(f"{quirrel.cmd[0]} is not there; build it with jam -sConfig=rel -sUseWholeOpt=yes in "
                        "the consoleSq tool or pass --quirrel (see README.md)")
     check_quirrel_label()
   if args.pin:

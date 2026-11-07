@@ -146,6 +146,7 @@ void FPObjectClipper::refillPanel(PropPanel::ContainerPropertyControl *panel)
   PropPanel::ContainerPropertyControl *rgrp = panel->createRadioGroup(PID_CLIPTYPE, "Type:");
   rgrp->createRadio(FpdClipper::CLIP_SPHERICAL, "spherical");
   rgrp->createRadio(FpdClipper::CLIP_CYLINDRICAL, "cylindrical");
+  rgrp->createRadio(FpdClipper::CLIP_EXTERNAL, "external (runtime shapes)");
   panel->setInt(PID_CLIPTYPE, clipperObject->clipType);
 
   panel->createEditFloat(PID_RADIUS, "Radius:", clipperObject->radius);
@@ -421,8 +422,10 @@ void FPObjectClipper::render()
 
   if (clipperObject->clipType == FpdClipper::CLIP_SPHERICAL)
     FastPhysRender::draw_sphere(clipperObject->radius, clipperObject->angle, clipperObject->axisLength, color, isSelected());
-  else
+  else if (clipperObject->clipType == FpdClipper::CLIP_CYLINDRICAL)
     FastPhysRender::draw_cylinder(clipperObject->radius, clipperObject->angle, clipperObject->axisLength, color, isSelected());
+  else
+    ::draw_cached_debug_sphere(Point3(0, 0, 0), clipperObject->radius, color);
 
 
   if (isSelected())
@@ -452,6 +455,9 @@ void FPObjectClipper::render()
       ::draw_cached_debug_line(pos + Point3(+r, -r, -r), pos + Point3(-r, +r, +r), color);
       ::draw_cached_debug_line(pos + Point3(-r, +r, -r), pos + Point3(+r, -r, +r), color);
       ::draw_cached_debug_line(pos + Point3(+r, +r, -r), pos + Point3(-r, -r, +r), color);
+
+      if (clipperObject->clipType == FpdClipper::CLIP_EXTERNAL)
+        ::draw_cached_debug_sphere(pos, clipperObject->radius, color);
     }
 
     // draw affected lines

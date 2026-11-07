@@ -10,6 +10,7 @@
 #include <math/dag_Point3.h>
 #include <memory/dag_mem.h>
 #include <util/dag_stdint.h>
+#include <EASTL/type_traits.h>
 
 class Bitarray;
 
@@ -43,7 +44,8 @@ class TVertTab : public Tab<Point2>
 public:
   TVertTab() = default;
   TVertTab(const typename Tab<Point2>::allocator_type &allocator) : Tab<Point2>(allocator) {}
-  template <typename V, bool s = dag::is_same<Point2 const, typename V::value_type const>::is_true>
+  template <typename V>
+    requires eastl::is_same_v<Point2 const, typename V::value_type const>
   TVertTab &operator=(const V &v)
   {
     Tab<Point2>::operator=(v);
@@ -56,7 +58,8 @@ class TFaceTab : public Tab<TFace>
 public:
   TFaceTab() = default;
   TFaceTab(const typename Tab<TFace>::allocator_type &allocator) : Tab<TFace>(allocator) {}
-  template <typename V, bool s = dag::is_same<TFace const, typename V::value_type const>::is_true>
+  template <typename V>
+    requires eastl::is_same_v<TFace const, typename V::value_type const>
   TFaceTab &operator=(const V &v)
   {
     Tab<TFace>::operator=(v);
@@ -69,7 +72,8 @@ class Tabint : public Tab<int>
 public:
   Tabint() = default;
   Tabint(const typename Tab<int>::allocator_type &allocator) : Tab<int>(allocator) {}
-  template <typename V, bool s = dag::is_same<int const, typename V::value_type const>::is_true>
+  template <typename V>
+    requires eastl::is_same_v<int const, typename V::value_type const>
   Tabint &operator=(const V &v)
   {
     Tab<int>::operator=(v);

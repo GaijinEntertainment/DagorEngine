@@ -81,10 +81,11 @@ struct TextLine
 
 
 struct FormatParams
-{
+{ //-V802
   short defFontId = 0, defFontHt = 0;
   int spacing = 0;
-  int monoWidth = 0;
+  int monoWidth = 0;          //< numeric monoWidth, or monoWidthStr measured in the default font
+  eastl::string monoWidthStr; //< string form of monoWidth, measured in each block font
   float lineSpacing = 0;
   float parSpacing = 0;
   float indent = 0;
@@ -98,9 +99,11 @@ struct FormatParams
   {
     return maxWidth == fp.maxWidth && // most volatile
            defFontId == fp.defFontId && defFontHt == fp.defFontHt && spacing == fp.spacing && monoWidth == fp.monoWidth &&
-           lineSpacing == fp.lineSpacing && parSpacing == fp.parSpacing && indent == fp.indent && hangingIndent == fp.hangingIndent &&
-           breakLongWords == fp.breakLongWords;
+           monoWidthStr == fp.monoWidthStr && lineSpacing == fp.lineSpacing && parSpacing == fp.parSpacing && indent == fp.indent &&
+           hangingIndent == fp.hangingIndent && breakLongWords == fp.breakLongWords;
   }
+
+  int monoWidthFor(int font_id, int font_ht) const;
 };
 
 
@@ -121,12 +124,20 @@ struct ITextParams
 };
 
 
+struct LineClamp
+{
+  int numBlocks = 0; //< drawn whole
+  int cutBytes = 0;  //< prefix of blocks[numBlocks] drawn after them
+  float suffixX = 0;
+  float width = 0; //< up to the end of the suffix
+};
+
+
 enum
 {
   FMT_NO_WRAP = 1 << 0,
   FMT_KEEP_SPACES = 1 << 1,
   FMT_IGNORE_TAGS = 1 << 2,
-  FMT_HIDE_ELLIPSIS = 1 << 3,
   FMT_AS_IS = int(~0),
 };
 
@@ -162,6 +173,10 @@ public:
   {
     return !lines.empty() && !hasFormatError() && lastFormatParamsForCurText.maxWidth == max_width;
   }
+
+  // Cuts the line by character to fit max_w together with the suffix in the default font.
+  // Measures with the params of the last format() call.
+  LineClamp clampLine(const TextLine &line, float max_w, const wchar_t *suffix, int suffix_len) const;
 
   void join(eastl::string &dest) const;
 

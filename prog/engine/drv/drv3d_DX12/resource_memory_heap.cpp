@@ -113,6 +113,7 @@ dag::Expected<ImageCreateResult, MemoryAllocationError> TextureImageFactory::cre
                                                           ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
                                                           : ImageGlobalSubresourceId::make_invalid();
           ImageCreateResult createResult{};
+          createResult.state = result.state;
 
           createResult.image = newImageObject(ResourceMemory{}, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size,
             ii.mips, ii.arrays, subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
@@ -5998,7 +5999,7 @@ struct AliasingHeapReportVisitor
       driver_managed ? " driver managed" : "");
     for (auto image : images)
     {
-      image->getDebugName([this, image](auto name) { target("Texture %016p <%s>", image, name); });
+      image->getDebugName([this, image](auto &name) { target("Texture %016p <%s>", image, name); });
     }
     for (auto buffer : buffers)
     {
@@ -7829,9 +7830,7 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
           const auto subresourceIndex = calculate_subresource_index(mip.index(), layer.index(), plane.index(),
             texture->getMipLevelRange().count(), texture->getArrayLayers().count());
           const auto subResInfo = calculate_texture_subresource_info(*texture, SubresourceIndex::make(subresourceIndex));
-          requiredScratchSize += subResInfo.rowCount * subResInfo.footprint.RowPitch * subResInfo.footprint.Depth;
-          requiredScratchSize =
-            (requiredScratchSize + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1);
+          requiredScratchSize += subResInfo.totalAlignedByteSize;
         }
     if (access.scratchBuffer->buffer.getBufferMemorySize() < requiredScratchSize)
     {

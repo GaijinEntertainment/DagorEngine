@@ -550,7 +550,7 @@ int compile_and_run ( const string & fn, const string & mainFnName, bool outputP
     string explicitCache = noModuleCache ? string() : moduleCacheFile;
     string cacheReadPath = !deserFile.empty() ? deserFile : explicitCache;
     string cacheWritePath = !serFile.empty() ? serFile : explicitCache;
-    bool cacheQuiet = false;
+    bool cacheQuiet = true;
     if ( !moduleCacheExplicit && !noModuleCache && serFile.empty() && deserFile.empty()
         && jitEnabled != JitMode::Executable && !compileOnly && !buildingDocumentation && !debuggerRequired && !useAot ) {
         cacheReadPath = cacheWritePath = ModuleFileCache::defaultPath(fn, hostBinary, hostOptions);

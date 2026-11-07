@@ -198,7 +198,7 @@ struct SQObjectPtr : public SQObject
     SQObjectPtr(const SQObjectPtr &__restrict o)
     {
         memcpy(this, &o, sizeof(o));
-        __AddRef(_type,_unVal);
+        __AddRef(o._type,o._unVal);
     }
     SQObjectPtr(SQObjectPtr &&__restrict o) noexcept
     {
@@ -260,7 +260,7 @@ struct SQObjectPtr : public SQObject
         SQObjectType  tOldType = _type;
         SQObjectValue unOldVal =_unVal;
         memcpy(this, &obj, sizeof(SQObjectPtr));
-        __AddRef(_type,_unVal);
+        __AddRef(obj._type,obj._unVal);
         __Release(tOldType,unOldVal);
         return *this;
     }

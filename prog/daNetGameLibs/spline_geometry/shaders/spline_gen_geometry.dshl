@@ -284,7 +284,7 @@ shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen,
     if (gi_quality != off)
     {
       USE_IN_FRUSTUM_GI(ps)
-      hlsl {
+      hlsl(ps) {
         #define GLASS_USE_GI 1
       }
     }

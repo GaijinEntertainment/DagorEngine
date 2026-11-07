@@ -471,13 +471,6 @@ def check_bench(site, errors):
                 errors.append(f"content/_bench.json: {workload!r}/{label!r} is {value!r}, "
                               "not a time; the interpreter failed to run")
 
-    if not site.vm_bench:
-        return
-    for workload, rows in site.vm_bench["results"].items():
-        if "quirrel" not in rows:
-            errors.append(f"content/_vm_bench.json: {workload!r} has no quirrel row, so the "
-                          "ratios on the page have nothing to compare against")
-
 
 def report_coverage(site):
     print(f"{'container':22} {'documented':>10} {'example':>8} {'total':>6}")

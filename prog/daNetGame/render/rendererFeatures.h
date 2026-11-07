@@ -67,3 +67,16 @@ FeatureRenderFlagMask parse_render_features(const char *str);
 bool renderer_has_feature(FeatureRenderFlags feature);
 FeatureRenderFlagMask get_current_render_features();
 void set_current_render_features(FeatureRenderFlagMask val);
+
+static inline const char *get_half_res_depth_with_water_name()
+{
+  return renderer_has_feature(UPSCALE_SAMPLING_TEX) ? "checkerboard_depth_with_water" : "far_downsampled_depth_with_water";
+}
+
+static inline const char *get_half_res_depth_with_water_producer_name()
+{
+  if (!renderer_has_feature(CAMERA_IN_CAMERA))
+    return get_half_res_depth_with_water_name();
+  return renderer_has_feature(UPSCALE_SAMPLING_TEX) ? "checkerboard_depth_with_water_no_stencil"
+                                                    : "far_downsampled_depth_with_water_no_stencil";
+}

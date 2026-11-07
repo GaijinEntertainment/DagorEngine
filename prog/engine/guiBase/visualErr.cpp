@@ -63,7 +63,9 @@ static bool visuallog_upd_proc(int event, struct visuallog::LogItem *item)
   return true;
 }
 
-static debug_log_callback_t orig_debug_log = nullptr;
+static LogHandlerId visuallog_handler_id = LogHandlerId::Invalid;
+static volatile bool show_errors_on_screen = true;
+static thread_local bool checking_for_logged_errors = false;
 
 
 struct PutsToConsoleDelayed : public DelayedAction
@@ -74,20 +76,21 @@ struct PutsToConsoleDelayed : public DelayedAction
 };
 
 
-static int visuallog_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void visuallog_handler(void *, LogMessage &msg)
 {
-  static const int D3DE_TAG = _MAKE4C('D3DE');
-  if (lev_tag != LOGLEVEL_ERR && lev_tag != LOGLEVEL_FATAL && lev_tag != D3DE_TAG)
-    return 1;
+  const int lev_tag = msg.levTag;
+  const char *fmt = msg.fmt;
+  const void *arg = msg.arg;
+  const int anum = msg.anum;
 
   static thread_local int entered = 0;
   if (entered)
-    return 1;
+    return;
   bool isError = lev_tag != LOGLEVEL_FATAL;
   if (!isError)
     if (auto sarg = anum > 2 ? &((const DagorSafeArg *)arg)[2] : nullptr; sarg && sarg->varType == sarg->TYPE_STR)
       if (strstr(sarg->varValue.s, "Not enough memory")) // Low memory conditions - don't go further
-        return 1;
+        return;
 
   entered = 1;
 
@@ -95,12 +98,18 @@ static int visuallog_callback(int lev_tag, const char *fmt, const void *arg, int
   // a dx12 debug layer callback, in which case we cannot have an initialized framemem.
   IMemAlloc *fmem = framemem_ptr();
   String s(fmem ? fmem : strmem);
-  if (ctx_file)
-    s.printf(0, "[%c] %s,%d: ", isError ? 'E' : 'F', ctx_file, ctx_line);
+  if (msg.ctxFile)
+    s.printf(0, "[%c] %s,%d: ", isError ? 'E' : 'F', msg.ctxFile, msg.ctxLine);
   else
     s.printf(0, "[%c] ", isError ? 'E' : 'F');
   s.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
-  visuallog::logmsg(s, &visuallog_upd_proc, NULL, E3DCOLOR(isError ? 255 : 128, 32, 32), isError ? 1000 : 2000);
+
+  const bool showOnScreen = interlocked_relaxed_load(show_errors_on_screen) && !(msg.flags & LOGMSG_SHOWN_TO_USER);
+  if (showOnScreen)
+  {
+    visuallog::logmsg(s, &visuallog_upd_proc, NULL, E3DCOLOR(isError ? 255 : 128, 32, 32), isError ? 1000 : 2000);
+    msg.flags |= LOGMSG_SHOWN_TO_USER;
+  }
 
   if (console::print_logerr_to_console && lev_tag <= LOGLEVEL_ERR && strncmp(fmt, "CON: ", 5) != 0)
   {
@@ -132,18 +141,22 @@ static int visuallog_callback(int lev_tag, const char *fmt, const void *arg, int
     }
 #endif
     interlocked_increment(total_logerr);
-    visual_err_log_update_window_background();
+    if (showOnScreen)
+      visual_err_log_update_window_background();
   }
   else
     interlocked_increment(total_fatalerr);
 
   entered = 0;
-
-  if (orig_debug_log)
-    return orig_debug_log(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
-
-  return 1;
 }
+
+static void mute_log_handlers_while_checking(void *, LogMessage &msg)
+{
+  if (checking_for_logged_errors)
+    msg.flags |= LOGMSG_STOP_HANDLERS;
+}
+
+void visual_err_log_show_on_screen(bool show) { interlocked_relaxed_store(show_errors_on_screen, show); }
 
 void visual_err_log_setup(bool red_window)
 {
@@ -153,12 +166,15 @@ void visual_err_log_setup(bool red_window)
 #if DAGOR_DBGLEVEL > 0
   save_first_logerrs_count = ::dgs_get_settings()->getInt("save_first_logerrs_count", 3);
 #endif
-  orig_debug_log = debug_set_log_callback(&visuallog_callback);
+  if (visuallog_handler_id == LogHandlerId::Invalid)
+    visuallog_handler_id = debug_add_log_handler(&visuallog_handler, nullptr,
+      {.levelMask = LOGMASK_ERRORS, .tags = {LOGTAG_D3D_ERROR}, .order = LOGORDER_SHOW_FALLBACK});
 }
 
 void visual_err_log_check_any()
 {
-  auto ocb = debug_set_log_callback(nullptr); // Prevent recusion
+  checking_for_logged_errors = true;
+  ScopedLogHandler muteLogHandlers(&mute_log_handlers_while_checking, nullptr, {.levelMask = LOGMASK_ALL, .order = LOGORDER_FILTER});
 #if DAGOR_DBGLEVEL > 0
   if (total_logerr && save_first_logerrs_count != 0)
   {
@@ -174,5 +190,5 @@ void visual_err_log_check_any()
   G_ASSERT_LOG(!total_logerr && !total_fatalerr, "%d error(s) and %d fatal error(s). See the exact list of errors in the logger file!",
     total_logerr, total_fatalerr);
 #endif
-  debug_set_log_callback(ocb); // Restore orig cb
+  checking_for_logged_errors = false;
 }

@@ -50,6 +50,9 @@ void after_d3d_reset();
 // load completion from cpujobs::release_done_jobs())
 // return true if request was synchronously done (or picture already loaded)
 // and false otherwise (i.e. it was successfully sheduled)
+// Note:
+// tex coords of a picture in a dynamic atlas change on a repack and stay zero until it gets a place
+// use get_picture_data before each draw to get the actual tc
 bool get_picture_ex(const char *file_name, PICTUREID &out_pic_id, TEXTUREID &out_tex_id, d3d::SamplerHandle &out_smp_id,
   Point2 *out_tc_lefttop = NULL, Point2 *out_tc_rightbottom = NULL, Point2 *picture_size = NULL,
   async_load_done_cb_t load_done_cb = NULL, void *cb_arg = NULL, async_load_confirmation_cb_t load_confirm_cb = nullptr);
@@ -77,7 +80,7 @@ void add_ref_picture(PICTUREID pid);
 // del ref. if refcount is zero, unload texture
 void free_picture(PICTUREID pic_id);
 
-// remove all unused pictures from memory
+// remove all unused pictures from memory; a dynamic atlas with keepAlive:b=yes stays until release()
 bool discard_unused_picture(bool force_lock = true); // return false if discard was skipped
 
 // loads texture atlas internal data
@@ -108,12 +111,6 @@ struct PictureRenderFactory
   virtual bool match(const DataBlock &pic_props, int &out_w, int &out_h) = 0;
   virtual void queueRender(PictureRenderContext &ctx, WinAutoLock *lock) = 0;
   virtual void updatePerFrame() {}
-  // true while a queued render for the pic is not finished yet (backs is_picture_content_ready).
-  // A factory that defers rendering past queueRender() must override this, or content is
-  // reported ready between queueRender() and the actual render.
-  // Called under PictureManager's internal lock: the override must not call back into
-  // PictureManager, and any lock it takes must never be held around PictureManager calls.
-  virtual bool isPicRenderPending(PICTUREID) { return false; }
 };
 
 struct PictureDelayedRenderFactory : public PictureRenderFactory
@@ -153,6 +150,7 @@ enum class AsyncPicState
 };
 
 AsyncPicState process_pic_before_render(PictureRenderContext &);
+void mark_pic_rendered(const PictureRenderContext &ctx);
 
 } // namespace PictureManager
 

@@ -12,6 +12,7 @@ extern int dll_pull_osapiwrappers_directoryUtils;
 extern int dll_pull_osapiwrappers_directory_watch;
 extern int dll_pull_osapiwrappers_findFile;
 extern int dll_pull_osapiwrappers_getRealFname;
+extern int dll_pull_osapiwrappers_fnameCase;
 extern int dll_pull_osapiwrappers_localCmp;
 extern int dll_pull_osapiwrappers_cpuJobs;
 extern int dll_pull_osapiwrappers_miscApi;

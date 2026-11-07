@@ -61,6 +61,8 @@ static uint32_t findBestAlignmentOf(uint32_t value_a, uint32_t value_b)
   return ab / gcd;
 }
 
+static uint64_t align_to_multiple_of(uint64_t value, uint64_t alignment) { return (value + alignment - 1) / alignment * alignment; }
+
 static uint32_t calculate_offset_alignment(uint32_t cflags, uint32_t structure_size, uint32_t omm_alignment)
 {
   uint32_t result = structure_size;
@@ -246,7 +248,7 @@ BufferHeap::BufferAllocationResult BufferHeap::allocateBufferWithoutDefragmentat
 
   if (canUseSubAlloc)
   {
-    payloadSize = align_value<uint64_t>(payloadSize, offsetAlignment);
+    payloadSize = align_to_multiple_of(payloadSize, offsetAlignment);
 
     auto bufferHeapStateAccess = bufferHeapState.access();
 
@@ -305,7 +307,7 @@ BufferHeap::BufferAllocationResult BufferHeap::allocateBufferWithoutDefragmentat
 
     if (discard_count > 1)
     {
-      payloadSize = align_value<uint64_t>(payloadSize, offsetAlignment);
+      payloadSize = align_to_multiple_of(payloadSize, offsetAlignment);
 #if DX12_REPORT_BUFFER_PADDING
       auto padd = payloadSize - size;
       if (padd)

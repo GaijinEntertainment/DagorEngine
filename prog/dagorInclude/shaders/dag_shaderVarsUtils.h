@@ -7,6 +7,9 @@
 #include <drv/3d/dag_renderStateId.h>
 #include <generic/dag_tab.h>
 #include <shaders/dag_shaderState.h>
+#if DAGOR_DBGLEVEL > 0
+#include <EASTL/string.h>
+#endif
 
 
 class ScriptedShaderElement;
@@ -78,6 +81,10 @@ shaders::CombinedDynVariantState get_cached_dynamic_variant_states(const Scripte
 void set_states_for_variant(const ScriptedShaderElement &s, const shaders::CombinedDynVariantState &state);
 
 inline bool is_valid(const shaders::CombinedDynVariantState &dv_state) { return dv_state.variant >= 0; }
+
+#if DAGOR_DBGLEVEL > 0
+eastl::string describe_dynamic_variant_diff(const ScriptedShaderElement &s, uint32_t from_variant_code, uint32_t to_variant_code);
+#endif
 
 // True when the dynamic variant selection of s reads the global shader var var_id
 bool dynamic_variant_depends_on_global_var(const ScriptedShaderElement &s, int var_id);

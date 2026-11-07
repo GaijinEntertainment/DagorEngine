@@ -10,7 +10,7 @@
 namespace voicechat
 {
 
-// constraint: the owner thread of the communicator calls all of it
+// the owner thread of the communicator calls all of it
 class VoiceLoopback final : public IVoiceSource
 {
 public:

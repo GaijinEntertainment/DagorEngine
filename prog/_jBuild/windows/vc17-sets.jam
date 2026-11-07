@@ -101,7 +101,7 @@ switch $(PlatformArch) {
   case arm64ec :
     _LINK += /machine:arm64ec ;
     _LIB  += /machine:arm64ec ;
-    # constraint: x64 objects link into ARM64EC images and run emulated
+    # x64 objects link into ARM64EC images and run emulated
     _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win64 ;
     _MASM_COMPILER = $(_VC_DIR)/bin/$(_VC_HOST_DIR)/x64/ml64.exe -c -nologo ;
     _DEP_COMPILER += -D_TARGET_ARCH_ARM64 -DWIN64 ;
@@ -109,7 +109,7 @@ switch $(PlatformArch) {
 }
 
 local _VC_LIB_DIRS = $(_VC_DIR)/lib/$(_WIN_SDK_TARGET_SUFFIX) ;
-if $(PlatformArch) = arm64ec { _VC_LIB_DIRS = $(_VC_DIR)/lib/arm64ec $(_VC_LIB_DIRS) ; } # constraint: hybrid CRT libs stay in lib/arm64
+if $(PlatformArch) = arm64ec { _VC_LIB_DIRS = $(_VC_DIR)/lib/arm64ec $(_VC_LIB_DIRS) ; } # hybrid CRT libs stay in lib/arm64
 
 _INCLUDE      = $(_WIN_SDK_INC) $(_VC_DIR)/include $(_UCRT_INC) ;
 _LIBPATH      = $(_UCRT_LIB) $(_WIN_SDK_LIB) $(_VC_LIB_DIRS) ;

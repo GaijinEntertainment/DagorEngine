@@ -63,8 +63,8 @@ static constexpr unsigned HUID_ACES_IS_ACTIVE = 0xD6872FCEu;
 
 struct BaseEffectEnabled
 {
-  bool enabled;
-  float distanceToCam;
+  bool enabled = false, isPlayer = false;
+  float distanceToCam = 0.0f;
 };
 
 #define CHECK_FX_VERSION_OPT(ptr, len, ver)                             \

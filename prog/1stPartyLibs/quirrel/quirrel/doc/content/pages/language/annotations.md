@@ -42,6 +42,16 @@ function badReturn(): int {
 
 {{example:language/annotations-runtime-check}}
 
+## Builds without checks
+
+A build that sets `SQ_RUNTIME_TYPE_CHECK` to 0, as the Dagor `rel` and `irel`
+builds do, does not check annotations at runtime: a wrong type does not throw.
+Its compiler also skips type inference, thus it does not report a mismatch
+that only inference finds, such as a literal of a wrong type or an async call
+assigned to a typed variable. Run the tests of a script on a build that
+checks. The parameter checks of native functions stay, and so does the class
+check of a typed `catch`.
+
 ## What it does not do
 
 An annotation is a check, not a conversion. It never converts the value to
@@ -57,7 +67,8 @@ type; it only shows that no caller so far has passed a wrong one.
 ## Declaration strings
 
 A native function has no Quirrel source to annotate. Its binding carries the
-same syntax as a string: `pure type(obj): string`, `getbuildinfo(): table`.
+same syntax as a string: `pure fastcall type(obj): string`,
+`getbuildinfo(): table`.
 There is one declaration string per native function. Every signature box on
 this site is rendered from these strings. `sq --parse-types somefile.txt`
 parses a file of such strings, one per line, and prints the result. This is

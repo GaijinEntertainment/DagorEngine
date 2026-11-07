@@ -1,4 +1,5 @@
 // Valid syntax: All operators
+#allow-delete-operator
 
 // Arithmetic operators
 let a = 10 + 5      // 15
@@ -124,8 +125,7 @@ assert(nc3 == "last")
 let str_cat = "hello" + " " + "world"
 assert(str_cat == "hello world")
 
-// delete operator (with allow directive)
-#allow-delete-operator
+// delete operator (allowed by the directive at the top)
 local del_tbl = {a = 1, b = 2}
 delete del_tbl.a
 assert(!("a" in del_tbl))

@@ -193,9 +193,11 @@ inline String decode_flag_names(FlagType value, bool crop_ns = true)
 
   String result = {};
   ForLoop<BIT_COUNT>::iterate([&]<size_t I>() {
-    if ((size_t(0x1) << I) & size_t(value))
+    using U = eastl::underlying_type_t<FlagType>;
+    constexpr auto bit = U(0x1) << I;
+    if ((bit & eastl::to_underlying(value)) != 0)
     {
-      eastl::string_view flagName = get_value_name<FlagType(size_t(0x1) << I)>();
+      eastl::string_view flagName = get_value_name<FlagType(bit)>();
       if (crop_ns)
         flagName = crop_namespaces(flagName);
       result.aprintf(0, "%s|", String(flagName.data(), flagName.size()));

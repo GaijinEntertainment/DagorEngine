@@ -22,6 +22,7 @@
 #include <render/lights/dstReadbackLights.h>
 #include <math/dag_hlsl_floatx.h>
 #include <render/lights/renderLights.hlsli>
+#include <render/lights/lightsPartition.hlsli>
 #include <render/depthUtil.h>
 #include <3d/dag_lockSbuffer.h>
 #include <EASTL/numeric_limits.h>
@@ -49,37 +50,60 @@ static int spot_lights_ssss_shadow_descVarId = -1;
   VAR(oof_clear_grid_size)          \
   VAR(out_of_frustum_grid_cull_box) \
   VAR(out_of_frustum_omni_box)      \
-  VAR(out_of_frustum_spot_box)
+  VAR(out_of_frustum_spot_box)      \
+  VAR(out_of_frustum_omni_lights)   \
+  VAR(out_of_frustum_spot_lights)   \
+  VAR(oof_lights_full_grid)         \
+  VAR(lights_list)                  \
+  VAR(z_binning_lookup)             \
+  VAR(max_lights_distance)          \
+  VAR(far_omni_lights)              \
+  VAR(far_spot_lights)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_OPT_LIST
 #undef VAR
 
-void ClusteredLights::initClustered(int initial_light_density)
+struct CulledLights
 {
-  lightsGrid = ClusteredLightsGrid(clusters, &lightsResMgr, initial_light_density);
-  lightsGrid.init(dynLightsFeatures);
-  dynLightsFeatures &=
-    ~DynLightsFeatures::GpuClusteredLightsGrid | (lightsGrid.getRuntimeFeatures() & DynLightsFeatures::GpuClusteredLightsGrid);
+  ReallocatableLightsConstBuffer<sizeof(RenderOmniLight) / 16, true> omniLightsCB;
+  ReallocatableLightsConstBuffer<sizeof(RenderSpotLight) / 16, true> spotLightsCB;
+  DynamicLightShadows::CommonLightShadowsCBType shadowsCB;
+  Point4 omniBox[2], spotBox[2];
+  UniqueBuf fullGrid;
+  eastl::string omniName, spotName, gridName, shadowsName;
+};
 
-  depthSliceScaleVarId = get_shader_variable_id("depthSliceScale");
-  depthSliceBiasVarId = get_shader_variable_id("depthSliceBias");
-  shadowAtlasTexelVarId = get_shader_variable_id("shadowAtlasTexel");
-  shadowZBiasVarId = get_shader_variable_id("shadowZBias");
-  shadowSlopeZBiasVarId = get_shader_variable_id("shadowSlopeZBias");
-  spot_lights_flagsVarId = get_shader_variable_id("spot_lights_flags", true);
-  omni_lights_flagsVarId = get_shader_variable_id("omni_lights_flags", true);
+void CulledLightsDeleter::operator()(CulledLights *lights) const { delete lights; }
+
+static void set_empty_oof_box(Point4 *box)
+{
+  box[0] = Point4(0, 0, 0, 0);
+  box[1] = Point4(OOF_GRID_W * 2, OOF_GRID_VERT * 2, OOF_GRID_W * 2, 0);
+}
+
+CulledLightsPtr ClusteredLights::createCulledLights(const char *name)
+{
+  CulledLightsPtr lights(new CulledLights);
+  set_empty_oof_box(lights->omniBox);
+  set_empty_oof_box(lights->spotBox);
+  lights->omniName.sprintf("out_of_frustum_omni_lights_%s", name);
+  lights->spotName.sprintf("out_of_frustum_spot_lights_%s", name);
+  lights->gridName.sprintf("oof_lights_full_grid_%s", name);
+  lights->shadowsName.sprintf("out_of_frustum_common_lights_shadow_data_%s", name);
+  return lights;
 }
 
 ClusteredLights::ClusteredLights(const char *name_suffix) :
   lightsResMgr(name_suffix),
   lightsRenderer(&lightsResMgr),
+  lightsManagerStorage(&lightsResMgr),
+  omniLights(&lightsManagerStorage),
+  spotLights(&lightsManagerStorage),
   dynamicLightShadows(&lightsResMgr, &omniLights, &spotLights),
   lightsPartition(omniLights, spotLights, &lightsResMgr),
   lightsCounter(&omniLights, &spotLights)
 {
-  spotOOFBox[0] = omniOOFBox[0] = Point4(0, 0, 0, 0);
-  spotOOFBox[1] = omniOOFBox[1] = Point4(OOF_GRID_W * 2, OOF_GRID_VERT * 2, OOF_GRID_W * 2, 0);
   if (VariableMap::isVariablePresent(get_shader_variable_id("oof_lights_full_grid", true)))
   {
 #define CS(a) a.reset(new_compute_shader(#a))
@@ -91,27 +115,43 @@ ClusteredLights::ClusteredLights(const char *name_suffix) :
 
 ClusteredLights::~ClusteredLights() { close(); }
 
-bool ClusteredLights::hasDeferredOmniLights() const { return getVisibleFarOmniCount() > 0; };
-bool ClusteredLights::hasDeferredSpotLights() const { return getVisibleFarSpotsCount() > 0; };
-bool ClusteredLights::hasClusteredOmniLights() const { return getVisibleClusteredOmniCount() > 0; };
-bool ClusteredLights::hasClusteredSpotLights() const { return getVisibleClusteredSpotsCount() > 0; };
+bool ClusteredLights::isGpuCullingEnabled() const { return hasPipelineSectionFeatures(DynLightsFeatures::GpuLightsCulling); }
 
-bool ClusteredLights::hasDeferredLights() const { return hasDeferredOmniLights() || hasDeferredSpotLights(); };
-bool ClusteredLights::hasClusteredLights() const { return hasClusteredOmniLights() || hasClusteredSpotLights(); }
-
-int ClusteredLights::getVisibleFarSpotsCount() const { return lightsCounter.getFarLightsCount(LightType::Spot); }
-int ClusteredLights::getVisibleFarOmniCount() const { return lightsCounter.getFarLightsCount(LightType::Omni); }
 int ClusteredLights::getVisibleClusteredSpotsCount() const { return lightsCounter.getClusteredLightsCount(LightType::Spot); };
 int ClusteredLights::getVisibleClusteredOmniCount() const { return lightsCounter.getClusteredLightsCount(LightType::Omni); }
-int ClusteredLights::getVisibleSpotsCount() const { return getVisibleClusteredSpotsCount() + getVisibleFarSpotsCount(); }
-int ClusteredLights::getVisibleOmniCount() const { return getVisibleClusteredOmniCount() + getVisibleFarOmniCount(); }
+int ClusteredLights::getVisibleSpotsCount() const
+{
+  return getVisibleClusteredSpotsCount() + lightsCounter.getFarLightsCount(LightType::Spot);
+}
+int ClusteredLights::getVisibleOmniCount() const
+{
+  return getVisibleClusteredOmniCount() + lightsCounter.getFarLightsCount(LightType::Omni);
+}
 
-DynLightsOptimizationMode ClusteredLights::getLightsCountInterval() const { return lightsCounter.getLightsCountInterval(); }
+DynLightsOptimizationMode ClusteredLights::getLightsCountInterval() const
+{
+  const uint32_t omniCount = lightsCounter.getClusteredLightsCount(LightType::Omni);
+  const uint32_t spotsCount = lightsCounter.getClusteredLightsCount(LightType::Spot);
+
+  if (spotsCount == 0 && omniCount == 0)
+    return DynLightsOptimizationMode::NO_LIGHTS;
+
+  if (spotsCount == 0 && omniCount <= LIGHTS_OPTIMIZATION_THRESHOLD)
+    return DynLightsOptimizationMode::NO_SPOTS_FEW_OMNI;
+  else if (spotsCount <= LIGHTS_OPTIMIZATION_THRESHOLD && omniCount == 0)
+    return DynLightsOptimizationMode::FEW_SPOTS_NO_OMNI;
+  else if (spotsCount <= LIGHTS_OPTIMIZATION_THRESHOLD && omniCount <= LIGHTS_OPTIMIZATION_THRESHOLD)
+    return DynLightsOptimizationMode::FEW_SPOTS_FEW_OMNI;
+  return DynLightsOptimizationMode::FULL_CLUSTERED;
+}
 
 void ClusteredLights::prepareTiledLights(const bool clear_lights)
 {
-  if (tiledLights)
-    tiledLights->computeTiledLigths(clear_lights);
+  if (!tiledLights || !buffersFilled[size_t(currentBufferSlot)])
+    return;
+  setInsideOfFrustumLightsToShader();
+  tiledLights->computeTiledLigths(lightsPartition.getVisibleLightsIndirectArgs().getBuf(), VISIBLE_LIGHTS_INDIRECT_ARGS_TILED_OFFSET,
+    clear_lights);
 }
 
 void ClusteredLights::close() DAG_TS_NO_THREAD_SAFETY_ANALYSIS
@@ -128,6 +168,7 @@ void ClusteredLights::close() DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 
   currentBufferSlot = LightBufferSlot::Main;
   buffersFilled.fill(false);
+  shadowsRendered.fill(false);
   lightsRenderer.close();
   shaders::overrides::destroy(depthBiasOverrideId);
   shaders::overrides::destroy(depthBiasTwoSidedOverrideId);
@@ -177,33 +218,33 @@ void ClusteredLights::setRetainShadowSizeMul(float mul)
 
 void ClusteredLights::renderOtherLights()
 {
-  G_ASSERT(buffersFilled[size_t(currentBufferSlot)]);
-  if (hasDeferredOmniLights())
-    lightsRenderer.renderFarOmniLights(lightsPartition.getVisibleFarOmniLightsCB(currentBufferSlot));
-  if (hasDeferredSpotLights())
-    lightsRenderer.renderFarSpotLights(lightsPartition.getVisibleFarSpotLightsCB(currentBufferSlot));
+  if (buffersFilled[size_t(currentBufferSlot)])
+  {
+    const auto useGpuCulling = isGpuCullingEnabled();
+    if (useGpuCulling || lightsCounter.getFarLightsCount(LightType::Omni) > 0)
+      lightsRenderer.renderFarOmniLights(lightsPartition.getVisibleFarOmniLightsCB(currentBufferSlot),
+        lightsPartition.getVisibleLightsIndirectArgs().getBuf());
+    if (useGpuCulling || lightsCounter.getFarLightsCount(LightType::Spot) > 0)
+      lightsRenderer.renderFarSpotLights(lightsPartition.getVisibleFarSpotLightsCB(currentBufferSlot),
+        lightsPartition.getVisibleLightsIndirectArgs().getBuf());
+  }
 }
 
-void ClusteredLights::setEmptyOutOfFrustumLights() DAG_TS_NO_THREAD_SAFETY_ANALYSIS
+void ClusteredLights::setEmptyOutOfFrustumLights(CulledLights &lights) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
   G_ASSERT(lightsInitialized);
-  static Point4 c[2] = {Point4(0, 0, 0, 0), Point4(2 * OOF_GRID_W, 2 * OOF_GRID_VERT, 2 * OOF_GRID_W, 0)};
-  ShaderGlobal::set_float4_array(out_of_frustum_omni_boxVarId, c, 2);
-  ShaderGlobal::set_float4_array(out_of_frustum_spot_boxVarId, c, 2);
-  outOfFrustumVisibleSpotLightsCB.reallocate(0, MAX_CLUSTERED_SPOT_LIGHTS, lightsResMgr.getResName("out_of_frustum_spot_lights"));
-  outOfFrustumOmniLightsCB.reallocate(0, MAX_CLUSTERED_OMNI_LIGHTS, lightsResMgr.getResName("out_of_frustum_omni_lights"));
-
-  dynamicLightShadows.setEmptyOutOfFrustumCommonLightShadowsCB();
-
-  outOfFrustumVisibleSpotLightsCB.update(nullptr, 0);
-  outOfFrustumOmniLightsCB.update(nullptr, 0);
-  ShaderGlobal::set_buffer(omni_lightsVarId, outOfFrustumOmniLightsCB.getId());
-  ShaderGlobal::set_buffer(spot_lightsVarId, outOfFrustumVisibleSpotLightsCB.getId());
-  ShaderGlobal::set_buffer(common_lights_shadowsVarId, dynamicLightShadows.getOutOfFrustumCommonLightShadowsCB().getId());
-  ShaderGlobal::set_buffer(spot_lights_ssss_shadow_descVarId, BAD_D3DRESID);
+  set_empty_oof_box(lights.omniBox);
+  set_empty_oof_box(lights.spotBox);
+  lights.spotLightsCB.reallocate(0, MAX_CLUSTERED_SPOT_LIGHTS, lightsResMgr.getResName(lights.spotName.c_str()));
+  lights.omniLightsCB.reallocate(0, MAX_CLUSTERED_OMNI_LIGHTS, lightsResMgr.getResName(lights.omniName.c_str()));
+  lights.spotLightsCB.update(nullptr, 0);
+  lights.omniLightsCB.update(nullptr, 0);
+  dynamicLightShadows.updateCommonLightShadowsConstBufferCPU(lights.shadowsCB, lights.shadowsName.c_str(), {}, {});
+  setOutOfFrustumLightsToShader(lights);
 }
 
-bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskType spot_light_mask, OmniLightMaskType omni_light_mask)
+void ClusteredLights::cullOutOfFrustumLights(CulledLights &lights, mat44f_cref globtm, SpotLightMaskType spot_light_mask,
+  OmniLightMaskType omni_light_mask)
 {
   G_ASSERT(lightsInitialized);
   Frustum frustum(globtm);
@@ -237,10 +278,11 @@ bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskTy
 
   const uint32_t spotWords = (cVisibleSpotLightsId.size() + 31) / 32, omniWords = (cVisibleOmniLightsId.size() + 31) / 32;
 
-  dynamicLightShadows.updateOutOfFrustumCommonLightShadowsCB(cVisibleSpotLightsId, cVisibleOmniLightsId);
+  dynamicLightShadows.updateCommonLightShadowsConstBufferCPU(lights.shadowsCB, lights.shadowsName.c_str(), cVisibleSpotLightsId,
+    cVisibleOmniLightsId);
 
-  outOfFrustumVisibleSpotLightsCB.reallocate(cVisibleSpotLightsId.size(), MAX_CLUSTERED_SPOT_LIGHTS,
-    lightsResMgr.getResName("out_of_frustum_spot_lights"));
+  lights.spotLightsCB.reallocate(cVisibleSpotLightsId.size(), MAX_CLUSTERED_SPOT_LIGHTS,
+    lightsResMgr.getResName(lights.spotName.c_str()));
   bbox3f spotBox;
   v_bbox3_init_empty(spotBox);
   if (cVisibleSpotLightsId.size())
@@ -253,15 +295,15 @@ bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskTy
       v_bbox3_add_box(spotBox, spotLights.getBoundingBox(id));
       outRenderSpotLights[i] = spotLights.getRenderLight(id);
     }
-    outOfFrustumVisibleSpotLightsCB.update(outRenderSpotLights.data(), data_size(outRenderSpotLights));
+    lights.spotLightsCB.update(outRenderSpotLights.data(), data_size(outRenderSpotLights));
   }
   else
   {
-    outOfFrustumVisibleSpotLightsCB.update(nullptr, 0);
+    lights.spotLightsCB.update(nullptr, 0);
   }
 
-  outOfFrustumOmniLightsCB.reallocate(cVisibleOmniLightsId.size(), MAX_CLUSTERED_OMNI_LIGHTS,
-    lightsResMgr.getResName("out_of_frustum_omni_lights"));
+  lights.omniLightsCB.reallocate(cVisibleOmniLightsId.size(), MAX_CLUSTERED_OMNI_LIGHTS,
+    lightsResMgr.getResName(lights.omniName.c_str()));
   bbox3f omniBox;
   v_bbox3_init_empty(omniBox);
   if (cVisibleOmniLightsId.size())
@@ -275,11 +317,11 @@ bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskTy
       v_bbox3_add_pt(omniBox, v_add(posAndRad, v_splat_w(posAndRad)));
       v_bbox3_add_pt(omniBox, v_sub(posAndRad, v_splat_w(posAndRad)));
     }
-    outOfFrustumOmniLightsCB.update(outRenderOmniLights.data(), data_size(outRenderOmniLights));
+    lights.omniLightsCB.update(outRenderOmniLights.data(), data_size(outRenderOmniLights));
   }
   else
   {
-    outOfFrustumOmniLightsCB.update(nullptr, 0);
+    lights.omniLightsCB.update(nullptr, 0);
   }
 
   const bool hasLights = !cVisibleSpotLightsId.empty() || !cVisibleOmniLightsId.empty();
@@ -297,43 +339,37 @@ bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskTy
   if (!cVisibleOmniLightsId.empty())
   {
     vec4f bmin = v_div(v_make_vec4f(OOF_GRID_W, OOF_GRID_VERT, OOF_GRID_W, 1), v_bbox3_size(omniBox));
-    v_stu(&omniOOFBox[0].x, bmin);
-    v_stu(&omniOOFBox[1].x, v_perm_xyzd(v_neg(v_mul(bmin, omniBox.bmin)), v_cast_vec4f(v_splatsi(omniGridOffset))));
+    v_stu(&lights.omniBox[0].x, bmin);
+    v_stu(&lights.omniBox[1].x, v_perm_xyzd(v_neg(v_mul(bmin, omniBox.bmin)), v_cast_vec4f(v_splatsi(omniGridOffset))));
   }
   else
-  {
-    omniOOFBox[0] = Point4(0, 0, 0, 0);
-    omniOOFBox[1] = Point4(OOF_GRID_W * 2, OOF_GRID_VERT * 2, OOF_GRID_W * 2, 0);
-  }
+    set_empty_oof_box(lights.omniBox);
 
   if (!cVisibleSpotLightsId.empty())
   {
     vec4f bmin = v_div(v_make_vec4f(OOF_GRID_W, OOF_GRID_VERT, OOF_GRID_W, 1), v_bbox3_size(spotBox));
-    v_stu(&spotOOFBox[0].x, bmin);
-    v_stu(&spotOOFBox[1].x, v_perm_xyzd(v_neg(v_mul(bmin, spotBox.bmin)), v_cast_vec4f(v_splatsi(spotGridOffset))));
+    v_stu(&lights.spotBox[0].x, bmin);
+    v_stu(&lights.spotBox[1].x, v_perm_xyzd(v_neg(v_mul(bmin, spotBox.bmin)), v_cast_vec4f(v_splatsi(spotGridOffset))));
   }
   else
-  {
-    spotOOFBox[0] = Point4(0, 0, 0, 0);
-    spotOOFBox[1] = Point4(OOF_GRID_W * 2, OOF_GRID_VERT * 2, OOF_GRID_W * 2, 0);
-  }
+    set_empty_oof_box(lights.spotBox);
   if (hasLights && cull_out_of_frustum_lights_cs && clear_out_of_frustum_grid_cs)
   {
     TIME_D3D_PROFILE(oof_clustering_lights);
-    setOutOfFrustumLightsToShader();
-
     const uint32_t words = spotWords + omniWords;
     const uint32_t sz4 = (words * OOF_GRID_SIZE + 3) & ~3;
-    if (!outOfFrustumLightsFullGridCB || outOfFrustumLightsFullGridCB.getBuf()->getSize() < sz4 * 4)
+    if (!lights.fullGrid || lights.fullGrid.getBuf()->getSize() < sz4 * 4)
     {
-      outOfFrustumLightsFullGridCB.close();
-      outOfFrustumLightsFullGridCB = dag::create_sbuffer(sizeof(uint32_t), sz4, SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW, 0,
-        "oof_lights_full_grid", RESTAG_LIGHTS);
+      lights.fullGrid.close();
+      lights.fullGrid = dag::create_sbuffer(sizeof(uint32_t), sz4, SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW, 0,
+        lightsResMgr.getResName(lights.gridName.c_str()), RESTAG_LIGHTS);
     }
+    setOutOfFrustumLightsToShader(lights);
+
     ShaderGlobal::set_int(oof_clear_grid_sizeVarId, sz4 / 4);
-    d3d::set_rwbuffer(STAGE_CS, 0, outOfFrustumLightsFullGridCB.getBuf());
+    d3d::set_rwbuffer(STAGE_CS, 0, lights.fullGrid.getBuf());
     clear_out_of_frustum_grid_cs->dispatchThreads(sz4, 1, 1);
-    d3d::resource_barrier({outOfFrustumLightsFullGridCB.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+    d3d::resource_barrier({lights.fullGrid.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
     const uint32_t totalLights = cVisibleOmniLightsId.size() + cVisibleSpotLightsId.size();
     {
       vec4f halfOmniCellSz = v_div(v_bbox3_size(omniBox), v_make_vec4f(2 * OOF_GRID_W, 2 * OOF_GRID_VERT, 2 * OOF_GRID_W, 1));
@@ -346,11 +382,10 @@ bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskTy
       ShaderGlobal::set_float4_array(out_of_frustum_grid_cull_boxVarId, cb, 4);
       cull_out_of_frustum_lights_cs->dispatchThreads(OOF_GRID_W, OOF_GRID_W, OOF_GRID_VERT * totalLights);
     }
-    d3d::resource_barrier({outOfFrustumLightsFullGridCB.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+    d3d::resource_barrier({lights.fullGrid.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
     d3d::set_rwbuffer(STAGE_CS, 0, nullptr);
   }
-
-  return hasLights;
+  setOutOfFrustumLightsToShader(lights);
 }
 
 void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float znear,
@@ -359,6 +394,7 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
 {
   TIME_PROFILE(cullFrustumLights);
   buffersFilled.fill(false);
+  shadowsRendered.fill(false);
   Frustum frustum(globtm);
   plane3f clusteredLastPlane = shrink_zfar_plane(frustum.camPlanes[4], cur_view_pos, v_splats(maxClusteredDist));
 
@@ -382,30 +418,36 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
       LightsVisibilityChecker::Config{.omniLightsManager = &omniLights, .spotLightsManager = &spotLights, .cacheResults = true});
 
   lightsCounter.update(lightVisibilityChecker.value());
-  lightsPartition.prepareClusteredAndFarLightBuffersCPU(lightVisibilityChecker.value());
+
+  if (isGpuCullingEnabled())
+    lightsPartitionZFar = zfar;
+  else
+    lightsPartition.prepareClusteredAndFarLightBuffersCPU(lightVisibilityChecker.value());
 
   const Tab<vec4f> &visibleOmniLightsBounds = lightsPartition.getVisibleClusteredOmniLightsBounds();
   const Tab<vec4f> &visibleSpotLightsBounds = lightsPartition.getVisibleClusteredSpotLightsBounds();
 
-  if (lightsGrid.isGpu())
-    lightsGrid.prepareGPUCulling(view, proj, znear, zfar, closeSliceDist, maxClusteredDist, visibleOmniLightsBounds.size(),
-      visibleSpotLightsBounds.size());
-  else
+  if (lightsGrid)
   {
-    Tab<FrustumClusters::SpotsCullingData> visibleClusteredSpotLightsCullingData(framemem_ptr());
-    const Tab<uint16_t> &visibleSpotLightsId = lightsPartition.getVisibleClusteredSpotLightsIds();
-    visibleClusteredSpotLightsCullingData.resize(visibleSpotLightsId.size());
-
-    for (int i = 0, e = visibleSpotLightsId.size(); i < e; ++i)
+    if (lightsGrid->isGpu())
+      lightsGrid->prepareGPUCulling(view, proj, znear, zfar, closeSliceDist, maxClusteredDist);
+    else
     {
-      uint32_t id = visibleSpotLightsId[i];
-      const SpotLight &light = spotLights.getLight(id);
-      visibleClusteredSpotLightsCullingData[i].pos_radius = light.pos_radius;
-      visibleClusteredSpotLightsCullingData[i].dir_tanHalfAngle = light.dir_tanHalfAngle;
-    }
+      Tab<FrustumClusters::SpotsCullingData> visibleClusteredSpotLightsCullingData(framemem_ptr());
+      const Tab<uint16_t> &visibleSpotLightsId = lightsPartition.getVisibleClusteredSpotLightsIds();
+      visibleClusteredSpotLightsCullingData.resize(visibleSpotLightsId.size());
 
-    lightsGrid.cullCPU(view, proj, znear, closeSliceDist, maxClusteredDist, visibleOmniLightsBounds,
-      visibleClusteredSpotLightsCullingData, visibleSpotLightsBounds, occlusion);
+      for (int i = 0, e = visibleSpotLightsId.size(); i < e; ++i)
+      {
+        uint32_t id = visibleSpotLightsId[i];
+        const SpotLight &light = spotLights.getLight(id);
+        visibleClusteredSpotLightsCullingData[i].pos_radius = light.pos_radius;
+        visibleClusteredSpotLightsCullingData[i].dir_tanHalfAngle = light.dir_tanHalfAngle;
+      }
+
+      lightsGrid->cullCPU(view, proj, znear, closeSliceDist, maxClusteredDist, visibleOmniLightsBounds,
+        visibleClusteredSpotLightsCullingData, visibleSpotLightsBounds, occlusion);
+    }
   }
 
   if (tiledLights)
@@ -417,10 +459,12 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
   }
 }
 
-void ClusteredLights::fillAndSetInsideOfFrustumLightsBuffers() DAG_TS_NO_THREAD_SAFETY_ANALYSIS /* read only lightShadows atlas size */
+void ClusteredLights::fillAndSetInsideOfFrustumLightsBuffers() DAG_TS_NO_THREAD_SAFETY_ANALYSIS /* callers wait for cull before fill */
 {
-  if (buffersFilled[size_t(currentBufferSlot)])
+  if (!lightsInitialized || buffersFilled[size_t(currentBufferSlot)] || (isGpuCullingEnabled() && !lightVisibilityChecker.has_value()))
     return;
+
+  TIME_D3D_PROFILE(fillAndSetInsideOfFrustumLightsBuffers);
   buffersFilled[size_t(currentBufferSlot)] = true;
 
   ShaderGlobal::set_float(depthSliceScaleVarId, clusters.depthSliceScale);
@@ -431,7 +475,18 @@ void ClusteredLights::fillAndSetInsideOfFrustumLightsBuffers() DAG_TS_NO_THREAD_
   ShaderGlobal::set_float(shadowZBiasVarId, shaderShadowZBias);
   ShaderGlobal::set_float(shadowSlopeZBiasVarId, shaderShadowSlopeZBias);
 
-  lightsPartition.updateBuffersForVisibleLightsCPU(currentBufferSlot);
+  if (isGpuCullingEnabled())
+  {
+    {
+      OSSpinlockScopedLock scopedLock{lightLock};
+      omniLights.flushUpdatesForGPULights();
+      spotLights.flushUpdatesForGPULights();
+    }
+    lightsPartition.prepareClusteredAndFarLightBuffersGPU(lightVisibilityChecker->getTestParams(), lightsPartitionZFar);
+    lightsPartition.updateBuffersForVisibleLightsGPU();
+  }
+  else
+    lightsPartition.updateBuffersForVisibleLightsCPU(currentBufferSlot);
 
   const auto &visibleFarSpotLightsCB = lightsPartition.getVisibleFarSpotLightsCB(currentBufferSlot);
   const auto &visibleFarOmniLightsCB = lightsPartition.getVisibleFarOmniLightsCB(currentBufferSlot);
@@ -442,18 +497,17 @@ void ClusteredLights::fillAndSetInsideOfFrustumLightsBuffers() DAG_TS_NO_THREAD_
   {
     Sbuffer *lightsCBs[] = {visibleClusteredSpotLightsCB.getBuf(), visibleClusteredOmniLightsCB.getBuf(),
       visibleFarSpotLightsCB.getBuf(), visibleFarOmniLightsCB.getBuf()};
-    ResourceBarrier copySourceStates[] = {RB_RO_COPY_SOURCE, RB_RO_COPY_SOURCE, RB_RO_COPY_SOURCE, RB_RO_COPY_SOURCE};
-    d3d::resource_barrier({lightsCBs, copySourceStates});
-    lightsRenderer.copyInstanceCountsToIndirectArgs(
-      LightsRenderer::OmniLightsCBs{.far = &visibleFarOmniLightsCB, .clustered = &visibleClusteredOmniLightsCB},
-      LightsRenderer::SpotLightsCBs{.far = &visibleFarSpotLightsCB, .clustered = &visibleClusteredSpotLightsCB});
     const ResourceBarrier constantBufferState = RB_RO_CONSTANT_BUFFER | RB_STAGE_VERTEX | RB_STAGE_PIXEL | RB_STAGE_COMPUTE;
     ResourceBarrier constantBufferStates[] = {constantBufferState, constantBufferState, constantBufferState, constantBufferState};
     d3d::resource_barrier({lightsCBs, constantBufferStates});
+    lightsPartition.fillVisibleLightsIndirectArgs(currentBufferSlot, lightsRenderer.getIndexRanges(),
+      tiledLights ? tiledLights->getDrawCounts() : TiledLights::DrawCounts{});
   }
 
   ShaderGlobal::set_buffer(omni_lightsVarId, visibleClusteredOmniLightsCB.getId());
   ShaderGlobal::set_buffer(spot_lightsVarId, visibleClusteredSpotLightsCB.getId());
+  far_omni_lightsVarId.set_buffer(visibleFarOmniLightsCB.getId());
+  far_spot_lightsVarId.set_buffer(visibleFarSpotLightsCB.getId());
 
   if (const UniqueBuf &omniMasksSB = lightsPartition.getVisibleClusteredOmniLightsMasksSB())
   {
@@ -468,12 +522,21 @@ void ClusteredLights::fillAndSetInsideOfFrustumLightsBuffers() DAG_TS_NO_THREAD_
     ShaderGlobal::set_buffer(spot_lights_flagsVarId, spotMasksSB);
   }
 
-  lightsGrid.fill();
+  const bool gpuLightsCulling = isGpuCullingEnabled();
+  if (lightsGrid)
+  {
+    lightsGrid->fill(lightsPartition.getVisibleLightsIndirectArgs().getBuf(), VISIBLE_LIGHTS_INDIRECT_ARGS_GRID_OFFSET,
+      gpuLightsCulling ? MAX_CLUSTERED_OMNI_LIGHTS : lightsPartition.getVisibleClusteredOmniLightsIds().size(),
+      gpuLightsCulling ? MAX_CLUSTERED_SPOT_LIGHTS : lightsPartition.getVisibleClusteredSpotLightsIds().size());
+  }
 
   if (tiledLights)
-    tiledLights->applyBinning();
+  {
+    tiledLights->applyBinning(lightsPartition.getVisibleLightsIndirectArgs().getBuf(), VISIBLE_LIGHTS_INDIRECT_ARGS_TILED_OFFSET);
+    bindTiledLightsShaderVars();
+  }
 
-  if (!lightShadows)
+  if (!lightShadows || (gpuLightsCulling && shadowsRendered[size_t(currentBufferSlot)]))
   {
     OSSpinlockScopedLock scopedLock{lightLock};
     updateShadowBuffers();
@@ -538,11 +601,72 @@ void ClusteredLights::toggleTiledLights(bool use_tiled)
   if (!use_tiled)
     tiledLights.reset();
   else if (!tiledLights)
+  {
+    initTiledLights();
+    if (lightsInitialized && isGpuCullingEnabled() && !tiledLights->isGpu())
+    {
+      logwarn("ClusteredLights::toggleTiledLights - tiled lights use CPU z-binning. So GpuLightsCulling will be disabled");
+      dropPipelineSectionFeatures(DynLightsFeatures::GpuLightsCulling);
+      initPipelineSections(true);
+    }
+  }
+}
+
+void ClusteredLights::dropPipelineSectionFeatures(DynLightsFeatures requested_section_bits, DynLightsFeatures actual_section_features)
+{
+  dynLightsFeatures &= ~requested_section_bits | (actual_section_features & requested_section_bits);
+}
+
+bool ClusteredLights::hasPipelineSectionFeatures(DynLightsFeatures features_to_check) const
+{
+  return (dynLightsFeatures & features_to_check) == features_to_check;
+}
+
+void ClusteredLights::initPipelineSections(bool use_tiled_lights) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
+{
+  lightsManagerStorage.init(dynLightsFeatures);
+  dropPipelineSectionFeatures(DynLightsFeatures::GpuLightsManagerPersistentStorage, lightsManagerStorage.getRuntimeFeatures());
+
+  omniLights.init(dynLightsFeatures);
+  spotLights.init(dynLightsFeatures);
+  omniLights.setShadowSystem(lightShadows.get());
+  spotLights.setShadowSystem(lightShadows.get());
+
+  const DynLightsFeatures partitionBits = DynLightsFeatures::GpuLightsPartition | DynLightsFeatures::GpuLightsSort;
+  if (!hasPipelineSectionFeatures(DynLightsFeatures::GpuLightsManagerPersistentStorage))
+  {
+    dropPipelineSectionFeatures(partitionBits);
+  }
+
+  lightsPartition.init(dynLightsFeatures);
+  buffersFilled.fill(false);
+  dropPipelineSectionFeatures(partitionBits, lightsPartition.getRuntimeFeatures());
+
+  if (!hasPipelineSectionFeatures(partitionBits))
+  {
+    dropPipelineSectionFeatures(DynLightsFeatures::GpuLightShadowsPersistentStorage);
+  }
+
+  dynamicLightShadows.init(dynLightsFeatures);
+  dropPipelineSectionFeatures(DynLightsFeatures::GpuLightShadowsPersistentStorage, dynamicLightShadows.getRuntimeFeatures());
+  dynamicLightShadows.setShadowSystem(lightShadows.get());
+
+  lightsGrid.reset();
+  if (hasPipelineSectionFeatures(DynLightsFeatures::ClusteredLightsGridEnabled))
+  {
+    lightsGrid = eastl::make_unique<ClusteredLightsGrid>(clusters, &lightsResMgr,
+      isGpuCullingEnabled() ? (MAX_CLUSTERED_OMNI_LIGHTS + MAX_CLUSTERED_SPOT_LIGHTS) : initialLightDensity);
+    lightsGrid->init(dynLightsFeatures);
+    dropPipelineSectionFeatures(DynLightsFeatures::GpuClusteredLightsGrid, lightsGrid->getRuntimeFeatures());
+  }
+
+  tiledLights.reset();
+  if (use_tiled_lights)
     initTiledLights();
 }
 
-void ClusteredLights::init(int frame_initial_lights_count, uint32_t shadow_quality, bool use_tiled_lights,
-  const char *name_suffix) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
+void ClusteredLights::init(int frame_initial_lights_count, uint32_t shadow_quality, bool use_tiled_lights, const char *name_suffix,
+  eastl::optional<DynLightsFeatures> requested_features_override) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
   lightsResMgr = LightsResourcesManager(name_suffix);
   lightsInitialized = true;
@@ -553,49 +677,59 @@ void ClusteredLights::init(int frame_initial_lights_count, uint32_t shadow_quali
     changeShadowResolutionByQuality(shadow_quality, false);
   }
 
-  const auto defaultDynLightsFeatures = DynLightsFeatures::GpuClusteredLightsGrid | DynLightsFeatures::GpuTiledLightsZBinning;
-  dynLightsFeatures = static_cast<DynLightsFeatures>(
-    dgs_get_settings()->getBlockByNameEx("graphics")->getInt("dynLightsFeatures", static_cast<int>(defaultDynLightsFeatures)));
+  const auto defaultDynLightsFeatures = DynLightsFeatures::Default;
+  dynLightsFeatures = requested_features_override.value_or(static_cast<DynLightsFeatures>(
+    dgs_get_settings()->getBlockByNameEx("graphics")->getInt("dynLightsFeatures", static_cast<int>(defaultDynLightsFeatures))));
 
   const auto gpuLightsCullingValues = dynLightsFeatures & DynLightsFeatures::GpuLightsCulling;
   if (gpuLightsCullingValues != DynLightsFeatures::CpuOnly && gpuLightsCullingValues != DynLightsFeatures::GpuLightsCulling)
   {
     logerr("ClusteredLights::init - invalid combination of dyn lights features : %d", static_cast<int>(gpuLightsCullingValues));
-    dynLightsFeatures &= ~DynLightsFeatures::GpuLightsCulling;
+    dropPipelineSectionFeatures(DynLightsFeatures::GpuLightsCulling);
   }
 
-  // TODO: remove temporary force disable gpu lights culling
-  dynLightsFeatures &= ~DynLightsFeatures::GpuLightsCulling;
-
-  omniLights.init(dynLightsFeatures);
-  spotLights.init(dynLightsFeatures);
-  omniLights.setShadowSystem(lightShadows.get());
-  spotLights.setShadowSystem(lightShadows.get());
-
-  const DynLightsFeatures managersFeatures = omniLights.getRuntimeFeatures() & spotLights.getRuntimeFeatures();
-  dynLightsFeatures &=
-    ~DynLightsFeatures::GpuLightsManagerPersistentStorage | (managersFeatures & DynLightsFeatures::GpuLightsManagerPersistentStorage);
-
-  const DynLightsFeatures partitionBits = DynLightsFeatures::GpuLightsPartition | DynLightsFeatures::GpuLightsSort;
-  if (!static_cast<bool>(dynLightsFeatures & DynLightsFeatures::GpuLightsManagerPersistentStorage))
+  if (hasPipelineSectionFeatures(DynLightsFeatures::GpuClusteredLightsGrid) &&
+      !hasPipelineSectionFeatures(DynLightsFeatures::ClusteredLightsGridEnabled))
   {
-    dynLightsFeatures &= ~partitionBits;
+    logwarn("ClusteredLights::init - ClusteredLightsGridEnabled is not requested. So GpuClusteredLightsGrid will be disabled");
+    dropPipelineSectionFeatures(DynLightsFeatures::GpuClusteredLightsGrid);
   }
 
-  lightsPartition.init(dynLightsFeatures);
-  dynLightsFeatures &= ~partitionBits | (lightsPartition.getRuntimeFeatures() & partitionBits);
+  if (!hasPipelineSectionFeatures(DynLightsFeatures::ClusteredLightsGridEnabled))
+    debug("ClusteredLights::init - ClusteredLightsGridEnabled is not requested. So lights_full_grid is not set and shaders "
+          "that read it get no clustered lights");
 
-  if ((dynLightsFeatures & partitionBits) != partitionBits)
+  if (isGpuCullingEnabled() && !hasPipelineSectionFeatures(DynLightsFeatures::GpuTiledLightsZBinning))
   {
-    dynLightsFeatures &= ~(DynLightsFeatures::GpuLightShadowsPersistentStorage);
+    logwarn("ClusteredLights::init - GpuTiledLightsZBinning is not requested. So GpuLightsCulling will be disabled");
+    dropPipelineSectionFeatures(DynLightsFeatures::GpuLightsCulling);
   }
 
-  dynamicLightShadows.init(dynLightsFeatures);
-  dynLightsFeatures &= ~DynLightsFeatures::GpuLightShadowsPersistentStorage |
-                       (dynamicLightShadows.getRuntimeFeatures() & DynLightsFeatures::GpuLightShadowsPersistentStorage);
-  dynamicLightShadows.setShadowSystem(lightShadows.get());
+  if (isGpuCullingEnabled() && hasPipelineSectionFeatures(DynLightsFeatures::ClusteredLightsGridEnabled) &&
+      !hasPipelineSectionFeatures(DynLightsFeatures::GpuClusteredLightsGrid))
+  {
+    logwarn("ClusteredLights::init - GpuClusteredLightsGrid is not requested. So GpuLightsCulling will be disabled");
+    dropPipelineSectionFeatures(DynLightsFeatures::GpuLightsCulling);
+  }
 
-  initClustered(frame_initial_lights_count);
+  initialLightDensity = frame_initial_lights_count;
+
+  const bool gpuCullingRequested = isGpuCullingEnabled();
+  initPipelineSections(use_tiled_lights);
+
+  if (
+    gpuCullingRequested && (!isGpuCullingEnabled() || (tiledLights && !tiledLights->isGpu()) || (lightsGrid && !lightsGrid->isGpu())))
+  {
+    dropPipelineSectionFeatures(DynLightsFeatures::GpuLightsCulling);
+    initPipelineSections(use_tiled_lights);
+  }
+
+  if (!isGpuCullingEnabled() && hasPipelineSectionFeatures(DynLightsFeatures::GpuResidentLights))
+  {
+    logwarn("ClusteredLights::init - GpuLightsCulling is not enabled. So GpuResidentLights will be disabled");
+    dropPipelineSectionFeatures(DynLightsFeatures::GpuResidentLights);
+  }
+
   lightsRenderer.init();
 
   if (lightShadows)
@@ -605,17 +739,27 @@ void ClusteredLights::init(int frame_initial_lights_count, uint32_t shadow_quali
   spot_lightsVarId = ::get_shader_variable_id("spot_lights", false);
   common_lights_shadowsVarId = ::get_shader_variable_id("common_lights_shadows", false);
   spot_lights_ssss_shadow_descVarId = ::get_shader_variable_id("spot_lights_ssss_shadow_desc", true);
-  tiledLights.reset();
-  if (use_tiled_lights)
-    initTiledLights();
+  depthSliceScaleVarId = get_shader_variable_id("depthSliceScale");
+  depthSliceBiasVarId = get_shader_variable_id("depthSliceBias");
+  shadowAtlasTexelVarId = get_shader_variable_id("shadowAtlasTexel");
+  shadowZBiasVarId = get_shader_variable_id("shadowZBias");
+  shadowSlopeZBiasVarId = get_shader_variable_id("shadowSlopeZBias");
+  spot_lights_flagsVarId = get_shader_variable_id("spot_lights_flags", true);
+  omni_lights_flagsVarId = get_shader_variable_id("omni_lights_flags", true);
 }
 
 void ClusteredLights::initTiledLights()
 {
-  tiledLights = eastl::make_unique<TiledLights>(maxClusteredDist);
+  tiledLights = eastl::make_unique<TiledLights>(maxClusteredDist, &lightsResMgr);
   tiledLights->init(dynLightsFeatures);
-  dynLightsFeatures &=
-    ~DynLightsFeatures::GpuTiledLightsZBinning | (tiledLights->getRuntimeFeatures() & DynLightsFeatures::GpuTiledLightsZBinning);
+  dropPipelineSectionFeatures(DynLightsFeatures::GpuTiledLightsZBinning, tiledLights->getRuntimeFeatures());
+}
+
+void ClusteredLights::bindTiledLightsShaderVars() const
+{
+  lights_listVarId.set_buffer(tiledLights->getLightsListBufId());
+  z_binning_lookupVarId.set_buffer(tiledLights->getLUTBufId());
+  ShaderGlobal::set_float(max_lights_distanceVarId, maxClusteredDist);
 }
 
 void ClusteredLights::setMaxClusteredDist(const float max_clustered_dist)
@@ -632,23 +776,23 @@ void ClusteredLights::setMaxShadowDist(const float max_shadow_dist) DAG_TS_NO_TH
 
 void ClusteredLights::renderDebugOmniLights()
 {
-  if (hasClusteredOmniLights() || hasDeferredOmniLights())
+  if (buffersFilled[size_t(currentBufferSlot)])
   {
-    G_ASSERT(buffersFilled[size_t(currentBufferSlot)]);
     lightsRenderer.renderDebugOmniLights(
       LightsRenderer::OmniLightsCBs{.far = &lightsPartition.getVisibleFarOmniLightsCB(currentBufferSlot),
-        .clustered = &lightsPartition.getVisibleClusteredOmniLightsCB(currentBufferSlot)});
+        .clustered = &lightsPartition.getVisibleClusteredOmniLightsCB(currentBufferSlot)},
+      lightsPartition.getVisibleLightsIndirectArgs().getBuf());
   }
 }
 
 void ClusteredLights::renderDebugSpotLights()
 {
-  if (hasClusteredSpotLights() || hasDeferredSpotLights())
+  if (buffersFilled[size_t(currentBufferSlot)])
   {
-    G_ASSERT(buffersFilled[size_t(currentBufferSlot)]);
     lightsRenderer.renderDebugSpotLights(
       LightsRenderer::SpotLightsCBs{.far = &lightsPartition.getVisibleFarSpotLightsCB(currentBufferSlot),
-        .clustered = &lightsPartition.getVisibleClusteredSpotLightsCB(currentBufferSlot)});
+        .clustered = &lightsPartition.getVisibleClusteredSpotLightsCB(currentBufferSlot)},
+      lightsPartition.getVisibleLightsIndirectArgs().getBuf());
   }
 }
 
@@ -973,8 +1117,7 @@ void ClusteredLights::framePrepareShadows(dynamic_shadow_render::FrameVolumeData
 void ClusteredLights::frameRenderShadows(const dynamic_shadow_render::FrameVolumeData &volume_data, StaticRenderCallback renderStatic,
   DynamicRenderCallback renderDynamic)
 {
-  if ((lightsPartition.getVisibleClusteredSpotLightsIds().empty() && lightsPartition.getVisibleClusteredOmniLightsIds().empty()) ||
-      !lightShadows)
+  if (!lightShadows)
     return;
 
   SCOPE_VIEW_PROJ_MATRIX;
@@ -983,6 +1126,7 @@ void ClusteredLights::frameRenderShadows(const dynamic_shadow_render::FrameVolum
   dynamicLightShadows.frameRenderShadows(volume_data, renderStatic, renderDynamic, depthBiasOverrideId.get(),
     depthBiasTwoSidedOverrideId.get());
 
+  shadowsRendered[size_t(currentBufferSlot)] = true;
   updateShadowBuffers();
   scopedLock.unlock();
 
@@ -993,35 +1137,60 @@ void ClusteredLights::frameRenderShadows(const dynamic_shadow_render::FrameVolum
 
 void ClusteredLights::updateShadowBuffers()
 {
-  dynamicLightShadows.updateVisibleLightShadowBuffersCPU(currentBufferSlot, lightsPartition.getVisibleClusteredSpotLightsIds(),
-    lightsPartition.getVisibleClusteredOmniLightsIds());
+  if (isGpuCullingEnabled())
+  {
+    if (buffersFilled[size_t(currentBufferSlot)])
+      dynamicLightShadows.updateVisibleLightShadowBuffersGPU(lightsPartition.getVisibleLightsDataBuffer().getBuf(),
+        lightsPartition.getVisibleLightsCountsBuffer().getBuf());
+  }
+  else
+    dynamicLightShadows.updateVisibleLightShadowBuffersCPU(currentBufferSlot, lightsPartition.getVisibleClusteredSpotLightsIds(),
+      lightsPartition.getVisibleClusteredOmniLightsIds());
+
   ShaderGlobal::set_buffer(common_lights_shadowsVarId,
     dynamicLightShadows.getInFrustumCommonLightShadowsCB(currentBufferSlot).getId());
   ShaderGlobal::set_buffer(spot_lights_ssss_shadow_descVarId, dynamicLightShadows.getSpotLightSsssShadowDescBufferId());
 }
 
-void ClusteredLights::setOutOfFrustumLightsToShader() DAG_TS_NO_THREAD_SAFETY_ANALYSIS
+void ClusteredLights::setOutOfFrustumLightsToShader(const CulledLights &lights)
 {
-  G_ASSERT(lightsInitialized);
-  ShaderGlobal::set_float4_array(out_of_frustum_omni_boxVarId, omniOOFBox, 2);
-  ShaderGlobal::set_float4_array(out_of_frustum_spot_boxVarId, spotOOFBox, 2);
-  ShaderGlobal::set_buffer(omni_lightsVarId, outOfFrustumOmniLightsCB.getId());
-  ShaderGlobal::set_buffer(spot_lightsVarId, outOfFrustumVisibleSpotLightsCB.getId());
-  ShaderGlobal::set_buffer(common_lights_shadowsVarId, dynamicLightShadows.getOutOfFrustumCommonLightShadowsCB().getId());
+  if (!lightsInitialized)
+    return;
+
+  ShaderGlobal::set_float4_array(out_of_frustum_omni_boxVarId, lights.omniBox, 2);
+  ShaderGlobal::set_float4_array(out_of_frustum_spot_boxVarId, lights.spotBox, 2);
+  ShaderGlobal::set_buffer(omni_lightsVarId, lights.omniLightsCB.getId());
+  ShaderGlobal::set_buffer(spot_lightsVarId, lights.spotLightsCB.getId());
+  out_of_frustum_omni_lightsVarId.set_buffer(lights.omniLightsCB.getId());
+  out_of_frustum_spot_lightsVarId.set_buffer(lights.spotLightsCB.getId());
+  oof_lights_full_gridVarId.set_buffer(lights.fullGrid.getBufId());
+  ShaderGlobal::set_buffer(common_lights_shadowsVarId, lights.shadowsCB.getId());
   ShaderGlobal::set_buffer(spot_lights_ssss_shadow_descVarId, BAD_D3DRESID);
 }
 
 void ClusteredLights::setInsideOfFrustumLightsToShader() const DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
-  G_ASSERT(lightsInitialized);
+  if (!lightsInitialized)
+    return;
+
   ShaderGlobal::set_buffer(omni_lightsVarId, lightsPartition.getVisibleClusteredOmniLightsCB(currentBufferSlot).getId());
   ShaderGlobal::set_buffer(spot_lightsVarId, lightsPartition.getVisibleClusteredSpotLightsCB(currentBufferSlot).getId());
+  far_omni_lightsVarId.set_buffer(lightsPartition.getVisibleFarOmniLightsCB(currentBufferSlot).getId());
+  far_spot_lightsVarId.set_buffer(lightsPartition.getVisibleFarSpotLightsCB(currentBufferSlot).getId());
   ShaderGlobal::set_buffer(common_lights_shadowsVarId,
     dynamicLightShadows.getInFrustumCommonLightShadowsCB(currentBufferSlot).getId());
   ShaderGlobal::set_buffer(spot_lights_ssss_shadow_descVarId, dynamicLightShadows.getSpotLightSsssShadowDescBufferId());
+  if (tiledLights)
+    bindTiledLightsShaderVars();
 }
 
 void ClusteredLights::selectBufferSlot(LightBufferSlot slot) { currentBufferSlot = slot; }
+
+void ClusteredLights::updateLightShadowBuffers()
+{
+  OSSpinlockScopedLock scopedLock{lightLock};
+  updateShadowBuffers();
+}
 
 void ClusteredLights::beforeResetDevice()
 {
@@ -1033,6 +1202,7 @@ void ClusteredLights::beforeResetDevice()
 void ClusteredLights::afterResetDevice()
 {
   lightsRenderer.afterResetDevice();
+  lightsPartition.afterResetDevice();
 
   {
     OSSpinlockScopedLock scopedLock{lightLock};

@@ -101,6 +101,8 @@ void BloodPuddles::addPuddleAt(const PuddleCtx &ctx, int group)
   putDecal(group, ctx.pos, ctx.normal, size, ctx.riEx, ctx.pos, false);
 }
 
+float BloodPuddles::initRandomSize(const int group) const { return rnd_float(sizeRanges[group].x, sizeRanges[group].y); }
+
 float BloodPuddles::addRandomToSize(int group, float size) const
 {
   size = clamp(size, sizeRanges[group].x, sizeRanges[group].y);
@@ -253,7 +255,12 @@ void BloodPuddles::putDecal(int group,
     // checks min square distance between existing puddles and new one
     if ((get_puddle_type(puddle) == group) && (lengthSq(puddle.pos - pos) < groupDists[group]))
       return;
-  size = addRandomToSize(group, size);
+
+  if (size <= 0.f)
+    size = initRandomSize(group);
+  else
+    size = addRandomToSize(group, size);
+
   addDecal(group, pos, normal, dir, matrix_id, size, hit_pos, projective, is_landscape, variant, strength);
 }
 

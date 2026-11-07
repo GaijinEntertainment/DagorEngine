@@ -423,13 +423,14 @@ void build_footer_texts(const GraphData &gd, const NodeResolution *res, int dime
 } // namespace
 
 GraphNodeFrame::GraphNodeFrame(const GraphData &graph_data, const eastl::hash_set<uint64_t> &linked_pins,
-  const eastl::hash_set<uint64_t> &live_pins, const GraphResolutions &node_resolutions, const GraphPinJumpMenu &pin_jump_menu,
-  GraphEdgeReconnect &edge_reconnect, eastl::string &hover_tooltip, uint64_t hovered_ne_node_id, int preview_node_id,
-  uint64_t highlight_pin_id) :
+  const eastl::hash_set<uint64_t> &live_pins, const GraphResolutions &node_resolutions,
+  const eastl::hash_map<int, NodeIssue> &node_issues, const GraphPinJumpMenu &pin_jump_menu, GraphEdgeReconnect &edge_reconnect,
+  eastl::string &hover_tooltip, uint64_t hovered_ne_node_id, int preview_node_id, uint64_t highlight_pin_id) :
   graph(graph_data),
   linkedPins(linked_pins),
   livePins(live_pins),
   resolutions(node_resolutions),
+  nodeIssues(node_issues),
   pinJumpMenu(pin_jump_menu),
   edgeReconnect(edge_reconnect),
   hoverTooltip(hover_tooltip),
@@ -696,7 +697,7 @@ void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, int nod
   // Only the inherited path is clamped, so a hand-edited absolute size can be far wider than 8192.
   char footerLeft[48] = {0};
   char footerRight[48] = {0};
-  // constraint: layout-only, so it stays a pure function of the node - a missing derived cache may
+  // layout-only, so it stays a pure function of the node - a missing derived cache may
   // not change node height.
   const int footerDimension = node_out_texture_dimension(node);
   lay.hasFooter = footerDimension != 0;
@@ -746,6 +747,11 @@ void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, int nod
   if (vis.band)
   {
     draw_node_select_band(frame, dl, bodyMin, bodyMax);
+  }
+  else if (const auto issue = frame.nodeIssues.find(node.id); issue != frame.nodeIssues.end())
+  {
+    stroke_inside(dl, bodyMin, bodyMax, 0.0f, frame.bandMargin, frame.bandRadius,
+      issue->second == NodeIssue::Error ? GRAPH_ERROR_BORDER_COLOR : GRAPH_WARNING_COLOR);
   }
 
   if (lay.hasDivider && lay.contentH > 0.0f)
@@ -816,7 +822,7 @@ void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, int nod
     offerFullText(titleCut, ImVec2(titleX, bodyMin.y), ImVec2(titleRightX, contentTop), titleStr);
     if (lay.hasFooter)
     {
-      // constraint: the band is laid out from this node's own pins, so the format comes from
+      // the band is laid out from this node's own pins, so the format comes from
       // footerDimension and not from whatever produced the resolution.
       build_footer_texts(frame.graph, frame.resolutions.byIndex(node_index), footerDimension, footerLeft, sizeof(footerLeft),
         footerRight, sizeof(footerRight));
@@ -1091,8 +1097,8 @@ void draw_canvas_hint(ImDrawList *draw_list, const ImVec2 &avoid_min, const ImVe
   draw_list->AddText(ImVec2(boxMin.x + padX, boxMin.y + padY), GRAPH_TEXT_COLOR, text);
 }
 
-void draw_add_node_ghost(ImDrawList *draw_list, const ImVec2 &anchor, ImU32 pin_color, bool source_is_output, const ImVec2 &bounds_min,
-  const ImVec2 &bounds_max)
+void draw_add_node_ghost(ImDrawList *draw_list, const ImVec2 &anchor, ImU32 pin_color, bool source_is_output, bool has_pin,
+  const ImVec2 &bounds_min, const ImVec2 &bounds_max)
 {
   const float rounding = static_cast<float>(hdpi::_pxS(GHOST_CORNER_RADIUS));
   const float notchDepth = static_cast<float>(hdpi::_pxS(GHOST_NOTCH_DEPTH));
@@ -1107,8 +1113,11 @@ void draw_add_node_ghost(ImDrawList *draw_list, const ImVec2 &anchor, ImU32 pin_
   fill_ghost_body(draw_list, ImVec2(anchor.x + bodyMin.x, anchor.y + bodyMin.y), ImVec2(anchor.x + bodyMax.x, anchor.y + bodyMax.y),
     rounding, notchDepth, notchInset);
 
-  draw_list->AddCircleFilled(anchor, pinRadius, PIN_OUTLINE_COLOR);
-  draw_list->AddCircleFilled(anchor, pinRadius - pinOutline, pin_color);
+  if (has_pin)
+  {
+    draw_list->AddCircleFilled(anchor, pinRadius, PIN_OUTLINE_COLOR);
+    draw_list->AddCircleFilled(anchor, pinRadius - pinOutline, pin_color);
+  }
 
   draw_list->PopClipRect();
 }

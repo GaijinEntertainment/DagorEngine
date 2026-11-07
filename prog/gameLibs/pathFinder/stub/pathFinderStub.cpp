@@ -67,13 +67,16 @@ void setPathForDebug(dag::ConstSpan<Point3>) {}
 
 void init_path_corridor(dtPathCorridor &) {}
 FindPathResult set_path_corridor(dtPathCorridor &, const CorridorInput &, const CustomNav *) { return {}; }
-FindPathResult set_curved_path_corridor(dtPathCorridor &, const CorridorInput &, float, float, const CustomNav *) { return {}; }
+FindPathResult set_curved_path_corridor(dtPathCorridor &, const CorridorInput &, float, float, const CustomNav *, uint32_t)
+{
+  return {};
+}
 FindCornersResult find_corridor_corners(dtPathCorridor &, Tab<Point3> &, int, const CustomNav *) { return {}; }
 bool set_corridor_agent_position(dtPathCorridor &, const Point3 &, dag::ConstSpan<Point2> *, const CustomNav *) { return {}; }
 bool set_corridor_target(dtPathCorridor &, const Point3 &, dag::ConstSpan<Point2> *, const CustomNav *) { return {}; }
 
-bool optimize_corridor_path(dtPathCorridor &, const FindRequest &, bool, const CustomNav *) { return {}; }
-bool optimize_corridor_path(dtPathCorridor &, const Point3 &, bool, const CustomNav *) { return {}; }
+bool optimize_corridor_path(dtPathCorridor &, const FindRequest &, bool, const CustomNav *, uint32_t) { return {}; }
+bool optimize_corridor_path(dtPathCorridor &, const Point3 &, bool, const CustomNav *, uint32_t) { return {}; }
 bool get_poly_flags(dtPolyRef, unsigned short &) { return {}; }
 bool set_poly_flags(dtPolyRef, unsigned short) { return {}; }
 bool get_poly_area(dtPolyRef, unsigned char &) { return {}; }
@@ -126,7 +129,7 @@ bool get_poly_flags_ex(int, dtPolyRef, unsigned short &) { return {}; }
 bool find_polys_in_circle_ex(int, dag::Vector<dtPolyRef, framemem_allocator> &, const Point3 &, float, float) { return {}; }
 bool flood_walk_distance_ex(int, Point3 &, const Point3 &, float, int, dag::Vector<NavMeshWalkDist> &, bool &) { return {}; }
 bool find_walk_distance_poly_ex(int, Point3 &, const Point3 &, dtPolyRef &) { return {}; }
-FindPathResult set_path_corridor_ex(int, dtPathCorridor &, const CorridorInput &, const CustomNav *) { return {}; }
+FindPathResult set_path_corridor_ex(int, dtPathCorridor &, const CorridorInput &, const CustomNav *, uint32_t) { return {}; }
 bool set_corridor_agent_position_ex(int, dtPathCorridor &, const Point3 &, dag::ConstSpan<Point2> *, const CustomNav *) { return {}; }
 FindCornersResult find_corridor_corners_ex(int, dtPathCorridor &, Tab<Point3> &, int, const CustomNav *) { return {}; }
 const char *get_nav_mesh_kind(int) { return {}; }
@@ -190,6 +193,8 @@ void tilecache_ri_enable_obstacle(rendinst::riex_handle_t, bool, bool) {}
 
 bool tilecache_ri_obstacle_add(rendinst::riex_handle_t, const BBox3 &, const Point2 &, bool) { return {}; }
 bool tilecache_ri_obstacle_remove(rendinst::riex_handle_t, bool) { return {}; }
+bool tilecache_ri_after_destroy_obstacle_add(rendinst::riex_handle_t, const TMatrix &) { return {}; }
+void tilecache_ri_after_destroy_obstacles_remove() {}
 void mark_polygons_lower(float, unsigned char) {}
 void mark_polygons_upper(float, unsigned char) {}
 

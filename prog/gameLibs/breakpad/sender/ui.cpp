@@ -73,9 +73,9 @@ protected:
     this->shouldQuit = true;
   }
 
-  virtual void addOption(const char *txt, Fl_Callback *cb, bool p) { this->options.emplace_back(txt, cb, p); }
-  virtual void addBtnLeft(const char *txt, Fl_Callback *cb) { this->lBtns.emplace_back(txt, cb); }
-  virtual void addBtnRight(const char *txt, Fl_Callback *cb) { this->rBtns.emplace_back(txt, cb); }
+  void addOption(const char *txt, Fl_Callback *cb, bool p) { this->options.emplace_back(txt, cb, p); }
+  void addBtnLeft(const char *txt, Fl_Callback *cb) { this->lBtns.emplace_back(txt, cb); }
+  void addBtnRight(const char *txt, Fl_Callback *cb) { this->rBtns.emplace_back(txt, cb); }
 
 private:
   void create()
@@ -238,25 +238,18 @@ class QueryWindow : public BaseWindow
 {
 public:
   static void on_btn_send(Fl_Widget *, void *udata) { ((QueryWindow *)udata)->quit(Response::Send); }
-  static void on_opt_logs(Fl_Widget *w, void *udata)
+  template <bool breakpad::Configuration::*flag>
+  static void on_opt_check(Fl_Widget *w, void *udata)
   {
-    QueryWindow *self = (QueryWindow *)udata;
-    Fl_Check_Button *btn = static_cast<Fl_Check_Button *>(w);
-    self->cfg.sendLogs = btn->value();
-  }
-  static void on_opt_email(Fl_Widget *w, void *udata)
-  {
-    QueryWindow *self = (QueryWindow *)udata;
-    Fl_Check_Button *btn = static_cast<Fl_Check_Button *>(w);
-    self->cfg.allowEmail = btn->value();
+    ((QueryWindow *)udata)->cfg.*flag = static_cast<Fl_Check_Button *>(w)->value();
   }
 
 public:
   QueryWindow(breakpad::Configuration &c) :
     BaseWindow(c, c.productTitle + lang(UI_TXT_SUBMISSION_TITLE), lang(UI_TXT_SUBMISSION_QUERY))
   {
-    this->addOption(lang(UI_TXT_SUBMISSION_ALLOW_LOGS), on_opt_logs, c.sendLogs);
-    this->addOption(lang(UI_TXT_SUBMISSION_ALLOW_EMAIL), on_opt_email, c.allowEmail);
+    this->addOption(lang(UI_TXT_SUBMISSION_ALLOW_LOGS), on_opt_check<&breakpad::Configuration::sendLogs>, c.sendLogs);
+    this->addOption(lang(UI_TXT_SUBMISSION_ALLOW_EMAIL), on_opt_check<&breakpad::Configuration::allowEmail>, c.allowEmail);
 
     if (c.parent.empty())
       this->addBtnRight(lang(UI_TXT_BTN_SEND_AND_CLOSE), on_btn_send);
@@ -276,7 +269,7 @@ class NotifyWindow : public BaseWindow
 public:
   static void on_btn_copy(Fl_Widget *, void *udata)
   {
-    const char *uuid = ((NotifyWindow *)udata)->getUuid();
+    const char *uuid = ((NotifyWindow *)udata)->uuid.c_str();
     Fl::copy(uuid, strlen(uuid), 0);
     Fl::copy(uuid, strlen(uuid), 1);
   }
@@ -293,8 +286,6 @@ public:
     if (s)
       this->addBtnLeft(lang(UI_TXT_BTN_COPY_UUID), on_btn_copy);
   }
-
-  const char *getUuid() { return this->uuid.c_str(); }
 
 private:
   std::string uuid;

@@ -17,6 +17,7 @@
 #include <memory/dag_framemem.h>
 #include <math/random/dag_random.h>
 #include <math/integer/dag_IPoint2.h>
+#include <math/dag_check_nan.h>
 #include <utf8/utf8.h>
 #include <util/dag_convar.h>
 
@@ -323,7 +324,6 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
   }
 
   const Sqrat::Table &scriptDesc = comp.scriptDesc;
-  Sqrat::Table prevDesc = props.scriptDesc;
 
   props.load(scriptDesc, comp.scriptBuilder, csk);
   discard_text_cache(robjParams);
@@ -440,16 +440,6 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
   updFlags(F_HIDDEN, scriptDesc.RawGetSlotValue(csk->isHidden, false));
   updFlags(F_DOES_AFFECT_LAYOUT, ElementTree::does_component_affect_layout(comp, csk));
   updFlags(F_HAS_CURSOR, hasCursor);
-
-  if (setup_mode == SM_INITIAL)
-    readHotkeys(scriptDesc, scriptDesc.RawGetSlot(csk->hotkeys), gui_scene->getHotkeys());
-  else if (setup_mode == SM_REBUILD_UPDATE && !isDetached())
-  {
-    Sqrat::Object prevHotkeys = prevDesc.RawGetSlot(csk->hotkeys);
-    Sqrat::Object newHotkeys = scriptDesc.RawGetSlot(csk->hotkeys);
-    if (!is_same_immutable_obj(prevHotkeys, newHotkeys))
-      readHotkeys(scriptDesc, newHotkeys, gui_scene->getHotkeys());
-  }
 
 #if DARG_USE_DBGCOLOR
   if (debug_frames_mode == DFM_ELEM_UPDATE)
@@ -594,7 +584,7 @@ void Element::readTransform(const Sqrat::Table &desc)
 
   transform->rotate = DegToRad(tmDesc.RawGetSlotValue(csk->rotate, 0.0f));
 
-  auto isBad = [](float v) { return !isfinite(v) || fabsf(v) > 1e6f; };
+  auto isBad = [](float v) { return !check_finite(v) || fabsf(v) > 1e6f; };
 
   if (isBad(transform->rotate) || isBad(transform->scale.x) || isBad(transform->scale.y) || isBad(transform->translate.x) ||
       isBad(transform->translate.y) || isBad(transform->pivot.x) || isBad(transform->pivot.y))
@@ -631,19 +621,7 @@ void Element::readTransform(const Sqrat::Table &desc)
 }
 
 
-template <typename T>
-static bool are_tabs_equal(const Tab<T> &a, const Tab<T> &b)
-{
-  if (a.size() != b.size())
-    return false;
-  for (int i = 0, n = a.size(); i < n; ++i)
-    if (a[i] != b[i])
-      return false;
-  return true;
-}
-
-
-void Element::readHotkeys(const Sqrat::Table &desc, const Sqrat::Array &hotkeys_data, const Hotkeys &hotkeys)
+bool Element::readHotkeys(const Sqrat::Table &desc, const Sqrat::Array &hotkeys_data, const Hotkeys &hotkeys)
 {
   dag::Vector<eastl::unique_ptr<HotkeyCombo>> prevCombos;
 
@@ -658,7 +636,7 @@ void Element::readHotkeys(const Sqrat::Table &desc, const Sqrat::Array &hotkeys_
       bool removed = true;
       for (auto &cur : hotkeyCombos)
       {
-        if (are_tabs_equal(cur->buttons, prev->buttons) && cur->eventName == prev->eventName)
+        if (cur->buttons == prev->buttons && cur->eventName == prev->eventName)
         {
           cur->isPressed = true; // prev->isPressed;
           removed = false;
@@ -670,7 +648,7 @@ void Element::readHotkeys(const Sqrat::Table &desc, const Sqrat::Array &hotkeys_
     }
   }
 
-  prevCombos.clear();
+  return !are_combos_equivalent(prevCombos, hotkeyCombos);
 }
 
 
@@ -827,19 +805,19 @@ void Element::applyTransform(const GuiVertexTransform &prev_gvtm, GuiVertexTrans
     Point2 scale = transform->getCurScale();
     float rotate = transform->getCurRotate();
 
-    if (!isfinite(translate.x) || !isfinite(translate.y))
+    if (!check_finite(translate.x) || !check_finite(translate.y))
     {
       if (trace_invalid_transform)
         darg_assert_trace_var("Invalid transform values (translate)", props.scriptDesc, csk->transform);
       translate = Point2(0, 0);
     }
-    if (!isfinite(scale.x) || !isfinite(scale.y))
+    if (!check_finite(scale.x) || !check_finite(scale.y))
     {
       if (trace_invalid_transform)
         darg_assert_trace_var("Invalid transform values (scale)", props.scriptDesc, csk->transform);
       scale = Point2(1, 1);
     }
-    if (!isfinite(rotate))
+    if (!check_finite(rotate))
     {
       if (trace_invalid_transform)
         darg_assert_trace_var("Invalid transform values (rotate)", props.scriptDesc, csk->transform);
@@ -1155,6 +1133,35 @@ int16_t Element::getZOrder(int parent_z_order) const
 }
 
 
+static constexpr int input_entry_bhv_flags = Behavior::F_FOCUS_ON_CLICK | Behavior::F_HANDLE_KEYBOARD | Behavior::F_HANDLE_MOUSE |
+                                             Behavior::F_HANDLE_TOUCH | Behavior::F_HANDLE_TOUCHPAD_PAIR;
+
+
+static bool needs_input_entry(const Element *elem)
+{
+  const int elemInputFlags = Element::F_STOP_HOVER | Element::F_STOP_POINTING | Element::F_JOYSTICK_SCROLL | Element::F_STOP_HOTKEYS;
+  return elem->hasBehaviors(input_entry_bhv_flags) || !elem->hotkeyCombos.empty() || elem->hasFlags(elemInputFlags) ||
+         elem->xmb != nullptr;
+}
+
+
+static bool is_input_entry_passive(const Element *elem)
+{
+  return elem->hasFlags(Element::F_INPUT_PASSIVE) ||
+         (!elem->hasBehaviors(input_entry_bhv_flags) && are_hotkeys_input_transparent(elem->hotkeyCombos));
+}
+
+
+// Must cover every element value that putToSortedStacks and InputStack::push read:
+// ElementTree::rebuild compares it to find out-of-date stacks.
+Element::StackInputs Element::getStackInputs() const
+{
+  const int stackFlags = F_HIDDEN | F_DETACHED | F_ZORDER_ON_TOP | F_DISABLE_INPUT | F_CLIP_CHILDREN | F_HAS_CURSOR |
+                         F_JOYSTICK_SCROLL | F_HAS_EVENT_HANDLERS | F_SKIP_DIRPAD_NAV;
+  return StackInputs{flags & stackFlags, behaviorsSummaryFlags, zOrder, needs_input_entry(this), is_input_entry_passive(this)};
+}
+
+
 void Element::putToSortedStacks(ElemStacks &stacks, ElemStackCounters &counters, int parent_z_order, bool parent_disable_input)
 {
   if (isHidden())
@@ -1192,23 +1199,14 @@ void Element::putToSortedStacks(ElemStacks &stacks, ElemStackCounters &counters,
     stacks.rlist->push(re);
   }
 
-  const int bhvFlagsInput = Behavior::F_FOCUS_ON_CLICK | Behavior::F_HANDLE_KEYBOARD | Behavior::F_HANDLE_MOUSE |
-                            Behavior::F_HANDLE_TOUCH | Behavior::F_HANDLE_TOUCH_PAD_GESTURE;
-
-  const int elemInputFlags = F_STOP_HOVER | F_STOP_POINTING | F_JOYSTICK_SCROLL | F_STOP_HOTKEYS;
-
-  if (stacks.input && !disableInput && !isDetached())
+  if (stacks.input && !disableInput && !isDetached() && needs_input_entry(this))
   {
-    bool hasInputBhv = hasBehaviors(bhvFlagsInput);
-    if (hasInputBhv || hotkeyCombos.size() || (flags & elemInputFlags) || xmb != nullptr)
-    {
-      InputEntry ie;
-      ie.elem = this;
-      ie.hierOrder = ++counters.hierOrderInput;
-      ie.zOrder = order;
-      ie.inputPassive = hasFlags(F_INPUT_PASSIVE) || (!hasInputBhv && are_hotkeys_input_transparent(hotkeyCombos));
-      stacks.input->push(ie);
-    }
+    InputEntry ie;
+    ie.elem = this;
+    ie.hierOrder = ++counters.hierOrderInput;
+    ie.zOrder = order;
+    ie.inputPassive = is_input_entry_passive(this);
+    stacks.input->push(ie);
   }
 
   if (stacks.cursors && !disableInput && !isDetached()) // cursor is a marker of interactive element, so no need for disableInput

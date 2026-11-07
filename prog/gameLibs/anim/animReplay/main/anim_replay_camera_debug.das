@@ -92,7 +92,10 @@ def anim_replay_camera_update(info : UpdateStageInfoAct;
                               anim_replay_camera__moveSensitivity : float;
                               anim_replay_camera__rotationSensitivity : float;
                               anim_replay_camera__zoomSensitivity : float;
-                              anim_replay_camera__zoomLimit : float2)
+                              anim_replay_camera__zoomLimit : float2;
+                              camera__active : bool)
+  if !camera__active
+    return
   var yaw, roll, pitch : float
   matrix_to_euler(camera_transform, yaw, roll, pitch);
   yaw += anim_replay_camera__rotation.x * anim_replay_camera__rotationSensitivity

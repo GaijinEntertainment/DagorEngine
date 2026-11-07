@@ -36,6 +36,9 @@ def play_impl(hash : uint; var pos : float3; param : float; descs : Object; is_w
     let nameRef = is_watched ? (has(obj, WATCHED_SOUND_KEY) ? obj[WATCHED_SOUND_KEY] : obj["path"]) : (has(obj, OTHER_SOUND_KEY) ? obj[OTHER_SOUND_KEY] : obj["path"])
     if nameRef != null
       let name = (*nameRef) ?? ""
+      // a missing event would log an error
+      if (obj.optional ?? false) && !soundEvent::has(name, "")
+        return
       let isFar = obj.isFar ?? false
       let delayedAbandon = obj.delayedAbandon ?? false
       if obj.bringToListener ?? false // FMOD may treat event with snapshot as 3d;
@@ -68,7 +71,7 @@ def play_net_sound_impl_client(cmd : CmdPlaySound; @shared_comp net_sound__descs
   play_impl(cmd.hash, cmd.pos, cmd.param, net_sound__descs, is_watched_sound, sound_event_group)
 
 [es(tag=sound)]
-def play_net_sound_impl_client_simple(cmd : CmdPlaySoundSimple; @shared_comp net_sound__descs : Object; var sound_event_group : SoundEventGroup?; transform : float3x4; is_watched_sound = false)
+def play_net_sound_impl_client_simple(cmd : CmdPlaySoundInTransform; @shared_comp net_sound__descs : Object; var sound_event_group : SoundEventGroup?; transform : float3x4; is_watched_sound = false)
   play_impl(cmd.hash, transform[3], 0., net_sound__descs, is_watched_sound, sound_event_group)
 
 

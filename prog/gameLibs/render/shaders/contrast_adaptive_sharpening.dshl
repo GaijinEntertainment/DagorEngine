@@ -61,9 +61,9 @@ macro USE_CONTRAST_ADAPTIVE_SHARPENING(code)
       //  0 w 0
       half w = amp * sharpening;
 
-      half sharpenedY = (b.r*w + d.r*w + f.r*w + h.r*w + e.r) * rcp(1.0 + 4.0 * w);
-      half3 midPointCoCgAlpha = e.gba;
-      half4 linearYCoCgAlpha = tonemap_inv(half4(sharpenedY, midPointCoCgAlpha));
+      half sharpenedY = max((b.r*w + d.r*w + f.r*w + h.r*w + e.r) * rcp(1.0 + 4.0 * w), 0);
+      half chromaScale = sharpenedY * rcp(max(e.r, 1e-5));
+      half4 linearYCoCgAlpha = tonemap_inv(half4(sharpenedY, e.gb * chromaScale, e.a));
 
       return UnpackFromYCoCgAlpha(linearYCoCgAlpha);
     }

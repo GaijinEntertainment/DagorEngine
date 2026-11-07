@@ -3,10 +3,12 @@
 #define _SQFUNCTION_H_
 
 #include "opcodes.h"
+#include "sqstring.h"
 
 enum SQOuterType {
     otLOCAL = 0,
-    otOUTER = 1
+    otOUTER = 1,
+    otCOPY = 2   // a copy of a parent local whose value does not change after the capture
 };
 
 enum SQLangFeature {
@@ -30,48 +32,38 @@ enum SQLangFeature {
 enum SQVarFlags {
     VF_ASSIGNABLE = 1 << 0,
     VF_PARAM = 1 << 2,
-    VF_INIT_WITH_PURE = 1 << 5,
+    VF_VALUE_PENDING = 1 << 3, // the local exists, but the destructuring has not set its value yet
 };
 
 struct SQOuterVar
 {
-    SQOuterVar() : _varFlags(VF_ASSIGNABLE) {}
-    SQOuterVar(const SQObjectPtr &name,const SQObjectPtr &src,SQOuterType t,char varFlags)
-    {
-        _name = name;
-        _src=src;
-        _type=t;
-        _varFlags=varFlags;
-    }
-    SQOuterVar(const SQOuterVar &ov)
-    {
-        _type=ov._type;
-        _src=ov._src;
-        _name=ov._name;
-        _varFlags=ov._varFlags;
-    }
-    SQOuterType _type;
-    char _varFlags;
     SQObjectPtr _name;
-    SQObjectPtr _src;
+    uint32_t _src;
+    SQOuterType _type;
 };
+
+struct alignas(SQObjectPtr) SQFuncOuterVar // keeps the next proto arrays aligned
+{
+    SQString *_name; // the proto holds a reference
+    uint32_t _src;
+    SQOuterType _type;
+};
+
+struct SQFuncLocalVar
+{
+    SQString *_name; // the proto holds a reference
+    uint32_t _start_op;
+    uint32_t _end_op;
+};
+
+static_assert(MAX_FUNC_STACKSIZE - 1 <= UINT8_MAX, "a proto keeps the stack slot of a block local in a uint8_t");
 
 struct SQLocalVarInfo
 {
-    SQLocalVarInfo():_start_op(0),_end_op(0),_pos(0),_varFlags(VF_ASSIGNABLE){}
-    SQLocalVarInfo(const SQLocalVarInfo &lvi)
-    {
-        _name=lvi._name;
-        _start_op=lvi._start_op;
-        _end_op=lvi._end_op;
-        _pos=lvi._pos;
-        _varFlags=lvi._varFlags;
-    }
     SQObjectPtr _name;
-    uint32_t _start_op;
-    uint32_t _end_op;
-    uint32_t _pos;
-    char _varFlags;
+    uint32_t _start_op = 0;
+    uint32_t _end_op = 0;
+    uint32_t _pos = 0;
 };
 
 struct SQLineInfosHeader
@@ -100,12 +92,14 @@ typedef sqvector<SQFullLineInfo> SQFullLineInfoVec;
 
 #define SQ_ALIGN_TO(n, t) (((n) + alignof(t) - 1) & ~(alignof(t) - 1))
 
-#define _FUNC_SIZE(ni,nl,nparams,nfuncs,nouters,nlineinf,compressed,localinf,defparams) (sizeof(SQFunctionProto) \
+#define _FUNC_SIZE(ni,nl,nparams,nfuncs,nouters,nlineinf,compressed,localinf,defparams,nmasks) (sizeof(SQFunctionProto) \
         +SQ_ALIGN_TO(((ni)-1)*sizeof(SQInstruction), SQObjectPtr)+((nl)*sizeof(SQObjectPtr)) \
         +((nparams)*sizeof(SQObjectPtr))+((nfuncs)*sizeof(SQObjectPtr)) \
-        +((nouters)*sizeof(SQOuterVar)) \
-        +SQ_ALIGN_TO(sizeof(SQLineInfosHeader)+(nlineinf)*(compressed ? sizeof(SQCompressedLineInfo) : sizeof(SQFullLineInfo)), SQLocalVarInfo) \
-        +((localinf)*sizeof(SQLocalVarInfo))+((defparams)*sizeof(SQInt32))+((nparams)*sizeof(SQUnsignedInteger32)))
+        +((nouters)*sizeof(SQFuncOuterVar)) \
+        +SQ_ALIGN_TO(sizeof(SQLineInfosHeader)+(nlineinf)*(compressed ? sizeof(SQCompressedLineInfo) : sizeof(SQFullLineInfo)), SQFuncLocalVar) \
+        +SQ_ALIGN_TO((localinf)*(sizeof(SQFuncLocalVar)+1), SQInt32)+((defparams)*sizeof(SQInt32))+((nmasks)*sizeof(SQUnsignedInteger32)))
+
+#define SQ_FUNC_THIS_TYPE_MASK (_RT_INSTANCE | _RT_TABLE | _RT_CLASS | _RT_USERDATA | _RT_NULL)
 
 
 struct SQFunctionProto : public CHAINABLE_OBJ
@@ -116,18 +110,19 @@ private:
 
 public:
     static SQFunctionProto *Create(SQSharedState *ss,
-        SQUnsignedInteger lang_features,
         SQInteger ninstructions,
         SQInteger nliterals,SQInteger nparameters,
         SQInteger nfunctions,SQInteger noutervalues,
         SQInteger nlineinfos, bool compressedLineInfos,
         SQInteger nlocalvarinfos,
-        SQInteger ndefaultparams
+        SQInteger ndefaultparams,
+        bool typedParams
         )
     {
         SQFunctionProto *f;
+        SQInteger nparamtypemasks = typedParams ? nparameters : 0;
         //I compact the whole class and members in a single memory allocation
-        size_t fnSize = _FUNC_SIZE(ninstructions,nliterals,nparameters,nfunctions,noutervalues,nlineinfos,compressedLineInfos,nlocalvarinfos,ndefaultparams);
+        size_t fnSize = _FUNC_SIZE(ninstructions,nliterals,nparameters,nfunctions,noutervalues,nlineinfos,compressedLineInfos,nlocalvarinfos,ndefaultparams,nparamtypemasks);
         f = (SQFunctionProto *)sq_vm_malloc(ss->_alloc_ctx, fnSize);
 
         new (f) SQFunctionProto(ss);
@@ -136,7 +131,6 @@ public:
         f->_result_type_mask = ~0u;
 
         f->_alloc_ctx = ss->_alloc_ctx;
-        f->lang_features = lang_features;
         f->_ninstructions = ninstructions;
         ptr += SQ_ALIGN_TO(ninstructions * sizeof(SQInstruction), SQLocalVarInfo);
 
@@ -153,53 +147,68 @@ public:
         f->_nfunctions = nfunctions;
         ptr += nfunctions * sizeof(SQObjectPtr);
 
-        assert(size_t(ptr) % alignof(SQOuterVar) == 0);
-        f->_outervalues = (SQOuterVar*)ptr;
+        assert(size_t(ptr) % alignof(SQFuncOuterVar) == 0);
+        f->_outervalues = (SQFuncOuterVar*)ptr;
         f->_noutervalues = noutervalues;
-        ptr += noutervalues * sizeof(SQOuterVar);
+        ptr += noutervalues * sizeof(SQFuncOuterVar);
 
         assert(size_t(ptr) % alignof(SQLineInfosHeader) == 0);
         f->_lineinfos = (SQLineInfosHeader *)ptr;
         f->_nlineinfos = nlineinfos;
-        ptr += SQ_ALIGN_TO(sizeof(SQLineInfosHeader) + nlineinfos * (compressedLineInfos ? sizeof(SQCompressedLineInfo) : sizeof(SQFullLineInfo)), SQLocalVarInfo);
+        ptr += SQ_ALIGN_TO(sizeof(SQLineInfosHeader) + nlineinfos * (compressedLineInfos ? sizeof(SQCompressedLineInfo) : sizeof(SQFullLineInfo)), SQFuncLocalVar);
 
-        assert(size_t(ptr) % alignof(SQLocalVarInfo) == 0);
-        f->_localvarinfos = (SQLocalVarInfo *)ptr;
+        assert(size_t(ptr) % alignof(SQFuncLocalVar) == 0);
+        f->_localvarinfos = (SQFuncLocalVar *)ptr;
         f->_nlocalvarinfos = nlocalvarinfos;
-        ptr += nlocalvarinfos * sizeof(SQLocalVarInfo);
+        ptr += SQ_ALIGN_TO(nlocalvarinfos * (sizeof(SQFuncLocalVar) + 1), SQInt32);
 
         assert(size_t(ptr) % alignof(SQInt32) == 0);
         f->_defaultparams = (SQInt32 *)ptr;
         f->_ndefaultparams = ndefaultparams;
         ptr += ndefaultparams * sizeof(SQInt32);
 
-        f->_param_type_masks = (SQUnsignedInteger32 *)ptr;
-        ptr += nparameters * sizeof(SQUnsignedInteger32);
+        f->_param_type_masks = nparamtypemasks ? (SQUnsignedInteger32 *)ptr : nullptr;
+        ptr += nparamtypemasks * sizeof(SQUnsignedInteger32);
 
         assert(ptr - (char *)f == fnSize);
 
         _CONSTRUCT_VECTOR(SQObjectPtr,f->_nliterals,f->_literals);
         _CONSTRUCT_VECTOR(SQObjectPtr,f->_nparameters,f->_parameters);
         _CONSTRUCT_VECTOR(SQObjectPtr,f->_nfunctions,f->_functions);
-        _CONSTRUCT_VECTOR(SQOuterVar,f->_noutervalues,f->_outervalues);
+        memset(f->_outervalues, 0, noutervalues * sizeof(SQFuncOuterVar));
         //_CONSTRUCT_VECTOR(SQLineInfo,f->_nlineinfos,f->_lineinfos); //not required are 2 integers
-        _CONSTRUCT_VECTOR(SQLocalVarInfo,f->_nlocalvarinfos,f->_localvarinfos);
+        memset(f->_localvarinfos, 0, nlocalvarinfos * sizeof(SQFuncLocalVar));
         return f;
+    }
+    size_t GetAllocSize() const {
+        return _FUNC_SIZE(_ninstructions,_nliterals,_nparameters,_nfunctions,_noutervalues,_nlineinfos,_lineinfos->_is_compressed,_nlocalvarinfos,_ndefaultparams,
+            _param_type_masks ? _nparameters : 0);
+    }
+    static SQUnsignedInteger32 DefaultParamTypeMask(SQInteger i) {
+        return i == 0 ? SQ_FUNC_THIS_TYPE_MASK : ~0u;
+    }
+    SQUnsignedInteger32 GetParamTypeMask(SQInteger i) const {
+        return _param_type_masks ? _param_type_masks[i] : DefaultParamTypeMask(i);
+    }
+    uint8_t *GetLocalVarSlots() const {
+        return (uint8_t *)(_localvarinfos + _nlocalvarinfos);
     }
     void Release(){
         _DESTRUCT_VECTOR(SQObjectPtr,_nliterals,_literals);
         _DESTRUCT_VECTOR(SQObjectPtr,_nparameters,_parameters);
         _DESTRUCT_VECTOR(SQObjectPtr,_nfunctions,_functions);
-        _DESTRUCT_VECTOR(SQOuterVar,_noutervalues,_outervalues);
+        for(SQInteger i = 0; i < _noutervalues; i++) __ObjRelease(_outervalues[i]._name);
         //_DESTRUCT_VECTOR(SQLineInfo,_nlineinfos,_lineinfos); //not required are 2 integers
-        _DESTRUCT_VECTOR(SQLocalVarInfo,_nlocalvarinfos,_localvarinfos);
-        SQInteger size = _FUNC_SIZE(_ninstructions,_nliterals,_nparameters,_nfunctions,_noutervalues,_nlineinfos,_lineinfos->_is_compressed,_nlocalvarinfos,_ndefaultparams);
+        for(SQInteger i = 0; i < _nlocalvarinfos; i++) __ObjRelease(_localvarinfos[i]._name);
+        SQInteger size = GetAllocSize();
         SQAllocContext ctx = _alloc_ctx;
         this->~SQFunctionProto();
         sq_vm_free(ctx, this, size);
     }
 
     const char* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
+    static void FormatDerivedName(char *buf, size_t size, const char *sourcename, int line);
+    const SQObjectPtr &GetName() const;
     static SQInteger GetLine(SQLineInfosHeader *lineinfos, int nlineinfos, int instruction_index, int *hint, bool *is_dbg_step_point = nullptr);
     SQInteger GetLine(const SQInstruction *curr, int *hint = nullptr, bool *is_dbg_step_point = nullptr);
 #ifndef NO_GARBAGE_COLLECTOR
@@ -211,8 +220,7 @@ public:
 #endif
     SQAllocContext _alloc_ctx;
     SQObjectPtr _sourcename;
-    SQObjectPtr _name;
-    SQUnsignedInteger32 lang_features;
+    mutable SQObjectPtr _name; // null: GetName makes "(file:line)"
     SQUnsignedInteger32 _result_type_mask;
     SQUnsignedInteger32 _docstring_id : 24;
     SQUnsignedInteger32 _inside_hoisted_scope : 1;
@@ -231,7 +239,7 @@ public:
     SQLineInfosHeader *_lineinfos;
 
     SQInt32 _nlocalvarinfos;
-    SQLocalVarInfo *_localvarinfos;
+    SQFuncLocalVar *_localvarinfos;
 
     SQObjectPtr *_literals;
     SQInt32 _nliterals;
@@ -243,7 +251,7 @@ public:
     SQInt32 _nparameters;
 
     SQInt32 _noutervalues;
-    SQOuterVar *_outervalues;
+    SQFuncOuterVar *_outervalues;
 
     SQUnsignedInteger32* _param_type_masks;
 

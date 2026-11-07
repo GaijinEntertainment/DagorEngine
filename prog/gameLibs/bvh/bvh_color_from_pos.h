@@ -8,6 +8,14 @@ namespace bvh::ri
 
 inline vec4f VECTORCALL v_frac(vec4f value) { return v_sub(value, v_floor(value)); }
 
+inline vec4f VECTORCALL floored_xz_hash(vec4f pos)
+{
+  const auto rnd1 = v_make_vec4f(1, 1.618, 2.7183, 3.1415);
+  const auto rnd2 = v_make_vec4f(2.7813, 3.1415, 1.1, 1.618);
+  auto colorPos = v_perm_xzxz(v_floor(pos));
+  return v_dot4(v_add(v_mul(colorPos, rnd1), v_mul(colorPos, rnd2)), v_splats(1.0));
+}
+
 inline vec4f VECTORCALL random_float_from_pos(vec4f center_world_pos, uint32_t seed)
 {
   if (seed)
@@ -15,23 +23,12 @@ inline vec4f VECTORCALL random_float_from_pos(vec4f center_world_pos, uint32_t s
     float rndFloat = float(seed & 0x7F) / 127.0f;
     return v_make_vec4f(rndFloat, rndFloat, rndFloat, rndFloat);
   }
-  static const auto rnd1 = v_make_vec4f(1, 1.618, 2.7183, 3.1415);
-  static const auto rnd2 = v_make_vec4f(2.7813, 3.1415, 1.1, 1.618);
-
-  auto colorPos = v_perm_xzxz(v_floor(v_mul(center_world_pos, v_splats(0.2))));
-  auto rnd = v_add(v_mul(colorPos, rnd1), v_mul(colorPos, rnd2));
-  vec4f randomVal = v_dot4(rnd, v_splats(1.0));
-  return v_frac(randomVal);
+  return v_frac(floored_xz_hash(v_mul(center_world_pos, v_splats(0.2))));
 }
 
 inline vec4f VECTORCALL random_float_from_pos_for_palette(vec4f center_world_pos, bool height_locked)
 { // see painting_color_uv in paint_details_inc.dshl
-  static const auto rnd1 = v_make_vec4f(1, 1.618, 2.7183, 3.1415);
-  static const auto rnd2 = v_make_vec4f(2.7813, 3.1415, 1.1, 1.618);
-
-  auto colorPos = v_perm_xzxz(v_floor(center_world_pos));
-  auto rnd = v_add(v_mul(colorPos, rnd1), v_mul(colorPos, rnd2));
-  vec4f randomVal = v_dot4(rnd, v_splats(1.0));
+  vec4f randomVal = floored_xz_hash(center_world_pos);
   if (!height_locked)
     randomVal = v_add(randomVal, v_mul(v_splat_y(center_world_pos), v_splats(100.0f)));
   // randomColorU = floor(frac(randomColorU) * 8192.) / 8192. + 0.5 / 8192.;
@@ -46,9 +43,7 @@ inline vec4f VECTORCALL color_to_vector(E3DCOLOR c)
 
 inline E3DCOLOR VECTORCALL vector_to_color(vec4f v)
 {
-  uint32_t ic[4];
-  v_stui(ic, v_cvti_vec4i(v_mul(v, v_splats(float(UCHAR_MAX)))));
-  return E3DCOLOR(ic[2], ic[1], ic[0], ic[3]);
+  return E3DCOLOR(v_extract_xi(v_packus16(v_packs(v_cvti_vec4i(v_mul(v, v_splats(float(UCHAR_MAX))))))));
 }
 
 inline E3DCOLOR VECTORCALL random_color_from_pos(vec4f center_world_pos, uint32_t seed, E3DCOLOR color_from, E3DCOLOR color_to)

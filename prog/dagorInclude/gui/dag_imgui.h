@@ -169,6 +169,8 @@ void imgui_test_runtime_set_last_item_info(const ImGuiTestItemExternalInfo &ext)
 // application set name or ImGui label matches, so duplicate names hide all but the first.
 // A name that contains '/' must be escaped as "\/" in the path. (The hovered item overlay displays
 // the escaped path.)
+// "*" and "$" match any one level. "**" and "$$" match zero or more levels when a further token
+// follows, and the zero-level match wins. A trailing wildcard takes the first item of the next level.
 // The returned label and ext.displayName point into the runtime's per frame item tree and stay valid
 // only until the next frame. ext.controlType is the static pointer the application registered, so it
 // has no such limit.
@@ -179,6 +181,20 @@ bool imgui_test_runtime_query_item(const char *path, uint32_t &id, ImRect &bb, u
 using OnTestChildItemInfoFoundFunc =
   eastl::function<void(const char *, uint32_t, ImRect, uint32_t, const ImGuiTestItemExternalInfo &, const ImGuiTestItemState &)>;
 int imgui_test_runtime_query_children(const char *path, OnTestChildItemInfoFoundFunc func);
+
+// Label, ext and state given to the callback live as long as those of OnTestChildItemInfoFoundFunc.
+using OnTestItemWalkFunc = eastl::function<bool(int depth, const char *label, uint32_t id, ImRect bb, uint32_t parent_id,
+  const ImGuiTestItemExternalInfo &ext, const ImGuiTestItemState &state)>;
+// Depth-first walk below root_id (0: every root window) in submission order; func gets the depth below root_id and returns
+// false to skip that item's children. max_depth levels are visited (0: none, < 0: all). Returns the visited count, -1 when
+// root_id names no item or 0 finds no root window. The previous frame's tree answers when the current one lacks root_id, and a
+// walk of every root window appends the previous frame's root windows the current one lacks after the current frame's rows,
+// as previous-frame items in the previous frame's submission order.
+int imgui_test_runtime_walk_items(uint32_t root_id, int max_depth, const OnTestItemWalkFunc &func);
+// The escaped path imgui_test_runtime_query_item() resolves back to the item, from this frame or else the previous one.
+// False, and an empty out_path, when no item has the id or the path would not resolve to it: an unnamed item, a wildcard
+// token (* ** $ $$), a name that ends with a backslash, an earlier sibling with the same name.
+bool imgui_test_runtime_get_item_path(uint32_t id, String &out_path);
 
 #define REGISTER_IMGUI_WINDOW(group, name, func) \
   static ImGuiFunctionQueue DAG_CONCAT(AutoImGuiWindow, __LINE__)(group, name, nullptr, 100, 0, func, true)

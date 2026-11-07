@@ -14,8 +14,6 @@
 #include <util/dag_simpleString.h>
 #include <EASTL/fixed_vector.h>
 
-class TextureIDPair;
-
 struct IWwaterProjFxRenderHelper
 {
   virtual bool render_geometry() = 0;

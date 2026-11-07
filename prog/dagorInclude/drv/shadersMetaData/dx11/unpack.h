@@ -19,6 +19,8 @@ struct StageBytecodeRange
 struct DecodedShader
 {
   bool combined = false;
+  uint8_t uavReadMask = 0;
+  uint8_t uavWriteMask = 0;
   int32_t maxConstantRegUsed = -1;
   int32_t maxRtvUsed = -1;
   uint32_t hsTopology = 0; // D3D11_PRIMITIVE_TOPOLOGY, if none -- D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED == 0

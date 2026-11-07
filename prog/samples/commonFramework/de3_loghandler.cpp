@@ -10,24 +10,23 @@
 #include <startup/dag_globalSettings.h>
 #include <stdio.h>
 
-static int dev_log_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void dev_log_callback(void *, LogMessage &msg)
 {
-  String s;
-  if (ctx_file)
-    s.printf(0, "[%c] %s,%d: ", lev_tag == LOGLEVEL_ERR ? 'E' : 'F', ctx_file, ctx_line);
-  else
-    s.printf(0, "[%c] ", lev_tag == LOGLEVEL_ERR ? 'E' : 'F');
-  s.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+  if (!::dgs_get_argv("logerr_to_stderr"))
+    return;
 
-  if (lev_tag == LOGLEVEL_ERR && ::dgs_get_argv("logerr_to_stderr"))
-  {
-    fprintf(stderr, "%s\n", s.str());
-    fflush(stderr);
-  }
-  return 1;
+  String s;
+  if (msg.ctxFile)
+    s.printf(0, "[E] %s,%d: ", msg.ctxFile, msg.ctxLine);
+  else
+    s.printf(0, "[E] ");
+  s.avprintf(0, msg.fmt, (const DagorSafeArg *)msg.arg, msg.anum);
+
+  fprintf(stderr, "%s\n", s.str());
+  fflush(stderr);
 }
 
-void dagor_install_dev_log_handler_callback() { debug_set_log_callback(&dev_log_callback); }
+void dagor_install_dev_log_handler_callback() { debug_add_log_handler(&dev_log_callback, nullptr, {.levelMask = LOGMASK_ERR}); }
 
 #else
 

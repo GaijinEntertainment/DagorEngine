@@ -71,8 +71,8 @@ fracture::FractureDesc - fracture properties for entire apex asset (for MeshSyst
 #include <NxApexSDKCachedData.h>
 #include <NxApexScene.h>
 #include <PxScene.h>
-#include <PxMaterial.h>
 #include <PxPhysics.h>
+#include <extensions/PxDefaultCpuDispatcher.h>
 #include <NxApexActor.h>
 #include <NxModuleDestructible.h>
 #include <NxDestructibleAsset.h>
@@ -1065,9 +1065,11 @@ public:
 
     // create physX & apex simple scene
     physx::PxPhysics *physics = apex->physxSDK();
-    physx::PxMaterial *material = physics->createMaterial(0.9f, 0.9f, 0.01f);
+    fracture::ScopedResource<physx::PxDefaultCpuDispatcher> dispatcher(physx::PxDefaultCpuDispatcherCreate(0));
     physx::PxSceneDesc sceneDesc(physics->getTolerancesScale());
-    physx::PxScene *pxscene = physics->createScene(sceneDesc, false);
+    sceneDesc.cpuDispatcher = dispatcher.get();
+    sceneDesc.filter = [](const physx::PxFilterData &) -> physx::PxCollideWithFlags { return physx::PxCollideWith::eDESTRUCTIBLES; };
+    physx::PxScene *pxscene = physics->createScene(sceneDesc);
     if (!pxscene)
       return false;
 

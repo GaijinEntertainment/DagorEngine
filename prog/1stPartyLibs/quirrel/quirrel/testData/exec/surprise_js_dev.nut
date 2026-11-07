@@ -1,3 +1,4 @@
+#allow-delete-operator
 println("=== Part 1: Truthy/falsy differences ===\n")
 
 // In JS: "" is falsy, 0 is falsy, [] is truthy, {} is truthy
@@ -175,7 +176,6 @@ try {
 
 println("\n=== Part 6: delete returns the value ===\n")
 
-#allow-delete-operator
 local inventory = {sword = 100, shield = 50, potion = 25}
 let sold_item = delete inventory.sword
 println($"  Sold sword for {sold_item} gold! Remaining: {inventory.len()} items")

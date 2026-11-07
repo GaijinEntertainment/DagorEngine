@@ -1,14 +1,19 @@
 from multiprocessing import Pool, cpu_count
 import os
+import shutil
 import sys
 import signal
 import subprocess
 import argparse
+import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 # Generate z levels for tiled map. Files are named as quadkeys.
 # See more: https://learn.microsoft.com/en-us/azure/azure-maps/zoom-levels-and-tile-grid?tabs=csharp#quadkey-indices
+# Scene mode reads the tiled_map entity of a daNetGame scene. Folder mode takes any folder of <quadkey> tiles.
+# See gen_one_big_image.md next to this script.
 
 _SCRIPT_DIR = Path(__file__).resolve().parent  # .../prog/daNetGameLibs/tiled_map
 _REPO_DIR = _SCRIPT_DIR.parents[2]             # .../dagor  (daNetGameLibs -> prog -> dagor)
@@ -44,6 +49,13 @@ avif_out_format = [
   "-avif_quant_color", "0", "0", "24",
 ]
 
+folder_out_formats = {
+  ".jpg": ["-out", "jpeg", "-q", "95"],
+  ".png": ["-out", "png"],
+  ".tga": ["-out", "tga"],
+  ".tif": ["-out", "tiff"],
+}
+
 def tileXYToQuadKey(tileX, tileY, zoom):
   quadkey = ""
   for i in range(zoom, 0, -1):
@@ -59,16 +71,17 @@ def tileXYToQuadKey(tileX, tileY, zoom):
 # merges 4 tiles into one
 # a | b
 # c | d
-def mergeTiles(a, b, c, d, output):
-  p = subprocess.Popen([nconvert, "-quiet", "-overwrite"] +
-    ["-bgcolor2", "0", "0", "0", "0"] +
+def mergeTilesArgs(a, b, c, d, output):
+  return (["-bgcolor2", "0", "0", "0", "0"] +
     ["-canvas", "200%", "200%", "top-left"] +
     ["-wmflag", "top-right", "-wmfile"] + [b] +
     ["-wmflag", "bottom-left", "-wmfile"] + [c] +
     ["-wmflag", "bottom-right", "-wmfile"] + [d] +
-    # ["-resize", "50%", "50%"] +
     tiff_out_format +
-    ["-o", os.path.join(outPath, output), a],
+    ["-o", output, a])
+
+def mergeTiles(a, b, c, d, output):
+  p = subprocess.Popen([nconvert, "-quiet", "-overwrite"] + mergeTilesArgs(a, b, c, d, output),
     stdout=subprocess.DEVNULL)
   try:
     p.wait()
@@ -280,6 +293,75 @@ def perform_resize(initial_merged_image_path, final_target_full_path, final_targ
           except OSError as e_rem: print(f"[WARNING] Could not remove temp file {temp_resized_path} after exception: {e_rem}")
       return None
 
+def runNconvertChecked(args):
+  res = subprocess.run([nconvert, "-quiet", "-overwrite"] + args, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+  if res.returncode != 0:
+    raise RuntimeError(f"nconvert failed ({res.returncode}): {' '.join(args)}\n{res.stderr.decode(errors='ignore')}")
+
+def findQuadkeyTiles(tiles_dir, tile_ext):
+  tiles = {f.stem: f for f in Path(tiles_dir).iterdir()
+           if f.suffix.lower() == tile_ext.lower() and f.stem and set(f.stem) <= set("0123")}
+  if not tiles:
+    sys.exit(f"[ERROR] no <quadkey>{tile_ext} tiles in {tiles_dir}")
+  byZoom = {}
+  for k, f in tiles.items():
+    byZoom.setdefault(len(k), {})[k] = f
+  # the folder can keep tiles of older runs, so the newest complete zlevels wins, not the deepest one
+  newestFirst = sorted(byZoom, key=lambda z: max(f.stat().st_mtime for f in byZoom[z].values()), reverse=True)
+  complete = [z for z in newestFirst if len(byZoom[z]) == 1 << (2 * z)]
+  if not complete:
+    z = newestFirst[0]
+    expected = [tileXYToQuadKey(x, y, z) for y in range(1 << z) for x in range(1 << z)]
+    missing = [k for k in expected if k not in byZoom[z]]
+    sys.exit(f"[ERROR] {len(missing)} of {len(expected)} tiles missing (zlevels={z}), first: {missing[:10]}")
+  zoom = complete[0]
+  others = len(tiles) - len(byZoom[zoom])
+  if others:
+    print(f"[WARNING] ignoring {others} tiles of other zlevels (old runs?)")
+  return zoom, byZoom[zoom]
+
+def runFolderMode(args):
+  out = Path(args.output).resolve()
+  ext = out.suffix.lower()
+  if ext not in folder_out_formats:
+    sys.exit(f"[ERROR] unsupported output format {ext}, use one of {list(folder_out_formats)}")
+  if not os.path.exists(nconvert):
+    sys.exit(f"[ERROR] nconvert not found: {nconvert}")
+  if not os.path.isdir(args.tiles_dir):
+    sys.exit(f"[ERROR] tiles folder not found: {args.tiles_dir}")
+
+  zoom, tiles = findQuadkeyTiles(args.tiles_dir, args.tile_ext)
+  print(f"[INFO] zlevels={zoom}, {1 << zoom}x{1 << zoom} tiles")
+
+  tmp = Path(tempfile.mkdtemp(prefix="one_big_image_"))
+  try:
+    # threads, not processes: nconvert does the work, and workers see the --nconvert value
+    with ThreadPoolExecutor(threads) as pool:
+      flip = ["-yflip"] if args.flip_y else []
+      # -add_alpha does not replace an existing alpha, and tiles with alpha 0 vanish as watermarks; -truecolors drops it first
+      list(pool.map(lambda k: runNconvertChecked(flip + ["-truecolors"] + tiff_out_format + ["-o", str(tmp / f"{k}.tif"), str(tiles[k])]), tiles))
+
+      for z in range(zoom - 1, -1, -1):
+        jobs = []
+        for y in range(0, 1 << (z + 1), 2):
+          for x in range(0, 1 << (z + 1), 2):
+            src = [str(tmp / f"{tileXYToQuadKey(px, py, z + 1)}.tif") for px, py in ((x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1))]
+            dst = str(tmp / f"{tileXYToQuadKey(x // 2, y // 2, z) or 'combined'}.tif")
+            jobs.append(src + [dst])
+        list(pool.map(lambda j: runNconvertChecked(mergeTilesArgs(*j)), jobs))
+        print(f"[INFO] Finished zoom level {z}")
+
+    combined = str(tmp / "combined.tif")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    resize = ["-rtype", "lanczos2", "-resize", str(args.resolution), str(args.resolution)] if args.resolution else []
+    runNconvertChecked(resize + folder_out_formats[ext] + ["-o", str(out), combined])
+    print(f"[INFO] Image: {out}")
+  finally:
+    if args.keep_temp:
+      print(f"[INFO] Temp files kept in {tmp}")
+    else:
+      shutil.rmtree(tmp, ignore_errors=True)
+
 def main():
   global nconvert
   global outPath
@@ -289,15 +371,29 @@ def main():
     print(f"[ERROR] Repo root not found at: {DAGOR_DIR}. This script must be located at prog/daNetGameLibs/tiled_map/gen_one_big_image.py inside the dagor repo.")
     exit(1)
 
-  parser = argparse.ArgumentParser(description='this script generates one big image from tiled map, needed for lvl designers')
-  parser.add_argument("game", type=str, help="Which game to use (should work with any dng game)")
-  parser.add_argument("scene", type=str, help="Path to the scene *.blk file (as it passed to the game)")
+  parser = argparse.ArgumentParser(description='Generates one big image from a tiled map. ' +
+    'Scene mode: `game scene`, reads the tiles path and zlevels from the scene tiled_map entity of a daNetGame game (needed for lvl designers). ' +
+    'Folder mode: `--tiles_dir DIR --output FILE`, for any game that saves <quadkey> tiles.')
+  parser.add_argument("game", type=str, nargs="?", help="Scene mode: which game to use (should work with any dng game)")
+  parser.add_argument("scene", type=str, nargs="?", help="Scene mode: path to the scene *.blk file (as it passed to the game)")
   parser.add_argument("--nconvert", type=str, help="Path to nconvert.exe", default=nconvert)
   parser.add_argument("--resolution", type=int, help="Optional final image resolution. If not specified, the original size after assembly is used.")
-  parser.add_argument("--output_name", type=str, help="Optional base name for the final output. Defaults to 'big_combined'")
+  parser.add_argument("--output_name", type=str, help="Scene mode: optional base name for the final output. Defaults to 'big_combined'")
+  parser.add_argument("--tiles_dir", type=str, help="Folder mode: folder with <quadkey> tiles")
+  parser.add_argument("--tile_ext", type=str, default=".tga", help="Folder mode: tile file extension")
+  parser.add_argument("--output", type=str, help="Folder mode: output image, .jpg, .png, .tga or .tif")
+  parser.add_argument("--flip_y", action="store_true", help="Folder mode: flip each tile vertically, if the image comes out mirrored")
+  parser.add_argument("--keep_temp", action="store_true", help="Folder mode: keep intermediate tiff files")
 
   args = parser.parse_args()
   nconvert = args.nconvert
+
+  if args.tiles_dir or args.output:
+    if not (args.tiles_dir and args.output) or args.game or args.scene:
+      parser.error("folder mode needs --tiles_dir and --output, without game and scene")
+    return runFolderMode(args)
+  if not (args.game and args.scene):
+    parser.error("scene mode needs game and scene, or use --tiles_dir and --output")
 
   gamePWD = os.path.join(DAGOR_DIR, args.game, "game")
   gameEXE = os.path.join(gamePWD, "win64", f"{args.game}-dev.exe")

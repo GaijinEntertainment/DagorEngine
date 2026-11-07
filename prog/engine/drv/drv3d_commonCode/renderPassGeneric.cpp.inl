@@ -100,7 +100,11 @@ static void unbind_subpass_reads()
   {
     const RenderPassBind &bind = activeRP->actions[i];
     if ((bind.action & RP_TA_SUBPASS_READ) && bind.slot != RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
+    {
       set_tex(STAGE_PS, subpass_read_register(RP_GENERIC_MAX_T_REGISTERS, bind.slot), nullptr);
+      if (BaseTexture *tex = rp_impl::targets[bind.target].resource.tex)
+        tex->texmiplevel(-1, -1);
+    }
   }
 }
 

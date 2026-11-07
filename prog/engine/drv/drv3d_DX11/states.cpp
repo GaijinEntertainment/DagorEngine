@@ -902,6 +902,37 @@ void TextureFetchState::flush_cs(bool force, bool async)
   }
 }
 
+#if DAGOR_DBGLEVEL > 0
+void TextureFetchState::checkUavFormats(int stage, uint8_t read_mask, uint8_t write_mask, const char *shader_name,
+  const char *other_shader_name)
+{
+  UAV &stageUavState = uavState[stage];
+  if (!(stageUavState.formatCheckPendingMask & write_mask) && read_mask == stageUavState.lastCheckedReadMask &&
+      write_mask == stageUavState.lastCheckedWriteMask)
+    return;
+  stageUavState.lastCheckedReadMask = read_mask;
+  stageUavState.lastCheckedWriteMask = write_mask;
+  stageUavState.formatCheckPendingMask = 0;
+
+  for (uint32_t slots = write_mask; slots; slots &= slots - 1)
+  {
+    const uint32_t slot = __bsf_unsafe(slots);
+    const uint32_t texFormat = stageUavState.texFormats[slot];
+    if (!stageUavState.uavs[slot] || texFormat == NO_UAV_TEX_FORMAT)
+      continue;
+    const bool reads = (read_mask >> slot) & 1;
+    const unsigned neededUsage = d3d::USAGE_UNORDERED | (reads ? d3d::USAGE_UNORDERED_LOAD : 0);
+    const unsigned usage = get_cached_texformat_uav_usage(texFormat);
+    if ((usage & neededUsage) == neededUsage)
+      continue;
+    const char *formatName = get_tex_format_name(texFormat);
+    D3D_CONTRACT_ASSERT_FAIL("DX11: shader %s%s%s %s u%u, but the bound texture format %s does not support %s", shader_name,
+      other_shader_name ? " / " : "", other_shader_name ? other_shader_name : "", reads ? "reads and writes" : "writes", slot,
+      formatName ? formatName : "<unknown>", (usage & d3d::USAGE_UNORDERED) ? "USAGE_UNORDERED_LOAD" : "USAGE_UNORDERED");
+  }
+}
+#endif
+
 void MiniRenderStateUnsafe::store()
 {
   RenderState &rs = g_render_state;
@@ -1241,17 +1272,13 @@ bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex)
     return false;
   }
 
-  if (BaseTex *bt = (BaseTex *)tex)
-  {
-    if (bt->needs_clear)
-      bt->clear();
-    if ((bt->cflg & TEXCF_UNORDERED) && bt->hasUavViews)
-      for (uint32_t mip = bt->maxMipLevel; mip <= bt->minMipLevel; ++mip)
-        for (bool asUint : {false, true})
-          remove_view_from_uav(bt->getExistingUaView(0, mip, asUint));
-  }
+  BaseTex *bt = (BaseTex *)tex;
+  if (bt && bt->needs_clear)
+    bt->clear();
 
   ResAutoLock resLock;
+  if (bt && (bt->cflg & TEXCF_UNORDERED))
+    bt->removeUavViewsFromStates(bt->maxMipLevel, bt->minMipLevel);
   TextureFetchState::Resources &resources = g_render_state.texFetchState.resources[shader_stage];
   resources.resources.resize(max(resources.resources.size(), slot + 1));
   resources.modifiedMask |= resources.resources[slot].setTex(tex, shader_stage) ? (1 << slot) : 0;
@@ -1451,6 +1478,7 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint
 
   BaseTex *base = 0;
   ID3D11UnorderedAccessView *uav = nullptr;
+  uint32_t uavTexFormat = TextureFetchState::NO_UAV_TEX_FORMAT;
   if (tex)
   {
     base = (BaseTex *)tex;
@@ -1462,6 +1490,7 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint
     if (base->needs_clear)
       base->clear();
     uav = base->getUaView(face, mip_level, as_uint);
+    uavTexFormat = as_uint ? TEXFMT_R32UI : cflg & TEXFMT_MASK;
     remove_view_from_uav_ignore_slot(shader_stage, slot, uav);
   }
 
@@ -1470,7 +1499,7 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint
     D3D_CONTRACT_ERROR("invalid UAV slot: %d", slot);
     return false;
   }
-  g_render_state.texFetchState.setUav(shader_stage, slot, uav);
+  g_render_state.texFetchState.setUav(shader_stage, slot, uav, uavTexFormat);
   g_render_state.modified = true;
   return true;
 }

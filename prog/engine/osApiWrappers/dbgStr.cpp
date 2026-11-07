@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <osApiWrappers/dag_dbgStr.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <supp/_platform.h>
 #include <string.h>
 #include <stdio.h>
@@ -11,11 +12,11 @@ const intptr_t invalid_console_handle = (intptr_t)INVALID_HANDLE_VALUE;
 const intptr_t invalid_console_handle = -1;
 #endif
 
-static intptr_t out_debug_file_handle = invalid_console_handle;
+static void *volatile out_debug_file_handle = (void *)invalid_console_handle;
 
-void set_debug_console_handle(intptr_t handle) { out_debug_file_handle = handle; }
+void set_debug_console_handle(intptr_t handle) { interlocked_release_store_ptr(out_debug_file_handle, (void *)handle); }
 
-intptr_t get_debug_console_handle() { return out_debug_file_handle; }
+intptr_t get_debug_console_handle() { return (intptr_t)interlocked_acquire_load_ptr(out_debug_file_handle); }
 
 #if _TARGET_PC_WIN
 void out_debug_str(const char *str)
@@ -23,10 +24,11 @@ void out_debug_str(const char *str)
   OutputDebugString(str);
 
 #if DAGOR_DBGLEVEL > 0
-  if (out_debug_file_handle != invalid_console_handle)
+  intptr_t handle = get_debug_console_handle();
+  if (handle != invalid_console_handle)
   {
     DWORD cWritten = 0;
-    ::WriteFile((HANDLE)out_debug_file_handle, str, (int)strlen(str), &cWritten, NULL);
+    ::WriteFile((HANDLE)handle, str, (int)strlen(str), &cWritten, NULL);
   }
 #endif
 }
@@ -78,18 +80,20 @@ void out_debug_str(const char *str)
 
 
 
+
 #elif _TARGET_PC_LINUX | _TARGET_C3
 void out_debug_str(const char *str)
 {
-  if (out_debug_file_handle != invalid_console_handle) // do quiet while output not requested
+  intptr_t handle = get_debug_console_handle();
+  if (handle != invalid_console_handle) // do quiet while output not requested
   {
     size_t len = strlen(str), written;
     do
     {
-      written = fwrite(str, 1, len, (FILE *)out_debug_file_handle);
+      written = fwrite(str, 1, len, (FILE *)handle);
       len -= written;
     } while (len && written);
-    fflush((FILE *)out_debug_file_handle);
+    fflush((FILE *)handle);
   }
 }
 #elif _TARGET_ANDROID
@@ -100,10 +104,11 @@ void out_debug_str(const char *str)
   __android_log_write(ANDROID_LOG_DEBUG, "dagor", str);
 
 #if DAGOR_DBGLEVEL > 0
-  if (out_debug_file_handle != invalid_console_handle)
+  intptr_t handle = get_debug_console_handle();
+  if (handle != invalid_console_handle)
   {
-    fputs(str, (FILE *)out_debug_file_handle);
-    fflush((FILE *)out_debug_file_handle);
+    fputs(str, (FILE *)handle);
+    fflush((FILE *)handle);
   }
 #endif
 }

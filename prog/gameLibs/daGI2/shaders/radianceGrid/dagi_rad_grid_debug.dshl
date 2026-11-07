@@ -2,6 +2,7 @@ include "shader_global.dshl"
 include "dagi_rad_grid_common.dshl"
 include "dagi_rad_grid_trace_common.dshl"
 include "frustum.dshl"
+include "tonemapHelpers/debug_draw_hdr_inc.dshl"
 
 int dagi_rad_grid_debug_type;
 
@@ -9,6 +10,7 @@ shader dagi_rad_grid_draw_debug
 {
   supports global_frame;
   supports none;
+  color_write = rgb;
   (vs) {
     globtm@f44 = globtm;
     dagi_rad_grid_debug_type@i1 = dagi_rad_grid_debug_type;
@@ -20,8 +22,7 @@ shader dagi_rad_grid_draw_debug
   //DAGI_RAD_GRID_SRV(ps)
   DAGI_RAD_GRID_SAMPLE(ps)
   INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
-  INIT_HDR(ps)
-  USE_HDR(ps)
+  INIT_AND_USE_DEBUG_DRAW_HDR()
   hlsl {
     #include "spheres_vertices.hlsl"
     struct VsOutput
@@ -72,7 +73,7 @@ shader dagi_rad_grid_draw_debug
       float3 rad = tex3Dlod(dagi_radiance_grid, tc).xyz;
       //results in same, for validating this function is correct
       //rad = dagi_trilinear_sample_radiance_grid_cascade_unsafe_oct(input.probeTarget.w, dir, input.center);
-      return pack_hdr(rad.xyz);
+      return pack_debug_draw_hdr(rad.xyz);
     }
   }
   compile("target_vs", "test_vs");

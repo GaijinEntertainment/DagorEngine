@@ -74,15 +74,38 @@ inline void das_switch_scene(
 
 inline void das_switch_scene_and_update(const char *scene) { sceneload::switch_scene_and_update(scene); }
 
+// Optional kinds parallel to urls (same length); wrong length / unknown token -> Unknown.
+// Tokens: direct (alias localhost), udp_punch, relay, proxy, unknown.
+inline void das_connect_to_session_with_kinds(
+  const das::TArray<char *> &server_urls, const das::TArray<char *> &url_kinds, const sceneload::UserGameModeContext &ugm_ctx)
+{
+  net::ConnectParams connectParams;
+  const bool haveKinds = url_kinds.size == server_urls.size;
+  for (eastl_size_t i = 0; i < server_urls.size; ++i)
+  {
+    const char *kindName = (haveKinds && url_kinds[i]) ? url_kinds[i] : nullptr;
+    connectParams.addUrl(server_urls[i] ? server_urls[i] : "", net::session_url_kind_from_name(kindName));
+  }
+  sceneload::UserGameModeContext ugmCtx = ugm_ctx;
+  sceneload::connect_to_session(eastl::move(connectParams), eastl::move(ugmCtx));
+}
+// Existing AM / DNG call shape: connect_to_session(array<string>) - kinds stay Unknown.
+// Do not pass an empty das::TArray{} into with_kinds: TArray's default ctor leaves size
+// indeterminate (user-provided ctor, no member init).
 inline void das_connect_to_session(const das::TArray<char *> &server_urls, const sceneload::UserGameModeContext &ugm_ctx)
 {
   net::ConnectParams connectParams;
   for (eastl_size_t i = 0; i < server_urls.size; ++i)
-    connectParams.serverUrls.push_back(server_urls[i] ? server_urls[i] : "");
+    connectParams.addUrl(server_urls[i] ? server_urls[i] : "");
   sceneload::UserGameModeContext ugmCtx = ugm_ctx;
   sceneload::connect_to_session(eastl::move(connectParams), eastl::move(ugmCtx));
 }
 inline void das_connect_to_session_1(const das::TArray<char *> &server_urls) { das_connect_to_session(server_urls, {}); }
+// host_urls + host_url_kinds without a UserGameModeContext (matches net.h comment).
+inline void das_connect_to_session_with_kinds_1(const das::TArray<char *> &server_urls, const das::TArray<char *> &url_kinds)
+{
+  das_connect_to_session_with_kinds(server_urls, url_kinds, {});
+}
 
 inline void das_switch_scene_2(const char *scene, const das::TArray<char *> &import_scenes)
 {

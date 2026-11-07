@@ -490,7 +490,9 @@ void RiExtraAdditionalDataManager::prepareInstances()
 
 void RiExtraAdditionalDataManager::uploadBuffer()
 {
-  G_ASSERT(lastFrameIdChecked == ::dagor_get_global_frame_id());
+  // Lazy riExtra init can create the manager mid-frame, after before_culling() (daGdp places riExtra in UpdateStageInfoBeforeRender),
+  // so it is not prepared yet but has nothing to upload either.
+  G_ASSERT(lastFrameIdChecked == ::dagor_get_global_frame_id() || (lastFrameIdChecked == 0 && updateEntryRange == IPoint2::ZERO));
   TIME_PROFILE(upload_riextra_additional_data);
   if (updateEntryRange.y > 0)
   {
@@ -784,6 +786,8 @@ IPoint2 RiExtraAdditionalDataManager::processInstances()
       continue; // data is already cleared
     riOffsets.erase(sortedRiInfos[i].id);
     dataToInstance.erase(sortedRiInfos[i].dataId);
+    // single-frame data drops usedDataTypes to 0 without passing through the removal above
+    removeInstanceData(sortedRiInfos[i].id, sortedRiInfos[i].lastDataBits);
     uint32_t encodedInstanceData =
       rendinst::encodeRiExtraPerInstanceRenderData(0, 0, getOptionalFlagsByInstanceId(sortedRiInfos[i].id));
     if (sortedRiInfos[i].lastDataBits != 0)

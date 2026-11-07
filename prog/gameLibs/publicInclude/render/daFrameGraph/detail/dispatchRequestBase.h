@@ -47,7 +47,7 @@ struct DispatchRequestBase
   template <ArgType arg_type, int D>
   void setAutoResolutionArg(AutoResolutionRequest<D> request, TypeErasedProjector projector)
   {
-    setAutoResolutionArg<arg_type>(request.autoResTypeId, request.multiplier, projector);
+    setAutoResolutionArg<arg_type>(request.autoResTypeId, request.multiplier, request.roundUp, projector);
   }
 
   template <ArgType arg_type>
@@ -59,7 +59,7 @@ struct DispatchRequestBase
 
 private:
   template <ArgType arg_type>
-  void setAutoResolutionArg(AutoResTypeNameId resolution, float multiplier, TypeErasedProjector projector);
+  void setAutoResolutionArg(AutoResTypeNameId resolution, float multiplier, bool round_up, TypeErasedProjector projector);
 };
 
 } // namespace dafg::detail

@@ -6,6 +6,7 @@
 #include <3d/dag_createTex.h>
 #include <3d/ddsxTex.h>
 #include <3d/dag_texMgr.h>
+#include "texMgrData.h"
 #include <osApiWrappers/dag_localConv.h>
 #include <debug/dag_debug.h>
 #include <image/tiff-4.4.0/tiffio.h>
@@ -122,7 +123,7 @@ public:
 
     if (t)
     {
-      set_texture_separate_sampler(get_managed_texture_id(fn), get_sampler_info(tmd, false));
+      texmgr_internal::set_texture_derived_sampler(get_managed_texture_id(fn), get_sampler_info(tmd, false));
 
       uint8_t *data = NULL;
       int stride = 0;

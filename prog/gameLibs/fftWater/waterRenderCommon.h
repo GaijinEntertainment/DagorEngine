@@ -19,7 +19,7 @@ struct WaterRenderCommon
   void init();
   bool isInited() const { return inited; };
 
-  void setGlobalShaderConsts(bool is_chop_water, float max_wave_height) const;
+  void setGlobalShaderConsts(bool is_chop_water, float max_wave_height, float render_max_wave_height) const;
 
   WaterRenderCommon::SavedStates setCachedStates(TEXTUREID distanceTex) const;
   void resetCachedStates(const WaterRenderCommon::SavedStates &states) const;

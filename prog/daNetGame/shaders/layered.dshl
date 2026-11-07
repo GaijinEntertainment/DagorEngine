@@ -67,8 +67,8 @@ macro LAYERED_PS()
         return pow(result,2.2);
       }
 
-      #ifdef FORCE_EARLY_DEPTH_STENCIL
-        FORCE_EARLY_DEPTH_STENCIL
+      #ifdef USE_EARLY_DEPTH_STENCIL
+        USE_EARLY_DEPTH_STENCIL
       #endif
 
       GBUFFER_OUTPUT layered_ps(VsOutput input)
@@ -451,10 +451,8 @@ shader prefab_simple
   channel float2 tc[0]=tc[0]; 
 
 
-  if (in_editor_assume != no)
-  {
-    (vs) { globtm@f44 = globtm; }
-  }
+  // land_mesh_grass_mask binds globtm only in its own pass
+  (vs) { prefab_globtm@f44 = globtm; }
 
   if (in_editor == yes)
   {
@@ -492,7 +490,7 @@ shader prefab_simple
       float3 worldNormal = input.packedNormal * 2. - 1.;
 ##endif
 
-      output.pos = mul(input.pos, globtm);
+      output.pos = mul(input.pos, prefab_globtm);
 
       output.diffuseTexcoord.xy = input.diffuseTexcoord;
       output.pointToEye = world_view_pos - worldPos;

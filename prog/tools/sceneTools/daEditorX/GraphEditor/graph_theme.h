@@ -37,6 +37,7 @@ constexpr ImU32 GRAPH_SEARCH_FIELD_FOCUS_COLOR = IM_COL32(0xBE, 0xD0, 0xF9, 0xFF
 constexpr ImU32 GRAPH_PENDING_LINK_COLOR = IM_COL32(0xFF, 0xFF, 0xFF, 33); // white at 0.13
 
 constexpr ImU32 GRAPH_ERROR_BORDER_COLOR = IM_COL32(0xF6, 0x31, 0x31, 0xFF);
+constexpr ImU32 GRAPH_WARNING_COLOR = IM_COL32(0xFF, 0xCF, 0x11, 0xFF);
 
 // The subgraph window (2848:513437). Its content takes the canvas color.
 constexpr ImU32 SUBGRAPH_WINDOW_HEADER_COLOR = IM_COL32(0x21, 0x21, 0x21, 0xFF);
@@ -58,3 +59,9 @@ constexpr ImU32 SUBGRAPH_WINDOW_RESIZE_HOT_COLOR = IM_COL32(0x59, 0x7D, 0xB3, 0x
 constexpr ImU32 SUBGRAPH_CARD_COLOR = IM_COL32(0x33, 0x33, 0x33, 0xFF);
 constexpr ImU32 SUBGRAPH_CARD_HOVER_COLOR = IM_COL32(0x44, 0x44, 0x44, 0xFF);
 constexpr ImU32 SUBGRAPH_CARD_BORDER_COLOR = IM_COL32(0xA4, 0xA4, 0xA4, 0xFF);
+
+// The floating toolbar over the canvas: the dark theme's toolbar, whatever the editor theme.
+constexpr ImU32 FLOATING_TOOLBAR_BG_COLOR = IM_COL32(0x33, 0x33, 0x33, 0xFF);            // == dark.blk ColorOverride_ToolbarBackground
+constexpr ImU32 FLOATING_TOOLBAR_BUTTON_COLOR = IM_COL32(0x66, 0x66, 0x66, 0xFF);        // == dark.blk Color_Button
+constexpr ImU32 FLOATING_TOOLBAR_BUTTON_ACTIVE_COLOR = IM_COL32(0x4D, 0x4D, 0x4D, 0xFF); // == dark.blk Color_ButtonActive
+constexpr ImU32 FLOATING_TOOLBAR_DIVIDER_COLOR = IM_COL32(0x99, 0x99, 0x99, 0xFF);       // == dark.blk Color_Separator

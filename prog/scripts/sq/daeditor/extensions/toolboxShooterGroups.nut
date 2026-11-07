@@ -52,7 +52,7 @@ function updateGroupsList() {
       groupsList.get()[idx].capZones += 1
     groupsList.get()[idx].count += 1
   })
-  groupsList.get().sort(@(a,b) a.groupName <=> b.groupName)
+  groupsList.get().sortby(@(a) a.groupName)
   groupsList.trigger()
 }
 

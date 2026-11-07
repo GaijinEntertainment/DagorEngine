@@ -326,7 +326,7 @@ void AcesScene::loadLevel(const char *bindump)
   clipmap = new Clipmap;
 
   clipmap->init(texelSize, Clipmap::CPU_HW_FEEDBACK, Clipmap::getDefaultFeedbackProperties(), 7);
-  clipmap->initVirtualTexture(4096, 8192, 256, 1, 1, float(2 * 1920 * 1080));
+  clipmap->initVirtualTexture(4096, 8192, 256, 1, 1, float(2 * 1920 * 1080), false);
 
   carray<uint32_t, 4> bufFormats;
   int bufCnt = min<int>(bufFormats.size(), clipmapBlk.getInt("bufferCnt", 0));
@@ -650,7 +650,7 @@ bool AcesScene::bdlCustomLoad(unsigned bindump_id, int tag, IGenLoad &crd, dag::
   if (tag == _MAKE4C('FRT'))
   {
     debug("[load]frt");
-    // constraint: a bin carrying both tags traces its SCol, whichever tag the loader reaches first
+    // a bin carrying both tags traces its SCol, whichever tag the loader reaches first
     if (staticColl)
       return true;
     CollisionResource *built = nullptr;
@@ -665,7 +665,7 @@ bool AcesScene::bdlCustomLoad(unsigned bindump_id, int tag, IGenLoad &crd, dag::
       return false;
     }
     staticColl = built;
-    // constraint: a false here drops the whole bin, which AcesScene::loadLevel makes fatal
+    // a false here drops the whole bin, which AcesScene::loadLevel makes fatal
     return true;
   }
 
@@ -919,6 +919,13 @@ void AcesScene::renderClipmaps()
       shaders::overrides::reset();
     }
 
+    uint32_t renderClipmapTile(const BBox2 &region, const CacheCoords &cachecoords, int totalMipLevel) override
+    {
+      G_UNUSED(cachecoords);
+      G_UNUSED(totalMipLevel);
+      renderTile(region);
+      return 0;
+    }
     void renderTile(const BBox2 &region) override
     {
       TMatrix4 proj;

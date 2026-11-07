@@ -28,8 +28,8 @@ public:
   void setRenderClip(const BBox2 *clip) const; // no face will be render out of this box
   void render(const LodGrid &lodGrid, const LodGridRingCullData &cull_data, LodGridVertexData *vData = nullptr,
     int vDataDim = -1) const;
-  void renderPatchesByBatches(dag::ConstSpan<LodGridPatchParams> patches, const int buffer_size, int vDataIndex, int startFlipped,
-    bool render_quads, int primitiveCount, int startInd = 0) const;
+  void renderPatchesInBatches(dag::ConstSpan<LodGridPatchParams> patches, const int buffer_size, int startFlipped, bool render_quads,
+    int primitiveCount, int startInd = 0) const;
   int get_hmap_tess_factorVarId() const { return hmap_tess_factorVarId; }
   int getDim() const { return 1 << dimBits; }
   int getDimBits() const { return dimBits; }

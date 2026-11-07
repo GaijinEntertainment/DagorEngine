@@ -218,7 +218,7 @@ shader rendinst_layered
 
       USE_CHARACTER_TWO_MICRODETAILS()
 
-      USE_LAYERED_PS(true)
+      USE_LAYERED_PS()
       (ps) {
         mask_tex@staticSmp = mask_tex;
         paint_details@f3 = paint_details;

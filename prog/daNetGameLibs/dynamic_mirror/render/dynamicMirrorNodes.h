@@ -109,5 +109,5 @@ dafg::NodeHandle create_dynamic_mirror_render_static_node(DynamicMirrorRenderer 
 dafg::NodeHandle create_dynamic_mirror_render_ground_node();
 dafg::NodeHandle create_dynamic_mirror_gbuf_resolve_node(const char *resolve_pshader_name);
 dafg::NodeHandle create_dynamic_mirror_resolve_node(DynamicMirrorRenderer &mirror_renderer);
-dafg::NodeHandle create_dynamic_mirror_prepare_envi_node(DynamicMirrorRenderer &mirror_renderer);
-dafg::NodeHandle create_dynamic_mirror_envi_node(DynamicMirrorRenderer &mirror_renderer);
+dafg::NodeHandle create_dynamic_mirror_render_water_node();
+dafg::NodeHandle create_dynamic_mirror_envi_node();

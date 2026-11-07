@@ -238,7 +238,7 @@ void Swapchain::processAcquireStatus(VkResult rc, bool acquired)
 {
   if (acquired)
   {
-    if (rc != VK_SUCCESS)
+    if (rc < 0)
     {
       if (!queuedRecreate)
         debug("vulkan: swapchain: queued recreation due to %s", vulkan_error_string(rc));
@@ -411,7 +411,24 @@ bool Swapchain::acquireSwapImage()
   // ignore suboptimals when prerotation disabled, because it will gone only if rotation enabled
   if (rc == VK_SUBOPTIMAL_KHR && !Globals::cfg.bits.preRotation)
     rc = VK_SUCCESS;
+#else
+  // ignore suboptimals on other platforms as source of this signal is not known in general
+  // i.e. "something is changed", but what exactly is - unknown
+  // for resizes rely on engine+windowing system tracking
+  if (rc == VK_SUBOPTIMAL_KHR)
+  {
+    if (!suboptimalFrames)
+      debug("vulkan: swapchain: is now suboptimal");
+    ++suboptimalFrames;
+    rc = VK_SUCCESS;
+  }
 #endif
+  else
+  {
+    if (suboptimalFrames)
+      debug("vulkan: swapchain: is now optimal after %u frames", suboptimalFrames);
+    suboptimalFrames = 0;
+  }
 
   if (!acquired && inAcquireRetry)
     return false;

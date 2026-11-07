@@ -98,18 +98,19 @@ static const char *validate_sets_err_marker = "is not a component of any known t
 // swallows only the expected broken _component fixture logerr at load
 static bool swallow_component_block_err = false;
 
-static int log_callback(int lev_tag, const char *fmt, const void * /*arg*/, int /*anum*/, const char * /*ctx_file*/, int /*ctx_line*/)
+static void log_callback(void *, LogMessage &msg)
 {
+  const int lev_tag = msg.levTag;
+  const char *fmt = msg.fmt;
   if (count_expected_errors && lev_tag == LOGLEVEL_ERR && fmt && strstr(fmt, validate_sets_err_marker))
   {
     expected_errors_count++;
-    return 1;
+    return;
   }
   if (swallow_component_block_err && lev_tag == LOGLEVEL_ERR && fmt && strstr(fmt, "_component block at") && strstr(fmt, "is unknown"))
-    return 1;
-  if (!ignore_log_errors && (lev_tag == LOGLEVEL_ERR || lev_tag == LOGLEVEL_FATAL))
+    return;
+  if (!ignore_log_errors)
     had_errors = true;
-  return 1;
 }
 
 #include <osApiWrappers/dag_symHlp.h>
@@ -588,7 +589,7 @@ extern "C" int main(int argc, char **argv)
   ::dgs_argc = argc;
   ::dgs_argv = argv;
   dgs_report_fatal_error = my_fatal_handler;
-  debug_set_log_callback(&log_callback);
+  debug_add_log_handler(&log_callback, nullptr, {.levelMask = LOGMASK_ERRORS});
   int startArgC = 1;
   bool debugFile = false;
   bool verbose = false;

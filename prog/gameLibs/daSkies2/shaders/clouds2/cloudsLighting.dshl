@@ -71,7 +71,7 @@ macro CLOUDS_MULTIPLE_SCATTERING(code)
         //return float_octaves(one_minus_g2_by_4pi/(h * h * rsqrt(h)));
       }
       #include "clouds_droplet_phase.hlsli"
-      float_octaves henyey_greenstein_optimized_multiple_scattering(float cos0)
+      float_octaves henyey_greenstein_optimized_multiple_scattering(float cos0, float spike_mul)
       {
         float_octaves phase =
                (henyey_greenstein_optimized_multiple_octaves(one_plus_g2_ms_back .octaves_attributes, neg_2g_ms_back .octaves_attributes, one_minus_g2_by_4pi_ms_back .octaves_attributes, cos0) +
@@ -93,7 +93,7 @@ macro CLOUDS_MULTIPLE_SCATTERING(code)
         //clouds_droplet_phase_mul = (lut scale, (1-w)(1-g^2)/4*scale, (1-g)^2, 2g); the
         //droplet-fit factors are folded on the CPU (clouds_droplet_phase_params)
         float t = clouds_droplet_phase_mul.z + clouds_droplet_phase_mul.w*max(1. - cos0, 0.);
-        float hgSpike = clouds_droplet_phase_mul.y * rsqrt(t) / t;
+        float hgSpike = clouds_droplet_phase_mul.y * rsqrt(t) / t * spike_mul;
         phase.x = tex2Dlod(clouds_phase_lut, float4(tc, 0.5, 0, 0)).x * clouds_droplet_phase_mul.x + hgSpike;
         return phase;
       }

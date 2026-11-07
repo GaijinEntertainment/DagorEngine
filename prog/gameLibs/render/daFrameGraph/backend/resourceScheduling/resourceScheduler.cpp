@@ -6,6 +6,7 @@
 #include <EASTL/sort.h>
 
 #include <ioSys/dag_dataBlock.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_statDrv.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_convar.h>
@@ -69,20 +70,24 @@ void load_resource_scheduling_settings()
   dedicated_shortlist_size_multiplier.set(blk->getReal("shortlistSizeMultiplier", dedicated_shortlist_size_multiplier.get()));
 
   const DataBlock *heaps = dafgBlk->getBlockByNameEx("heaps");
-  heap_growth_step_mb.set(heaps->getInt("growthStepMb", heap_growth_step_mb.get()));
-  cpu_heap_growth_step_kb.set(heaps->getInt("cpuGrowthStepKb", cpu_heap_growth_step_kb.get()));
-  defragment_placed_anew_fraction.set(heaps->getReal("defragmentPlacedAnewFraction", defragment_placed_anew_fraction.get()));
-  defragment_waste_fraction.set(heaps->getReal("defragmentWasteFraction", defragment_waste_fraction.get()));
-  defragment_waste_fraction_stop.set(heaps->getReal("defragmentWasteFractionStop", defragment_waste_fraction_stop.get()));
-  defragment_min_waste_mb.set(heaps->getInt("defragmentMinWasteMb", defragment_min_waste_mb.get()));
-  defragment_min_waste_objects.set(heaps->getInt("defragmentMinWasteObjects", defragment_min_waste_objects.get()));
-  defragment_delay_frames.set(heaps->getInt("defragmentDelayFrames", defragment_delay_frames.get()));
-  defragment_check_interval_frames.set(heaps->getInt("defragmentCheckIntervalFrames", defragment_check_interval_frames.get()));
-  defragment_max_wait_frames.set(heaps->getInt("defragmentMaxWaitFrames", defragment_max_wait_frames.get()));
-  relocation_max_mb.set(heaps->getInt("relocationMaxMb", relocation_max_mb.get()));
-  relocation_waste_ratio.set(heaps->getReal("relocationWasteRatio", relocation_waste_ratio.get()));
-  defragment_headroom.set(heaps->getReal("defragmentHeadroom", defragment_headroom.get()));
-  no_aliasing.set(heaps->getBool("noAliasing", no_aliasing.get()));
+  const DataBlock *platformHeaps = heaps->getBlockByNameEx(get_platform_string_id());
+  const auto readInt = [&](const char *name, int fallback) { return platformHeaps->getInt(name, heaps->getInt(name, fallback)); };
+  const auto readReal = [&](const char *name, float fallback) { return platformHeaps->getReal(name, heaps->getReal(name, fallback)); };
+  const auto readBool = [&](const char *name, bool fallback) { return platformHeaps->getBool(name, heaps->getBool(name, fallback)); };
+  heap_growth_step_mb.set(readInt("growthStepMb", heap_growth_step_mb.get()));
+  cpu_heap_growth_step_kb.set(readInt("cpuGrowthStepKb", cpu_heap_growth_step_kb.get()));
+  defragment_placed_anew_fraction.set(readReal("defragmentPlacedAnewFraction", defragment_placed_anew_fraction.get()));
+  defragment_waste_fraction.set(readReal("defragmentWasteFraction", defragment_waste_fraction.get()));
+  defragment_waste_fraction_stop.set(readReal("defragmentWasteFractionStop", defragment_waste_fraction_stop.get()));
+  defragment_min_waste_mb.set(readInt("defragmentMinWasteMb", defragment_min_waste_mb.get()));
+  defragment_min_waste_objects.set(readInt("defragmentMinWasteObjects", defragment_min_waste_objects.get()));
+  defragment_delay_frames.set(readInt("defragmentDelayFrames", defragment_delay_frames.get()));
+  defragment_check_interval_frames.set(readInt("defragmentCheckIntervalFrames", defragment_check_interval_frames.get()));
+  defragment_max_wait_frames.set(readInt("defragmentMaxWaitFrames", defragment_max_wait_frames.get()));
+  relocation_max_mb.set(readInt("relocationMaxMb", relocation_max_mb.get()));
+  relocation_waste_ratio.set(readReal("relocationWasteRatio", relocation_waste_ratio.get()));
+  defragment_headroom.set(readReal("defragmentHeadroom", defragment_headroom.get()));
+  no_aliasing.set(readBool("noAliasing", no_aliasing.get()));
 }
 
 static uint64_t choose_growth_step(ResourceHeapGroup *group, bool heaps_count_objects)
@@ -713,7 +718,7 @@ static ReservedSizesFmem collect_reserved_sizes(const Layout &layout)
   return result;
 }
 
-// constraint: a relocation leaves the heaps packed anew out, the allocator
+// a relocation leaves the heaps packed anew out, the allocator
 // copies from their old objects
 static ProposedHeapsFmem propose_heaps_chosen_last(const Layout &layout, HeapClass heap_class, const Preservation &preservation,
   bool size_to_content, const HeapLimits &limits, const HeapsToDefragment &chosen, bool relocate)

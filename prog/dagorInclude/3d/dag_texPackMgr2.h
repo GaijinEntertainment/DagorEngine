@@ -115,6 +115,23 @@ void reset_mq_tex_list();
 //! adds texture name to explicit list that shall be loaded as medium quality (when global tex-quality >= medium)
 void add_texname_to_mq_tex_list(TEXTUREID texId);
 
+//! returns the quality id (0=high, 1=medium, 2=low, 3=ultralow) of the texture for the global tex-quality and the explicit lists
+//! (the global tex-quality for BAD_TEXTUREID); FileTextureFactory ignores the lists, and a loaded texture keeps its quality
+//! until it is reloaded (an array texture until it is released)
+int get_tex_quality(TEXTUREID texId);
+
+//! values of get_explicit_tex_list()
+enum
+{
+  EXPLICIT_TEX_LIST_NONE,
+  EXPLICIT_TEX_LIST_MQ,
+  EXPLICIT_TEX_LIST_LQ
+};
+
+//! returns the explicit list that holds the texture (EXPLICIT_TEX_LIST_LQ when it is in both lists, EXPLICIT_TEX_LIST_NONE for
+//! BAD_TEXTUREID)
+int get_explicit_tex_list(TEXTUREID texId);
+
 //! initializes queue for separate DDSx loading
 void init_ddsx_load_queue(int qsz);
 //! releases queue for separate DDSx loading

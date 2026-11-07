@@ -2,6 +2,7 @@
 #define INDOOR_PROBE_CONST_HLSL
 
 static const uint INVALID_CUBE_ID = 255;
+static const uint PENDING_CUBE_ID = 254;
 static const uint GRID_SIDE = 32;
 static const uint MAX_ACTIVE_PROBES = 32;
 static const uint QUARTER_OF_ACTIVE_PROBES = 8;

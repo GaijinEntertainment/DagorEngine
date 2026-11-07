@@ -161,11 +161,13 @@ protected:
   unsigned srcFileDetailMapOfs = 0;
   const char *srcFileName = nullptr;
   LandMeshReset dataReset = LandMeshReset::SysCopy;
+  unsigned renderDataResetCounter = 0;
 
   void close();
   bool loadMeshData(IGenLoad &loadCb);
   void afterDeviceResetInternal(LandMeshRenderer *lrend, IGenLoad *dump);
 
+  static unsigned get_weight_tex_cflgs(LandMeshReset data_reset);
   void loadDetailData(IGenLoad &loadCb);
   void loadRaytracerData(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator = midmem);
 
@@ -197,6 +199,7 @@ public:
   //! full_reset: reload the mesh data. If false, in_memory_dump is not used.
   //! in_memory_dump: the dump that this manager was loaded from, or null to reload from srcFileName when that file exists.
   void afterDeviceReset(LandMeshRenderer *lrend, bool full_reset, IGenLoad *in_memory_dump = nullptr);
+  bool pendingDeviceReset() const;
 
   void updateOverrideSamplers();
   bool loadHeightmapDump(IGenLoad &loadCb, bool load_render_data, float water_level = -1000000, float shore_error_meters = 2.0f,

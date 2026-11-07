@@ -1,0 +1,32 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daCSG/kernelExact ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+include $(Root)/prog/gameLibs/daCSG/daCSG-options.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/daCSG/kernelExact.lib ;
+
+Sources =
+  cdt.cpp
+  cells.cpp
+  crossings.cpp
+  exactPoint.cpp
+  extract.cpp
+  fp.cpp
+  kernelExact.cpp
+  outputPass.cpp
+  planes.cpp
+  predicates.cpp
+  ray.cpp
+  registry.cpp
+  snap.cpp
+;
+
+UseProgLibs +=
+  gameLibs/daCSG/mesh
+  gameLibs/daParallel
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

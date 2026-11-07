@@ -3,6 +3,7 @@
 #include "daScript/simulate/data_walker.h"
 #include "daScript/simulate/runtime_string.h"
 #include "daScript/simulate/simulate.h"
+#include "daScript/simulate/aot_builtin_math.h"
 
 namespace das {
 
@@ -323,9 +324,9 @@ namespace das {
         }
         virtual void Float ( float & f ) override {
             bool typeQualifiers = hasFlag(PrintFlags::typeQualifiers);
-            if ( typeQualifiers && isnan(f) ) {
+            if ( typeQualifiers && fisnan(f) ) {
                 ss << "nan";
-            } else if ( typeQualifiers && isinf(f) ) {
+            } else if ( typeQualifiers && !fisfinite(f) ) {
                 ss << (f>0 ? "inf" : "-inf");
             } else {
                 if ( hasFlag(PrintFlags::fixedFloatingPoint) )
@@ -339,9 +340,9 @@ namespace das {
         }
         virtual void Double ( double & f ) override {
             bool typeQualifiers = hasFlag(PrintFlags::typeQualifiers);
-            if ( typeQualifiers && isnan(f) ) {
+            if ( typeQualifiers && disnan(f) ) {
                 ss << "nan";
-            } else if ( typeQualifiers && isinf(f) ) {
+            } else if ( typeQualifiers && !disfinite(f) ) {
                 ss << (f>0 ? "inf" : "-inf");
             } else {
                 if ( hasFlag(PrintFlags::fixedFloatingPoint) )

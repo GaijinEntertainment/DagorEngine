@@ -57,6 +57,7 @@ public:
   const InstShaderMeshResource *getMesh() const { return rigid.mesh; }
 
   VoxelSurfaceData *getVoxelSurface() const { return voxelSurface.get(); }
+  uint32_t getVoxelSurfaceId() const { return voxelSurface ? voxelSurface->getId() : VoxelSurfaceData::INVALID_ID; }
   int getVoxelDataOffset() const { return voxelDataOffset; }
 
   RenderableInstanceResource *clone() const;
@@ -151,6 +152,7 @@ public:
     Point4 crownCenter1 = Point4(0, 0, 0, 0), invCrownRad1 = Point4(0, 0, 0, 0);
     Point4 crownCenter2 = Point4(0, 0, 0, 0), invCrownRad2 = Point4(0, 0, 0, 0);
     bool preshadowEnabled = true;
+    bool cameraSpaceFoliageNormals = false;
     float bottomGradient = 0.0;
     bool hasBakedTexture() const { return horizontalSamples != 0; }
   };

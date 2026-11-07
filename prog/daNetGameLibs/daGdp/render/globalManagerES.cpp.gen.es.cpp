@@ -275,6 +275,31 @@ static ecs::EntitySystemDesc dagdp_global_density_mul_settings_es_es_desc
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
 ,"render","render_settings__dagdpDensityMul","*");
+static constexpr ecs::ComponentDesc dagdp_lod_range_mul_settings_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("render_settings__dagdpLodRangeMul"), ecs::ComponentTypeInfo<float>()}
+};
+static void dagdp_lod_range_mul_settings_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    dagdp::dagdp_lod_range_mul_settings_es(evt
+        , ECS_RO_COMP(dagdp_lod_range_mul_settings_es_comps, "render_settings__dagdpLodRangeMul", float)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc dagdp_lod_range_mul_settings_es_es_desc
+(
+  "dagdp_lod_range_mul_settings_es",
+  "prog/daNetGameLibs/daGdp/render/globalManagerES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, dagdp_lod_range_mul_settings_es_all_events),
+  empty_span(),
+  make_span(dagdp_lod_range_mul_settings_es_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
+  0
+,"render","render_settings__dagdpLodRangeMul","*");
 static constexpr ecs::ComponentDesc level_settings_ecs_query_comps[] =
 {
 //start of 7 ro components at [0]

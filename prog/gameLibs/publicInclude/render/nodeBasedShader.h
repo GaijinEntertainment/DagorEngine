@@ -51,4 +51,5 @@ eastl::vector<String> getAvailableFloat();
 eastl::vector<String> getAvailableFloat4();
 eastl::vector<String> getAvailableTextures();
 eastl::vector<String> getAvailableBuffers();
+String getBoundNBSTextureNameMap(NodeBasedShaderType type);
 } // namespace nodebasedshaderutils

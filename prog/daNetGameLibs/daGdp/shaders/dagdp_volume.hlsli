@@ -33,7 +33,8 @@ struct VolumeGpuData
   uint volumeType;
 
   uint variantIndex;
-  uint _padding[3];
+  float discardBelowY;
+  uint _padding[2];
 };
 
 #define MAX_VB_INDICES 16
@@ -56,6 +57,13 @@ struct MeshIntersection
   uint vbIndex;
   uint volumeIndex;
   uint uniqueId;
+};
+
+struct VolumeViewportGpuData
+{
+  float4 frustumPlanes[6];
+  float3 worldPos;
+  float maxDistance;
 };
 
 #endif // DAGDP_VOLUME_HLSLI_INCLUDED

@@ -390,6 +390,9 @@ public:
   void resizeLandClassMapFile(CoolConsole &con);
 
   void resetLandmesh() { pendingLandmeshRebuild = true; }
+  // applyLandClassRegenerate() runs when no new request has come for 1 s, or before an export.
+  void requestLandClassRegenerate();
+  void applyLandClassRegenerate();
   void resetRenderer(bool immediate = false);
   void invalidateRenderer();
   void updateHeightMapTex(bool det_hmap, const IBBox2 *dirty_box = NULL);
@@ -450,6 +453,9 @@ public:
       onPPBtnPressed(pid, panel);
       return false;
     }
+
+    // The part of a landclass asset change that requestLandClassRegenerate() defers.
+    virtual void applyLandClassAssetChange() {}
   };
 
 
@@ -884,6 +890,8 @@ private:
   LandMeshRenderer *landMeshRenderer;
   MemoryChainedData *lmDump;
   bool pendingLandmeshRebuild;
+  bool pendingLandClassRegen = false;
+  int landClassRegenRequestMsec = 0;
   TEXTUREID lightmapTexId;
 
   PtrTab<ScriptParam> colorGenParams;
@@ -1104,7 +1112,8 @@ private:
   bool exportLand(mkbindump::BinDumpSaveCB &cwr); // throws exception on error
 
   void exportSplines(mkbindump::BinDumpSaveCB &cwr);
-  void exportLoftMasks(const char *out_folder, int main_hmap_sz, int det_hmap_sz, float hmin, float hmax, int prefab_dest_idx);
+  void exportLoftMasks(const char *out_folder, int main_hmap_sz, int det_hmap_sz, float hmin, float hmax, int prefab_dest_idx,
+    LayerHiddenMask layers_hide_mask);
 
   bool exportLandMesh(mkbindump::BinDumpSaveCB &cwr, IWriterToLandmesh *land_modifier, EditorLandRayTracer *raytracer,
     bool tools_internal = false);
@@ -1315,6 +1324,7 @@ private:
   static int lmeshDetSubtypeMask;
   static int grasspSubtypeMask;
   static int navmeshSubtypeMask;
+  static int loftTaggedSubtypeMask;
 
   float meshPreviewDistance;
   // float meshCellSize;

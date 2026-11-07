@@ -47,6 +47,7 @@ assert(typeof rev == "string", $"get_console_model_revision type: {typeof rev}")
 let gdk = platform.is_gdk_used()
 assert(typeof gdk == "bool", "is_gdk_used returns bool")
 assert(gdk == false, "GDK not used in csq build")
+assert(typeof platform.is_running_on_handheld() == "bool", "is_running_on_handheld returns bool")
 
 println("Section 2 PASSED")
 

@@ -77,10 +77,19 @@ static bool is_print_screen_key_down = false;
 #endif
 
 #if _TARGET_PC
-static bool touch_pad_always_mouse = false; // the PC touch pad mouse is opt-in
+static bool touch_pad_always_mouse = false; // the touch pad aim is opt-in on PC
 #else
 static bool touch_pad_always_mouse = true;
 #endif
+static bool gyro_gravity_vector = true;
+
+template <typename F>
+static void for_each_joystick(F f)
+{
+  for (int i = 0, n = ::global_cls_drv_joy ? ::global_cls_drv_joy->getDeviceCount() : 0; i < n; i++)
+    if (HumanInput::IGenJoystick *joy = ::global_cls_drv_joy->getDevice(i))
+      f(*joy);
+}
 
 class OnlineStorageControlsExchange : public online_storage::DataExchangeBLK
 {
@@ -122,12 +131,25 @@ void init_drivers()
   int pollThreadDelayMsec = ::dgs_get_settings()->getBlockByNameEx("debug")->getInt("pollThreadDelayMsec", 8); // Legacy
   const DataBlock *inputBlk = ::dgs_get_settings()->getBlockByNameEx("input");
   pollThreadDelayMsec = inputBlk->getInt("pollThreadDelayMsec", pollThreadDelayMsec);
+  HumanInput::stg_pnt.touchPadTouches = inputBlk->getBool("touchPadTouches", true);
+  const DataBlock *ballisticsBlk = inputBlk->getBlockByNameEx("touchPadBallistics");
+  HumanInput::TouchpadBallistics &ballistics = HumanInput::stg_pnt.touchPadBallistics;
+  ballistics.enabled = ballisticsBlk->getBool("enabled", ballistics.enabled);
+  ballistics.speed = ballisticsBlk->getInt("speed", ballistics.speed);
+  ballistics.countsPerMm = ballisticsBlk->getReal("countsPerMm", ballistics.countsPerMm);
   int hidDriversInit = inputBlk->getInt("hidDriversInit", ecs::InitDeviceType::Default);
   if (hidDriversInit <= 0)
     hidDriversInit = int(ecs::InitDeviceType::All) + hidDriversInit;
   bool reportUsedDevForAllDrivers = inputBlk->getBool("reportUsedDevForAllDrivers", false);
+  const bool motionSampleHistory = inputBlk->getBool("motionSampleHistory", false);
   execute_delayed_action_on_main_thread(make_delayed_action([&]() {
     ecs::init_hid_drivers(pollThreadDelayMsec, hidDriversInit);
+    if (motionSampleHistory && ::global_cls_drv_joy)
+    {
+      WinAutoLock joyGuard(global_cls_drv_update_cs); // the input poll thread runs already
+      if (HumanInput::IGenJoystick *joy = ::global_cls_drv_joy->getDevice(0))
+        joy->enableMotionHistory(true);
+    }
     if (reportUsedDevForAllDrivers)
     {
       dainput::enable_reports_for_devices(true);
@@ -213,7 +235,7 @@ static void reset_to_default()
 
 static void reset_to_preset(const char *preset, bool move_changes)
 {
-  if (move_changes) // constraint: the moved props must hold the game values
+  if (move_changes) // the moved props must hold the game values
     g_entity_mgr->broadcastEventImmediate(OnInputControlsSaveConfig{&dainput::get_user_props()});
   dainput::reset_user_config_to_preset(preset, move_changes);
   g_entity_mgr->broadcastEventImmediate(OnInputControlsLoadConfig{&dainput::get_user_props()});
@@ -241,7 +263,8 @@ bool OnlineStorageControlsExchange::applyGeneralBlk(const DataBlock &container) 
   if (!loadedConfigOnInit.paramExists("preset"))
     loadedConfigOnInit.setStr("preset", dainput::get_default_preset_prefix());
 
-  loadConfig();
+  if (dainput::get_actions_count() > 0) // no scheme yet: init_control() loads it
+    loadConfig();
   return true;
 }
 bool OnlineStorageControlsExchange::fillGeneralBlk(DataBlock &container) const
@@ -382,20 +405,16 @@ void process_input(double /*dt*/)
         ::global_cls_drv_joy->refreshDeviceList();
         dainput::register_dev3_gpad(global_cls_drv_joy->getDevice(0));
         dainput::reapply_stick_dead_zones();
-
-        for (int i = 0; i < ::global_cls_drv_joy->getDeviceCount(); i++)
-        {
-          if (HumanInput::IGenJoystick *joy = ::global_cls_drv_joy->getDevice(i))
-          {
-            joy->enableSensorsTiltCorrection(true);
-            joy->reportGyroSensorsAngDelta(true);
-          }
-        }
+        for_each_joystick([](HumanInput::IGenJoystick &joy) {
+          joy.enableSensorsTiltCorrection(gyro_gravity_vector);
+          joy.reportGyroSensorsAngDelta(true);
+        });
       }
     }
   }
 
   static int prevGamepads = -1, prevKeyboards = -1, prevMice = -1;
+  static bool prevKeyboardPresent = false, prevMousePresent = false;
   int gamepads = 0;
   if (::global_cls_drv_joy)
     for (int i = 0, n = ::global_cls_drv_joy->getDeviceCount(); i < n; i++)
@@ -403,28 +422,36 @@ void process_input(double /*dt*/)
         gamepads += joy->isConnected() ? 1 : 0;
   int keyboards = ::global_cls_drv_kbd ? ::global_cls_drv_kbd->getDeviceCount() : 0;
   int mice = ::global_cls_drv_pnt ? ::global_cls_drv_pnt->getDeviceCount() : 0;
-  if (gamepads != prevGamepads || keyboards != prevKeyboards || mice != prevMice)
+  // counts are constant on PS4 and PS5
+  bool keyboardPresent = ::global_cls_drv_kbd && HumanInput::stg_kbd.present;
+  bool mousePresent = ::global_cls_drv_pnt && interlocked_relaxed_load(HumanInput::stg_pnt.mousePresent);
+  if (gamepads != prevGamepads || keyboards != prevKeyboards || mice != prevMice || keyboardPresent != prevKeyboardPresent ||
+      mousePresent != prevMousePresent)
   {
     prevGamepads = gamepads;
     prevKeyboards = keyboards;
     prevMice = mice;
+    prevKeyboardPresent = keyboardPresent;
+    prevMousePresent = mousePresent;
     Json::Value data;
     data["gamepads"] = gamepads;
     data["keyboards"] = keyboards;
     data["mice"] = mice;
+    data["keyboardPresent"] = keyboardPresent;
+    data["mousePresent"] = mousePresent;
     sqeventbus::send_event("input.devices_num_changed", data);
   }
 
-  interlocked_relaxed_store(HumanInput::stg_pnt.emuMouseWithTouchPad,
-    touch_pad_always_mouse || (uiinput::is_mouse_used_by_ui() && !interlocked_relaxed_load(HumanInput::stg_pnt.mousePresent)));
   dainput::process_actions_tick();
   send_console_actions();
 }
 
+bool touch_pad_aims() { return interlocked_relaxed_load(touch_pad_always_mouse); }
+
 void check_system_keys()
 {
 #if _TARGET_PC_WIN
-  if (dgs_app_active && GetAsyncKeyState(VK_SNAPSHOT)) // constraint: bit 0 records presses between frames
+  if (dgs_app_active && GetAsyncKeyState(VK_SNAPSHOT)) // bit 0 records presses between frames
   {
     if (!is_print_screen_key_down)
     {
@@ -465,7 +492,45 @@ void bind_script_api(SqModules *moduleMgr)
         add_event({EventParams::LO, freq, duration_msec});
         add_event({EventParams::HI, freq, duration_msec});
       })
-    .Func("set_touch_pad_always_mouse", [](bool on) { uiinput::call_dainput([on] { touch_pad_always_mouse = on; }); })
+    .Func("set_touch_pad_always_mouse",
+      [](bool on) { uiinput::call_dainput([on] { interlocked_relaxed_store(touch_pad_always_mouse, on); }); })
+    .Func("set_touch_pad_ballistics", [](bool on) { interlocked_relaxed_store(HumanInput::stg_pnt.touchPadBallistics.enabled, on); })
+    .Func("set_touch_pad_cursor_speed",
+      [](int speed) { interlocked_relaxed_store(HumanInput::stg_pnt.touchPadBallistics.speed, speed); })
+    .Func("is_dspad_remapped_by_steam_input",
+      [] {
+#if _TARGET_PC_WIN | _TARGET_PC_LINUX
+        return HumanInput::isDsPadRemappedBySteamInput();
+#else
+        return false;
+#endif
+      })
+    .Func("set_gyro_gravity_vector",
+      [](bool on) {
+        WinAutoLock joyGuard(global_cls_drv_update_cs);
+        gyro_gravity_vector = on;
+        for_each_joystick([on](HumanInput::IGenJoystick &joy) { joy.enableSensorsTiltCorrection(on); });
+      })
+    .Func("calibrate_gyro",
+      [] {
+        WinAutoLock joyGuard(global_cls_drv_update_cs);
+        for_each_joystick([](HumanInput::IGenJoystick &joy) { joy.calibrateGyro(); });
+      })
+    // seconds a pad rested for a pending calibrate_gyro (the longest rest); -1: none pending or done, -2: no pad reports motion
+    .Func("get_gyro_calibration_rest",
+      [] {
+        WinAutoLock joyGuard(global_cls_drv_update_cs);
+        float rest = -2.f;
+        if (HumanInput::CompositeJoystickClassDriver *drv = ::global_cls_composite_drv_joy)
+          for (int i = 1, n = drv->getRealDeviceCount(true); i <= n; i++) // 0 is the aggregate, it reports the active pad only
+          {
+            HumanInput::JoystickMotionState motion;
+            if (HumanInput::IGenJoystick *joy = drv->getDevice(i); joy && joy->getMotionState(motion))
+              rest = max(rest, motion.filter.calibrating ? motion.filter.restSec : -1.f);
+          }
+        return rest;
+      })
+    .SetValue("GYRO_CALIBRATE_SEC", HumanInput::JoystickMotionFilter::CALIBRATE_REST_SEC)
     /**/;
   g_entity_mgr->broadcastEventImmediate(OnInputControlsBindSq{moduleMgr, &controlTable});
   moduleMgr->addNativeModule("control", controlTable);

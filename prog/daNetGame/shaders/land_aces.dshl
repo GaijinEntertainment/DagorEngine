@@ -261,7 +261,7 @@ shader land_mesh//, land_mesh_combined
 
       GLOBAL_UAV_FEEDBACK
 
-      FORCE_EARLY_DEPTH_STENCIL
+      USE_EARLY_DEPTH_STENCIL
       GBUFFER_OUTPUT landmesh_ps(VsOutput input HW_USE_SCREEN_POS
         HW_USE_READ_SHADING_RATE
       )

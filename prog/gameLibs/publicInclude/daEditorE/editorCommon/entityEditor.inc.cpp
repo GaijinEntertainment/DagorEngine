@@ -9,6 +9,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/sort.h>
 #include <EASTL/unordered_map.h>
+#include <EASTL/unique_ptr.h>
 #include <generic/dag_sort.h>
 #include <ecs/scripts/sqEntity.h>
 #include <stddef.h>
@@ -2032,13 +2033,15 @@ void EntityObjEditor::setSceneNewParent(ecs::Scene::SceneId new_parent_id, Sqrat
     }
     else
     {
-      DAEDITOR4.undoSys.put(new SceneSetParentUndoRedo(item.sid, new_parent_id));
-      ecs::g_scenes->setNewParent(item.sid, new_parent_id);
+      auto undo = eastl::make_unique<SceneSetParentUndoRedo>(item.sid, new_parent_id);
+      if (ecs::g_scenes->setNewParent(item.sid, new_parent_id))
+        DAEDITOR4.undoSys.put(undo.release());
+      else
+        logerr("Cannot reparent scene with id=%u to scene with id=%u", item.sid, new_parent_id);
     }
   }
 
   DAEDITOR4.undoSys.accept("setSceneNewParent");
-
   invalidate_scene_tree();
 }
 
@@ -2051,6 +2054,7 @@ void EntityObjEditor::setSceneNewParentAndOrder(ecs::Scene::SceneId new_parent_i
     return;
   }
 
+  int skipped = 0;
   DAEDITOR4.undoSys.begin();
 
   for (uint32_t i = 0; i < itemData.size(); ++i)
@@ -2064,8 +2068,8 @@ void EntityObjEditor::setSceneNewParentAndOrder(ecs::Scene::SceneId new_parent_i
         ecs::g_scenes->setEntityParent(new_parent_id, {item.eid});
       }
 
-      DAEDITOR4.undoSys.put(new EntityOrderUndoRedo(item.eid, order + i));
-      ecs::g_scenes->setEntityOrder(item.eid, order + i);
+      DAEDITOR4.undoSys.put(new EntityOrderUndoRedo(item.eid, order + i - skipped));
+      ecs::g_scenes->setEntityOrder(item.eid, order + i - skipped);
     }
     else
     {
@@ -2077,12 +2081,19 @@ void EntityObjEditor::setSceneNewParentAndOrder(ecs::Scene::SceneId new_parent_i
 
       if (currentParent != new_parent_id)
       {
-        DAEDITOR4.undoSys.put(new SceneSetParentUndoRedo(item.sid, new_parent_id));
-        ecs::g_scenes->setNewParent(item.sid, new_parent_id);
+        auto undo = eastl::make_unique<SceneSetParentUndoRedo>(item.sid, new_parent_id);
+        if (!ecs::g_scenes->setNewParent(item.sid, new_parent_id))
+        {
+          ++skipped;
+          logerr("Cannot reparent scene with id=%u to scene with id=%u", item.sid, new_parent_id);
+          continue;
+        }
+
+        DAEDITOR4.undoSys.put(undo.release());
       }
 
-      DAEDITOR4.undoSys.put(new SceneOrderUndoRedo(item.sid, order + i));
-      ecs::g_scenes->setSceneOrder(item.sid, order + i);
+      DAEDITOR4.undoSys.put(new SceneOrderUndoRedo(item.sid, order + i - skipped));
+      ecs::g_scenes->setSceneOrder(item.sid, order + i - skipped);
     }
   }
 
@@ -3326,6 +3337,9 @@ uint32_t EntityObjEditor::writeSceneToBlk(DataBlock &blk, const ecs::Scene::Scen
   const bool isMain = record.importDepth == 0;
   eastl::vector<SceneItemSaveObj, framemem_allocator> saveItems;
   saveItems.reserve(record.orderedEntries.size());
+
+  if (record.isSystemOwned)
+    blk.addBool("system_owned_scene", true);
 
   const ecs::TemplateDB &templates = g_entity_mgr->getTemplateDB();
   int hierarchySaveId = 2;

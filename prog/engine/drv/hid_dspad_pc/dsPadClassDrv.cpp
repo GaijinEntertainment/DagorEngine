@@ -3,6 +3,7 @@
 #include "dsPadClassDrv.h"
 #include "dsPadDevice.h"
 #include "dsPadSteam.h"
+#include <drv/hid/dag_hiCreate.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_atomic.h>
@@ -24,23 +25,27 @@ static constexpr int RETRY_SKIPPED_PERIOD_MS = 30000; // Linux delivers no devic
 static constexpr int BT_SILENCE_MS = 2000;            // a pad switched off over bluetooth keeps its read pending
 static constexpr int FEATURE_READ_TRIES = 3;
 
-class SonyPadClassDriver::IoThread final : public DaThread
+static volatile int steam_remaps_dspad = 0;
+
+bool HumanInput::isDsPadRemappedBySteamInput() { return interlocked_acquire_load(steam_remaps_dspad) != 0; }
+
+class DsPadClassDriver::IoThread final : public DaThread
 {
-  SonyPadClassDriver &drv;
+  DsPadClassDriver &drv;
 
 public:
-  IoThread(SonyPadClassDriver &d) : DaThread("SonyPadIO", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), drv(d) {}
+  IoThread(DsPadClassDriver &d) : DaThread("DsPadIO", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), drv(d) {}
   void execute() override { drv.ioLoop(); }
 };
 
 
-SonyPadClassDriver::SonyPadClassDriver()
+DsPadClassDriver::DsPadClassDriver()
 {
   prevUpdateRefTime = ::ref_time_ticks();
   add_wnd_proc_component(this);
 }
 
-SonyPadClassDriver::~SonyPadClassDriver()
+DsPadClassDriver::~DsPadClassDriver()
 {
   del_wnd_proc_component(this);
   if (ioThread)
@@ -48,9 +53,10 @@ SonyPadClassDriver::~SonyPadClassDriver()
     waitSet.wake();
     ioThread->terminate(true);
   }
+  interlocked_release_store(steam_remaps_dspad, 0);
 }
 
-bool SonyPadClassDriver::init()
+bool DsPadClassDriver::init()
 {
   ioThread.reset(new IoThread(*this));
   if (!ioThread->start())
@@ -59,7 +65,7 @@ bool SonyPadClassDriver::init()
   return true;
 }
 
-void SonyPadClassDriver::destroy()
+void DsPadClassDriver::destroy()
 {
   useDefClient(nullptr);
   setDefaultJoystick(nullptr);
@@ -67,14 +73,14 @@ void SonyPadClassDriver::destroy()
   delete this;
 }
 
-void SonyPadClassDriver::enable(bool en)
+void DsPadClassDriver::enable(bool en)
 {
   enabled = en;
   stg_joy.enabled = en;
   prevUpdateRefTime = ::ref_time_ticks();
 }
 
-IWndProcComponent::RetCode SonyPadClassDriver::process(void *, unsigned msg, uintptr_t wParam, intptr_t, intptr_t &)
+IWndProcComponent::RetCode DsPadClassDriver::process(void *, unsigned msg, uintptr_t wParam, intptr_t, intptr_t &)
 {
 #if _TARGET_PC_WIN
   if (msg == WM_DEVICECHANGE && wParam == DBT_DEVNODES_CHANGED)
@@ -86,7 +92,7 @@ IWndProcComponent::RetCode SonyPadClassDriver::process(void *, unsigned msg, uin
   return PROCEED_OTHER_COMPONENTS;
 }
 
-void SonyPadClassDriver::requestRescan()
+void DsPadClassDriver::requestRescan()
 {
   interlocked_release_store(rescanRequested, 1);
   waitSet.wake();
@@ -94,7 +100,7 @@ void SonyPadClassDriver::requestRescan()
 
 // IO thread, cs held: the pad is left quiet for its next reader, the device object stays until the main thread
 // refreshes the list
-void SonyPadClassDriver::loseSlot(Slot &s)
+void DsPadClassDriver::loseSlot(Slot &s)
 {
   uint8_t buf[256];
   int len = 0;
@@ -109,7 +115,7 @@ void SonyPadClassDriver::loseSlot(Slot &s)
 }
 
 
-static int read_feature(sonypad::HidDevice &hid, uint8_t id, uint8_t *buf, int cap)
+static int read_feature(dspad::HidDevice &hid, uint8_t id, uint8_t *buf, int cap)
 {
   // Steam and other readers share the pad, so a request can return another report; retry like hid-playstation
   for (int t = 0; t < FEATURE_READ_TRIES; t++)
@@ -122,9 +128,9 @@ static int read_feature(sonypad::HidDevice &hid, uint8_t id, uint8_t *buf, int c
   return -1;
 }
 
-static void read_calibration(sonypad::HidDevice &hid, SonyPadDevice &dev)
+static void read_calibration(dspad::HidDevice &hid, DsPadDevice &dev)
 {
-  using namespace sonypad;
+  using namespace dspad;
   const Model model = dev.getModel();
   const bool bt = hid.getInfo().bluetooth;
   uint8_t buf[MAX_REPORT_SIZE];
@@ -138,28 +144,28 @@ static void read_calibration(sonypad::HidDevice &hid, SonyPadDevice &dev)
   const bool ok = nonZero && parse_calibration(model, buf, n, calib);
   if (ok)
   {
-    debug("[HID][SONY] calibration: gyro numer/denom %d/%d %d/%d %d/%d reported bias %d %d %d, accel bias %d %d %d denom %d %d %d",
+    debug("[HID][DSPAD] calibration: gyro numer/denom %d/%d %d/%d %d/%d reported bias %d %d %d, accel bias %d %d %d denom %d %d %d",
       calib.gyro[0].numer, calib.gyro[0].denom, calib.gyro[1].numer, calib.gyro[1].denom, calib.gyro[2].numer, calib.gyro[2].denom,
       calib.gyroReportedBias[0], calib.gyroReportedBias[1], calib.gyroReportedBias[2], calib.accel[0].bias, calib.accel[1].bias,
       calib.accel[2].bias, calib.accel[0].denom, calib.accel[1].denom, calib.accel[2].denom);
   }
   else
-    debug("[HID][SONY] calibration report 0x%02x not available (%d bytes), using nominal sensor scales", id, n);
+    debug("[HID][DSPAD] calibration report 0x%02x not available (%d bytes), using nominal sensor scales", id, n);
   dev.setCalibration(calib, ok);
 }
 
 // IO thread: open the pad, read its identity and calibration and queue the device for publishing
-bool SonyPadClassDriver::openPad(const sonypad::HidDeviceInfo &info)
+bool DsPadClassDriver::openPad(const dspad::HidDeviceInfo &info)
 {
-  using namespace sonypad;
+  using namespace dspad;
   eastl::unique_ptr<HidDevice> hid(new HidDevice);
   if (!hid->open(info) || !hid->armRead())
   {
-    debug("[HID][SONY] cannot open %04x:%04x %s", info.vid, info.pid, info.path);
+    debug("[HID][DSPAD] cannot open %04x:%04x %s", info.vid, info.pid, info.path);
     return false;
   }
 
-  SonyPadDevice::InitInfo init;
+  DsPadDevice::InitInfo init;
   init.model = model_from_pid(info.pid);
   init.bluetooth = info.bluetooth;
   uint8_t buf[MAX_REPORT_SIZE];
@@ -168,22 +174,20 @@ bool SonyPadClassDriver::openPad(const sonypad::HidDeviceInfo &info)
   int n = read_feature(*hid, ds4 ? DS4_FEATURE_REPORT_PAIRING_INFO : DS_FEATURE_REPORT_PAIRING_INFO, buf, sizeof(buf));
   if (hid->isDead())
   {
-    debug("[HID][SONY] %04x:%04x %s does not answer, left for a retry", info.vid, info.pid, info.path);
+    debug("[HID][DSPAD] %04x:%04x %s does not answer, left for a retry", info.vid, info.pid, info.path);
     return false;
   }
   if (!parse_mac_address(init.model, buf, n, init.mac))
     strcpy(init.mac, "unknown");
   n = read_feature(*hid, ds4 ? DS4_FEATURE_REPORT_FIRMWARE_INFO : DS_FEATURE_REPORT_FIRMWARE_INFO, buf, sizeof(buf));
   parse_firmware_info(init.model, buf, n, init.firmware);
-  // feature version 2.21 made the pad drive classic rumble itself; older DualSense firmware needs the compatible mode
-  init.rumbleV2 = init.model == Model::DUALSENSE_EDGE || ds4 || init.firmware.updateVersion >= 0x0215;
 
   const HidDeviceInfo &opened = hid->getInfo();
-  debug("[HID][SONY] opened %s over %s: vid:pid=%04x:%04x mac=%s hw=%08x fw=%08x upd=%04x reports in/out/feature=%d/%d/%d %s",
+  debug("[HID][DSPAD] opened %s over %s: vid:pid=%04x:%04x mac=%s hw=%08x fw=%08x upd=%04x reports in/out/feature=%d/%d/%d %s",
     model_name(init.model), opened.bluetooth ? "bluetooth" : "usb", opened.vid, opened.pid, init.mac, init.firmware.hwVersion,
     init.firmware.fwVersion, init.firmware.updateVersion, opened.inputReportLen, opened.outputReportLen, opened.featureReportLen,
     opened.path);
-  eastl::unique_ptr<SonyPadDevice> dev(new SonyPadDevice(init, nextOrdId++));
+  eastl::unique_ptr<DsPadDevice> dev(new DsPadDevice(init, nextOrdId++));
   read_calibration(*hid, *dev);
 
   WinAutoLock lock(cs);
@@ -194,11 +198,11 @@ bool SonyPadClassDriver::openPad(const sonypad::HidDeviceInfo &info)
       {
         if (init.bluetooth)
         {
-          debug("[HID][SONY] %s over bluetooth skipped, the same pad is on usb", model_name(init.model));
+          debug("[HID][DSPAD] %s over bluetooth skipped, the same pad is on usb", model_name(init.model));
           strcpy(s.twinPath, info.path);
           return false;
         }
-        debug("[HID][SONY] %s over bluetooth gives way to the usb link", s.dev->getName());
+        debug("[HID][DSPAD] %s over bluetooth gives way to the usb link", s.dev->getName());
         loseSlot(s);
       }
   Slot &slot = slots.push_back();
@@ -208,37 +212,45 @@ bool SonyPadClassDriver::openPad(const sonypad::HidDeviceInfo &info)
   return true;
 }
 
-static bool lists_path(const Tab<sonypad::HidDeviceInfo> &list, const char *path)
+template <typename List>
+static bool lists_path(const List &list, const char *path)
 {
-  for (const sonypad::HidDeviceInfo &d : list)
+  for (const dspad::HidDeviceInfo &d : list)
     if (strcmp(d.path, path) == 0)
       return true;
   return false;
 }
 
-void SonyPadClassDriver::scanDevices(bool retry_skipped, bool device_change)
+void DsPadClassDriver::scanDevices(bool retry_skipped, bool device_change)
 {
-  using namespace sonypad;
-  Tab<HidDeviceInfo> all;
+  using namespace dspad;
+  HidDeviceList all;
   if (!enumerate_hid_devices(all))
   {
-    debug("[HID][SONY] HID enumeration failed");
+    debug("[HID][DSPAD] HID enumeration failed");
     return;
   }
 
-  const bool steamRemapsSony = steam_input_remaps_vendor(VID_SONY);
-  if (!scanLogged)
+  bool steamRemapsDsPads = steam_input_remaps_vendor(VID_SONY);
+#if _TARGET_PC_WIN
+  // Steam Input hides the pads it remaps
+  for (const HidDeviceInfo &d : all)
+    steamRemapsDsPads &= !is_dspad(d.vid, d.pid);
+#endif
+  if (!scanLogged || steamRemapsDsPads != isDsPadRemappedBySteamInput())
   {
     scanLogged = true;
-    debug("[HID][SONY] %d HID interfaces, Steam Input remaps Sony pads %d", all.size(), steamRemapsSony);
+    debug("[HID][DSPAD] %d HID interfaces, Steam Input remaps dsPads %d", all.size(), steamRemapsDsPads);
   }
+  interlocked_release_store(steam_remaps_dspad, steamRemapsDsPads ? 1 : 0);
 
   {
     WinAutoLock lock(cs);
     for (Slot &s : slots)
-      if (s.dev->isConnected() && (steamRemapsSony || !lists_path(all, s.hid->getInfo().path)))
+      if (s.dev->isConnected() && (steamRemapsDsPads || !lists_path(all, s.hid->getInfo().path)))
       {
-        debug("[HID][SONY] %s %s (%s)", s.dev->getName(), steamRemapsSony ? "left to Steam Input" : "removed", s.hid->getInfo().path);
+        debug("[HID][DSPAD] %s %s (%s)", s.dev->getName(), steamRemapsDsPads ? "left to Steam Input" : "removed",
+          s.hid->getInfo().path);
         loseSlot(s);
       }
   }
@@ -250,9 +262,9 @@ void SonyPadClassDriver::scanDevices(bool retry_skipped, bool device_change)
 
   for (const HidDeviceInfo &d : all)
   {
-    if (device_change && d.vid == VID_SONY && !is_sony_pad(d.vid, d.pid))
-      debug("[HID][SONY] unknown Sony device %04x:%04x left to the generic driver (%s)", d.vid, d.pid, d.path);
-    if (!is_sony_pad(d.vid, d.pid) || lists_path(skippedPads, d.path))
+    if (device_change && d.vid == VID_SONY && !is_dspad(d.vid, d.pid))
+      debug("[HID][DSPAD] unknown Sony device %04x:%04x left to the generic driver (%s)", d.vid, d.pid, d.path);
+    if (!is_dspad(d.vid, d.pid) || lists_path(skippedPads, d.path))
       continue;
     bool known = false;
     {
@@ -263,16 +275,16 @@ void SonyPadClassDriver::scanDevices(bool retry_skipped, bool device_change)
     if (known)
       continue;
     // Steam already turns this pad into its virtual Xbox controller, a second reader would double it
-    if (steamRemapsSony)
-      debug("[HID][SONY] skip %04x:%04x %s: Steam Input remaps it", d.vid, d.pid, d.path);
-    if (steamRemapsSony || !openPad(d))
+    if (steamRemapsDsPads)
+      debug("[HID][DSPAD] skip %04x:%04x %s: Steam Input remaps it", d.vid, d.pid, d.path);
+    if (steamRemapsDsPads || !openPad(d))
       skippedPads.push_back(d);
   }
 }
 
-void SonyPadClassDriver::ioLoop()
+void DsPadClassDriver::ioLoop()
 {
-  using namespace sonypad;
+  using namespace dspad;
   uint8_t buf[256];
   int64_t lastScan = 0, lastRetry = 0;
   while (!ioThread->isThreadTerminating())
@@ -309,7 +321,7 @@ void SonyPadClassDriver::ioLoop()
           break;
         if (n < 0)
         {
-          debug("[HID][SONY] %s read failed, treating as removed", s.dev->getName());
+          debug("[HID][DSPAD] %s read failed, treating as removed", s.dev->getName());
           loseSlot(s);
           break;
         }
@@ -323,20 +335,20 @@ void SonyPadClassDriver::ioLoop()
         }
         if (!s.hid->armRead())
         {
-          debug("[HID][SONY] %s read request failed, treating as removed", s.dev->getName());
+          debug("[HID][DSPAD] %s read request failed, treating as removed", s.dev->getName());
           loseSlot(s);
           break;
         }
       }
       if (s.dev->isConnected() && s.hid->getInfo().bluetooth && get_time_usec(s.lastReportTicks) > BT_SILENCE_MS * 1000)
       {
-        debug("[HID][SONY] %s sent no report for %d ms over bluetooth, treating as removed", s.dev->getName(), BT_SILENCE_MS);
+        debug("[HID][DSPAD] %s sent no report for %d ms over bluetooth, treating as removed", s.dev->getName(), BT_SILENCE_MS);
         loseSlot(s);
         skippedPads.push_back(s.hid->getInfo()); // the stale interface stays listed, so retry it like a skipped pad
       }
       int len = 0;
       if (s.dev->isConnected() && s.dev->takeOutputReport(buf, sizeof(buf), len) && !s.hid->write(buf, len))
-        debug("[HID][SONY] %s output report write failed", s.dev->getName());
+        debug("[HID][DSPAD] %s output report write failed", s.dev->getName());
     }
   }
   WinAutoLock lock(cs);
@@ -346,7 +358,7 @@ void SonyPadClassDriver::ioLoop()
 }
 
 
-void SonyPadClassDriver::refreshDeviceList()
+void DsPadClassDriver::refreshDeviceList()
 {
   WinAutoLock lock(cs);
   interlocked_release_store(configChanged, 0);
@@ -373,7 +385,7 @@ void SonyPadClassDriver::refreshDeviceList()
       s.dev->setClient(defClient);
       devices.push_back(s.dev.get());
       s.dev->updateState(0, s.dev.get() == defJoy);
-      debug("[HID][SONY] adding joystick #%d - [%s] '%s' (%d axes, %d buttons)", devices.size() - 1, s.dev->getDeviceID(),
+      debug("[HID][DSPAD] adding joystick #%d - [%s] '%s' (%d axes, %d buttons)", devices.size() - 1, s.dev->getDeviceID(),
         s.dev->getName(), s.dev->getAxisCount(), s.dev->getButtonCount());
     }
   }
@@ -392,14 +404,14 @@ void SonyPadClassDriver::refreshDeviceList()
   prevUpdateRefTime = ::ref_time_ticks();
 }
 
-void SonyPadClassDriver::updateDevices()
+void DsPadClassDriver::updateDevices()
 {
   if (!enabled)
     return;
   const int dt = get_time_usec(prevUpdateRefTime) / 1000;
   prevUpdateRefTime = ::ref_time_ticks();
 
-  for (SonyPadDevice *dev : devices)
+  for (DsPadDevice *dev : devices)
     if (dev->updateState(dt, dev == defJoy) && !defJoy && enableAutoDef)
     {
       setDefaultJoystick(dev);
@@ -408,24 +420,24 @@ void SonyPadClassDriver::updateDevices()
     }
 }
 
-IGenJoystick *SonyPadClassDriver::getDevice(int idx) const { return idx >= 0 && idx < devices.size() ? devices[idx] : nullptr; }
+IGenJoystick *DsPadClassDriver::getDevice(int idx) const { return idx >= 0 && idx < devices.size() ? devices[idx] : nullptr; }
 
-IGenJoystick *SonyPadClassDriver::getDeviceByUserId(unsigned short user_id) const
+IGenJoystick *DsPadClassDriver::getDeviceByUserId(unsigned short user_id) const
 {
-  for (SonyPadDevice *dev : devices)
+  for (DsPadDevice *dev : devices)
     if (dev->getUserId() == user_id)
       return dev;
   return nullptr;
 }
 
-void SonyPadClassDriver::useDefClient(IGenJoystickClient *cli)
+void DsPadClassDriver::useDefClient(IGenJoystickClient *cli)
 {
   defClient = cli;
-  for (SonyPadDevice *dev : devices)
+  for (DsPadDevice *dev : devices)
     dev->setClient(cli);
 }
 
-void SonyPadClassDriver::setDefaultJoystick(IGenJoystick *ref)
+void DsPadClassDriver::setDefaultJoystick(IGenJoystick *ref)
 {
   if (ref != defJoy)
   {
@@ -437,35 +449,35 @@ void SonyPadClassDriver::setDefaultJoystick(IGenJoystick *ref)
   defJoy = ref;
 }
 
-float SonyPadClassDriver::getStickDeadZoneScale(int stick_idx, bool) const
+float DsPadClassDriver::getStickDeadZoneScale(int stick_idx, bool) const
 {
   G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, 0);
   return stickDeadZoneScale[stick_idx];
 }
 
-void SonyPadClassDriver::setStickDeadZoneScale(int stick_idx, bool main_dev, float scale)
+void DsPadClassDriver::setStickDeadZoneScale(int stick_idx, bool main_dev, float scale)
 {
   if (!main_dev)
     return;
   G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, );
   stickDeadZoneScale[stick_idx] = scale;
-  for (SonyPadDevice *dev : devices)
+  for (DsPadDevice *dev : devices)
     dev->setStickDeadZoneScale(stick_idx, scale);
 }
 
-float SonyPadClassDriver::getStickDeadZoneAbs(int stick_idx, bool main_dev, IGenJoystick *for_joy) const
+float DsPadClassDriver::getStickDeadZoneAbs(int stick_idx, bool main_dev, IGenJoystick *for_joy) const
 {
   if (!main_dev)
     return 0;
   G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, 0);
-  return stickDeadZoneScale[stick_idx] * SonyPadDevice::DEFAULT_STICK_DEADZONE / STICK_MAX_VAL;
+  return stickDeadZoneScale[stick_idx] * DsPadDevice::DEFAULT_STICK_DEADZONE / STICK_MAX_VAL;
 }
 
-void SonyPadClassDriver::enableGyroscope(bool enable, bool main_dev)
+void DsPadClassDriver::enableGyroscope(bool enable, bool main_dev)
 {
   if (!main_dev)
     return;
   gyroEnabled = enable;
-  for (SonyPadDevice *dev : devices)
+  for (DsPadDevice *dev : devices)
     dev->enableGyroscope(enable);
 }

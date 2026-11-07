@@ -126,8 +126,14 @@ public:
       return false;
     }
 
+    const int fontOffset = stbtt_GetFontOffsetForIndex(fontBuf.data(), 0);
+    if (fontOffset < 0)
+    {
+      texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(256, "render_text: <%s> is not a font file", font_path));
+      return false;
+    }
     stbtt_fontinfo font;
-    if (!stbtt_InitFont(&font, fontBuf.data(), stbtt_GetFontOffsetForIndex(fontBuf.data(), 0)))
+    if (!stbtt_InitFont(&font, fontBuf.data(), fontOffset))
     {
       texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(256, "render_text: stbtt_InitFont failed for <%s>", font_path));
       return false;

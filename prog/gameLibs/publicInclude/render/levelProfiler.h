@@ -4,31 +4,14 @@
 //
 #pragma once
 
-#include <drv/3d/dag_resId.h>
-#include <drv/3d/dag_tex3d.h>
-
 namespace levelprofiler
 {
 
-class ExternalTextureProvider
-{
-public:
-  ExternalTextureProvider() = default;
-  ExternalTextureProvider(const ExternalTextureProvider &) = delete;
-  ExternalTextureProvider(ExternalTextureProvider &&) = delete;
-  virtual ~ExternalTextureProvider() = default;
-
-  virtual void init() {}
-  virtual void close() {}
-  virtual const char *getName() const = 0;
-  virtual TextureInfo getTextureInfo() = 0;
-  virtual TEXTUREID getTextureId() const = 0;
-};
-
 void init();
 void teardown();
+// Selects the texture in the Texture pool tab and shows its mip 0. An empty name clears the selection
+// until the next draw, which selects the first filtered texture. No effect before init(), with a null
+// name, or in a rel build (the stub).
 void select_texture(const char *name);
-void register_external_texture(ExternalTextureProvider &provider);
-void unregister_external_texture(ExternalTextureProvider &provider);
 
 } // namespace levelprofiler

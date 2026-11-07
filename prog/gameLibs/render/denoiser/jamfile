@@ -20,6 +20,7 @@ if $(code_used) = yes {
 }
 
 AddIncludes =
+  $(Root)/prog/gameLibs
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/math/sse2neon
   $(Root)/prog/3rdPartyLibs/math/MathLib

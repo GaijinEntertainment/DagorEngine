@@ -10,10 +10,14 @@
 #include <math/dag_Point4.h>
 #include <shaders/dag_shaders.h>
 #include <render/dof/dof_ps.h>
+#include "../shaders/dof/dofTiles.hlsli"
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <util/dag_console.h>
+#include <util/dag_convar.h>
+#include <drv/3d/dag_buffers.h>
+#include <math/integer/dag_IPoint4.h>
 #include <startup/dag_globalSettings.h>
 
 #define GLOBAL_VARS_LIST               \
@@ -34,11 +38,29 @@
   VAR(dof_focus_near_mode)             \
   VAR(simplified_dof)                  \
   VAR(dof_coc_history)                 \
+  VAR(dof_composite_tiled)             \
   VAR(dof_blend_depth_tex_samplerstate)
+
+// only the optional tiled gather shaders reference these
+#define TILED_GATHER_VARS_LIST \
+  VAR(dof_classify_near_coc)   \
+  VAR(dof_classify_far_coc)    \
+  VAR(dof_tiles_mask)          \
+  VAR(dof_tiles_count)         \
+  VAR(dof_tiles_list)          \
+  VAR(dof_tiles_args)          \
+  VAR(dof_gather_out_near)     \
+  VAR(dof_gather_out_far)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
+TILED_GATHER_VARS_LIST
 #undef VAR
+
+CONSOLE_BOOL_VAL("render", dof_tiled, true);
+CONSOLE_BOOL_VAL("render", dof_composite_tiled, true);
+
+static_assert(DOF_TILES_ARGS_STRIDE == DISPATCH_INDIRECT_BUFFER_SIZE, "dof_tiles_args holds DispatchIndirect records");
 
 static float ngon_rad(float theta, float n) { return cosf(PI / n) / cosf(theta - (2 * PI / n) * floorf((n * theta + PI) / (2 * PI))); }
 
@@ -107,12 +129,19 @@ void DepthOfFieldPS::resetOutputVars()
   ShaderGlobal::set_int(dof_focus_far_modeVarId, 0);
   ShaderGlobal::set_texture(dof_far_layerVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(dof_near_layerVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_int(dof_composite_tiledVarId, 0);
+  if (dof_tiles_maskVarId >= 0)
+    ShaderGlobal::set_buffer(dof_tiles_maskVarId, nullptr);
 }
 
 void DepthOfFieldPS::closeTextures()
 {
   closeNear();
   closeFar();
+  dof_tiles_mask.close();
+  dof_tiles_list.close();
+  dof_tiles_args.close();
+  tilesListCapacity = 0;
 }
 
 void DepthOfFieldPS::closeNear()
@@ -208,6 +237,9 @@ void DepthOfFieldPS::init(int w, int h)
 #define VAR(a) a##VarId = get_shader_variable_id(#a);
   GLOBAL_VARS_LIST
 #undef VAR
+#define VAR(a) a##VarId = get_shader_variable_id(#a, true);
+  TILED_GATHER_VARS_LIST
+#undef VAR
   width = w / 2;
   height = h / 2;
   originalWidth = width;
@@ -226,6 +258,13 @@ void DepthOfFieldPS::init(int w, int h)
   // "dof_coc_temp");
   ShaderGlobal::set_float4(dof_rt_sizeVarId, width, height, 1. / width, 1. / height);
   dofTile.init("dof_tile");
+  dofClassifyTiles.reset(new_compute_shader("dof_classify_tiles", true));
+  dofBuildTilesList.reset(new_compute_shader("dof_build_tiles_list", true));
+  dofGatherCs.reset(new_compute_shader("dof_gather_cs", true));
+  dof_tiles_mask.close();
+  dof_tiles_list.close();
+  dof_tiles_args.close();
+  tilesListCapacity = 0;
   dofGather.init("dof_gather");
   dofComposite.init("dof_composite");
   if (dof_max_coc_far)
@@ -286,22 +325,29 @@ static inline void device_reversed_depth_from_inv_depth_scale_bias(float &hyper_
   hyper_bias = bias + scale / zf;
 }
 
+float DepthOfFieldPS::getMaxDofAmount() const
+{
+  return height > 0 ? MAX_COC / (height * (nFocus.isFovInvariant() ? 1.0f : lastFovScale)) : 0.f;
+}
+
 bool DepthOfFieldPS::prepareFrame(BaseTexture *frame, float zn, float zf, float &fov_scale, bool &has_near_dof, bool &has_far_dof)
 {
   if (!height || !frame)
     return false;
+
+  fov_scale = max(fov_scale, 1e-6f);
+  fov_scale *= fov_scale; // that is correct if focus plane is >> focalLength, which is usually true. (especially when focus to
+                          // infinity)
+  lastFovScale = fov_scale;
+  if (cFocus.isFovInvariant())
+    fov_scale = 1.0f;
+
   if (!on)
   {
     resetOutputVars();
     historyValid = false;
     return false;
   }
-  fov_scale = max(fov_scale, 1e-6f);
-  fov_scale *= fov_scale; // that is correct if focus plane is >> focalLength, which is usually true. (especially when focus to
-                          // infinity)
-
-  if (cFocus.isFovInvariant())
-    fov_scale = 1.0f;
 
   const float near_z_check = minCheckDist > 0.f ? max(zn, minCheckDist) : zn;
   // Focal Length is of max 20 centimeters (0.05 mm lense focal for 24 mm film) * magnification, which is typicay less than 4.
@@ -439,6 +485,93 @@ void DepthOfFieldPS::perform(const DepthOfFieldTargets &targets, BaseTexture *fr
   historyFrame = frameNo;
 }
 
+static bool is_uav_texture(BaseTexture *tex)
+{
+  TextureInfo ti;
+  tex->getinfo(ti, 0);
+  return (ti.cflg & TEXCF_UNORDERED) != 0;
+}
+
+bool DepthOfFieldPS::prepareTiles(const DepthOfFieldTargets &targets, bool has_near_dof, bool has_far_dof)
+{
+  if (!dofClassifyTiles || !dofBuildTilesList || !dofGatherCs)
+    return false;
+  if (has_near_dof && !(is_uav_texture(targets.nearLayer) && is_uav_texture(targets.nearLayerTemp)))
+    return false;
+  if (has_far_dof && !(is_uav_texture(targets.farLayer) && is_uav_texture(targets.farLayerTemp)))
+    return false;
+
+  tilesCount = IPoint2((width + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE, (height + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE);
+  const int tiles = tilesCount.x * tilesCount.y;
+  if (!dof_tiles_mask || tiles > tilesListCapacity)
+  {
+    const IPoint2 maxTiles((max(originalWidth, width) + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE,
+      (max(originalHeight, height) + DOF_TILE_SIZE - 1) / DOF_TILE_SIZE);
+    tilesListCapacity = max(tiles, maxTiles.x * maxTiles.y);
+    dof_tiles_mask.close();
+    dof_tiles_list.close();
+    dof_tiles_args.close();
+    dof_tiles_mask = dag::buffers::create_ua_sr_byte_address((tilesListCapacity + DOF_TILES_PER_DWORD - 1) / DOF_TILES_PER_DWORD,
+      "dof_tiles_mask", d3d::buffers::Init::No, RESTAG_DOF);
+    dof_tiles_list =
+      dag::buffers::create_ua_sr_byte_address(2 * tilesListCapacity, "dof_tiles_list", d3d::buffers::Init::No, RESTAG_DOF);
+    dof_tiles_args = dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, 2, "dof_tiles_args", RESTAG_DOF);
+  }
+  return dof_tiles_mask && dof_tiles_list && dof_tiles_args;
+}
+
+void DepthOfFieldPS::renderGather(const DepthOfFieldTargets &targets, int iteration, const Point4 *taps, int taps_count, bool tiled,
+  bool has_near_dof, bool has_far_dof)
+{
+  const bool first = iteration == 0;
+  BaseTexture *inNear = has_near_dof ? (first ? targets.nearLayer : targets.nearLayerTemp) : nullptr;
+  BaseTexture *inFar = has_far_dof ? (first ? targets.farLayer : targets.farLayerTemp) : nullptr;
+  BaseTexture *outNear = has_near_dof ? (first ? targets.nearLayerTemp : targets.nearLayer) : nullptr;
+  BaseTexture *outFar = has_far_dof ? (first ? targets.farLayerTemp : targets.farLayer) : nullptr;
+  const unsigned stage = tiled ? STAGE_CS : STAGE_PS;
+
+  if (tiled)
+    d3d::set_cs_const(6, &taps[0].x, taps_count);
+  else
+    d3d::set_ps_const(6, &taps[0].x, taps_count);
+  d3d::set_tex(stage, 0, inNear);
+  d3d::set_sampler(stage, 0, clampSampler);
+  d3d::set_tex(stage, 1, inFar);
+  d3d::set_sampler(stage, 1, clampSampler);
+  d3d::set_tex(stage, 2, targets.coc.back());
+  d3d::set_sampler(stage, 2, clampPointSampler);
+  d3d::set_tex(stage, 3, targets.maxCocFar);
+  d3d::set_sampler(stage, 3, clampSampler);
+  ShaderGlobal::set_int(num_dof_tapsVarId, taps_count);
+  ShaderGlobal::set_int(dof_gather_iterationVarId, iteration);
+
+  if (tiled)
+  {
+    ShaderGlobal::set_texture(dof_gather_out_nearVarId, outNear);
+    ShaderGlobal::set_texture(dof_gather_out_farVarId, outFar);
+    if (outNear)
+      d3d::resource_barrier({outNear, RB_RW_UAV | RB_STAGE_COMPUTE, 0, 0});
+    if (outFar)
+      d3d::resource_barrier({outFar, RB_RW_UAV | RB_STAGE_COMPUTE, 0, 0});
+    dofGatherCs->dispatch_indirect(dof_tiles_args.getBuf(), first ? 0 : DOF_TILES_ARGS_STRIDE);
+    ShaderGlobal::set_texture(dof_gather_out_nearVarId, nullptr);
+    ShaderGlobal::set_texture(dof_gather_out_farVarId, nullptr);
+    for (int i = 0; i < 4; i++)
+      d3d::set_tex(STAGE_CS, i, nullptr);
+  }
+  else
+  {
+    d3d::set_render_target({}, DepthAccess::RW, {{outNear, 0, 0}, {outFar, 0, 0}});
+    dofGather.render();
+  }
+
+  const ResourceBarrier readStage = (tiled && first) ? RB_STAGE_COMPUTE : RB_STAGE_PIXEL;
+  if (outNear)
+    d3d::resource_barrier({outNear, RB_RO_SRV | readStage, 0, 0});
+  if (outFar)
+    d3d::resource_barrier({outFar, RB_RO_SRV | readStage, 0, 0});
+}
+
 void DepthOfFieldPS::renderLayers(const DepthOfFieldTargets &targets, BaseTexture *frame, BaseTexture *close_depth, float zn, float zf,
   float fov_scale, bool has_near_dof, bool has_far_dof)
 {
@@ -514,13 +647,13 @@ void DepthOfFieldPS::renderLayers(const DepthOfFieldTargets &targets, BaseTextur
     dofDownscale.render();
     if (has_near_dof)
     {
-      d3d::resource_barrier({targets.nearLayer, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-      d3d::resource_barrier({targets.coc[0], RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({targets.nearLayer, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
+      d3d::resource_barrier({targets.coc[0], RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     }
     if (has_far_dof)
     {
-      d3d::resource_barrier({targets.farLayer, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-      d3d::resource_barrier({targets.maxCocFar, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({targets.farLayer, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
+      d3d::resource_barrier({targets.maxCocFar, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     }
   }
 
@@ -534,9 +667,39 @@ void DepthOfFieldPS::renderLayers(const DepthOfFieldTargets &targets, BaseTextur
       d3d::set_tex(STAGE_PS, 0, targets.coc[i - 1]);
       d3d::set_sampler(STAGE_PS, 0, clampPointSampler);
       dofTile.render();
-      d3d::resource_barrier({targets.coc[i], RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({targets.coc[i], RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     }
   }
+  const bool tiled = useTiledGather && dof_tiled.get() && prepareTiles(targets, has_near_dof, has_far_dof);
+  const bool compositeTiled = tiled && dof_composite_tiled.get();
+  ShaderGlobal::set_int(dof_composite_tiledVarId, compositeTiled ? 1 : 0);
+  if (tiled)
+  {
+    ShaderGlobal::set_int4(dof_tiles_countVarId, IPoint4(tilesCount.x, tilesCount.y, tilesCount.x * tilesCount.y, tilesListCapacity));
+    ShaderGlobal::set_buffer(dof_tiles_maskVarId, dof_tiles_mask);
+    ShaderGlobal::set_buffer(dof_tiles_listVarId, dof_tiles_list);
+    ShaderGlobal::set_buffer(dof_tiles_argsVarId, dof_tiles_args);
+    {
+      TIME_D3D_PROFILE(dof_classify_tiles);
+      ShaderGlobal::set_texture(dof_classify_near_cocVarId, has_near_dof ? targets.coc.back() : nullptr);
+      ShaderGlobal::set_texture(dof_classify_far_cocVarId, has_far_dof ? targets.maxCocFar : nullptr);
+      d3d::resource_barrier({dof_tiles_mask.getBuf(), RB_RW_UAV | RB_STAGE_COMPUTE});
+      d3d::resource_barrier({dof_tiles_args.getBuf(), RB_RW_UAV | RB_STAGE_COMPUTE});
+      dofClassifyTiles->dispatch((tilesCount.x * tilesCount.y + DOF_TILES_PER_DWORD - 1) / DOF_TILES_PER_DWORD, 1, 1);
+      ShaderGlobal::set_texture(dof_classify_near_cocVarId, nullptr);
+      ShaderGlobal::set_texture(dof_classify_far_cocVarId, nullptr);
+    }
+    {
+      TIME_D3D_PROFILE(dof_build_tiles_list);
+      d3d::resource_barrier({dof_tiles_mask.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL});
+      d3d::resource_barrier({dof_tiles_args.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+      d3d::resource_barrier({dof_tiles_list.getBuf(), RB_RW_UAV | RB_STAGE_COMPUTE});
+      dofBuildTilesList->dispatchThreads(tilesCount.x * tilesCount.y, 1, 1);
+      d3d::resource_barrier({dof_tiles_list.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+      d3d::resource_barrier({dof_tiles_args.getBuf(), RB_RO_INDIRECT_BUFFER});
+    }
+  }
+
   Point2 scale(1. / width, 1. / height);
 
   // 1st gather pass
@@ -562,28 +725,7 @@ void DepthOfFieldPS::renderLayers(const DepthOfFieldTargets &targets, BaseTextur
           vTaps[x + y * nSquareTapsSide] =
             to_unit_disk(Point2(x * fRecipTaps, y * fRecipTaps), fNumApertureSides, fkernelSize, 2 * scale);
     }
-    d3d::set_ps_const(6, &vTaps[0].x, nSquareTapsSide * nSquareTapsSide);
-
-    d3d::set_render_target({}, DepthAccess::RW,
-      {{has_near_dof ? targets.nearLayerTemp : NULL, 0, 0}, {has_far_dof ? targets.farLayerTemp : NULL, 0, 0}});
-    // d3d::set_render_target(2, dof_coc_temp.getTex2D(), 0, false);
-
-    d3d::settex(0, has_near_dof ? targets.nearLayer : NULL);
-    d3d::set_sampler(STAGE_PS, 0, clampSampler);
-    d3d::settex(1, has_far_dof ? targets.farLayer : NULL);
-    d3d::set_sampler(STAGE_PS, 1, clampSampler);
-    d3d::set_tex(STAGE_PS, 2, targets.coc.back());
-    d3d::set_sampler(STAGE_PS, 2, clampPointSampler);
-    d3d::set_tex(STAGE_PS, 3, targets.maxCocFar);
-    d3d::set_sampler(STAGE_PS, 3, clampSampler);
-
-    ShaderGlobal::set_int(num_dof_tapsVarId, nSquareTapsSide * nSquareTapsSide);
-    ShaderGlobal::set_int(dof_gather_iterationVarId, 0);
-    dofGather.render();
-    if (has_near_dof)
-      d3d::resource_barrier({targets.nearLayerTemp, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    if (has_far_dof)
-      d3d::resource_barrier({targets.farLayerTemp, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    renderGather(targets, 0, vTaps, nSquareTapsSide * nSquareTapsSide, tiled, has_near_dof, has_far_dof);
   }
 
   // 2nd gather iteration
@@ -607,30 +749,17 @@ void DepthOfFieldPS::renderLayers(const DepthOfFieldTargets &targets, BaseTextur
           vTaps[x + y * nSquareTapsSide] =
             to_unit_disk(Point2(x * fRecipTaps, y * fRecipTaps), fNumApertureSides, fkernelSize, (2 * 0.15) * scale);
     }
-    d3d::set_ps_const(6, &vTaps[0].x, nSquareTapsSide * nSquareTapsSide);
-
-    d3d::set_render_target({}, DepthAccess::RW,
-      {{has_near_dof ? targets.nearLayer : NULL, 0, 0}, {has_far_dof ? targets.farLayer : NULL, 0, 0}});
-    // d3d::set_render_target(2, targets.coc[0], 0, false);
-
-    d3d::settex(0, targets.nearLayerTemp);
-    d3d::set_sampler(STAGE_PS, 0, clampSampler);
-    d3d::settex(1, targets.farLayerTemp);
-    d3d::set_sampler(STAGE_PS, 1, clampSampler);
-    d3d::set_tex(STAGE_PS, 2, targets.coc.back());
-    d3d::set_sampler(STAGE_PS, 2, clampPointSampler);
-    d3d::set_tex(STAGE_PS, 3, targets.maxCocFar);
-    d3d::set_sampler(STAGE_PS, 3, clampSampler);
-    ShaderGlobal::set_int(num_dof_tapsVarId, nSquareTapsSide * nSquareTapsSide);
-    ShaderGlobal::set_int(dof_gather_iterationVarId, 1);
-    dofGather.render();
-    if (has_near_dof)
-      d3d::resource_barrier({targets.nearLayer, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    if (has_far_dof)
-      d3d::resource_barrier({targets.farLayer, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    renderGather(targets, 1, vTaps, nSquareTapsSide * nSquareTapsSide, tiled, has_near_dof, has_far_dof);
   }
 
   ShaderGlobal::set_texture(dof_coc_historyVarId, nullptr);
+  if (tiled)
+  {
+    if (!compositeTiled)
+      ShaderGlobal::set_buffer(dof_tiles_maskVarId, nullptr);
+    ShaderGlobal::set_buffer(dof_tiles_listVarId, nullptr);
+    ShaderGlobal::set_buffer(dof_tiles_argsVarId, nullptr);
+  }
   ShaderGlobal::set_texture(dof_downsampled_frame_texVarId, nullptr);
   ShaderGlobal::set_texture(dof_frame_texVarId, nullptr);
   ShaderGlobal::set_texture(dof_downsampled_close_depth_texVarId, nullptr);
@@ -656,6 +785,9 @@ void DepthOfFieldPS::apply()
   ShaderGlobal::set_texture(dof_far_layerVarId, nullptr);
   ShaderGlobal::set_texture(dof_near_layerVarId, nullptr);
   ShaderGlobal::set_texture(dof_frame_texVarId, nullptr);
+  ShaderGlobal::set_int(dof_composite_tiledVarId, 0);
+  if (dof_tiles_maskVarId >= 0)
+    ShaderGlobal::set_buffer(dof_tiles_maskVarId, nullptr);
   setBlendDepthTex(nullptr);
 }
 
@@ -667,6 +799,9 @@ void DepthOfFieldPS::setBlendDepthTex(BaseTexture *tex)
 
 void DepthOfFieldPS::releaseRTs()
 {
+  ShaderGlobal::set_int(dof_composite_tiledVarId, 0);
+  if (dof_tiles_maskVarId >= 0)
+    ShaderGlobal::set_buffer(dof_tiles_maskVarId, nullptr);
   if (dof_far_layer)
   {
     ShaderGlobal::set_texture(dof_far_layerVarId, BAD_TEXTUREID);

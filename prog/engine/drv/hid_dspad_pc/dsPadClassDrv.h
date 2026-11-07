@@ -11,15 +11,15 @@
 
 namespace HumanInput
 {
-class SonyPadDevice;
+class DsPadDevice;
 
-// Enumerates Sony pads over raw HID, reads them on its own thread and publishes them as "ds4" devices.
+// Enumerates dsPads over raw HID, reads them on its own thread and publishes them as "ds4" devices.
 // The IO thread creates a device and marks it lost; the main thread publishes and destroys it in refreshDeviceList().
-class SonyPadClassDriver final : public IGenJoystickClassDrv, public IWndProcComponent
+class DsPadClassDriver final : public IGenJoystickClassDrv, public IWndProcComponent
 {
 public:
-  SonyPadClassDriver();
-  ~SonyPadClassDriver();
+  DsPadClassDriver();
+  ~DsPadClassDriver();
 
   bool init();
 
@@ -58,24 +58,24 @@ private:
 
   struct Slot
   {
-    eastl::unique_ptr<sonypad::HidDevice> hid; // IO thread only
-    eastl::unique_ptr<SonyPadDevice> dev;
+    eastl::unique_ptr<dspad::HidDevice> hid; // IO thread only
+    eastl::unique_ptr<DsPadDevice> dev;
     int64_t lastReportTicks = 0; // IO thread only
     char twinPath[512] = {};     // IO thread only: the skipped bluetooth twin
   };
 
   void ioLoop();
   void scanDevices(bool retry_skipped, bool device_change);
-  bool openPad(const sonypad::HidDeviceInfo &info);
+  bool openPad(const dspad::HidDeviceInfo &info);
   void loseSlot(Slot &slot);
   void requestRescan();
 
-  Tab<Slot> slots;                         // guarded by cs
-  Tab<sonypad::HidDeviceInfo> skippedPads; // IO thread only
-  Tab<SonyPadDevice *> devices;            // main thread; refreshDeviceList rebuilds it under cs
+  Tab<Slot> slots;                       // guarded by cs
+  Tab<dspad::HidDeviceInfo> skippedPads; // IO thread only
+  Tab<DsPadDevice *> devices;            // main thread; refreshDeviceList rebuilds it under cs
   WinCritSec cs;
   eastl::unique_ptr<IoThread> ioThread;
-  sonypad::HidWaitSet waitSet;
+  dspad::HidWaitSet waitSet;
   volatile int rescanRequested = 1;
   volatile int configChanged = 0;
   bool scanLogged = false;

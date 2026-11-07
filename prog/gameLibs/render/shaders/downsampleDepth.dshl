@@ -52,11 +52,14 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
   hlsl(code) { #define toonshading 0 }
 
   if (downsample_depth_type == other && has_checkerboard_depth == no) {dont_render;}
-  if (downsample_depth_type == gbuf_depth_far || downsample_depth_type == gbuf_depth_far_close || downsample_depth_type == other && has_checkerboard_depth == yes)
+  bool ds_from_gbuf = downsample_depth_type == gbuf_depth_far || downsample_depth_type == gbuf_depth_far_close || downsample_depth_type == other && has_checkerboard_depth == yes;
+  bool ds_has_motion_vectors = ds_from_gbuf && has_motion_vectors == yes;
+  bool ds_has_normal = ds_from_gbuf && has_normal == yes;
+  if (ds_from_gbuf)
   {
-    if (has_motion_vectors == yes)
+    if (ds_has_motion_vectors)
     {
-      hlsl { #define HAS_MOTION_VEC 1 }
+      hlsl(code) { #define HAS_MOTION_VEC 1 }
       if (resolve_motion_vectors == no)
       {
         if (resolved_motion_vectors != NULL) {
@@ -79,23 +82,30 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
         (code) {
           motion_vec_reproject_tm@f44 = motion_vec_reproject_tm;
         }
-        hlsl { #define PROJECT_MOTION_VEC 1 }
+        hlsl(code) { #define PROJECT_MOTION_VEC 1 }
       }
     }
 
-    if (has_normal == yes)
+    if (ds_has_normal)
     {
-      hlsl { #define HAS_NORMAL 1 }
+      hlsl(code) { #define HAS_NORMAL 1 }
       if (downsample_far_normals == yes)
       {
-        hlsl { #define HAS_FAR_NORMAL 1 }
+        hlsl(code) { #define HAS_FAR_NORMAL 1 }
       }
       INIT_LOAD_GBUFFER_BASE(code)
-      hlsl {#define decodeEmissionColor(a) half3(0,0,0)}
+      hlsl(code) {#define decodeEmissionColor(a) half3(0,0,0)}
       USE_LOAD_GBUFFER_BASE(code, false)
     }
   }
-  MOTION_VECTORS_TYPE(code)
+  if (ds_has_motion_vectors)
+  {
+    MOTION_VECTORS_TYPE(code)
+  }
+  else
+  {
+    hlsl(code) { #define motion_type float2 }
+  }
   hlsl (code) {
     #if MOTION_VECTORS_3D
       #define motion_rt_type float4
@@ -111,45 +121,30 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
 
   if (has_far_depth)
   {
-    hlsl { #define HAS_FAR_DEPTH 1 }
+    hlsl(code) { #define HAS_FAR_DEPTH 1 }
   }
   if (has_close_depth)
   {
-    hlsl { #define HAS_CLOSE_DEPTH 1 }
+    hlsl(code) { #define HAS_CLOSE_DEPTH 1 }
     // Closest depth is sampled from an external texture only in `mip_far_close`
     // Without this if, framegrpah validation gets angry as
     // `downsample_closest_depth_from` contains `close_depth` from last
     // frame which is not active and will produce garbage when read.
     if (downsample_depth_type == mip_far_close)
     {
-      hlsl { #define DEDICATED_CLOSEST_INPUT 1 }
+      hlsl(code) { #define DEDICATED_CLOSEST_INPUT 1 }
       (code) { downsample_closest_depth_from@tex2d = downsample_closest_depth_from; }
     }
   }
   if (has_checkerboard_depth == yes)
   {
-    hlsl { #define HAS_CHECKER_DEPTH 1 }
+    hlsl(code) { #define HAS_CHECKER_DEPTH 1 }
     (code) { checkerboard_jitter@i1 = (checkerboard_jitter, 0, 0, 0); }
   }
 
-  if (depth_format_target == far_depth_format)
-  {
-    if (!has_far_depth) {dont_render;}
-    hlsl { #define FAR_DEPTH_FORMAT 1 }
-  }
-  if (depth_format_target == close_depth_format)
-  {
-    if (!has_close_depth) {dont_render;}
-    hlsl { #define CLOSE_DEPTH_FORMAT 1 }
-  }
-  if (depth_format_target == checker_depth_format)
-  {
-    if (has_checkerboard_depth != yes) {dont_render;}
-    hlsl { #define CHECKER_DEPTH_FORMAT 1 }
-  }
   if (normal_repacking_needed == yes)
   {
-    hlsl { #define NEED_NORMAL_REPACKING 1}
+    hlsl(code) { #define NEED_NORMAL_REPACKING 1}
     USE_EMISSION_DECODE_COLOR_MAP(code)
     PACK_UNPACK_GBUFFER_BASE(code)
   }
@@ -329,6 +324,22 @@ shader downsample_depth2x
   POSTFX_VS(1)
   DOWNSAMPLE_DEPTH2X_CORE(ps)
 
+  if (depth_format_target == far_depth_format)
+  {
+    if (!has_far_depth) {dont_render;}
+    hlsl(ps) { #define FAR_DEPTH_FORMAT 1 }
+  }
+  if (depth_format_target == close_depth_format)
+  {
+    if (!has_close_depth) {dont_render;}
+    hlsl(ps) { #define CLOSE_DEPTH_FORMAT 1 }
+  }
+  if (depth_format_target == checker_depth_format)
+  {
+    if (has_checkerboard_depth != yes) {dont_render;}
+    hlsl(ps) { #define CHECKER_DEPTH_FORMAT 1 }
+  }
+
   cull_mode = none;
   if (depth_format_target != no)
   {
@@ -449,12 +460,12 @@ shader downsample_depth2x_cs
           RWTexture2D< float > checkerDepth@uav;
         };
       }
-      if (has_normal == yes) {
+      if (ds_has_normal) {
         normal@uav : register(3) hlsl {
           RWTexture2D< float4 > normal@uav;
         };
       }
-      if (has_motion_vectors == yes) {
+      if (ds_has_motion_vectors) {
         // ugly but motion_type is unusable here
         if (ds_motion_vectors_with_z == yes) {
           motion@uav : register(4) hlsl {
@@ -466,7 +477,7 @@ shader downsample_depth2x_cs
           };
         }
       }
-      if (has_normal == yes && downsample_far_normals == yes) {
+      if (ds_has_normal && downsample_far_normals == yes) {
         far_normal@uav : register(5) hlsl {
           RWTexture2D< float4 > far_normal@uav;
         };

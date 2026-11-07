@@ -10,29 +10,21 @@ require stddlg
 def get_base_name_with_ext(path : string)
   return path |> split_by_chars("/\\") |> back()
 
-def get_base_name_without_ext(path : string) : string
-  return (get_base_name_with_ext(path) |> split("."))[0]
-
-def local_path(folder_path, file_path : string)
-
-  let prefixIdx = file_path |> find(folder_path)
-  if prefixIdx < 0
-    return file_path
-  return slice(file_path, prefixIdx + length(folder_path) + 1)
-
 def replace_extension(path, ext : string)
 
-  let dotIdx = path |> find(".")
-  if dotIdx >= 0
+  let dotIdx = path |> rfind(".")
+  if dotIdx > rfind(path, "/") && dotIdx > rfind(path, "\\")
     return "{slice(path, 0, dotIdx)}.{ext}"
-  return path
+  return "{path}.{ext}"
 
 def get_local_path_to_dag(root : string; var path : das_string | #) : bool
 
   let file = get_dlg_open_file("", "dag") |> replace("\\", "/")
-  if !empty(file)
-    path := local_path(root, file)
+  if !empty(root) && starts_with(file, "{root}/")
+    path := slice(file, length(root) + 1)
     return true
+  if !empty(file)
+    logerr("{file} is not inside the asset folder {root}")
   return false
 
 def get_all_assets(type_name : string; b : block<(arg1 : array<string> const) : void>)

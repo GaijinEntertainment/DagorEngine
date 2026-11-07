@@ -214,7 +214,7 @@ void validation_of_external_resources_duplication(
 {
   static ska::flat_hash_set<D3DRESID, ResKeyHash> alreadyLoggedResources;
 
-  FRAMEMEM_VALIDATE; // Reserved amount DEFINITELY should be enough
+  FRAMEMEM_REGION; // if probe chain is long, flat_hash_map will grow => must reset framemem on scope exit
   ska::flat_hash_map<D3DRESID, intermediate::ResourceIndex, ResKeyHash, eastl::equal_to<D3DRESID>, framemem_allocator>
     setOfExternalResources;
   setOfExternalResources.reserve(resources.used());

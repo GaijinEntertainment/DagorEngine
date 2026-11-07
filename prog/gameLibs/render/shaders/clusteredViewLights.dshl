@@ -146,12 +146,18 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
           uint wordsPerOmni, wordsPerSpot;
           get_clustered_light_word_counts(wordsPerOmni, wordsPerSpot);
           // Read range of words of visibility bits
-          uint omniAddress = get_cluster_grid_omni_address(clusterIndex, wordsPerOmni);
+          uint omniAddress = get_cluster_grid_omni_address(clusterIndex, omniLightsWordCount);
+          ##if clustered_lights_limited_omni_words_read
+            #define CLUSTER_GRID_WALK_ACTUAL_WORDS_COUNT omniLightsWordCount
+          ##endif
           #define CLUSTER_GRID_WALK_ADDRESS omniAddress
           #define CLUSTER_GRID_WALK_WORD_COUNT wordsPerOmni
           #define CLUSTER_GRID_WALK_LIGHT_BODY(omni_light_index) shade_view_omni_light(omni_light_index, ctx, dynamicLighting);
           #include <cluster_grid_lights_walk.hlsli>
-          uint spotAddress = get_cluster_grid_spot_address(clusterIndex, wordsPerSpot, wordsPerOmni);
+          uint spotAddress = get_cluster_grid_spot_address(clusterIndex, spotLightsWordCount, omniLightsWordCount);
+          ##if clustered_lights_limited_spot_words_read
+            #define CLUSTER_GRID_WALK_ACTUAL_WORDS_COUNT spotLightsWordCount
+          ##endif
           #define CLUSTER_GRID_WALK_ADDRESS spotAddress
           #define CLUSTER_GRID_WALK_WORD_COUNT wordsPerSpot
           #define CLUSTER_GRID_WALK_LIGHT_BODY(spot_light_index) shade_view_spot_light(spot_light_index, ctx, dynamicLighting);

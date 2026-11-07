@@ -6,6 +6,10 @@
 #include <generic/dag_span.h>
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_bindless.h>
+#include <drv/3d/dag_d3dResource.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_lockSbuffer.h>
 #include <render/daFrameGraph/daFG.h>
 #include <render/world/bvh.h>
@@ -18,6 +22,7 @@
 #include <perfMon/dag_statDrv.h>
 #include "../CSMShadows.h"
 #include "../globalManager.h"
+#include "../placer.h"
 #include "../../shaders/dagdp_common.hlsli"
 #include "../../shaders/dagdp_common_placer.hlsli"
 #include "../../shaders/dagdp_volume.hlsli"
@@ -65,6 +70,9 @@ static ShaderVariableInfo viewport_max_distance("dagdp_volume__viewport_max_dist
 static ShaderVariableInfo viewport_index("dagdp_volume__viewport_index", true);
 
 static ShaderVariableInfo dispatch_index("dagdp_volume__dispatch_index", true);
+static ShaderVariableInfo num_dispatches("dagdp_volume__num_dispatches", true);
+static ShaderVariableInfo dispatch_args_total_offset("dagdp_volume__dispatch_args_total_offset", true);
+static ShaderVariableInfo vertex_bufs_base("dagdp_volume__vertex_bufs_base", true);
 
 static ShaderVariableInfo mesh_params("dagdp_volume__mesh_params", true);
 static ShaderVariableInfo areas_start_offset("dagdp_volume__areas_start_offset", true);
@@ -132,10 +140,42 @@ struct VolumePersistentData
   UniqueBuf meshesBuffer;
   UniqueBuf dispatchesBuffer;
   UniqueBuf tilesBuffer;
+  UniqueBuf viewportDataBuffer;
+  UniqueBuf dispatchViewportBuffer;
+
+  bool useBindless = false;
+  uint32_t vbSlotRange = 0;
+  bool bindlessFreed = false;
+  static constexpr uint32_t VB_FRAME_WINDOW = 2;
+  Vbuffer *lastVbs[MAX_VB_INDICES * VB_FRAME_WINDOW] = {};
+  uint32_t vbBlockOffset = 0;
 
   VolumeConstants constants{};
   VolumeMutables mutables{};
+
+  ~VolumePersistentData() { freeBindlessRange(); }
+
+  void freeBindlessRange()
+  {
+    if (useBindless && !eastl::exchange(bindlessFreed, true))
+    {
+      d3d::free_bindless_resource_range(D3DResourceType::SBUF, vbSlotRange, MAX_VB_INDICES * VB_FRAME_WINDOW);
+    }
+  }
 };
+
+static void volume_before_reset(bool full_reset)
+{
+  if (!full_reset)
+    return;
+
+  for (auto &weak : g_volume_views)
+  {
+    if (auto pd = weak.lock())
+      pd->freeBindlessRange();
+  }
+}
+REGISTER_D3D_BEFORE_RESET_FUNC(volume_before_reset);
 
 struct GatheredInfo
 {
@@ -162,6 +202,9 @@ struct GatheredInfo
   bool isValid = false;
 
   dag::RelocatableFixedVector<MeshToProcess, ESTIMATED_PROCESSED_MESHES_PER_FRAME> meshesToProcess;
+
+  uint32_t usedVbMask = 0;
+  static_assert(MAX_VB_INDICES <= sizeof(uint32_t) * 8, "usedVbMask must hold every vbIndex");
 };
 
 template <typename T>
@@ -482,6 +525,13 @@ static void truncate_gathered_info(GatheredInfo &gathered_info, const VolumeCons
   GlobalManager::updateRequiredLimits(required);
 }
 
+static VolumeViewportGpuData make_volume_viewport_gpu_data(const Viewport &viewport, const VolumeConstants &constants)
+{
+  VolumeViewportGpuData result{};
+  fill_viewport_gpu_data(result, viewport, constants.viewInfo.maxDrawDistance);
+  return result;
+}
+
 void create_volume_nodes(const ViewInfo &view_info,
   const ViewBuilder &view_builder,
   const VolumeManager &volume_manager,
@@ -596,6 +646,44 @@ void create_volume_nodes(const ViewInfo &view_info,
     debug("[FRAMEMEM] - For tiles '%s': %d", bufferName.c_str(), constants.maxTiles);
   }
 
+  ComputeShader bindlessProbe("dagdp_volume_place_stage0_bindless", /*optional=*/true);
+  ComputeShader prefixProbe("dagdp_volume_prefix_args", /*optional=*/true);
+#if !_TARGET_C1
+  if (d3d::get_driver_desc().caps.hasBindless && (!static_cast<bool>(bindlessProbe) || !static_cast<bool>(prefixProbe)))
+    logerr("daGdp: volume: platform supports bindless but bindless variant shaders are missing");
+#endif
+  persistentData->useBindless =
+    d3d::get_driver_desc().caps.hasBindless && static_cast<bool>(bindlessProbe) && static_cast<bool>(prefixProbe);
+
+  // PS4 has no NonUniformResourceIndex
+#if _TARGET_C1
+
+#endif
+
+  if (persistentData->useBindless)
+  {
+    persistentData->vbSlotRange =
+      d3d::allocate_bindless_resource_range(D3DResourceType::SBUF, MAX_VB_INDICES * VolumePersistentData::VB_FRAME_WINDOW);
+    d3d::update_bindless_resources_to_null(D3DResourceType::SBUF, persistentData->vbSlotRange,
+      MAX_VB_INDICES * VolumePersistentData::VB_FRAME_WINDOW);
+    debug("[FRAMEMEM] - Bindless vertex buffer slots for '%s': %d", bufferNamePrefix.c_str(),
+      MAX_VB_INDICES * VolumePersistentData::VB_FRAME_WINDOW);
+
+    {
+      TmpName bufferName(TmpName::CtorSprintf(), "%s_viewports", bufferNamePrefix.c_str());
+      persistentData->viewportDataBuffer = dag::buffers::create_one_frame_sr_structured(sizeof(VolumeViewportGpuData),
+        constants.viewInfo.maxViewports, bufferName.c_str());
+      debug("[FRAMEMEM] - For viewports '%s': %d", bufferName.c_str(), constants.viewInfo.maxViewports);
+    }
+
+    {
+      TmpName bufferName(TmpName::CtorSprintf(), "%s_dispatch_viewports", bufferNamePrefix.c_str());
+      persistentData->dispatchViewportBuffer =
+        dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), constants.maxDispatches, bufferName.c_str());
+      debug("[FRAMEMEM] - For dispatch viewports '%s': %d", bufferName.c_str(), constants.maxDispatches);
+    }
+  }
+
   constants.passBlock =
     get_dagdp_view_block(constants.viewInfo.uniqueName.c_str())
       .refineBlock(TmpName(TmpName::CtorSprintf(), "dagdp_volume_pass@%s", constants.viewInfo.uniqueName.c_str()).c_str());
@@ -609,6 +697,16 @@ void create_volume_nodes(const ViewInfo &view_info,
     registry.registerBuffer("areas", [persistentData](auto) { return ManagedBufView(persistentData->areasBuffer); })
       .atStage(dafg::Stage::COMPUTE)
       .useAs(dafg::Usage::SHADER_RESOURCE);
+
+    if (persistentData->useBindless)
+    {
+      registry.registerBuffer("viewport_data", [persistentData](auto) { return ManagedBufView(persistentData->viewportDataBuffer); })
+        .atStage(dafg::Stage::TRANSFER);
+
+      registry
+        .registerBuffer("dispatch_viewport", [persistentData](auto) { return ManagedBufView(persistentData->dispatchViewportBuffer); })
+        .atStage(dafg::Stage::TRANSFER);
+    }
 
     const auto viewHandle = registry.readBlob<ViewPerFrameData>(constants.viewResourceName.c_str()).handle();
     const auto gatheredInfoHandle = registry.createBlob<GatheredInfo>("gatheredInfo").handle();
@@ -636,6 +734,12 @@ void create_volume_nodes(const ViewInfo &view_info,
         gather_process(persistentData->mutables.riexGatherJob, persistentData->constants.mapping, constants.viewInfo, viewportIndex,
           viewport, constants.maxPlaceableBoundingRadius, constants.targetMeshLod, persistentData->mutables.riexProcessor, meshes,
           gatheredInfo.relevantTiles, gatheredInfo.relevantVolumes);
+
+        if (persistentData->useBindless)
+        {
+          for (uint32_t meshIndex = 0; meshIndex < meshes.size(); meshIndex++)
+            gatheredInfo.usedVbMask |= 1u << meshes[meshIndex].vbIndex;
+        }
 
         auto &item = gatheredInfo.perViewport.push_back();
         item.tileStartIndex = tileStartIndex;
@@ -727,6 +831,30 @@ void create_volume_nodes(const ViewInfo &view_info,
       if (!update_frame_mem(make_span_const(gatheredInfo.relevantVolumes), persistentData->volumesBuffer.getBuf(),
             persistentData->constants.maxVolumes, "volumes"))
         return;
+
+      if (persistentData->useBindless)
+      {
+        dag::RelocatableFixedVector<VolumeViewportGpuData, DAGDP_MAX_VIEWPORTS, true, framemem_allocator> viewportsGpuData;
+        for (const auto &viewport : view.viewports)
+          viewportsGpuData.push_back(make_volume_viewport_gpu_data(viewport, constants));
+
+        if (!update_frame_mem(make_span_const(viewportsGpuData), persistentData->viewportDataBuffer.getBuf(),
+              constants.viewInfo.maxViewports, "volume viewports"))
+          return;
+
+        // Dispatch ranges of the fitting viewports tile [0, numDispatches) in order.
+        dag::Vector<uint32_t, framemem_allocator> dispatchViewport(gatheredInfo.numDispatches());
+        for (uint32_t viewportIndex = 0; viewportIndex < gatheredInfo.perViewport.size(); viewportIndex++)
+        {
+          const auto &item = gatheredInfo.perViewport[viewportIndex];
+          for (uint32_t dispatchIndex = item.dispatchStartIndex; dispatchIndex < item.dispatchEndIndex; dispatchIndex++)
+            dispatchViewport[dispatchIndex] = viewportIndex;
+        }
+
+        if (!update_frame_mem(make_span_const(dispatchViewport), persistentData->dispatchViewportBuffer.getBuf(),
+              constants.maxDispatches, "volume dispatch viewports"))
+          return;
+      }
 
       gatheredInfo.isValid = true;
     };
@@ -883,7 +1011,8 @@ void create_volume_nodes(const ViewInfo &view_info,
     view_multiplex(registry, constants.viewInfo.kind);
 
     registry.create("dispatch_args")
-      .buffer({sizeof(uint32_t), DISPATCH_INDIRECT_NUM_ARGS * constants.maxDispatches, SBCF_UA_SR_BYTE_ADDRESS | SBCF_UA_INDIRECT, 0})
+      .buffer({sizeof(uint32_t), DISPATCH_INDIRECT_NUM_ARGS * constants.maxDispatches + DISPATCH_INDIRECT_NUM_ARGS,
+        SBCF_UA_SR_BYTE_ADDRESS | SBCF_UA_INDIRECT, 0})
       .atStage(dafg::Stage::COMPUTE)
       .bindToShaderVar("dagdp_volume__dispatch_args");
     registry.create("mesh_objects")
@@ -897,24 +1026,69 @@ void create_volume_nodes(const ViewInfo &view_info,
 
     return [persistentData, gatheredInfoHandle, shader = ComputeShader("dagdp_volume_set_args")] {
       const auto &gatheredInfo = gatheredInfoHandle.ref();
+      const uint32_t numDispatches = gatheredInfo.numDispatches();
 
-      if (!gatheredInfo.isValid || gatheredInfo.numDispatches() == 0)
-        return;
+      if (gatheredInfo.isValid && numDispatches > 0)
+      {
+        STATE_GUARD(ShaderGlobal::set_buffer(var::meshes, VALUE), persistentData->meshesBuffer.getBufId(), BAD_D3DRESID);
+        STATE_GUARD(ShaderGlobal::set_buffer(var::dispatches, VALUE), persistentData->dispatchesBuffer.getBufId(), BAD_D3DRESID);
+        STATE_GUARD(ShaderGlobal::set_buffer(var::volumes, VALUE), persistentData->volumesBuffer.getBufId(), BAD_D3DRESID);
+        STATE_GUARD(ShaderGlobal::set_buffer(var::variants, VALUE), persistentData->commonBuffers.variantsBuffer.getBufId(),
+          BAD_D3DRESID);
+        STATE_GUARD(ShaderGlobal::set_buffer(var::volume_variants, VALUE), persistentData->volumeVariantsBuffer.getBufId(),
+          BAD_D3DRESID);
 
-      STATE_GUARD(ShaderGlobal::set_buffer(var::meshes, VALUE), persistentData->meshesBuffer.getBufId(), BAD_D3DRESID);
-      STATE_GUARD(ShaderGlobal::set_buffer(var::dispatches, VALUE), persistentData->dispatchesBuffer.getBufId(), BAD_D3DRESID);
-      STATE_GUARD(ShaderGlobal::set_buffer(var::volumes, VALUE), persistentData->volumesBuffer.getBufId(), BAD_D3DRESID);
-      STATE_GUARD(ShaderGlobal::set_buffer(var::variants, VALUE), persistentData->commonBuffers.variantsBuffer.getBufId(),
-        BAD_D3DRESID);
-      STATE_GUARD(ShaderGlobal::set_buffer(var::volume_variants, VALUE), persistentData->volumeVariantsBuffer.getBufId(),
-        BAD_D3DRESID);
-
-      const bool dispatchSuccess = shader.dispatchGroups(gatheredInfo.numDispatches(), 1, 1);
-
-      if (!dispatchSuccess)
-        logerr("daGdp: volume set args dispatch failed!");
+        shader.dispatchGroups(numDispatches, 1, 1);
+      }
     };
   });
+
+  dafg::NodeHandle prefixArgsNode = {};
+  if (persistentData->useBindless)
+  {
+    prefixArgsNode = ns.registerNode("prefix_args", DAFG_PP_NODE_SRC, [persistentData](dafg::Registry registry) {
+      const auto &constants = persistentData->constants;
+      view_multiplex(registry, constants.viewInfo.kind);
+
+      registry.modify("dispatch_args").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__dispatch_args");
+
+      registry.create("dispatch_group_base")
+        .buffer({sizeof(uint32_t), constants.maxDispatches, SBCF_UA_SR_STRUCTURED, 0})
+        .atStage(dafg::Stage::COMPUTE)
+        .bindToShaderVar("dagdp_volume__dispatch_group_base");
+
+      const auto gatheredInfoHandle = registry.readBlob<GatheredInfo>("gatheredInfo").handle();
+
+      return [persistentData, gatheredInfoHandle, prefixShader = ComputeShader("dagdp_volume_prefix_args", /*optional=*/true)] {
+        const auto &gatheredInfo = gatheredInfoHandle.ref();
+        if (!gatheredInfo.isValid)
+          return;
+
+        persistentData->vbBlockOffset ^= MAX_VB_INDICES; // toggle per-frame block
+
+        for (uint32_t vbIndex = 0; vbIndex < MAX_VB_INDICES; vbIndex++)
+        {
+          if ((gatheredInfo.usedVbMask & (1u << vbIndex)) == 0)
+            continue;
+          Vbuffer *vb = unitedvdata::riUnitedVdata.getVB(vbIndex);
+          if (eastl::exchange(persistentData->lastVbs[persistentData->vbBlockOffset + vbIndex], vb) == vb)
+            continue;
+          const uint32_t slot = persistentData->vbSlotRange + persistentData->vbBlockOffset + vbIndex;
+          if (vb)
+            d3d::update_bindless_resource(D3DResourceType::SBUF, slot, vb);
+          else
+            d3d::update_bindless_resources_to_null(D3DResourceType::SBUF, slot, 1);
+        }
+
+        const uint32_t numDispatches = gatheredInfo.numDispatches();
+        const int totalArgOffset = DISPATCH_INDIRECT_NUM_ARGS * persistentData->constants.maxDispatches * sizeof(uint32_t);
+
+        ShaderGlobal::set_int(var::num_dispatches, numDispatches);
+        ShaderGlobal::set_int(var::dispatch_args_total_offset, totalArgOffset);
+        prefixShader.dispatchGroups(1, 1, 1);
+      };
+    });
+  }
 
   const auto createPlaceNode = [&](bool isOptimistic) {
     return ns.registerNode(isOptimistic ? "place_stage0" : "place_stage1", DAFG_PP_NODE_SRC,
@@ -926,112 +1100,123 @@ void create_volume_nodes(const ViewInfo &view_info,
         registry.read("mesh_objects").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__mesh_objects");
         const auto dispatchArgsHandle =
           registry.read("dispatch_args").buffer().atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::INDIRECTION_BUFFER).handle();
+
+        const bool useBindless = persistentData->useBindless;
+        if (useBindless)
+        {
+          registry.read("viewport_data").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__viewport_data");
+          registry.read("dispatch_viewport").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_volume__dispatch_viewport");
+          registry.read("dispatch_group_base")
+            .buffer()
+            .atStage(dafg::Stage::COMPUTE)
+            .bindToShaderVar("dagdp_volume__dispatch_group_base");
+        }
+
         const auto gatheredInfoHandle = registry.readBlob<GatheredInfo>("gatheredInfo").handle();
         const auto viewHandle = registry.readBlob<ViewPerFrameData>(constants.viewResourceName.c_str()).handle();
+        request_place_stage_buffers(registry, constants.viewInfo, isOptimistic);
 
-        const auto ns = registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str();
+        return
+          [persistentData, viewHandle, gatheredInfoHandle, dispatchArgsHandle,
+            shader = ComputeShader(isOptimistic ? "dagdp_volume_place_stage0" : "dagdp_volume_place_stage1"),
+            bindlessShader = ComputeShader(
+              useBindless ? (isOptimistic ? "dagdp_volume_place_stage0_bindless" : "dagdp_volume_place_stage1_bindless") : nullptr,
+              /*optional=*/true)] {
+            const auto &constants = persistentData->constants;
+            const auto &view = viewHandle.ref();
+            const auto &gatheredInfo = gatheredInfoHandle.ref();
+            auto *dispatchArgsBuffer = const_cast<Sbuffer *>(dispatchArgsHandle.get());
 
-        ns.read(isOptimistic ? "dyn_allocs_stage0" : "dyn_allocs_stage1")
-          .buffer()
-          .atStage(dafg::Stage::COMPUTE)
-          .bindToShaderVar("dagdp__dyn_allocs");
+            if (!gatheredInfo.isValid)
+              return;
 
-        ns.modify(isOptimistic ? "dyn_counters_stage0" : "dyn_counters_stage1")
-          .buffer()
-          .atStage(dafg::Stage::COMPUTE)
-          .bindToShaderVar("dagdp__dyn_counters");
+            bool dispatchSuccess = true;
+            TIME_D3D_PROFILE(dagdp_mesh_placers);
 
-        ns.modify("instance_data").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp__instance_data");
+            STATE_GUARD(ShaderGlobal::set_buffer(var::volumes, VALUE), persistentData->volumesBuffer.getBufId(), BAD_D3DRESID);
+            STATE_GUARD(ShaderGlobal::set_buffer(var::meshes, VALUE), persistentData->meshesBuffer.getBufId(), BAD_D3DRESID);
+            STATE_GUARD(ShaderGlobal::set_buffer(var::dispatches, VALUE), persistentData->dispatchesBuffer.getBufId(), BAD_D3DRESID);
 
-        return [persistentData, viewHandle, gatheredInfoHandle, dispatchArgsHandle, isOptimistic,
-                 shader = ComputeShader(isOptimistic ? "dagdp_volume_place_stage0" : "dagdp_volume_place_stage1")] {
-          const auto &constants = persistentData->constants;
-          const auto &view = viewHandle.ref();
-          const auto &gatheredInfo = gatheredInfoHandle.ref();
-          auto *dispatchArgsBuffer = const_cast<Sbuffer *>(dispatchArgsHandle.get());
+            STATE_GUARD(ShaderGlobal::set_buffer(var::draw_ranges, VALUE), persistentData->commonBuffers.drawRangesBuffer.getBufId(),
+              BAD_D3DRESID);
+            STATE_GUARD(ShaderGlobal::set_buffer(var::placeables, VALUE), persistentData->commonBuffers.placeablesBuffer.getBufId(),
+              BAD_D3DRESID);
+            STATE_GUARD(ShaderGlobal::set_buffer(var::placeable_weights, VALUE),
+              persistentData->commonBuffers.placeableWeightsBuffer.getBufId(), BAD_D3DRESID);
+            STATE_GUARD(ShaderGlobal::set_buffer(var::renderable_indices, VALUE),
+              persistentData->commonBuffers.renderableIndicesBuffer.getBufId(), BAD_D3DRESID);
+            STATE_GUARD(ShaderGlobal::set_buffer(var::variants, VALUE), persistentData->commonBuffers.variantsBuffer.getBufId(),
+              BAD_D3DRESID);
+            STATE_GUARD(ShaderGlobal::set_buffer(var::volume_variants, VALUE), persistentData->volumeVariantsBuffer.getBufId(),
+              BAD_D3DRESID);
 
-          if (!gatheredInfo.isValid)
-            return;
+            ShaderGlobal::set_float(var::debug_frustum_culling_bias, get_frustum_culling_bias());
+            ShaderGlobal::set_float(var::max_placeable_bounding_radius, constants.maxPlaceableBoundingRadius);
+            ShaderGlobal::set_int(var::num_renderables, constants.numRenderables);
+            ShaderGlobal::set_int(var::num_placeables, constants.numPlaceables);
+            ShaderGlobal::set_int(var::prng_seed_placeable, constants.prngSeed + 0x08C2592Cu);
+            ShaderGlobal::set_int(var::prng_seed_scale, constants.prngSeed + 0xDF3069FFu);
+            ShaderGlobal::set_int(var::prng_seed_slope, constants.prngSeed + 0x3C1385DBu);
+            ShaderGlobal::set_int(var::prng_seed_occlusion, constants.prngSeed + 0x93C0FB91u);
+            ShaderGlobal::set_int(var::prng_seed_yaw, constants.prngSeed + 0x71F23960u);
+            ShaderGlobal::set_int(var::prng_seed_pitch, constants.prngSeed + 0xDEB40CF0u);
+            ShaderGlobal::set_int(var::prng_seed_roll, constants.prngSeed + 0xF6A38A81u);
+            ShaderGlobal::set_int(var::prng_seed_triangle1, constants.prngSeed + 0x54F2A367u);
+            ShaderGlobal::set_int(var::prng_seed_triangle2, constants.prngSeed + 0x45F9668Eu);
 
-          bool dispatchSuccess = true;
-          TIME_D3D_PROFILE(dagdp_mesh_placers);
+            constants.passBlock.setState();
 
-          STATE_GUARD(ShaderGlobal::set_buffer(var::volumes, VALUE), persistentData->volumesBuffer.getBufId(), BAD_D3DRESID);
-          STATE_GUARD(ShaderGlobal::set_buffer(var::meshes, VALUE), persistentData->meshesBuffer.getBufId(), BAD_D3DRESID);
-          STATE_GUARD(ShaderGlobal::set_buffer(var::dispatches, VALUE), persistentData->dispatchesBuffer.getBufId(), BAD_D3DRESID);
-
-          STATE_GUARD(ShaderGlobal::set_buffer(var::draw_ranges, VALUE), persistentData->commonBuffers.drawRangesBuffer.getBufId(),
-            BAD_D3DRESID);
-          STATE_GUARD(ShaderGlobal::set_buffer(var::placeables, VALUE), persistentData->commonBuffers.placeablesBuffer.getBufId(),
-            BAD_D3DRESID);
-          STATE_GUARD(ShaderGlobal::set_buffer(var::placeable_weights, VALUE),
-            persistentData->commonBuffers.placeableWeightsBuffer.getBufId(), BAD_D3DRESID);
-          STATE_GUARD(ShaderGlobal::set_buffer(var::renderable_indices, VALUE),
-            persistentData->commonBuffers.renderableIndicesBuffer.getBufId(), BAD_D3DRESID);
-          STATE_GUARD(ShaderGlobal::set_buffer(var::variants, VALUE), persistentData->commonBuffers.variantsBuffer.getBufId(),
-            BAD_D3DRESID);
-          STATE_GUARD(ShaderGlobal::set_buffer(var::volume_variants, VALUE), persistentData->volumeVariantsBuffer.getBufId(),
-            BAD_D3DRESID);
-
-          ShaderGlobal::set_float(var::debug_frustum_culling_bias, get_frustum_culling_bias());
-          ShaderGlobal::set_float(var::max_placeable_bounding_radius, constants.maxPlaceableBoundingRadius);
-          ShaderGlobal::set_int(var::num_renderables, constants.numRenderables);
-          ShaderGlobal::set_int(var::num_placeables, constants.numPlaceables);
-          ShaderGlobal::set_int(var::prng_seed_placeable, constants.prngSeed + 0x08C2592Cu);
-          ShaderGlobal::set_int(var::prng_seed_scale, constants.prngSeed + 0xDF3069FFu);
-          ShaderGlobal::set_int(var::prng_seed_slope, constants.prngSeed + 0x3C1385DBu);
-          ShaderGlobal::set_int(var::prng_seed_occlusion, constants.prngSeed + 0x93C0FB91u);
-          ShaderGlobal::set_int(var::prng_seed_yaw, constants.prngSeed + 0x71F23960u);
-          ShaderGlobal::set_int(var::prng_seed_pitch, constants.prngSeed + 0xDEB40CF0u);
-          ShaderGlobal::set_int(var::prng_seed_roll, constants.prngSeed + 0xF6A38A81u);
-          ShaderGlobal::set_int(var::prng_seed_triangle1, constants.prngSeed + 0x54F2A367u);
-          ShaderGlobal::set_int(var::prng_seed_triangle2, constants.prngSeed + 0x45F9668Eu);
-
-          constants.passBlock.setState();
-
-          Ibuffer *ib = unitedvdata::riUnitedVdata.getIB();
-          d3d::set_buffer(STAGE_CS, 0, ib);
-
-          if (d3d::get_driver_code().is(d3d::vulkan))
-            d3d::driver_command(Drv3dCommand::DELAY_SYNC);
-
-          for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)
-          {
-            const auto &viewport = view.viewports[viewportIndex];
-            ScopeFrustumPlanesShaderVars scopedFrustumVars(viewport.frustum);
-
-            ShaderGlobal::set_float4(var::viewport_pos, viewport.worldPos);
-            ShaderGlobal::set_float(var::viewport_max_distance,
-              min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance) * get_global_range_scale());
-            ShaderGlobal::set_int(var::viewport_index, viewportIndex);
-
-            const auto &info = gatheredInfo.perViewport[viewportIndex];
-            for (uint32_t dispatchIndex = info.dispatchStartIndex, endIndex = info.dispatchEndIndex; dispatchIndex < endIndex;
-                 dispatchIndex++)
+            Ibuffer *ib = unitedvdata::riUnitedVdata.getIB();
+            d3d::set_buffer(STAGE_CS, 0, ib);
+            if (bindlessShader)
             {
-              uint32_t meshIndex = gatheredInfo.dispatches[dispatchIndex];
-              const auto &mesh = gatheredInfo.relevantMeshes[meshIndex];
-              Vbuffer *vb = unitedvdata::riUnitedVdata.getVB(mesh.vbIndex);
-              d3d::set_buffer(STAGE_CS, 1, vb);
-              ShaderGlobal::set_int(var::dispatch_index, dispatchIndex);
+              ShaderGlobal::set_int(var::vertex_bufs_base, persistentData->vbSlotRange + persistentData->vbBlockOffset);
+              ShaderGlobal::set_int(var::num_dispatches, gatheredInfo.numDispatches());
 
-              // TODO: Performance: ideally need to merge all dispatches (regardless of viewport / vbIndex / meshIndex).
-              // TODO: Performance: in the pessimistic phase, should set dispatch args to zero, based on success/failure of the
-              // optimistic phase. Should be easy to do, since they are already indirect.
-              int indirectOffset = DISPATCH_INDIRECT_NUM_ARGS * sizeof(uint32_t) * dispatchIndex;
-              dispatchSuccess &= shader.dispatchIndirect(dispatchArgsBuffer, indirectOffset);
+              dispatchSuccess &= bindlessShader.dispatchIndirect(dispatchArgsBuffer,
+                DISPATCH_INDIRECT_NUM_ARGS * constants.maxDispatches * sizeof(uint32_t));
+
+              d3d::set_buffer(STAGE_CS, 0, nullptr);
+              return;
             }
-          }
 
-          if (d3d::get_driver_code().is(d3d::vulkan))
-            d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
+            if (d3d::get_driver_code().is(d3d::vulkan))
+              d3d::driver_command(Drv3dCommand::DELAY_SYNC);
 
-          d3d::set_buffer(STAGE_CS, 0, nullptr);
-          d3d::set_buffer(STAGE_CS, 1, nullptr);
+            for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)
+            {
+              const auto &viewport = view.viewports[viewportIndex];
+              ScopeFrustumPlanesShaderVars scopedFrustumVars(viewport.frustum);
 
-          if (!dispatchSuccess)
-            logerr("daGdp: volume place dispatch failed! (optimistic = %d)", isOptimistic);
-        };
+              const VolumeViewportGpuData vpGpu = make_volume_viewport_gpu_data(viewport, constants);
+              ShaderGlobal::set_float4(var::viewport_pos, vpGpu.worldPos);
+              ShaderGlobal::set_float(var::viewport_max_distance, vpGpu.maxDistance);
+              ShaderGlobal::set_int(var::viewport_index, viewportIndex);
+
+              const auto &info = gatheredInfo.perViewport[viewportIndex];
+              for (uint32_t dispatchIndex = info.dispatchStartIndex, endIndex = info.dispatchEndIndex; dispatchIndex < endIndex;
+                   dispatchIndex++)
+              {
+                uint32_t meshIndex = gatheredInfo.dispatches[dispatchIndex];
+                const auto &mesh = gatheredInfo.relevantMeshes[meshIndex];
+                Vbuffer *vb = unitedvdata::riUnitedVdata.getVB(mesh.vbIndex);
+                d3d::set_buffer(STAGE_CS, 1, vb);
+                ShaderGlobal::set_int(var::dispatch_index, dispatchIndex);
+
+                // TODO: Performance: ideally need to merge all dispatches (regardless of viewport / vbIndex / meshIndex).
+                // TODO: Performance: in the pessimistic phase, should set dispatch args to zero, based on success/failure of the
+                // optimistic phase. Should be easy to do, since they are already indirect.
+                int indirectOffset = DISPATCH_INDIRECT_NUM_ARGS * sizeof(uint32_t) * dispatchIndex;
+                dispatchSuccess &= shader.dispatchIndirect(dispatchArgsBuffer, indirectOffset);
+              }
+            }
+
+            if (d3d::get_driver_code().is(d3d::vulkan))
+              d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
+
+            d3d::set_buffer(STAGE_CS, 0, nullptr);
+            d3d::set_buffer(STAGE_CS, 1, nullptr);
+          };
       });
   };
 
@@ -1043,20 +1228,7 @@ void create_volume_nodes(const ViewInfo &view_info,
 
         const auto viewHandle = registry.readBlob<ViewPerFrameData>(constants.viewResourceName.c_str()).handle();
         const auto gatheredInfoHandle = registry.readBlob<GatheredInfo>("gatheredInfo").handle();
-
-        const auto ns = registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str();
-
-        ns.read(isOptimistic ? "dyn_allocs_stage0" : "dyn_allocs_stage1")
-          .buffer()
-          .atStage(dafg::Stage::COMPUTE)
-          .bindToShaderVar("dagdp__dyn_allocs");
-
-        ns.modify(isOptimistic ? "dyn_counters_stage0" : "dyn_counters_stage1")
-          .buffer()
-          .atStage(dafg::Stage::COMPUTE)
-          .bindToShaderVar("dagdp__dyn_counters");
-
-        ns.modify("instance_data").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp__instance_data");
+        request_place_stage_buffers(registry, constants.viewInfo, isOptimistic);
 
         return [persistentData, viewHandle, gatheredInfoHandle, isOptimistic,
                  shader = ComputeShader(isOptimistic ? "dagdp_volume_terrain_place_stage0" : "dagdp_volume_terrain_place_stage1")] {
@@ -1130,6 +1302,8 @@ void create_volume_nodes(const ViewInfo &view_info,
   node_inserter(eastl::move(processNode));
 
   node_inserter(eastl::move(setArgsNode));
+  if (persistentData->useBindless)
+    node_inserter(eastl::move(prefixArgsNode));
   node_inserter(createPlaceNode(true));
   node_inserter(createPlaceNode(false));
 

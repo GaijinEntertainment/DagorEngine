@@ -10,6 +10,7 @@ Target      = gameLibs/render/rtao.lib ;
 BVHSupport ?= no ;
 
 AddIncludes =
+  $(Root)/prog/gameLibs
   $(Root)/prog/gameLibs/publicInclude
 ;
 

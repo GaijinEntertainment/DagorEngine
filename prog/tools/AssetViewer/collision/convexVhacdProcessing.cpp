@@ -146,7 +146,7 @@ void ConvexVhacdProcessing::renderVhacd(bool is_faded)
   const auto drawVhacd = [&](const VHACD::IVHACD *interface, bool is_faded = false) {
     for (int i = 0; i < interface->GetNConvexHulls(); ++i)
     {
-      E3DCOLOR color = E3DCOLOR(colors[(i) % (sizeof(colors) / sizeof(colors[0]))]);
+      E3DCOLOR color = collision_node_color(i);
       if (is_faded)
         color.a = 30;
       dag::Vector<Point3> verts;

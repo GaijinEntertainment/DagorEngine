@@ -1,0 +1,47 @@
+// A motorbike on the phys_kind_jolt_vehicle kind, which the game adds with phys_kind. The game sets jolt_vehicle__bikeDesc,
+// adds the camera, the possession and an animchar with the bike skeleton, whose anim graph, if any, must not animate the steering,
+// suspension and wheel nodes (it would overwrite their pose), and declares the Motorbike action set that the input reads.
+motorbike_base{
+  _use:t="jolt_motorcycle_base"
+  // a tilt from upright, in roll or pitch, beyond this is a fall once the bike nearly stops; below the pitch and roll limit of the desc
+  motorbike__fallTiltDeg:r=40
+  // crash on a speed change in one server frame (m/s): x of the speed (a turn of the velocity is no crash), y along up, on landing
+  motorbike__crashSpeedChange:p2=4.5,6
+  // lowside crash: lean (deg), forward speed (m/s), throttle (0..1) and the time it lasts (s)
+  motorbike__lowside:p4=40,8,0.5,0.3
+  // washout crash: lean (deg), forward speed (m/s) and brake (0..1, after the lean scaling of the input)
+  // off: a keyboard brake is all or nothing, so every braking in a turn would crash; 20,6,0.25 suits an analog brake
+  motorbike__washout:p3=-1,6,0.25
+  // model X of the rear and the front wheel, where motorbike_place_on_ground() traces the ground
+  motorbike__wheelX:p2=-0.67,0.76
+  // yes: the server stands the bike on the ground under its spawn transform once the ground loads
+  "motorbike__placeOnGround:b"{_tags:t="server"; value:b=no; }
+  // 10 Hz state log of this bike in the debug log, for tuning; a template, a scene or daEditorE turns it on
+  "motorbike__trace:b"{_tags:t="gameClient"; value:b=no; }
+  // heading without the lean or the pitch, X forward, for a camera that follows the bike
+  "motorbike__headingQuat:p4"{_tags:t="gameClient"; value:p4=0,0,0,1; }
+  // the server sets it on a crash or fall and keeps it until the game sends CmdMotorbikeGetUp
+  _group{
+    _replicate:b=yes
+    _track:b=yes
+    motorbike__fallen:b=no
+  }
+  _group{
+    _hide:b=yes
+    _tags:t="server"
+    motorbike__lowsideTime:r=0
+    motorbike__prevVelocity:p3=0,0,0
+    motorbike__spawnTm:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  }
+}
+
+// the input of the bike that the local player drives: a game applies it to that bike only, so other bikes do not follow the local stick
+motorbike_input{
+  _hide:b=yes
+  _tags:t="input"
+  "motorbike_input:tag"{}
+  "motorbike_input__aMove:u16"{ value:i=0xFFFF; }
+  "motorbike_input__aReverse:u16"{ value:i=0xFFFF; }
+  motorbike_input__steer:r=0
+  "input__enabled:b" {_tags:t="gameClient"; value:b=yes; _track:b=yes; }
+}

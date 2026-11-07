@@ -1,33 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <supp/dag_android_native_app_glue.h>
-
-#include <android/native_activity.h>
-#include <jni.h>
-
-#define DEFAULT_DEVICE_ID -1
 namespace HumanInput
 {
 class JoyDeviceHelper
 {
-private:
-  static void *s_AttachedActivity;
-  static jobject s_ActivityClazz;
-  static bool s_Inited;
-  static JNIEnv *s_Jni;
-
-  static jclass s_JavaHelperClass;
-  static jmethodID s_ListenGamepads;
-  static jmethodID s_StopListeningGamepads;
-  static jmethodID s_IsDeviceChanged;
-  static jmethodID s_IsGamepadConnected;
-  static jmethodID s_GetConnectedGamepadVendorId;
-  static jmethodID s_GetConnectedGamepadProductId;
-  static jmethodID s_GetDisplayRotation;
-
-  static void stopListeningGamepads();
-
 public:
   enum
   {
@@ -37,13 +14,12 @@ public:
     ROTATION_270 = 3
   };
 
-  static bool attach();
   static void detach();
   static bool isDeviceChanged();
-  static bool isGamepadConnected();
-  static int getConnectedGamepadVendorId();
-  static int getConnectedGamepadProductId();
+  static bool getConnectedGamepadIds(int &device_id, int &vendor_id, int &product_id);
+  static bool selectGamepad(int device_id);
   static int getRotation();
-  static bool acquireDeviceChanges();
+  static bool isDeviceChangePending();
+  static void clearDeviceChanges();
 };
 } // namespace HumanInput

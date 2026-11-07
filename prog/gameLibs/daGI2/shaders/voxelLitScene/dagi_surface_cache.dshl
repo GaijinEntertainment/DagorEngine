@@ -1,0 +1,314 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "globtm.dshl"
+include "world_sdf.dshl"
+include "dagi_lit_scene_helper.dshl"
+include "project_is_ambient_ready_at.dshl"
+include "project_is_dynamic_point.dshl"
+include "dagi_project_trace_common.dshl"
+
+// project_get_direct_lit_color_at_trace_hit at an off-screen surface the relight lights
+define_macro_if_not_defined PROJECT_LIGHT_POINT_RELIGHT(code)
+  PROJECT_LIGHT_POINT_TRACE_HIT(code)
+endmacro
+
+int dagi_surface_cache_feed_pixels;
+float4 dagi_surface_cache_prev_center;
+float4x4 globtm_inv;
+
+shader dagi_surface_cache_from_gbuf_cs
+{
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
+  INIT_ZNZFAR_STAGE(cs)
+  (cs) {
+    globtm_inv@f44 = globtm_inv;
+    globtm_psf@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
+    world_view_pos@f3 = world_view_pos;
+    dagi_surface_cache_feed_pixels@i1 = dagi_surface_cache_feed_pixels;
+    depth_gbuf@tex2d = depth_gbuf;
+    depth_gbuf_dim@f2 = get_dimensions(depth_gbuf, 0);
+  }
+  DAGI_SURFACE_CACHE_WRITE(cs)
+  DAGI_SURFACE_CACHE_REQUESTS_UAV(cs)
+  PROJECT_LIGHT_POINT_SCREEN_VOXEL_LIT_SCENE(cs)
+  PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
+  PROJECT_DAGI_LIT_SCENE_AMBIENT_READY(cs)
+  hlsl(cs) {
+    #include "screen_update_tiled.hlsl"
+    #include <monteCarlo.hlsl>
+    #define FEED_SAMPLES 64
+    groupshared float4 feed_sum[FEED_SAMPLES];
+    groupshared uint feed_first;
+
+    float3 feed_world_pos(uint2 tcI, float raw_depth, uint2 dim)
+    {
+      float4 p = mul(float4((tcI + 0.5)/dim*float2(2, -2) - float2(1, -1), raw_depth, 1), globtm_inv);
+      return p.xyz/p.w;
+    }
+    // the pixel's lighting with weight 1 when it lies on the cell of key, else 0
+    float4 feed_sample(uint2 tcI, float raw_depth, uint2 dim, uint2 key, uint level)
+    {
+      float3 worldPos = feed_world_pos(tcI, raw_depth, dim);
+      ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
+      if (any(dagi_surface_cache_key(worldPos, gbuf.normal, level) != key))
+        return 0;
+      float2 tc = (tcI + 0.5)/dim;
+      float linearDepth = linearize_z(raw_depth, zn_zfar.zw);
+      if (get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf) == POINT_DYNAMIC)
+        return 0;
+      gbuf.diffuseColor = gbuf.albedo;
+      return float4(max(project_get_lit_color_at_screen(tc, tcI + 0.5, linearDepth, worldPos, gbuf) + gbuf.emissionColor, 0), 1);
+    }
+
+    // a group updates the cell of a random pixel with the mean of the pixels on it:
+    // one pixel an update made a cell that many pixels see flicker with the texture under it
+    [numthreads(1, FEED_SAMPLES, 1)]
+    void dagi_surface_cache_from_gbuf_cs(uint2 gId : SV_GroupID, uint2 gtId : SV_GroupThreadID)
+    {
+      uint tid = gtId.y;
+      uint2 dim = depth_gbuf_dim;
+      uint2 random = pcg2d(uint2(gId.x, uint(dagi_surface_cache_params.y)));
+      uint2 tcI = pseudo_random_screen_coord(gId.x, dagi_surface_cache_feed_pixels, dim, random.x);
+      float rawDepth = texture2DAt(depth_gbuf, tcI).x;
+      // every return before the barriers is the same for the whole group
+      if (rawDepth <= 0)
+        return;
+      float3 worldPos = feed_world_pos(tcI, rawDepth, dim);
+      uint level = dagi_surface_cache_level(worldPos);
+      uint levels = dagi_surface_cache_levels();
+      if (level >= levels)
+        return;
+      // coarser levels also get samples, for when the view moves away
+      float randVal = (random.y & 0xFFFF)/65536.0;
+      if (randVal < 0.125)
+        level = uint(floor(lerp((float)level, (float)levels, randVal/0.125)));
+      float3 normal = loadProcessedGbuffer(tcI).normal;
+      float cell = dagi_surface_cache_cell_size(level);
+      float3 cellCenter = (dagi_surface_cache_cell_index(worldPos, normal, cell) + 0.5)*cell;
+      uint2 key = dagi_surface_cache_key(worldPos, normal, level);
+      if (tid == 0)
+      {
+        // a sample on the cell lies within 3/4 of a cell of its center on each axis, the normal offset included
+        bool ready = dagi_project_lit_scene_ambient_ready_at(cellCenter, 0.75*cell);
+        uint bit = key.x % DAGI_SC_FEED_BITS, prev = 0;
+        if (ready)
+          dagi_surface_cache_requests.InterlockedOr(DAGI_SC_FEED_BITS_OFFSET + (bit >> 5)*4, 1u << (bit & 31), prev);
+        feed_first = ready && (prev & (1u << (bit & 31))) == 0;
+      }
+      GroupMemoryBarrierWithGroupSync();
+      if (!feed_first)
+        return;
+      float4 s = 0;
+      if (tid == 0)
+        s = feed_sample(tcI, rawDepth, dim, key, level);
+      else
+      {
+        uint r = pcg2d(uint2(random.y, tid)).x;
+        float2 u = (uint2(tid, tid/8)%8 + float2(uint2(r, r >> 16) & 0xFFFF)/65536.0)/8;
+        float3 p = cellCenter + 0.5*cell*tangent_to_world(float3(uniform_sample_disk(u), 0), normalize(cellCenter - world_view_pos));
+        float4 clip = mul(float4(p, 1), globtm_psf);
+        float2 sUv = clip.xy/clip.w*float2(0.5, -0.5) + 0.5;
+        // a clamp repeats the edge pixel
+        if (clip.w > 0 && all(sUv == saturate(sUv)))
+        {
+          uint2 sTcI = min(uint2(dim*sUv), dim - 1);
+          float sDepth = texture2DAt(depth_gbuf, sTcI).x;
+          if (sDepth > 0)
+            s = feed_sample(sTcI, sDepth, dim, key, level);
+        }
+      }
+      feed_sum[tid] = s;
+      UNROLL
+      for (uint stride = FEED_SAMPLES/2; stride > 0; stride >>= 1)
+      {
+        GroupMemoryBarrierWithGroupSync();
+        if (tid < stride)
+          feed_sum[tid] += feed_sum[tid + stride];
+      }
+      if (tid == 0 && feed_sum[0].w > 0)
+        dagi_surface_cache_add_level(worldPos, normal, level, feed_sum[0].xyz/feed_sum[0].w);
+    }
+  }
+  compile("cs_5_0", "dagi_surface_cache_from_gbuf_cs");
+}
+
+shader dagi_surface_cache_relight_cs
+{
+  READ_WORLD_SDF(cs)
+  DAGI_SURFACE_CACHE_WRITE(cs)
+  DAGI_ALBEDO_SAMPLE(cs)
+  PROJECT_LIGHT_POINT_RELIGHT(cs)
+  PROJECT_GET_SKY_RADIANCE_AT(cs)
+  PROJECT_TRACE(cs, false)
+  (cs) {
+    dagi_surface_cache_requests@buf = dagi_surface_cache_requests hlsl {
+      ByteAddressBuffer dagi_surface_cache_requests@buf;
+    }
+  }
+  hlsl(cs) {
+    #include <monteCarlo.hlsl>
+    #include <octahedral.hlsl>
+    #define RELIGHT_MAX_DIST 64
+
+    float relight_bias(float3 world_pos)
+    {
+      #if DAGI_HAS_PROJECT_TRACE
+        return 0.01;
+      #else
+        uint clip = world_sdf_find_clip(world_pos);
+        return clip < MAX_WORLD_SDF_CLIPS ? world_sdf_voxel_size(clip) : 0.5;
+      #endif
+    }
+
+    // the ambient the point gathers from the cache and the sky along cosine rays: no probe grid, so nothing leaks through walls,
+    // and the cached radiance carries the earlier bounces; the sun constant is divided by pi, so the mean radiance is the ambient
+    float3 gather_ambient(float3 start, float3 dir)
+    {
+      float3 p = 0, n = 0;
+      #if DAGI_HAS_PROJECT_TRACE
+        // the probes' own trace: its exact hits and face normals key the cells the probes read;
+        // the SDF hit can sit centimeters off the surface and turns its gradient near edges, so it keys a neighbor cell
+        DaGiProjectHitRes hit = (DaGiProjectHitRes)0;
+        if (!dagi_project_trace_surface(start - dagi_surface_cache_center.xyz, dagi_surface_cache_center.xyz, dir, RELIGHT_MAX_DIST, hit))
+          return dagi_get_sky_radiance_at(start, dir);
+        #if DAGI_PROJECT_TRACE_HAS_BACKFACE
+          // the far side of a surface: the ray started inside geometry, so it sees neither a surface nor the sky
+          if (hit.hitBackFace)
+            return 0;
+        #endif
+        p = dagi_surface_cache_center.xyz + hit.hitCamPos;
+        n = hit.hitNormal;
+      #else
+        float t = 0; uint clip = 0;
+        if (!world_sdf_trace(start, dir, RELIGHT_MAX_DIST, t, clip))
+          return dagi_get_sky_radiance_at(start, dir);
+        p = start + dir*t;
+        // the normal the probe trace keys its SDF hits with: the gradient is inward and in the clipmap's xzy order
+        float3 gradient = world_sdf_sample_gradient(clip, p);
+        float gradLen = length(gradient);
+        n = gradLen > 0 ? -gradient.xzy/gradLen : -dir;
+        if (dot(n, dir) > 0)
+          n = -dir;
+      #endif
+      float3 L = 0;
+      if (dagi_surface_cache_get(p, n, L))
+        return L;
+      // a surface not known yet gives its direct light only: darker than right, but it cannot leak
+      float3 albedo = DAGI_MISSED_ALBEDO;
+      dagi_sample_albedo_best(p, albedo);
+      return project_get_direct_lit_color_at_trace_hit(p, n, albedo, max(relight_bias(p), 0.15));
+    }
+
+    [numthreads(64, 1, 1)]
+    void dagi_surface_cache_relight_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint missed = min(loadBuffer(dagi_surface_cache_requests, 0), DAGI_SC_REQUESTS_CAPACITY);
+      if (dtId >= missed + min(loadBuffer(dagi_surface_cache_requests, 4), DAGI_SC_REFRESH_CAPACITY))
+        return;
+      uint at = dtId < missed ? dtId : DAGI_SC_REQUESTS_CAPACITY + dtId - missed;
+      uint4 r = loadBuffer4(dagi_surface_cache_requests, DAGI_SC_REQUESTS_HEADER + at*DAGI_SC_REQUESTS_RECORD);
+      float3 pos = asfloat(r.xyz);
+      float3 normal = octDecode(float2(r.w & 0xFFFF, r.w >> 16)/65535*2 - 1);
+      uint level = dagi_surface_cache_level(pos);
+      if (level >= dagi_surface_cache_levels())
+        return;
+      float bias = relight_bias(pos);
+      float3 albedo = DAGI_MISSED_ALBEDO;
+      dagi_sample_albedo_best(pos, albedo);
+      uint2 rnd = pcg2d(pcg2d(uint2(dtId, uint(dagi_surface_cache_params.y))) + 1);
+      float3 dir = tangent_to_world(cosine_sample_hemisphere(float2(rnd & 0xFFFF)/65536.0).xyz, normal);
+      float3 lit = gather_ambient(pos + normal*bias, dir)*albedo;
+      lit += project_get_direct_lit_color_at_trace_hit(pos, normal, albedo, max(bias, 0.15));
+      dagi_surface_cache_relight_level(pos, normal, level, lit);
+    }
+  }
+  compile("target_cs", "dagi_surface_cache_relight_cs");
+}
+
+// a thread per mark word lists the voxels to remean, so their lookups fill waves
+shader dagi_surface_cache_voxels_cs
+{
+  DAGI_SURFACE_CACHE_WRITE(cs)
+  DAGI_SURFACE_CACHE_REQUESTS_UAV(cs)
+  (cs) { dagi_surface_cache_prev_center@f3 = dagi_surface_cache_prev_center; }
+  hlsl(cs) {
+    groupshared uint voxels_listed, voxels_list_base;
+    [numthreads(64, 1, 1)]
+    void dagi_surface_cache_voxels_cs(uint2 dtId : SV_DispatchThreadID, uint tid : SV_GroupIndex)
+    {
+      if (tid == 0)
+        voxels_listed = 0;
+      GroupMemoryBarrierWithGroupSync();
+      uint count = dagi_surface_cache_voxels_count(), word = dtId.y*DAGI_SC_VOXELS_ROW + dtId.x, first = word*32;
+      uint markAt = dagi_surface_cache_voxel_at(count + word), marks = 0, entered = 0, bits = 0;
+      if (first < count)
+      {
+        marks = loadBuffer(dagi_surface_cache, markAt);
+        uint lo = dagi_surface_cache_voxel_level(first), hi = dagi_surface_cache_voxel_level(min(first + 31, count - 1));
+        if (dagi_surface_cache_voxels_moved(lo, dagi_surface_cache_prev_center) ||
+            dagi_surface_cache_voxels_moved(hi, dagi_surface_cache_prev_center))
+        {
+          LOOP
+          for (uint b = 0; b < 32; ++b)
+            if (first + b < count && dagi_surface_cache_voxel_entered(first + b, dagi_surface_cache_prev_center))
+              entered |= 1u << b;
+        }
+        // catches evictions
+        uint ditherMask = uint(dagi_surface_cache_voxels_res.w) - 1, dither = uint(dagi_surface_cache_params.y) & ditherMask;
+        uint ditherBit = dither % 32;
+        bool dithered = (first & ditherMask) == dither - ditherBit && first + ditherBit < count;
+        bits = marks | entered | (dithered ? 1u << ditherBit : 0u);
+      }
+      uint at = 0;
+      if (bits)
+        InterlockedAdd(voxels_listed, countbits(bits), at);
+      GroupMemoryBarrierWithGroupSync();
+      if (tid == 0 && voxels_listed)
+      {
+        uint base;
+        dagi_surface_cache_requests.InterlockedAdd(DAGI_SC_VOXELS_LIST_COUNT, voxels_listed, base);
+        voxels_list_base = base;
+      }
+      GroupMemoryBarrierWithGroupSync();
+      if (!bits)
+        return;
+      at += voxels_list_base;
+      uint listed = 0;
+      LOOP
+      for (uint left = bits; left; left &= left - 1, ++at)
+      {
+        uint b = firstbitlow(left);
+        bool e = (entered >> b) & 1;
+        if (at < DAGI_SC_VOXELS_LIST_CAPACITY)
+        {
+          storeBuffer(dagi_surface_cache, dagi_surface_cache_voxels_list_at(at), (first + b) | (e ? 1u << 31 : 0u));
+          listed |= 1u << b;
+        }
+        // a full list defers the mean, not the clear
+        else if (e)
+          storeBuffer(dagi_surface_cache, dagi_surface_cache_voxel_at(first + b), 0u);
+      }
+      uint kept = bits & ~listed;
+      if (kept != marks)
+        storeBuffer(dagi_surface_cache, markAt, kept);
+    }
+  }
+  compile("target_cs", "dagi_surface_cache_voxels_cs");
+}
+
+shader dagi_surface_cache_voxels_update_cs
+{
+  DAGI_SURFACE_CACHE_WRITE(cs)
+  DAGI_SURFACE_CACHE_REQUESTS_UAV(cs)
+  hlsl(cs) {
+    [numthreads(64, 1, 1)]
+    void dagi_surface_cache_voxels_update_cs(uint dtId : SV_DispatchThreadID)
+    {
+      if (dtId >= min(loadBuffer(dagi_surface_cache_requests, DAGI_SC_VOXELS_LIST_COUNT), DAGI_SC_VOXELS_LIST_CAPACITY))
+        return;
+      uint e = loadBuffer(dagi_surface_cache, dagi_surface_cache_voxels_list_at(dtId));
+      dagi_surface_cache_update_voxel(e & ~(1u << 31), (e >> 31) != 0);
+    }
+  }
+  compile("target_cs", "dagi_surface_cache_voxels_update_cs");
+}

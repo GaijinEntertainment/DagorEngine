@@ -23,6 +23,7 @@
 
 #include <debug/backendDebug.h>
 #include <debug/jsonDump.h>
+#include <debug/shaderVarDump.h>
 #include <frontend/multiplexingInternal.h>
 #include <frontend/dynamicResolution.h>
 #include <backend/resourceScheduling/nativeResourceAllocator.h>
@@ -276,7 +277,7 @@ Runtime::IrNodesChanged Runtime::scheduleNodes(const IrNodesChanged &irNodesChan
     intermediateGraph.resourceNames.updateFrom(unsortedIntermediateGraph.resourceNames, irResourcesChanged);
 
     auto remappedOrder = intermediate::apply_node_remap(intermediateGraph, unsortedIntermediateGraph, newOrder, prevPermutation,
-      irNodesChanged, schedulingNodesChanged);
+      irNodesChanged, schedulingNodesChanged, true);
 
     intermediateGraph.validate();
 
@@ -389,7 +390,7 @@ void Runtime::updateAutoResolutions(IrResourcesChanged &resources_changed)
     if (res.resourceType != ResourceType::Texture || !res.resolutionType.has_value())
       continue;
 
-    const auto [id, mult] = *res.resolutionType;
+    const auto [id, roundUp, mult] = *res.resolutionType;
 
     // Impossible situation, sanity check
     G_ASSERT_CONTINUE(id != AutoResTypeNameId::Invalid);
@@ -402,7 +403,7 @@ void Runtime::updateAutoResolutions(IrResourcesChanged &resources_changed)
       case D3DResourceType::ARRTEX:
       {
         const auto &values = eastl::get<ResolutionValues<IPoint2>>(registry.autoResTypes[id].values);
-        const auto scaled = scale_by(values.staticResolution, mult);
+        const auto scaled = scale_by(values.staticResolution, mult, roundUp);
         desc.asTexRes.width = static_cast<uint32_t>(scaled.x);
         desc.asTexRes.height = static_cast<uint32_t>(scaled.y);
         if (res.autoMipCount)
@@ -412,7 +413,7 @@ void Runtime::updateAutoResolutions(IrResourcesChanged &resources_changed)
       case D3DResourceType::VOLTEX:
       {
         const auto &values = eastl::get<ResolutionValues<IPoint3>>(registry.autoResTypes[id].values);
-        const auto scaled = scale_by(values.staticResolution, mult);
+        const auto scaled = scale_by(values.staticResolution, mult, roundUp);
         desc.asVolTexRes.width = static_cast<uint32_t>(scaled.x);
         desc.asVolTexRes.height = static_cast<uint32_t>(scaled.y);
         desc.asVolTexRes.depth = static_cast<uint32_t>(scaled.z);
@@ -1445,22 +1446,34 @@ void before_reset(bool)
 REGISTER_D3D_BEFORE_RESET_FUNC(dafg::before_reset);
 
 #if DAGOR_DBGLEVEL > 0
-static bool dafg_state_dump_console_handler(const char *argv[], int argc)
+static bool dafg_dump_console_handler(const char *argv[], int argc)
 {
   int found = 0;
-  CONSOLE_CHECK_NAME("dafg", "dump_to_json", 1, 1)
+
+  CONSOLE_CHECK_NAME_EX("dafg", "dump_to_json", 1, 2, "dump framegraph state to JSON", "[filename]")
   {
     if (dafg::Runtime::isInitialized())
     {
       auto &runtime = dafg::Runtime::get();
-      dafg::dump_state_to_json(runtime.getInternalRegistry(), runtime.getIntermediateGraph(), runtime.getNodeStateDeltas());
+      dafg::state_dump::dump({runtime.getInternalRegistry(), runtime.getIntermediateGraph(), runtime.getNodeStateDeltas(),
+                               runtime.getResourceEvents(), runtime.getResourceLayout()},
+        argc == 2 ? argv[1] : nullptr);
     }
     else
     {
-      logerr("daFG: can't dump, runtime is not initialized");
+      console::error("daFG: can't dump graph state, runtime is not initialized");
     }
   }
+
+  CONSOLE_CHECK_NAME_EX("dafg", "dump_shadervar_changes", 1, 2, "dump shadervar changes to JSON", "[filename]")
+  {
+    if (dafg::Runtime::isInitialized())
+      dafg::shadervar_dump::request(argc == 2 ? argv[1] : nullptr);
+    else
+      console::error("daFG: can't start shadervar dump, runtime is not initialized");
+  }
+
   return found;
 }
-REGISTER_CONSOLE_HANDLER(dafg_state_dump_console_handler);
+REGISTER_CONSOLE_HANDLER(dafg_dump_console_handler);
 #endif

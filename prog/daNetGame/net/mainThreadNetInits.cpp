@@ -77,10 +77,10 @@ bool net_init_late_client(net::ConnectParams &&connect_params, ecs::EntityManage
   {
     if (!connect_params.serverUrls.empty())
     {
-      dag::Vector<eastl::string> urls = eastl::move(connect_params.serverUrls);
+      dag::Vector<net::SessionUrl> urls = eastl::move(connect_params.serverUrls);
       eastl::string relayUrl = eastl::move(connect_params.relayStunRequestAddr);
 
-      net_create_client_driver(mgr, urls.front(), eastl::move(connect_params));
+      net_create_client_driver(mgr, urls.front().url, eastl::move(connect_params));
       if (!net_context)
       {
         logwarn("net_init_late_client: net_create_client_driver failed");

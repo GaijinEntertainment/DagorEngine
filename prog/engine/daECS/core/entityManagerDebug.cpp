@@ -184,6 +184,33 @@ size_t EntityManager::dumpMemoryUsage()
     archetypeQueriesSize + archetypeQueriesMem, resQueriesSize, resQueriesMem, copyQueriesSize, refAndGenSize);
   totalMem += archetypeQueriesSize + resQueriesSize + copyQueriesSize + refAndGenSize;
 
+  auto esSetMapMem = [](const auto &map) {
+    size_t mem = map.bucket_count() * sizeof(ska::detailv3::sherwood_v3_entry<typename eastl::decay_t<decltype(map)>::value_type>);
+    for (auto &kv : map)
+      mem += kv.second.heapBytes();
+    return mem;
+  };
+  auto esSetVectorMem = [](const auto &vec) {
+    size_t mem = vec.capacity() * sizeof(es_index_set);
+    for (auto &set : vec)
+      mem += set.heapBytes();
+    return mem;
+  };
+  const size_t esEventsMem = esSetMapMem(esEvents), esOnChangeEventsMem = esSetMapMem(esOnChangeEvents),
+               esUpdatesMem = esSetVectorMem(esUpdates);
+  size_t archetypesESMem = 0, archetypesRecreateESMem = archetypesRecreateES.capacity() * sizeof(archetype_es_map);
+  for (auto &list : archetypesES)
+    archetypesESMem += esSetVectorMem(list);
+  for (auto &map : archetypesRecreateES)
+  {
+    archetypesRecreateESMem += map.capacity() * sizeof(archetype_es_map::value_type);
+    for (auto &kv : map)
+      archetypesRecreateESMem += kv.second.appear.heapBytes() + kv.second.disappear.heapBytes();
+  }
+  debug("ES lists: esEvents = %d esOnChangeEvents = %d esUpdates = %d archetypesES = %d archetypesRecreateES = %d bytes", esEventsMem,
+    esOnChangeEventsMem, esUpdatesMem, archetypesESMem, archetypesRecreateESMem);
+  totalMem += esEventsMem + esOnChangeEventsMem + esUpdatesMem + archetypesESMem + archetypesRecreateESMem;
+
   debug("totalMemory = %gKb", totalMem / 1024.);
   return totalMem;
 }

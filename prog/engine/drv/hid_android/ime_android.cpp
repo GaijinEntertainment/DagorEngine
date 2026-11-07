@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <supp/dag_android_native_app_glue.h>
-#include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <drv/hid/dag_hiCreate.h>
@@ -15,6 +14,7 @@
 #include <debug/dag_debug.h>
 #include <supp/android/jni_native_reg.h>
 #include <supp/android/jni_signatures.h>
+#include "jni_utils_android.h"
 
 // ============================================================================
 // On-screen keyboard support, two modes:
@@ -32,72 +32,12 @@ static WinCritSec g_ime_cs;
 namespace imejni
 {
 
-static void *current_activity()
-{
-  android_app *state = (android_app *)win32_get_instance();
-  return state ? state->activity : nullptr;
-}
+using hid_jni::current_activity;
+using hid_jni::get_env;
+using hid_jni::LocalFrame;
+using hid_jni::release_global_ref;
 
-static JNIEnv *get_env(void *activity)
-{
-  JavaVM *vm = activity ? android::get_java_vm(activity) : nullptr;
-  if (!vm)
-    return nullptr;
-
-  JNIEnv *env = nullptr;
-  JavaVMAttachArgs args;
-  args.version = JNI_VERSION_1_6;
-  args.name = "NativeThread";
-  args.group = nullptr;
-
-  return android::attach_current_thread(vm, &env, &args) == JNI_OK ? env : nullptr;
-}
-
-static bool check_exception(JNIEnv *env, const char *where)
-{
-  if (!env || !env->ExceptionCheck())
-    return false;
-  env->ExceptionDescribe();
-  env->ExceptionClear();
-  logwarn("[ime] JNI exception cleared after %s", where ? where : "?");
-  return true;
-}
-
-// RAII local-reference frame. Our threads are attached to the JVM manually and
-// never return to Java, so their local reference tables are never popped by
-// ART; without explicit frames every GetObjectClass/FindClass/CallObjectMethod
-// leaks a slot until the 512-entry table overflows and aborts the process.
-class LocalFrame
-{
-  JNIEnv *env;
-
-public:
-  LocalFrame(JNIEnv *e, jint capacity) : env(e)
-  {
-    if (env && env->PushLocalFrame(capacity) < 0)
-    {
-      check_exception(env, "PushLocalFrame");
-      env = nullptr;
-    }
-  }
-  ~LocalFrame()
-  {
-    if (env)
-      env->PopLocalFrame(nullptr);
-  }
-  bool valid() const { return env != nullptr; }
-
-  LocalFrame(const LocalFrame &) = delete;
-  LocalFrame &operator=(const LocalFrame &) = delete;
-};
-
-template <typename T>
-static void release_global_ref(JNIEnv *env, T &ref)
-{
-  if (env && ref)
-    env->DeleteGlobalRef(ref);
-  ref = nullptr;
-}
+static bool check_exception(JNIEnv *env, const char *where) { return hid_jni::check_exception(env, where, "ime"); }
 
 // Chat text is raw UTF-8 and may contain emoji (4-byte sequences / surrogate
 // pairs) that are illegal in the "modified UTF-8" NewStringUTF expects -> UB.
@@ -207,7 +147,7 @@ static void *s_FailedActivity = nullptr;
 
 static void reset(JNIEnv *env);
 static bool attach(void *activity = nullptr);
-static bool show(const char *initalText, const char *hint, uint32_t editFlags, uint32_t imeOptions, int cursorPos = 0,
+static bool show(const char *initialText, const char *hint, uint32_t editFlags, uint32_t imeOptions, int cursorPos = 0,
   int maxText = 0);
 static void hide();
 static bool isShown();
@@ -404,7 +344,7 @@ static bool softinput::attach(void *activity, bool force)
   if (!env)
     return false;
 
-  imejni::LocalFrame frame(env, 32);
+  imejni::LocalFrame frame(env, 32, "ime");
   if (!frame.valid())
     return false;
 
@@ -494,7 +434,7 @@ static bool softinput::show(uint32_t flags)
   if (!env)
     return false;
 
-  imejni::LocalFrame frame(env, 8);
+  imejni::LocalFrame frame(env, 8, "ime");
   if (!frame.valid())
     return false;
 
@@ -541,7 +481,7 @@ static bool softinput::hide(uint32_t flags)
   if (!env)
     return false;
 
-  imejni::LocalFrame frame(env, 8);
+  imejni::LocalFrame frame(env, 8, "ime");
   if (!frame.valid())
     return false;
 
@@ -621,7 +561,7 @@ static bool nvsoftinput::attach(void *activity)
   if (!env)
     return false;
 
-  imejni::LocalFrame frame(env, 16);
+  imejni::LocalFrame frame(env, 16, "ime");
   if (!frame.valid())
     return false;
 
@@ -677,7 +617,7 @@ static bool nvsoftinput::attach(void *activity)
   return s_Inited;
 }
 
-static bool nvsoftinput::show(const char *initalText, const char *hint, uint32_t editFlags, uint32_t imeOptions, int cursorPos,
+static bool nvsoftinput::show(const char *initialText, const char *hint, uint32_t editFlags, uint32_t imeOptions, int cursorPos,
   int maxText)
 {
   WinAutoLock lock(g_ime_cs);
@@ -689,12 +629,12 @@ static bool nvsoftinput::show(const char *initalText, const char *hint, uint32_t
   if (!env)
     return false;
 
-  imejni::LocalFrame frame(env, 16);
+  imejni::LocalFrame frame(env, 16, "ime");
   if (!frame.valid())
     return false;
 
   bool ok = false;
-  jstring strText = imejni::make_jstring_utf16(env, initalText);
+  jstring strText = imejni::make_jstring_utf16(env, initialText);
   jstring strHint = imejni::make_jstring_utf16(env, hint);
   if (strText && strHint)
   {

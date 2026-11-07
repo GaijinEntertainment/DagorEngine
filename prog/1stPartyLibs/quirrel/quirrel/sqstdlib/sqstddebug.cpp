@@ -36,6 +36,26 @@ static SQInteger debug_getstackinfos(HSQUIRRELVM v)
   return __sq_getcallstackinfos(v, level);
 }
 
+static SQInteger debug_get_const_eval_pos(HSQUIRRELVM v)
+{
+  SQStackInfos si;
+  if (SQ_FAILED(sq_getconstevalpos(v, &si))) {
+    sq_pushnull(v);
+    return 1;
+  }
+  sq_newtable(v);
+  sq_pushstring(v, "func", -1);
+  sq_pushstring(v, si.funcname, -1);
+  sq_newslot(v, -3, SQFalse);
+  sq_pushstring(v, "src", -1);
+  sq_pushstring(v, si.source, -1);
+  sq_newslot(v, -3, SQFalse);
+  sq_pushstring(v, "line", -1);
+  sq_pushinteger(v, si.line);
+  sq_newslot(v, -3, SQFalse);
+  return 1;
+}
+
 static SQInteger debug_getlocals(HSQUIRRELVM v)
 {
     SQInteger level = 1;
@@ -155,9 +175,9 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
             if (SQString *doc = _ss(v)->GetDocString(sq_getdocstring_id(subject)))
                 docObject = doc;
 
-            ft.functionName = f->_name;
+            ft.functionName = f->GetName();
             ft.returnTypeMask = f->_result_type_mask;
-            ft.objectTypeMask = f->_param_type_masks[0];
+            ft.objectTypeMask = f->GetParamTypeMask(0);
             ft.requiredArgs = f->_nparameters - f->_ndefaultparams - 1;
             ft.pure = f->_purefunction;
             ft.nodiscard = f->_nodiscard;
@@ -165,13 +185,13 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
             int cnt = f->_nparameters - (f->_varparams ? 1 : 0);
             for (SQInteger n = 1; n < cnt; n++) {
                 ft.argNames.push_back(f->_parameters[n]);
-                ft.argTypeMask.push_back(f->_param_type_masks[n]);
+                ft.argTypeMask.push_back(f->GetParamTypeMask(n));
                 ft.defaultValues.push_back(nullVal);
                 // TODO: defaultValues
             }
 
             if (f->_varparams) {
-                ft.ellipsisArgTypeMask = f->_param_type_masks[f->_nparameters - 1];
+                ft.ellipsisArgTypeMask = f->GetParamTypeMask(f->_nparameters - 1);
             }
 
             initialized = true;
@@ -286,9 +306,9 @@ static SQInteger debug_get_function_decl_string(HSQUIRRELVM v)
             SQFunctionProto *f = _closure(subject)->_function;
             SQFunctionType ft(_ss(v));
 
-            ft.functionName = f->_name;
+            ft.functionName = f->GetName();
             ft.returnTypeMask = f->_result_type_mask;
-            ft.objectTypeMask = f->_param_type_masks[0];
+            ft.objectTypeMask = f->GetParamTypeMask(0);
             ft.requiredArgs = f->_nparameters - f->_ndefaultparams - 1;
             ft.pure = f->_purefunction;
             ft.nodiscard = f->_nodiscard;
@@ -296,13 +316,13 @@ static SQInteger debug_get_function_decl_string(HSQUIRRELVM v)
             int cnt = f->_nparameters - (f->_varparams ? 1 : 0);
             for (SQInteger n = 1; n < cnt; n++) {
                 ft.argNames.push_back(f->_parameters[n]);
-                ft.argTypeMask.push_back(f->_param_type_masks[n]);
+                ft.argTypeMask.push_back(f->GetParamTypeMask(n));
                 ft.defaultValues.push_back(nullVal);
                 // TODO: defaultValues
             }
 
             if (f->_varparams) {
-                ft.ellipsisArgTypeMask = f->_param_type_masks[f->_nparameters - 1];
+                ft.ellipsisArgTypeMask = f->GetParamTypeMask(f->_nparameters - 1);
             }
 
             sq_pushobject(v, sq_stringify_function_type(v, ft));
@@ -427,6 +447,7 @@ static const SQRegFunctionFromStr debuglib_funcs[] = {
     { debug_seterrorhandler, "seterrorhandler(handler: function|null)", SQ_DOC("Installs the given function as the VM error handler; null clears it") },
     { debug_setdebughook, "setdebughook(hook: function|null)", SQ_DOC("Installs the given function as the VM debug hook; null clears it") },
     { debug_getstackinfos, "getstackinfos(level: int): table|null", SQ_DOC("Returns call stack information for the given stack level") },
+    { debug_get_const_eval_pos, "get_const_eval_pos(): table|null", SQ_DOC("Returns the source position of the constant that the compiler evaluates, or null when the code runs at runtime") },
     { format_call_stack_string, "format_call_stack_string(): string", SQ_DOC("Returns a formatted string describing the current call stack") },
     { debug_getlocals, "getlocals([level: int, include_internal: bool]): table", SQ_DOC("Returns a table of local variables at the given stack level") },
     { debug_get_stack_top, "get_stack_top(): int", SQ_DOC("Returns the current VM stack top index") },

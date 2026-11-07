@@ -68,45 +68,48 @@ void foot_locker_ik_prepare_params(dag::Vector<AnimParamData> &params, PropPanel
 void foot_locker_ik_init_block_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings)
 {
   Tab<String> legNames;
-  const int leg_nid = settings->getNameId("leg");
-  for (int i = 0; i < settings->blockCount(); ++i)
-    if (settings->getBlock(i)->getBlockNameId() == leg_nid)
-      legNames.emplace_back(settings->getBlock(i)->getStr("hip", ""));
+  for (int position : collect_block_positions_by_name(*settings, "leg"))
+    legNames.emplace_back(settings->getBlock(position)->getStr("hip", ""));
 
-  bool isEditable = !legNames.empty();
-  const DataBlock *defaultBlock = settings->getBlockByNameEx("leg");
   panel->createList(PID_CTRLS_NODES_LIST, "Legs", legNames, 0);
   panel->createButton(PID_CTRLS_NODES_LIST_ADD, "Add leg");
   panel->createButton(PID_CTRLS_NODES_LIST_REMOVE, "Remove", /*enabled*/ true, /*new_line*/ false);
-  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_HIP, "hip", defaultBlock->getStr("hip", ""), isEditable);
-  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_KNEE, "knee", defaultBlock->getStr("knee", ""), isEditable);
-  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_ANKLE, "ankle", defaultBlock->getStr("ankle", ""), isEditable);
-  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_TOE, "toe", defaultBlock->getStr("toe", ""), isEditable);
+  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_HIP, "hip");
+  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_KNEE, "knee");
+  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_ANKLE, "ankle");
+  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_TOE, "toe");
   panel->createEditFloat(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_THRESHOLD, "needLockParamThreshold",
-    defaultBlock->getReal("needLockParamThreshold", DEFAULT_NEED_LOCK_PARAM_THRESHOLD), isEditable);
-  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_NAME, "needLockParamName",
-    defaultBlock->getStr("needLockParamName", ""), isEditable);
+    DEFAULT_NEED_LOCK_PARAM_THRESHOLD);
+  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_NAME, "needLockParamName");
+  foot_locker_ik_set_selected_node_list_settings(panel, settings);
 }
 
 void foot_locker_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  if (listName.empty())
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  if (selectedIdx < 0)
     return;
 
-  DataBlock *selectedBlock = nullptr;
-  for (int i = 0; i < settings->blockCount(); ++i)
+  // By index, as Remove does: two legs can share a hip. An index past the leg blocks is a new entry from Add.
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "leg");
+  if (selectedIdx > positions.size())
   {
-    DataBlock *child = settings->getBlock(i);
-    if (listName == child->getStr("hip", nullptr))
-      selectedBlock = child;
+    logerr("footLockerIK <%s>: can't save new leg, save the new leg above it first", settings->getStr("name", ""));
+    return;
   }
+  DataBlock *selectedBlock = selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : nullptr;
+  const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
   const SimpleString hipValue = panel->getText(PID_CTRLS_FOOT_LOCKER_IK_HIP);
   const SimpleString kneeValue = panel->getText(PID_CTRLS_FOOT_LOCKER_IK_KNEE);
   const SimpleString ankleValue = panel->getText(PID_CTRLS_FOOT_LOCKER_IK_ANKLE);
   const SimpleString toeValue = panel->getText(PID_CTRLS_FOOT_LOCKER_IK_TOE);
   const float needLockParamThresholdValue = panel->getFloat(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_THRESHOLD);
   const SimpleString needLockParamNameValue = panel->getText(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_NAME);
+  if (hipValue.empty() || kneeValue.empty() || ankleValue.empty() || toeValue.empty())
+  {
+    logerr("footLockerIK <%s>: can't save leg with empty hip, knee, ankle or toe", settings->getStr("name", ""));
+    return;
+  }
   if (!selectedBlock)
     selectedBlock = settings->addNewBlock("leg");
 
@@ -128,22 +131,18 @@ void foot_locker_ik_save_block_settings(PropPanel::ContainerPropertyControl *pan
 
 void foot_locker_ik_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings)
 {
-  const SimpleString name = panel->getText(PID_CTRLS_NODES_LIST);
-  const DataBlock *selectedBlock = &DataBlock::emptyBlock;
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    const DataBlock *child = settings->getBlock(i);
-    if (name == child->getStr("hip", nullptr))
-      selectedBlock = child;
-  }
-  panel->setText(PID_CTRLS_FOOT_LOCKER_IK_HIP, name);
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "leg");
+  const DataBlock *selectedBlock =
+    selectedIdx >= 0 && selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : &DataBlock::emptyBlock;
+  panel->setText(PID_CTRLS_FOOT_LOCKER_IK_HIP, selectedBlock->getStr("hip", ""));
   panel->setText(PID_CTRLS_FOOT_LOCKER_IK_KNEE, selectedBlock->getStr("knee", ""));
   panel->setText(PID_CTRLS_FOOT_LOCKER_IK_ANKLE, selectedBlock->getStr("ankle", ""));
   panel->setText(PID_CTRLS_FOOT_LOCKER_IK_TOE, selectedBlock->getStr("toe", ""));
   panel->setFloat(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_THRESHOLD,
     selectedBlock->getReal("needLockParamThreshold", DEFAULT_NEED_LOCK_PARAM_THRESHOLD));
   panel->setText(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_NAME, selectedBlock->getStr("needLockParamName", ""));
-  bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
+  bool isEditable = selectedIdx >= 0;
   for (int i = PID_CTRLS_FOOT_LOCKER_IK_HIP; i <= PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_NAME; ++i)
     panel->setEnabledById(i, isEditable);
 }

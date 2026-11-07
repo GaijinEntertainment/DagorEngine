@@ -2,7 +2,10 @@ float4 sky_color = (0.1, 0.1, 0.1, 0);
 float4 from_sun_direction = (0.58, -0.58, 0.58, 0);
 float4 sun_color_0 = (0.8, 0.75, 0.7, 0);
 
-float4 tree_wind_anim_fade_params = (0, 1, 0, 0);
+float tree_wind_anim_distance = 0; // distance where the tree wind fades out, 0 = no fade
+float tree_wind_anim_fade_range = 0;
+float dagdp_wind_anim_distance = 0; // same for daGdp instances, which are small plants with a short draw range
+float dagdp_wind_anim_fade_range = 0;
 
 macro GLOBAL_CONSTS(stage)
   (stage) {

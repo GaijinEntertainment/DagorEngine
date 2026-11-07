@@ -10,6 +10,7 @@ shader screenspace_probes_draw_sequence
   cull_mode=none;
   z_test=false;
   z_write=false;
+  color_write=rgb;
 
   (vs) {
     screenspace_probes_draw_sequence_count@i1 = screenspace_probes_draw_sequence_count;

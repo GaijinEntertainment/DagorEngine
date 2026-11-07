@@ -4,7 +4,6 @@ return {
   TextInput = "TextInput"
   Slider = "Slider"
   Pannable = "Pannable"
-  Pannable2touch = "Pannable2touch"
   MoveResize = "MoveResize"
   ComboPopup = "ComboPopup"
   SmoothScrollStack = "SmoothScrollStack"

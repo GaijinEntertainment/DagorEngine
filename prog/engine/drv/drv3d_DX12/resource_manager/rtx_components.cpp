@@ -15,6 +15,14 @@
 
 namespace drv3d_dx12::resource_manager
 {
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+static void set_pool_residency_priority(D3DDevice *device, RayTraceAccelerationStructurePool *pool, D3D12_RESIDENCY_PRIORITY priority)
+{
+  ID3D12Pageable *pageable = pool->poolResource.Get();
+  DX12_CHECK_RESULT(device->SetResidencyPriority(1, &pageable, &priority));
+}
+#endif
+
 RaytraceAccelerationStructurePoolProvider::AccelerationStructurePoolResult drv3d_dx12::resource_manager::
   RaytraceAccelerationStructurePoolProvider::createAccelerationStructurePool(Device &device,
     const ::raytrace::AccelerationStructurePoolCreateInfo &info)
@@ -53,6 +61,10 @@ RaytraceAccelerationStructurePoolProvider::AccelerationStructurePoolResult drv3d
   {
     return dag::Unexpected{makeResourceCreationError(errorCode, info.sizeInBytes, ResourceHeapProperties{})};
   }
+
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+  set_pool_residency_priority(device.getDevice(), newPool.get(), PINNED_RESIDENCY_PRIORITY);
+#endif
 
   if (info.debugName) // info.debugName is not unique across pools, so the serial stays part of the D3D12 name.
   {
@@ -255,6 +267,12 @@ RaytraceAccelerationStructureObjectProvider::AccelerationStructureResult Raytrac
   if (!heap.pool)
     return unexpected_memory_allocation_error(E_FAIL);
 
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+  // A kept empty heap was parked at the default priority, see freeAccelStruct.
+  if (heap.takenSlotCount == 0 && heap.keepFramesLeft)
+    set_pool_residency_priority(device.getDevice(), heap.pool, PINNED_RESIDENCY_PRIORITY);
+#endif
+
   G_FAST_ASSERT(heap.freeSlots.test(slotIdx));
   heap.freeSlots.set(slotIdx, false);
   heap.takenSlotCount++;
@@ -273,7 +291,8 @@ RaytraceAccelerationStructureObjectProvider::AccelerationStructureResult Raytrac
   return result;
 }
 
-void RaytraceAccelerationStructureObjectProvider::freeAccelStruct(RaytraceAccelerationStructure *accelStruct)
+void RaytraceAccelerationStructureObjectProvider::freeAccelStruct([[maybe_unused]] D3DDevice *device,
+  RaytraceAccelerationStructure *accelStruct)
 {
   OSSpinlockScopedLock lock{rtasSpinlock};
 
@@ -300,6 +319,12 @@ void RaytraceAccelerationStructureObjectProvider::freeAccelStruct(RaytraceAccele
   if (emptyHeapKeepFrames)
   {
     heap.keepFramesLeft = emptyHeapKeepFrames;
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+    // Nothing reads a kept empty heap, so it goes first when the OS demotes. The shutdown and
+    // recovery walks pass no device, they destroy every pool right after.
+    if (device)
+      set_pool_residency_priority(device, heap.pool, D3D12_RESIDENCY_PRIORITY_NORMAL);
+#endif
     return;
   }
 
@@ -366,7 +391,7 @@ RaytraceAccelerationStructureObjectProvider::AccelerationStructureResult drv3d_d
           return structure;
         })
         .or_else([&, this](auto error) -> AccelerationStructureResult {
-          freeAccelStruct(structure);
+          freeAccelStruct(device.getDevice(), structure);
           return dag::Unexpected{error};
         });
     });

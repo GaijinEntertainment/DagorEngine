@@ -66,11 +66,6 @@ return {
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = Behaviors.TextArea preformatted=FMT_KEEP_SPACES}
         }
 
-        sText("preformatted=FMT_HIDE_ELLIPSIS")
-        {rendObj = ROBJ_FRAME size = const [hdpx(807),hdpx(107)] padding=hdpx(5)
-           children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = Behaviors.TextArea preformatted=FMT_HIDE_ELLIPSIS}
-        }
-
         sText("preformatted=FMT_NO_WRAP")
         {rendObj = ROBJ_FRAME size = const [hdpx(807),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = Behaviors.TextArea preformatted=FMT_NO_WRAP}

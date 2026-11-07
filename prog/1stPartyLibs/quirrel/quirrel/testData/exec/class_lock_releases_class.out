@@ -1,0 +1,5 @@
+Instance: true
+Manual lock: true
+Base class: true
+Failed lock: true (lock failed)
+Dropped base: 1 (true)

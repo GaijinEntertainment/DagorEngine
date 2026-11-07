@@ -3,6 +3,7 @@
 #include "structuresCommon.h"
 #include <runtime/runtime.h>
 #include <math/dag_frustum.h>
+#include <ctype.h>
 
 
 namespace dafg::visualization
@@ -1170,6 +1171,111 @@ static void print_blob_structured_impl(const ResourceSubtypeTag tag, void *data,
 void print_blob_structured(const ResourceSubtypeTag tag, void *data)
 {
   print_blob_structured_impl(tag, data, 0, dafg::Runtime::get().getTypeDb());
+}
+
+
+static float subsequence_score(const eastl::string_view search, const eastl::string_view string,
+  dag::Vector<eastl::pair<uint16_t, uint16_t>> &search_matches)
+{
+  constexpr float COMBO_MULTIPLIER = 1.5f;
+
+  if (search.size() > string.size())
+  {
+    search_matches.clear();
+    return 0.f;
+  }
+
+  float bestScore = 0.f;
+  float bestCombo = 1.f;
+  dag::Vector<eastl::pair<uint16_t, uint16_t>, framemem_allocator> bestMatches;
+  bestMatches.reserve(search.size());
+
+  float score = 0.f;
+  float combo = 1.f;
+  dag::Vector<eastl::pair<uint16_t, uint16_t>, framemem_allocator> matches;
+  matches.reserve(search.size());
+
+  for (size_t startPos = 0; startPos < string.size() - search.size() + 1; ++startPos)
+  {
+    score = 0.f;
+    combo = 1.f;
+    matches.clear();
+
+    size_t subIdx = 0;
+    for (size_t strIdx = startPos; subIdx < search.size() && strIdx < string.size(); ++strIdx)
+      if (tolower(static_cast<unsigned char>(search[subIdx])) == tolower(static_cast<unsigned char>(string[strIdx])))
+      {
+        if (combo == 1.f)
+          matches.push_back({static_cast<uint16_t>(strIdx), 0});
+
+        score += combo;
+        combo *= COMBO_MULTIPLIER;
+        ++matches.back().second;
+
+        ++subIdx;
+      }
+      else
+      {
+        combo = 1.f;
+      }
+
+    if (subIdx != search.size())
+      continue;
+
+    if (score > bestScore || score == bestScore && combo > bestCombo)
+    {
+      bestScore = score;
+      bestCombo = combo;
+      eastl::swap(bestMatches, matches);
+    }
+  }
+
+  search_matches = eastl::move(bestMatches);
+  return bestScore;
+}
+
+float fuzzy_search(const eastl::string_view search, const eastl::string_view primary_string, const eastl::string_view secondary_string,
+  dag::Vector<eastl::pair<uint16_t, uint16_t>> &primary_matches, dag::Vector<eastl::pair<uint16_t, uint16_t>> &secondary_matches)
+{
+  const float primaryScore = subsequence_score(search, primary_string, primary_matches);
+  const float secondaryScore = subsequence_score(search, secondary_string, secondary_matches);
+  return primaryScore * 2.f + secondaryScore;
+}
+
+ImVec2 draw_highlighted_text(const ImVec2 pos, const eastl::string_view text, const ImU32 normal_color, const ImU32 highlight_color,
+  const dag::Vector<eastl::pair<uint16_t, uint16_t>> &highlight_regions)
+{
+  ImDrawList *draw_list = ImGui::GetWindowDrawList();
+  ImFont *font = ImGui::GetFont();
+  const float font_size = ImGui::GetFontSize();
+  float x = pos.x;
+
+  size_t startPos = 0;
+  for (const auto [highlightStart, highlightSize] : highlight_regions)
+  {
+    const char *normal_begin = text.begin() + startPos;
+    const char *normal_end = text.begin() + highlightStart;
+    const char *highlight_begin = normal_end;
+    const char *highlight_end = highlight_begin + highlightSize;
+
+    if (highlight_end > text.end())
+      break;
+
+    draw_list->AddText(font, font_size, ImVec2(x, pos.y), normal_color, normal_begin, normal_end);
+    x += font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, normal_begin, normal_end).x;
+
+    draw_list->AddText(font, font_size, ImVec2(x, pos.y), highlight_color, highlight_begin, highlight_end);
+    x += font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, highlight_begin, highlight_end).x;
+
+    startPos = highlightStart + highlightSize;
+  }
+
+  const char *normal_begin = text.begin() + startPos;
+  const char *normal_end = text.end();
+  draw_list->AddText(font, font_size, ImVec2(x, pos.y), normal_color, normal_begin, normal_end);
+  x += font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, normal_begin, normal_end).x;
+
+  return ImVec2(x, pos.y);
 }
 
 } // namespace dafg::visualization

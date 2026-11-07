@@ -3,6 +3,14 @@ include "layered_inc.dshl"
 include "const_color_inc.dshl"
 include_optional "hmap_blend_use_inc.dshl"
 include "voxel_baking.dshl"
+include_optional "perlin_layered_parallax_shadow_defaults.dshl"
+
+define_macro_if_not_defined PARALLAX_SHADOW_AND_AO_VARIABLES()
+  static float4 parallax_height_influence_meters = (0.02, 0.01, 0.01, 0);
+  static float parallax_shadow_ray_length_meters = 0.08;
+  static float parallax_shadow_tolerance_meters = 0.005;
+  static float parallax_ao_ray_length_meters = 0.0031;
+endmacro
 
 define_macro_if_not_defined USE_HMAP_BLEND()
 endmacro
@@ -78,10 +86,7 @@ macro INIT_PERLIN_LAYERED_VAR()
   static float4 blend_normals = (0, 0, 0, -1);
   static float4 details_tile = (1, 1, 1, 0);
   static int use_local_transform_for_details = 0;
-  static float4 parallax_height_influence_meters = (0.02, 0.01, 0.01, 0);
-  static float parallax_shadow_ray_length_meters = 0.08;
-  static float parallax_shadow_tolerance_meters = 0.005;
-  static float parallax_ao_ray_length_meters = 0.0031;
+  PARALLAX_SHADOW_AND_AO_VARIABLES()
 
   static float4 bumpmap_scale_contrast = (0.0, 0.5, 1.0, 0.0); // (xyz: 0,1,2 layers scale, w: transition contrast)
   static float4 bumpmap_additional_params = (4, 1, 1, 1); // (slope scaling, sharpness, bumpmap weight, normalmap weight)
@@ -310,8 +315,8 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
     #elif VOXELIZE_ALBEDO_PASS
       void perlin_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
     #else
-      #ifdef FORCE_EARLY_DEPTH_STENCIL
-        FORCE_EARLY_DEPTH_STENCIL
+      #ifdef USE_EARLY_DEPTH_STENCIL
+        USE_EARLY_DEPTH_STENCIL
       #endif
       GBUFFER_OUTPUT perlin_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS
         ##if is_blending_hmap

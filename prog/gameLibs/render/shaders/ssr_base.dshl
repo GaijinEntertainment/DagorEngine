@@ -13,7 +13,6 @@ include "halfres_close_depth_with_normals.dshl"
 include "motion_vectors_type.dshl"
 include "ssr_common_use.dshl"
 include "ffx_sssr.dshl"
-include_optional "ssr_env_resolve.dshl"
 
 int ssr_quality = 1;
 interval ssr_quality : low<1, medium<2, high<3, highest;
@@ -30,10 +29,6 @@ float4 ssr_back_surface_fix_distance = (1, 2, 0, 0);
 
 float4 analytic_light_sphere_pos_r=(0,0,0,0);
 float4 analytic_light_sphere_color=(1,0,0,1);
-
-define_macro_if_not_defined SSR_ENV_RESOLVE(code)
-  dont_render;
-endmacro
 
 define_macro_if_not_defined GET_TRANSLUCENT_ALTERNATE_REFLECTIONS(code)
   hlsl(code) {
@@ -137,10 +132,6 @@ endmacro
 macro SSR_REPROJECTION(code)
   hlsl(code) {
     #define USE_PREV_DOWNSAMPLED_CLOSE_DEPTH 1
-
-    ##if prev_downsampled_normals != NULL
-      #define USE_PREV_DOWNSAMPLED_NORMALS 1
-    ##endif
   }
   //VIEW_VEC_OPTIMIZED(code)
   INIT_HERO_MATRIX(code)
@@ -181,6 +172,7 @@ macro SSR_COMMON(code)
   SSR_REPROJECTION(code)
   GET_PLANAR_REFLECTIONS(code)
   GET_BACK_SURFACE_REFLECTIONS(code)
+  SSR_BEHIND_DEPTH_HOOK(code)
   if(ssr_quality != low)
   {
     FFX_RAYMARCH(code)
@@ -225,6 +217,10 @@ endmacro
 
 macro SSR_DISOCCLUSION(code)
   hlsl(code) {
+    ##if prev_downsampled_normals != NULL
+      #define USE_PREV_DOWNSAMPLED_NORMALS 1
+    ##endif
+
     #include <smootherstep.hlsl>
     half get_ssr_disocclusion_weight_sample(half3 current_normal, half current_roughness, float2 historyUV, float prev_linear_depth, inout half4 historySample)
     {

@@ -52,17 +52,15 @@
     useRTReflection = input.pos.w >= rtwMinMax.x && input.pos.w <= rtwMinMax.y && SampleRTReflectionValidity(rttc) > 0;
     #endif
 
+    float3 skyReflection = 0.0;
+    float4 indoorRefl__localWeight = float4(0.0, 0.0, 0.0, 1.0);
     BRANCH
     if (!useRTReflection)
     {
     #if !defined(GLASS_USE_INDOOR_PROBES) || GLASS_USE_INDOOR_PROBES == 1
-      float4 indoorRefl__localWeight = use_indoor_probes(worldPos.xyz, worldNormal, reflectionVec, roughnessMip, dist);
-    #else
-      float4 indoorRefl__localWeight = float4(0.0, 0.0, 0.0, 1.0);
+      indoorRefl__localWeight = use_indoor_probes(worldPos.xyz, worldNormal, reflectionVec, roughnessMip, dist);
     #endif
-      reflectedEnvi = enviPanoramaScale
-                    * glass_sample_envi_probe(GET_SCREEN_POS(input.pos).xy, worldNormal, reflectionVec, roughnessMip, cameraToPoint).rgb
-                    * indoorRefl__localWeight.w + indoorRefl__localWeight.rgb;
+      skyReflection = enviPanoramaScale * glass_sample_envi_probe(GET_SCREEN_POS(input.pos).xy, worldNormal, reflectionVec, roughnessMip, cameraToPoint).rgb;
     }
 
     float enviBRDF = EnvBRDFApproxNonmetal(linearRoughness, NoV);
@@ -79,7 +77,7 @@
       #endif
 
       float noise = 0;//interleavedGradientNoise( screenpos.xy );
-      half3 giSpecular = reflectedEnvi;
+      half3 giSpecular = skyReflection;
 
       // GI still has to run because it also fills `ambient`, which is used outside the reflection path.
       // The giSpecular adjustments below are raster-only: when RT replaces reflectedEnvi later they would
@@ -98,7 +96,7 @@
                                         * indoorRefl__localWeight_blurred.w + indoorRefl__localWeight_blurred.rgb;
             const float maxAdjustment = 4; // Note could be capped further, but want it to match deferred_lighting
             float3 cappedAdjustment = min(maxAdjustment, (1e-3 + giSpecular)/(1e-3 + reflectedEnviBlurred));
-            giSpecular = lerp(giSpecular, reflectedEnvi * cappedAdjustment, 1 - linearRoughness*2);
+            giSpecular = lerp(giSpecular, skyReflection * cappedAdjustment, 1 - linearRoughness*2);
           }
         }
       }
@@ -112,9 +110,10 @@
         maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
         float adjustedMaxSpec = luminance(ambient) * maximumSpecValue;
         float specLum = luminance( giSpecular );
-        reflectedEnvi = giSpecular * (adjustedMaxSpec / max(1e-6,( adjustedMaxSpec + specLum )));
+        skyReflection = giSpecular * (adjustedMaxSpec / max(1e-6,( adjustedMaxSpec + specLum )));
       }
     #endif
+    reflectedEnvi = skyReflection * indoorRefl__localWeight.w + indoorRefl__localWeight.rgb;
 
     #if HAS_RT_GLASS_FUNCTIONS
     BRANCH

@@ -69,16 +69,6 @@ struct SystemInfo
       distance = cvt(distance, begin_distance, end_distance, 0.f, 1.f);
       return max(curve.sample(distance), 0.f);
     }
-    void apply(TMatrix &tm, float distance) const
-    {
-      if (!enabled)
-        return;
-
-      float scale = calcScale(distance);
-      tm.col[0] *= scale;
-      tm.col[1] *= scale;
-      tm.col[2] *= scale;
-    }
   } distanceScale;
 
   enum ValueType

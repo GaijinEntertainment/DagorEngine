@@ -1,0 +1,15 @@
+macro RT_LIGHT_DISK_POINT(code)
+  hlsl(code)
+  {
+    float3 light_disk_point(float3 light_pos, float3 receiver_pos, float2 uv, float radius)
+    {
+      float3 d = normalize(receiver_pos - light_pos);
+      float3 up = abs(d.y) < 0.99 ? float3(0, 1, 0) : float3(1, 0, 0);
+      float3 T = normalize(cross(up, d));
+      float3 B = cross(d, T);
+      float r = radius * sqrt(uv.x);
+      float a = 2 * PI * uv.y;
+      return light_pos + T * (r * cos(a)) + B * (r * sin(a));
+    }
+  }
+endmacro

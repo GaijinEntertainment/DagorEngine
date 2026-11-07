@@ -12,13 +12,14 @@ namespace levelprofiler
 {
 
 class ICopyProvider;
+class ILpTableExportSource;
 class LevelProfilerUI;
 
 enum class TextureColumn : int
 {
-  NONE = -1,
   NAME = 0,
   FORMAT,
+  QUALITY,
   WIDTH,
   HEIGHT,
   MIPS,
@@ -29,11 +30,11 @@ enum class TextureColumn : int
 
 enum class RiColumn : int
 {
-  NONE = -1,
   NAME = 0,
   COUNT_ON_MAP,
   BSPHERE_RAD,
   BBOX_RAD,
+  LOD_COUNT,
   PHYS_TRIS,
   TRACE_TRIS,
   BASE_COUNT // Number of static columns - must always be last
@@ -42,7 +43,6 @@ enum class RiColumn : int
 using ColumnIndex = int;
 inline constexpr ColumnIndex operator*(TextureColumn c) { return static_cast<ColumnIndex>(c); }
 inline constexpr ColumnIndex operator*(RiColumn c) { return static_cast<ColumnIndex>(c); }
-inline constexpr bool isValidColumn(ColumnIndex c) { return c >= 0; }
 
 static_assert(static_cast<int>(TextureColumn::BASE_COUNT) == static_cast<int>(TextureColumn::USAGE) + 1,
   "TextureColumn::BASE_COUNT must follow last data column");
@@ -72,6 +72,9 @@ public:
   virtual ~IDataCollector() = default;
   virtual void collect() = 0;
   virtual void clear() = 0;
+  // False while the source data is not safe to read; the profiler then skips the whole collect.
+  // A collector whose walk outlives collect() also checks it in continueCollect().
+  virtual bool canCollect() const { return true; }
 
   // A collector whose walk outlives collect() overrides these; the defaults describe a synchronous
   // one, already done when collect() returns. Driving, pausing and progress go through here, so
@@ -84,22 +87,14 @@ public:
   virtual float getCollectProgress() const { return 1.0f; }
 };
 
-class IFilter
-{
-public:
-  virtual ~IFilter() = default;
-  virtual bool pass(const void *item) const = 0;
-  virtual void reset() = 0;
-};
-
 class IProfilerModule
 {
 public:
   virtual ~IProfilerModule() = default;
   // init() only wires the module up. It runs at renderer creation, before any level is loaded,
   // so collecting here would just snapshot an empty world; the Collect Data button collects.
-  virtual void init() = 0;
-  virtual void shutdown() = 0;
+  virtual void init() {}
+  virtual void shutdown() {}
   virtual void drawUI() = 0;
 
   // Called on the tab modules when the data they display changed: once when collect replaces it,
@@ -109,6 +104,9 @@ public:
   virtual void onDataCollected() {}
 
   virtual ICopyProvider *getCopyProvider() { return nullptr; }
+
+  // The table that the Export button writes; nullptr when the tab has none.
+  virtual ILpTableExportSource *getExportSource() { return nullptr; }
 };
 
 struct ProfilerTab
@@ -123,27 +121,6 @@ enum class ExportFormat
 {
   CSV_File = 0,      // CSV file format
   Markdown_Table = 1 // Markdown table format
-};
-
-class ILevelProfiler
-{
-public:
-  virtual ~ILevelProfiler() = default;
-
-  virtual void init() = 0;
-  virtual void shutdown() = 0;
-
-  virtual void drawUI() = 0;
-
-  virtual void collectData() = 0;
-  virtual void clearData() = 0;
-
-  virtual void addTab(const char *name, IProfilerModule *module_ptr) = 0;
-  virtual int getTabCount() const = 0;
-  virtual ProfilerTab *getTab(int index) = 0;
-  virtual void renameTab(int index, const char *new_name) = 0;
-
-  static ILevelProfiler *getInstance();
 };
 
 } // namespace levelprofiler

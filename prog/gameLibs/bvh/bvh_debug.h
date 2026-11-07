@@ -25,6 +25,7 @@ enum class DebugMode
   IntersectionCount,
   Instances,
   NaN,
+  Emission,
   Lod,
   LruCollision,
   VoxelActivity

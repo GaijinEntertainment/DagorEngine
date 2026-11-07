@@ -7,6 +7,8 @@
 #include <math/integer/dag_IBBox3.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_patchTab.h>
+#include <ioSys/dag_dataBlock.h>
+#include <libTools/util/appDirRelativePath.h>
 
 namespace defaults
 {
@@ -19,12 +21,28 @@ static constexpr float voxelSize = -1;
 static constexpr float minVoxelSize = 0.001f;
 static constexpr int lodToBake = 0;
 static constexpr bool adjustMeshLodRanges = true;
+static constexpr float range = 0;        // maximum range, <=0 - automatic from billboard impostor or voxel size
+static constexpr int maxTotalLods = 6;   // still limited by maximum allowed as well
+static constexpr int maxVoxelLods = 999; // no limit by default
 } // namespace defaults
 
 namespace voxelcache
 {
 
-static constexpr char VOXEL_CACHE_NAME[] = "voxCache.bin";
+inline String make_cache_fname(const char *cache_path, const char *asset_name)
+{
+  return String(0, "%s/%s.voxcache.bin", cache_path, asset_name);
+}
+
+inline String get_cache_path(const DataBlock &appblk)
+{
+  const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
+  String cacheBase;
+  cacheBase.setStrCat(make_eff_app_relative_path(expblk.getStr("cache", "develop/.cache"), true), "voxels~baked");
+  dd_simplify_fname_c(cacheBase);
+  cacheBase.resize(strlen(cacheBase) + 1);
+  return cacheBase;
+}
 
 static constexpr uint32_t VERSION = 0x26071000;
 

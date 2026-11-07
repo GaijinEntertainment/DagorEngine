@@ -4,6 +4,7 @@ include "viewVecVS.dshl"
 include "bvh.dshl"
 include "rt_pipeline.dshl"
 include "rtsm_sun_dir.dshl"
+include "rt_light_disk.dshl"
 include "blue_noise.dshl"
 include "white_noise.dshl"
 include "bvh_common_includes.dshl"
@@ -15,17 +16,14 @@ float4x4 inv_proj_tm;
 float4 rt_shadow_resolution;
 int4 rt_shadow_resolutionI;
 
-texture combined_shadows;
 texture rtsm_value;
-texture rtsm_translucency;
-texture rtsm_denoised;
 
 texture denoiser_view_z;
 
 texture precomputed_dynamic_lights;
 
 int rtsm_render_mode;
-interval rtsm_render_mode: hard < 1, denoised < 2, denoised_translucent < 3, rr;
+interval rtsm_render_mode: denoised < 1, rr;
 
 interval rtsm_cull_back_face: no < 1, yes;
 assume_if_not_assumed rtsm_cull_back_face = no;
@@ -148,44 +146,11 @@ shader rt_shadows, rt_shadows_fill_high
     }
   }
 
-  if (rtsm_render_mode == hard)
-  {
-    hlsl(cs) {
-      #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
-    }
-    (cs) {
-      combined_shadows@uav = combined_shadows hlsl { RWTexture2D<float4> combined_shadows@uav; };
-    }
+  (cs) {
+    rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float> rtsm_value@uav; };
   }
-  else if (rtsm_render_mode == rr)
-  {
-    hlsl(cs) {
-      #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
-    }
-    (cs) {
-      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float> rtsm_value@uav; };
-    }
-  }
-  else if (rtsm_render_mode == denoised)
-  {
-    hlsl (cs) {
-      #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
-    }
-    (cs) {
-      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float> rtsm_value@uav; };
-      rtsm_denoised@uav = rtsm_denoised hlsl { RWTexture2D<float4> rtsm_denoised@uav; };
-    }
-  }
-  else if (rtsm_render_mode == denoised_translucent)
-  {
-    (cs) {
-      rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float> rtsm_value@uav; };
-      rtsm_translucency@uav = rtsm_translucency hlsl { RWTexture2D<float4> rtsm_translucency@uav; };
-      rtsm_denoised@uav = rtsm_denoised hlsl { RWTexture2D<float4> rtsm_denoised@uav; };
-    }
-  }
-
   hlsl(cs) {
+    #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
     #define DISABLE_TOONSHADING 1
 
     #include <NRD.hlsli>
@@ -265,15 +230,8 @@ shader rt_shadows, rt_shadows_fill_high
     {
       ##if rtsm_render_mode == rr
         texture2DAt(rtsm_value, dtid) = 1;
-      ##elif rtsm_render_mode == hard
-        texture2DAt(combined_shadows, dtid) = float4(1, 1, 1, 1);
       ##else
-        ##if rtsm_render_mode == denoised
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(NRD_FP16_MAX, sol_radial_angle);
-        ##else
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(NRD_FP16_MAX, sol_radial_angle);
-          texture2DAt(rtsm_translucency, dtid) = SIGMA_FrontEnd_PackTranslucency(NRD_FP16_MAX, 1);
-        ##endif
+        texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(NRD_FP16_MAX, sol_radial_angle);
       ##endif
     }
 
@@ -312,9 +270,7 @@ shader rt_shadows, rt_shadows_fill_high
       BRANCH
       if (rawDepth <= 0 || !bvhMainValid)
       {
-        ##if rtsm_render_mode != hard
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(NRD_FP16_MAX, solRadialAngle);
-        ##endif
+        texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(NRD_FP16_MAX, solRadialAngle);
         return;
       }
 
@@ -340,21 +296,17 @@ shader rt_shadows, rt_shadows_fill_high
       #endif
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
-      float underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos);
+      float underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos, gbuffer.dynamic);
 
       BRANCH
       if (underwaterFade == 0)
       {
         write_no_shadow(dtid, viewDepth, solRadialAngle);
-        ##if rtsm_render_mode != rr && rtsm_render_mode != hard && denoiser_view_z != NULL
+        ##if rtsm_render_mode != rr && denoiser_view_z != NULL
           texture2DAt(viewZTexture, dtid) = INF;
-          texture2DAt(rtsm_denoised, dtid) = 1;
-          ##if rtsm_quality != full_res && rtsm_render_mode == denoised
-            if (dtid.x < resolution.x - 1)
-            {
+          ##if rtsm_quality != full_res
+            if (dtid.x < resolution.x - 1 && !unpackGbuffer(loadPackedGbuffer(dtid + uint2(1, 0))).dynamic)
               texture2DAt(viewZTexture, dtid + uint2(1, 0)) = INF;
-              texture2DAt(rtsm_denoised, dtid + uint2(1, 0)) = 1;
-            }
           ##endif
         ##endif
         return;
@@ -365,7 +317,6 @@ shader rt_shadows, rt_shadows_fill_high
       relPos += impostor_shadow_offset * gbuffer.impostorMask * sun_dir_for_shadows;
 
       ##if rtsm_has_nuke == yes
-        half nukeFade = 1;
         {
           float3 nukeBvhPos = nuke_pos_wave.xyz - bvh_origin;
           float nukeDistance = length(nukeBvhPos - relPos);
@@ -376,16 +327,10 @@ shader rt_shadows, rt_shadows_fill_high
             write_no_shadow(dtid, viewDepth, solRadialAngle);
             return;
           }
-
-          ##if rtsm_render_mode == denoised_translucent
-            nukeFade = half(saturate(waveDistance / 50));
-          ##endif
         }
       ##endif
 
-      ##if rtsm_render_mode == hard
-        float3 direction = -sun_dir_for_shadows;
-      ##elif rtsm_render_mode == rr
+      ##if rtsm_render_mode == rr
         float2 rnd = GetWhiteNoise(dtid, frame_index);
         float3 direction = get_sun_direction(rnd);
       ##else
@@ -410,15 +355,8 @@ shader rt_shadows, rt_shadows_fill_high
       {
         ##if rtsm_render_mode == rr
           texture2DAt(rtsm_value, dtid) = 0;
-        ##elif rtsm_render_mode == hard
-          texture2DAt(combined_shadows, dtid) = float4(0, 0, 0, 1);
         ##else
-          ##if rtsm_render_mode == denoised
-            texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(0, solRadialAngle);
-          ##else
-            texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(0, solRadialAngle);
-            texture2DAt(rtsm_translucency, dtid) = SIGMA_FrontEnd_PackTranslucency(0, 1);
-          ##endif
+          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(0, solRadialAngle);
         ##endif
         return;
       }
@@ -539,20 +477,8 @@ shader rt_shadows, rt_shadows_fill_high
 
       ##if rtsm_render_mode == rr
         texture2DAt(rtsm_value, dtid) = isHit ? 0 : 1;
-      ##elif rtsm_render_mode == hard
-        texture2DAt(combined_shadows, dtid) = float4((isHit ? 0 : 1).xxx, 1);
       ##else
-        ##if rtsm_render_mode == denoised
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(isHit ? hitDistance : NRD_FP16_MAX, solRadialAngle);
-        ##else
-          ##if rtsm_has_nuke == yes
-            rayColor = lerp(1.h, rayColor, nukeFade);
-          ##endif
-
-          float hitT = isHit ? hitDistance : any(rayColor < 1.h) ? translucentT : NRD_FP16_MAX;
-          texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(hitT, solRadialAngle);
-          texture2DAt(rtsm_translucency, dtid) = SIGMA_FrontEnd_PackTranslucency(hitT, rayColor);
-        ##endif
+        texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(isHit ? hitDistance : NRD_FP16_MAX, solRadialAngle);
       ##endif
     }
 
@@ -738,6 +664,8 @@ shader rt_direct_lights
     }
   }
 
+  RT_LIGHT_DISK_POINT(cs)
+
   hlsl(cs) {
     #define DISABLE_TOONSHADING 1
     #define OMNI_CONTACT_SHADOWS 0
@@ -797,19 +725,6 @@ shader rt_direct_lights
     float noise(float2 n) {
       return frac(sin(dot(n, float2(12.9898, 4.1414))) * 43758.5453);
     }
-    float3 uniform_sphere_surface_sample(float2 rand)
-    {
-      float a = 2*PI*rand.x;
-      float cosb = 1-2*rand.y;
-      float sinb = sqrt(1-cosb*cosb);
-      return float3(cos(a)*sinb, sin(a)*sinb, cosb);
-    }
-    float3 uniform_sphere_volume_sample(float3 rand)
-    {
-      float3 dir = uniform_sphere_surface_sample(rand.xy);
-      float r = pow(rand.z, 1.0 / 3.0);
-      return dir * r;
-    }
 
     void shadow_callback(inout half3 result, float3 light_direction, ShadowContext context, float shadow_frustum_offset)
     {
@@ -832,10 +747,9 @@ shader rt_direct_lights
       if (soft_shadows)
       {
         float3 worldPosFrac = frac(context.relPos + world_view_pos);
-        float3 rand = float3(noise(worldPosFrac.xy+worldPosFrac.z+(context.screenpos.xy + frame_index%32)/512),
-                             noise(worldPosFrac.yz+worldPosFrac.x+(context.screenpos.yx - frame_index%32)/512),
-                             noise(worldPosFrac.zx+worldPosFrac.y+(context.screenpos.x+context.screenpos.y)/1024));
-        light_direction += uniform_sphere_volume_sample(rand) * light_radius;
+        float2 rand = float2(noise(worldPosFrac.xy+worldPosFrac.z+(context.screenpos.xy + frame_index%32)/512),
+                             noise(worldPosFrac.yz+worldPosFrac.x+(context.screenpos.yx - frame_index%32)/512));
+        light_direction = light_disk_point(light_direction, 0, rand, light_radius);
         rayLength = length(light_direction) - shadow_frustum_offset;
         normalizedDir = light_direction / rayLength;
       }
@@ -855,7 +769,7 @@ shader rt_direct_lights
           groupMask &= ~bvhGroupGunBarrel;
       ##endif
 
-      bool isObstructed = is_obstructed(bvhMain, context.relPos, normalizedDir, context.minT, rayLength, context.w, groupMask);
+      bool isObstructed = is_obstructed(bvhMain, context.relPos, normalizedDir, context.minT, rayLength, context.w, groupMask, 0, true);
       if (isObstructed)
         result = 0;
     }
@@ -888,7 +802,7 @@ shader rt_direct_lights
         return;
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
-      float underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos);
+      float underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos, gbuffer.dynamic);
 
       BRANCH
       if (underwaterFade == 0)
@@ -952,7 +866,7 @@ shader rt_direct_lights
         if (any(bigLightResult > 0.001) && !is_in_nuke_range(context.relPos))
         {
           float3 lightDirection = big_light_pos_rad_0.xyz - worldPos.xyz;
-          bigLightResult *= is_obstructed(bvhMain, context.relPos, normalize(lightDirection), context.minT, length(lightDirection), context.w, context.groupMask) ? 0 : 1;
+          bigLightResult *= is_obstructed(bvhMain, context.relPos, normalize(lightDirection), context.minT, length(lightDirection), context.w, context.groupMask, 0, true) ? 0 : 1;
         }
         result += bigLightResult;
       }
@@ -964,7 +878,7 @@ shader rt_direct_lights
         if (any(bigLightResult > 0.001) && !is_in_nuke_range(context.relPos))
         {
           float3 lightDirection = big_light_pos_rad_1.xyz - worldPos.xyz;
-          bigLightResult *= is_obstructed(bvhMain, context.relPos, normalize(lightDirection), context.minT, length(lightDirection), context.w, context.groupMask) ? 0 : 1;
+          bigLightResult *= is_obstructed(bvhMain, context.relPos, normalize(lightDirection), context.minT, length(lightDirection), context.w, context.groupMask, 0, true) ? 0 : 1;
         }
         result += bigLightResult;
       }

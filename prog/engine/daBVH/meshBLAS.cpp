@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-// constraint: own TU, so a target that never builds a BLAS links none of it
+// own TU, so a target that never builds a BLAS links none of it
 
 #include <daBVH/dag_meshBLAS.h>
 #include <daBVH/dag_bvhBuild.h>

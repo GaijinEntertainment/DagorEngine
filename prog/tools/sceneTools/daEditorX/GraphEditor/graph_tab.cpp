@@ -6,6 +6,7 @@
 #include "graph_document.h"
 #include "graph_edge_render.h"
 #include "graph_node_render.h"
+#include "graph_open_subgraphs.h"
 #include "graph_panel.h"
 #include "graph_pin_colors.h"
 #include "graph_subgraph_window.h"
@@ -15,10 +16,12 @@
 #include "plugin.h"
 #include "pluginService/graph_tex_gen_service.h"
 
+#include <drv/3d/dag_commands.h>
 #include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_interface.h>
 #include <libTools/util/undo.h>
 #include <oldEditor/de_cm.h>
+#include <osApiWrappers/dag_direct.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <EASTL/algorithm.h>
@@ -53,6 +56,8 @@ constexpr float DUPLICATE_OFFSET = 24.0f;
 constexpr float ADD_NODE_DROP_FORWARD = 80.0f;
 constexpr float ADD_NODE_DROP_DOWN = 140.0f;
 constexpr float ADD_NODE_DROP_UP = 140.0f;
+// Screen px the pin-less picker's ghost keeps from the canvas edges, as far in as the floating toolbar.
+constexpr int ADD_NODE_CORNER_INSET = 8;
 
 constexpr const char *TRANSIT_ARMED_HINT = "Hover over a pin / edge to activate Transit mode.";
 constexpr int TRANSIT_GHOST_EDGE_WIDTH = 2;
@@ -89,6 +94,7 @@ void initEditorConfig(ne::Config &cfg)
   cfg.ContainGroupedNodesByCenter = true;
   cfg.DrawSelectionRectOnTop = true;
   cfg.NavigateButtonIndex = ImGuiMouseButton_Middle;
+  cfg.CanvasSizeMode = ne::CanvasSizeMode::CenterOnly; // the default mode rescales the zoom on a resize
 
   for (float z : GRAPH_EDITOR_ZOOM_LEVELS)
   {
@@ -366,6 +372,39 @@ void insert_or_append(eastl::vector<T> &list, int index, T item)
   const bool inside = index >= 0 && index < static_cast<int>(list.size());
   list.insert(inside ? list.begin() + index : list.end(), eastl::move(item));
 }
+
+// The canvas is built only inside the render service's UI build, which holds the GPU lock exactly once (a nested
+// hold stays locked through the release); the canvas needs no lock itself, so the texgen worker can use the GPU meanwhile.
+class GpuLockReleasedScope
+{
+public:
+  GpuLockReleasedScope() { d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP); }
+  ~GpuLockReleasedScope() { d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP); }
+  GpuLockReleasedScope(const GpuLockReleasedScope &) = delete;
+  GpuLockReleasedScope &operator=(const GpuLockReleasedScope &) = delete;
+};
+
+// fn(node_id, is_error, text) for each compile and texgen message, by the node id the canvas shows.
+template <class Fn>
+void for_each_node_message(const GraphDocument &doc, const eastl::vector<TexGenNodeMessages> *texgen_messages, Fn &&fn)
+{
+  for (const CompileNodeIssue &issue : doc.getCompileNodeIssues())
+  {
+    fn(issue.nodeId, issue.error, issue.text.c_str());
+  }
+  if (!texgen_messages)
+  {
+    return;
+  }
+  for (const TexGenNodeMessages &m : *texgen_messages)
+  {
+    const int shownId = doc.blockNodeId(m.nodeName.c_str());
+    if (shownId >= 0)
+    {
+      fn(shownId, m.hasErrors, m.text.c_str());
+    }
+  }
+}
 } // namespace
 
 GraphTab::GraphTab(GraphEditorPlg &plg, int tab_id, GraphTab *root, SubgraphWindow *host) :
@@ -377,7 +416,6 @@ GraphTab::GraphTab(GraphEditorPlg &plg, int tab_id, GraphTab *root, SubgraphWind
   rootTab(root ? root : this),
   hostWindow(host)
 {
-  seenDescriptorGeneration = plugin.getSubgraphDescriptorGeneration();
   resetEditor();
 }
 
@@ -408,8 +446,17 @@ void GraphTab::onDeactivated()
   contextMenu.close();
   if (edgeReconnect.isActive())
   {
-    doc.recordReconnectEdge(reconnectRemovedEdge, reconnectRemovedEdgeIndex, nullptr); // the Escape outcome: the edge stays dropped
+    // Ended before the record: its live pin pass skips a canvas mid-reroute.
     edgeReconnect.cancel();
+    if (plugin.getGraphPanel().isApplyingSurfaceMove())
+    {
+      // A record now would drop the redo of the undo being applied: the edge goes back unrecorded.
+      addEdge(reconnectRemovedEdge, reconnectRemovedEdgeIndex);
+    }
+    else
+    {
+      doc.recordReconnectEdge(reconnectRemovedEdge, reconnectRemovedEdgeIndex, nullptr); // the Escape outcome: the edge stays dropped
+    }
   }
   linkDrop = LinkDropOnCanvas();
   transitArmed = false;
@@ -441,13 +488,42 @@ eastl::string GraphTab::getPathOrName() const
   return path.empty() ? getName() : path;
 }
 
-bool GraphTab::isModified() const
+bool GraphTab::isModified() const { return !EDITORCORE->getUndoSystem()->is_at_save_point(undoToken); }
+
+void GraphTab::markSaved() { EDITORCORE->getUndoSystem()->set_save_point(undoToken); }
+
+void *GraphTab::undoTokenFor(const char *path)
 {
-  // The tab is its own undo owner token, which the undo system compares and never dereferences.
-  return !EDITORCORE->getUndoSystem()->is_at_save_point(const_cast<GraphTab *>(this));
+  // The first token has no entry until the tab leaves it.
+  undoTokenPaths[undoToken] = graphData.sourcePath;
+  for (const auto &kv : undoTokenPaths)
+  {
+    if (kv.first != undoToken && dd_fname_equal(kv.second.c_str(), path))
+    {
+      return kv.first;
+    }
+  }
+  addedUndoTokens.push_back(eastl::make_unique<char>());
+  void *const token = addedUndoTokens.back().get();
+  undoTokenPaths[token] = path;
+  return token;
 }
 
-void GraphTab::markSaved() { EDITORCORE->getUndoSystem()->set_save_point(this); }
+bool GraphTab::hasUndoToken(const void *token) const
+{
+  return token == this || eastl::any_of(addedUndoTokens.begin(), addedUndoTokens.end(),
+                            [token](const eastl::unique_ptr<char> &t) { return t.get() == token; });
+}
+
+void GraphTab::dropUndoOps()
+{
+  UndoSystem *undo = EDITORCORE->getUndoSystem();
+  undo->remove_ops_by_owner(this);
+  for (const eastl::unique_ptr<char> &t : addedUndoTokens)
+  {
+    undo->remove_ops_by_owner(t.get());
+  }
+}
 
 void GraphTab::resetEditor()
 {
@@ -467,6 +543,7 @@ void GraphTab::onGraphDataChanged()
   resetEditor();
 
   navigationFramesLeft = 5;
+  loadFitsSelection = false;
   canvasCull.markDirty();
 
   // Clear any stale selection -- the previous graph's selected node id is meaningless
@@ -487,6 +564,7 @@ void GraphTab::onGraphDataChanged()
   pendingSelection = GraphSelection();
   hasPendingSelection = false;
   suppressSelectionRecord = true;
+  focusNodeIds.clear();
 
   // Every loaded node needs its position pushed to ne::SetNodePosition once on first render.
   pendingPositionIds.clear();
@@ -520,17 +598,22 @@ void GraphTab::markPositionsPending(const eastl::vector<int> &node_ids)
   canvasCull.markDirty();
 }
 
-void GraphTab::markBlockSizesChanged() { canvasCull.markDirty(); }
+void GraphTab::markNodeBoundsChanged() { canvasCull.markDirty(); }
 
-int GraphTab::allocateNodeId() const
+bool GraphTab::recordLivePins(const OpenSubgraphs &open)
 {
-  int maxId = -1;
-  for (const GraphData::Node &n : graphData.nodes)
+  if (edgeReconnect.isActive() ||
+      (seenInterfaceGeneration == open.getInterfaceGeneration() && liveCheckedRevision == doc.getStructureRevision()))
   {
-    maxId = eastl::max(maxId, n.id);
+    return false;
   }
-  return maxId + 1;
+  seenInterfaceGeneration = open.getInterfaceGeneration();
+  const bool changed = doc.recordLiveInstancePins(open);
+  liveCheckedRevision = doc.getStructureRevision();
+  return changed;
 }
+
+int GraphTab::allocateNodeId() const { return doc.maxNodeId() + 1; }
 
 bool GraphTab::isBaseNodeDropTargetHot() const { return dropTargetHotFrame == ImGui::GetFrameCount(); }
 
@@ -653,16 +736,17 @@ void GraphTab::collectNodesInsideBlock(int block_node_id, eastl::vector<int> &ou
   }
 }
 
+void GraphTab::dropPendingActions()
+{
+  pendingCommentNodeId = -1;
+  pendingCommentPinIndex = -1;
+  pendingNodeDeletes.clear();
+  pendingCreateSubgraphIds.clear();
+  pendingOpenSubgraphStem.clear();
+}
+
 void GraphTab::actObjects([[maybe_unused]] float dt)
 {
-  // After stampUndoOwner, so the entry is this tab's; waits out a reroute, whose edge may name an instance.
-  const uint32_t descriptorGeneration = plugin.getSubgraphDescriptorGeneration();
-  if (seenDescriptorGeneration != descriptorGeneration && !edgeReconnect.isActive())
-  {
-    doc.resyncSubgraphInstances(seenDescriptorGeneration);
-    seenDescriptorGeneration = descriptorGeneration;
-  }
-
   if (!pendingCreateSubgraphIds.empty())
   {
     eastl::vector<int> nodeIds;
@@ -1165,6 +1249,12 @@ void GraphTab::openAddNodePopupAtPin(int node_id, int pin_index, const ImVec2 &c
   addNodePopup.openAt(graphData, plugin, node_id, pin_index, drop, canvas_min, canvas_max, splice, /*anchor_edge=*/-1);
 }
 
+void GraphTab::openPinlessAddNodePopup(const ImVec2 &drop_canvas, const ImVec2 &canvas_min, const ImVec2 &canvas_max)
+{
+  addNodePopup.openAt(graphData, plugin, /*source_node=*/-1, /*source_pin=*/-1, drop_canvas, canvas_min, canvas_max,
+    /*splice_into_connections=*/false, /*anchor_edge=*/-1);
+}
+
 ImVec2 GraphTab::spawnPosForDrop(const ImVec2 &drop_canvas, bool source_is_output, const ImVec2 &canvas_min,
   const ImVec2 &canvas_max) const
 {
@@ -1550,6 +1640,8 @@ void GraphTab::applyPendingMenuAction(const ImVec2 &canvas_min, const ImVec2 &ca
         /*splice=*/false);
       break;
 
+    case GraphContextMenu::Action::AddNodeAtPoint: openPinlessAddNodePopup(contextMenuCanvasPos, canvas_min, canvas_max); break;
+
     case GraphContextMenu::Action::AddTransitNode:
       openAddNodePopupAtPin(act.targetNode, act.targetPin, canvas_min, canvas_max, /*splice=*/true);
       break;
@@ -1624,8 +1716,10 @@ void GraphTab::applyPendingMenuAction(const ImVec2 &canvas_min, const ImVec2 &ca
   }
 }
 
-void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
+void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max,
+  const eastl::vector<TexGenNodeMessages> *texgen_node_messages)
 {
+  const GpuLockReleasedScope gpuLockReleased;
   ne::SetCurrentEditor(editor);
 
   // Framing requests are captured here but the actual ne::NavigateTo* runs at end-of-frame (after
@@ -1635,6 +1729,10 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
   // bounds and no-op. Deferring + forcing a full render this frame (forceAllVisible) fixes that.
   const bool fitSelectionReq = frameSelectedRequested;
   frameSelectedRequested = false;
+  const eastl::vector<int> focusIds = eastl::move(focusNodeIds);
+  focusNodeIds.clear();
+  const bool createSubgraphReq = subgraphFromSelectionRequested;
+  subgraphFromSelectionRequested = false;
   bool fitContentReq = false;
   bool showNextReq = false;
 
@@ -1686,7 +1784,7 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
     {
       requestExplodeSelected();
     }
-    if (shortcut_fired(CANVAS_CREATE_SUBGRAPH))
+    if (shortcut_fired(CANVAS_CREATE_SUBGRAPH) || createSubgraphReq)
     {
       requestCreateSubgraph();
     }
@@ -1773,6 +1871,11 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
         // Nothing here to splice into, so the gesture waits for a target instead of dying.
         transitArmed = true;
       }
+      else
+      {
+        // Nothing here to wire to, so the node comes unconnected, where the cursor is.
+        openPinlessAddNodePopup(ne::ScreenToCanvas(ImGui::GetMousePos()), canvas_min, canvas_max);
+      }
     }
     if (shortcut_fired(CANVAS_COMMENT_PIN) && pinCommandsLive)
     {
@@ -1821,8 +1924,6 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
 
   canvasCull.update(graphData, canvas_min, canvas_max, forceAllVisible, pendingPositionIds);
 
-  dragCollision.update(graphData, canvasCull);
-
   const float invZoom = ne::GetCurrentZoom();
   const bool zoomLod = invZoom > 0.0f && (1.0f / invZoom) <= LOD_SCALE;
 
@@ -1834,8 +1935,17 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
                                   : transitTargetNode >= 0 ? make_pin_id(transitTargetNode, transitTargetPin)
                                                            : 0;
 
+  eastl::hash_map<int, NodeIssue> nodeIssues;
+  for_each_node_message(doc, texgen_node_messages, [&nodeIssues](int node_id, bool error, const char *) {
+    NodeIssue &issue = nodeIssues[node_id]; // a new entry is a warning
+    if (error)
+    {
+      issue = NodeIssue::Error;
+    }
+  });
+
   eastl::string hoverTooltip;
-  GraphNodeFrame nodeFrame(graphData, linkedPins, livePins, resolutions, pinJumpMenu, edgeReconnect, hoverTooltip,
+  GraphNodeFrame nodeFrame(graphData, linkedPins, livePins, resolutions, nodeIssues, pinJumpMenu, edgeReconnect, hoverTooltip,
     ne::GetHoveredNode().Get(), previewNodeId, highlightPinId);
 
   const int nodeCount = static_cast<int>(graphData.nodes.size());
@@ -1888,6 +1998,16 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
     // the aim fields are read under the first of those, which it sets only where it writes them.
     linkDrop.spawnRequested = false;
   }
+  if (addNodeAtCornerRequested)
+  {
+    addNodeAtCornerRequested = false;
+    // The ghost body's top-left goes to the corner; the drop point it hangs off sits left of it.
+    const float inset = static_cast<float>(hdpi::_pxS(ADD_NODE_CORNER_INSET));
+    const ImVec2 bodyAt(eastl::max(canvas_min.x + inset, addNodeCorner.x), eastl::max(canvas_min.y + inset, addNodeCorner.y));
+    ImVec2 bodyMin, bodyMax;
+    add_node_ghost_body_box(/*source_is_output=*/true, bodyMin, bodyMax);
+    openPinlessAddNodePopup(ne::ScreenToCanvas(ImVec2(bodyAt.x - bodyMin.x, bodyAt.y - bodyMin.y)), canvas_min, canvas_max);
+  }
 
   // Link / node deletion. Both propagate into graphData; node deletes cascade-remove the
   // edges that referenced them (see removeNodeById) before erasing the node itself. Items
@@ -1937,6 +2057,16 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
   // Deferred framing (requests captured at the top of updateCanvas). Runs here, after the node loop,
   // so the nodes the fit measures were drawn live this frame -- forceAllVisible guaranteed a full
   // render on any frame one of these is set.
+  if (!focusIds.empty())
+  {
+    // After the node loop: ne ignores SelectNode on a node it has not drawn yet.
+    ne::ClearSelection();
+    for (int id : focusIds)
+    {
+      ne::SelectNode(ne::NodeId(make_node_id(id)), /*append=*/true);
+    }
+    loadFitsSelection = navigationFramesLeft > 0;
+  }
   if (showNextReq)
   {
     showNextSelectedNode();
@@ -1955,7 +2085,14 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
   // view rect (imgui_node_editor.cpp:1212). Retrying a few frames lets the fit settle.
   if (navigationFramesLeft > 0)
   {
-    ne::NavigateToContent(0.0f);
+    if (loadFitsSelection)
+    {
+      ne::NavigateToSelection(/*zoomIn=*/true, 0.0f);
+    }
+    else
+    {
+      ne::NavigateToContent(0.0f);
+    }
     --navigationFramesLeft;
   }
 
@@ -1981,12 +2118,24 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
 
   // Canvas-local for the reason the reconnect preview above gives. It has to take over the moment the
   // button comes up: ne stops drawing its white link then, and the popup opens a frame later.
-  if (aimFromPopup || (linkDrop.overEmptyCanvas && !ImGui::IsMouseDown(ImGuiMouseButton_Left)))
+  // The pin-less picker has no pin to hang a wire from.
+  if (aimNode >= 0 && (aimFromPopup || (linkDrop.overEmptyCanvas && !ImGui::IsMouseDown(ImGuiMouseButton_Left))))
   {
     const ImVec2 pinCanvas = ne::GetPinPosition(ne::PinId(make_pin_id(aimNode, aimPin)));
     draw_dangling_link(ImGui::GetWindowDrawList(), pinCanvas, aimDropCanvas, aimIsOutput, GRAPH_PENDING_LINK_COLOR, edgeThickness);
   }
 
+  // A label or icon hint under the cursor is about that spot, so it wins over the node's messages.
+  const int hoveredNodeId = decode_node_id(nodeFrame.hoveredNeNodeId);
+  if (hoverTooltip.empty() && nodeIssues.count(hoveredNodeId) != 0)
+  {
+    for_each_node_message(doc, texgen_node_messages, [&](int node_id, bool, const char *text) {
+      if (node_id == hoveredNodeId)
+      {
+        hoverTooltip.append(hoverTooltip.empty() ? "" : "\n").append(text);
+      }
+    });
+  }
   if (!hoverTooltip.empty())
   {
     ne::Suspend();
@@ -2033,6 +2182,7 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
     const ImVec2 dropCanvas = addNodePopup.dropCanvasPos();
     const bool splice = addNodePopup.splicesIntoConnections();
     const int anchorEdge = addNodePopup.anchorEdgeId();
+    const bool sourceIsOutput = addNodePopup.sourceIsOutput(); // read before draw: a pick closes the popup, which clears it
     eastl::string pickedUid;
     ne::Suspend();
     const bool picked = addNodePopup.draw(graphData, canvas_min, canvas_max, pickedUid);
@@ -2040,10 +2190,12 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
     if (picked)
     {
       // openAt clamped dropCanvas already, so this is the offset half only.
-      const ImVec2 spawnPos = spawn_pos_for_clamped_drop(dropCanvas, addNodePopup.sourceIsOutput());
+      const ImVec2 spawnPos = spawn_pos_for_clamped_drop(dropCanvas, sourceIsOutput);
       // The spawn goes to the focused surface, and the right-click that opened this popup did not move the focus.
       plugin.getGraphPanel().focusSurface(getRootTab(), getHostWindow());
-      const int newId = plugin.spawnBaseNodeWired(pickedUid.c_str(), spawnPos.x, spawnPos.y, srcNode, srcPin, splice, anchorEdge);
+      const int newId = srcNode >= 0
+                          ? plugin.spawnBaseNodeWired(pickedUid.c_str(), spawnPos.x, spawnPos.y, srcNode, srcPin, splice, anchorEdge)
+                          : plugin.spawnBaseNode(pickedUid.c_str(), spawnPos.x, spawnPos.y);
       if (newId >= 0)
       {
         // ne has never seen this id and SelectNode no-ops on an unknown one, so this is what makes
@@ -2085,7 +2237,7 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
   // live position and never writes it back) and blocks whose size changed (captured by syncBlockSizes).
   // A corner resize changes both for the same block, so one entry lets a single Ctrl+Z restore position
   // and size together. Must run while ne is current.
-  // constraint: ne truncates the positions it stores, so a move is measured from its press positions, never graphData.
+  // ne truncates the positions it stores, so a move is measured from its press positions, never graphData.
   if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
   {
     pressPositions.clear();
@@ -2102,7 +2254,7 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
       }
     }
   }
-  // constraint: ne starts a node drag at 1 px, below ImGui's default drag threshold.
+  // ne starts a node drag at 1 px, below ImGui's default drag threshold.
   const bool dragged = !pressPositions.empty() && ImGui::IsMouseDragPastThreshold(ImGuiMouseButton_Left, 1.0f);
   if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && (dragged || !blockResizeOld.empty()))
   {
@@ -2319,8 +2471,8 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
     }
     if (resolved)
     {
+      edgeReconnect.cancel(); // before the record, as in onDeactivated
       doc.recordReconnectEdge(reconnectRemovedEdge, reconnectRemovedEdgeIndex, addedEdge);
-      edgeReconnect.cancel();
     }
   }
 
@@ -2341,18 +2493,19 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
     hintEdgeId = hovered_edge_source_pin(graphData, hintNode, hintPinIndex);
   }
   const bool edgeSourceHovered = hintEdgeId >= 0;
+  const bool canvasKeysLive = !addNodePopup.isOpen();
   GraphHotkeyContext hotkeyContext;
   hotkeyContext.pinJumpAvailable = pinCommandsLive && pinJumpLive;
-  hotkeyContext.addNodeAvailable = pinCommandsLive && !pinJumpMenu.isOpen() && (pinHovered || edgeSourceHovered);
+  // Over nothing Space still adds a node, unconnected.
+  hotkeyContext.addNodeAvailable = canvasKeysLive && pinCommandsLive && !pinJumpMenu.isOpen();
   // While armed the key is what ends the gesture, so the bar keeps offering it wherever the cursor
   // is -- but only where the dispatch would see it. A held button or the jump menu blocks both, and
   // that menu takes Space itself.
   hotkeyContext.addTransitNodeAvailable =
     pinCommandsLive && !pinJumpMenu.isOpen() &&
-    (transitArmed || (hotkeyContext.addNodeAvailable && has_splice_target(graphData, hintNode, hintPinIndex, hintEdgeId)));
+    (transitArmed || ((pinHovered || edgeSourceHovered) && has_splice_target(graphData, hintNode, hintPinIndex, hintEdgeId)));
   // The drawn selection, not a second read: the bar trails a click by one frame.
   const SubgraphContext subgraph = resolveSubgraphContext(drawnSelection);
-  const bool canvasKeysLive = !addNodePopup.isOpen();
   const bool tabFree = canvasKeysLive && pinCommandsLive && !pinJumpMenu.isOpen() && !hotkeyContext.pinJumpAvailable;
   const bool oneInstance = subgraph.selectedSubgraph != nullptr;
   hotkeyContext.createSubgraphAvailable = canvasKeysLive && subgraph.selectedNodeCount >= 2 && !edgeReconnect.isActive();
@@ -2383,7 +2536,8 @@ void GraphTab::updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
 
   if (ghostVisible)
   {
-    draw_add_node_ghost(ImGui::GetWindowDrawList(), ghostAnchor, ghostPinColor, ghostSourceIsOutput, canvas_min, canvas_max);
+    draw_add_node_ghost(ImGui::GetWindowDrawList(), ghostAnchor, ghostPinColor, ghostSourceIsOutput, /*has_pin=*/aimNode >= 0,
+      canvas_min, canvas_max);
   }
 
   if (edgeReconnect.isActive() || pendingRerouteEdge >= 0 || transitArmed || pinJumpMenu.isOpen() || contextMenu.isOpen() ||

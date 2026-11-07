@@ -11,7 +11,6 @@
 #include <render/dynmodelRenderer.h>
 #include <render/world/global_vars.h>
 #include <shaders/dag_shaderBlock.h>
-#include <render/skies.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 
 #define VAR(a) ShaderVariableInfo a##VarId(#a);
@@ -26,21 +25,6 @@ void DynamicMirrorRenderer::init()
   const bool hqReflection = false;
   const int riLod = hqReflection ? 1 : rendinst::render::MAX_LOD_COUNT_WITH_ALPHA;
   rendinst::setRIGenVisibilityMinLod(riVisibility, rendinst::render::MAX_LOD_COUNT_WITH_ALPHA, riLod);
-
-  auto skies = get_daskies();
-  if (skies != nullptr)
-  {
-    PreparedSkiesParams mirrorSkiesParams;
-    mirrorSkiesParams.panoramic = PreparedSkiesParams::Panoramic::OFF;
-    mirrorSkiesParams.reprojection = PreparedSkiesParams::Reprojection::ON;
-    mirrorSkiesParams.skiesLUTQuality = 1;
-    mirrorSkiesParams.scatteringScreenQuality = 1;
-    mirrorSkiesParams.scatteringDepthSlices = 8;
-    mirrorSkiesParams.transmittanceColorQuality = 1;
-    mirrorSkiesParams.scatteringRangeScale = 1;
-    mirrorSkiesParams.minScatteringRange = 80000;
-    skiesData = skies->createSkiesData("mirror_bounding", mirrorSkiesParams);
-  }
   initialized = true;
 }
 
@@ -52,9 +36,6 @@ DynamicMirrorRenderer::~DynamicMirrorRenderer()
   if (riVisibility != nullptr)
     rendinst::destroyRIGenVisibility(riVisibility);
   riVisibility = nullptr;
-  if (skiesData != nullptr)
-    get_daskies()->destroy_skies_data(skiesData);
-  skiesData = nullptr;
 }
 
 void DynamicMirrorRenderer::setMirror(ecs::EntityId eid,
@@ -73,7 +54,7 @@ void DynamicMirrorRenderer::setMirror(ecs::EntityId eid,
     eastl::copy(additional_data->begin(), additional_data->end(), animcharMirrorData.additionalData.begin());
 
   int pathFilterSize = scene_instance->getNodeCount();
-  mirrors.clear();
+  mirrorNodesFound = false;
   animcharMirrorData.nodeFilter.resize(pathFilterSize);
   eastl::fill(animcharMirrorData.nodeFilter.begin(), animcharMirrorData.nodeFilter.end(), 0);
   const char *mirrorMatName = "dynamic_mirror";
@@ -82,28 +63,11 @@ void DynamicMirrorRenderer::setMirror(ecs::EntityId eid,
     DynamicRenderableSceneResource *dynRes = dynResLod.scene;
     G_ASSERT_CONTINUE(dynRes);
 
-    Tab<ShaderMeshResource *> meshesList(tmpmem);
-    Tab<int> nodeIdsList(tmpmem);
-    Tab<BSphere3> rigidSpheres;
-    dynRes->getMeshes(meshesList, nodeIdsList, &rigidSpheres);
-
     dynRes->findRigidNodesWithMaterials(make_span_const(&mirrorMatName, 1), [&](int nodeId) {
       if (nodeId < 0)
         return;
-      MirrorData mirror;
-      mirror.rendAnimcharNodeId = nodeId;
       animcharMirrorData.nodeFilter[nodeId] = eastl::numeric_limits<uint8_t>::max();
-      bool found = false;
-      for (int i = 0; i < nodeIdsList.size(); ++i)
-      {
-        if (nodeIdsList[i] == nodeId)
-        {
-          found = true;
-          mirror.boundingSphere = rigidSpheres[i];
-        }
-      }
-      if (found)
-        mirrors.push_back(eastl::move(mirror));
+      mirrorNodesFound = true;
     });
   }
 }
@@ -171,16 +135,17 @@ void DynamicMirrorRenderer::waitStaticsVisibility()
   threadpool::wait(&dynamic_mirror_visibility_job);
 }
 
-void DynamicMirrorRenderer::prepareCameraData(const TMatrix &view_itm, const Driver3dPerspective &persp, const Plane3 &mirror_plane)
+void DynamicMirrorRenderer::prepareCameraData(
+  const TMatrix &view_itm, const Driver3dPerspective &persp, const Plane3 &mirror_plane, float znear_bias)
 {
   hasCameraData = true;
-  currentCameraData = get_common_camera_data(view_itm, persp, mirror_plane);
+  currentCameraData = get_common_camera_data(view_itm, persp, mirror_plane, znear_bias);
 }
 
 void DynamicMirrorRenderer::clearCameraData() { hasCameraData = false; }
 
 DynamicMirrorRenderer::CameraData DynamicMirrorRenderer::get_common_camera_data(
-  const TMatrix &view_itm, const Driver3dPerspective &persp, const Plane3 &mirror_plane)
+  const TMatrix &view_itm, const Driver3dPerspective &persp, const Plane3 &mirror_plane, float znear_bias)
 {
   TMatrix mirrorRenderViewItm = view_itm;
   // Original view, but flipped on Y
@@ -196,8 +161,7 @@ DynamicMirrorRenderer::CameraData DynamicMirrorRenderer::get_common_camera_data(
 
   auto mirroredCameraPos = mirroredViewItm.getcol(3);
 
-  const float zNearBias = 0.3f;
-  float cameraDist = fabsf(mirror_plane.distance(mirroredCameraPos)) + zNearBias;
+  float cameraDist = fabsf(mirror_plane.distance(mirroredCameraPos)) + znear_bias;
 
   Driver3dPerspective mirrorPersp = Driver3dPerspective(persp.wk, persp.hk, max(persp.zn, cameraDist), persp.zf, persp.ox, persp.oy);
   // Mirrors cannot be in the [mirrorPersp.zn, mirrorPersp.zf] range; Z range is flipped for the special prepass

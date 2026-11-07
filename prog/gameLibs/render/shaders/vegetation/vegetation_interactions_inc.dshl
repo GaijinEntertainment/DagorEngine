@@ -26,6 +26,7 @@ macro USE_VEGETATION_INTERACTIONS_COMMON()
     interaction_force_max@f1 = (interaction_force_max);
     interaction_min_bounding_sphere_rad@f1 = (interaction_min_bounding_sphere_rad);
   }
+  USE_OBSTACLES_GRID(vs)
 
   hlsl(vs) {
     float sdBox(float3 localPos, float3 boxExt)
@@ -89,23 +90,11 @@ macro USE_VEGETATION_INTERACTIONS_COMMON()
 
     bool fetch_obstacles_range_for_world_pos(float3 world_pos, out uint obst_ind_start, out uint obst_ind_end)
     {
-      if (obstacles.indirection_wd == 0 || disable_obstacle_interaction)
-      {
-        obst_ind_start = 0;
-        obst_ind_end = 0;
-        return false;
-      }
-
-      float2 pos = world_pos.xz - obstacles.indirection_lt;
-      pos.xy /= obstacles.indirection_cell;
-
-      uint2 coord = clamp(uint2(pos.xy), 0U, obstacles.indirection_wd - 1);
-      uint index = coord.x + coord.y * obstacles.indirection_wd;
-
-      float3 totalOfs = 0;
-      uint obstIndCount = obstacle_indices[index];
-      obst_ind_start = obstIndCount >> OBSTACLE_OFFSET_BIT_SHIFT;
-      obst_ind_end = (obstIndCount & ((1U << OBSTACLE_OFFSET_BIT_SHIFT) - 1)) + obst_ind_start;
+      uint2 range = 0;
+      if (!disable_obstacle_interaction)
+        range = get_obstacles_cell_range(world_pos);
+      obst_ind_start = range.x;
+      obst_ind_end = range.y;
       return obst_ind_end > obst_ind_start;
     }
   }
@@ -126,11 +115,14 @@ macro USE_VEGETATION_INTERACTIONS_FOR_PIVOTED_TREES()
       float rotationAngleAnimation = 0.0;
       float4 unusedRotQuat = float4(0, 0, 0, 1);
 
-      // Iterate starting from trunk at 0
-      for(int idx=0; idx <= input.maxHierarchyLevel; ++idx)
+      // Unrolled by slot so the hierarchy reads are static; the trunk is the highest valid slot, so the order stays trunk first.
+      UNROLL
+      for (int revIdx = MAX_ALLOWED_HIERARCHY - 1; revIdx >= 0; --revIdx)
       {
-        // Because HierarchyData and this loop have reversed ordering, we need reversed index
-        int revIdx = max(input.maxHierarchyLevel - idx, 0);
+        BRANCH
+        if (revIdx > input.maxHierarchyLevel)
+          continue;
+        int idx = input.maxHierarchyLevel - revIdx;
 
         float3 branchPivotPos = input.branchPivotPos[revIdx];
         float3 branchDir = input.branchDirExtent[revIdx].xyz;

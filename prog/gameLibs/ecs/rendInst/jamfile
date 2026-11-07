@@ -21,8 +21,13 @@ UseProgLibs +=
   gameLibs/rendInst
 ;
 
+local AllSrcFolder_ES = . ;
+if $(Config) in dbg dev {
+  AllSrcFolder_ES += debug ;
+}
+
 SourceES = ;
-AutoscanBuildLists . : *ES.cpp.inl : SourceES ;
+AutoscanBuildLists $(AllSrcFolder_ES) : *ES.cpp.inl : SourceES ;
 
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
 

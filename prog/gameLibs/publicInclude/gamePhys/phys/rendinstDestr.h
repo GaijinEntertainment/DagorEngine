@@ -34,7 +34,6 @@ enum RestorableRendinstState
   RRS_DESTROYED
 };
 
-typedef void (*remove_physx_collision_object_callback)(const rendinst::RendInstDesc &desc);
 typedef int (*create_apex_actors_callback)(const char *name, const TMatrix &normalized_tm, const Point3 &scale, const Point3 &pos,
   uint32_t hashVal, const Point3 &impulse, int index, ApexDmgInfo *apex_dmg_info, int ri_idx, const BBox3 &ri_bbox, bool is_collision);
 typedef void (*apex_force_remove_actor_callback)(const int);
@@ -105,8 +104,7 @@ const DestrSettings &get_destr_settings();
 
 void init_ex(on_destr_changed_callback on_destr_cb, ri_tree_sound_cb tree_sound_cb, get_camera_pos get_current_camera_pos_,
   get_current_time_callback get_current_time_cb, bool enable_branch_destruction,
-  remove_physx_collision_object_callback remove_physx_obj_cb = NULL, create_apex_actors_callback create_apex_actors_cb = NULL,
-  apex_force_remove_actor_callback apex_remove_actor_cb = NULL);
+  create_apex_actors_callback create_apex_actors_cb = NULL, apex_force_remove_actor_callback apex_remove_actor_cb = NULL);
 // apply_pending - apply destrs received before level load
 void init(on_destr_changed_callback on_destr_cb, bool apply_pending, bool enable_branch_destruction,
   ri_tree_sound_cb tree_sound_cb = nullptr, get_camera_pos get_camera_pos_cb = nullptr,
@@ -194,7 +192,8 @@ void destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transfor
 void update(float dt, float current_time, const Frustum *frustum);
 void update_paused(float current_time, const Frustum *frustum);
 void fill_ri_destructable_params(destructables::DestructableCreationParams &params, const rendinst::RendInstDesc &desc,
-  const DynamicPhysObjectData *po_data, const TMatrix &tm, rendinst::DestrOptionFlags flags);
+  const rendinst::RendInstDesc &restorable_desc, const DynamicPhysObjectData *po_data, const TMatrix &tm,
+  rendinst::DestrOptionFlags flags);
 
 bool apply_damage_to_riextra(rendinst::riex_handle_t handle, float dmg, const Point3 &pos, const Point3 &impulse, float at_time);
 void apply_damage_to_ri(const rendinst::RendInstDesc &desc, float dmg, float impulse_to_hp, const Point3 &pos, const Point3 &impulse,

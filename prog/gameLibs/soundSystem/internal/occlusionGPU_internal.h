@@ -13,6 +13,8 @@ class EventDescription;
 } // namespace Studio
 } // namespace FMOD
 
+struct FMOD_STUDIO_PARAMETER_DESCRIPTION;
+
 class DataBlock;
 class TMatrix;
 
@@ -20,6 +22,10 @@ namespace sndsys::occlusion_gpu
 {
 using fmod_instance_t = FMOD::Studio::EventInstance;
 using fmod_description_t = FMOD::Studio::EventDescription;
+
+// How many of OCCLUSION_BAND_PARAMS the event has with a nonzero VarId; only all of them make it a band event.
+// out_descs, when set, takes OCCLUSION_BANDS descriptions, those of the counted parameters filled.
+int count_band_params(const fmod_description_t &fmod_description, FMOD_STUDIO_PARAMETER_DESCRIPTION *out_descs = nullptr);
 
 void set_pos(const fmod_instance_t *fmod_instance, const Point3 &pos);
 void on_release(fmod_instance_t *fmod_instance);

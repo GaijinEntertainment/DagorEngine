@@ -9,8 +9,9 @@ return {
   manageSubscription = @() null
   refundPurchase = @(_) null
   AS_OK = 0
-  AS_NOT_INITED = -1
-  AS_CANT_BUY = 1
-  AS_FAILED = 2
-  AS_CANCELED = 3
+  AS_NOT_INITED = 1
+  AS_CANT_BUY = 2
+  AS_FAILED = 3
+  AS_CANCELED = 4
+  AS_PENDING = 5
 }

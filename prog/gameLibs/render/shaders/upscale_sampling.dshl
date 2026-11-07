@@ -87,9 +87,9 @@ shader upscale_sampling_cs
   }
 
   hlsl(cs) {
-    void store_mask_safe(int2 pixelPos, uint mask)
+    void store_mask_safe(int2 pixelPos, uint mask, int2 targetSize)
     {
-      if (all(pixelPos >= 0) && all(pixelPos < gbuffer_size.xy))
+      if (all(pixelPos >= 0) && all(pixelPos < targetSize))
         texture2DAt(target, pixelPos) = mask;
     }
 
@@ -108,12 +108,17 @@ shader upscale_sampling_cs
       //      |*  |  *|
       //      =========
       int2 basePos = DTid.xy*2 - 1;
+      uint2 targetDim;
+      target.GetDimensions(targetDim.x, targetDim.y);
+      int2 targetSize = int2(targetDim);
 
-      float2 tc = (basePos + 1)*inv_gbuffer_size.zw;
-      float4 depth4 = linearize_z4(depth_gbuf_load.GatherRed(global_linear_clamp_sampler, tc));
+      // In VR multiview depth_gbuf holds both eyes, but the target and the lowres textures hold one eye.
+      float2 gbufferTc = (basePos + 1 + upscale_gbuffer_offset)*inv_gbuffer_size.zw;
+      float4 depth4 = linearize_z4(depth_gbuf_load.GatherRed(global_linear_clamp_sampler, gbufferTc));
 
-      float4 checkerDepth4 = linearize_z4(downsampled_checkerboard_depth_tex.GatherRed(downsampled_checkerboard_depth_tex_samplerstate, tc));
-      float4 closeDepth4   = linearize_z4(downsampled_close_depth_tex.GatherRed(downsampled_close_depth_tex_samplerstate, tc));
+      float2 lowresTc = (basePos + 1)*inv_gbuffer_size.xy;
+      float4 checkerDepth4 = linearize_z4(downsampled_checkerboard_depth_tex.GatherRed(downsampled_checkerboard_depth_tex_samplerstate, lowresTc));
+      float4 closeDepth4   = linearize_z4(downsampled_close_depth_tex.GatherRed(downsampled_close_depth_tex_samplerstate, lowresTc));
 
       uint mask00 = encodeMask(depth4.w, checkerDepth4) | (encodeMask(depth4.w, closeDepth4) << 4);
       uint mask10 = encodeMask(depth4.z, checkerDepth4) | (encodeMask(depth4.z, closeDepth4) << 4);
@@ -121,7 +126,7 @@ shader upscale_sampling_cs
       uint mask11 = encodeMask(depth4.y, checkerDepth4) | (encodeMask(depth4.y, closeDepth4) << 4);
 
       BRANCH
-      if (all(basePos >= 0) && all(basePos + 1 < gbuffer_size.xy))
+      if (all(basePos >= 0) && all(basePos + 1 < targetSize))
       {
         texture2DAt(target, basePos + int2(0, 0)) = mask00;
         texture2DAt(target, basePos + int2(1, 0)) = mask10;
@@ -130,10 +135,10 @@ shader upscale_sampling_cs
       }
       else
       {
-        store_mask_safe(basePos + int2(0, 0), mask00);
-        store_mask_safe(basePos + int2(1, 0), mask10);
-        store_mask_safe(basePos + int2(0, 1), mask01);
-        store_mask_safe(basePos + int2(1, 1), mask11);
+        store_mask_safe(basePos + int2(0, 0), mask00, targetSize);
+        store_mask_safe(basePos + int2(1, 0), mask10, targetSize);
+        store_mask_safe(basePos + int2(0, 1), mask01, targetSize);
+        store_mask_safe(basePos + int2(1, 1), mask11, targetSize);
       }
     }
   }

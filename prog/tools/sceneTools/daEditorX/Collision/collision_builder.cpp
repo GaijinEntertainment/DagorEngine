@@ -21,7 +21,7 @@
 #include <debug/dag_debug.h>
 
 
-// constraint: getMaterial asserts and reads mats[0] on an empty table
+// getMaterial asserts and reads mats[0] on an empty table
 static const char *phys_mat_name(int id)
 {
   return PhysMat::getMaterials().empty() ? "::default" : PhysMat::getMaterial(id).name.str();

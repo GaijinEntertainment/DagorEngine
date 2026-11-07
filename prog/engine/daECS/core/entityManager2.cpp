@@ -13,7 +13,6 @@
 #include "ecsQueryManager.h"
 #include "entityManagerEvent.h"
 #include "daECS/core/componentTypes.h" // TMatrix
-#include "entityCreationProfiler.h"
 #include "ecsInternal.h"
 #include "demandClearBitArray.h"
 #if DAECS_EXTENSIVE_CHECKS
@@ -152,7 +151,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
   TIME_PROFILE_DEV(createEntityInternal)
   TIME_PROFILE_UNIQUE_DEV;                          // run-accumulated create cost, comparable across runs
   G_FAST_ASSERT(templId != INVALID_TEMPLATE_INDEX); // couldn't happen
-  EntityCreationProfiler entCreatProf(templId, *this);
+  TIME_PROFILE_TAG_DEV(create_entity, getTemplateName(templId));
   DAECS_EXT_ASSERTF(doesEntityExist(eid), "Attempt to use destroyed/not allocated eid handle %d %d", (ecs::entity_id_t)eid,
     entDescs.size());
   const InstantiatedTemplate *doNotUseTempl = &templates.getTemplate(templId); // never use this after copying data from it! it can
@@ -175,7 +174,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
 
   if (oldArchetype != INVALID_ARCHETYPE)
   {
-    PROFILE_CREATE(disappear_events);
+    TIME_PROFILE_DEV(disappear_events);
     notifyESEventHandlersDisappear(eid, oldArchetype, newArchetype);
     G_ASSERTF(oldArchetype == entDescs[eid.index()].archetype,
       "we don't allow sync recreate entity from within ES on EventComponentsDisappear ES for eid %d", (ecs::entity_id_t)eid);
@@ -260,7 +259,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
 
   if (isRecreating) // migrate from old template
   {
-    PROFILE_CREATE(destructors);
+    TIME_PROFILE_DEV(destructors);
     auto *__restrict oArch = &archetypes.getArchetype(oldArchetype);
     auto &oldChunk = oArch->manager.getChunk(oldChunkId);
     uint8_t *__restrict oldChunkData = oldChunk.getData();
@@ -486,7 +485,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
     }
     // first create creatables
     {
-      PROFILE_CREATE(constructors);
+      TIME_PROFILE_DEV(constructors);
       for (auto &component : archetypes.getCreatables(newArchetype))
       {
         if (createdGet(createdBits, component.archComponentId))
@@ -506,7 +505,6 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
           component.originalCidx - !(ctype.flags & COMPONENT_TYPE_CREATE_ON_TEMPL_INSTANTIATE); // allow shared comps to read itself
                                                                                                 // (for weak_ptr & such)
 #endif
-        entCreatProf.start(component.originalCidx);
         void *__restrict cData =
           archetypes.getComponentDataUnsafeOfsNoCheck(newArchetype, component.dataOffset, component.size, chunkId, idInChunk);
         ComponentTypeManager *typeManager = componentTypes.getTypeManager(component.typeIndex);
@@ -515,7 +513,6 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
         {
           typeManager->create(cData, *this, eid, map, component.originalCidx);
         }
-        entCreatProf.end();
       }
     }
 
@@ -524,7 +521,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
     if ((hasCreatableOrTracked & Archetypes::HAS_TRACKED_COMPONENT)) // todo: check if any non-constructed components left after
                                                                      // recreate
     {
-      PROFILE_CREATE(tracked_constructors);
+      TIME_PROFILE_DEV(tracked_constructors);
 #if DAECS_EXTENSIVE_CHECKS
       creatingEntityTop.createdCindex = componentsCount - 1;
 #endif
@@ -538,7 +535,6 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
             archetypes.getComponentDataUnsafeOfsNoCheck(newArchetype, component.dataOffset, component.size, chunkId, idInChunk);
           const void *__restrict fromData =
             archetypes.getComponentDataUnsafeOfsNoCheck(newArchetype, component.trackedFromOfs, component.size, chunkId, idInChunk);
-          entCreatProf.start(component.originalCidx);
           ComponentTypeManager *typeManager = componentTypes.getTypeManager(component.typeIndex);
           if (DAGOR_UNLIKELY(!typeManager->copy(copyData, fromData, component.originalCidx, eid))) // trying to create copy constructor
           {
@@ -546,7 +542,6 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
             if (!typeManager->assign(copyData, fromData))
               typeManager->replicateCompare(copyData, fromData);
           }
-          entCreatProf.end();
         }
         else
         {
@@ -571,7 +566,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
 #endif
 
   {
-    PROFILE_CREATE(creation_events);
+    TIME_PROFILE_DEV(creation_events);
     notifyESEventHandlers(eid, newArchetype, isRecreating ? ENTITY_RECREATION_ES : ENTITY_CREATION_ES);
     if (isRecreating)
       notifyESEventHandlersAppear(eid, oldArchetype, newArchetype);
@@ -581,14 +576,14 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
   // while completion callback is not, therefore execute it after aftermentioned events
   if (creation_cb)
   {
-    PROFILE_CREATE(creation_cb);
+    TIME_PROFILE_DEV(creation_cb);
     creation_cb(eid);
   }
 
   auto it = findLoadingEntityEvents(eid);
   if (DAGOR_UNLIKELY(it != eventsForLoadingEntities.end()))
   {
-    PROFILE_CREATE(loading_events);
+    TIME_PROFILE_DEV(loading_events);
     DAECS_EXT_ASSERT(it->eid == eid);
     decltype(LoadingEntityEvents::events) loadingEvents(eastl::move(it->events));
     eventsForLoadingEntities.erase(it);

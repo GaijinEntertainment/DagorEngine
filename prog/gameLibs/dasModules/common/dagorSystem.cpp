@@ -27,23 +27,19 @@ RAIIStackwalkOnLogerr::RAIIStackwalkOnLogerr(das::Context *c)
 }
 RAIIStackwalkOnLogerr::~RAIIStackwalkOnLogerr() { *current_context = old; }
 
-static int das_stackwalk_log_on_logerr(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
-{
-  static const int D3DE_TAG = _MAKE4C('D3DE');
-  if (lev_tag == LOGLEVEL_ERR || lev_tag == D3DE_TAG)
-    if (*current_context != nullptr && ((*current_context)->category.value & uint32_t(das::ContextCategory::dead)) == 0)
-      (*current_context)->stackWalk(nullptr, false, false);
+static LogHandlerId das_stackwalk_handler_id = LogHandlerId::Invalid;
 
-  if (orig_debug_log)
-    return orig_debug_log(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
-  else
-    return 1;
+static void das_stackwalk_log_on_logerr(void *, LogMessage &)
+{
+  if (*current_context != nullptr && ((*current_context)->category.value & uint32_t(das::ContextCategory::dead)) == 0)
+    (*current_context)->stackWalk(nullptr, false, false);
 }
 
 void enable_das_stackwalk_log_on_logerr()
 {
-  G_ASSERTF(orig_debug_log == nullptr, "Don't call this function twice!");
-  orig_debug_log = debug_set_log_callback(das_stackwalk_log_on_logerr);
+  G_ASSERTF(das_stackwalk_handler_id == LogHandlerId::Invalid, "Don't call this function twice!");
+  das_stackwalk_handler_id =
+    debug_add_log_handler(&das_stackwalk_log_on_logerr, nullptr, {.levelMask = LOGMASK_ERR, .tags = {LOGTAG_D3D_ERROR}});
 }
 
 void set_das_exit_function_ptr(DasExitFunctionPtr func) { das_exit_function_ptr = func; }

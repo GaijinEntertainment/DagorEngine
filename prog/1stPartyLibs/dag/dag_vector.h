@@ -214,7 +214,11 @@ class DAGOR_WARN_IF_UNUSED Vector
   void assign(size_type n, const value_type& value) { DoAssignValues(n, value); }
   this_type& operator=(this_type&& x) EA_NOEXCEPT
   {
-    DoSwap(x);
+    if (this != &x)
+    {
+      DoSwap(x);
+      x.clear();
+    }
     return *this;
   }
 
@@ -712,7 +716,10 @@ protected:
         allocated() = a;
     }
     IF_CONSTEXPR(eastl::is_trivially_copyable_v<value_type>) // Trivially copyable class implies trivial destructor
-      memcpy(mpBegin(), first, (char*)last - (char*)first); //-V780
+    {
+      if (!DAG_MEMCPY_NONNULL || n)
+        memcpy(mpBegin(), first, (char*)last - (char*)first); //-V780
+    }
     else if (n <= size())
     {
       eastl::copy(first, last, mpBegin());

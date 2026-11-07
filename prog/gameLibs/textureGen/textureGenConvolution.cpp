@@ -27,8 +27,8 @@ public:
   virtual int getInputParametersCount() const { return 0; }
   virtual bool isInputParameterOptional(int) const { return true; }
 
-  virtual int getRegCount(TShaderRegType tp) const { return tp == TSHADER_REG_TYPE_INPUT ? 1 : 1; }
-  virtual bool isRegOptional(TShaderRegType tp, int reg) const { return tp == TSHADER_REG_TYPE_INPUT ? reg == 1 : false; }
+  virtual int getRegCount(TShaderRegType) const { return 1; }
+  virtual bool isRegOptional(TShaderRegType, int) const { return false; }
 
   virtual bool process(TextureGenerator &gen, TextureRegManager &regs, const TextureGenNodeData &data, int)
   {
@@ -97,6 +97,8 @@ public:
       stepHeight = max(stepHeight / 8, 1);
       sizes[steps] = IPoint2(stepWidth, stepHeight);
       tempReg[steps] = regs.createTexture(String(128, "conv_iter_%dx%d", stepWidth, stepHeight), tempRegFmt, stepWidth, stepHeight, 1);
+      if (!regs.keepAllOrNone(make_span_const(tempReg.data(), steps + 1)))
+        return false;
       temp[steps] = regs.getTexture(tempReg[steps]);
       steps++;
 
@@ -104,7 +106,8 @@ public:
         break;
     }
 
-    for (int i = 0; i <= steps; i++)
+    bool ok = true;
+    for (int i = 0; i <= steps && ok; i++)
     {
       DataBlock stepParams;
 
@@ -113,7 +116,7 @@ public:
 
       if (i == steps)
       {
-        unary->processAll(gen, regs,
+        ok = unary->processAll(gen, regs,
           TextureGenNodeData(w, h, NO_BLENDING, false, stepParams, make_span_const(&in, 1), make_span_const(&out, 1), NULL));
       }
       else
@@ -121,7 +124,7 @@ public:
         stepParams.addInt("resultWidth", sizes[i].x);
         stepParams.addInt("resultHeight", sizes[i].y);
 
-        convShader->processAll(gen, regs,
+        ok = convShader->processAll(gen, regs,
           TextureGenNodeData(sizes[i].x, sizes[i].y, NO_BLENDING, false, stepParams, make_span_const(&in, 1), make_span_const(&out, 1),
             NULL));
       }
@@ -130,7 +133,7 @@ public:
     for (int i = 0; i < steps; i++)
       regs.textureUsed(tempReg[i]);
 
-    return true;
+    return ok;
   }
 } texgen_convolution;
 

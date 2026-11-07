@@ -56,6 +56,23 @@ const char *fill_ugm_context_from_table(const Sqrat::Table &params, sceneload::U
   return nullptr;
 }
 
+int append_host_urls_from_params(const Sqrat::Table &params, net::ConnectParams &connectParams)
+{
+  Sqrat::Array host_urls = params["host_urls"];
+  const int hlen = (host_urls.GetType() == OT_ARRAY) ? host_urls.Length() : 0;
+  if (!hlen)
+    return 0;
+  Sqrat::Array host_url_kinds = params["host_url_kinds"];
+  const int klen = (host_url_kinds.GetType() == OT_ARRAY) ? host_url_kinds.Length() : 0;
+  for (int i = 0; i < hlen; ++i)
+  {
+    const char *url = host_urls[SQInteger(i)].GetVar<const char *>().value;
+    const char *kindName = (klen == hlen) ? host_url_kinds[SQInteger(i)].GetVar<const char *>().value : nullptr;
+    connectParams.addUrl(url, net::session_url_kind_from_name(kindName));
+  }
+  return hlen;
+}
+
 static SQRESULT launch_session(HSQUIRRELVM vm)
 {
   debug("launch_session()");
@@ -67,13 +84,9 @@ static SQRESULT launch_session(HSQUIRRELVM vm)
   if (errorMessage != nullptr)
     return sq_throwerror(vm, errorMessage);
 
-  Sqrat::Array host_urls = params["host_urls"];
-  if (int hlen = (host_urls.GetType() == OT_ARRAY) ? host_urls.Length() : 0)
+  net::ConnectParams connectParams;
+  if (append_host_urls_from_params(params, connectParams) > 0)
   {
-    net::ConnectParams connectParams;
-    for (int i = 0; i < hlen; ++i)
-      connectParams.serverUrls.push_back(host_urls[SQInteger(i)].GetVar<const char *>().value);
-
     Sqrat::Object sessIdObj = params.GetSlot("sessionId");
     G_ASSERT(sessIdObj.GetType() == OT_INTEGER || sessIdObj.GetType() == OT_NULL || sessIdObj.GetType() == OT_STRING);
     if (sessIdObj.GetType() == OT_STRING)
@@ -164,7 +177,7 @@ static bool game_launcher_console_handler(const char *argv[], int argc)
     net::clear_cached_ids();
     g_entity_mgr->broadcastEvent(EventGameSessionStarted());
     net::ConnectParams cp;
-    cp.serverUrls.push_back(serverUrl);
+    cp.addUrl(serverUrl);
     sceneload::connect_to_session(eastl::move(cp));
   }
   return found;

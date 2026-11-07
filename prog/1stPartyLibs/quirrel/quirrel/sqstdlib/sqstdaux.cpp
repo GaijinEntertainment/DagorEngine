@@ -42,7 +42,7 @@ static void print_simple_value(HSQUIRRELVM v, PrintFunc pf, SQObjectPtr &val, bo
             }
             break;
         case OT_CLOSURE:
-            if (v->ToString(_closure(val)->_function->_name, valStr))
+            if (v->ToString(_closure(val)->_function->GetName(), valStr))
                 pf(v, "FN:%s", _stringval(valStr));
             break;
         case OT_NATIVECLOSURE:

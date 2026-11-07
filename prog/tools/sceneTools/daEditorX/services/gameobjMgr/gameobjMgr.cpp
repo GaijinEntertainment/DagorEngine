@@ -9,6 +9,7 @@
 #include <de3_writeObjsToPlaceDump.h>
 #include <de3_entityUserData.h>
 #include <de3_animCtrl.h>
+#include <de3_lightGizmos.h>
 #include <landMesh/lmeshHoles.h>
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_common_interface.h>
@@ -18,6 +19,7 @@
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
+#include <ecs/lights/lightMath.h>
 #include <anim/dag_animBlend.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/iLogWriter.h>
@@ -158,23 +160,30 @@ public:
         visEntity.push_back(ent);
       isAlive = get_template_bool_comp(templ, "isAlive", false);
 
-      // spot light
-      light__max_radius = get_template_real_comp(templ, "light__max_radius", 0.0f);
+      // lights
       spot_light__cone_angle = get_template_real_comp(templ, "spot_light__cone_angle", NAN);
       spot_light__inner_attenuation = get_template_real_comp(templ, "spot_light__inner_attenuation", 1.0f);
-      if (!isnan(spot_light__cone_angle))
+      const bool isSpotLight = !isnan(spot_light__cone_angle);
+      const bool isOmniLight = !isSpotLight && get_template_component_ptr(templ, "omni_light") != nullptr;
+      if (isSpotLight || isOmniLight)
       {
-        volType = VT_SPOT_LIGHT;
-        if (spot_light__cone_angle < 0.0f)
+        const Color3 color = color3(get_template_component<E3DCOLOR>(templ, "light__color", E3DCOLOR(255, 255, 255))) *
+                             get_template_real_comp(templ, "light__brightness", 1.0f);
+        const float radiusScale = get_template_real_comp(templ, "light__radius_scale", 1.0f);
+        const float maxRadius = get_template_real_comp(templ, "light__max_radius", -1.0f);
+        // The light ES clears light__force_max_light_radius without a max radius, see validate_max_light_radius()
+        const bool forceMaxRadius = maxRadius > 0 && get_template_bool_comp(templ, "light__force_max_light_radius", false);
+        light__offset = get_template_component<Point3>(templ, "light__offset", Point3(0, 0, 0));
+        if (isSpotLight)
         {
-          TMatrix tm;
-          getTm(tm);
-          float col_length = length(tm.getcol(2));
-          spot_light__cone_angle = 2.0f * atanf(col_length);
+          volType = VT_SPOT_LIGHT;
+          spot_light__radius = calc_spot_light_radius(color, radiusScale, maxRadius, forceMaxRadius);
+          spot_light__illuminating_disc_radius = get_template_real_comp(templ, "spot_light__illuminating_disc_radius", 0.0f);
         }
         else
         {
-          spot_light__cone_angle *= PI / 180.0f;
+          volType = VT_OMNI_LIGHT;
+          omni_light__radius = calc_omni_light_radius(color, radiusScale, maxRadius, forceMaxRadius);
         }
       }
 
@@ -311,9 +320,12 @@ public:
   bool isRiNavmeshBlocker;
   bool isNavmeshHoleCutter;
   bool isAlive = true;
-  float light__max_radius = -1.0f;
+  float spot_light__radius = -1.0f;
   float spot_light__cone_angle = -1.0f;
   float spot_light__inner_attenuation = -1.0f;
+  float spot_light__illuminating_disc_radius = 0.0f;
+  float omni_light__radius = -1.0f;
+  Point3 light__offset = Point3(0, 0, 0);
   BSphere3 bsph;
   enum
   {
@@ -323,7 +335,8 @@ public:
     VT_CAPS,
     VT_CYLI,
     VT_SPOT_LIGHT,
-    VT_AXES
+    VT_AXES,
+    VT_OMNI_LIGHT
   };
   int16_t volType;
   bool needsSuperEntRef;
@@ -332,6 +345,239 @@ public:
   int assetNameId;
   StaticTab<IObjEntity *, 2> visEntity;
 };
+
+static eastl::optional<eastl::pair<Point3, Point3>> find_cone_tangent_points(const Point3 &c, const Point3 &h, float R,
+  const Point3 &p)
+{
+  float h_len = h.length();
+  if (h_len < FLT_EPSILON)
+    return eastl::nullopt;
+
+  Point3 n = h / h_len;
+  Point3 up = (std::abs(n.z) > 0.9999f) ? Point3(0, 1, 0) : Point3(0, 0, 1);
+  Point3 u = normalize(cross(up, n));
+  Point3 v = cross(n, u);
+
+  Point3 p_local = p - c;
+  Point3 p_prime(p_local * u, p_local * v, p_local * n);
+
+  float k = R / h_len;
+  float A = p_prime.x;
+  float B = p_prime.y;
+  float C = k * k * p_prime.z * h_len;
+
+  float L_sq = A * A + B * B;
+  if (L_sq < FLT_EPSILON)
+    return eastl::nullopt;
+
+  float R_sq = R * R;
+  float dist_sq = C * C / L_sq;
+  if (dist_sq > R_sq)
+    return eastl::nullopt;
+
+  Point2 P_closest(A * C / L_sq, B * C / L_sq);
+  float s = std::sqrt(R_sq - dist_sq);
+  float L = std::sqrt(L_sq);
+  Point2 line_dir(-B / L, A / L);
+  Point2 t1_prime_2D = P_closest + line_dir * s;
+  Point2 t2_prime_2D = P_closest - line_dir * s;
+  Point3 t1 = c + u * t1_prime_2D.x + v * t1_prime_2D.y + n * h_len;
+  Point3 t2 = c + u * t2_prime_2D.x + v * t2_prime_2D.y + n * h_len;
+  return eastl::make_pair(t1, t2);
+}
+
+void draw_spot_light_visualization(const TMatrix &tm, const Point3 &apex, const Point3 &dir, const float angle, float radius,
+  const float innerAttenuation)
+{
+  set_cached_debug_lines_wtm(tm);
+  const int32_t SEGS = 32;
+  TMatrix4 viewTm, projTm;
+  d3d::gettm(TM_VIEW, &viewTm);
+  auto invTm = orthonormalized_inverse(tmatrix(viewTm) * tm);
+  const Point3 camera = invTm.getcol(3);
+  const E3DCOLOR colorOuter(255, 255, 0);
+  const E3DCOLOR colorInner(255, 140, 0);
+  const E3DCOLOR colorDirection(255, 255, 255);
+
+  Point3 forward, tangent, binormal;
+  ortho_normalize(dir, Point3(0, 1, 0), forward, tangent, binormal);
+
+  float alphaSin, alphaCos;
+  sincos(angle * 0.5f, alphaSin, alphaCos);
+  const float circleRadius = radius * alphaSin;
+  const float coneHeight = radius * alphaCos;
+  sincos(angle * 0.5f * innerAttenuation, alphaSin, alphaCos);
+  const float innerRadius = radius * alphaSin;
+  const float innerConeHeight = radius * alphaCos;
+
+  Point3 circleCenter = apex + forward * coneHeight;
+  Point3 innerCircleCenter = apex + forward * innerConeHeight;
+  Point3 pt[SEGS];
+
+  // direction line
+  draw_cached_debug_line(apex, apex + forward * radius, colorDirection);
+
+  // outer cone
+  for (int32_t i = 0; i < SEGS; ++i)
+  {
+    float angle = i * TWOPI / SEGS;
+    float s, c;
+    sincos(angle, s, c);
+    pt[i] = tangent * c + binormal * s;
+  }
+  for (int32_t i = 0; i < SEGS; ++i)
+  {
+    Point3 a = circleCenter + pt[i] * circleRadius;
+    Point3 b = circleCenter + pt[(i + 1) % SEGS] * circleRadius;
+    draw_cached_debug_line(a, b, colorOuter);
+  }
+  if (auto tangentPoints = find_cone_tangent_points(apex, forward * coneHeight, circleRadius, camera))
+  {
+    draw_cached_debug_line(apex, tangentPoints->first, colorOuter);
+    draw_cached_debug_line(apex, tangentPoints->second, colorOuter);
+  }
+
+  // inner cone
+  if (innerAttenuation > 1e-4f && innerAttenuation < 1.0f - 1e-4f)
+  {
+    for (int32_t i = 0; i < SEGS; ++i)
+    {
+      Point3 a = innerCircleCenter + pt[i] * innerRadius;
+      Point3 b = innerCircleCenter + pt[(i + 1) % SEGS] * innerRadius;
+      draw_cached_debug_line(a, b, colorInner);
+    }
+    if (auto tangentPoints = find_cone_tangent_points(apex, forward * innerConeHeight, innerRadius, camera))
+    {
+      draw_cached_debug_line(apex, tangentPoints->first, colorInner);
+      draw_cached_debug_line(apex, tangentPoints->second, colorInner);
+    }
+  }
+
+  // spherical part
+  Point4 clipPlane(forward.x, forward.y, forward.z, -dot(forward, circleCenter));
+  draw_cached_debug_sphere_outline_clipped(camera, apex, radius, clipPlane, colorOuter, SEGS);
+}
+
+static void draw_letter(const TMatrix &view, char letter, float thickness, float scale, const E3DCOLOR &color)
+{
+  const float EXT = 0.5f;
+  const Point2 letterSize = Point2(0.74f, 1.f) * scale;
+  switch (letter)
+  {
+    case 'X':
+    {
+      const Point2 letterX[] = {mul(Point2(-EXT, -EXT), letterSize), mul(Point2(EXT, EXT), letterSize),
+        mul(Point2(-EXT, EXT), letterSize), mul(Point2(EXT, -EXT), letterSize)};
+      draw_cached_line_strip(view, make_span_const(letterX, 2), thickness, color);
+      draw_cached_line_strip(view, make_span_const(letterX + 2, 2), thickness, color);
+      break;
+    }
+
+    case 'Y':
+    {
+      Point2 letterY[] = {mul(Point2(-EXT, EXT), letterSize), mul(Point2(0, 0), letterSize), mul(Point2(EXT, EXT), letterSize)};
+      draw_cached_line_strip(view, make_span_const(letterY), thickness, color);
+      letterY[0] = mul(Point2(0, -EXT), letterSize);
+      draw_cached_line_strip(view, make_span_const(letterY, 2), thickness, color);
+      break;
+    }
+
+    case 'Z':
+    {
+      const Point2 letterZ[] = {mul(Point2(-EXT, EXT), letterSize), mul(Point2(EXT, EXT), letterSize),
+        mul(Point2(-EXT, -EXT), letterSize), mul(Point2(EXT, -EXT), letterSize)};
+      draw_cached_line_strip(view, make_span_const(letterZ), thickness, color);
+      break;
+    }
+  }
+}
+
+static void draw_axis_arrow(const Point3 &pos, int axis, const float height, const E3DCOLOR &color)
+{
+  constexpr int SEGS = 6;
+  constexpr std::array<std::pair<float, float>, SEGS> points = []() constexpr {
+    std::array<std::pair<float, float>, SEGS> points;
+    for (int i = 0; i < SEGS; ++i)
+    {
+      float angle = (float)i * TWOPI / SEGS - PI;
+      points[i] = std::make_pair(taylor_cos(angle), taylor_sin(angle));
+    }
+    return points;
+  }();
+
+  const float RADIUS = height * 0.25f;
+  Point3 offsets[SEGS];
+  Point3 circleCenter(pos);
+  switch (axis)
+  {
+    case 0:
+      circleCenter -= Point3(height, 0, 0);
+      for (int i = 0; i < SEGS; ++i)
+        offsets[i] = Point3(0, points[i].first * RADIUS, points[i].second * RADIUS);
+      break;
+    case 1:
+      circleCenter -= Point3(0, height, 0);
+      for (int i = 0; i < SEGS; ++i)
+        offsets[i] = Point3(points[i].first * RADIUS, 0, points[i].second * RADIUS);
+      break;
+    case 2:
+      circleCenter -= Point3(0, 0, height);
+      for (int i = 0; i < SEGS; ++i)
+        offsets[i] = Point3(points[i].first * RADIUS, points[i].second * RADIUS, 0);
+      break;
+  }
+  for (int i = 0; i < SEGS; ++i)
+  {
+    Point3 p[3] = {pos, circleCenter + offsets[i], circleCenter + offsets[(i + 1) % SEGS]};
+    draw_cached_debug_solid_triangle(p, color);
+    p[0] = circleCenter;
+    draw_cached_debug_solid_triangle(p, color);
+  }
+}
+
+static void draw_axes(const TMatrix &wtm, const Point3 &pos, const E3DCOLOR &color)
+{
+  const float EXT = 0.5f;
+  TMatrix viewMat;
+  d3d::gettm(TM_VIEW, viewMat);
+  viewMat = inverse(viewMat * wtm);
+  viewMat.orthonormalize();
+  const Point3 camera = viewMat.getcol(3);
+
+  // letters
+  const float LETTER_SCALE = 0.05f;
+  const float LETTER_WIDTH = 0.0025f;
+  const float LETTER_OFFSET = 0.1f;
+  const float LETTER_MAX_DIST = LETTER_SCALE * 200.0f;
+  if (lengthSq(camera - pos) < LETTER_MAX_DIST * LETTER_MAX_DIST)
+  {
+    viewMat.setcol(3, pos + Point3(EXT + LETTER_OFFSET, 0, 0));
+    draw_letter(viewMat, 'X', LETTER_WIDTH, LETTER_SCALE, color);
+    viewMat.setcol(3, pos + Point3(0, EXT + LETTER_OFFSET, 0));
+    draw_letter(viewMat, 'Y', LETTER_WIDTH, LETTER_SCALE, color);
+    viewMat.setcol(3, pos + Point3(0, 0, EXT + LETTER_OFFSET));
+    draw_letter(viewMat, 'Z', LETTER_WIDTH, LETTER_SCALE, color);
+  }
+
+  // lines
+  draw_cached_debug_line(Point3(-EXT, 0, 0), Point3(EXT, 0, 0), color);
+  draw_cached_debug_line(Point3(0, -EXT, 0), Point3(0, EXT, 0), color);
+  draw_cached_debug_line(Point3(0, 0, -EXT), Point3(0, 0, EXT), color);
+
+  // arrows
+  const float ARROW_HEIGHT = EXT * 0.2f;
+  draw_axis_arrow(pos + Point3(EXT, 0, 0), 0, ARROW_HEIGHT, color);
+  draw_axis_arrow(pos + Point3(0, EXT, 0), 1, ARROW_HEIGHT, color);
+  draw_axis_arrow(pos + Point3(0, 0, EXT), 2, ARROW_HEIGHT, color);
+}
+
+void draw_omni_light_visualization(const TMatrix &light_tm, float radius)
+{
+  set_cached_debug_lines_wtm(light_tm);
+  if (radius > 0.0f)
+    draw_cached_debug_sphere(Point3(0, 0, 0), radius, E3DCOLOR(255, 255, 0));
+  draw_axes(light_tm, Point3(0, 0, 0), E3DCOLOR(0, 255, 0));
+}
 
 class GameObjEntity : public VirtualGameObjEntity
 {
@@ -364,9 +610,12 @@ public:
     isRiNavmeshBlocker = e.isRiNavmeshBlocker;
     isNavmeshHoleCutter = e.isNavmeshHoleCutter;
     isAlive = e.isAlive;
-    light__max_radius = e.light__max_radius;
+    spot_light__radius = e.spot_light__radius;
     spot_light__cone_angle = e.spot_light__cone_angle;
     spot_light__inner_attenuation = e.spot_light__inner_attenuation;
+    spot_light__illuminating_disc_radius = e.spot_light__illuminating_disc_radius;
+    omni_light__radius = e.omni_light__radius;
+    light__offset = e.light__offset;
     volType = e.volType;
     needsSuperEntRef = e.needsSuperEntRef;
     canBeP = e.canBeP;
@@ -397,232 +646,6 @@ public:
     Point4 ndc = Point4(p.x, p.y, p.z, 1.f) * modelproj;
     real invW = 1.f / ndc.w;
     return Point2(ndc.x * invW, ndc.y * invW);
-  }
-
-  static eastl::optional<eastl::pair<Point3, Point3>> find_cone_tangent_points(const Point3 &c, const Point3 &h, float R,
-    const Point3 &p)
-  {
-    float h_len = h.length();
-    if (h_len < FLT_EPSILON)
-      return eastl::nullopt;
-
-    Point3 n = h / h_len;
-    Point3 up = (std::abs(n.z) > 0.9999f) ? Point3(0, 1, 0) : Point3(0, 0, 1);
-    Point3 u = normalize(cross(up, n));
-    Point3 v = cross(n, u);
-
-    Point3 p_local = p - c;
-    Point3 p_prime(p_local * u, p_local * v, p_local * n);
-
-    float k = R / h_len;
-    float A = p_prime.x;
-    float B = p_prime.y;
-    float C = k * k * p_prime.z * h_len;
-
-    float L_sq = A * A + B * B;
-    if (L_sq < FLT_EPSILON)
-      return eastl::nullopt;
-
-    float R_sq = R * R;
-    float dist_sq = C * C / L_sq;
-    if (dist_sq > R_sq)
-      return eastl::nullopt;
-
-    Point2 P_closest(A * C / L_sq, B * C / L_sq);
-    float s = std::sqrt(R_sq - dist_sq);
-    float L = std::sqrt(L_sq);
-    Point2 line_dir(-B / L, A / L);
-    Point2 t1_prime_2D = P_closest + line_dir * s;
-    Point2 t2_prime_2D = P_closest - line_dir * s;
-    Point3 t1 = c + u * t1_prime_2D.x + v * t1_prime_2D.y + n * h_len;
-    Point3 t2 = c + u * t2_prime_2D.x + v * t2_prime_2D.y + n * h_len;
-    return eastl::make_pair(t1, t2);
-  }
-
-  static void draw_spot_light_visualization(const TMatrix &tm, const Point3 &apex, const Point3 &dir, const float angle, float radius,
-    const float innerAttenuation)
-  {
-    const int32_t SEGS = 32;
-    TMatrix4 viewTm, projTm;
-    d3d::gettm(TM_VIEW, &viewTm);
-    d3d::gettm(TM_PROJ, &projTm);
-    const TMatrix4 modelproj = (TMatrix4(tm) * viewTm) * projTm;
-    auto invTm = orthonormalized_inverse(tmatrix(viewTm) * tm);
-    const Point3 camera = invTm.getcol(3);
-    const E3DCOLOR colorOuter(255, 255, 0);
-    const E3DCOLOR colorInner(255, 140, 0);
-    const E3DCOLOR colorDirection(255, 255, 255);
-
-    Point3 forward, tangent, binormal;
-    ortho_normalize(dir, Point3(0, 1, 0), forward, tangent, binormal);
-
-    float alphaSin, alphaCos;
-    sincos(angle * 0.5f, alphaSin, alphaCos);
-    const float circleRadius = radius * alphaSin;
-    const float coneHeight = radius * alphaCos;
-    sincos(angle * 0.5f * innerAttenuation, alphaSin, alphaCos);
-    const float innerRadius = radius * alphaSin;
-    const float innerConeHeight = radius * alphaCos;
-
-    Point3 circleCenter = apex + forward * coneHeight;
-    Point3 innerCircleCenter = apex + forward * innerConeHeight;
-    Point3 pt[SEGS];
-
-    // direction line
-    draw_cached_debug_line(apex, apex + forward * radius, colorDirection);
-
-    // outer cone
-    for (int32_t i = 0; i < SEGS; ++i)
-    {
-      float angle = i * TWOPI / SEGS;
-      float s, c;
-      sincos(angle, s, c);
-      pt[i] = tangent * c + binormal * s;
-    }
-    for (int32_t i = 0; i < SEGS; ++i)
-    {
-      Point3 a = circleCenter + pt[i] * circleRadius;
-      Point3 b = circleCenter + pt[(i + 1) % SEGS] * circleRadius;
-      draw_cached_debug_line(a, b, colorOuter);
-    }
-    if (auto tangentPoints = find_cone_tangent_points(apex, forward * coneHeight, circleRadius, camera))
-    {
-      draw_cached_debug_line(apex, tangentPoints->first, colorOuter);
-      draw_cached_debug_line(apex, tangentPoints->second, colorOuter);
-    }
-
-    // inner cone
-    if (innerAttenuation > 1e-4f && innerAttenuation < 1.0f - 1e-4f)
-    {
-      for (int32_t i = 0; i < SEGS; ++i)
-      {
-        Point3 a = innerCircleCenter + pt[i] * innerRadius;
-        Point3 b = innerCircleCenter + pt[(i + 1) % SEGS] * innerRadius;
-        draw_cached_debug_line(a, b, colorInner);
-      }
-      if (auto tangentPoints = find_cone_tangent_points(apex, forward * innerConeHeight, innerRadius, camera))
-      {
-        draw_cached_debug_line(apex, tangentPoints->first, colorInner);
-        draw_cached_debug_line(apex, tangentPoints->second, colorInner);
-      }
-    }
-
-    // spherical part
-    Point4 clipPlane(forward.x, forward.y, forward.z, -dot(forward, circleCenter));
-    draw_cached_debug_sphere_outline_clipped(camera, apex, radius, clipPlane, colorOuter, SEGS);
-  }
-
-  static void draw_letter(const TMatrix &view, char letter, float thickness, float scale, const E3DCOLOR &color)
-  {
-    const float EXT = 0.5f;
-    const Point2 letterSize = Point2(0.74f, 1.f) * scale;
-    switch (letter)
-    {
-      case 'X':
-      {
-        const Point2 letterX[] = {mul(Point2(-EXT, -EXT), letterSize), mul(Point2(EXT, EXT), letterSize),
-          mul(Point2(-EXT, EXT), letterSize), mul(Point2(EXT, -EXT), letterSize)};
-        draw_cached_line_strip(view, make_span_const(letterX, 2), thickness, color);
-        draw_cached_line_strip(view, make_span_const(letterX + 2, 2), thickness, color);
-        break;
-      }
-
-      case 'Y':
-      {
-        Point2 letterY[] = {mul(Point2(-EXT, EXT), letterSize), mul(Point2(0, 0), letterSize), mul(Point2(EXT, EXT), letterSize)};
-        draw_cached_line_strip(view, make_span_const(letterY), thickness, color);
-        letterY[0] = mul(Point2(0, -EXT), letterSize);
-        draw_cached_line_strip(view, make_span_const(letterY, 2), thickness, color);
-        break;
-      }
-
-      case 'Z':
-      {
-        const Point2 letterZ[] = {mul(Point2(-EXT, EXT), letterSize), mul(Point2(EXT, EXT), letterSize),
-          mul(Point2(-EXT, -EXT), letterSize), mul(Point2(EXT, -EXT), letterSize)};
-        draw_cached_line_strip(view, make_span_const(letterZ), thickness, color);
-        break;
-      }
-    }
-  }
-
-  static void draw_axis_arrow(const Point3 &pos, int axis, const float height, const E3DCOLOR &color)
-  {
-    constexpr int SEGS = 6;
-    constexpr std::array<std::pair<float, float>, SEGS> points = []() constexpr {
-      std::array<std::pair<float, float>, SEGS> points;
-      for (int i = 0; i < SEGS; ++i)
-      {
-        float angle = (float)i * TWOPI / SEGS - PI;
-        points[i] = std::make_pair(taylor_cos(angle), taylor_sin(angle));
-      }
-      return points;
-    }();
-
-    const float RADIUS = height * 0.25f;
-    Point3 offsets[SEGS];
-    Point3 circleCenter(pos);
-    switch (axis)
-    {
-      case 0:
-        circleCenter -= Point3(height, 0, 0);
-        for (int i = 0; i < SEGS; ++i)
-          offsets[i] = Point3(0, points[i].first * RADIUS, points[i].second * RADIUS);
-        break;
-      case 1:
-        circleCenter -= Point3(0, height, 0);
-        for (int i = 0; i < SEGS; ++i)
-          offsets[i] = Point3(points[i].first * RADIUS, 0, points[i].second * RADIUS);
-        break;
-      case 2:
-        circleCenter -= Point3(0, 0, height);
-        for (int i = 0; i < SEGS; ++i)
-          offsets[i] = Point3(points[i].first * RADIUS, points[i].second * RADIUS, 0);
-        break;
-    }
-    for (int i = 0; i < SEGS; ++i)
-    {
-      Point3 p[3] = {pos, circleCenter + offsets[i], circleCenter + offsets[(i + 1) % SEGS]};
-      draw_cached_debug_solid_triangle(p, color);
-      p[0] = circleCenter;
-      draw_cached_debug_solid_triangle(p, color);
-    }
-  }
-
-  static void draw_axes(const TMatrix &wtm, const Point3 &pos, const E3DCOLOR &color)
-  {
-    const float EXT = 0.5f;
-    TMatrix viewMat;
-    d3d::gettm(TM_VIEW, viewMat);
-    viewMat = inverse(viewMat * wtm);
-    viewMat.orthonormalize();
-    const Point3 camera = viewMat.getcol(3);
-
-    // letters
-    const float LETTER_SCALE = 0.05f;
-    const float LETTER_WIDTH = 0.0025f;
-    const float LETTER_OFFSET = 0.1f;
-    const float LETTER_MAX_DIST = LETTER_SCALE * 200.0f;
-    if (lengthSq(camera - pos) < LETTER_MAX_DIST * LETTER_MAX_DIST)
-    {
-      viewMat.setcol(3, pos + Point3(EXT + LETTER_OFFSET, 0, 0));
-      draw_letter(viewMat, 'X', LETTER_WIDTH, LETTER_SCALE, color);
-      viewMat.setcol(3, pos + Point3(0, EXT + LETTER_OFFSET, 0));
-      draw_letter(viewMat, 'Y', LETTER_WIDTH, LETTER_SCALE, color);
-      viewMat.setcol(3, pos + Point3(0, 0, EXT + LETTER_OFFSET));
-      draw_letter(viewMat, 'Z', LETTER_WIDTH, LETTER_SCALE, color);
-    }
-
-    // lines
-    draw_cached_debug_line(Point3(-EXT, 0, 0), Point3(EXT, 0, 0), color);
-    draw_cached_debug_line(Point3(0, -EXT, 0), Point3(0, EXT, 0), color);
-    draw_cached_debug_line(Point3(0, 0, -EXT), Point3(0, 0, EXT), color);
-
-    // arrows
-    const float ARROW_HEIGHT = EXT * 0.2f;
-    draw_axis_arrow(pos + Point3(EXT, 0, 0), 0, ARROW_HEIGHT, color);
-    draw_axis_arrow(pos + Point3(0, EXT, 0), 1, ARROW_HEIGHT, color);
-    draw_axis_arrow(pos + Point3(0, 0, EXT), 2, ARROW_HEIGHT, color);
   }
 
   void renderObj()
@@ -719,15 +742,24 @@ public:
     }
     else if (volType == VT_SPOT_LIGHT)
     {
-      TMatrix spotLightTm = tm;
-      spotLightTm.orthonormalize();
-      set_cached_debug_lines_wtm(spotLightTm);
-      draw_spot_light_visualization(spotLightTm, bbox.center(), Point3(0, 0, 1), spot_light__cone_angle, light__max_radius,
+      // Computed from the placed tm, like the light ES does; a negative cone angle takes it from the tm scale.
+      const float halfTan = calc_spot_light_half_tan(spot_light__cone_angle, tm);
+      const Point3 direction = calc_spot_light_direction(tm);
+      const float illuminatingDiscOffset = calc_spot_light_illuminating_disc_offset(spot_light__illuminating_disc_radius, halfTan);
+      const Point3 apex = calc_spot_light_apex(tm, light__offset, direction, illuminatingDiscOffset);
+      draw_spot_light_visualization(TMatrix::IDENT, apex, direction, 2.0f * atanf(halfTan), spot_light__radius,
         spot_light__inner_attenuation);
     }
     else if (volType == VT_AXES)
     {
       draw_axes(tm, bbox.center(), color);
+    }
+    else if (volType == VT_OMNI_LIGHT)
+    {
+      TMatrix omniLightTm = tm;
+      omniLightTm.orthonormalize();
+      omniLightTm.setcol(3, tm * light__offset); // light position, as in the light ES
+      draw_omni_light_visualization(omniLightTm, omni_light__radius);
     }
   }
 

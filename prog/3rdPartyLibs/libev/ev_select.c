@@ -186,6 +186,10 @@ select_poll (EV_P_ ev_tstamp timeout)
       {
         if (errno == WSAENOTSOCK)
           errno = EBADF;
+        /* select fails with WSAENOBUFS for a short time when system memory is low or the OS
+         * goes to sleep: wait manually as for EINVAL below, not ev_syserr */
+        else if (errno == WSAENOBUFS)
+          errno = EINVAL;
         else
           errno -= WSABASEERR;
       }

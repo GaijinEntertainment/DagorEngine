@@ -254,14 +254,21 @@ static ecs::EntitySystemDesc strata_clouds_tex_es_es_desc
 ,nullptr,"*");
 static constexpr ecs::ComponentDesc clouds_form_es_event_handler_comps[] =
 {
-//start of 6 ro components at [0]
+//start of 13 ro components at [0]
   {ECS_HASH("clouds_form__layers"), ecs::ComponentTypeInfo<ecs::Array>()},
   {ECS_HASH("clouds_form__extinction"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("clouds_form__turbulenceStrength"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("clouds_form__shapeNoiseScale"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("clouds_form__cumulonimbusShapeScale"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("clouds_form__turbulenceFreq"), ecs::ComponentTypeInfo<int>()},
-//start of 1 rq components at [6]
+  {ECS_HASH("clouds_form__density_alter_strength"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_form__anvil_amount"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_form__mushroom_amount"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_form__anvil_spread"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_form__anvil_flare_from"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_form__anvil_flare_pow"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_form__cumulonimbus_top"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [13]
   {ECS_HASH("skies_settings_tag"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void clouds_form_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -275,6 +282,13 @@ static void clouds_form_es_event_handler_all_events(const ecs::Event &__restrict
     , ECS_RO_COMP(clouds_form_es_event_handler_comps, "clouds_form__shapeNoiseScale", int)
     , ECS_RO_COMP(clouds_form_es_event_handler_comps, "clouds_form__cumulonimbusShapeScale", int)
     , ECS_RO_COMP(clouds_form_es_event_handler_comps, "clouds_form__turbulenceFreq", int)
+    , ECS_RO_COMP_PTR(clouds_form_es_event_handler_comps, "clouds_form__density_alter_strength", Point2)
+    , ECS_RO_COMP_PTR(clouds_form_es_event_handler_comps, "clouds_form__anvil_amount", Point2)
+    , ECS_RO_COMP_PTR(clouds_form_es_event_handler_comps, "clouds_form__mushroom_amount", Point2)
+    , ECS_RO_COMP_PTR(clouds_form_es_event_handler_comps, "clouds_form__anvil_spread", Point2)
+    , ECS_RO_COMP_PTR(clouds_form_es_event_handler_comps, "clouds_form__anvil_flare_from", Point2)
+    , ECS_RO_COMP_PTR(clouds_form_es_event_handler_comps, "clouds_form__anvil_flare_pow", Point2)
+    , ECS_RO_COMP_PTR(clouds_form_es_event_handler_comps, "clouds_form__cumulonimbus_top", Point2)
     );
   while (++comp != compE);
 }
@@ -284,8 +298,8 @@ static ecs::EntitySystemDesc clouds_form_es_event_handler_es_desc
   "prog/gameLibs/ecs/weather/skiesSettingsES.cpp.inl",
   ecs::EntitySystemOps(nullptr, clouds_form_es_event_handler_all_events),
   empty_span(),
-  make_span(clouds_form_es_event_handler_comps+0, 6)/*ro*/,
-  make_span(clouds_form_es_event_handler_comps+6, 1)/*rq*/,
+  make_span(clouds_form_es_event_handler_comps+0, 13)/*ro*/,
+  make_span(clouds_form_es_event_handler_comps+13, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<EventSkiesLoaded,
                        ecs::EventEntityCreated,

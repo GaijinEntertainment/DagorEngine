@@ -41,14 +41,16 @@ void init(ContextId context_id)
   meta.vertexStride = vertex_stride;
 }
 
+static void release_buffer(ContextId context_id, UniqueBuf &buffer)
+{
+  context_id->releaseBuffer(buffer.getBuf());
+  buffer.close();
+}
+
 void teardown(ContextId context_id)
 {
-  if (context_id->cableVertices)
-    context_id->releaseBuffer(context_id->cableVertices.getBuf());
-  if (context_id->cableIndices)
-    context_id->releaseBuffer(context_id->cableIndices.getBuf());
-  context_id->cableVertices.close();
-  context_id->cableIndices.close();
+  release_buffer(context_id, context_id->cableVertices);
+  release_buffer(context_id, context_id->cableIndices);
   context_id->cableBLASes.clear();
   if (metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
     context_id->freeMetaRegion(metaAllocId);
@@ -71,18 +73,9 @@ static bool create_blas(ContextId context_id, Cables *cables, int index)
   desc.data.triangles.indexOffset = triangleCount * 3 * index;
   desc.data.triangles.flags = RaytraceGeometryDescription::Flags::IS_OPAQUE;
 
-  auto blas = UniqueBLAS::create(&desc, 1, blas_flags);
-  HANDLE_LOST_DEVICE_STATE(blas, false);
-
-  raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
-  buildInfo.flags = blas_flags;
-  buildInfo.geometryDesc = &desc;
-  buildInfo.geometryDescCount = 1;
-  buildInfo.scratchSpaceBuffer = alloc_scratch_buffer(blas.getBuildScratchSize(), buildInfo.scratchSpaceBufferOffsetInBytes);
-  buildInfo.scratchSpaceBufferSizeInBytes = blas.getBuildScratchSize();
-  HANDLE_LOST_DEVICE_STATE(buildInfo.scratchSpaceBuffer, false);
-
-  d3d::build_bottom_acceleration_structure(blas.get(), buildInfo);
+  auto blas = build_blas(desc, blas_flags);
+  if (!blas)
+    return false;
 
   context_id->cableBLASes.push_back(eastl::move(blas));
 
@@ -114,15 +107,9 @@ void on_cables_changed(Cables *cables, ContextId context_id)
   auto indexDwords = indexCount / 2;
 
   if (context_id->cableVertices && context_id->cableVertices->getNumElements() < vertexCount)
-  {
-    context_id->releaseBuffer(context_id->cableVertices.getBuf());
-    context_id->cableVertices.close();
-  }
+    release_buffer(context_id, context_id->cableVertices);
   if (context_id->cableIndices && context_id->cableIndices->getNumElements() < indexDwords)
-  {
-    context_id->releaseBuffer(context_id->cableIndices.getBuf());
-    context_id->cableIndices.close();
-  }
+    release_buffer(context_id, context_id->cableIndices);
 
   if (!context_id->cableVertices)
   {

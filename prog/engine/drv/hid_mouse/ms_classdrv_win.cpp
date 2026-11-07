@@ -105,6 +105,7 @@ void WinMouseClassDriver::onButtonUp(int btn_id)
 void WinMouseClassDriver::updateDevices()
 {
   device->update();
+  device->updatePadTouchpad();
 
   if (HumanInput::stg_pnt.allowEmulatedLMB)
   {

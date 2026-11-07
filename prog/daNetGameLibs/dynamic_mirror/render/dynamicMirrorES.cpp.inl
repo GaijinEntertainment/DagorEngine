@@ -38,7 +38,7 @@ static bool init_dynamic_mirrors_on_demand(DynamicMirrorRenderer &dynamic_mirror
   dafg::NodeHandle &dynamic_mirror_render_ground_node,
   dafg::NodeHandle &dynamic_mirror_resolve_gbuf_node,
   dafg::NodeHandle &dynamic_mirror_resolve_node,
-  dafg::NodeHandle &dynamic_mirror_prepare_envi_node,
+  dafg::NodeHandle &dynamic_mirror_render_water_node,
   dafg::NodeHandle &dynamic_mirror_envi_node)
 {
   auto worldRenderer = static_cast<WorldRenderer *>(get_world_renderer());
@@ -73,8 +73,8 @@ static bool init_dynamic_mirrors_on_demand(DynamicMirrorRenderer &dynamic_mirror
   dynamic_mirror_render_ground_node = create_dynamic_mirror_render_ground_node();
   dynamic_mirror_resolve_gbuf_node = create_dynamic_mirror_gbuf_resolve_node(resolveShader);
   dynamic_mirror_resolve_node = create_dynamic_mirror_resolve_node(dynamic_mirror_renderer);
-  dynamic_mirror_prepare_envi_node = create_dynamic_mirror_prepare_envi_node(dynamic_mirror_renderer);
-  dynamic_mirror_envi_node = create_dynamic_mirror_envi_node(dynamic_mirror_renderer);
+  dynamic_mirror_render_water_node = create_dynamic_mirror_render_water_node();
+  dynamic_mirror_envi_node = create_dynamic_mirror_envi_node();
   return true;
 }
 
@@ -91,7 +91,7 @@ static void prepare_mirror_es(const UpdateStageInfoBeforeRender &event,
   dafg::NodeHandle &dynamic_mirror_render_ground_node,
   dafg::NodeHandle &dynamic_mirror_resolve_gbuf_node,
   dafg::NodeHandle &dynamic_mirror_resolve_node,
-  dafg::NodeHandle &dynamic_mirror_prepare_envi_node,
+  dafg::NodeHandle &dynamic_mirror_render_water_node,
   dafg::NodeHandle &dynamic_mirror_envi_node)
 {
   dynamic_mirror_renderer.clearCameraData();
@@ -100,33 +100,18 @@ static void prepare_mirror_es(const UpdateStageInfoBeforeRender &event,
   if (!init_dynamic_mirrors_on_demand(dynamic_mirror_renderer, dynamic_mirror_prepare_node, dynamic_mirror_prepass_node,
         dynamic_mirror_end_prepass_node, dynamic_mirror_render_dynamic_node, dynamic_mirror_render_static_node,
         dynamic_mirror_render_ground_node, dynamic_mirror_resolve_gbuf_node, dynamic_mirror_resolve_node,
-        dynamic_mirror_prepare_envi_node, dynamic_mirror_envi_node))
+        dynamic_mirror_render_water_node, dynamic_mirror_envi_node))
     return;
   auto latestResolution = dynamic_mirror_renderer.getLatestResolution();
   if (latestResolution.x * latestResolution.y == 0)
     return;
   get_dynamic_mirror_ecs_query(manager,
-    [&](const Point3 &dynamic_mirror_holder__mirrorNormal, const TMatrix &transform,
-      const AnimV20::AnimcharRendComponent &animchar_render, AnimV20::AnimcharBaseComponent &animchar) {
-      const auto &mirrors = dynamic_mirror_renderer.getMirrors();
-      if (mirrors.empty())
+    [&](const Point3 &dynamic_mirror_holder__mirrorNormal, const Point3 &dynamic_mirror_holder__mirrorPos,
+      float dynamic_mirror_holder__znearBias, const TMatrix &transform) {
+      if (!dynamic_mirror_renderer.hasMirrors())
         return;
-
-      const auto &geomTreeNodeMap = animchar_render.getNodeMap();
-      Point3 avgPos = Point3(0, 0, 0);
-      for (const auto &mirror : mirrors)
-      {
-        auto nodeIdx = geomTreeNodeMap[mirror.rendAnimcharNodeId].nodeIdx;
-        mat44f nodeWtmf;
-        animchar.getNodeTree().getNodeWtm(nodeIdx, nodeWtmf);
-        TMatrix nodeWtm;
-        animchar.getNodeTree().mat44f_to_TMatrix(nodeWtmf, nodeWtm);
-        Point3 pos = nodeWtm * mirror.boundingSphere.c;
-        avgPos += pos;
-      }
-      avgPos /= mirrors.size();
-      Plane3 mirrorPlane = Plane3(transform % dynamic_mirror_holder__mirrorNormal, avgPos);
-      dynamic_mirror_renderer.prepareCameraData(event.viewItm, event.persp, mirrorPlane);
+      Plane3 mirrorPlane = Plane3(transform % dynamic_mirror_holder__mirrorNormal, transform * dynamic_mirror_holder__mirrorPos);
+      dynamic_mirror_renderer.prepareCameraData(event.viewItm, event.persp, mirrorPlane, dynamic_mirror_holder__znearBias);
       dynamic_mirror_renderer.prepareMirrorRIVisibilityAsync(latestResolution.y);
     });
 }

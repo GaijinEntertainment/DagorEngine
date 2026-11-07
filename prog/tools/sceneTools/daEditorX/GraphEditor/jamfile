@@ -12,6 +12,7 @@ AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/imgui-node-editor
+  $(Root)/prog
 ;
 
 Sources =
@@ -21,22 +22,19 @@ Sources =
   graph_add_node_popup.cpp
   graph_canvas_cull.cpp
   graph_command_text.cpp
-  graph_compile.cpp
   graph_context_menu.cpp
   graph_create_subgraph_dialog.cpp
   graph_curve_value.cpp
-  graph_dead_paths.cpp
   graph_document.cpp
-  graph_drag_collision.cpp
   graph_edge_reconnect.cpp
   graph_edge_render.cpp
   graph_gradient_value.cpp
   graph_hotkeys_bar.cpp
   graph_node_render.cpp
+  graph_open_subgraphs.cpp
   graph_panel.cpp
   graph_pin_colors.cpp
   graph_pin_jump_menu.cpp
-  graph_resolutions.cpp
   graph_row_list.cpp
   graph_shortcuts_panel.cpp
   graph_status_bar.cpp

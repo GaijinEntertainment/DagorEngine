@@ -423,6 +423,7 @@ struct EsIndexFixedSet
   size_t size() const { return list.size(); }
   size_t count(es_index_type value) const { return list.count(value); }
   void insert(es_index_type value) { list.insert(value); }
+  size_t heapBytes() const { return list.size() > set_type_t::base_type::static_size ? list.capacity() * sizeof(es_index_type) : 0; }
 
   typedef InplaceKeySet<es_index_type, 7, es_index_type> set_type_t;
   typedef typename set_type_t::shallow_copy_t shallow_copy_t;

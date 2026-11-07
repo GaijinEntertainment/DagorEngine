@@ -5,8 +5,12 @@
 #include <de3_entityFilter.h>
 #include <de3_genObjData.h>
 #include <de3_circularDepsChecker.h>
+#include <de3_prefabs.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
+#include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderBlock.h>
+#include <math/dag_color.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <debug/dag_debug3d.h>
 #include "spline.h"
@@ -369,23 +373,36 @@ struct SplineAndPolygonGenService : public ISplineGenService
         order_layers.set(e->layerOrder);
   }
 
-  void gatherGeneratedGeomTags(OAHashNameMap<true> &tags) const override
+  void gatherGeneratedGeomTags(OAHashNameMap<true> &tags, int stage = -1) const override
   {
     for (SplineGenEntity *e : splMgr->getEntities())
       if (e)
-        gatherGeomLayerTags(e->loftGeom, tags);
+        gatherGeomLayerTags(e->loftGeom, tags, stage);
     for (PolygonGenEntity *e : polyMgr->getEntities())
       if (e)
       {
-        gatherGeomLayerTags(e->geom.mainMesh, tags);
-        gatherGeomLayerTags(e->geom.borderMesh, tags);
+        gatherGeomLayerTags(e->geom.mainMesh, tags, stage);
+        gatherGeomLayerTags(e->geom.borderMesh, tags, stage);
       }
   }
-  static void gatherGeomLayerTags(GeomObject *g, OAHashNameMap<true> &tags)
+  void gatherGeomLayerTags(const ISplineGenObj *gen, OAHashNameMap<true> &tags, int stage = -1) const override
+  {
+    if (gen)
+      gatherGeomLayerTags(gen->loftGeom, tags, stage);
+  }
+  void gatherGeomLayerTags(const IPolygonGenObj *gen, OAHashNameMap<true> &tags, int stage = -1) const override
+  {
+    if (gen)
+    {
+      gatherGeomLayerTags(gen->geom.mainMesh, tags, stage);
+      gatherGeomLayerTags(gen->geom.borderMesh, tags, stage);
+    }
+  }
+  static void gatherGeomLayerTags(const GeomObject *g, OAHashNameMap<true> &tags, int stage)
   {
     if (g)
       for (StaticGeometryNode *node : g->getGeometryContainer()->nodes)
-        if (node)
+        if (node && (stage < 0 || node->stage == stage))
           if (const char *t = node->script.getStr("layerTag", NULL))
             tags.addNameId(t);
   }
@@ -489,6 +506,115 @@ struct SplineAndPolygonGenService : public ISplineGenService
       for (StaticGeometryNode *node : geom->getGeometryContainer()->nodes)
         if (node)
           node->flags &= ~StaticGeometryNode::FLG_OPERATIVE_HIDE;
+  }
+
+  void renderLoftMaskTags(const Frustum &frustum, dag::ConstSpan<GeomTagDrawParams> params) override
+  {
+    if (params.empty())
+      return;
+
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    Tab<GeomObject *> meshes(tmpmem);
+    for (SplineGenEntity *e : splMgr->getEntities())
+    {
+      if (!e || !e->loftGeom || lh_mask.isHidden(e->getEditLayerIdx()) || !frustum.testBoxB(e->loftGeomBox))
+        continue;
+      meshes.push_back(e->loftGeom);
+    }
+    for (PolygonGenEntity *e : polyMgr->getEntities())
+    {
+      if (!e || lh_mask.isHidden(e->getEditLayerIdx()) || !frustum.testBoxB(e->geomBox))
+        continue;
+      if (e->geom.mainMesh)
+        meshes.push_back(e->geom.mainMesh);
+      if (e->geom.borderMesh)
+        meshes.push_back(e->geom.borderMesh);
+    }
+
+    renderLoftMaskTagMeshes(meshes, params);
+  }
+
+  void renderLoftMaskTags(dag::ConstSpan<const ISplineGenObj *> spline_gens, dag::ConstSpan<const IPolygonGenObj *> poly_gens,
+    const Frustum &frustum, dag::ConstSpan<GeomTagDrawParams> params) override
+  {
+    if (params.empty())
+      return;
+
+    Tab<GeomObject *> meshes(tmpmem);
+    for (const ISplineGenObj *gen : spline_gens)
+    {
+      if (!gen || !gen->loftGeom || !frustum.testBoxB(gen->loftGeomBox))
+        continue;
+      meshes.push_back(gen->loftGeom);
+    }
+    for (const IPolygonGenObj *gen : poly_gens)
+    {
+      if (!gen || !frustum.testBoxB(gen->geomBox))
+        continue;
+      if (gen->geom.mainMesh)
+        meshes.push_back(gen->geom.mainMesh);
+      if (gen->geom.borderMesh)
+        meshes.push_back(gen->geom.borderMesh);
+    }
+
+    renderLoftMaskTagMeshes(meshes, params);
+  }
+
+  static bool isLoftMaskTagNode(const StaticGeometryNode &node, const char *tag)
+  {
+    return node.stage == prefabs::LOFT_MASK_EXPORT && dd_stricmp(node.script.getStr("layerTag", ""), tag) == 0;
+  }
+
+  static void renderLoftMaskTagNodes(GeomObject *geom, const char *tag)
+  {
+    bool hasTaggedNodes = false;
+    for (StaticGeometryNode *node : geom->getGeometryContainer()->nodes)
+      if (node)
+      {
+        if (isLoftMaskTagNode(*node, tag))
+          hasTaggedNodes = true;
+        else
+          node->flags |= StaticGeometryNode::FLG_OPERATIVE_HIDE;
+      }
+
+    if (hasTaggedNodes)
+      geom->render();
+
+    for (StaticGeometryNode *node : geom->getGeometryContainer()->nodes)
+      if (node)
+        node->flags &= ~StaticGeometryNode::FLG_OPERATIVE_HIDE;
+  }
+
+  static void renderLoftMaskTagMeshes(dag::ConstSpan<GeomObject *> meshes, dag::ConstSpan<GeomTagDrawParams> params)
+  {
+    if (meshes.empty() || params.empty())
+      return;
+
+    static int prefabs_render_modeVarId = ::get_shader_variable_id("prefabs_render_mode", true);
+    static int prefabs_colorVarId = ::get_shader_variable_id("prefabs_color", true);
+
+    // spline_solid supports no blocks, and GeomObject restores the scene block after its draw,
+    // which is invalid once auto block change has cleared the frame block
+    ScopeResetShaderBlocks resetBlocks;
+
+    ShaderGlobal::set_int(prefabs_render_modeVarId, 1); // render to gbuffer
+    const Color4 prevColor = ShaderGlobal::get_float4(prefabs_colorVarId);
+
+    for (const GeomTagDrawParams &param : params)
+    {
+      if (!param.tag)
+        continue;
+      ShaderGlobal::set_float4(prefabs_colorVarId, color4(param.color));
+      for (GeomObject *mesh : meshes)
+      {
+        if (!mesh)
+          continue;
+        renderLoftMaskTagNodes(mesh, param.tag);
+      }
+    }
+
+    ShaderGlobal::set_float4(prefabs_colorVarId, prevColor);
+    ShaderGlobal::set_int(prefabs_render_modeVarId, 0); // restore render to loft mask
   }
 
   bool traceRayFoundationLoftGeom(int layer, const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) const override

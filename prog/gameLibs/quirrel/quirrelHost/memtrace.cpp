@@ -211,10 +211,13 @@ static void get_obj_size_recursively(HSQUIRRELVM vm, HSQOBJECT &obj, ObjectSizeH
       size_t size = sizeof(SQClass) + cls->_members->AllocatedNodes() * (sizeof(SQObjectPtr) * 2 + sizeof(void *));
       if (!in_container)
         size += sizeof(SQObjectPtr);
+      hist.typeCountHistogram["class"]++;
+      if (!hist.processedObjects.insert((void *)cls).second)
+        break;
+
       hist.totalSize += size;
       hist.sizeHistogram[size]++;
       hist.allocTypeHistogram[size] |= ALLOC_CLASS;
-      hist.typeCountHistogram["class"]++;
       hist.typeSizeHistogram["class"] += size;
       hist.tableNodesHistogram[cls->_members->AllocatedNodes()]++;
       hist.tableUsedNodesHistogram[cls->_members->CountUsed()]++;
@@ -242,10 +245,13 @@ static void get_obj_size_recursively(HSQUIRRELVM vm, HSQOBJECT &obj, ObjectSizeH
       size_t size = calcinstancesize(inst->_class);
       if (!in_container)
         size += sizeof(SQObjectPtr);
+      hist.typeCountHistogram["instance"]++;
+      if (!hist.processedObjects.insert((void *)inst).second)
+        break;
+
       hist.totalSize += size;
       hist.sizeHistogram[size]++;
       hist.allocTypeHistogram[size] |= ALLOC_INSTANCE;
-      hist.typeCountHistogram["instance"]++;
       hist.typeSizeHistogram["instance"] += size;
 
       sq_pushobject(vm, obj);
@@ -296,9 +302,7 @@ static void get_obj_size_recursively(HSQUIRRELVM vm, HSQOBJECT &obj, ObjectSizeH
       hist.typeCountHistogram["closure"]++;
       SQClosure *clo = _closure(obj);
       SQFunctionProto *func = clo->_function;
-      size_t size = sizeof(SQClosure) + _FUNC_SIZE(func->_ninstructions, func->_nliterals, func->_nparameters, func->_nfunctions,
-                                          func->_noutervalues, func->_nlineinfos, func->_lineinfos->_is_compressed,
-                                          func->_nlocalvarinfos, func->_ndefaultparams);
+      size_t size = sizeof(SQClosure) + func->GetAllocSize();
 
       if (hist.processedObjects.find((void *)func) == hist.processedObjects.end())
       {
@@ -319,8 +323,7 @@ static void get_obj_size_recursively(HSQUIRRELVM vm, HSQOBJECT &obj, ObjectSizeH
         break;
       hist.typeCountHistogram["funcproto"]++;
       SQFunctionProto *func = _funcproto(obj);
-      size_t size = _FUNC_SIZE(func->_ninstructions, func->_nliterals, func->_nparameters, func->_nfunctions, func->_noutervalues,
-        func->_nlineinfos, func->_lineinfos->_is_compressed, func->_nlocalvarinfos, func->_ndefaultparams);
+      size_t size = func->GetAllocSize();
 
       if (hist.processedObjects.find((void *)func) == hist.processedObjects.end())
       {
@@ -842,24 +845,30 @@ void on_alloc(SQAllocContext ctx, HSQUIRRELVM vm, const void *p, size_t size)
   rec.lines[0] = 0;
   if (vm && vm->ci)
   {
-    SQStackInfos si;
-    SQInteger level = 0;
-
+    // sq_stackinfos could allocate a function name
     int count = 0;
-    while (SQ_SUCCEEDED(sq_stackinfos(vm, level, &si)))
+    for (SQInteger level = vm->_callsstacksize - 1; level >= 0; level--)
     {
-      if (!si.source)
-        break;
-
-      rec.fileNames[count] = si.source;
-      rec.lines[count] = int(si.line);
-      if (int(si.line) != -1)
+      const SQVM::CallInfo &ci = vm->_callsstack[level];
+      const char *source = "unknown";
+      int line = 0;
+      if (sq_type(ci._closure) == OT_CLOSURE)
       {
-        count++;
-        if (count >= MEM_TRACE_STACK_SIZE)
-          break;
+        SQFunctionProto *func = _closure(ci._closure)->_function;
+        if (sq_type(func->_sourcename) == OT_STRING)
+          source = _stringval(func->_sourcename);
+        line = int(func->GetLine(ci._ip));
       }
-      level++;
+      else if (sq_type(ci._closure) == OT_NATIVECLOSURE)
+      {
+        source = "NATIVE";
+        line = -1;
+      }
+
+      rec.fileNames[count] = source;
+      rec.lines[count] = line;
+      if (line != -1 && ++count >= MEM_TRACE_STACK_SIZE)
+        break;
     }
   }
 

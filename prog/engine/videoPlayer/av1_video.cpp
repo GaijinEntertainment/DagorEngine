@@ -216,7 +216,7 @@ public:
     int stride;
     int fh2 = frameH / 2, fw2 = frameW / 2;
     // y
-    if (!tex->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE | TEXLOCK_RAWDATA))
+    if (!tex->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE))
     {
       dav1d_picture_unref(&picture);
       tex->unlockimg();
@@ -230,7 +230,7 @@ public:
         memcpy(ptr, yPointer, frameW);
     tex->unlockimg();
     // u
-    if (!vBuf.getWr().texU->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE | TEXLOCK_RAWDATA))
+    if (!vBuf.getWr().texU->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE))
     {
       dav1d_picture_unref(&picture);
       tex->unlockimg();
@@ -241,7 +241,7 @@ public:
       memcpy(ptr, uPointer, fw2);
     vBuf.getWr().texU->unlockimg();
     // v
-    if (!vBuf.getWr().texV->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE | TEXLOCK_RAWDATA))
+    if (!vBuf.getWr().texV->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE))
     {
       dav1d_picture_unref(&picture);
       tex->unlockimg();

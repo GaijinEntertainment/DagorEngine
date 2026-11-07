@@ -39,6 +39,8 @@ struct AssetPack
   bool exported;
   int buildRes;
 
+  bool completionCounted = false;
+
   AssetPack(const char *nm, int pi) : assets(tmpmem), packName(nm), exported(true), packageId(pi), buildRes(-1) {}
 };
 

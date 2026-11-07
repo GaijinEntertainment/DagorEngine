@@ -147,6 +147,7 @@ public:
   void importFromNode(const Node *node, bool &for_all, int &choosed, Tab<String> &imps);
 
   void renderGeometry(bool opaque);
+  void renderLoftTaggedGeometry();
   void renderGrassMask();
   void renderGameSplines();
   void logGameSplinesStats() const;
@@ -167,15 +168,10 @@ public:
   //! updates cross roads config when point is removed
   void updateCrossRoadsOnPointRemove(SplinePointObject *p);
 
-  //! generates road geometry for cross roads that are marked changed
-  void updateCrossRoadGeom();
-
   //! updates all splines/segments marked changed
   void updateSplinesGeom();
 
   bool supportsRealtimeUpdate() const;
-
-  static void unloadRoadBuilderDll();
 
   inline int splinesCount() const { return splines.size(); }
   inline SplineObject *getSpline(int idx) { return splines[idx]; }
@@ -240,6 +236,7 @@ public:
   String lastExportPath, lastImportPath, lastAsCompositExportPath;
   bool crossRoadsChanged;
   bool splinesChanged;
+  bool assetPropsChanged = false;
   bool autoUpdateSpline;
   float maxPointVisDist;
   int generationCount;

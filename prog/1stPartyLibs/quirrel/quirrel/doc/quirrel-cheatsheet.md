@@ -34,9 +34,17 @@ verified against csq 1.0.37 behavior, not just docs.
   nested closure, which sees null until the definition runs.
 - Declare functions as `function foo() {}`. This is a non-reassignable declaration.
 - Mark side-effect-free functions `function [pure] f()` / `@[pure](x) ...`:
-  enables const folding and use in constant context.
+  enables const folding and use in constant context. An async function cannot
+  be pure. A call of an imported or const pure function with constant
+  arguments runs at compile time in any
+  expression: a scalar result is folded, and an error fails the compile, also
+  in a function that nothing calls or in code that a constant condition skips.
+  A `?:` with three constant operands can fold as a whole and then runs just
+  the selected branch, but that depends on its position and its result: do
+  not rely on it to skip a failing call.
 - Classes: `class Baz(Bar)`, not `extends`. Do not add methods via
-  `class::method`; declare in place or add slots with `<-`.
+  `class::method`; declare in place or add slots with `<-` before the class
+  locks (first instance, a subclass or `lock()`). A locked class is read-only.
 - Prefix intentionally unused vars/params with `_` (w228 declared-never-used,
   w291 fires if a `_name` is actually used).
 - `@@"..."` docstrings document exported APIs.
@@ -49,7 +57,9 @@ verified against csq 1.0.37 behavior, not just docs.
   generator userpointer thread instance class weakref any`; unions via `|`;
   `number` == `int|float` (prefer it for numerics).
 - Checks are enforced at RUNTIME (calls, returns, assignments, destructuring):
-  a wrong annotation is a crash, a missing one costs nothing.
+  a wrong annotation is a crash, a missing one costs nothing. Dagor `rel` and
+  `irel` builds skip these script checks (`SQ_RUNTIME_TYPE_CHECK=0`), native
+  parameter checks stay: test in dev.
 - Annotate new code freely. When retrofitting a shared/library function,
   annotate a param only if a value outside that type would already fail in the
   body today; otherwise you may break an existing caller that static checks
@@ -57,11 +67,14 @@ verified against csq 1.0.37 behavior, not just docs.
   equality or truthiness tolerate "wrong" types at runtime.
 - Return type only when every path agrees; valueless `return` and falling off
   the end yield null, so use `T|null` or skip.
-- Type checks add a small per-call cost: skip annotating trivial helpers in
-  per-frame/per-item hot loops.
+- Type checks add a small per-call cost in dev and dbg builds only: skip
+  annotating trivial helpers in per-frame/per-item hot loops.
 
 ## Modules
 
+- File order: `#` directives, then imports, then code. A directive (except
+  `#pos`) or an import in any other place (a function body included) is a
+  compile error.
 - Prefer `import` over `require`: it is compile time, so the analyzer verifies
   the module exists and every imported field (missing-field w312,
   imported-never-used w230, duplicate-import w332), and imported names are

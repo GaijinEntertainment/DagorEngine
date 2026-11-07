@@ -110,7 +110,8 @@ static bool skipObject(const RendInstGenData::RtData &rt_data, const RiGenVisibi
 }
 
 RiGenRenderer::RiGenRenderer(RenderPass render_pass, LayerFlags layer_flags, bool optimization_depth_prepass, bool depth_optimized,
-  bool depth_prepass_for_impostors, bool depth_prepass_for_cells, int per_inst_data_dwords, int draw_order_var_id) :
+  bool depth_prepass_for_impostors, bool depth_prepass_for_cells, int per_inst_data_dwords, int draw_order_var_id,
+  int material_write_var_id) :
   renderPass(render_pass),
   layerFlags(layer_flags),
   optimizationDepthPrepass(optimization_depth_prepass),
@@ -118,7 +119,8 @@ RiGenRenderer::RiGenRenderer(RenderPass render_pass, LayerFlags layer_flags, boo
   impostorDepthPrepass(depth_prepass_for_impostors),
   cellDepthPrepass(depth_prepass_for_cells),
   perInstDataDwords(per_inst_data_dwords),
-  drawOrderVarId(draw_order_var_id)
+  drawOrderVarId(draw_order_var_id),
+  materialWriteVarId(material_write_var_id)
 {
   if (renderPass == rendinst::RenderPass::Normal)
   {
@@ -223,20 +225,24 @@ void RiGenRenderer::updatePerDrawDataAtIdx(RendInstGenData::RtData &rt_data, int
 template <typename RenderRecordCB>
 static void addLodInstances(RendInstGenData::RtData &rt_data, const RiGenVisibility &visibility, int ri_idx, int lod_idx,
   int start_stage, int end_stage, bool impostor_depth_prepass, bool optimization_depth_prepass, int draw_order_var_id,
-  const RenderRecordCB &add_record_cb)
+  int material_write_var_id, const RenderRecordCB &add_record_cb)
 {
   const auto rendInstRes = rt_data.riResLodScene(ri_idx, lod_idx);
   const auto mesh = rendInstRes->getMesh()->getMesh()->getMesh();
   const bool isBakedImpostor = rt_data.riRes[ri_idx]->isBakedImpostor();
   const auto lodCnt = rt_data.riResLodCount(ri_idx);
   const auto isImpostorLod = lod_idx >= lodCnt - 1 && rt_data.riPosInst[ri_idx] ? 1 : 0;
+  const auto voxelDataOffset = rendInstRes->getVoxelDataOffset();
 
+  if (voxelDataOffset != 0 and optimization_depth_prepass)
+    return;
   if (!impostor_depth_prepass && optimization_depth_prepass && isBakedImpostor && isImpostorLod)
     return;
 
   const auto maskOffset = lod_idx < lodCnt ? lod_idx : lodCnt - 1;
   auto atestMask = rt_data.riResElemMask[ri_idx * rendinst::MAX_LOD_COUNT + maskOffset].atest;
   auto plodMask = rt_data.riResElemMask[ri_idx * rendinst::MAX_LOD_COUNT + maskOffset].plod;
+  const auto voxelSurfaceId = rendInstRes->getVoxelSurfaceId();
 
   for (auto stage = start_stage; stage <= end_stage; ++stage)
   {
@@ -258,10 +264,11 @@ static void addLodInstances(RendInstGenData::RtData &rt_data, const RiGenVisibil
       if (!is_valid(dynVarState))
         continue;
 
-      const PackedDrawOrder drawOrder{elem, (unsigned int)stage, draw_order_var_id};
+      const PackedDrawOrder drawOrder{elem, (unsigned int)stage, draw_order_var_id, material_write_var_id};
       const auto baseRecord = RiGenRenderRecord(elem.e, dynVarState, INVALID, drawOrder, stage, (uint16_t)elem.vertexData->getStride(),
         (uint8_t)elem.vertexData->getVbIdx(), INVALID, INVALID, ri_idx, elem.si, elem.numf, elem.baseVertex, elem.numv, elem.sv,
-        elem.getPrimitive(), RiGenRenderRecord::INVALID, INVALID, meshDebugValue, plodMask & 1);
+        voxelSurfaceId, voxelDataOffset == 0 ? 0 : elem.baseVertex * elem.vertexData->getStride() + voxelDataOffset,
+        elem.getPrimitive(), RiGenRenderRecord::INVALID, INVALID, meshDebugValue, (plodMask & 1) or voxelDataOffset != 0);
 
       add_record_cb(baseRecord);
     }
@@ -316,7 +323,7 @@ void RiGenRenderer::addInstanceVisibleObjects(RendInstGenData::RtData &rt_data, 
         }
       };
       addLodInstances(rt_data, visibility, riIdx, lodIdx, startStage, endStage, impostorDepthPrepass, optimizationDepthPrepass,
-        drawOrderVarId, addRecordCb);
+        drawOrderVarId, materialWriteVarId, addRecordCb);
     }
   }
 }
@@ -403,7 +410,7 @@ void RiGenRenderer::addCellVisibleObjects(RendInstGenData::RtData &rt_data, cons
       };
 
       addLodInstances(rt_data, visibility, riIdx, lodIdx, startStage, endStage, impostorDepthPrepass, optimizationDepthPrepass,
-        drawOrderVarId, addRecordCb);
+        drawOrderVarId, materialWriteVarId, addRecordCb);
       recordsCount = renderRecords.size() - recordsCount;
     }
 #if _TARGET_PC_TOOLS_BUILD
@@ -440,6 +447,10 @@ void RiGenRenderer::sortObjects()
     }
     else if (r1.dvState.render_state != r2.dvState.render_state)
       return r1.dvState.render_state < r2.dvState.render_state;
+    if (r1.voxelSurfaceId != r2.voxelSurfaceId)
+      return r1.voxelSurfaceId < r2.voxelSurfaceId;
+    if (r1.voxelDataOffset != r2.voxelDataOffset)
+      return r1.voxelDataOffset < r2.voxelDataOffset;
     if (r1.poolOrder != r2.poolOrder)
       return r1.poolOrder < r2.poolOrder;
     return r1.offset < r2.offset;
@@ -478,10 +489,24 @@ void RiGenRenderer::sortPackedObjects()
     }
     else if (r1.dvState.render_state != r2.dvState.render_state)
       return r1.dvState.render_state < r2.dvState.render_state;
+    if (r1.voxelSurfaceId != r2.voxelSurfaceId)
+      return r1.voxelSurfaceId < r2.voxelSurfaceId;
+    if (r1.voxelDataOffset != r2.voxelDataOffset)
+      return r1.voxelDataOffset < r2.voxelDataOffset;
     if (r1.poolOrder != r2.poolOrder)
       return r1.poolOrder < r2.poolOrder;
+    if (r1.instanceLod != r2.instanceLod)
+      return r1.instanceLod < r2.instanceLod;
     return r1.offset < r2.offset;
   });
+}
+
+uint32_t RiGenRenderer::getImpostorDataOffset(const RendInstGenData::RtData &rt_data, const RiGenRenderRecord &record)
+{
+  // the impostor shaders of the impostor and alpha lods don't read the offset, so 0 keeps them mergeable across pools
+  if (record.instanceLod >= RiGenVisibility::PI_IMPOSTOR_LOD || !rt_data.rtPoolData[record.poolIdx]->hasImpostor())
+    return 0;
+  return static_cast<uint32_t>(rt_data.rtPoolData[record.poolIdx]->impostorDataOffsetCache & rendinst::gen::CACHE_OFFSET_MASK);
 }
 
 void RiGenRenderer::updatePackedData(int layer)
@@ -521,6 +546,7 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
 #endif
 
   uint8_t curVbIdx = INVALID;
+  uint8_t curSvfVbIdx = INVALID;
   uint16_t curStride = INVALID;
   shaders::RenderStateId curRState = shaders::RenderStateId::Invalid;
   uint32_t curVariant = INVALID;
@@ -534,6 +560,9 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
   d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
   shaders::OverrideStateId previousOverrideId = shaders::overrides::get_current();
   const bool hasStencilTestStateOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::STENCIL;
+  bool voxelDepthProjectionSet = false;
+  int cVoxOfs = 0;
+  uint32_t cVoxSurf = VoxelSurfaceData::INVALID_ID;
   for (const auto &record : renderRecords)
   {
     G_ASSERT(record.count != INVALID);
@@ -563,6 +592,7 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
       {
         d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
         curVbIdx = INVALID;
+        curSvfVbIdx = INVALID;
         curStride = INVALID;
       }
       else
@@ -577,15 +607,16 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
     if (curVbIdx != record.vbIdx || curStride != record.vstride)
     {
       Vbuffer *vb = unitedvdata::riUnitedVdata.getVB(record.vbIdx);
-      if (record.isSWVertexFetch && curVbIdx != record.vbIdx)
+      if (record.isSWVertexFetch && curSvfVbIdx != record.vbIdx)
       {
         G_ASSERT(ri_vertex_data_no != -1);
         d3d::set_buffer(STAGE_VS, ri_vertex_data_no, vb);
         d3d::set_buffer(STAGE_PS, ri_vertex_data_no, vb);
+        curSvfVbIdx = record.vbIdx;
       }
       curVbIdx = record.vbIdx;
       curStride = record.vstride;
-      d3d_err(d3d::setvsrc(0, unitedvdata::riUnitedVdata.getVB(curVbIdx), curStride));
+      d3d_err(d3d::setvsrc(0, vb, curStride));
     }
 
     if (record.stage == ShaderMesh::STG_opaque && curRState == record.dvState.render_state && record.dvState.variant == curVariant &&
@@ -606,6 +637,7 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
 
     const bool afterDepthPrepass =
       renderPass == rendinst::RenderPass::Normal && record.instanceLod <= RiGenVisibility::PI_LAST_MESH_LOD && depthOptimized &&
+      record.voxelDataOffset == 0 &&
       (record.visibility == record.PER_INSTANCE || (cellDepthPrepass && record.visibility == record.PER_CELL));
 
     if (eastl::exchange(currentDepthPrepass, afterDepthPrepass) != afterDepthPrepass)
@@ -620,6 +652,35 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
 
     if (debug_mesh::set_debug_value(record.meshDebugValue))
       skipApply = false;
+
+    if (cVoxOfs != record.voxelDataOffset)
+    {
+      if (record.voxelDataOffset != 0)
+      {
+        if (!voxelDepthProjectionSet)
+        {
+          voxelDepthProjectionSet = true;
+          set_voxel_depth_projection();
+        }
+        G_ASSERT(ri_voxel_data_offset_varid != -1);
+        ShaderGlobal::set_int(ri_voxel_data_offset_varid, record.voxelDataOffset);
+
+        Vbuffer *vb = unitedvdata::riUnitedVdata.getVB(record.vbIdx);
+        G_ASSERT(ri_vertex_data_no != -1);
+        d3d::set_buffer(STAGE_VS, ri_vertex_data_no, vb);
+        d3d::set_buffer(STAGE_PS, ri_vertex_data_no, vb);
+        curSvfVbIdx = record.vbIdx;
+      }
+      cVoxOfs = record.voxelDataOffset;
+      skipApply = false;
+    }
+
+    if (cVoxSurf != record.voxelSurfaceId)
+    {
+      cVoxSurf = record.voxelSurfaceId;
+      VoxelSurfaceData::setToShader(cVoxSurf);
+      skipApply = false;
+    }
 
     if (!skipApply)
     {
@@ -719,17 +780,19 @@ RiGenRenderer::MultiDrawRenderer RiGenRenderer::getMultiDrawRenderer()
 
 void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, const RiGenVisibility &visibility)
 {
-  G_UNUSED(rt_data);
   TIME_D3D_PROFILE(ri_gen_render_packed_objects);
 
   if (packedRenderRecords.empty())
     return;
 
+  // Only the depth and shadow variants of the vegetation PS don't read the crown transmittance immediates.
+  const bool setImpostorDataOffset = renderPass != RenderPass::Depth && renderPass != RenderPass::ToShadow;
+
   sortPackedObjects();
   if (debug_mesh::is_enabled())
-    coalescePackedRecords<true>();
+    coalescePackedRecords<true>(rt_data, setImpostorDataOffset);
   else
-    coalescePackedRecords<false>();
+    coalescePackedRecords<false>(rt_data, setImpostorDataOffset);
 
   for (auto stateIdTexLevel : bindlessStatesToUpdateTexLevels)
     update_bindless_state(stateIdTexLevel.first, stateIdTexLevel.second);
@@ -748,12 +811,26 @@ void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, 
 
   uint8_t curVbIdx = INVALID;
   uint8_t curStride = INVALID;
+  uint8_t curInstanceLod = INVALID;
+  uint32_t curImpostorDataOffset = INVALID;
+
+  const auto tcConsts = rendinst::render::getCommonImmediateConstants();
+  uint32_t psImmediateConsts[] = {0, tcConsts[0], tcConsts[1]};
 
   d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
 
   for (const auto &drawRange : packedRenderRanges)
   {
     const auto &record = packedRenderRecords[drawRange.start];
+    if (setImpostorDataOffset)
+    {
+      const uint32_t impostorDataOffset = getImpostorDataOffset(rt_data, record);
+      if (eastl::exchange(curImpostorDataOffset, impostorDataOffset) != impostorDataOffset)
+      {
+        psImmediateConsts[0] = impostorDataOffset;
+        d3d::set_immediate_const(STAGE_PS, psImmediateConsts, sizeof(psImmediateConsts) / sizeof(psImmediateConsts[0]));
+      }
+    }
     if (curVbIdx != record.vbIdx || curStride != record.vstride)
     {
       d3d_err(d3d::setvsrc(0, unitedvdata::riUnitedVdata.getVB(record.vbIdx), record.vstride));
@@ -766,20 +843,25 @@ void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, 
       G_ASSERT(record.count <= rendinst::render::MAX_INSTANCES);
       if (DAGOR_LIKELY(record.offset + record.count <= rendinst::render::MAX_INSTANCES))
       {
-        const auto updateCount =
-          min(visibility.instanceData[record.instanceLod].size(), static_cast<unsigned>(rendinst::render::MAX_INSTANCES));
-        updateInstancePositions(visibility.instanceData[record.instanceLod], 0, updateCount);
+        if (eastl::exchange(curInstanceLod, record.instanceLod) != record.instanceLod)
+        {
+          const auto updateCount =
+            min(visibility.instanceData[record.instanceLod].size(), static_cast<unsigned>(rendinst::render::MAX_INSTANCES));
+          updateInstancePositions(visibility.instanceData[record.instanceLod], 0, updateCount);
+        }
       }
       else
       {
         // For records exceeding the limit, the per_instance_data will only contain info for this one draw call
         G_ASSERT(drawRange.count == 1);
+        curInstanceLod = INVALID;
         updateInstancePositions(visibility.instanceData[record.instanceLod], record.offset, record.count);
       }
     }
 
     const bool afterDepthPrepass =
       renderPass == rendinst::RenderPass::Normal && record.instanceLod <= RiGenVisibility::PI_LAST_MESH_LOD && depthOptimized &&
+      record.voxelDataOffset == 0 &&
       (record.visibility == record.PER_INSTANCE || (cellDepthPrepass && record.visibility == record.PER_CELL));
 
     if (eastl::exchange(currentDepthPrepass, afterDepthPrepass) != afterDepthPrepass)
@@ -797,6 +879,9 @@ void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, 
 
     multiDrawRenderer.render(PRIM_TRILIST, drawRange.start, drawRange.count);
   }
+
+  if (setImpostorDataOffset)
+    d3d::set_immediate_const(STAGE_PS, nullptr, 0);
 
   if (currentDepthPrepass)
   {

@@ -8,11 +8,19 @@
 #include <util/dag_stdint.h>
 #include <stdio.h>
 #include <osApiWrappers/dag_fileIoErr.h>
+#include <osApiWrappers/dag_spinlock.h>
 #if _TARGET_ANDROID
 #include <osApiWrappers/dag_progGlobals.h>
 #include <supp/dag_android_native_app_glue.h>
 #include <android/asset_manager.h>
 #endif
+
+// lock holder reuses fp; others open own
+struct KeptPackFile
+{
+  FILE *fp;
+  os_spinlock_t lock;
+};
 
 class RomFileReader
 {
@@ -151,14 +159,13 @@ public:
       {
         rdPool[i].fp = NULL;
         const char *fn = pack->getFilePath();
-        if (fn)
-          rdPool[i].fp = fopen(fn, "rb");
+        KeptPackFile *kept = pack->getFile() ? (KeptPackFile *)*pack->getFileSlot() : nullptr;
+        if (kept && os_spinlock_trylock(&kept->lock))
+          rdPool[i].fp = (rdPool[i].reusedFrom = kept)->fp;
+        else if (fn && (rdPool[i].fp = fopen(fn, "rb")) != NULL && dag_on_file_open)
+          dag_on_file_open(fn, rdPool[i].fp, DF_READ); // df_close will call dag_on_file_close
         if (rdPool[i].fp)
-        {
           fseek(rdPool[i].fp, rdPool[i].fpOfs = getBaseOfs(p), SEEK_SET);
-          if (dag_on_file_open)
-            dag_on_file_open(fn, rdPool[i].fp, DF_READ); // df_close will call dag_on_file_close
-        }
         else
         {
           rdPool[i].size = -1;
@@ -267,11 +274,12 @@ public:
     rdPool[i].size = -1;
     rdPool[i].pos = 0;
     rdPool[i].srcVrom = nullptr;
-    if (rdPool[i].fp)
-    {
+    if (rdPool[i].reusedFrom)
+      os_spinlock_unlock(&rdPool[i].reusedFrom->lock);
+    else if (rdPool[i].fp)
       df_close(rdPool[i].fp);
-      rdPool[i].fp = NULL;
-    }
+    rdPool[i].fp = NULL;
+    rdPool[i].reusedFrom = nullptr;
 #if _TARGET_ANDROID
     if (rdPool[i].asset)
     {
@@ -349,6 +357,7 @@ protected:
   int size, pos;
   FILE *fp;
   int fpOfs;
+  KeptPackFile *reusedFrom = nullptr;
   const VirtualRomFsData *srcVrom;
 #if _TARGET_ANDROID
   AAsset *asset = nullptr;

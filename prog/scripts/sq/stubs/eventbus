@@ -1,4 +1,4 @@
-function eventbus_subscribe(event_name, handler){
+function eventbus_subscribe(event_name, handler, _filter = null){
   assert(type(event_name)=="string")
   assert(type(handler)=="function")
 }

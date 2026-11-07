@@ -7,8 +7,11 @@
 #include <daRg/dag_element.h>
 #include <debug/dag_log.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_sampler.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/algorithm.h>
+#include <memory/dag_framemem.h>
+#include <dag/dag_vector.h>
 #include <ioSys/dag_zstdIo.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderBlock.h>
@@ -92,6 +95,7 @@ static void load_tiles_cb(
   G_UNUSED(tcLt);
   G_UNUSED(tcRb);
   G_UNUSED(picture_sz);
+  G_UNUSED(smp);
 
   if (!s_tiled_map_ctx || !arg)
     return;
@@ -126,7 +130,6 @@ static void load_tiles_cb(
   {
     s_tiled_map_ctx->tiles[req->quadKey].picId = pid;
     s_tiled_map_ctx->tiles[req->quadKey].texId = tid;
-    s_tiled_map_ctx->tiles[req->quadKey].smpId = smp;
     TILEDMAP_DEBUG("TiledMapContext: load_tile_cb: %s tile loaded", req->quadKey);
   }
 
@@ -195,6 +198,11 @@ IPoint2 TiledMapContext::quadKeyToTileXY(const QuadKey &quadKey, int zoom)
 
 TiledMapContext::TiledMapContext()
 {
+  // Default samplers wrap; then bilinear filtering bleeds the opposite edge into tile and fog mask borders
+  d3d::SamplerInfo clampSamplerInfo;
+  clampSamplerInfo.address_mode_u = clampSamplerInfo.address_mode_v = d3d::AddressMode::Clamp;
+  clampSampler = d3d::request_sampler(clampSamplerInfo);
+
   if (s_tiled_map_ctx != nullptr)
     *this = std::move(*s_tiled_map_ctx);
   s_tiled_map_ctx = this;
@@ -278,6 +286,23 @@ void TiledMapContext::setViewportSize(int width, int height)
   if (isClampToBorder)
     clampToWorldBorder();
   setVisibleRadiusInner(getVisibleRadius());
+  updateVisibleTiles();
+
+  if (fogOfWarEnabled)
+  {
+    initFogOfWarTex();
+    fogOfWarPrevDataGen = -1;
+  }
+}
+
+void TiledMapContext::setVisibleRadiusRange(const Point2 &range)
+{
+  worldVisibleRadiusRange = range;
+  worldVisibleRadiusRangeDefault = range;
+  if (isClampToBorder)
+    clampToWorldBorder();
+  else
+    setVisibleRadiusInner(getVisibleRadius());
   updateVisibleTiles();
 }
 
@@ -664,7 +689,7 @@ static eastl::string resolve_tiles_ext(const eastl::string &tiles_path)
   if (*forcedExt)
     return forcedExt;
   eastl::string combinedDdsx(eastl::string::CtorSprintf{}, "%s/combined.ddsx", tiles_path.c_str());
-  return dd_file_exists(combinedDdsx.c_str()) ? "ddsx" : "avif";
+  return dd_file_exists(combinedDdsx.c_str()) ? "ddsx?I" : "avif";
 }
 
 void TiledMapContext::setup(Sqrat::Object cfg)
@@ -742,23 +767,10 @@ void TiledMapContext::setup(Sqrat::Object cfg)
 
   fogOfWarEnabled = cfg.RawGetSlotValue<bool>("fogOfWarEnabled", false);
 
-  if (fogOfWarEnabled && viewportWidth > 0 && viewportHeight > 0)
-  {
-    int texcf = TEXFMT_R8 | TEXCF_RTARGET;
-    fogOfWarTex = dag::create_tex(nullptr, viewportWidth, viewportHeight, texcf, 1, "tiled_map_fog_of_war_tex");
-    fogOfWarSampler = get_texture_separate_sampler(fogOfWarTex.getTexId());
-
-    fogOfWarTexInited = false;
-    if (!fogOfWarTex)
-      logerr("%s: fogOfWarTex = false", __FUNCTION__);
-
-    if (!fogOfWarTileShader.inited)
-      if (!fogOfWarTileShader.init("fog_of_war_tile", false))
-        logerr("%s: failed to init `fog_of_war_tile` shader", __FUNCTION__);
-  }
-
   if (fogOfWarEnabled)
   {
+    initFogOfWarTex();
+
     fogOfWarLeftTop = cfg.RawGetSlotValue<Point2>("fogOfWarLeftTop", worldLeftTop);
     fogOfWarRightBottom = cfg.RawGetSlotValue<Point2>("fogOfWarRightBottom", worldRightBottom);
     fogOfWarResolution = cfg.RawGetSlotValue<float>("fogOfWarResolution", 1.0f);
@@ -852,7 +864,26 @@ void TiledMapContext::setup(Sqrat::Object cfg)
     updateVisibleTiles();
 }
 
-void collectChildrenTiles(const QuadKey &quadKey, eastl::vector<QuadKey> &keepTiles, TilesHashMap &tilesHashMap, int zlevels)
+void TiledMapContext::initFogOfWarTex()
+{
+  if (viewportWidth <= 0 || viewportHeight <= 0)
+    return;
+
+  int texcf = TEXFMT_R8 | TEXCF_RTARGET;
+  fogOfWarTex = dag::create_tex(nullptr, viewportWidth, viewportHeight, texcf, 1, "tiled_map_fog_of_war_tex");
+
+  fogOfWarTexInited = false;
+  if (!fogOfWarTex)
+    logerr("%s: fogOfWarTex = false", __FUNCTION__);
+
+  if (!fogOfWarTileShader.inited)
+    if (!fogOfWarTileShader.init("fog_of_war_tile", false))
+      logerr("%s: failed to init `fog_of_war_tile` shader", __FUNCTION__);
+}
+
+using QuadKeysTmp = dag::Vector<QuadKey, framemem_allocator>;
+
+void collectChildrenTiles(const QuadKey &quadKey, QuadKeysTmp &keepTiles, TilesHashMap &tilesHashMap, int zlevels)
 {
   if (quadKey.size() >= zlevels)
     return;
@@ -868,7 +899,7 @@ void collectChildrenTiles(const QuadKey &quadKey, eastl::vector<QuadKey> &keepTi
   }
 }
 
-void TiledMapContext::dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
+void TiledMapContext::dispatchTiles(dag::ConstSpan<QuadKey> requiredTiles,
   TilesHashMap &tilesHashMap,
   const eastl::string &prefix,
   int tileZLevel,
@@ -876,7 +907,7 @@ void TiledMapContext::dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
 {
   TIME_PROFILE(dispatchTiles);
 
-  eastl::vector<QuadKey> keepTiles;
+  QuadKeysTmp keepTiles;
   keepTiles.reserve(requiredTiles.size());
   for (const auto &quadKey : requiredTiles)
   {
@@ -901,8 +932,9 @@ void TiledMapContext::dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
       req->generation = interlocked_relaxed_load(s_tile_load_generation);
       eastl::string filename = eastl::string(eastl::string::CtorSprintf{}, "%s/%s.%s", prefix.c_str(),
         quadKey.empty() ? "combined" : quadKey.c_str(), tilesExt.c_str());
-      int sync = PictureManager::get_picture_ex(filename.c_str(), tile.picId, tile.texId, tile.smpId, nullptr, nullptr, nullptr, cb,
-        req, load_tile_confirm_cb);
+      d3d::SamplerHandle unusedPicMgrSampler;
+      int sync = PictureManager::get_picture_ex(filename.c_str(), tile.picId, tile.texId, unusedPicMgrSampler, nullptr, nullptr,
+        nullptr, cb, req, load_tile_confirm_cb);
       if (sync)
       {
         TILEDMAP_DEBUG("TiledMapContext: sync load tile %s", quadKey.c_str());
@@ -914,7 +946,9 @@ void TiledMapContext::dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
       {
         TILEDMAP_DEBUG("TiledMapContext: async load tile request %s", quadKey.c_str());
         requests.insert(req);
-        tilesHashMap.insert_or_assign(quadKey, tile);
+        // PicMgr gives a referenced placeholder texture until load_tiles_cb; the draw loops must skip the tile until then.
+        release_managed_tex(tile.texId);
+        tilesHashMap.insert_or_assign(quadKey, TileHandle());
       }
     }
 
@@ -938,7 +972,7 @@ void TiledMapContext::dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
     collectChildrenTiles(quadKey, keepTiles, tilesHashMap, tileZLevel);
   }
 
-  eastl::vector<QuadKey> removeTiles;
+  QuadKeysTmp removeTiles;
   for (const auto &tile : tilesHashMap)
     if (eastl::find(keepTiles.begin(), keepTiles.end(), tile.first) == keepTiles.end())
       removeTiles.push_back(tile.first);
@@ -972,7 +1006,7 @@ void TiledMapContext::updateVisibleTiles()
   Point3 lb = mapToWorld(Point2(-viewportWidthExpanded / 2, -viewportHeightExpanded / 2)) - Point3(worldLeftTop.x, 0, worldLeftTop.y);
   Point3 rt = mapToWorld(Point2(viewportWidthExpanded / 2, viewportHeightExpanded / 2)) - Point3(worldLeftTop.x, 0, worldLeftTop.y);
 
-  auto buildRequiredForZoom = [&](int zoom, eastl::vector<QuadKey> &out) {
+  auto buildRequiredForZoom = [&](int zoom, QuadKeysTmp &out) {
     float tileW = getTileWorldWidth(zoom);
     if (tileW <= 0.f)
       return;
@@ -986,7 +1020,7 @@ void TiledMapContext::updateVisibleTiles()
         out.push_back(tileXYToQuadKey(i, n - 1 - j, zoom));
   };
 
-  eastl::vector<QuadKey> requiredTiles;
+  QuadKeysTmp requiredTiles;
   requiredTiles.reserve(tiles.size());
   buildRequiredForZoom(z, requiredTiles);
   // zlevel 0 ("combined") is always kept as a background while higher-zoom tiles are loading.
@@ -1146,7 +1180,7 @@ void tiled_map_fog_of_war_after_reset()
   s_tiled_map_ctx->fogOfWarPrevDataGen = -1;
 }
 
-SQ_DEF_AUTO_BINDING_MODULE_EX(bind_tiled_map_classes, "tiledMap", sq::VM_UI_ALL)
+SQ_DEF_AUTO_BINDING_MODULE_EX(bind_tiled_map_classes, "tiledMap", sq::VM_UI)
 {
   Sqrat::Table exports(vm);
 
@@ -1154,6 +1188,7 @@ SQ_DEF_AUTO_BINDING_MODULE_EX(bind_tiled_map_classes, "tiledMap", sq::VM_UI_ALL)
   sqTiledMapContext //
     .Func("setup", &TiledMapContext::setup)
     .Func("getVisibleRadiusRange", &TiledMapContext::getVisibleRadiusRange)
+    .Func("setVisibleRadiusRange", &TiledMapContext::setVisibleRadiusRange)
     .Func("getVisibleRadiusWidth", &TiledMapContext::getVisibleRadiusWidth)
     .Func("getVisibleRadiusHeight", &TiledMapContext::getVisibleRadiusHeight)
     .Func("getVisibleRadius", &TiledMapContext::getVisibleRadius)

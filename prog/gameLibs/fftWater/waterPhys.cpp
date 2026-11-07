@@ -124,7 +124,7 @@ bool WaterNVPhysics::isAsyncRunning() const { return interlocked_acquire_load(th
 
 void WaterNVPhysics::wait() { threadpool::wait(this); }
 
-void WaterNVPhysics::increaseTime(double time)
+void WaterNVPhysics::increaseTime(double time, bool wake_up_pool)
 {
   double nextTickF = time / tickRate;
   int currentTick = ceil(nextTickF); // this one is already potentially required for interpolation!
@@ -178,7 +178,7 @@ void WaterNVPhysics::increaseTime(double time)
   G_ASSERTF(nextTick == lastTick + 1, "nextTick = %d lastTick=%d", nextTick, lastTick);
 
   double time_left = 2.0 - (nextTick - nextTickF); // from 0 to 1
-  runAsyncTask(nextTick, time_left);
+  runAsyncTask(nextTick, time_left, wake_up_pool);
 }
 
 void WaterNVPhysics::setCascadesSimulationTime(double time)
@@ -392,7 +392,7 @@ void WaterNVPhysics::doJob()
   }
 }
 
-void WaterNVPhysics::runAsyncTask(int nextLastTick, float tasks)
+void WaterNVPhysics::runAsyncTask(int nextLastTick, float tasks, bool wake_up_pool)
 {
   threadpool::wait(this);
   if (currentJobIndex < 0)
@@ -424,7 +424,7 @@ void WaterNVPhysics::runAsyncTask(int nextLastTick, float tasks)
     return; // won't do anything at all
   // int64_t reft = ref_time_ticks();
   // debug("portion of (%g)%d in %dusec", tasks, nextJobSize, get_time_usec(reft));
-  threadpool::add(this);
+  threadpool::add(this, threadpool::PRIO_DEFAULT, wake_up_pool);
 }
 
 void WaterNVPhysics::setForceActualWaves(bool enforce)
@@ -581,19 +581,20 @@ int WaterNVPhysics::intersectRayWithOcean(double time, Point3 &result, float &T,
 
   // if we're looking down and we did not hit water surface, doing binary search to make sure we hit water surface,
   // but there is risk of shooting through wave tips if we are tracing at extremely steep angles
-  if (direction.y < -0.01f)
+  if (direction.y < 0.f)
   {
     float startT = -0.1f * maxWaveHeight;
     vec3f positionBSStart = v_madd(v_dir, v_splats(startT), position); // part of wave back, just in case we missed something
 
     // getting to the bottom edge of volume where we can start
-    float endT = -(v_extract_y(position) + maxWaveHeight + (waterHeightmap ? waterHeightmap->heightScale : 0.0f)) / direction.y;
+    const float bottomY = (waterHeightmap ? min(seaLevel, waterHeightmap->heightOffset) : seaLevel) - maxWaveHeight;
+    const float segmentEndT = T - outT;
+    float endT = min(segmentEndT, (v_extract_y(position) - bottomY) / -direction.y);
     vec3f positionBSEnd = v_madd(v_splats(endT), v_dir, position);
-    int i;
-    for (i = 0; i < max_num_binary_steps; i++)
+    for (int i = endT == segmentEndT ? -1 : 0; i < max_num_binary_steps; i++)
     {
       float nextT = (startT + endT) * 0.5f;
-      position = v_mul(v_add(positionBSStart, positionBSEnd), V_C_HALF);
+      position = i < 0 ? positionBSEnd : v_mul(v_add(positionBSStart, positionBSEnd), V_C_HALF);
 
       for (int k = 0; k < REFINE_STEPS; k++)
       {
@@ -615,10 +616,12 @@ int WaterNVPhysics::intersectRayWithOcean(double time, Point3 &result, float &T,
       }
       if (v_test_vec_x_gt(v_perm_yzwx(position), v_perm_zwxy(displacements))) // position.y > displacements.z
       {
+        if (i < 0)
+          return 0;
         positionBSStart = position;
         startT = nextT;
       }
-      else
+      else if (i >= 0)
       {
         positionBSEnd = position;
         endT = nextT;

@@ -2,6 +2,7 @@
 
 #include <render/cameraInCamera/cameraInCamera.h>
 #include <ecs/render/aimRender.h>
+#include <render/viewportEllipse_api.h>
 
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
@@ -16,7 +17,6 @@
 #include <math/dag_TMatrix4.h>
 #include <render/cameraParams.h>
 #include <render/daFrameGraph/multiplexing.h>
-#include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_overrideStateId.h>
 #include <shaders/dag_overrideStates.h>
 #include <shaders/dag_shaders.h>
@@ -188,59 +188,6 @@ static Point4 calc_uv_remapping(const CameraParams &main_view, const CameraParam
 
 namespace
 {
-struct ViewportEllipse
-{
-  Point2 xAxis;
-  Point2 yAxis;
-  Point2 center;
-  Point2 halfExtent;
-};
-
-ViewportEllipse calc_viewport_ellipse(const float lens_bounding_sphere_radius, const TMatrix lens_wtm,
-  const TMatrix4 view_rot_jitter_proj_tm, float viewport_scale)
-{
-  const Point3 lensRight = -lens_wtm.col[0] * lens_bounding_sphere_radius;
-  const Point3 lensUp = lens_wtm.col[2] * lens_bounding_sphere_radius;
-
-  const Point3 centerWpos = lens_wtm.col[3];
-  const Point3 rightWpos = centerWpos + lensRight;
-  const Point3 upWpos = centerWpos + lensUp;
-
-  const auto worldToViewport = [&view_rot_jitter_proj_tm, viewport_scale](const Point3 &wpos) {
-    const Point4 posCs = Point4::xyz1(wpos) * view_rot_jitter_proj_tm;
-    Point2 posVp = Point2::xy(posCs);
-    posVp = safediv(posVp, posCs.w);
-    posVp = posVp * 0.5f + Point2(0.5f, 0.5f);
-    posVp.y = 1.0 - posVp.y;
-    posVp.y *= viewport_scale;
-
-    return posVp;
-  };
-
-  const auto calcScaledEllipseAxis = [](const Point2 &center, const Point2 &one) {
-    const Point2 axis = one - center;
-    const float axisLenSq = lengthSq(axis);
-    const Point2 axisDirPerLen = safediv(axis, axisLenSq);
-    return axisDirPerLen;
-  };
-
-  const Point2 centerVp = worldToViewport(centerWpos);
-  const Point2 rightVp = worldToViewport(rightWpos);
-  const Point2 upVp = worldToViewport(upWpos);
-
-  ViewportEllipse ve;
-  ve.center = centerVp;
-  ve.xAxis = calcScaledEllipseAxis(centerVp, rightVp);
-  ve.yAxis = calcScaledEllipseAxis(centerVp, upVp);
-
-  const float invDet = safediv(1.0f, fabsf(ve.xAxis.x * ve.yAxis.y - ve.xAxis.y * ve.yAxis.x));
-  const float hExtX = sqrtf(pow(ve.yAxis.y, 2.0f) + pow(ve.xAxis.y, 2.0f));
-  const float hExtY = sqrtf(pow(ve.yAxis.x, 2.0f) + pow(ve.xAxis.x, 2.0f));
-  ve.halfExtent = invDet * Point2(hExtX, hExtY);
-
-  return ve;
-}
-
 Point4 calc_viewport_uv_rect(const Point2 &center, const Point2 &half_extent, const float viewport_scale)
 {
   const Point2 ellipseSpaceScale{1.0f, viewport_scale};
@@ -267,37 +214,50 @@ void set_lens_area_scissor()
 
 } // namespace
 
-void update_transforms(const CameraParams &main_view, const CameraParams &cockpit_view, const CameraParams &prev_cockpit_view,
-  const CameraParams &lens_view)
+Point4 get_lens_cull_viewport_uv()
 {
-  const AimRenderingData aimData = get_aim_rendering_data();
-  const DynamicRenderableSceneInstance *scene = get_scope_lens(aimData);
-  if (!scene)
-    return;
+  Point4 rect{0.f, 0.f, 1.f, 1.f};
+  if (get_frame_number() < 1)
+    return rect;
+  get_camcam_viewport_scissor_ecs_query(*g_entity_mgr, [&rect](const Point4 &camcam__lens_viewport_uv) {
+    const Point4 &r = camcam__lens_viewport_uv;
+    constexpr float margin = 0.15f;
+    rect = Point4{r.x - r.z * margin, r.y - r.w * margin, r.z * (1.f + 2.f * margin), r.w * (1.f + 2.f * margin)};
+  });
+  return rect;
+}
 
-  const TMatrix &lensWtm = scene->getNodeWtm(aimData.lensNodeId);
-  const TMatrix &lensPrevWtm = scene->getPrevNodeWtm(aimData.lensNodeId);
-  const float viewportScale = cockpit_view.noJitterPersp.wk / cockpit_view.noJitterPersp.hk;
+TMatrix4 crop_to_lens_cull_viewport(const TMatrix4 &globtm)
+{
+  const Point4 rect = get_lens_cull_viewport_uv();
+  const float u0 = max(rect.x, 0.f), v0 = max(rect.y, 0.f);
+  const float u1 = min(rect.x + rect.z, 1.f), v1 = min(rect.y + rect.w, 1.f);
+  if (u1 <= u0 || v1 <= v0)
+    return globtm;
 
-  const float lensBoundingSphereRadius = aimData.lensBoundingSphereRadius;
-  const ViewportEllipse curFrameEllipse =
-    calc_viewport_ellipse(lensBoundingSphereRadius, lensWtm, cockpit_view.viewRotJitterProjTm, viewportScale);
-  const ViewportEllipse prevFrameEllipse =
-    calc_viewport_ellipse(lensBoundingSphereRadius, lensPrevWtm, prev_cockpit_view.viewRotJitterProjTm, viewportScale);
+  const float x0 = 2.f * u0 - 1.f, x1 = 2.f * u1 - 1.f;
+  const float y0 = 1.f - 2.f * v1, y1 = 1.f - 2.f * v0;
+  return globtm * matrix_perspective_crop(x0, x1, y0, y1, 0.f, 1.f);
+}
 
-  const Point4 curFrameAxes{curFrameEllipse.xAxis.x, curFrameEllipse.xAxis.y, curFrameEllipse.yAxis.x, curFrameEllipse.yAxis.y};
-  const Point4 prevFrameAxes{prevFrameEllipse.xAxis.x, prevFrameEllipse.xAxis.y, prevFrameEllipse.yAxis.x, prevFrameEllipse.yAxis.y};
+void update_transforms(const CameraParams &main_view, const CameraParams &lens_view, const ViewportEllipse &cur_lens_ellipse,
+  const ViewportEllipse &prev_lens_ellipse)
+{
+  const Point4 curFrameAxes{cur_lens_ellipse.xAxis.x, cur_lens_ellipse.xAxis.y, cur_lens_ellipse.yAxis.x, cur_lens_ellipse.yAxis.y};
+  const Point4 prevFrameAxes{
+    prev_lens_ellipse.xAxis.x, prev_lens_ellipse.xAxis.y, prev_lens_ellipse.yAxis.x, prev_lens_ellipse.yAxis.y};
 
   const Point4 uvRemapping = calc_uv_remapping(main_view, lens_view);
 
-  ShaderGlobal::set_float4(var::camera_in_camera_prev_vp_ellipse_center, prevFrameEllipse.center);
+  ShaderGlobal::set_float4(var::camera_in_camera_prev_vp_ellipse_center, prev_lens_ellipse.center);
   ShaderGlobal::set_float4(var::camera_in_camera_prev_vp_ellipse_xy_axes, prevFrameAxes);
-  ShaderGlobal::set_float4(var::camera_in_camera_vp_ellipse_center, curFrameEllipse.center);
+  ShaderGlobal::set_float4(var::camera_in_camera_vp_ellipse_center, cur_lens_ellipse.center);
   ShaderGlobal::set_float4(var::camera_in_camera_vp_ellipse_xy_axes, curFrameAxes);
-  ShaderGlobal::set_float(var::camera_in_camera_vp_y_scale, viewportScale);
+  ShaderGlobal::set_float(var::camera_in_camera_vp_y_scale, cur_lens_ellipse.yScale);
   ShaderGlobal::set_float4(var::camera_in_camera_vp_uv_remapping, uvRemapping);
 
-  const Point4 lensAreaViewportUV = calc_viewport_uv_rect(curFrameEllipse.center, curFrameEllipse.halfExtent, viewportScale);
+  const Point4 lensAreaViewportUV =
+    calc_viewport_uv_rect(cur_lens_ellipse.center, cur_lens_ellipse.halfExtent, cur_lens_ellipse.yScale);
 
   update_camcam_transforms_ecs_query(*g_entity_mgr,
     [&uvRemapping, &lensAreaViewportUV](Point4 &camcam__uv_remapping, Point4 &camcam__lens_viewport_uv) {

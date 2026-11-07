@@ -15,6 +15,7 @@
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_urlLike.h>
 #include <util/dag_texMetaData.h>
 #include <util/le2be.h>
 #include <util/fnameMap.h>
@@ -55,7 +56,8 @@ static BaseTexture *load_ddsx(const char *fn, int flg, int levels, const Texture
         if (!meta || (!strstr(meta, "U0") && !strstr(meta, "u0")))
           streamable_tex = false;
       }
-      if (tid != BAD_TEXTUREID && (bt_id != BAD_TEXTUREID || df_length(crd.fileHandle) > (128 << 10) || streamable_tex))
+      bool load_via_queue = df_length(crd.fileHandle) > (128 << 10) && !(tmd.flags & TextureMetaData::FLG_LD_IMM);
+      if (tid != BAD_TEXTUREID && (bt_id != BAD_TEXTUREID || load_via_queue || streamable_tex))
       {
         ddsx::Header hdr;
         crd.read(&hdr, sizeof(hdr));
@@ -120,6 +122,9 @@ public:
   BaseTexture *createTex(const char *fn, int flg, int levels, const char *fn_ext, const TextureMetaData &tmd) override
   {
     BaseTexture *t = NULL;
+    if (df_is_fname_url_like(fn)) // URLs are for url load factories; do not probe them as local files
+      return NULL;
+
     if (!fn_ext)
     {
       const char *ddsx_ext = ".ddsx";

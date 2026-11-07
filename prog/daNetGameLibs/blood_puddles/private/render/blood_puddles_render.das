@@ -22,7 +22,7 @@ def blood_puddles_on_level_loaded_es(evt : Event;
   if !useBloodPuddles
     close_blood_puddles_mgr()
     return
-  var bloodPuddlesMgr = get_blood_puddles_mgr()
+  let bloodPuddlesMgr = get_blood_puddles_mgr()
   if bloodPuddlesMgr == null
     init_blood_puddles_mgr()
 

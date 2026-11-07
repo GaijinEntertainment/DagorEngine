@@ -192,6 +192,13 @@ private:
   /// Get the edge flags for a triangle
   inline uint8 GetEdgeFlags(uint inX, uint inY, uint inTriangle) const;
 
+  /// Get the vertices of triangle inTriangle of the cell at (inX, inY); outSolid is false when one of them has no collision
+  inline void GetCellTriangle(uint inX, uint inY, uint inTriangle, Vec3 &outV0, Vec3 &outV1, Vec3 &outV2,
+    bool *outSolid = nullptr) const;
+
+  /// Get the (not normalized) normal of a cell's triangle from its vertices
+  static inline Vec3 sCellTriangleNormal(uint inTriangle, Vec3Arg inV0, Vec3Arg inV1, Vec3Arg inV2);
+
   // Helper functions called by CollisionDispatch
   static void sCollideConvexVsHeightField(const Shape *inShape1, const Shape *inShape2, Vec3Arg inScale1, Vec3Arg inScale2,
     Mat44Arg inCenterOfMassTransform1, Mat44Arg inCenterOfMassTransform2, const SubShapeIDCreator &inSubShapeIDCreator1,

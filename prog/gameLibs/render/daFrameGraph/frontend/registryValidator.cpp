@@ -109,6 +109,21 @@ bool RegistryValidator::validateResource(ResNameId resId) const
   if (lifetime.consumedBy == lifetime.introducedBy)
     return false;
 
+  // Only a renaming cycle leaves a representative that is itself a rename target
+  const auto representative = depData.renamingRepresentatives[resId];
+  if (const auto representativeIntroducer = depData.resourceLifetimes[representative].introducedBy;
+      representativeIntroducer != NodeNameId::Invalid)
+  {
+    const auto &renames = registry.nodes[representativeIntroducer].renamedResources;
+    if (renames.find(representative) != renames.end())
+    {
+      logerr("daFG: Resource '%s' comes from a renaming cycle that no node creates (closed by node '%s')! "
+             "A request may resolve to a name further down its own renaming chain. Disabling the resource!",
+        registry.knownNames.getName(resId), registry.knownNames.getName(representativeIntroducer));
+      return false;
+    }
+  }
+
   // Slot is ALWAYS invalid, but we need to make sure that resId was not created/registered/renamed
   const bool isASlot = registry.resourceSlots[resId].has_value();
   if (isASlot)
@@ -296,6 +311,8 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
   const auto checkResIdRequest = [this, nodeId, &anyUsageConflictsAfterNameResolution](bool history, auto resolvedResId,
                                    eastl::span<const ResNameId> unresolvedResIds) {
     G_ASSERT(!unresolvedResIds.empty());
+    if (unresolvedResIds.size() < 2)
+      return;
 
     // We expect to always find a correct request, otherwise nameResolver is broken.
     const auto getUsage = [&](ResNameId unresolvedResId) -> eastl::optional<ResourceUsage> {
@@ -381,9 +398,9 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
 
   bool anyFramebufferUsageMismatches = false;
   bool invalidBackbufferPass = false;
-  if (nodeData.renderingRequirements)
+  if (const auto *virtualPass = eastl::get_if<VirtualPassRequirements>(&nodeData.renderingRequirements))
   {
-    const auto &pass = *nodeData.renderingRequirements;
+    const auto &pass = *virtualPass;
 
     dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> allAttachments;
     allAttachments.reserve(9);
@@ -619,7 +636,7 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
     const bool anyVertexSources = eastl::any_of(nodeData.vertexSources.begin(), nodeData.vertexSources.end(),
       [](const auto &source) { return source.has_value(); });
 
-    if (nodeData.renderingRequirements)
+    if (!eastl::holds_alternative<eastl::monostate>(nodeData.renderingRequirements))
       reportWorkload("requested a render pass");
     if (!nodeData.bindings.empty() || !nodeData.refinedBlockBindings.empty())
       reportWorkload("bound resources to shader variables");

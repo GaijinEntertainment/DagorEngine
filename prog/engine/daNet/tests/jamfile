@@ -5,6 +5,7 @@ TargetType      = exe ;
 Target          = danet-tests ;
 AddIncludes     =
   $(Root)/prog/3rdPartyLibs/catch2/src
+  $(Root)/prog/3rdPartyLibs/enet/include
 ;
 OutDir          = $(Root)/$(Location) ;
 
@@ -13,6 +14,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 Sources =
   main.cpp
   bitStream.cpp
+  peerResponsiveness.cpp
 ;
 
 UseProgLibs +=

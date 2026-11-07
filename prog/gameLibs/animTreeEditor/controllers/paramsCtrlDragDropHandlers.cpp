@@ -103,13 +103,12 @@ void AnimTreeEditor::saveParamsCtrlAfterIfMathReorder(PropPanel::ContainerProper
   TLeafHandle parent = tree->getParentLeaf(leaf);
   String fullPath;
   DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
-  if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, props, tree, parent))
-    if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
-    {
-      params_ctrl_reorder_if_math_blocks(*settings, src_idx, insert_idx);
-      save_if_math_fields(panel, *settings);
-      saveProps(props, fullPath);
-    }
+  if (DataBlock *settings = find_ctrl_settings(controllersData, props, tree, parent, tree->getCaption(leaf)))
+  {
+    params_ctrl_reorder_if_math_blocks(*settings, src_idx, insert_idx);
+    save_if_math_fields(panel, *settings);
+    saveProps(props, fullPath);
+  }
 }
 
 void IfMathDragHandler::setPanel(PropPanel::ContainerPropertyControl *panel) { pluginPanel = panel; }

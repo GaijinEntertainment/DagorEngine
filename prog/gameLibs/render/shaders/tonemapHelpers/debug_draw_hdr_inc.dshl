@@ -1,0 +1,41 @@
+include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+include_optional "shader_gamma_inc.dshl"
+include "hdr/hdr_ps_output.dshl"
+
+define_macro_if_not_defined INIT_SHADER_GAMMA()
+endmacro
+
+define_macro_if_not_defined USE_SHADER_GAMMA()
+endmacro
+
+int debug_draw_after_postfx = 0;
+interval debug_draw_after_postfx : no < 1, yes;
+assume_if_not_assumed debug_draw_after_postfx = no;
+
+macro INIT_AND_USE_DEBUG_DRAW_HDR()
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  if (debug_draw_after_postfx == yes)
+  {
+    FULL_TONEMAP_LUT_APPLY(ps)
+    INIT_SHADER_GAMMA()
+    USE_SHADER_GAMMA()
+    hlsl(ps) {
+      float3 pack_debug_draw_hdr(float3 color)
+      {
+        color = pack_hdr(color);
+        ##if hdr_ps_output_mode == sdr_only
+          return apply_shader_gamma(performLUTTonemap(color));
+        ##else
+          return performLUTColorGrade(color);
+        ##endif
+      }
+    }
+  }
+  else
+  {
+    hlsl(ps) {
+      float3 pack_debug_draw_hdr(float3 color) { return pack_hdr(color); }
+    }
+  }
+endmacro

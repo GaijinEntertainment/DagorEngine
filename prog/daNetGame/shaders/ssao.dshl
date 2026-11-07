@@ -15,7 +15,7 @@ int ssao_quality = 1;
 interval ssao_quality:depth_only_simplified<0, depth_only<1, ssao_normals;
 
 int ssao_mode = 1;
-interval ssao_mode:immediate<1, temporal;
+interval ssao_mode:immediate<1, temporal<2, temporal_no_reprojection;
 
 int blur_quality = 0;
 interval blur_quality:poor<0, ok<1, good;

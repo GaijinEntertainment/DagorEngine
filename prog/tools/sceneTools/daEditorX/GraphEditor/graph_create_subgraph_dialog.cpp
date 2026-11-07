@@ -82,11 +82,11 @@ public:
     dialog.setDialogButtonEnabled(PropPanel::DIALOG_ID_OK, valid);
   }
 
-  // constraint: a disabled PropPanel edit box can be neither selected nor copied from.
+  // a disabled PropPanel edit box can be neither selected nor copied from.
   void customControlUpdate(int id) override
   {
     G_UNUSED(id);
-    // constraint: separateLineLabel needs ImguiHelper::labelOnly from propPanel, which the plugin does not link.
+    // separateLineLabel needs ImguiHelper::labelOnly from propPanel, which the plugin does not link.
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, 0.0f));
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Final path");

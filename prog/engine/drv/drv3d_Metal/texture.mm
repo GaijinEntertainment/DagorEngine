@@ -859,7 +859,11 @@ namespace drv3d_metal
   void Texture::allocate()
   {
     D3D_CONTRACT_ASSERT(apiTex == nullptr);
-    apiTex = new ApiTexture(this);
+    // loader threads have no autorelease pool, so the descriptor and labels leak there
+    @autoreleasepool
+    {
+      apiTex = new ApiTexture(this);
+    }
     if (!memoryless)
       TEXQL_ON_ALLOC(this);
     if (start_level)
@@ -1059,14 +1063,18 @@ namespace drv3d_metal
     }
 
     D3D_CONTRACT_ASSERT(slice < slises);
-    sub_mip.tex = [texture newTextureViewWithPixelFormat : is_uav ? format2Metal(base->base_format) : base->metal_format
-                                             textureType : base->metal_type
-                                                  levels : NSMakeRange(set_minlevel, set_maxlevel - set_minlevel)
-                                                  slices : NSMakeRange(slice, slises - slice)];
-
-    if (base->getName()[0])
+    // can run on loader threads, which have no autorelease pool
+    @autoreleasepool
     {
-      setTexName(sub_mip.tex, String(0, "%s (%d %d) (%d %d)", base->getName(), set_minlevel, set_maxlevel, slice, slises));
+      sub_mip.tex = [texture newTextureViewWithPixelFormat : is_uav ? format2Metal(base->base_format) : base->metal_format
+                                               textureType : base->metal_type
+                                                    levels : NSMakeRange(set_minlevel, set_maxlevel - set_minlevel)
+                                                    slices : NSMakeRange(slice, slises - slice)];
+
+      if (base->getName()[0])
+      {
+        setTexName(sub_mip.tex, String(0, "%s (%d %d) (%d %d)", base->getName(), set_minlevel, set_maxlevel, slice, slises));
+      }
     }
 
     sub_mip_textures.push_back(sub_mip);

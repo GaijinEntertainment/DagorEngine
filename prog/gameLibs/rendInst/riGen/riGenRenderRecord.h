@@ -32,6 +32,8 @@ struct RiGenRenderRecord
   int baseVertex;
   int numVertex;
   int startVertex;
+  uint32_t voxelSurfaceId;
+  uint32_t voxelDataOffset;
   uint8_t primitive;
   uint8_t vbIdx;
   PackedDrawOrder drawOrder;
@@ -42,8 +44,8 @@ struct RiGenRenderRecord
   uint8_t isSWVertexFetch : 1;
   RiGenRenderRecord(const ShaderElement *cur_shader, const shaders::CombinedDynVariantState &dv_state, uint16_t pool_order,
     PackedDrawOrder draw_order, uint8_t stage, uint16_t vstride, uint8_t vb_idx, uint32_t offset, uint32_t count, int pool_idx,
-    int start_index, int num_faces, int base_vertex, int num_vertex, int start_vertex, uint8_t primitive, Visibility visibility,
-    uint8_t instance_lod, uint8_t mesh_debug_value, bool sw_vertex_fetch) :
+    int start_index, int num_faces, int base_vertex, int num_vertex, int start_vertex, uint32_t voxel_surface, uint32_t voxel_offset,
+    uint8_t primitive, Visibility visibility, uint8_t instance_lod, uint8_t mesh_debug_value, bool sw_vertex_fetch) :
     curShader(cur_shader),
     dvState(dv_state),
     poolOrder(pool_order),
@@ -59,6 +61,8 @@ struct RiGenRenderRecord
     baseVertex(base_vertex),
     numVertex(num_vertex),
     startVertex(start_vertex),
+    voxelSurfaceId(voxel_surface),
+    voxelDataOffset(voxel_offset),
     primitive(primitive),
     visibility(visibility),
     instanceLod(instance_lod),

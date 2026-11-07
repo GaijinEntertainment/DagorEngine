@@ -6,7 +6,7 @@ texture foam_tex;
 texture ship_bow_foam;
 texture water_foam_obstacle;
 texture perlin_noise3d;
-texture tex_noise_white_64x64;
+texture tex_noise_foam_trail;
 
 float current_water_time = 0;
 
@@ -26,175 +26,6 @@ interval water_foam_obstacle_pass: first < 1, second;
 
 int water_foam_obstacle_tex_size = 0;
 interval water_foam_obstacle_tex_size: size_256 < 1, size_512 < 2, size_1024 < 3, size_2048 < 4, size_4096;
-
-shader water_foam_trail
-{
-  blend_src = one;
-  blend_dst = sa;
-  blend_asrc = one;
-  blend_adst = sa;
-
-  (ps) { water_foam_trail_mask@smp2d = water_foam_trail_mask; }
-
-  USE_MODULATED_FOAM()
-
-  INIT_HDR(ps)
-  USE_HDR(ps)
-
-  cull_mode = none;
-  z_test = false;
-  z_write = false;
-
-  channel float4 pos = pos;
-  channel float4 tc[0] = tc[0];
-  channel float4 tc[1] = tc[1];
-
-  (vs) {
-    globtm@f44 = globtm;
-    params@f4 = (water_foam_trail_params.x, water_foam_trail_params.y, water_foam_trail_params.z, water_foam_trail_gen);
-    water_level@f1 = water_level;
-  }
-  (ps)
-  {
-    params@f4 = (water_foam_trail_params.x, water_foam_trail_params.y, water_foam_trail_params.z, water_foam_trail_gen);
-    scroll_time@f1 = (scroll_time);
-    tex_noise_white_64x64@smp2d = tex_noise_white_64x64;
-  }
-
-  hlsl {
-
-    // #define WATER_FOAM_TRAIL_DEBUG_WIRE
-
-    struct VsOutput
-    {
-      VS_OUT_POSITION(pos)
-      float4 grd : TEXCOORD0;
-      float4 prm : TEXCOORD1;
-
-      #ifdef WATER_FOAM_TRAIL_DEBUG_WIRE
-      float2 wire : TEXCOORD2;
-      #endif
-
-      float3 locTc_fadeoutTimeRcp : TEXCOORD3;
-    };
-  }
-  hlsl(vs) {
-    struct VsInput
-    {
-      float4 pos : POSITION;  // xy:pos, z:gen, w:dist
-      float4 dir : TEXCOORD0; // xy:dir, z:side + alpha, w: dot(vel, dir)
-      float4 prm : TEXCOORD1; // x:foam mul, y:insat mul, z:1/gen mul, w: step (debug)
-    };
-  }
-
-  hlsl(vs) {
-    #define fadeout_time_rcp params.y
-    #define fwd_expand params.z
-    #define current_gen params.w
-    #define dist_remap 0.015f
-
-    VsOutput foam_vs(VsInput input)
-    {
-      VsOutput output;
-
-      float2 pos = float2( input.pos.x, input.pos.y );
-      float gen = input.pos.z;
-      float side = sign( input.dir.z );
-      float alpha = abs( input.dir.z );
-
-      float step = sign( input.prm.w );
-      float alpha_fadeout_time_rcp = abs( input.prm.w );
-
-      float gen_delta = ( current_gen - gen ) * input.prm.z;
-      float fadeout = 1.f - saturate( gen_delta * fadeout_time_rcp );
-
-      float width = lerp( 1.f, fwd_expand, ( 1.f - fadeout ) * input.dir.w );
-      pos += input.dir.xy * width * 1.5;
-
-      output.pos = mul( float4( pos.x, water_level, pos.y, 1.f ), globtm );
-      output.grd.x = saturate( side );
-      output.grd.y = input.pos.w * dist_remap;
-      output.grd.z = alpha;
-      output.grd.w = side;
-
-      output.prm.xy = input.prm.xy;
-      output.prm.z = gen;
-      output.prm.w = input.dir.w;
-
-      #ifdef WATER_FOAM_TRAIL_DEBUG_WIRE
-      output.wire.x = side;
-      output.wire.y = step;
-      #endif
-
-      output.locTc_fadeoutTimeRcp = float3(0.07*pos.xy, alpha_fadeout_time_rcp);
-
-      return output;
-    }
-  }
-
-  if (compatibility_mode == compatibility_mode_off)
-  {
-    (ps) { foam_tex@smp2d = foam_tex; }
-  }
-
-  hlsl(ps)
-  {
-    #define fadein_time_rcp params.x
-    #define current_gen params.w
-
-    #define disc_v 0.001f
-
-    float4 foam_ps(VsOutput input) : SV_Target0
-    {
-      float gen_delta = ( current_gen - input.prm.z );
-      float fadein = saturate( gen_delta * fadein_time_rcp );
-      float fadeout = 1.f - saturate( gen_delta * input.locTc_fadeoutTimeRcp.z );
-      float alpha = fadein * fadeout * input.grd.z;
-      float turn_k = input.prm.w;
-
-      if ( alpha < disc_v )
-        discard;
-
-      float2 tc = float2( input.grd.x, -input.grd.y );
-      float4 src = tex2D( water_foam_trail_mask, tc );
-
-      float3 foam_mat = lerp( float3( 0.5f, 0.5f, 0.f ), float3( 0.5f, 0.75f, 0.5f ), input.prm.x );
-
-      // mixing
-      float3 dst;
-      float grad = 1.f - abs( tc.x * 2.f - 1.f );
-      // short range
-      dst.x = saturate( ( src.y + src.x ) * pow2( grad * 2.f ) ) * saturate( pow2( alpha + 0.25f ) );
-      // medium range
-      dst.y = src.y * src.x * 2.f * lerp( pow2( src.w ), 1.f, saturate( pow2( alpha + 0.1f ) ) );
-      // long range
-      dst.z = pow4( src.w ) * 1.5f * pow2( saturate( turn_k + 0.1f ) );
-
-      float res = dot( dst, foam_mat ) * alpha;
-
-#ifdef WATER_FOAM_TRAIL_DEBUG_WIRE
-      float xx = pow( abs( input.wire.x ), 128 );
-      float yy = pow( abs( input.wire.y ), 128 );
-      res += ( xx + yy ).xxxx * 0.5;
-#endif
-
-##if compatibility_mode == compatibility_mode_off
-      float foamLowFreq = tex2D(foam_tex, input.locTc_fadeoutTimeRcp.xy).r;
-      // trick to hide tiling and add animation to foam
-      // to be removed after foam trail rework
-      float foam_noise_f = tex2D(tex_noise_white_64x64, input.locTc_fadeoutTimeRcp.xy*0.11).r;
-      foamLowFreq = 0.3*foamLowFreq +
-                    1.4*abs(frac(2*foamLowFreq + 1.5*foam_noise_f + 0.3*scroll_time + input.locTc_fadeoutTimeRcp.x) - 0.5);
-
-      res = get_modulated_foam(res * 1.5, foamLowFreq);
-##endif
-
-      return half4(pack_hdr(res.xxx).rgb, 1.0 - res);
-    }
-  }
-  compile( "target_vs", "foam_vs" );
-  compile( "target_ps", "foam_ps" );
-}
 
 shader water_foam_obstacle_apply
 {
@@ -410,4 +241,316 @@ shader water_foam_obstacle_apply
 
   compile("target_vs", "target_vs");
   compile("target_ps", "target_ps");
+}
+
+
+buffer water_trails_data_vs;
+
+int water_trail_spline_substeps = 4;
+
+macro FOAM_TRAILS_COMMON()
+  blend_src[0] = sa;
+  blend_dst[0] = isa;
+  blend_asrc[0] = sa;
+  blend_adst[0] = isa;
+
+  blend_src[1] = one;
+  blend_dst[1] = one;
+  blend_asrc[1] = zero;
+  blend_adst[1] = one;
+
+  z_write = false;
+  z_test = false;
+  cull_mode = none;
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
+  (ps) {
+    foam_tex@smp2d = foam_tex;
+    water_foam_trail_mask@smp2d = water_foam_trail_mask;
+    tex_noise_foam_trail@smp2d = tex_noise_foam_trail;
+    scroll_time@f1 = (scroll_time);
+  }
+
+  (vs) {
+    water_trails_data_vs@buf = water_trails_data_vs hlsl {
+      Buffer<float4> water_trails_data_vs@buf;
+    };
+
+    trails_start_inst@i1 = (0);
+    trails_water_level@f1 = water_level;
+    water_trail_spline_substeps@i1 = water_trail_spline_substeps;
+    globtm@f44 = globtm;
+  }
+
+  hlsl(vs) {
+    #define WATER_TRAIL_NODE_SIZE 2
+
+    float2 decode_float2(uint packedF2)
+    {
+      return float2(f16tof32(packedF2 >> 16), f16tof32(packedF2));
+    }
+    float2 decode_float2(float packedF2)
+    {
+      return decode_float2(asuint(packedF2));
+    }
+
+    // quadratic spline interpolation
+    // we don't guarantee stability of derivatives, but for 99% of cases its fine
+    float calclulateQuadraticSpline(int node_id, float cur_opacity, float2 cur_pos, float2 next_pos, float lerp_factor, float vpos_y,
+                                    out float2 A, out float2 B, out float2 C)
+    {
+      float splineFactor = lerp_factor;
+      BRANCH
+      if (node_id >= 1 && water_trail_spline_substeps > 1 && cur_opacity > 0)
+      {
+        int prevNodeOffset = (node_id - 1) * WATER_TRAIL_NODE_SIZE;
+        float4 prevNodeData0 = loadBuffer(water_trails_data_vs, prevNodeOffset + 0);
+
+        float2 prevNodePos = prevNodeData0.xy;
+        float2 prevNodeSideVec = (vpos_y > 0) ? decode_float2(prevNodeData0.z) : decode_float2(prevNodeData0.w);
+        float2 prevPos = prevNodePos + prevNodeSideVec;
+
+        C = prevPos;
+        A = 2 * (next_pos - 2 * cur_pos + C);
+        B = next_pos - A - C;
+
+        splineFactor = 0.5f + 0.5f*lerp_factor; // we use prevNode as source for interpolation data, but actually we interpolating between cur and next, so valid values are [0.5, 1]
+      }
+      else
+      {
+        A = 0;
+        B = next_pos - cur_pos;
+        C = cur_pos;
+      }
+      return splineFactor;
+    }
+  }
+
+  hlsl(ps) {
+    float2 rotate_rotm(float2 a, float4 m, float2 base)
+    {
+      a -= base;
+      a = a.x*m.xz+a.y*m.yw;
+      a += base;
+      return a;
+    }
+
+    float4 calcRot(float2 base, float angMul)
+    {
+      float sgn = sign(frac(11.72f*base.x + 37.6f*base.y)-0.5);
+      float angle = sgn * angMul*2*PI + 0.2f*base.x + 0.4f*base.y;
+      float2 sc;
+      sincos(angle, sc.x, sc.y);
+      return float4(sc.y, sc.x, -sc.x, sc.y);
+    }
+
+    struct FOAM_TRAIL_OUT
+    {
+      float4 color   : SV_Target0;
+      ##if compatibility_mode == compatibility_mode_off
+        float height  : SV_Target1;
+      ##endif
+    };
+  }
+endmacro
+
+shader water_trails
+{
+  FOAM_TRAILS_COMMON()
+
+  USE_ATEST_1()
+  USE_MODULATED_FOAM()
+
+  // init channels
+  hlsl {
+    struct VsOutput
+      {
+      VS_OUT_POSITION(pos)
+      float2 tc         : TEXCOORD0;
+      float3 worldPos   : TEXCOORD1;
+      float3 params     : TEXCOORD2;
+    ##if compatibility_mode == compatibility_mode_off
+      float4 waveParams : TEXCOORD3;
+    ##endif
+    };
+
+    #define foamMat      params.x
+    #define foamRotation params.y
+    #define foamOpacity  params.z
+  }
+
+  hlsl(ps) {
+    FOAM_TRAIL_OUT water_trails_ps(VsOutput IN)
+    {
+      float alpha = saturate(IN.foamOpacity);
+      float rotationMul = IN.foamRotation;
+      float turn_k = 1;
+
+      if ( alpha < 0)
+        discard;
+
+      float2 tc = IN.tc.yx; // mask is rotated
+      float4 src = tex2D( water_foam_trail_mask, tc);
+
+      float3 foam_mat = lerp( float3( 0.5f, 0.5f, 0.f ), float3( 0.5f, 0.75f, 0.5f ), IN.foamMat * alpha);
+
+      // mixing
+      float3 dst;
+      float grad = 1.f - abs( tc.x * 2.f - 1.f );
+      // short range
+      dst.x = saturate( ( src.y + src.x ) * pow2( grad * 2.f ) ) * saturate( pow2( alpha + 0.25f ) );
+      // medium range
+      dst.y = src.y * src.x * 2.f * lerp( pow2( src.w ), 1.f, saturate( pow2( alpha + 0.1f ) ) );
+      // long range
+      dst.z = pow4( src.w ) * 1.5f * pow2( saturate( turn_k + 0.1f ) );
+
+      float res = dot( dst, foam_mat ) * alpha;
+
+#ifdef WATER_FOAM_TRAIL_DEBUG_WIRE
+      float xx = pow( abs( input.wire.x ), 128 );
+      float yy = pow( abs( input.wire.y ), 128 );
+      res += ( xx + yy ).xxxx * 0.5;
+#endif
+
+##if compatibility_mode == compatibility_mode_off
+      #define TC_TILE_SCALE     0.3333333f
+      #define TC_TILE_SCALE_RCP 3.0f
+      float2 baseTc = 0.07*IN.worldPos.xz;
+
+      float2 gradX = ddx(baseTc);
+      float2 gradY = ddy(baseTc);
+
+      float2 cornerPoint = TC_TILE_SCALE_RCP*baseTc;
+
+      float4 weights = 0;
+      float4 bilWeights;
+      bilWeights.xy = frac(cornerPoint);
+      bilWeights.zw = saturate(1 - bilWeights.xy);
+      weights = saturate(bilWeights.zxxz*bilWeights.yyww - 0.25f);
+      weights /= dot(weights.xyzw, 1) + 0.000000001f;
+
+      float foamLowFreq = 0;
+
+      #define MIX_WEIGHT(offs, attr) \
+      BRANCH \
+      if (weights. attr > 0) \
+      { \
+        float2 basePoint = TC_TILE_SCALE*(offs + floor(cornerPoint)); \
+        float4 rotation = calcRot(basePoint, rotationMul); \
+        foamLowFreq += weights. attr * tex2Dgrad(foam_tex, rotate_rotm(baseTc, rotation, basePoint), \
+                                      rotate_rotm(gradX, rotation, 0), rotate_rotm(gradY, rotation, 0)).r; \
+      }
+
+      MIX_WEIGHT(float2(0, 1), x)
+      MIX_WEIGHT(float2(1, 1), y)
+      MIX_WEIGHT(float2(1, 0), z)
+      MIX_WEIGHT(float2(0, 0), w)
+
+      float foam_noise_f = tex2D(tex_noise_foam_trail, IN.worldPos.xz*0.006).r;
+      foamLowFreq = 0.3*foamLowFreq +
+                    1.4*abs(frac(2*foamLowFreq + 3.8*foam_noise_f + 0.3*scroll_time) - 0.5);
+
+      res = get_modulated_foam(res * 1.5, foamLowFreq);
+##else
+      float foamLowFreq = tex2D(foam_tex, 0.07*IN.worldPos.xz).r;
+      res = get_modulated_foam(res * 1.5, foamLowFreq);
+##endif
+
+      FOAM_TRAIL_OUT result;
+
+      result.color = half4(pack_hdr(res.xxx).rgb, res);
+
+##if compatibility_mode == compatibility_mode_off
+      // we mix 2 frequencies from adjacent nodes
+      // todo: maybe have several different harmonics?
+      float ang0 = -3*scroll_time + IN.waveParams.x*(IN.tc.x + pow2(abs(IN.tc.y - 0.5)));
+      float ang1 = -3*scroll_time + IN.waveParams.y*(IN.tc.x + pow2(abs(IN.tc.y - 0.5)));
+      float hAplha = lerp(pow2(alpha), alpha, 0.2);
+      hAplha = saturate(hAplha * (1 - pow2(2*abs(IN.tc.y - 0.5))) - 0.02*foamLowFreq);
+      result.height = IN.waveParams.w * (lerp(sin(ang0), sin(ang1), IN.waveParams.z)) +
+                      0.1*foamLowFreq;
+      result.height *= hAplha;
+##endif
+
+      return result;
+    }
+  }
+
+  hlsl(vs) {
+    VsOutput water_trails_vs(uint vertex_id : SV_VertexID, uint inst_id : SV_InstanceID) {
+      VsOutput OUT;
+
+      int2 vpos = int2(vertex_id < 2 ? 0 : 1,
+                       vertex_id % 3 == 0 ? 1 : -1);
+
+      uint nodeId = inst_id / water_trail_spline_substeps;
+
+      float lerpFactor = float((inst_id % water_trail_spline_substeps) + vpos.x) / water_trail_spline_substeps;
+
+      int currentNodeOffset = nodeId * WATER_TRAIL_NODE_SIZE;
+      int nextNodeOffset = (nodeId + 1) * WATER_TRAIL_NODE_SIZE;
+
+      float4 curNodeData0 = loadBuffer(water_trails_data_vs, currentNodeOffset + 0);
+      float4 curNodeData1 = loadBuffer(water_trails_data_vs, currentNodeOffset + 1);
+
+      float4 nextNodeData0 = loadBuffer(water_trails_data_vs, nextNodeOffset + 0);
+      float4 nextNodeData1 = loadBuffer(water_trails_data_vs, nextNodeOffset + 1);
+
+      float2 currentNodePos = curNodeData0.xy;
+      float2 currentNodeSideVec = (vpos.y > 0) ? decode_float2(curNodeData0.z) : decode_float2(curNodeData0.w);
+      float2 curPos = currentNodePos + currentNodeSideVec;
+
+      float2 nextNodePos = nextNodeData0.xy;
+      float2 nextNodeSideVec   = (vpos.y > 0) ? decode_float2(nextNodeData0.z) : decode_float2(nextNodeData0.w);
+      float2 nextPos = nextNodePos + nextNodeSideVec;
+
+      float2 curRotationOpacity = decode_float2(curNodeData1.z);
+      float2 nextRotationOpacity = decode_float2(nextNodeData1.z);
+
+      float2 curAmplitudeFrequency = decode_float2(curNodeData1.w);
+      float2 nextAmplitudeFrequency = decode_float2(nextNodeData1.w);
+
+      float2 A = 0, B = 0, C = 0;
+      float splineFactor = calclulateQuadraticSpline(nodeId, curRotationOpacity.y, curPos, nextPos, lerpFactor, vpos.y,
+                                                     A, B, C);
+
+      bool isValid = !(curRotationOpacity.y <= 0 && nextRotationOpacity.y <= 0);
+
+      float tcX = lerp(curNodeData1.x, nextNodeData1.x, lerpFactor);
+      float2 rotationOpacity = lerp(curRotationOpacity, nextRotationOpacity, lerpFactor);
+      float waveAmplitude = lerp(curAmplitudeFrequency.x, nextAmplitudeFrequency.x, lerpFactor);
+      float2 foamMat_inscatMul = lerp(decode_float2(curNodeData1.y).xy, decode_float2(nextNodeData1.y).xy, lerpFactor);
+
+      float2 worldPosXZ = A * pow2(splineFactor) + B * splineFactor + C;
+
+      OUT.worldPos = float3(worldPosXZ.x, trails_water_level, worldPosXZ.y);
+      OUT.tc.x = tcX;
+      OUT.tc.y = vpos.y < 0 ? 0 : 1;
+
+      OUT.foamMat = foamMat_inscatMul.x;
+      OUT.foamRotation = rotationOpacity.x;
+      OUT.foamOpacity = rotationOpacity.y;
+
+      OUT.pos = mul(float4(worldPosXZ.x, trails_water_level, worldPosXZ.y, 1), globtm);
+
+      ##if compatibility_mode == compatibility_mode_off
+        OUT.waveParams.x = curAmplitudeFrequency.y;
+        OUT.waveParams.y = nextAmplitudeFrequency.y;
+        OUT.waveParams.z = lerpFactor;
+        OUT.waveParams.w = waveAmplitude;
+      ##endif
+
+      if (!isValid)
+      {
+        OUT.pos =float4(-2, -2, 1, 1);
+      }
+
+      return OUT;
+    }
+  }
+
+  compile("target_ps", "water_trails_ps");
+  compile("target_vs", "water_trails_vs");
 }

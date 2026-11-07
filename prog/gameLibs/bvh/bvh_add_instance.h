@@ -132,21 +132,21 @@ BVH_INLINE void VECTORCALL add_riGen_instance(ContextId context_id, uint64_t obj
     MeshMetaAllocator::INVALID_ALLOC_ID, false);
 }
 
-BVH_INLINE void VECTORCALL add_riGen_instance(ContextId context_id, uint64_t object_id, mat43f transform, TreeInfo *tree_info,
-  bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix, bool force_enable_backface_culling)
-  DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
-{
-  add_instance(context_id, context_id->riGenInstances[thread_ix], object_id, transform, nullptr, false,
-    is_stationary ? Context::Instance::AnimationUpdateMode::FORCE_OFF : Context::Instance::AnimationUpdateMode::FORCE_ON, nullptr,
-    nullptr, tree_info, nullptr, nullptr, nullptr, nullptr, meta_alloc_id, force_enable_backface_culling);
-}
-
 BVH_INLINE void VECTORCALL add_riGen_instance(ContextId context_id, uint64_t object_id, mat43f transform, LeavesInfo *leaves_info,
   bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, context_id->riGenInstances[thread_ix], object_id, transform, nullptr, false,
     is_stationary ? Context::Instance::AnimationUpdateMode::FORCE_OFF : Context::Instance::AnimationUpdateMode::FORCE_ON, nullptr,
     nullptr, nullptr, leaves_info, nullptr, nullptr, nullptr, meta_alloc_id, false);
+}
+
+BVH_INLINE void VECTORCALL add_tree_instance(ContextId context_id, Context::InstanceMap &instances, uint64_t object_id,
+  mat43f transform, TreeInfo *tree_info, bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id,
+  bool force_enable_backface_culling) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
+{
+  add_instance(context_id, instances, object_id, transform, nullptr, false,
+    is_stationary ? Context::Instance::AnimationUpdateMode::FORCE_OFF : Context::Instance::AnimationUpdateMode::FORCE_ON, nullptr,
+    nullptr, tree_info, nullptr, nullptr, nullptr, nullptr, meta_alloc_id, force_enable_backface_culling);
 }
 
 BVH_INLINE void VECTORCALL add_riExtra_instance(mat43f transform, vec4f pX, vec4f pY, vec4f pZ, ContextId context_id,
@@ -177,15 +177,6 @@ BVH_INLINE void VECTORCALL add_riExtra_instance(mat43f transform, vec4f pX, vec4
   auto packedHash = static_cast<PerInstanceData *>(perInstanceData.push_back_uninitialized());
   packedHash->x = hashVal;
   packedHash->y = 0;
-}
-
-BVH_INLINE void VECTORCALL add_riExtra_instance(ContextId context_id, uint64_t object_id, mat43f transform, TreeInfo *tree_info,
-  bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix, bool force_enable_backface_culling)
-  DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
-{
-  add_instance(context_id, context_id->riExtraTreeInstances[thread_ix], object_id, transform, nullptr, false,
-    is_stationary ? Context::Instance::AnimationUpdateMode::FORCE_OFF : Context::Instance::AnimationUpdateMode::FORCE_ON, nullptr,
-    nullptr, tree_info, nullptr, nullptr, nullptr, nullptr, meta_alloc_id, force_enable_backface_culling);
 }
 
 BVH_INLINE void VECTORCALL add_riExtra_instance(ContextId context_id, uint64_t object_id, mat43f transform, FlagInfo *flag_info,
@@ -286,5 +277,19 @@ BVH_INLINE Object *get_object(ContextId context_id, uint64_t object_id) DAG_TS_R
 {
   auto iter = context_id->objects.find(object_id);
   return iter == context_id->objects.end() ? nullptr : &iter->second;
+}
+
+BVH_INLINE void get_blas_mapping(ContextId context_id, uint64_t object_id, IPoint2 &out_blas, uint32_t &out_meta)
+  DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
+{
+  Object *object = get_object(context_id, object_id);
+  if (!object || !object->blas || !MeshMetaAllocator::is_valid(object->metaAllocId))
+  {
+    out_blas.zero();
+    out_meta = 0;
+    return;
+  }
+  split_gpu_address(out_blas, object->blas.getGPUAddress());
+  out_meta = MeshMetaAllocator::decode(object->metaAllocId);
 }
 } // namespace bvh

@@ -216,6 +216,8 @@ struct HumanPhysStateAnnotation : das::ManagedStructureAnnotation<HumanPhysState
     addField<DAS_BIND_MANAGED_FIELD(collisionLinksStateTo)>("collisionLinksStateTo");
     addField<DAS_BIND_MANAGED_FIELD(collisionLinkProgress)>("collisionLinkProgress");
     addField<DAS_BIND_MANAGED_FIELD(weapEquipState)>("weapEquipState");
+    addField<DAS_BIND_MANAGED_FIELD(ropeAnchorPos)>("ropeAnchorPos");
+    addField<DAS_BIND_MANAGED_FIELD(ropeMaxLen)>("ropeMaxLen");
     // NOTE: please add new field according to fields order
     // end HumanSerializableState
 
@@ -232,6 +234,7 @@ struct HumanPhysStateAnnotation : das::ManagedStructureAnnotation<HumanPhysState
     addField<DAS_BIND_MANAGED_FIELD(torsoContactRendinstPool)>("torsoContactRendinstPool");
 
     addField<DAS_BIND_MANAGED_FIELD(segPhysState)>("segPhysState");
+    addField<DAS_BIND_MANAGED_FIELD(ropeClimbSpeedMult)>("ropeClimbSpeedMult");
 
     addProperty<DAS_BIND_MANAGED_PROP(isCrouch)>("isCrouch");
     addProperty<DAS_BIND_MANAGED_PROP(isCrawl)>("isCrawl");
@@ -331,6 +334,9 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(ladderQuickMoveDownSpeedMult)>("ladderQuickMoveDownSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(ladderZeroVelocityHeight)>("ladderZeroVelocityHeight");
     addField<DAS_BIND_MANAGED_FIELD(ladderMaxOverHeight)>("ladderMaxOverHeight");
+
+    addField<DAS_BIND_MANAGED_FIELD(ropeAttachHeight)>("ropeAttachHeight");
+    addField<DAS_BIND_MANAGED_FIELD(ropeClimbSpeed)>("ropeClimbSpeed");
 
     addField<DAS_BIND_MANAGED_FIELD(stepAccel)>("stepAccel");
 
@@ -593,6 +599,18 @@ public:
       das::SideEffects::none, "bind_dascript::human_phys_state_can_aim");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_can_zoom)>(*this, lib, "human_phys_state_can_zoom",
       das::SideEffects::none, "bind_dascript::human_phys_state_can_zoom");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_rope_attach)>(*this, lib, "human_phys_state_rope_attach",
+      das::SideEffects::modifyArgument, "bind_dascript::human_phys_state_rope_attach");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_rope_detach)>(*this, lib, "human_phys_state_rope_detach",
+      das::SideEffects::modifyArgument, "bind_dascript::human_phys_state_rope_detach");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_rope_attached)>(*this, lib, "human_phys_state_rope_attached",
+      das::SideEffects::none, "bind_dascript::human_phys_state_rope_attached");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_rope_climbing)>(*this, lib, "human_phys_state_rope_climbing",
+      das::SideEffects::none, "bind_dascript::human_phys_state_rope_climbing");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_rope_bends_count)>(*this, lib, "human_phys_state_rope_bends_count",
+      das::SideEffects::none, "bind_dascript::human_phys_state_rope_bends_count");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_rope_bend)>(*this, lib, "human_phys_state_rope_bend",
+      das::SideEffects::none, "bind_dascript::human_phys_state_rope_bend");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_set_stoppedSprint)>(*this, lib, "human_phys_state_set_stoppedSprint",
       das::SideEffects::modifyArgument, "bind_dascript::human_phys_state_set_stoppedSprint");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_stoppedSprint)>(*this, lib, "human_phys_state_stoppedSprint",

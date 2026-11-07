@@ -33,7 +33,7 @@ struct BvhSkinnedInstanceData
   uint instance_data_dword;
   uint morph_uv_offset;
   uint morph_uv_size;
-  // constraint: the Vulkan StructuredBuffer stride of this type needs a size that is a multiple of 16
+  // the Vulkan StructuredBuffer stride of this type needs a size that is a multiple of 16
   uint cor_offset;
   uint padding0, padding1, padding2;
 };

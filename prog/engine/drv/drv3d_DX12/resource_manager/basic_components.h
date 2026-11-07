@@ -128,8 +128,8 @@ protected:
   {};
 
 #if DX12_USE_ACTIVITY_LOCKING
-  std::atomic<uint32_t> suspendState{0};
-  std::atomic<uint32_t> activityState{0};
+  dag::AtomicInteger<uint32_t> suspendState{0};
+  dag::AtomicInteger<uint32_t> activityState{0};
 #endif
   void *recodingPendingFrameCompletion DAG_TS_GUARDED_BY(recodingPendingFrameCompletionMutex) = nullptr;
   OSSpinlock recodingPendingFrameCompletionMutex;
@@ -193,13 +193,13 @@ protected:
       }
       else
       {
-        ++activityState;
+        activityState.fetch_add(1);
         // have to check again
         if (0 == suspendState.load())
         {
           break;
         }
-        --activityState;
+        activityState.fetch_sub(1);
       }
     }
 #endif
@@ -208,7 +208,7 @@ protected:
   void endActivity()
   {
 #if DX12_USE_ACTIVITY_LOCKING
-    auto currentActivity = --activityState;
+    auto currentActivity = activityState.sub_fetch(1);
     if (!currentActivity)
     {
       notify_one(suspendState);
@@ -229,7 +229,7 @@ public:
   void enterSuspended()
   {
 #if DX12_USE_ACTIVITY_LOCKING
-    ++suspendState;
+    suspendState.fetch_add(1);
     for (;;)
     {
       auto currentActivity = activityState.load();
@@ -245,7 +245,7 @@ public:
   void leaveSuspended()
   {
 #if DX12_USE_ACTIVITY_LOCKING
-    --suspendState;
+    suspendState.fetch_sub(1);
     notify_all(activityState);
 #endif
   }

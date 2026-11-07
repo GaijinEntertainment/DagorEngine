@@ -151,8 +151,8 @@ void append_arg(String &target, BufferResourceReferenceAndRange const &arg, cons
 
 void append_arg(String &target, HostDeviceSharedMemoryRegion const &arg, const char *)
 {
-  target.aprintf(64, "HostDeviceSharedMemoryRegion{buffer: 0x%p, source: %s, range:%llu-%llu}", arg.buffer,
-    host_device_shader_memory_region_source_to_cstr(arg.source), arg.range.start, arg.range.stop);
+  target.aprintf(64, "HostDeviceSharedMemoryRegion{buffer: 0x%p, source: %s, range:%llu-%llu, gpuPointer: 0x%p}", arg.buffer,
+    host_device_shader_memory_region_source_to_cstr(arg.source), arg.range.start, arg.range.stop, arg.gpuPointer());
 }
 
 void append_arg(String &target, ImageViewState const &arg, const char *)
@@ -301,6 +301,11 @@ void append_arg(String &target, BufferResourceReferenceAndAddressRange const &ar
   target.aprintf(64, "BufferResourceReferenceAndAddressRange{buffer: 0x%p, resourceId: ", arg.buffer);
   append_arg(target, arg.resourceId, nullptr);
   target.aprintf(32, ", gpuPointer: 0x%p, size: %llu}", arg.gpuPointer, arg.size);
+}
+
+void append_arg(String &target, ConstBufferSetupInformationStream const &arg, const char *)
+{
+  append_arg(target, arg.buffer, nullptr);
 }
 
 void append_arg(String &target, BufferResourceReferenceAndOffset const &arg, const char *)

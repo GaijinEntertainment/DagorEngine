@@ -3,10 +3,13 @@
 
 from "math" import abs
 
+// Its result is not a constant, so a call with it runs as _OP_FASTCALL and is not folded
+let runtime = @(v) v
+
 function gen(start) {
   local acc = abs(start)
   yield acc
-  acc += abs(-3)
+  acc += abs(runtime(-3))
   yield acc
   acc += abs(start - 10)
   return acc

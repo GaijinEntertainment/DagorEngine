@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ecs/lights/light.h>
+#include <ecs/lights/lightMath.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
@@ -243,17 +244,9 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light, const TMat
   lights_impl::update_light_shadow(omni_light.lightId.get(), shadowParams);
   Color3 color = color3(light__color) * light__brightness;
 
-  const float dropOffLuminance = 0.05; // 5% of the original luminance
-  const float baseLuminance = average(color);
-  // This is the distance where most of the luminance (95%) drops off due to inverse square law.
-  // Use the light__radius_scale to adjust the drop-off radius
-  float autoDropOffRadius = sqrtf(max(0.0f, baseLuminance / dropOffLuminance)) * light__radius_scale;
-  if (light__max_radius > 0)
-    autoDropOffRadius = min(light__max_radius, autoDropOffRadius);
-
   validate_max_light_radius(light__force_max_light_radius, light__max_radius);
 
-  float radius = light__force_max_light_radius ? light__max_radius : autoDropOffRadius;
+  float radius = calc_omni_light_radius(color, light__radius_scale, light__max_radius, light__force_max_light_radius);
 
   const Point3 position = transform * light__offset;
   const Point3 direction = normalize(transform % light__direction);
@@ -466,24 +459,11 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light, const TMat
   lights_impl::update_light_shadow(spot_light.lightId.get(), shadowParams);
   Color3 color = color3(light__color) * light__brightness;
 
-  float auto_radius = light__radius_scale * rgbsum(color) * (4.47f / 3); // 4.47 = 1/sqrt(0.05)/ (3 for rgbsum), i.e. 95% of brightness
-                                                                         // has already lost due to inverse squares law. If light is in
-                                                                         // very dark place, it can be increased by scale
-  if (light__max_radius > 0)
-    auto_radius = min(light__max_radius, auto_radius);
-
   validate_max_light_radius(light__force_max_light_radius, light__max_radius);
 
-  float radius = light__force_max_light_radius ? light__max_radius : auto_radius;
+  float radius = calc_spot_light_radius(color, light__radius_scale, light__max_radius, light__force_max_light_radius);
 
-  float halfTan, col_length;
-  halfTan = col_length = length(transform.getcol(2));
-
-  if (spot_light__cone_angle >= 0)
-  {
-    float angle = spot_light__cone_angle * PI / 180.0f;
-    halfTan = tanf(angle / 2);
-  }
+  float halfTan = calc_spot_light_half_tan(spot_light__cone_angle, transform);
   float attCos = cosf(spot_light__inner_attenuation * atanf(halfTan));
 
   IesTextureCollection *photometryTextures = IesTextureCollection::getSingleton();
@@ -502,11 +482,9 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light, const TMat
   IesTextureCollection::PhotometryData data;
   if (photometryTextures && tex_idx != -1)
     data = photometryTextures->getTextureData(tex_idx);
-  const float illuminatingDiscOffset = safediv(spot_light__illuminating_disc_radius, halfTan);
-  constexpr float EPS = 1e-6;
-  const Point3 worldUpDir(0.f, 1.f, 0.f);
-  const Point3 direction = col_length > EPS ? transform.getcol(2) / col_length : worldUpDir;
-  const Point3 coneApexPosistion = transform * light__offset - direction * illuminatingDiscOffset;
+  const float illuminatingDiscOffset = calc_spot_light_illuminating_disc_offset(spot_light__illuminating_disc_radius, halfTan);
+  const Point3 direction = calc_spot_light_direction(transform);
+  const Point3 coneApexPosistion = calc_spot_light_apex(transform, light__offset, direction, illuminatingDiscOffset);
   SpotLight spotLight = SpotLight(coneApexPosistion, color, light__brightness > 0 ? radius : -1, attCos, direction,
     transform.getcol(1), halfTan, bool(contact_shadows) && bool(spot_light__shadows), bool(spot_light__shadows), tex_idx, data.zoom,
     data.rotated, illuminatingDiscOffset);

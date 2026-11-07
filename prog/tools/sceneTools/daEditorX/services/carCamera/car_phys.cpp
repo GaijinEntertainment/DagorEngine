@@ -153,7 +153,7 @@ bool setCollisionsToWorld(mkbindump::BinDumpSaveCB &cwr)
   // loading dump
   DAEDITOR3.conNote("+++ Loading ...");
 
-  // constraint: a build that writes no SCol must not leave the last one's resource installed
+  // a build that writes no SCol must not leave the last one's resource installed
   phys_static_coll = nullptr;
 
   MemoryLoadCB crd(cwr.getRawWriter().getMem(), false);

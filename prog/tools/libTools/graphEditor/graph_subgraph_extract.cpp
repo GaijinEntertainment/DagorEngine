@@ -31,19 +31,6 @@ int first_pin_with_role(const GraphData::Node &n, PinRole role)
   return -1;
 }
 
-void set_boundary_name(GraphData::Node &n, const eastl::string &name)
-{
-  for (eastl::pair<eastl::string, eastl::string> &pv : n.propertyValues)
-  {
-    if (pv.first == "name")
-    {
-      pv.second = name;
-      return;
-    }
-  }
-  n.propertyValues.emplace_back(eastl::string("name"), name);
-}
-
 eastl::string trimmed(const eastl::string &s)
 {
   size_t begin = 0;
@@ -59,7 +46,7 @@ eastl::string trimmed(const eastl::string &s)
   return s.substr(begin, end - begin);
 }
 
-// Pins match by name only, so an input and an output may not share one either.
+// Unique across inputs and outputs too, so an instance shows no two pins of one name.
 eastl::string take_unique_name(eastl::hash_set<eastl::string> &used, const eastl::string &base)
 {
   eastl::string name = base;
@@ -126,7 +113,7 @@ ExtractCrossing crossing_of(const Candidate &c, int boundary_id, bool muted)
 } // namespace
 
 bool extract_subgraph(const GraphData &parent, dag::ConstSpan<int> node_ids, const DataBlock &base_nodes_blk,
-  const char *graphs_root_dir, GraphData &out_child, ExtractPlan &out_plan)
+  const char *graphs_root_dir, GraphData &out_child, ExtractPlan &out_plan, SubgraphCache *cache)
 {
   out_plan = ExtractPlan();
   clear_graph_data(out_child);
@@ -154,7 +141,7 @@ bool extract_subgraph(const GraphData &parent, dag::ConstSpan<int> node_ids, con
       // Nodes and edges only: all the expansion reads, and the compiled BLKs belong to the texgen worker.
       flat.nodes = parent.nodes;
       flat.edges = parent.edges;
-      expand_subgraphs(flat, base_nodes_blk, graphs_root_dir, &outputSource);
+      expand_subgraphs(flat, base_nodes_blk, graphs_root_dir, &outputSource, nullptr, cache);
     }
     uint64_t key = make_pin_id(node_id, pin_index);
     for (size_t hop = 0; hop < outputSource.size(); ++hop)
@@ -182,7 +169,7 @@ bool extract_subgraph(const GraphData &parent, dag::ConstSpan<int> node_ids, con
     {
       continue;
     }
-    if (is_input_boundary(*n) || is_output_boundary(*n) || n->descName == "subgraph separator")
+    if (is_input_boundary(*n) || is_output_boundary(*n) || is_separator_boundary(*n))
     {
       out_plan.error = "A subgraph boundary node (subgraph in, out or separator) cannot go into a new subgraph.";
       return false;
@@ -286,7 +273,7 @@ bool extract_subgraph(const GraphData &parent, dag::ConstSpan<int> node_ids, con
   };
   auto synthesizeBoundary = [&](const DataBlock &desc, float x, float y, const char *base_name) {
     GraphData::Node node;
-    make_node_from_descriptor(base_nodes_blk, desc, x, y, node);
+    make_node_from_descriptor(desc, x, y, node);
     node.id = nextNodeId++;
     boundaries.push_back(Boundary{static_cast<int>(out_child.nodes.size()), eastl::string(base_name), false});
     out_child.nodes.push_back(eastl::move(node));
@@ -427,7 +414,7 @@ bool extract_subgraph(const GraphData &parent, dag::ConstSpan<int> node_ids, con
       const eastl::string name = take_unique_name(used, base);
       if (name != current)
       {
-        set_boundary_name(node, name);
+        set_property_value(node, "name", name);
       }
       nameOf[node.id] = name;
     }

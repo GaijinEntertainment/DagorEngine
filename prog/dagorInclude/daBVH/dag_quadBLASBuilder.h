@@ -67,7 +67,7 @@ void addDoubleQuadPrimitivesAABBList(bbox3f *boxes, const DoubleQuadPrim *dq, in
 // Serialize a pre-built double-quad BVH (nodes/root from create_bvh_node_sah over
 // addDoubleQuadPrimitivesAABBList boxes) into the tree byte region. Returns descendant node count.
 int writeDoubleQuadBVH2(uint8_t *blasData, const bbox3f *nodes, const DoubleQuadPrim *dq, vec4f scale, vec4f ofs, int vertDataOfs,
-  int node, int root, int &dataOffset, int vertStride = 8, bool useHalves = false);
+  int node, int root, int &dataOffset, int vertStride = 8);
 
 // Serialize a completed double-quad BVH + its float3 vertex positions into a self-contained BLAS byte
 // chunk (28-byte leaves, 12-byte float3 verts), laid out [tree][verts]. Returns true on success;
@@ -91,9 +91,8 @@ template <typename IdxT>
 void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, const IdxT *optIdx, int faceCount, const vec4f *verts4,
   const uint8_t *face_user = nullptr);
 
-// Write quantized box node (useHalves: FP16 encoding, otherwise UINT16)
-void writeQuadBox(uint8_t *blasData, int dataOffset, vec4f bmin, vec4f bmax, vec4f scale, vec4f ofs, uint32_t skip,
-  bool useHalves = false);
+// Write a UINT16-quantized box node
+void writeQuadBox(uint8_t *blasData, int dataOffset, vec4f bmin, vec4f bmax, vec4f scale, vec4f ofs, uint32_t skip);
 
 // Build per-primitive AABBs for SAH tree (sets bmin.w = primIndex, bmax.w = 0)
 void addQuadPrimitivesAABBList(bbox3f *boxes, const QuadPrim *prims, int primCount, const vec4f *verts);

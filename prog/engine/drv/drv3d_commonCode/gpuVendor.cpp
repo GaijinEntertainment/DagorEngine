@@ -514,17 +514,15 @@ uint32_t get_intel_gpu_family(uint32_t device_id)
         case 0x0045:
         case 0x00E0:
         default: return METEORLAKE;
-        case 0x00A0:
-        case 0x00A1:
-        case 0x00A2:
-        case 0x00A3:
-        case 0x00A4: return WHISKEYLAKE;
       }
     }
+    case 0xB600: return ARROWLAKE_S;
     case 0xE200: return BATTLEMAGE;
     case 0x6400: return LUNARLAKE;
     case 0xB000: return PANTHERLAKE;
     case 0xFD00: return WILDCATLAKE;
+    case 0xD700: return (idlo & 0x00F0) == 0x0050 ? NOVALAKE_P : NOVALAKE;
+    case 0x6700: return CRESCENTISLAND;
     default: return DeviceAttributes::UNKNOWN;
   }
 }

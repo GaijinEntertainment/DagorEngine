@@ -2,6 +2,7 @@
 
 #include "riGen/riGenExtra.h"
 
+#include <rendInst/ccExtra.h>
 #include <util/dag_console.h>
 #include <debug/dag_log.h>
 #include <ioSys/dag_fileIo.h>
@@ -109,7 +110,7 @@ void dumpAllCollisions(IGenSave &cb)
   });
 }
 
-static void dumpAllCollRes(IGenSave &cb)
+static void dumpAllCollRes(IGenSave &cb, bool grid_only)
 {
   cb.writeInt((int)COLLRES_DUMP_MAGIC);
   cb.writeInt(COLLRES_DUMP_VERSION);
@@ -121,12 +122,18 @@ static void dumpAllCollRes(IGenSave &cb)
     cb.writeString(PhysMat::getBFClassName(m.bfid));
     cb.write(&m.imp_absorb_k, collres_mat_pod_bytes(m));
   }
+  ScopedRIExtraReadLock rd;
+  dag::Vector<mat43f> tms;
   iterateRIExtra([&](int id, const RiExtraPool &pool) {
-    if (!pool.collRes || pool.isPosInst())
+    if (!pool.collRes)
       return;
+    tms.clear();
+    for (int i = 0, e = pool.riTm.size(); i < e; ++i)
+      if (!grid_only || pool.isInGrid(i)) // game rays see grid instances only
+        tms.push_back(pool.riTm[i]);
     cb.writeString(riExtraMap.getName(id));
-    cb.writeTab(pool.riTm);
-    CollisionResourceBuilder::writeRaw(*pool.collRes, cb);
+    cb.writeTab(tms);
+    CollisionResourceBuilder::writeRaw(*pool.collRes, cb, pool.isTree ? COLLISION_RES_FLAG_RI_TREE : 0u);
   });
 }
 } // namespace rendinst
@@ -149,12 +156,13 @@ static bool ri_collision_console_handler(const char *argv[], int argc)
     else
       console::print_d("file %s can't be open for save", fn);
   }
-  CONSOLE_CHECK_NAME("ri", "dump_collres", 1, 2)
+  CONSOLE_CHECK_NAME_EX("ri", "dump_collres", 1, 3, "Dump RI-extra collision; grid_only keeps what game rays hit",
+    "[file] [grid_only]")
   {
     const char *fn = argc < 2 ? "ri_collres.bin" : argv[1];
     FullFileSaveCB cb(fn);
     if (cb.fileHandle)
-      rendinst::dumpAllCollRes(cb);
+      rendinst::dumpAllCollRes(cb, argc > 2 && console::to_bool(argv[2]));
     else
       console::print_d("file %s can't be open for save", fn);
   }

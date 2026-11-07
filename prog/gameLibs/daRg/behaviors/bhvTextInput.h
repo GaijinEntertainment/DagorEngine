@@ -9,6 +9,17 @@ namespace darg
 {
 
 
+struct BhvTextInputData
+{
+  int pressedByPointerId = -1;
+
+  void press(int pointer_id) { pressedByPointerId = pointer_id; }
+  void release() { pressedByPointerId = -1; }
+  bool isPressed() const { return pressedByPointerId >= 0; }
+  bool isPressedBy(int pointer_id) const { return pressedByPointerId == pointer_id; }
+};
+
+
 class BhvTextInput : public darg::Behavior
 {
 public:
@@ -16,8 +27,8 @@ public:
 
   virtual int kbdEvent(ElementTree *, Element *, InputEvent /*event*/, int /*key_idx*/, bool /*repeat*/, wchar_t /*wc*/,
     int /*accum_res*/);
-  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent /*event*/, int /*pointer_id*/, int /*btn_id*/,
-    Point2 pos, int /*accum_res*/);
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, TouchSource /*touch_src*/, InputEvent /*event*/,
+    int /*pointer_id*/, int /*btn_id*/, Point2 pos, int /*accum_res*/);
   virtual int joystickBtnEvent(ElementTree *, Element *, const HumanInput::IGenJoystick *, InputEvent /*event*/, int /*key_idx*/,
     int /*device_number*/, const HumanInput::ButtonBits & /*buttons*/, int /*accum_res*/);
   virtual bool willHandleClick(Element *) override { return true; }
@@ -25,8 +36,10 @@ public:
   virtual void onAttach(Element *);
   virtual void onDetach(Element *, DetachMode);
   virtual void onKbFocusChange(Element *, bool focused) override;
+  virtual int onDeactivateAllInput(Element *elem) override;
 
 private:
+  static BhvTextInputData *getData(Element *elem);
   static void scroll_to_cursor(Element *elem);
   static void apply_new_value(Element *elem, const char *new_value);
   static void open_ime(Element *elem);

@@ -1,13 +1,16 @@
 #ifndef DAFX_MODFX_BBOARD_RENDER_HLSL
 #define DAFX_MODFX_BBOARD_RENDER_HLSL
 
+#ifndef MODFX_SCATTER_LIGHTING
+  #define MODFX_SCATTER_LIGHTING 0
+#endif
+
 #include "dafx_quality_flags.hlsli"
 #include "modfx/modfx_curve.hlsli"
 #include "modfx/modfx_misc.hlsli"
 #include "modfx/modfx_part_data.hlsli"
 #include "modfx/modfx_render_placement.hlsli"
 #include "modfx/modfx_bboard_common.hlsl"
-#include "pbr/BRDF.hlsl"
 
 #if FX_VS
 
@@ -96,13 +99,11 @@
 
     float3 shadowPos = wpos + shadowSampleDirFwd * 0.5;
     half staticShadowSum = 0;
-    UNROLL for (int i = 0; i < shadowBroadSampleCnt; ++i)
+    LOOP for (int i = 0; i < 4 * shadowBroadSampleCnt; ++i)
     {
-      staticShadowSum += getStaticShadow(shadowPos - sunHackUp - sunHackRight);
-      staticShadowSum += getStaticShadow(shadowPos + sunHackUp - sunHackRight);
-      staticShadowSum += getStaticShadow(shadowPos + sunHackUp + sunHackRight);
-      staticShadowSum += getStaticShadow(shadowPos - sunHackUp + sunHackRight);
-      shadowPos += shadowSampleDirFwd;
+      float2 corner = float2(i & 1, (i >> 1) & 1) * 2 - 1;
+      float3 samplePos = shadowPos + float(i >> 2) * shadowSampleDirFwd + corner.x * sunHackUp + corner.y * sunHackRight;
+      staticShadowSum += getStaticShadow(samplePos);
     }
     return staticShadowSum * (0.25 / shadowBroadSampleCnt);
   }
@@ -275,6 +276,7 @@
     float3 view_dir = gdata.world_view_pos - rdata.pos;
     float view_dir_dist = length( view_dir );
     float3 view_dir_norm = view_dir * (view_dir_dist > 0.01 ? rcp( view_dir_dist ) : 0);
+    float3 to_eye_norm = view_dir_norm;
     float proj_dist = view_dir_dist * dot(-view_dir_norm, gdata.view_dir_z);
 
     float3 emission_mask =  0;
@@ -605,8 +607,31 @@
     }
 #endif
 
-#if MODFX_USE_GI
-    vs_out.ambient.rgb = ambient_calculating(wpos, gdata.world_view_pos, gdata.sky_color, vs_out.pos);
+#if MODFX_DIRECTIONAL_AMBIENT
+    bool directional_ambient = FLAG_ENABLED( flags, MODFX_RFLAG_DIRECTIONAL_AMBIENT );
+#else
+    bool directional_ambient = false;
+#endif
+#if MODFX_USE_GI || MODFX_DIRECTIONAL_AMBIENT
+    float3 ambient_dir = to_eye_norm;
+    float ambient_up_blend = 0.5f;
+  #if !MODFX_RIBBON_SHAPE
+    if (directional_ambient)
+    {
+      float3 corner_dir = worldDelta * rsqrt( max( dot( worldDelta, worldDelta ), 1e-8f ) );
+      float3 sphere_dir = lerp( to_eye_norm, corner_dir, 0.5f );
+      sphere_dir *= rsqrt( max( dot( sphere_dir, sphere_dir ), 1e-8f ) );
+      // sphere_dir.y is +-0.5 at the corners of a side view and reaches +-0.7 when the view or a tall quad adds
+      // vertical reach; the unit slope puts the poles at +-0.5 and the saturate clamps beyond them
+      ambient_up_blend = saturate( sphere_dir.y + 0.5f );
+      ambient_dir = float3( 0, ambient_up_blend * 2.f - 1.f, 0 );
+    }
+  #endif
+  #if MODFX_USE_GI
+    vs_out.ambient.rgb = dafx_directional_gi_ambient( wpos, gdata.world_view_pos, gdata.sky_color, vs_out.pos, ambient_dir, directional_ambient, to_eye_norm, view_dir_dist );
+  #elif MODFX_DIRECTIONAL_AMBIENT
+    vs_out.ambient.rgb = directional_ambient ? dafx_directional_sky_ambient( ambient_up_blend ) : gdata.sky_color;
+  #endif
 #endif
 
 #if MODFX_RAIN
@@ -693,7 +718,7 @@
       float3 wnorm = float3( 0, 1, 0 );
     #else
       float3 wnorm = 0;
-      if ( pp.type == MODFX_LIGHTING_TYPE_UNIFORM )
+      if ( pp.type == MODFX_LIGHTING_TYPE_UNIFORM || pp.type == MODFX_LIGHTING_TYPE_SCATTER )
         wnorm = float3( 0, 1, 0 );
       else
         wnorm = fwd_dir;
@@ -745,9 +770,11 @@
 #endif
 
     vs_out.life_radius.x = rdata.life_norm;
+#if MODFX_SCATTER_LIGHTING || MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT
+    vs_out.life_radius.y = rdata.radius;
+#endif
 
 #if MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT
-    vs_out.life_radius.y = rdata.radius;
     vs_out.life_radius.z = wboit_offset;
 
     wpos += view_dir_norm * z_offset;
@@ -893,22 +920,65 @@ float4 unpack_distortion(float4 tex_input)
   return tex_input;
 }
 
-#if MODFX_USE_LIGHTING
-void apply_shadow_to_ps_lighting(inout float3 lighting_part, VsOutput input, GlobalData gdata, float3 ndl, float3 nda,
-  float specular, float alpha, float3 translucency, float2 pixel_pos)
+#if MODFX_SCATTER_LIGHTING
+// transmittance and optical depth of a texel from the masked source: the source is a material amount
+// (density = -log2(1 - max_opacity)) or the authored coverage inverted through Beer-Lambert, so the lighting
+// always matches the drawn opacity
+float modfx_scatter_transmittance( ModfxDeclScatterLighting pp, float opacity_src, float radius, out float tau )
 {
-#if MODFX_USE_STATIC_SHADOW || DAFX_USE_CLOUD_SHADOWS || DAFX_USE_VOXEL_SHADOWS_VS
-  half shadow = input.lighting.a;
-#else
-  half shadow = 1.f;
+  tau = FLAG_ENABLED( pp.flags, MODFX_SCATTER_FLAG_SRC_IS_THICKNESS )
+    ? opacity_src * pp.density
+    : -log2( 1.f - opacity_src * pp.max_opacity );
+  if ( FLAG_ENABLED( pp.flags, MODFX_SCATTER_FLAG_OPACITY_BY_RADIUS ) )
+    tau *= radius;
+  return exp2( -tau );
+}
+
+// sun factor (ndl) and ambient factor (nda) of a scatter lit texel; cos_theta is sun dir dot to-eye, sun_ndl the
+// sphere normal dot sun dir, shadow the sun shadow that stands in for the sky visibility
+void modfx_scatter_lighting( ModfxDeclScatterLighting pp, float T, float tau, float cos_theta, float sun_ndl,
+  float normal_softness, half shadow, out float ndl, inout float nda )
+{
+  // Henyey-Greenstein lobe of the sun-view angle instead of a surface lambert, scaled so the front lit view stays 1:
+  // (1+g) * rsqrt(1 + g^2 - 2g cos), the three constants come precomputed from the CPU
+  float hg = pp.sun_phase.x * rsqrt( pp.sun_phase.y - pp.sun_phase.z * cos_theta );
+  ndl = lerp( hg * hg * hg, 1.f, normal_softness );
+  if ( pp.sun_self_shadow > 0.f )
+  {
+    // sun path before the visible point: the texel optical depth (one radius of material with scale_opacity_with_radius)
+    // times saturate(n . from_sun), scaled by the knob; the full sphere chord at that angle is the knob at 2
+    // the fill is two Wrenninge octaves with the daClouds2 constants, the two weights come folded from the CPU
+    float tau_sun = tau * pp.sun_self_shadow * sun_ndl;
+    ndl *= exp2( -tau_sun ) * pp.sun_shadow_fill.x + exp2( -0.3f * tau_sun ) * pp.sun_shadow_fill.y;
+  }
+  // thin parts: fade the direct sun so overlapping sprites do not draw bright outlines; the rim band below keeps its shape
+  ndl *= lerp( 1.f - T, 1.f, pp.sun_thin_fade );
+  if ( pp.rim_params.w > 0.f )
+  {
+    // sun light scattered toward the eye by the half transparent band: a smoothstep bump on the opacity around
+    // rim_opacity, faded by the sun-view angle; rim_params = (center, 1 / width, backlit, intensity)
+    float band = saturate( 1.f - abs( ( 1.f - T ) - pp.rim_params.x ) * pp.rim_params.y );
+    band = band * band * ( 3.f - 2.f * band );
+    float backlit = saturate( cos_theta );
+    backlit = lerp( 1.f, backlit * backlit, pp.rim_params.z );
+    ndl += band * backlit * pp.rim_params.w;
+  }
+  if ( pp.ambient_self_shadow > 0.f )
+  {
+    // single scattering integral (Kajiya and Von Herzen 1984; Max 1995)
+    // only the sky part of the ambient is self occluded, the sun shadow stands in for the sky visibility
+    float T2 = T * T;
+    float amb_e = tau > 1.5e-4f ? ( 0.25f * ( 1.f - T2 ) + 0.34657359f * tau * T ) * rcp( 1.f - T ) : 1.f;
+    nda *= lerp( 1.f, amb_e, pp.ambient_self_shadow * shadow );
+  }
+}
 #endif
 
-#if DAFX_USE_VOXEL_SHADOWS_PS
-  const float shadow_dither_rad = 0.75;
-  shadow = apply_voxel_shadows(input.wpos, pixel_pos, gdata.from_sun_direction, shadow_dither_rad, shadow);
-#endif
-
-#if MODFX_USE_GI
+#if MODFX_USE_LIGHTING
+void apply_ps_lighting(inout float3 lighting_part, VsOutput input, GlobalData gdata, float3 ndl, float3 nda,
+  half shadow, float specular, float alpha)
+{
+#if MODFX_USE_GI || MODFX_DIRECTIONAL_AMBIENT
   float3 ambient = input.ambient.rgb;
 #else
   float3 ambient = gdata.sky_color;
@@ -920,29 +990,12 @@ void apply_shadow_to_ps_lighting(inout float3 lighting_part, VsOutput input, Glo
   bool applyLighting = true;
 #endif
 
-  float3 lighting = ndl * gdata.sun_color * shadow + nda * ambient + input.lighting.rgb + translucency;
+  float3 lighting = ndl * gdata.sun_color * shadow + nda * ambient + input.lighting.rgb;
   if (applyLighting)
     lighting_part *= lighting;
 
   lighting_part += specular * gdata.sun_color * alpha * shadow;
 }
-
-#if !MODFX_RIBBON_SHAPE
-float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput input, GlobalData gdata, float ndl,
-  float translucency, float3 translucency_color_mul)
-{
-#if MODFX_USE_STATIC_SHADOW || DAFX_USE_CLOUD_SHADOWS || DAFX_USE_VOXEL_SHADOWS_VS
-  half shadow = input.lighting.a;
-#else
-  half shadow = 1.f;
-#endif
-
-  float3 backColor = translucency * lighting_part;
-  float3 sssColor = gdata.sun_color * backColor;
-  sssColor *= translucency_color_mul;
-  return (foliageSSSfast(ndl) * shadow) * sssColor;
-}
-#endif
 
 #endif
 
@@ -1078,9 +1131,14 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
       return;
 #endif
 
+    float4 src_tex_before_color_mat = src_tex_0;
     src_tex_0 = modfx_render_mul_color_matrix(parent_data, src_tex_0);
 
     float alpha = calc_alpha(src_tex_0, input, flags);
+    float blend_alpha = alpha; // authored alpha for the premult glow/body split, alpha may become the opacity model coverage
+#if MODFX_SCATTER_LIGHTING
+    float4 opacity_src_remapped = src_tex_0; // after the color matrix, rgb gets the color remap below
+#endif
 
     float3 emissive_part = 0;
     float3 lighting_part = 0;
@@ -1100,6 +1158,9 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
         0,
         parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_REMAP],
         saturate( src_tex_0.r * grad_scale_rcp + grad_offset ) ).rgb;
+#if MODFX_SCATTER_LIGHTING
+      opacity_src_remapped.rgb = first;
+#endif
 
       if ( FLAG_ENABLED( flags, MODFX_RFLAG_TEX_COLOR_REMAP_APPLY_BASE_COLOR ) )
       {
@@ -1144,6 +1205,27 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
       emissive_part = c * input.emission.rgb;
       lighting_part = c;
     }
+
+#if !MODFX_SCATTER_LIGHTING
+    const bool scatter_lighting = false;
+#else
+    float vol_transmittance = 1.f;
+    float vol_tau = 0.f;
+    bool scatter_lighting = parent_data.mods_offsets[MODFX_RMOD_SCATTER_LIGHTING] != 0;
+    ModfxDeclScatterLighting vol_pp = (ModfxDeclScatterLighting)0;
+    BRANCH
+    if ( scatter_lighting )
+    {
+      vol_pp = ModfxDeclScatterLighting_load( 0, parent_data.mods_offsets[MODFX_RMOD_SCATTER_LIGHTING] );
+      float4 opacity_src_tex = FLAG_ENABLED( vol_pp.flags, MODFX_SCATTER_FLAG_SRC_REMAPPED ) ? opacity_src_remapped : src_tex_before_color_mat;
+      float opacity_src = saturate( dot( opacity_src_tex, unpack_e3dcolor_to_n4f( vol_pp.opacity_src_mask ) ) );
+      vol_transmittance = modfx_scatter_transmittance( vol_pp, opacity_src, input.life_radius.y, vol_tau );
+      // the life, fog and near/far fades in color.w scale the coverage, not the density, so the authored fade curve
+      // stays linear on screen
+      if ( FLAG_ENABLED( vol_pp.flags, MODFX_SCATTER_FLAG_ALPHA_FROM_OPACITY ) )
+        alpha = ( 1.f - vol_transmittance ) * input.color.w;
+    }
+#endif
 
 #if EMISSION_PS_FOG_MULT && !MODFX_SHADER_VOLFOG_INJECTION
     emissive_part *= input.fog_mul;
@@ -1223,6 +1305,7 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
     lighting_part *= vol_alpha;
     emissive_part *= vol_alpha;
     alpha *= vol_alpha;
+    blend_alpha *= vol_alpha;
 
     if (alpha < 1e-03)
     {
@@ -1265,35 +1348,45 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
       float sphere_rad = pp.sphere_normal_radius;
       float sphere_power = pp.sphere_normal_power / 255.f;
       float normal_softness = pp.normal_softness / 255.f;
+#if MODFX_USE_STATIC_SHADOW || DAFX_USE_CLOUD_SHADOWS || DAFX_USE_VOXEL_SHADOWS_VS
+      half shadow = input.lighting.a;
+#else
+      half shadow = 1.f;
+#endif
+#if DAFX_USE_VOXEL_SHADOWS_PS
+      float shadow_dither_rad = 0.75;
+  #ifdef DAFX_VOXEL_SHADOWS_DITHER_INV_DIST
+      // dither noise is visible up close, so fade it in with view depth
+      shadow_dither_rad *= saturate( viewport_tc.w * DAFX_VOXEL_SHADOWS_DITHER_INV_DIST );
+  #endif
+      shadow = apply_voxel_shadows( input.wpos, pixel_pos.xy, gdata.from_sun_direction, shadow_dither_rad, shadow );
+#endif
 
 #if MODFX_RIBBON_SHAPE
       float3 fwd_dir = input.fwd_dir;
-      float ndl, nda;
-      nda = 1.f;
+      float ndl, nda = 1.f;
 #else
       float3 fwd_dir = cross( input.up_dir, input.right_dir );
       float3 sphere_normal;
       sphere_normal.xy = input.delta / sphere_rad;
-      sphere_normal.z = sqrt( sphere_rad * sphere_rad - dot( sphere_normal.xy, sphere_normal.xy ) );
+      sphere_normal.z = sqrt( saturate( sphere_rad * sphere_rad - dot( sphere_normal.xy, sphere_normal.xy ) ) );
       sphere_normal.y = -sphere_normal.y;
       sphere_normal = lerp( float3( 0, 0, 1 ), sphere_normal, sphere_power );
       sphere_normal = normalize( sphere_normal );
       sphere_normal = fwd_dir * sphere_normal.z + input.right_dir * sphere_normal.x + input.up_dir * sphere_normal.y;
 
-      float ndl, nda;
-      if ( pp.type == MODFX_LIGHTING_TYPE_UNIFORM )
-      {
-        nda = 1.f;
-      }
-      else if ( pp.type == MODFX_LIGHTING_TYPE_DISC )
-      {
+      float ndl, nda = 1.f;
+      // MODFX_LIGHTING_TYPE_UNIFORM means just nda = 1 with the default wnorm
+      if ( pp.type == MODFX_LIGHTING_TYPE_DISC )
         wnorm = fwd_dir;
-        nda = 1.f;
-      }
       else if ( pp.type == MODFX_LIGHTING_TYPE_SPHERE )
-      {
         wnorm = sphere_normal;
-        nda = 1.f;
+      else if ( pp.type == MODFX_LIGHTING_TYPE_SCATTER )
+      {
+  #if MODFX_SCATTER_LIGHTING
+        wnorm = sphere_normal;
+  #endif
+        // shaders without the scatter block light this type as uniform, wnorm keeps its (0, 1, 0) default
       }
       else if ( pp.type == MODFX_LIGHTING_TYPE_NORMALMAP )
       {
@@ -1312,9 +1405,21 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
         nda = saturate( dot( sphere_normal, wnorm ) );
   #endif
       }
+
+  #if MODFX_DIRECTIONAL_AMBIENT
+      // replaces nda for every lighting type, the normal map factor included, so the tint is not applied twice
+      if ( FLAG_ENABLED( flags, MODFX_RFLAG_DIRECTIONAL_AMBIENT ) )
+      {
+        // the basis carries the emitter scale, take the unit vector for the vertical weight
+        float up_k = sphere_normal.y * rsqrt( max( dot( sphere_normal, sphere_normal ), 1e-8f ) );
+        nda = lerp( pp.direction_ambient_min / 255.f, 1.f, saturate( up_k * 0.5f + 0.5f ) );
+      }
+  #endif
+
 #endif
 
-      ndl = saturate( dot( -gdata.from_sun_direction, wnorm ) );
+      float sun_dot = dot( -gdata.from_sun_direction, wnorm );
+      ndl = saturate( sun_dot );
 
       float specular = 0;
 
@@ -1328,56 +1433,31 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
 #endif
 
       ndl = ndl * ( 1.f - normal_softness ) + normal_softness;
-
-      float3 translucency_lighting = 0;
-
-#if !MODFX_RIBBON_SHAPE
+#if MODFX_SCATTER_LIGHTING
       BRANCH
-      if (parent_data.mods_offsets[MODFX_RMOD_ADVANCED_TRANSLUCENCY] && (gdata.quality & DAFX_HIGH_FX_QUALITY))
-      {
-        ModfxDeclAdvancedTranslucency pp = ModfxDeclAdvancedTranslucency_load(0, parent_data.mods_offsets[MODFX_RMOD_ADVANCED_TRANSLUCENCY]);
-        float3 translucency_color_mul = pp.translucency_color_mul;
-
-        // Normal-based translucency
-        bool use_view_for_translucency = FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_VIEW_VEC_TRANSLUCENCY);
-        float3 direction = use_view_for_translucency ? input.view_dir : gdata.from_sun_direction;
-
-        float cosPhi = dot(direction, wnorm);
-
-        FLATTEN
-        if (FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_INVERT_ACCEPTED_DEGREES))
-          cosPhi = 1 - cosPhi;
-
-        float phi = clamp(acos(cosPhi), pp.min_radian, pp.max_radian) - pp.min_radian;
-        float normal_based_translucency = phi * pp.inv_max_radian_diff;
-
-        // Alpha-based translucency
-        float alpha_t = abs(pp.alpha_max - min(alpha - pp.alpha_min, pp.alpha_max)) * pp.alpha_diff_inv; // Normalize to 0-1
-        float alpha_based_translucency = lerp(pp.trans_min, pp.trans_max, alpha_t);
-
-        bool use_normal_based_trans = FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_NORMAL_BASED_TRANSLUCENCY);
-        bool use_alpha_based_trans = FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_USE_ALPHA_BASED_TRANSLUCENCY);
-
-        // Maximum translucency
-        translucency *= max(use_normal_based_trans ? normal_based_translucency : 0, use_alpha_based_trans ? alpha_based_translucency : 0);
-        translucency *= FLAG_ENABLED(pp.advanced_translucency_flags, MODFX_TRANSLUCENCY_WEIGH_BY_VOL) ? saturate(dot( input.view_dir, gdata.from_sun_direction )) : 1;
-
-        // Applying advanced translucency
-        translucency_lighting = apply_advanced_translucency_to_lighting(lighting_part, input, gdata, ndl, translucency, translucency_color_mul);
-      }
-      else // default translucency
+      if ( scatter_lighting )
+        // a scatter texel has wnorm = sphere_normal, so the sphere normal dot sun dir is -sun_dot; the quad basis
+        // carries the emitter scale, the self shadow needs the cosine of the unit normal
+        modfx_scatter_lighting( vol_pp, vol_transmittance, vol_tau, dot( gdata.from_sun_direction, input.view_dir ),
+          saturate( -sun_dot * rsqrt( max( dot( sphere_normal, sphere_normal ), 1e-8f ) ) ), normal_softness, shadow, ndl, nda );
 #endif
-      {
+      if ( !scatter_lighting ) // no translucency with scatter lighting
         ndl = lerp( ndl, 1.f, saturate( dot( gdata.from_sun_direction, fwd_dir ) ) * translucency );
-      }
 
-      apply_shadow_to_ps_lighting(lighting_part, input, gdata, ndl, nda, specular, alpha, translucency_lighting, pixel_pos.xy);
+      apply_ps_lighting(lighting_part, input, gdata, ndl, nda, shadow, specular, alpha);
     }
 #endif
 #endif
 
+    // premult content mixes additive glow and blended body by the texture alpha, keep that split on the authored
+    // value while the coverage in result.w may come from the opacity model
     if ( is_blending_premult(flags) )
-      emissive_part *= alpha;
+    {
+      emissive_part *= blend_alpha;
+      // the lit part composites with weight blend_alpha * alpha + 1 - blend_alpha, rescale it so it covers like ablend
+      if ( scatter_lighting )
+        lighting_part *= alpha * rcp( max( blend_alpha * alpha + 1.f - blend_alpha, 1e-4f ) );
+    }
 
     float4 result = float4( emissive_part + lighting_part, alpha );
     float depth = 0;
@@ -1505,10 +1585,10 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
 
     if (is_blending_premult(flags))
     {
-      float3 ablend_part = result.xyz * alpha + fog_add;
+      float3 ablend_part = result.xyz * blend_alpha + fog_add;
       ablend_part *= result.w;
 
-      float3 add_part = result.xyz * ( 1.f - alpha ) * depth_mask;
+      float3 add_part = result.xyz * ( 1.f - blend_alpha ) * depth_mask;
 
       result.xyz = ablend_part + add_part;
     }

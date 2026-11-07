@@ -237,6 +237,19 @@ inline bool flush_all(bool should_flush_buffers = true) { return flush_states(Fl
 
 bool flush_cs_all(bool should_flush_buffers, bool async);
 
+#if DAGOR_DBGLEVEL > 0
+void init_texformat_uav_usage_cache();
+// USAGE_UNORDERED and USAGE_UNORDERED_LOAD bits of the TEXFMT in fmt, both for an unknown format so it is never reported
+unsigned get_cached_texformat_uav_usage(uint32_t fmt);
+// call only after the flush of a real draw or dispatch: other flushes see stale shader and UAV state
+void check_draw_uav_formats(RenderState &rs);
+void check_dispatch_uav_formats(RenderState &rs, bool async);
+#else
+inline void init_texformat_uav_usage_cache() {}
+inline void check_draw_uav_formats(RenderState &) {}
+inline void check_dispatch_uav_formats(RenderState &, bool) {}
+#endif
+
 DXGI_FORMAT dxgi_format_from_flags(uint32_t cflg);
 int dxgi_format_to_bpp(DXGI_FORMAT fmt);
 const char *dx11_error(HRESULT hr);

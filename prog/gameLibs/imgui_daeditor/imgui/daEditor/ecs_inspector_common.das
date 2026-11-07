@@ -67,7 +67,7 @@ def private draw_add_to_plot_buttons(eid_val : uint; name, type_name : string)
     imgui::SetCursorPosY(group_start_y + (group_h - imgui::GetFrameHeight()) * 0.5f)
     imgui::Checkbox("all axes##allaxes", unsafe(addr(all_axes)))
 
-def default_menu(eid : array<EntityId> implicit; name, typeName : string; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>)
+def default_menu(eid : EntityId; name, typeName : string; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>)
   imgui::TableSetColumnIndex(2)
   if imgui::Button("*##{name}")
     imgui::OpenPopup("defaultSubMenuPopup_{name}")
@@ -89,13 +89,12 @@ def default_menu(eid : array<EntityId> implicit; name, typeName : string; var ch
 
     res = sub_menu |> invoke(changed)
 
-    if !empty(eid)
-      draw_add_to_plot_buttons(uint(eid[0]), name, typeName)
+    draw_add_to_plot_buttons(uint(eid), name, typeName)
 
     imgui::EndPopup()
   return res
 
-def default_menu(eid : array<EntityId> implicit;
+def default_menu(eid : EntityId;
                  name, typeName : string;
                  val_to_str : block<() : string>;
                  str_to_val : block<(str : string) : void>;
@@ -133,8 +132,7 @@ def default_menu(eid : array<EntityId> implicit;
 
     res = sub_menu |> invoke(changed)
 
-    if !empty(eid)
-      draw_add_to_plot_buttons(uint(eid[0]), name, typeName)
+    draw_add_to_plot_buttons(uint(eid), name, typeName)
 
     imgui::EndPopup()
   return res
@@ -154,6 +152,12 @@ def to_string_via_blk(compName : string; eid : EntityId)
   let typeName = getComponentTypes() |> component_types_findTypeName(compRef.userType)
   var annotations : table<string; BasicStructureAnnotation?>
   return compact_component_to_blk_text(compName, typeName, compRef, 2147483647, annotations, true)
+
+[no_aot]
+def to_string_via_blk(compRef : EntityComponentRef#; compName : string)
+  let typeName = getComponentTypes() |> component_types_findTypeName(compRef.userType)
+  var annotations : table<string; BasicStructureAnnotation?>
+  return compact_component_to_blk_text(compName, typeName, unsafe(reinterpret<EntityComponentRef> compRef), 2147483647, annotations, true)
 
 def to_int2(str : string)
   let parts <- split(str, ",")
@@ -283,23 +287,23 @@ def compare_eids(a, b : array<EntityId>) : int
 
   return 0
 
-def render_item(eid : array<EntityId> implicit; flags : uint; name : string implicit; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool>) : void
+def render_item(eid : EntityId; flags : uint; name : string implicit; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool>) : void
   let typeName = refs[0].typeName
   render_item(eid, flags, name, typeName, refs, level, changed, sub_menu)
 
 [no_aot]
-def render_item(eid : array<EntityId> implicit; flags : uint; name, type_name : string implicit; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool>) : void
+def render_item(eid : EntityId; flags : uint; name, type_name : string implicit; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool>) : void
   var hasInspector = false
   if has_inspector(type_name)
     hasInspector = call_inspector(type_name, eid, flags, name, refs, level, changed, sub_menu)
   if !hasInspector && refs[0].roVal != ""
     hasInspector = get_ecs_enum_values(type_name) <| $(enumValues)
       let mgr & = getEntityManager()
-      let compRef = mgr |> getEntityComponentRef(eid[0], refs[0].idx)
+      var compRef = mgr |> getEntityComponentRef(eid, refs[0].idx)
       var curItem = find_enum_idx(type_name, compRef)
       imgui::Text("{type_name} {enumValues[curItem]}")
       if ListBox("##{name}", safe_addr(curItem), enumValues)
-        update_enum_value(type_name, unsafe(reinterpret<EntityComponentRef> refs[0]), curItem)
+        update_enum_value(type_name, compRef, curItem)
         *changed = true
 
   if !hasInspector
@@ -344,6 +348,7 @@ def open_inspector(idx : int; eid : EntityId; filter_str : string)
   imgui_set_blk_val("ecs_inspector_{idx}", "filter", filter_str)
   imgui_window_set_visible("Editor", "Inspector {idx+1}", true)
 
+[no_aot]
 def collect_struct_components(prefix : string; data : uint8?; type_name : string; var comps : array<tuple<name : string; cri : ComponentRenderInfo>>)
   let ann = get_basic_struct_annotation(type_name)
   if ann == null
@@ -486,7 +491,7 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
       EndCombo()
 
   imgui::Separator()
-  call_editor(/*prefix*/true, eids)
+  call_editor(/*prefix*/true, eid)
 
   DasHelpMarker("Filter (\"incl,-excl\")\nt:typeName (t:EntityId, t:EidList)\nf:flag (f:t for tracked, f:r for replicated)")
   imgui::SameLine()
@@ -512,7 +517,7 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
     TableSetupColumn("menu", ImGuiTableColumnFlags.WidthFixed, TEXT_BASE_WIDTH * 2f)
 
     iterate_over_filtered_components(eid, templateName, filter) <| $(name; cri; flags)
-      let inspectorFlags = inspector_get_flags(cri.typeName, eids, name)
+      let inspectorFlags = inspector_get_flags(cri.typeName, eid, name)
 
       // Call next raw before calling GetCursorPosY so we get the start of a row and not the end of the previous one.
       // Container types call TableNextRow inside their inspector for special formatting.
@@ -549,15 +554,15 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
 
         var changed = false
         let typeName = cri.typeName
-        let refs <- [ clone(cri) ]
-        render_item(eids, flags, name, typeName, unsafe(reinterpret<array<ComponentRenderInfo#>#> refs), 0, safe_addr(changed)) <| $ [unused_argument(_)] (_) => true
+        let refs <- [ cri ]
+        render_item(eid, flags, name, typeName, unsafe(reinterpret<array<ComponentRenderInfo#>#> refs), 0, safe_addr(changed)) <| $ [unused_argument(_)] (_) => true
         if changed
           entity_obj_editor_saveComponent(eid, name)
           invalidate_item(eid, unsafe(reinterpret<array<ComponentRenderInfo#>#> refs))
 
     EndTable()
 
-  call_editor(/*prefix*/false, eids)
+  call_editor(/*prefix*/false, eid)
   imgui::EndChild()
 
   PopID()
@@ -597,7 +602,8 @@ def iterate_over_filtered_components(eid : EntityId;
       typeName = compTypeName,
       idx = idx,
       componentId = compRef.componentId,
-      isValidComponent = true)))
+      isValidComponent = true,
+      compRef = compRef)))
 
   comps |> sort() <| $(left; right)
     return left.name < right.name

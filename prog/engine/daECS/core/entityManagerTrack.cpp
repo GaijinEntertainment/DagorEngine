@@ -11,12 +11,120 @@
 #include <generic/dag_relocatableFixedVector.h>
 #include <daECS/core/tokenize_const_string.h>
 #include "ecsQueryManager.h"
+#if DAECS_EXTENSIVE_CHECKS
+#include <perfMon/dag_perfTimer.h>
+#include <debug/dag_debug.h>
+#include <EASTL/sort.h>
+#endif
 
 namespace ecs
 {
 #if DAECS_EXTENSIVE_CHECKS
 bool log_unchaged_track_components_marked_as_changed = false;
-dag::VectorMap<int, int> component_index_to_unchanged_track_count;
+
+namespace
+{
+struct TrackCompareStats
+{
+  uint64_t archTicks = 0, eidTicks = 0;
+  uint32_t archScans = 0, eidChecks = 0;
+  uint32_t changed = 0, unchanged = 0; // one compare per entity per scan
+};
+struct TrackPhaseTicks
+{
+  uint64_t total = 0, convert = 0, archetypes = 0, eids = 0, events = 0;
+  uint32_t calls = 0;
+};
+dag::VectorMap<component_index_t, TrackCompareStats> track_compare_stats;
+TrackPhaseTicks track_phase_ticks;
+// bumped by the compare loops, drained per scan by TrackCompareScope, so map lookups stay out of the timed region
+uint32_t track_cmp_total = 0, track_cmp_changed = 0;
+
+struct TrackCompareScope
+{
+  component_index_t cidx;
+  bool eid;
+  uint64_t t0 = 0;
+  TrackCompareScope(component_index_t c, bool e) : cidx(c), eid(e)
+  {
+    if (!log_unchaged_track_components_marked_as_changed)
+      return;
+    track_cmp_total = track_cmp_changed = 0;
+    t0 = profile_ref_ticks();
+  }
+  ~TrackCompareScope()
+  {
+    if (!t0)
+      return;
+    const uint64_t dt = profile_ref_ticks() - t0;
+    TrackCompareStats &s = track_compare_stats[cidx];
+    (eid ? s.eidTicks : s.archTicks) += dt;
+    (eid ? s.eidChecks : s.archScans) += 1;
+    s.changed += track_cmp_changed;
+    s.unchanged += track_cmp_total - track_cmp_changed;
+  }
+};
+
+struct TrackPhaseScope
+{
+  uint64_t &to;
+  uint64_t t0 = 0;
+  TrackPhaseScope(uint64_t &t) : to(t)
+  {
+    if (log_unchaged_track_components_marked_as_changed)
+      t0 = profile_ref_ticks();
+  }
+  ~TrackPhaseScope()
+  {
+    if (t0)
+      to += profile_ref_ticks() - t0;
+  }
+};
+} // namespace
+
+static double ticks_to_usec(uint64_t t) { return double(t) * 1e6 / double(profile_ticks_frequency()); }
+
+void set_log_tracked_compare_stats(bool on)
+{
+  if (on == log_unchaged_track_components_marked_as_changed)
+    return;
+  log_unchaged_track_components_marked_as_changed = on;
+  if (on)
+    return;
+
+  const TrackPhaseTicks &p = track_phase_ticks;
+  debug("tracked changes: %u calls, %.0f us total, %.2f us/call (convert %.0f, archetypes %.0f, eids %.0f, change events %.0f us)",
+    p.calls, ticks_to_usec(p.total), p.calls ? ticks_to_usec(p.total) / p.calls : 0., ticks_to_usec(p.convert),
+    ticks_to_usec(p.archetypes), ticks_to_usec(p.eids), ticks_to_usec(p.events));
+
+  eastl::vector<eastl::pair<component_index_t, TrackCompareStats>> sorted(track_compare_stats.begin(), track_compare_stats.end());
+  eastl::sort(sorted.begin(), sorted.end(),
+    [](auto &a, auto &b) { return a.second.archTicks + a.second.eidTicks > b.second.archTicks + b.second.eidTicks; });
+  uint64_t archTicksSum = 0;
+  for (auto &c : sorted)
+    archTicksSum += c.second.archTicks;
+  // the rest of the archetypes phase: queue walk, sort, and this instrumentation's own map updates
+  debug("tracked changes: archetype scans %.0f us, other archetypes phase %.0f us", ticks_to_usec(archTicksSum),
+    ticks_to_usec(p.archetypes) - ticks_to_usec(archTicksSum));
+
+  for (auto &c : sorted)
+  {
+    const TrackCompareStats &s = c.second;
+    const uint32_t compares = s.changed + s.unchanged;
+    debug("tracked comp <%s>(%d): %.1f us; arch scans %u (%.1f us, %.0f ns/scan); eid checks %u (%.1f us); "
+          "unchanged %u, changed %u (%.3f%%)",
+      g_entity_mgr->getDataComponents().getComponentNameById(c.first), c.first, ticks_to_usec(s.archTicks + s.eidTicks), s.archScans,
+      ticks_to_usec(s.archTicks), s.archScans ? ticks_to_usec(s.archTicks) * 1000. / s.archScans : 0., s.eidChecks,
+      ticks_to_usec(s.eidTicks), s.unchanged, s.changed, compares ? s.changed * 100. / compares : 0.);
+  }
+  track_compare_stats.clear();
+  track_phase_ticks = TrackPhaseTicks{};
+}
+#define TRACK_COMPARE_SCOPE(cidx, eid) TrackCompareScope trackCompareScope_(cidx, eid)
+#define TRACK_PHASE_SCOPE(phase)       TrackPhaseScope trackPhaseScope_##phase(track_phase_ticks.phase)
+#else
+#define TRACK_COMPARE_SCOPE(cidx, eid)
+#define TRACK_PHASE_SCOPE(phase)
 #endif
 
 __forceinline void EntityManager::onChangeEvents(const TrackedChangesTemp &process)
@@ -242,21 +350,19 @@ void EntityManager::compare_data(TrackedChangesTemp &to_process, uint32_t arch, 
     if (const_csz)
       csz = const_csz;
 
+#if DAECS_EXTENSIVE_CHECKS
+    track_cmp_total += chunkUsed;
+#endif
     const EntityId *__restrict eidStart = ((const EntityId *)chunk.getCompDataUnsafe(0));
     for (const EntityId *__restrict eid = eidStart, *__restrict eidEnd = eidStart + chunkUsed; eid != eidEnd;
          compStream += csz, oldCompStream += csz, ++eid)
       if (ReplicateComparator<use_ctm, T, const_csz>::replicateCompare(oldCompStream, compStream, csz, ctm))
       {
         applyTrackedChange(*eid, ctx, to_process);
-      }
 #if DAECS_EXTENSIVE_CHECKS
-      else if (log_unchaged_track_components_marked_as_changed)
-      {
-        if (component_index_to_unchanged_track_count.find(ctx.cidx) == component_index_to_unchanged_track_count.end())
-          component_index_to_unchanged_track_count[ctx.cidx] = 0;
-        component_index_to_unchanged_track_count[ctx.cidx] += 1;
-      }
+        track_cmp_changed++;
 #endif
+      }
   }
 }
 
@@ -277,7 +383,7 @@ void EntityManager::compare_data_pod(TrackedChangesTemp &to_process, uint32_t ar
     const EntityId *__restrict eidStart = ((const EntityId *)chunk.getCompDataUnsafe(0));
     const size_t streamSize = csz * chunkUsed;
 #if DAECS_EXTENSIVE_CHECKS
-    uint32_t changedInChunk = 0;
+    track_cmp_total += chunkUsed;
 #endif
     size_t at = 0;
     while (at < streamSize)
@@ -290,18 +396,10 @@ void EntityManager::compare_data_pod(TrackedChangesTemp &to_process, uint32_t ar
       copy_pod_component(oldCompStream + entityAt, compStream + entityAt, csz);
       applyTrackedChange(eidStart[inChunkId], ctx, to_process);
 #if DAECS_EXTENSIVE_CHECKS
-      changedInChunk++;
+      track_cmp_changed++;
 #endif
       at = entityAt + csz;
     }
-#if DAECS_EXTENSIVE_CHECKS
-    if (log_unchaged_track_components_marked_as_changed && chunkUsed != changedInChunk)
-    {
-      if (component_index_to_unchanged_track_count.find(ctx.cidx) == component_index_to_unchanged_track_count.end())
-        component_index_to_unchanged_track_count[ctx.cidx] = 0;
-      component_index_to_unchanged_track_count[ctx.cidx] += chunkUsed - changedInChunk;
-    }
-#endif
   }
 }
 
@@ -413,6 +511,9 @@ inline void EntityManager::trackChanged(EntityId eid, component_index_t cidx, ui
   void *oldCompData =
     archetypes.getComponentDataUnsafe(archetypeId, oldComponentInArchetypeIndex, componentSize, entDesc.chunkId, entDesc.idInChunk);
   const bool podComparable = is_pod(componentTypeInfo.flags);
+#if DAECS_EXTENSIVE_CHECKS
+  track_cmp_total++;
+#endif
   if (podComparable)
   {
     if (memcmp(oldCompData, compData, componentSize) == 0)
@@ -425,6 +526,9 @@ inline void EntityManager::trackChanged(EntityId eid, component_index_t cidx, ui
     if (!ctm || !ctm->replicateCompare(oldCompData, compData))
       return;
   }
+#if DAECS_EXTENSIVE_CHECKS
+  track_cmp_changed++;
+#endif
   preprocessTrackedChange(eid, archetypeId, cidx, to_process);
 }
 
@@ -467,19 +571,27 @@ inline unsigned EntityManager::trackScheduledChanges()
 {
   TIME_PROFILE_DEV(ecs_track_scheduled_changes);
   // debug("archetypeTrackingQueue.size() = %d", archetypeTrackingQueue.size());
-  convertArchetypeScheduledChanges();
+  TRACK_PHASE_SCOPE(total);
+  {
+    TRACK_PHASE_SCOPE(convert);
+    convertArchetypeScheduledChanges();
+  }
 
   const uint32_t aei = archetypeTrackingQueue.size();
   const uint32_t eei = eidTrackingQueue.size();
   const uint32_t tei = aei + eei;
   if (!tei)
     return 0;
+#if DAECS_EXTENSIVE_CHECKS
+  track_phase_ticks.calls += log_unchaged_track_components_marked_as_changed ? 1 : 0;
+#endif
   FRAMEMEM_REGION;
   TrackedChangesTemp toProcess = {eastl::max((uint32_t)8, (uint32_t)lastTrackedCount)}; // not less than two cache-lines, and use
                                                                                         // lastTrackedCount as guesstimate
   uint64_t scannedCidxMask = 0; // bloom over scanned pairs' cidx, gates the eid-loop archetypeTrackingQueue probe
   {
     TIME_PROFILE_DEV(ecs_track_archetypes);
+    TRACK_PHASE_SCOPE(archetypes);
     SmallTab<uint32_t, framemem_allocator> sortedPairs(aei);
     uint32_t pairCount = 0;
     for (auto scheduled : archetypeTrackingQueue)
@@ -499,14 +611,17 @@ inline unsigned EntityManager::trackScheduledChanges()
       const component_index_t cidx = (scheduled >> (8 * sizeof(archetype_t)));
       DAECS_EXT_ASSERT(archetypes.getArchetypeComponentId(archetype, cidx) != INVALID_ARCHETYPE_COMPONENT_ID);
       DAECS_EXT_ASSERT(dataComponents.isTracked(cidx));
+      TRACK_COMPARE_SCOPE(cidx, false);
       trackChangedArchetype(archetype, cidx, dataComponents.getTrackedPairUnsafe(cidx), toProcess);
     }
   }
   {
     TIME_PROFILE_DEV(ecs_track_eids);
+    TRACK_PHASE_SCOPE(eids);
     for (auto scheduled : eidTrackingQueue)
     {
       G_STATIC_ASSERT(sizeof(EntityId) + sizeof(component_index_t) <= sizeof(scheduled));
+      TRACK_COMPARE_SCOPE(get_second_from_scheduled(scheduled), true);
       trackChanged(get_eid_from_scheduled(scheduled), get_second_from_scheduled(scheduled), scannedCidxMask, toProcess);
     }
   }
@@ -516,6 +631,7 @@ inline unsigned EntityManager::trackScheduledChanges()
   if (!toProcess.empty())
   {
     TIME_PROFILE_DEV(ecs_process_change_events);
+    TRACK_PHASE_SCOPE(events);
     RaiiCounter nested(nestedQuery); // do it once per all tracking
     onChangeEvents(toProcess);
     lastTrackedCount = lerp((float)lastTrackedCount, (float)toProcess.size(), lastTrackedCount > toProcess.size() ? 0.2f : 0.8f);

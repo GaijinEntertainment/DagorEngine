@@ -28,6 +28,20 @@ public:
   virtual void resetKeys() {}
   virtual void syncRawState() {}
 
+  // emulated key: the device sets its key state and calls its client as for a real key; false when the device cannot.
+  // Call them on the main thread, and release each injected key, or it stays down.
+  virtual bool injectKeyDown(int dkey, wchar_t wc)
+  {
+    (void)dkey;
+    (void)wc;
+    return false;
+  }
+  virtual bool injectKeyUp(int dkey)
+  {
+    (void)dkey;
+    return false;
+  }
+
   // keys description
   virtual int getKeyCount() const = 0;
   virtual const char *getKeyName(int idx) const = 0;

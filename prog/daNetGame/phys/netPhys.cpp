@@ -7,6 +7,7 @@
 #include <daECS/net/msgSink.h>
 #include <EASTL/fixed_string.h>
 #include <perfMon/dag_statDrv.h>
+#include <perfMon/dag_cpuFreq.h>
 #include "net/net.h"
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
@@ -193,7 +194,8 @@ void BasePhysActor::resizeSyncStates(int i)
 BasePhysActor::BasePhysActor(ecs::EntityId eid_, PhysType phys_type_) :
   eid(eid_),
   physType(phys_type_),
-  tickrateType(ECS_GET_OR(eid, phys__lowFreqTickrate, false) ? PhysTickRateType::LowFreq : PhysTickRateType::Normal)
+  tickrateType(ECS_GET_OR(eid, phys__lowFreqTickrate, false) ? PhysTickRateType::LowFreq : PhysTickRateType::Normal),
+  createdAtMsec(get_time_msec())
 {
   ECS_SET(eid, base_net_phys_ptr, this);
 }

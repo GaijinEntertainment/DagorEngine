@@ -58,7 +58,7 @@ static void writeTLASLeaf(WriteTLASTreeInfo &info, bbox3f_cref box, const mat43f
   TLASLeaf *leaf = (TLASLeaf *)(info.bboxData + info.leavesOffset);
   const bool isBox = (bvh_size == 0);
   G_ASSERT(isBox == (dim_as_box_dist == 0)); // bvh_size==0 and distToTreatAsBox==0 must agree
-  // constraint: swTLAS.dshl reads a box leaf's additional data at 14*4.
+  // swTLAS.dshl reads a box leaf's additional data at 14*4.
   const bool boxUserWord = box_user || info.leafExtraSize;
   const uint32_t leafBaseSize = isBox ? (boxUserWord ? TLASLeaf::BOX_USER_SIZE : TLASLeaf::BOX_SIZE) : sizeof(TLASLeaf);
   info.leavesOffset += leafBaseSize + info.leafExtraSize;

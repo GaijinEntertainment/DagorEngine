@@ -89,5 +89,5 @@ line to find the rest of the expression.
 ## # is a directive, not a comment
 
 A line starting with `#` is not a comment. It is a
-[compiler directive](page:language/directives), and it changes how the rest
-of the file compiles. Do not confuse it with `//`.
+[compiler directive](page:language/directives), and it changes how the whole
+file compiles. Do not confuse it with `//`.

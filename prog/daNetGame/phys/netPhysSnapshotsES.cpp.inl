@@ -254,7 +254,13 @@ static void send_phys_snapshots_impl(net::IConnection &conn,
             }
 
           if (sr.getTickrateType() == PhysTickRateType::Normal)
-            skipUpdate = freqMinusOne && (send_seq_value & freqMinusOne);
+          {
+            const unsigned ownFreqMinusOne = sr.getLodRateMask(pst);
+            if (ownFreqMinusOne > unsigned(freqMinusOne))
+              skipUpdate = ((send_seq_value + sr.netPhysId) & ownFreqMinusOne) != 0;
+            else
+              skipUpdate = (send_seq_value & freqMinusOne) != 0;
+          }
           else // PhysTickRateType::LowFreq
             skipUpdate = (sr.flags & TICK_NOT_CHANGED) != 0 || (freqMinusOne && (sr.physTick % eastl::min(freqMinusOne + 1, 3)));
         }

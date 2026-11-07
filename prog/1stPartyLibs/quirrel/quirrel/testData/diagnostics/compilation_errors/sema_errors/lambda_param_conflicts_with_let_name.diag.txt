@@ -1,0 +1,8 @@
+ERROR: Parameter name 'h' conflicts with function name
+testData/diagnostics/compilation_errors/sema_errors/lambda_param_conflicts_with_let_name.nut:2:10
+
+// EXPECT_ERROR: "conflicts with function name"
+let h = @(h) 1
+          ^
+
+

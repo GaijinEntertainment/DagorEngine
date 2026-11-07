@@ -245,6 +245,13 @@ struct HumanSerializableState //-V730
   float collisionLinkProgress;
 
   HumanWeaponEquipState weapEquipState;
+
+  Point3 ropeAnchorPos = Point3(0.f, 0.f, 0.f);
+  float ropeMaxLen = 0.f;
+  float ropeAllowedLen = 0.f;
+  uint8_t ropeAttached : 1;
+  uint8_t ropeHanging : 1;
+  uint8_t ropeClimbing : 1;
 };
 
 struct HumanPhysState : public HumanSerializableState
@@ -275,10 +282,17 @@ struct HumanPhysState : public HumanSerializableState
 
   SegmentedHumanPhysicsState segPhysState;
 
+  static constexpr int ROPE_MAX_BENDS = 16;
+  StaticTab<Point3, ROPE_MAX_BENDS> ropeBends;
+  float ropeGroundTimer = 0.f;
+  float ropeClimbSpeedMult = 1.f;
+
   HumanPhysState();
 
   void reset();
   void resetStamina(float max_stamina);
+  void ropeAttach(const Point3 &anchor_pos, float max_len);
+  void ropeDetach();
 
   void serialize(danet::BitStream &bs) const;
   bool deserialize(const danet::BitStream &bs, IPhysBase &);
@@ -446,6 +460,21 @@ public:
   float ladderZeroVelocityHeight = 1.7f;
   float ladderMaxOverHeight = 0.1f;
 
+  float ropeAttachHeight = 1.125f;
+  float ropeClimbSpeed = 1.f;
+  float ropeDescendSpeed = 2.f;
+  float ropeMinLen = 0.4f;
+  float ropeSlipLen = 2.f;
+  float ropeSwingAirMult = 0.3;
+  float ropeBendMargin = 0.05f;
+  float ropeSkin = 0.01f;
+  int ropePivotWraps = 4;
+  float ropeClearProbeStep = 0.5f;
+  float ropeMaxShift = 0.25f;
+  Point3 ropeBodyProbeHeights = Point3(0.4f, 0.9f, 1.4f);
+  float ropeEdgeProbeUp = 0.3f;
+  float ropeEdgeProbeDown = 1.5f;
+
   float stepAccel = 8.f;
 
   carray<Point3, ESS_NUM> collisionCenterPos;
@@ -578,7 +607,10 @@ public:
     float speed_hardness = 1.f);
   void applyPush(const gamephys::CollisionContactData &contact, Point3 &pos_offs, float hardness = 1.f);
 
+  // Both are game hooks that test the probe against the game's own collision objects; the shape one serves the torso
+  // links, which are probed as free shapes so no body is resized per link.
   void additionalCollisionChecks(const CollisionObject &co, const TMatrix &tm, Tab<gamephys::CollisionContactData> &out_contacts);
+  void additionalCollisionChecks(const PhysCollision &shape, const TMatrix &tm, Tab<gamephys::CollisionContactData> &out_contacts);
 
   bool get_normal_and_mat(const Point3 &curMaxPos, const Point3 &dir, float &t, int *matId, Point3 *outNorm, int flags,
     rendinst::RendInstDesc *out_desc, int rayMatId, const TraceMeshFaces *mesh) const;
@@ -709,6 +741,9 @@ public:
   bool forcedIsInAir = false;
   bool hasGuns = true; // TODO: as above, move to a separate thing when we'll separate it into ecsphys
   bool hasExternalHeight = true;
+  bool climbAutoForward = false;
+  bool climbUseBodyDir = false;
+  float climbCancelBackwardCos = -0.5f;
   bool canFinishClimbing = true;
   bool canMove = true; // It differs from controllable in that when set to false, it disables _only_ movement
 
@@ -749,6 +784,8 @@ public:
   void validateTraceCache() override;
   void updatePhys(double at_time, float dt, bool is_for_real);
   void updatePhysInWorld(const TMatrix &tm) override;
+  // The torso body in world takes the pose and size of the last link with collision.
+  void poseTorsoAtLastLink(const dacoll::tmp_collisions_t &objects);
 
   void segPhysInit(int init_seg, bool start_anew, const Point3 &displace_offset);
   void segPhysUpdate(SegPhysUpdateType update_type, float dt);
@@ -840,6 +877,10 @@ public:
   void performClimb(const ClimbQueryResults &climb_res, float at_time, bool allow_hang);
   void startClimbHang(float at_time);
   void updateClimbHang(float at_time, float dt, const Point3 &vert_dir);
+  void findRopeEdge(const Point3 &hit_pos, const Point3 &hit_norm, const Point3 &from_pos, const Point3 &toward_pos,
+    Point3 &out_pos) const;
+  void updateRopeBends(const Point3 &attach_pos);
+  void updateRope(float dt, bool is_considered_in_air);
   bool canClimbOverObstacle(const ClimbQueryResults &climb_res);
 
   static bool isDebugDrawEnabled();

@@ -96,7 +96,7 @@ let freePanelLayout = {
         {
           rendObj       = ROBJ_TEXTAREA
           color         = Color(20,20,20)
-          textOverflowY = TOVERFLOW_LINE
+          textOverflow = TOVERFLOW_ELLIPSIS
           text          = "This is a\nfree floating\npanel, positioned\nin 3d space"
           behavior      = Behaviors.TextArea
           fontSize      = 60

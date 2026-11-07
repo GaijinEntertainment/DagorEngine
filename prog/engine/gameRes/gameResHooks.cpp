@@ -14,4 +14,5 @@ bool (*gamereshooks::on_release_game_resource)(int res_id, dag::Span<GameResourc
 bool (*gamereshooks::on_load_game_resource_pack)(int res_id, dag::Span<GameResourceFactory *> f) = 0;
 bool (*gamereshooks::on_get_res_name)(int res_id, String &out_res_name) = 0;
 bool (*gamereshooks::on_gameres_pack_load_confirm)(const char *pack_fname, bool is_tex_pack) = 0;
+bool (*gamereshooks::on_missing_pack_resolve)(const char *pack_fname, String &out_pack_fname) = 0;
 void (*gamereshooks::on_load_res_packs_from_list_complete)(const char *pack_list_blk_fname, bool load_grp, bool load_tex) = 0;

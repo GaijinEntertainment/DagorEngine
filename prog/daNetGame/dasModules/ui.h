@@ -5,6 +5,7 @@
 #include <dasModules/aotEcs.h>
 #include <dasModules/dasModulesCommon.h>
 #include <ui/uiShared.h>
+#include <input/uiInput.h>
 
 namespace bind_dascript
 {

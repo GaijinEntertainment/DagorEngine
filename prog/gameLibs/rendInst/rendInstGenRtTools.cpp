@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <rendInst/rendInstGenRtTools.h>
+#include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstGenRender.h>
 #include "riGen/riGenData.h"
 #include "riGen/genObjUtil.h"
@@ -162,10 +163,10 @@ static RendInstGenData *alloc_rigen_data(float ofs_x, float ofs_z, float grid2wo
   {
     if (!land_cls[i] || land_cls[i]->layerIdx != layer_idx)
       continue;
+    ri->landCls.init(mem + ofs1, idx + 1);
     ri->landCls[idx].asset = land_cls[i];
     ri->landCls[idx].mask = EditableHugeBitMap2d::create(cell_sz * cell_num_x, cell_sz * cell_num_z);
     idx++;
-    ri->landCls.init(mem + ofs1, idx);
   }
   for (int i = 0; i < cell_num_x * cell_num_z; i++)
   {
@@ -642,37 +643,40 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
   riIndices.resize(rgl->pregenEnt.size(), -1);
   riGenCalculateIndicesCB(riIndices, flg, riPoolBitsMask);
 
-  for (int i = 0; i < rgl->pregenEnt.size(); i++)
-    if (rgl->pregenEnt[i].riRes)
-    {
-      bool posInst = rgl->pregenEnt[i].posInst;
-      bool paletteRotation = rgl->pregenEnt[i].paletteRotation;
-      bool zeroInstSeeds = rgl->pregenEnt[i].zeroInstSeeds;
-      int base = i * SUBCELL_DIV * SUBCELL_DIV;
-      memset(per_sc, 0, sizeof(per_sc));
-      if (posInst && !paletteRotation)
+  {
+    rendinst::ScopedRIExtraGridDeferRebuild deferGridRebuild;
+    for (int i = 0; i < rgl->pregenEnt.size(); i++)
+      if (rgl->pregenEnt[i].riRes)
       {
-        int start = poolP4.size();
-        riGenGatherPosCB(poolP4, poolPerInstDataP4, !zeroInstSeeds, riIndices[i], i | flg, ox, oz, ox + cell_xz_sz, oz + cell_xz_sz);
-        for (int j = start; j < poolP4.size(); j++)
+        bool posInst = rgl->pregenEnt[i].posInst;
+        bool paletteRotation = rgl->pregenEnt[i].paletteRotation;
+        bool zeroInstSeeds = rgl->pregenEnt[i].zeroInstSeeds;
+        int base = i * SUBCELL_DIV * SUBCELL_DIV;
+        memset(per_sc, 0, sizeof(per_sc));
+        if (posInst && !paletteRotation)
         {
-          int cx = clamp<int>((poolP4[j].x - ox) / box_sz, 0, SUBCELL_DIV - 1);
-          int cz = clamp<int>((poolP4[j].z - oz) / box_sz, 0, SUBCELL_DIV - 1);
-          riLdCnt[base + cz * SUBCELL_DIV + cx].push_back(j);
+          int start = poolP4.size();
+          riGenGatherPosCB(poolP4, poolPerInstDataP4, !zeroInstSeeds, riIndices[i], i | flg, ox, oz, ox + cell_xz_sz, oz + cell_xz_sz);
+          for (int j = start; j < poolP4.size(); j++)
+          {
+            int cx = clamp<int>((poolP4[j].x - ox) / box_sz, 0, SUBCELL_DIV - 1);
+            int cz = clamp<int>((poolP4[j].z - oz) / box_sz, 0, SUBCELL_DIV - 1);
+            riLdCnt[base + cz * SUBCELL_DIV + cx].push_back(j);
+          }
+        }
+        else
+        {
+          int start = poolTM.size();
+          riGenGatherTmCB(poolTM, poolPerInstDataTM, !zeroInstSeeds, riIndices[i], i | flg, ox, oz, ox + cell_xz_sz, oz + cell_xz_sz);
+          for (int j = start; j < poolTM.size(); j++)
+          {
+            int cx = clamp<int>((poolTM[j][3][0] - ox) / box_sz, 0, SUBCELL_DIV - 1);
+            int cz = clamp<int>((poolTM[j][3][2] - oz) / box_sz, 0, SUBCELL_DIV - 1);
+            riLdCnt[base + cz * SUBCELL_DIV + cx].push_back(j);
+          }
         }
       }
-      else
-      {
-        int start = poolTM.size();
-        riGenGatherTmCB(poolTM, poolPerInstDataTM, !zeroInstSeeds, riIndices[i], i | flg, ox, oz, ox + cell_xz_sz, oz + cell_xz_sz);
-        for (int j = start; j < poolTM.size(); j++)
-        {
-          int cx = clamp<int>((poolTM[j][3][0] - ox) / box_sz, 0, SUBCELL_DIV - 1);
-          int cz = clamp<int>((poolTM[j][3][2] - oz) / box_sz, 0, SUBCELL_DIV - 1);
-          riLdCnt[base + cz * SUBCELL_DIV + cx].push_back(j);
-        }
-      }
-    }
+  }
   if (poolP4.size() + poolTM.size() == 0)
     return;
 

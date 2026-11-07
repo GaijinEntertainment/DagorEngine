@@ -138,7 +138,14 @@ public:
   _PARAM(int, turbulenceFreq, 2)                                                                                                  \
   _PARAM_RAND(float, perlin_worley_dilation, 0.3)                                                                                 \
   _PARAM_RAND(float, worley_erosion, 1.0)                                                                                         \
-  _PARAM_RAND(float, shape_gamma, 1.25)
+  _PARAM_RAND(float, shape_gamma, 1.25)                                                                                           \
+  _PARAM_RAND(float, density_alter_strength, 1.f)                                                                                 \
+  _PARAM_RAND(float, anvil_amount, 1.f)                                                                                           \
+  _PARAM_RAND(float, mushroom_amount, 0.7f)                                                                                       \
+  _PARAM_RAND(float, anvil_spread, 0.4f)                                                                                          \
+  _PARAM_RAND(float, anvil_flare_from, 0.68f)                                                                                     \
+  _PARAM_RAND(float, anvil_flare_pow, 1.f)                                                                                        \
+  _PARAM_RAND(float, cumulonimbus_top, 0.85f)
     struct Layer
     {
       float startAt, thickness, density;
@@ -156,6 +163,8 @@ public:
     int turbulenceFreq = 2;
     float turbulenceStrength = 0.21;
     float perlin_worley_dilation = 0.3f, worley_erosion = 1.0f, shape_gamma = 1.25f;
+    float density_alter_strength = 1.f, anvil_amount = 1.f, mushroom_amount = 0.7f;
+    float anvil_spread = 0.4f, anvil_flare_from = 0.68f, anvil_flare_pow = 1.f, cumulonimbus_top = 0.85f;
     // float gradient_per1km = 1000;//both FB and HZD papers suggest to skew clouds in wind direction. I don't see the benefit, it
     // doesn't look natural
     bool operator==(const CloudsForm &a) const;

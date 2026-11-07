@@ -108,8 +108,8 @@ shader heightmap
   USE_HMAP_HOLES(vs)
   if (lmesh_rendering_mode == rendering_landmesh)
   {
-    INIT_HEIGHTMAP_OFS(vs)
-    USE_HEIGHTMAP_OFS(vs)
+    INIT_HEIGHTMAP_OFS_WITH_GRASS(vs)
+    USE_HEIGHTMAP_OFS_WITH_GRASS(vs)
     hlsl(vs) {
       #define HAS_BASE_HEIGHT 1
       float getBaseHeight(float2 worldPosXZ) {
@@ -397,7 +397,7 @@ shader heightmap
         USE_LAND_SHORE()
         INIT_DEFORM_HMAP(ps)
         USE_DEFORM_HMAP(ps)
-        INIT_HEIGHTMAP_OFS(ps)
+        INIT_HEIGHTMAP_OFS_WITH_GRASS(ps)
         INIT_SPARKLES()
         USE_SPARKLES()
         HEIGHTMAP_CALCULATIONS()
@@ -423,7 +423,7 @@ shader heightmap
 
         GLOBAL_UAV_FEEDBACK
 
-        FORCE_EARLY_DEPTH_STENCIL
+        USE_EARLY_DEPTH_STENCIL
         GBUFFER_OUTPUT main_ps_heightmap_land(VsOutput input HW_USE_SCREEN_POS HW_USE_READ_SHADING_RATE)
         {
           float4 screenpos = GET_SCREEN_POS(input.pos);

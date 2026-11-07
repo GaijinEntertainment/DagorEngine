@@ -65,8 +65,21 @@ static ommCpuTexture create_sdk_texture(CpuContext &ctx, const char *key, uint32
   return texture;
 }
 
+static OpacityState to_dagor_opacity_state(int32_t omm_index)
+{
+  switch (omm_index)
+  {
+    case ommSpecialIndex_FullyTransparent: return OpacityState::Transparent;
+    case ommSpecialIndex_FullyOpaque: return OpacityState::Opaque;
+    case ommSpecialIndex_FullyUnknownTransparent: return OpacityState::UnknownTransparent;
+    case ommSpecialIndex_FullyUnknownOpaque: return OpacityState::UnknownOpaque;
+  }
+  return OpacityState::UnknownOpaque;
+}
+
 bool cpu_bake_alpha_stats(CpuContext &ctx, const char *tex_key, uint32_t w, uint32_t h, const uint8_t *alpha,
-  const float *texcoords_uv, const uint32_t *indices, uint32_t index_count, CpuBakeStats &stats)
+  const float *texcoords_uv, const uint32_t *indices, uint32_t index_count, CpuBakeStats &stats,
+  dag::Span<OpacityState> out_triangle_states)
 {
   stats = {};
   if (!ctx.baker || !tex_key || !w || !h || !alpha || !texcoords_uv || !indices || index_count < 3 || index_count % 3)
@@ -108,8 +121,10 @@ bool cpu_bake_alpha_stats(CpuContext &ctx, const char *tex_key, uint32_t w, uint
     stats.triangles = index_count / 3;
     stats.descCount = desc->descArrayCount;
     for (uint32_t i = 0; i < desc->indexCount; i++)
-      switch (desc->indexFormat == ommIndexFormat_UINT_16 ? int32_t(((const int16_t *)desc->indexBuffer)[i])
-                                                          : ((const int32_t *)desc->indexBuffer)[i])
+    {
+      int32_t idx = desc->indexFormat == ommIndexFormat_UINT_16 ? int32_t(((const int16_t *)desc->indexBuffer)[i])
+                                                                : ((const int32_t *)desc->indexBuffer)[i];
+      switch (idx)
       {
         case ommSpecialIndex_FullyOpaque: stats.totalFullyOpaqueCount++; break;
         case ommSpecialIndex_FullyTransparent: stats.totalFullyTransparentCount++; break;
@@ -117,6 +132,9 @@ bool cpu_bake_alpha_stats(CpuContext &ctx, const char *tex_key, uint32_t w, uint
         case ommSpecialIndex_FullyUnknownTransparent: stats.totalFullyUnknownCount++; break;
         default: break;
       }
+      if (i < out_triangle_states.size())
+        out_triangle_states[i] = to_dagor_opacity_state(idx);
+    }
   }
 
   ommCpuDestroyBakeResult(result);

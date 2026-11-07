@@ -212,7 +212,11 @@ static void tree_burning_add_fire_source_es(
 
 static bool is_tree_fully_burnt(rendinst::riex_handle_t tree_handle, dag::ConstSpan<Point4> burning_sources)
 {
-  vec4f treeBsphere = rendinst::getRIGenExtraPoolBSphere(rendinst::handle_to_ri_type(tree_handle));
+  RenderableInstanceLodsResource *riRes = rendinst::getRIGenExtraRes(rendinst::handle_to_ri_type(tree_handle));
+  G_ASSERT_RETURN(riRes, false);
+  G_STATIC_ASSERT(offsetof(RenderableInstanceLodsResource, bsphCenter) + sizeof(RenderableInstanceLodsResource::bsphCenter) ==
+                  offsetof(RenderableInstanceLodsResource, bsphRad));
+  vec4f treeBsphere = v_ldu(&riRes->bsphCenter.x);
   for (const Point4 &burningSource : burning_sources)
   {
     vec4f posDiff_radiusDiff = v_sub(v_ldu(&burningSource.x), treeBsphere);
@@ -256,8 +260,10 @@ static void invalidate_tree_shadow(rendinst::riex_handle_t tree_handle)
   WRDispatcher::getShadowsManager().shadowsInvalidate(bbox);
 }
 
+// act stage: the deferred riExtra data it sets must reach before_culling in the frame that uploads the sources buffer
 ECS_TAG(render)
-static void tree_burning_update_es(const UpdateStageInfoBeforeRender &stg,
+ECS_NO_ORDER
+static void tree_burning_update_es(const ecs::UpdateStageInfoAct &stg,
   TreeBurningManager &tree_burning_manager,
   float tree_burning__fire_spread_speed,
   float tree_burning__time_to_invalidate_shadows)

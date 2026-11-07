@@ -57,7 +57,7 @@ function [pure] parseSrt(text: string): array {
     if (from != null && to != null && to > from && textLines.len() > 0)
       cues.append({ from, to, text = "\n".join(textLines) })
   }
-  cues.sort(@(a, b) a.from <=> b.from)
+  cues.sortby(@(a) a.from)
   return cues
 }
 

@@ -36,38 +36,35 @@ struct InterceptorRec
 };
 static Tab<InterceptorRec> interceptors;
 
-static debug_log_callback_t orig_debug_log = nullptr;
-static int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static LogHandlerId interceptor_handler_id = LogHandlerId::Invalid;
+static void on_debug_log(void *, LogMessage &msg)
 {
-  if (lev_tag == LOGLEVEL_ERR && fmt)
+  if (!msg.fmt)
+    return;
+  const bool shownByOtherHandler = msg.flags & LOGMSG_SHOWN_TO_USER;
+  String str;
+  str.vprintf(0, msg.fmt, (const DagorSafeArg *)msg.arg, msg.anum);
+  for (auto &r : interceptors)
   {
-    String str;
-    str.vprintf(0, fmt, (const DagorSafeArg *)arg, anum);
-    bool found = false;
-    for (auto &r : interceptors)
-      for (auto &s : r.tags)
-        if (strstr(str, s))
-        {
-          uint8_t gen = r.gen;
-          int i = &r - interceptors.data();
-          int ti = &s - r.tags.data();
-          delayed_call([logstr = String(str), i, ti, gen, t = get_time_msec()]() {
-            InterceptorRec *ir = safe_at(interceptors, i); // Note: interceptors might be cleared already (hence at())
-            if (ir && ir->gen == gen)
-              ir->cb(ir->tags[ti].str(), logstr.str(), t);
-          });
-          if (r.isMonitor)
-            continue;
-          found = true;
-          break;
-        }
-    if (found)
-      return 1;
+    if (!r.isMonitor && shownByOtherHandler)
+      continue;
+    for (auto &s : r.tags)
+      if (strstr(str, s))
+      {
+        uint8_t gen = r.gen;
+        int i = &r - interceptors.data();
+        int ti = &s - r.tags.data();
+        delayed_call([logstr = String(str), i, ti, gen, t = get_time_msec()]() {
+          InterceptorRec *ir = safe_at(interceptors, i); // Note: interceptors might be cleared already (hence at())
+          if (ir && ir->gen == gen)
+            ir->cb(ir->tags[ti].str(), logstr.str(), t);
+        });
+        if (r.isMonitor)
+          continue;
+        msg.flags |= LOGMSG_SHOWN_TO_USER;
+        break;
+      }
   }
-
-  if (orig_debug_log)
-    return orig_debug_log(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
-  return 1;
 }
 
 static void register_callback(Sqrat::Array tags, const Sqrat::Function &func, bool is_mon)
@@ -113,9 +110,18 @@ static SQInteger unregister_all_callback_sq(HSQUIRRELVM vm)
   return 0;
 }
 
-void setup_logerr_interceptor() { orig_debug_log = debug_set_log_callback(on_debug_log); }
+void setup_logerr_interceptor()
+{
+  if (interceptor_handler_id == LogHandlerId::Invalid)
+    interceptor_handler_id = debug_add_log_handler(&on_debug_log, nullptr, {.levelMask = LOGMASK_ERR, .order = LOGORDER_SHOW_SCRIPT});
+}
 void clear_logerr_interceptors(HSQUIRRELVM vm) { unregister_all_callback_sq(vm); }
-void term_logerr_interceptor() { clear_and_shrink(interceptors); }
+void term_logerr_interceptor()
+{
+  debug_remove_log_handler(interceptor_handler_id);
+  interceptor_handler_id = LogHandlerId::Invalid;
+  clear_and_shrink(interceptors);
+}
 
 void logerr_interceptor_bind_api(Sqrat::Table &nsTbl)
 {

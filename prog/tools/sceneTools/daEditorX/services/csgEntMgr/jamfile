@@ -9,19 +9,18 @@ AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog
 ;
 
 
 Sources =
   csgEntityMgrService.cpp
-  csgApi.cpp
   prefabCache.cpp
 ;
 
 UseProgLibs =
-  3rdPartyLibs/math/carve
+  tools/libTools/meshCSG
   3rdPartyLibs/math/poly2tri
 ;
 
-include $(Root)/prog/3rdPartyLibs/math/carve/carve-options.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

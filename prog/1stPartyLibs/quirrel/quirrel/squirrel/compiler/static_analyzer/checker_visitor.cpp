@@ -2489,7 +2489,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   const SQFunctionProto *proto = nullptr;
   const SQNativeClosure *nclosure = nullptr;
 
-  const char *funcName;
+  const char *funcName = nullptr;
   int numParams;
   int dpParameters;
   bool isVararg;
@@ -2514,7 +2514,6 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
     const SQObject& v = ev->value;
     if (sq_isclosure(v)) {
       proto = _closure(v)->_function;
-      funcName = sq_isstring(proto->_name) ? _stringval(proto->_name) : "unknown";
       numParams = proto->_nparameters - 1; // not counting 'this'
       isVararg = proto->_varparams;
       dpParameters = proto->_ndefaultparams;
@@ -2545,12 +2544,14 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   const auto &args = callExpr->arguments();
 
   if (!(effectiveParamSizeLB <= args.size() && args.size() <= maxParamSize)) {
+    if (proto)
+      funcName = _stringval(proto->GetName());
     report(callExpr, DiagnosticsId::DI_PARAM_COUNT_MISMATCH, funcName,
       effectiveParamSizeLB, maxParamSize, args.size());
     if (ev)
       report(ev->line, ev->column, ev->width, DI_SEE_OTHER, "the function");
     else
-      report(maybeEval(callExpr->callee()), DI_SEE_OTHER, "the function");
+      report(info ? info->declaration : maybeEval(callExpr->callee()), DI_SEE_OTHER, "the function");
   }
 
   for (int i = 0; i < numParams; ++i) {
@@ -4076,11 +4077,93 @@ bool CheckerVisitor::shouldCallResultBeUtilized(const char *name, const CallExpr
   return false;
 }
 
-void CheckerVisitor::checkUnutilizedResult(const ExprStatement *s) {
-  if (isEffectsGatheringPass)
-    return;
+static const char *nodiscardKind(bool nodiscard, bool pure) {
+  return nodiscard ? "nodiscard" : pure ? "pure" : nullptr;
+}
 
-  const Expr *e = s->expression();
+static unsigned literalTypeMask(const LiteralExpr *lit) {
+  switch (lit->kind()) {
+  case LK_INT: return _RT_INTEGER;
+  case LK_FLOAT: return _RT_FLOAT;
+  case LK_BOOL: return _RT_BOOL;
+  case LK_STRING: return _RT_STRING;
+  default: return 0;
+  }
+}
+
+static bool tableLiteralLacksKey(const TableExpr *table, const char *key) {
+  for (const TableMember &m : table->members()) {
+    const LiteralExpr *k = m.isDynamicKey() ? nullptr : findDirectStringLiteral(m.key);
+    if (!k || strcmp(k->s(), key) == 0)
+      return false;
+  }
+  return true;
+}
+
+// No named slots can shadow type methods
+static const SQObjectType slotlessTypes[] = {OT_INTEGER, OT_FLOAT, OT_BOOL, OT_STRING, OT_ARRAY, OT_THREAD};
+
+SQClass *CheckerVisitor::findTypeClass(const Expr *receiver, const char *method) {
+  const Expr *e = deparenInlineConst(maybeEval(receiver));
+  if (!e)
+    return nullptr;
+
+  SQVM *vm = _ctx.getVm();
+  unsigned mask = 0;
+  if (e->op() == TO_LITERAL)
+    mask = literalTypeMask(e->asLiteral());
+  else if (e->op() == TO_ARRAY)
+    mask = _RT_ARRAY;
+  else if (e->op() == TO_TABLE) // a bound table may gain slots later
+    return !method || (e == deparenInlineConst(receiver) && tableLiteralLacksKey(e->asTableExpr(), method))
+             ? vm->GetBuiltInClassForType(OT_TABLE)
+             : nullptr;
+  else if (e->op() == TO_CALL && !e->asCallExpr()->isNullable()) {
+    const ExternalValue *ev = findExternalValue(e->asCallExpr()->callee());
+    if (ev && sq_isnativeclosure(ev->value))
+      mask = _nativeclosure(ev->value)->_result_type_mask & _RT_MASK;
+  }
+
+  for (SQObjectType t : slotlessTypes)
+    if (_RAW_TYPE(t) == mask)
+      return vm->GetBuiltInClassForType(t);
+  return nullptr;
+}
+
+bool CheckerVisitor::resolveCallee(const Expr *callee, SQObjectPtr &value) {
+  if (callee->op() == TO_GETFIELD) {
+    const GetFieldExpr *field = callee->asGetField();
+    SQClass *cls = findTypeClass(field->receiver(), field->isTypeMethod() ? nullptr : field->fieldName());
+    if (cls && cls->GetStr(field->fieldName(), strlen(field->fieldName()), value))
+      return true;
+  }
+  const ExternalValue *ev = findExternalValue(callee);
+  if (!ev)
+    return false;
+  value = ev->value;
+  return true;
+}
+
+const char *CheckerVisitor::findNodiscardKind(const CallExpr *call) {
+  bool isCtor = false;
+  if (const FunctionInfo *info = findFunctionInfo(call->callee(), isCtor))
+    return nodiscardKind(info->declaration->isNodiscard(), info->declaration->isPure());
+
+  SQObjectPtr v;
+  if (!resolveCallee(call->callee(), v))
+    return nullptr;
+
+  if (sq_isclosure(v))
+    return nodiscardKind(_closure(v)->_function->_nodiscard, _closure(v)->_function->_purefunction);
+  if (sq_isnativeclosure(v))
+    return nodiscardKind(_nativeclosure(v)->_nodiscard, _nativeclosure(v)->_purefunction);
+  return nullptr;
+}
+
+const CallExpr *CheckerVisitor::checkUnutilizedResult(const ExprStatement *s, bool &nameLike) {
+  const Expr *e = deparen(s->expression());
+  if (isEffectsGatheringPass || !e)
+    return nullptr;
 
   if (e->op() == TO_CALL) {
     const CallExpr *c = static_cast<const CallExpr *>(e);
@@ -4094,9 +4177,16 @@ void CheckerVisitor::checkUnutilizedResult(const ExprStatement *s) {
       calleeName = callee->asGetField()->fieldName();
     }
 
-    if (calleeName && shouldCallResultBeUtilized(calleeName, c)) {
-      report(e, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, calleeName);
+    if (const char *kind = calleeName ? findNodiscardKind(c) : nullptr) {
+      report(e, DiagnosticsId::DI_DISCARDED_NODISCARD, calleeName, kind);
+      return nullptr;
     }
+    nameLike = calleeName && shouldCallResultBeUtilized(calleeName, c);
+    if (callee->op() == TO_GETFIELD)
+      return c;
+    if (nameLike)
+      report(e, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, calleeName);
+    return nullptr;
   }
   else if (!isAssignExpr(e) && e->op() != TO_INC && e->op() != TO_NEWSLOT && e->op() != TO_DELETE
            && e->op() != TO_AWAIT && e->op() != TO_YIELD && e->op() != TO_CODE_BLOCK_EXPR) {
@@ -4104,6 +4194,7 @@ void CheckerVisitor::checkUnutilizedResult(const ExprStatement *s) {
     // resumed value is discarded (e.g. `await delay(0)` as a barrier).
     report(s, DiagnosticsId::DI_UNUTILIZED_EXPRESSION);
   }
+  return nullptr;
 }
 
 void CheckerVisitor::checkForgottenDo(const Block *b) {
@@ -4143,9 +4234,19 @@ void CheckerVisitor::checkUnreachableCode(const Block *block) {
 }
 
 void CheckerVisitor::visitExprStatement(ExprStatement *stmt) {
-  checkUnutilizedResult(stmt);
+  bool nameLike = false;
+  const CallExpr *fieldCall = checkUnutilizedResult(stmt, nameLike);
 
   Visitor::visitExprStatement(stmt);
+
+  // a field callee resolves only after its visit
+  if (!fieldCall)
+    return;
+  const char *name = fieldCall->callee()->asGetField()->fieldName();
+  if (const char *kind = findNodiscardKind(fieldCall))
+    report(fieldCall, DiagnosticsId::DI_DISCARDED_NODISCARD, name, kind);
+  else if (nameLike)
+    report(fieldCall, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, name);
 }
 
 void CheckerVisitor::visitBlock(Block *b) {
@@ -4731,13 +4832,18 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
   }
 
   if (op == TO_GETSLOT || op == TO_GETFIELD) {
-    // x?[y]
     const AccessExpr *acc = static_cast<const AccessExpr *>(cond);
     const Expr *reciever = extractReceiver(deparen(acc->receiver()));
 
-    if (reciever && thenScope) {
+    if (thenScope) {
       currentScope = thenScope;
-      setValueFlags(reciever, 0, RT_NULL);
+      setValueFlags(cond, 0, RT_NULL);
+      if (reciever)
+        setValueFlags(reciever, 0, RT_NULL);
+    }
+    if (elseScope && (flags & NULL_CHECK_F)) {
+      currentScope = elseScope;
+      setValueFlags(cond, RT_NULL, 0);
     }
 
     if (op == TO_GETSLOT) {
@@ -4774,9 +4880,11 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
 
     const Expr *receiver = extractReceiver(testee);
 
-    if (receiver && thenScope) {
+    if (thenScope) {
       currentScope = thenScope;
-      setValueFlags(receiver, 0, RT_NULL);
+      setValueFlags(testee, 0, RT_NULL);
+      if (receiver)
+        setValueFlags(receiver, 0, RT_NULL);
       currentScope = thisScope;
     }
 
@@ -4810,36 +4918,19 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     assert(typeCheckee && typeLit);
 
     const Id *checkeeId = extractReceiver(typeCheckee);
-    if (!checkeeId)
-      return;
-
-    bool nullCheck = strcmp(typeLit->s(), "null") == 0; // todo: should it be more precise in case of avaliable names
-    bool accessCheck = typeCheckee != checkeeId;
-
-    // if it's null check we could know for sure that true-branch implies NULL and false-branch implies NON_NULL
-    // if it's not a null check we could only guarantee that true-branch implies NON_NULL
-    unsigned pt = 0, nt = 0, pe = 0, ne = 0;
-
-    if (nullCheck) {
-      if (accessCheck) {
-        ne = RT_NULL;
-      }
-      else {
-        pt = RT_NULL;
-        ne = RT_NULL;
-      }
-    }
-    else {
-      nt = RT_NULL;
-    }
+    bool nullCheck = strcmp(typeLit->s(), "null") == 0;
 
     if (thenScope) {
       currentScope = thenScope;
-      setValueFlags(checkeeId, pt, nt);
+      setValueFlags(typeCheckee, nullCheck ? RT_NULL : 0, nullCheck ? 0 : RT_NULL);
+      if (checkeeId && !nullCheck)
+        setValueFlags(checkeeId, 0, RT_NULL);
     }
     if (elseScope) {
       currentScope = elseScope;
-      setValueFlags(checkeeId, pe, ne);
+      setValueFlags(typeCheckee, 0, nullCheck ? RT_NULL : 0);
+      if (checkeeId && nullCheck)
+        setValueFlags(checkeeId, 0, RT_NULL);
     }
 
     currentScope = thisScope; // -V519
@@ -4879,14 +4970,35 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
 
   if (op == TO_INSTANCEOF || op == TO_IN) {
     const BinExpr *bin = cond->asBinExpr();
-    const Expr *lhs = bin->lhs();
-    const Expr *rhs = bin->rhs();
+    const Expr *lhs = deparen(bin->lhs());
+    const Expr *rhs = deparen(bin->rhs());
+    if (!lhs || !rhs)
+      return;
 
     const Expr *checkee = extractReceiver(lhs);
 
-    if (checkee && thenScope) {
+    if (op == TO_INSTANCEOF) {
+      SQObjectPtr type;
+      if (const ExternalValue *value = findExternalValue(rhs))
+        type = value->value;
+      else if (rhs->op() == TO_GETFIELD) {
+        const GetFieldExpr *field = rhs->asGetField();
+        const ExternalValue *container = findExternalValue(field->receiver());
+        if (container && sq_istable(container->value))
+          _table(container->value)->GetStr(field->fieldName(), strlen(field->fieldName()), type);
+      }
+      if (sq_isclass(type)) {
+        const SQClass *cls = _class(type);
+        if (cls->_is_builtin_type && cls->_builtin_type_id == OT_NULL)
+          return speculateIfConditionHeuristics(lhs, elseScope, thenScope, visited, evalId, flags | NULL_CHECK_F, false);
+      }
+    }
+
+    if (thenScope) {
       currentScope = thenScope;
-      setValueFlags(checkee, 0, RT_NULL);
+      setValueFlags(lhs, 0, RT_NULL);
+      if (checkee)
+        setValueFlags(checkee, 0, RT_NULL);
     }
 
     if (op == TO_IN) {
@@ -5423,8 +5535,15 @@ void CheckerVisitor::visitClassExpr(ClassExpr *klass) {
   if (klass->classKey())
     klass->classKey()->visit(this);
 
-  if (klass->classBase())
+  if (klass->classBase()) {
     klass->classBase()->visit(this);
+    // The VM reads the base once, where it creates the class.
+    // A loop pass that reads another base makes it unknown, so the chain has no cycles.
+    const Expr *base = deparenInlineConst(maybeEval(klass->classBase()));
+    auto it = classBases.emplace(klass, base).first;
+    if (base == klass || it->second != base)
+      it->second = nullptr;
+  }
 
   visitTableExpr(klass);
 
@@ -5621,15 +5740,7 @@ const char *CheckerVisitor::computeNameRef(const Expr *lhs, char *buffer, size_t
 }
 
 void CheckerVisitor::setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf) {
-
-  char buffer[128] = { 0 };
-
-  const char *name = computeNameRef(lvalue, buffer, sizeof buffer);
-
-  if (!name)
-    return;
-
-  ValueRef *v = findValueInScopes(name);
+  ValueRef *v = findValueInScopes(lvalue);
 
   if (v) {
     v->flagsPositive |= pf;
@@ -5646,15 +5757,30 @@ const ValueRef *CheckerVisitor::findValueForExpr(const Expr *e) {
   if (auto it = astValues.find(e); it != astValues.end())
     return it->second;
 
+  return findValueInScopes(e);
+}
+
+ValueRef *CheckerVisitor::findValueInScopes(const Expr *e) {
+  e = deparen(e);
+  if (!e) return nullptr;
+
   char buffer[128] = { 0 };
 
   const char *n = computeNameRef(e, buffer, sizeof buffer);
 
-  if (!n) {
-    return nullptr;
-  }
+  if (n)
+    return findValueInScopes(n);
 
-  return findValueInScopes(n);
+  if (!e->isAccessExpr())
+    return nullptr;
+
+  for (VarScope *scope = currentScope; scope; scope = scope->parent)
+    for (const auto &symbol : scope->symbols) {
+      ValueRef *value = symbol.second;
+      if (value->state == VRS_UNKNOWN && value->expression && _equalChecker.check(e, value->expression))
+        return value;
+    }
+  return nullptr;
 }
 
 bool CheckerVisitor::isSafeAccess(const AccessExpr *acc) {
@@ -5748,36 +5874,49 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
 
   if (e->op() == TO_TERNARY) {
     const TerExpr *t = static_cast<const TerExpr *>(e);
-    bool bNullable = isPotentiallyNullable(t->b(), visited);
-    bool cNullable = isPotentiallyNullable(t->c(), visited);
+    VarScope *trunkScope = currentScope;
+    VarScope *thenScope = trunkScope->copy(arena);
+    currentScope = thenScope;
+    auto trackBranchValue = [&](const Expr *arm) {
+      arm = deparen(arm);
+      if (!arm || !arm->isAccessExpr() || CallExistsChecker().check(arm)
+        || ModificationChecker().check(const_cast<Expr *>(arm)))
+        return;
+      if (findValueInScopes(arm))
+        return;
+      const char *name = computeNameRef(arm, nullptr, 0);
+      if (!name) {
+        char buffer[64];
+        size_t size = snprintf(buffer, sizeof(buffer), "$nullable.%p", static_cast<const void *>(arm)) + 1;
+        char *copy = reinterpret_cast<char *>(arena->allocate(size));
+        memcpy(copy, buffer, size);
+        name = copy;
+      }
+      SymbolInfo *info = makeSymbolInfo(SK_VAR);
+      info->ownedScope = currentScope;
+      ValueRef *value = makeValueRef(info);
+      value->state = VRS_UNKNOWN;
+      value->expression = arm;
+      declareSymbol(name, value);
+    };
+    trackBranchValue(t->b());
+    trackBranchValue(t->c());
+    VarScope *elseScope = thenScope->copy(arena);
+    currentScope = trunkScope;
 
-    // Null-check narrowing: in `x != null ? x : y`, `x == null ? y : x`,
-    // `x ? x : y` and `x instanceof T ? x : y` the checked arm cannot
-    // produce the null.
-    const Expr *cond = deparen(t->a());
-    const Expr *checkee = cond;
-    bool nonNullArmIsB = true;
-    if (cond && cond->op() == TO_INSTANCEOF) {
-      checkee = deparen(cond->asBinExpr()->lhs());
-    }
-    else if (cond && (cond->op() == TO_NE || cond->op() == TO_EQ)) {
-      const BinExpr *bin = cond->asBinExpr();
-      const Expr *l = deparen(bin->lhs());
-      const Expr *r = deparen(bin->rhs());
-      if (l && l->op() == TO_LITERAL && l->asLiteral()->kind() == LK_NULL)
-        checkee = r;
-      else if (r && r->op() == TO_LITERAL && r->asLiteral()->kind() == LK_NULL)
-        checkee = l;
-      else
-        checkee = nullptr;
-      nonNullArmIsB = cond->op() == TO_NE;
-    }
-    if (checkee) {
-      if (nonNullArmIsB && bNullable && _equalChecker.check(checkee, deparen(t->b())))
-        bNullable = false;
-      else if (!nonNullArmIsB && cNullable && _equalChecker.check(checkee, deparen(t->c())))
-        cNullable = false;
-    }
+    speculateIfConditionHeuristics(t->a(), thenScope, elseScope);
+
+    currentScope = thenScope;
+    auto thenVisited = visited;
+    bool bNullable = isPotentiallyNullable(t->b(), thenVisited);
+
+    currentScope = elseScope;
+    auto elseVisited = visited;
+    bool cNullable = isPotentiallyNullable(t->c(), elseVisited);
+
+    currentScope = trunkScope;
+    thenScope->~VarScope();
+    elseScope->~VarScope();
 
     return bNullable || cNullable;
   }
@@ -5940,36 +6079,30 @@ const ExternalValue *CheckerVisitor::findExternalValue(const Expr *e) {
 
 
 const FunctionInfo *CheckerVisitor::findFunctionInfo(const Expr *e, bool &isCtor) {
-  const Expr *ee = maybeEval(e);
-
-  if (ee->op() == TO_FUNCTION) {
-    return functionInfoMap[ee->asFunctionExpr()];
-  }
-
-  char buffer[128] = { 0 };
-
-  const char *name = computeNameRef(ee, buffer, sizeof buffer);
-
-  if (!name)
-    return nullptr;
-
-  const ValueRef *v = findValueInScopes(name);
-
-  if (!v || !v->hasValue() || !v->expression)
-    return nullptr;
-
-  const Expr *expr = maybeEval(v->expression);
+  const Expr *expr = deparenInlineConst(maybeEval(e));
+  if (!expr) return nullptr;
 
   if (expr->op() == TO_FUNCTION) {
     return functionInfoMap[expr->asFunctionExpr()];
   }
   else if (expr->op() == TO_CLASS) {
-    const ClassExpr *klass = expr->asClassExpr();
     isCtor = true;
-    if (FunctionExpr *ctor = klass->findConstructor())
+    if (const FunctionExpr *ctor = findClassConstructor(expr->asClassExpr()))
       return functionInfoMap[ctor];
   }
 
+  return nullptr;
+}
+
+// A class without its own constructor gets the one of its base.
+const FunctionExpr *CheckerVisitor::findClassConstructor(const ClassExpr *klass) const {
+  while (klass) {
+    if (FunctionExpr *ctor = klass->findConstructor())
+      return ctor;
+    auto it = classBases.find(klass);
+    const Expr *base = it != classBases.end() ? it->second : nullptr;
+    klass = base && base->op() == TO_CLASS ? base->asClassExpr() : nullptr;
+  }
   return nullptr;
 }
 
@@ -5982,20 +6115,8 @@ void CheckerVisitor::applyKnownInvocationToScope(const ValueRef *value) {
   }
 
   if (value->hasValue()) {
-    const Expr *expr = maybeEval(value->expression);
-    assert(expr != nullptr);
-
-    if (expr->op() == TO_FUNCTION) {
-      info = functionInfoMap[expr->asFunctionExpr()];
-    }
-    else if (expr->op() == TO_CLASS) {
-      const ClassExpr *klass = expr->asClassExpr();
-      if (FunctionExpr *ctor = klass->findConstructor())
-        info = functionInfoMap[ctor];
-    }
-    else if (expr->op() == TO_TABLE) {
-      // Tables don't have function info
-    }
+    bool isCtor;
+    info = findFunctionInfo(value->expression, isCtor);
   }
 
   if (!info) {
@@ -6219,9 +6340,10 @@ void CheckerVisitor::visitConstDecl(ConstDecl *cnst) {
   info->ownedScope = currentScope;
   info->used = cnst->isGlobal();
 
-  declareSymbol(cnst->name(), v);
-
   Visitor::visitConstDecl(cnst);
+
+  // else the function's own name shadows it
+  declareSymbol(cnst->name(), v);
 }
 
 void CheckerVisitor::visitEnumDecl(EnumDecl *enm) {

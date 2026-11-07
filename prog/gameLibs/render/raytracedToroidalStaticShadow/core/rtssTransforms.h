@@ -53,7 +53,7 @@ inline RtssLightXform rtss_next_transform(const RtssLightXform &old, const Point
   const DPoint3 &camera, float sy = 1)
 {
   RtssLightXform n;
-  n.d = -normalize(dir_to_sun); // constraint: quat_rotation_arc snaps to 180 deg above 179.19 deg
+  n.d = -normalize(dir_to_sun); // quat_rotation_arc snaps to 180 deg above 179.19 deg
   n.ey = sy == old.sy ? quat_rotation_arc(old.d, n.d) * old.ey : (fabsf(n.d.y) > 0.999f ? Point3(1, 0, 0) : Point3(0, 1, 0));
   rtss_orthonormalize(n);
   n.sy = sy;

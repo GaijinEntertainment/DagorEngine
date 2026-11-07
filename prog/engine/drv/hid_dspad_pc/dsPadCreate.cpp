@@ -4,15 +4,15 @@
 #include <drv/hid/dag_hiCreate.h>
 #include <debug/dag_debug.h>
 
-HumanInput::IGenJoystickClassDrv *HumanInput::createSonyPadJoystickClassDriver()
+HumanInput::IGenJoystickClassDrv *HumanInput::createDsPadJoystickClassDriver()
 {
-  SonyPadClassDriver *cd = new (inimem) SonyPadClassDriver;
+  DsPadClassDriver *cd = new (inimem) DsPadClassDriver;
   if (!cd->init())
   {
-    debug("[HID][SONY] class driver init failed");
+    debug("[HID][DSPAD] class driver init failed");
     delete cd;
     return nullptr;
   }
-  debug("[HID][SONY] class driver created");
+  debug("[HID][DSPAD] class driver created");
   return cd;
 }

@@ -264,7 +264,7 @@ namespace  das {
         static __forceinline int Ceili  ( float a, Context &, LineInfo * )          { return v_extract_xi(v_cvt_ceili(v_set_x(a))); }
 
 #if defined(_MSC_VER) && defined(_M_IX86)
-        // constraint: MSVC x86 fails with C1001 when the CRT expf intrinsic is inlined next to vecmath code
+        // MSVC x86 fails with C1001 when the CRT expf intrinsic is inlined next to vecmath code
         static __forceinline float Exp   ( float a, Context &, LineInfo * )          { return v_extract_x(v_exp(v_set_x(a))); }
         static __forceinline float Exp2  ( float a, Context &, LineInfo * )          { return v_extract_x(v_exp2(v_set_x(a))); }
         static __forceinline float Log2  ( float a, Context &, LineInfo * )          { return v_extract_x(v_log2_est_p5(v_set_x(a))); }

@@ -73,8 +73,11 @@ void try_apply_auto_antialiasing_and_resolution_settings()
 {
   // requires antialiasing::get_available_methods!
 
+  auto autoPreset = dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("autoPreset");
+  // forceDisable removes auto graphics feature for this run, so rendering resolution must be ignored
+  const bool ignoreRenderingResolution = autoPreset->getBool("forceDisable", false);
   const auto renderingResolution =
-    dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("autoPreset")->getIPoint2("renderingResolution", IPoint2{0, 0});
+    ignoreRenderingResolution ? IPoint2::ZERO : autoPreset->getIPoint2("renderingResolution", IPoint2::ZERO);
 
   const auto currMethod = render::antialiasing::get_method();
   const bool upscalingMethodIsUsed =

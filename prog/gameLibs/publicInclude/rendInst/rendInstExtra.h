@@ -42,6 +42,7 @@ int cloneRIGenExtraResIdx(const char *source_res_name, const char *new_res_name)
 void setRIGenExtraResDynamic(const char *ri_res_name);
 bool isRIGenExtraDynamic(int res_idx);
 void addRiGenExtraDebris(uint32_t res_idx, int layer_idx);
+void addRIGenExtraDestrLodPool(uint32_t res_idx, uint32_t destr_res_idx);
 void reloadRIExtraResources(const char *ri_res_name);
 RenderableInstanceLodsResource *getRIGenExtraRes(int res_idx);
 CollisionResource *getRIGenExtraCollRes(int res_idx);
@@ -97,6 +98,12 @@ void beginRIExtraBulkUpdate();
 void endRIExtraBulkUpdate();
 bool isRIExtraBulkUpdateInProgress(); // callers may skip per-instance tiled-scene flushes while true
 
+// Defers only the grid rebuilds of beginRIExtraBulkUpdate(). Inserts and erases record the cells they touch,
+// endRIExtraGridDeferRebuild() rebuilds each once. Nests with the bulk update and takes ccExtra itself, so
+// any thread may call it, but not one that holds ccExtra.
+void beginRIExtraGridDeferRebuild();
+void endRIExtraGridDeferRebuild();
+
 // While set, moveRIGenExtra* takes a moved instance out of the collision grid instead of re-inserting
 // it at every step (the tiled scene still moves it, so it renders). The instance is absent from the
 // grid rather than present at a stale position, so a query can never hit it in the wrong place; it is
@@ -125,6 +132,12 @@ struct ScopedRIExtraBulkUpdate
 {
   ScopedRIExtraBulkUpdate() { beginRIExtraBulkUpdate(); }
   ~ScopedRIExtraBulkUpdate() { endRIExtraBulkUpdate(); }
+};
+
+struct ScopedRIExtraGridDeferRebuild
+{
+  ScopedRIExtraGridDeferRebuild() { beginRIExtraGridDeferRebuild(); }
+  ~ScopedRIExtraGridDeferRebuild() { endRIExtraGridDeferRebuild(); }
 };
 
 using riex_render_info_t = uint32_t;

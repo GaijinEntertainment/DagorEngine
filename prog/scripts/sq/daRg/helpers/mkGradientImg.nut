@@ -334,7 +334,7 @@ const gradientEasings = {
 
 let resolveEasing = @[pure](easing:function|string) easing instanceof Function ? easing : gradientEasings[easing]
 
-let mkSmoothBWGradientY = function [pure] ({height = 12, isAlphaPremultiplied = true, easing = gradientEasings.easeOutQuad}) {
+let mkSmoothBWGradientY = function ({height = 12, isAlphaPremultiplied = true, easing = gradientEasings.easeOutQuad}) {
   let w = 4
   let h = height.tointeger()
   let ease = resolveEasing(easing)
@@ -350,7 +350,7 @@ let mkSmoothBWGradientY = function [pure] ({height = 12, isAlphaPremultiplied = 
     }, isAlphaPremultiplied ? "" : "!")
 }
 
-let mkSmoothBWGradientX = function [pure] ({width = 12, isAlphaPremultiplied = true, easing = gradientEasings.easeOutQuad}) {
+let mkSmoothBWGradientX = function ({width = 12, isAlphaPremultiplied = true, easing = gradientEasings.easeOutQuad}) {
   let h = 4
   let w = width.tointeger()
   let ease = resolveEasing(easing)
@@ -365,7 +365,7 @@ let mkSmoothBWGradientX = function [pure] ({width = 12, isAlphaPremultiplied = t
     }, isAlphaPremultiplied ? "" : "!")
 }
 
-let mkColoredGradientX = @[pure]({colorLeft, colorRight, width = 12, isAlphaPremultiplied = true})
+let mkColoredGradientX = @({colorLeft, colorRight, width = 12, isAlphaPremultiplied = true})
   mkBitmapPicture(width, 4,
     function(params, bmp) {
       let { w, h } = params
@@ -482,7 +482,7 @@ let makePlanarGradient = function [pure] ({colored = false, tl, tr, bl, br}, ...
 }
 
 // vargv: extra [x, y, value] points, same as makePlanarGradient
-let make2DGradient = function [pure] ({tl, tr, bl, br, width = 16, height = 16,
+let make2DGradient = function ({tl, tr, bl, br, width = 16, height = 16,
     isAlphaPremultiplied = true, colored = false}, ...) {
   let w = width.tointeger()
   let h = height.tointeger()

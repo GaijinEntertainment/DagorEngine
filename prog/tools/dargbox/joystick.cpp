@@ -28,12 +28,12 @@ public:
     ::global_cls_composite_drv_joy = HumanInput::CompositeJoystickClassDriver::create();
     bool remapAsX360 = ::dgs_get_settings()->getBool("joystickRemap360", false);
 #if _TARGET_PC_WIN
-    HumanInput::IGenJoystickClassDrv *sonyDrv = HumanInput::createSonyPadJoystickClassDriver();
+    HumanInput::IGenJoystickClassDrv *dsPadDrv = HumanInput::createDsPadJoystickClassDriver();
 #endif
     HumanInput::IGenJoystickClassDrv *drivers[] = {
 #if _TARGET_PC_WIN
       HumanInput::createXinputJoystickClassDriver(), // XInput first, avoid misinterpretation of btns/axes
-      HumanInput::createJoystickClassDriver(true, remapAsX360, /*exclude_sony_pads*/ sonyDrv != nullptr),
+      HumanInput::createJoystickClassDriver(true, remapAsX360, /*exclude_dspads*/ dsPadDrv != nullptr),
 #else
       HumanInput::createJoystickClassDriver(false, remapAsX360),
 #endif
@@ -44,7 +44,7 @@ public:
       ::global_cls_drv_joy = composite;
 #if _TARGET_PC_WIN
       composite->setGamepadLayoutGroup(true);
-      composite->addClassDrv(sonyDrv, true); // constraint: added first, so a Sony pad takes the main slot
+      composite->addClassDrv(dsPadDrv, true); // constraint: added first, so a dsPad takes the main slot
 #endif
       for (int i = 0, totalDrivers = countof(drivers); i < totalDrivers; ++i)
         composite->addClassDrv(drivers[i], i == 0);

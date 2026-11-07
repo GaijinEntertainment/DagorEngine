@@ -538,7 +538,7 @@ void Wayland::Window::processChangedOutputs()
     resetupFullscreen();
     outputsChanged = false;
   }
-  // constraint: wl_output.scale can change without a surface enter or leave
+  // wl_output.scale can change without a surface enter or leave
   updateScale();
 }
 
@@ -642,7 +642,7 @@ void Wayland::Window::cbPreferredScale(uint32_t scale)
   updateScale();
 }
 
-// constraint: wp_fractional_scale_v1 gives scales in 1/120 units
+// wp_fractional_scale_v1 gives scales in 1/120 units
 static constexpr int32_t SCALE_DENOMINATOR = 120;
 
 int32_t Wayland::Window::getScale120()
@@ -664,7 +664,7 @@ int32_t Wayland::Window::toPhysical(int32_t logical) { return (int32_t)lround((d
 
 int32_t Wayland::Window::toLogical(int32_t physical) { return (int32_t)lround((double)physical * SCALE_DENOMINATOR / getScale120()); }
 
-// constraint: a position rounds down to stay inside the client area, an extent rounds to nearest as wp_fractional_scale_v1 asks
+// a position rounds down to stay inside the client area, an extent rounds to nearest as wp_fractional_scale_v1 asks
 int32_t Wayland::Window::toPhysicalFixed(wl_fixed_t_proxy logical)
 {
   return (int32_t)floor(wl_fixed_to_double(logical) * getScale120() / SCALE_DENOMINATOR);
@@ -682,7 +682,7 @@ void Wayland::Window::getClientSize(int32_t &width, int32_t &height)
     width = fullscreenOnOutput->mode.current.width;
     height = fullscreenOnOutput->mode.current.height;
   }
-  // constraint: the vulkan swapchain takes the configure size only in a resizable window, else the requested size
+  // the vulkan swapchain takes the configure size only in a resizable window, else the requested size
   else if (dgs_get_window_mode() != WindowMode::WINDOWED_RESIZABLE && requestedWidth && requestedHeight)
   {
     width = requestedWidth;
@@ -700,7 +700,7 @@ bool Wayland::Window::getCursorPos(int &cx, int &cy)
   if (!activePointer)
     return false;
 
-  // constraint: the viewport destination rounds to whole logical pixels, so the surface can overhang the client area
+  // the viewport destination rounds to whole logical pixels, so the surface can overhang the client area
   int32_t width, height;
   getClientSize(width, height);
   cx = clamp(toPhysicalFixed(activePointer->x), 0, max(width - 1, 0));
@@ -720,7 +720,7 @@ void Wayland::Window::applyViewport()
   else
     wp_viewport_set_destination(wp.viewport, -1, -1);
 
-  // constraint: xdg-shell rejects a minimum above the maximum, so lift the maximum before a pin can grow
+  // xdg-shell rejects a minimum above the maximum, so lift the maximum before a pin can grow
   const bool fixedSize = hasSize && !fullscreen && dgs_get_window_mode() == WindowMode::WINDOWED;
   xdg_toplevel_set_max_size(xdg.toplevel, 0, 0);
   xdg_toplevel_set_min_size(xdg.toplevel, fixedSize ? logicalWidth : 0, fixedSize ? logicalHeight : 0);
@@ -1421,7 +1421,7 @@ bool Wayland::init()
 
 void Wayland::releaseFailedInit()
 {
-  // constraint: events of the seats and outputs bound in initConnection can still be queued, so no dispatch here
+  // events of the seats and outputs bound in initConnection can still be queued, so no dispatch here
   if (wl.display)
     wl_display_disconnect(wl.display);
   if (xkbCtx)
@@ -1631,7 +1631,7 @@ void Wayland::getDisplaySize(int &width, int &height, bool)
   }
 }
 
-// constraint: compositors advertise only the current output mode, so windowed sizes come from this list
+// compositors advertise only the current output mode, so windowed sizes come from this list
 static const IPoint2 standard_window_sizes[] = {{1280, 720}, {1280, 800}, {1366, 768}, {1440, 900}, {1600, 900}, {1680, 1050},
   {1920, 1080}, {1920, 1200}, {2560, 1080}, {2560, 1440}, {2560, 1600}, {3440, 1440}, {3840, 1600}, {3840, 2160}, {5120, 2160}};
 

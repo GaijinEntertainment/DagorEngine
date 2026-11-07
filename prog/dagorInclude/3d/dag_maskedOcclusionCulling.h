@@ -611,8 +611,17 @@ public:
   OcclusionCullingStatistics GetStatistics();
 #endif
 
+  /*!
+   * \brief Merges tiles [first_tile, last_tile) into this one, full layer by max, working layer
+   *        through regular updates, so partial subtiles from other sources can be merged into full subtile
+   *        QUICK_MASK == 0 it falls back to mergeOcclusionsZmin
+   */
   MOC_VIRTUAL void mergeOcclusions(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile,
     uint32_t last_tile) MOC_PURE;
+  /*!
+   * \brief As mergeOcclusions, but only the full-coverage depth by max. Cheaper; a subtile that is
+   *        only partially covered in every source stays empty.
+   */
   MOC_VIRTUAL void mergeOcclusionsZmin(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile,
     uint32_t last_tile) MOC_PURE;
   MOC_VIRTUAL uint32_t getTilesCount() const MOC_PURE;

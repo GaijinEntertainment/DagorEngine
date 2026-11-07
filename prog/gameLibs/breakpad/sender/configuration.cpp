@@ -164,7 +164,7 @@ static std::ostream &operator<<(std::ostream &o, const std::pair<std::string, st
 }
 
 template <typename T>
-static inline void _print_container(std::ostream &os, const std::string &name, T c)
+static inline void _print_container(std::ostream &os, const std::string &name, const T &c)
 {
   os << "\n" << name << ":";
   if (c.empty())
@@ -177,7 +177,6 @@ static inline void _print_container(std::ostream &os, const std::string &name, T
 
 std::ostream &operator<<(std::ostream &os, const Configuration &c)
 {
-  typedef std::map<std::string, std::string>::const_iterator iter_t;
   std::ios_base::fmtflags flags = os.flags();
   os << std::boolalpha;
 

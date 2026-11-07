@@ -1,4 +1,4 @@
 (42).tostring() = 42
 (-7).tostring() = -7
 type((42).tostring()) = string
-(5).tostring(1) throws: wrong number of parameters passed to native closure 'tostring' (2 passed, 1 required)
+n.tostring(1) throws: wrong number of parameters passed to native closure 'tostring' (2 passed, 1 required)

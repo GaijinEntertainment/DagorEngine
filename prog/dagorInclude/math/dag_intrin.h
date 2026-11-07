@@ -121,7 +121,7 @@ __forceinline unsigned __clz_unsafe(unsigned long long value)
   if(value & 0xFFFFFFFE)              { n +=  1;               }
   // clang-format on
 
-  return n;
+  return n ^ 63;
 }
 
 __forceinline unsigned __clz_unsafe(long long value) { return __clz_unsafe((unsigned long long)value); }

@@ -93,6 +93,36 @@ ParamsTreeCB *tree_callback = NULL;
 extern TunedElement *root_element;
 extern TunedElement *selected_elem;
 extern ParamChangeCB *param_change_cb;
+extern ParamWarnings param_warnings;
+
+static void reset_panel_pids(TunedElement &e)
+{
+  e.setPanelPid(-1);
+  for (int i = 0; i < e.subElemCount(); ++i)
+    if (TunedElement *se = e.getSubElem(i))
+      reset_panel_pids(*se);
+}
+
+static void apply_param_hints(TunedElement &e, const eastl::string &path, PropPanel::ContainerPropertyControl &panel)
+{
+  if (e.getPanelPid() >= 0)
+  {
+    String tooltip;
+    auto warning = param_warnings.find(path);
+    if (warning != param_warnings.end())
+      tooltip = warning->second.c_str();
+
+    panel.setValueHighlightById(e.getPanelPid(),
+      tooltip.empty() ? PropPanel::ColorOverride::NONE : PropPanel::ColorOverride::EDIT_BOX_WRONG_VALUE_BACKGROUND);
+    if (*e.getDesc())
+      tooltip.aprintf(0, "%s%s", tooltip.empty() ? "" : "\n\n", e.getDesc());
+    panel.setTooltipId(e.getPanelPid(), tooltip.str());
+  }
+
+  for (int i = 0; i < e.subElemCount(); ++i)
+    if (TunedElement *se = e.getSubElem(i))
+      apply_param_hints(*se, path.empty() ? eastl::string(se->getName()) : path + "/" + se->getName(), panel);
+}
 }; // namespace ScriptHelpers
 
 
@@ -267,6 +297,9 @@ public:
 
     int pid = START_PID;
 
+    if (root_element)
+      reset_panel_pids(*root_element);
+
     if (selected_elem)
     {
       if (root_element)
@@ -275,6 +308,15 @@ public:
     }
     else if (root_element)
       root_element->fillPropPanel(pid, *_pp);
+
+    applyParamHints();
+  }
+
+  void applyParamHints()
+  {
+    PropPanel::ContainerPropertyControl *_pp = mPanel ? mPanel->getContainer() : nullptr;
+    if (_pp && root_element)
+      apply_param_hints(*root_element, eastl::string(), *_pp);
   }
 
   void setUndoChange(bool is_undo_change) { isUndoChange = is_undo_change; }
@@ -296,6 +338,14 @@ void on_param_change()
 
 
 void set_param_change_cb(ParamChangeCB *cb) { param_change_cb = cb; }
+
+
+void set_param_warnings(ParamWarnings warnings)
+{
+  param_warnings = eastl::move(warnings);
+  if (prop_bar)
+    prop_bar->applyParamHints();
+}
 
 }; // namespace ScriptHelpers
 
@@ -429,6 +479,7 @@ void ScriptHelpers::removeWindows()
   del_it(tree_list);
   del_it(tree_callback);
   del_it(prop_bar);
+  param_warnings = ParamWarnings();
 }
 
 

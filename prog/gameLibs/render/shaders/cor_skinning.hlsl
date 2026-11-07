@@ -1,8 +1,8 @@
 #ifndef COR_SKINNING_HLSL
 #define COR_SKINNING_HLSL 1
 
-// constraint: the includer defines bone_t { float4 r0, r1, r2; }
-// constraint: a bone is r0 = rotation quaternion, r1.xyz = position, r2.xyz = scale (dynrend calc_bone_tm)
+// the includer defines bone_t { float4 r0, r1, r2; }
+// a bone is r0 = rotation quaternion, r1.xyz = position, r2.xyz = scale (dynrend calc_bone_tm)
 
 #include "quaternion.hlsl"
 
@@ -25,10 +25,10 @@ bone_t bone_matrix(bone_t b)
   return tm;
 }
 
-// constraint: must match encode_cor_offset in shSkinMeshData.cpp
-float3 cor_offset_decode(float4 packed)
+// must match encode_cor_offset in shSkinMeshData.cpp
+float3 cor_offset_decode(float4 encoded)
 {
-  float4 b = round(BGRA_SWIZZLE(packed) * 255);
+  float4 b = round(BGRA_SWIZZLE(encoded) * 255);
   return (b.xyz - 256 * step(128, b.xyz)) * exp2(b.w * 0.125 - 25);
 }
 
@@ -46,7 +46,7 @@ void cor_skin(bone_t b0, bone_t b1, bone_t b2, bone_t b3, float4 bw, float3 pos,
              b2.r0 * (dot(b2.r0, b0.r0) < 0 ? -qw.z : qw.z) + b3.r0 * (dot(b3.r0, b0.r0) < 0 ? -qw.w : qw.w);
   skinned_rot = quat_to_float3x3(dot(q, q) > 0 ? normalize(q) : float4(0, 0, 0, 1));
   float3 center = pos + cor_offset;
-  // constraint: a zero weight slot can index rows outside the skin bones, so the weight goes in before the rotation
+  // a zero weight slot can index rows outside the skin bones, so the weight goes in before the rotation
   skinned_pos = b0.r1.xyz * bw.x + quat_rotate(b0.r0, b0.r2.xyz * bw.x * center) +
                 b1.r1.xyz * bw.y + quat_rotate(b1.r0, b1.r2.xyz * bw.y * center) +
                 b2.r1.xyz * bw.z + quat_rotate(b2.r0, b2.r2.xyz * bw.z * center) +

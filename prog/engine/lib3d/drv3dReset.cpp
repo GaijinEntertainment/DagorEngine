@@ -7,6 +7,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <startup/dag_restart.h>
 #include <debug/dag_debug.h>
+#include <osApiWrappers/dag_atomic.h>
 #include "texMgrData.h"
 #include <drv_log_defs.h>
 
@@ -216,17 +217,18 @@ bool check_and_restore_3d_device()
 }
 #endif
 
-static uint32_t d3d_reset_counter = 1, d3d_full_reset_counter = 1;
-unsigned int get_d3d_reset_counter() { return d3d_reset_counter; }
-unsigned int get_d3d_full_reset_counter() { return d3d_full_reset_counter; }
+// Atomic: tool worker threads read them without GPU ownership.
+static volatile uint32_t d3d_reset_counter = 1, d3d_full_reset_counter = 1;
+unsigned int get_d3d_reset_counter() { return interlocked_acquire_load(d3d_reset_counter); }
+unsigned int get_d3d_full_reset_counter() { return interlocked_acquire_load(d3d_full_reset_counter); }
+static void advance_reset_counter(volatile uint32_t &counter) { interlocked_release_store(counter, counter + 1 ? counter + 1 : 1); }
 
 D3dResetQueue *D3dResetQueue::tailBeforeReset = nullptr, *D3dResetQueue::tailAfterReset = nullptr;
 void D3dResetQueue::perform_reset_queue(const D3dResetQueue *q, bool full_reset)
 {
-  if (++d3d_reset_counter == 0)
-    ++d3d_reset_counter;
-  if (full_reset && ++d3d_full_reset_counter == 0)
-    ++d3d_full_reset_counter;
+  advance_reset_counter(d3d_reset_counter);
+  if (full_reset)
+    advance_reset_counter(d3d_full_reset_counter);
   for (; q; q = q->next)
     if (q->func)
     {

@@ -31,18 +31,19 @@ hlsl(stage) {
   {
     const float BASE_TREE_WIND_SPEED_MULT = 0.1;
     const float BASE_TREE_WAVE_AMP = 0.2;
-    const float MIN_WIND_SPEED = 0.0001;
     float3 resPos = worldLocalPos;
     float fTime = tree_wind_params.x;
     float fBranchAmp = tree_wind_params.y;
     float fDetailAmp = tree_wind_params.z;
-    float3 wind = BASE_TREE_WIND_SPEED_MULT * (use_prev ? sampleWindPreviousTime(worldPos, noise_speed_mult, 0) : sampleWindCurrentTime(worldPos, noise_speed_mult,0));
-    float fSpeedSq = dot(wind.xz, wind.xz);
-    FLATTEN
-    if (fSpeedSq < MIN_WIND_SPEED*MIN_WIND_SPEED)
-      return float3(0, 0, 0);
-    float fSpeed = sqrt(fSpeedSq);
-    wind /= fSpeed;
+
+    float3 wind = BASE_TREE_WIND_SPEED_MULT;
+    if (use_prev)
+      wind *= sampleWindPreviousTime(worldPos, noise_speed_mult, 0);
+    else
+      wind *= sampleWindCurrentTime(worldPos, noise_speed_mult, 0);
+
+    float fSpeed = length(wind.xz);
+    wind /= max(fSpeed, 0.0001);
     weight *= fSpeed;
 
     float fEdgeAtten = vcol.x;
@@ -62,8 +63,7 @@ hlsl(stage) {
     float fLength = length(newPos);
     newPos.xzy += wind.xzy * fBF;
     float len = length(newPos);
-    if (len > 0.0001) //prevent zero vector normalize
-      newPos /= len;
+    newPos /= max(len, 0.0001);
     return newPos * fLength;
   }
 

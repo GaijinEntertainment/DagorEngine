@@ -34,11 +34,11 @@ static void load_locked(const DataBlock &blk)
   t.vadPrerollFrames = eastl::clamp(blk.getInt("vadPrerollFrames", defaults.vadPrerollFrames), 0, 50);
   t.vadHangoverFrames = eastl::clamp(blk.getInt("vadHangoverFrames", defaults.vadHangoverFrames), 1, 500);
   t.vadCloseThreshold = eastl::clamp(blk.getReal("vadCloseThreshold", t.vadProbThreshold), 0.0f, t.vadProbThreshold);
-  // constraint: the preroll holds the onset frames before the one that opens the gate
+  // the preroll holds the onset frames before the one that opens the gate
   t.vadOnsetFrames = eastl::clamp(blk.getInt("vadOnsetFrames", defaults.vadOnsetFrames), 1, t.vadPrerollFrames + 1);
   t.vadSmoothing = eastl::clamp(blk.getReal("vadSmoothing", defaults.vadSmoothing), 0.0f, 0.9f);
   t.agc2InitialGainDb = eastl::clamp(blk.getReal("agc2InitialGainDb", defaults.agc2InitialGainDb), 0.0f, 50.0f);
-  // constraint: WebRTC turns AGC2 off for a max gain of 0 dB or less
+  // WebRTC turns AGC2 off for a max gain of 0 dB or less
   t.agc2MaxGainDb = eastl::clamp(blk.getReal("agc2MaxGainDb", defaults.agc2MaxGainDb), eastl::max(t.agc2InitialGainDb, 1.0f), 50.0f);
   const OpusTuning opusDefaults;
   opus_values.bitrateBps = eastl::clamp(blk.getInt("opusBitrateBps", opusDefaults.bitrateBps), 6000, 64000);
@@ -57,7 +57,7 @@ static void load_locked(const DataBlock &blk)
   const PlaybackTuning playbackDefaults;
   PlaybackTuning &b = playback_values;
   b.startMarginMs = eastl::clamp(blk.getInt("playbackStartMarginMs", playbackDefaults.startMarginMs), 0, MAX_PLAYBACK_START_MARGIN_MS);
-  // constraint: a mixer block can take more than one frame, so with no margin a lead of one frame runs dry
+  // a mixer block can take more than one frame, so with no margin a lead of one frame runs dry
   b.leadFrames = eastl::clamp(blk.getInt("playbackLeadFrames", playbackDefaults.leadFrames), 2, MAX_PLAYBACK_LEAD_FRAMES);
   b.panLevel = eastl::clamp(blk.getReal("playbackPanLevel", playbackDefaults.panLevel), 0.0f, 1.0f);
   b.panFadeMeters = eastl::clamp(blk.getReal("playbackPanFadeMeters", playbackDefaults.panFadeMeters), 0.0f, 10.0f);

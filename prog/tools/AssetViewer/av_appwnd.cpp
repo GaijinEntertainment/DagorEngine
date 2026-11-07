@@ -30,6 +30,7 @@
 #include <assetsGui/av_allAssetsTree.h>
 #include <assetsGui/av_assetSelectorCommon.h>
 #include <assetsGui/av_globalState.h>
+#include <assetsGui/av_thumbnailRenderer.h>
 #include <generic/dag_sort.h>
 
 #include <util/dag_texMetaData.h>
@@ -37,6 +38,7 @@
 #include <libTools/util/fileUtils.h>
 #include <libTools/util/strUtil.h>
 #include <assets/assetExpCache.h>
+#include <de3_assetThumbnail.h>
 #include <de3_lightService.h>
 #include <de3_skiesService.h>
 #include <de3_windService.h>
@@ -426,6 +428,7 @@ AssetViewerApp::~AssetViewerApp()
   mManager->unregisterWindowHandler(this);
   PropPanel::remove_delayed_callback(*this);
   PropPanel::release();
+  assets_gui_set_thumbnail_renderer(nullptr);
 
   ShaderGlobal::set_texture_fast(get_shader_glob_var_id("lightmap_tex", true), BAD_TEXTUREID);
   if (av_skies_srv)
@@ -438,6 +441,7 @@ AssetViewerApp::~AssetViewerApp()
   ::set_global_tex_name_resolver(NULL);
   assetMgr.enableChangesTracker(false);
 
+  term_asset_thumbnail_rendering();
   terminateInterface();
   ::term_dabuild_cache();
   assetMgr.clear();
@@ -2109,6 +2113,7 @@ static void init3d_early()
   ::register_common_tool_tex_factories();
   ::register_png_tex_load_factory();
   ::register_avif_tex_load_factory();
+  ::register_tiff_tex_load_factory();
 }
 
 namespace tools3d
@@ -2609,6 +2614,7 @@ bool AssetViewerApp::loadProject(const char *)
   else if (pc == 0)
     console->addMessage(console->WARNING, "daBuild inited but is useless, due to there are no asset types for build");
 
+  assets_gui_set_thumbnail_renderer(&get_asset_thumbnail_renderer());
   makeDefaultLayout(/*for_initial_layout = */ true);
   ::dagor_idle_cycle();
   G_ASSERTF_RETURN(mTreeView, false, "Failed to create AssetViewer windows.\nTry removing .asset-local/_av_window_layout.blk");
@@ -3276,12 +3282,17 @@ static void addEntityToSelectOne(DataBlock *selectOne, const char *fullName, flo
   entityObj->addReal("gen__weight", weight);
 }
 
+static bool is_enabled_composit_node(const DataBlock &blk)
+{
+  return strcmp(blk.getBlockName(), "node") == 0 && !blk.getBool("disabled", false);
+}
+
 static void exportCompositNodes(const DataBlock &src, DataBlock *nodesArray, DataBlock &out, const DagorAssetMgr &mgr)
 {
   for (int i = 0; i < src.blockCount(); ++i)
   {
     const DataBlock *node = src.getBlock(i);
-    if (strcmp(node->getBlockName(), "node") != 0)
+    if (!is_enabled_composit_node(*node))
       continue;
 
     DataBlock *nodeObj = nodesArray->addNewBlock("node:object");
@@ -3326,7 +3337,7 @@ static void exportCompositNodes(const DataBlock &src, DataBlock *nodesArray, Dat
 
     bool hasNested = false;
     for (int j = 0; j < node->blockCount() && !hasNested; ++j)
-      hasNested = strcmp(node->getBlock(j)->getBlockName(), "node") == 0;
+      hasNested = is_enabled_composit_node(*node->getBlock(j));
     if (hasNested)
       exportCompositNodes(*node, nodeObj->addNewBlock("nested:array"), out, mgr);
   }
@@ -4150,7 +4161,10 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_SHOW_ASSET_BACK_REFS:
       if (DagorAsset *asset = getAssetSelectorSelectedAsset())
       {
-        asset_back_reference_viewer_dialog.reset(new AssetBackReferenceViewer());
+        if (!AssetBackReferenceViewer::ensureAllAssetRefsCollected(*asset))
+          return 1;
+
+        asset_back_reference_viewer_dialog = eastl::make_unique<AssetBackReferenceViewer>();
         asset_back_reference_viewer_dialog->setAsset(asset);
         asset_back_reference_viewer_dialog->show();
       }

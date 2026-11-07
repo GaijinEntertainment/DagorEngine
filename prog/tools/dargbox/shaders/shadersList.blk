@@ -9,4 +9,5 @@
   file:t = "./source/menu_effect_darg.dshl"
   file:t = "./source/mverse_v4_interactive_darg.dshl"
   file:t = "./source/menu_effect_warm_darg.dshl"
+  include "../../../gameLibs/render/darg_fullscreen_background_shaders/_shaders.blk"
   file:t = "../../../gameLibs/render/shaders/debug_tex_overlay.dshl"

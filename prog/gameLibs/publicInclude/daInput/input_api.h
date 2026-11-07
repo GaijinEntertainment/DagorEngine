@@ -415,12 +415,11 @@ void mouse_btn_event_occurs(int64_t t_usec, int btn_id, bool pressed);
 void mouse_wheel_event_occurs(int64_t t_usec, int wheel_inc);
 //! notify dainput on mouse move event; an injected move (another device driving the pointer) does not count as mouse use
 void mouse_move_event_occurs(int64_t t_usec, float dx, float dy, int scr_x, int scr_y, bool injected = false);
-//! notify dainput on touch event (we need only touch begin event for switch control type)
-void touch_event_occurs(int64_t t_usec);
-//! notify dainput on gamepad event
+//! notify dainput on touch event (we need only touch begin event for switch control type);
+//! a touch on the touch pad of a gamepad counts as gamepad use, not as touch use
+void touch_event_occurs(int64_t t_usec, bool gamepad_touch_pad = false);
+//! notify dainput on the gamepad state of one poll; a joystick_delta action adds its axes once per call
 void gpad_change_event_occurs(int64_t t_usec, HumanInput::IGenJoystick *gamepad);
-//! notify dainput on joystick event
-void joy_change_event_occurs(int64_t t_usec, HumanInput::IGenJoystick *joy);
 //! notify dainput on regular tick
 void tick_event_occurs(int64_t t_usec);
 
@@ -476,6 +475,8 @@ float get_stick_dead_zone_scale(int stick_idx, bool main_dev);
 float get_stick_dead_zone_abs(int stick_idx, bool main_dev);
 //! reapply current deadzones (useful after device refresh)
 void reapply_stick_dead_zones();
+//! while suspended, devices apply no stick deadzone; the stored deadzones stay and apply again on resume
+void suspend_stick_dead_zones(bool suspend);
 
 //! enable/disable gyroscope in device
 void enable_gyroscope(bool enable, bool main_dev);

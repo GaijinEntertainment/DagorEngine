@@ -101,13 +101,19 @@ SQTable *SQTable::Clone()
     return nt;
 }
 
-SQTable *SQTable::CopyNodesResolvingWeakRefs()
+SQTable *SQTable::CopyForSpread(SQObjectFlags addedFlags)
 {
     SQTable *nt = CopyNodes();
     _HashNode *dst = nt->_nodes;
     for (_HashNode *dstE = dst + nt->_numofnodes_minus_one + 1; dst != dstE; dst++) {
-        if (!(sq_type(dst->key) & OT_FREE_TABLE_SLOT) && sq_type(dst->val) == OT_WEAKREF)
+        if (sq_type(dst->key) & OT_FREE_TABLE_SLOT)
+            continue;
+        if (sq_type(dst->val) == OT_WEAKREF)
             dst->val = _realval(dst->val);
+        if (addedFlags) {
+            dst->key._flags |= addedFlags;
+            dst->val._flags |= addedFlags;
+        }
     }
     return nt;
 }

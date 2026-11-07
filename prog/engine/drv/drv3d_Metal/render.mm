@@ -1495,18 +1495,9 @@ namespace drv3d_metal
     {
       if (MetalImageType(i) == MetalImageType::Tex2DDepth) // don't do this for depth
         continue;
-      void *ptr; int stride;
-      blank_tex[i]->lockimg(&ptr, stride, 0, TEXLOCK_WRITE);
-      memset(ptr, 0, stride);
-      blank_tex[i]->unlockimg();
-
-      blank_tex_rw[i]->lockimg(&ptr, stride, 0, TEXLOCK_WRITE);
-      memset(ptr, 0, stride);
-      blank_tex_rw[i]->unlockimg();
-
-      blank_tex_uint[i]->lockimg(&ptr, stride, 0, TEXLOCK_WRITE);
-      memset(ptr, 0, stride);
-      blank_tex_uint[i]->unlockimg();
+      clearTexture(blank_tex[i]);
+      clearTexture(blank_tex_rw[i]);
+      clearTexture(blank_tex_uint[i]);
     }
 
     backbuffer = new Texture(nil, [mainview hdrEnabled] ? TEXFMT_A2R10G10B10 : TEXFMT_A8R8G8B8, "backbuffer");
@@ -5126,8 +5117,9 @@ namespace drv3d_metal
   {
     checkRenderAcquired();
 
+    bool was_rgb_backbuffer = is_rgb_backbuffer;
     is_rgb_backbuffer = set;
-    return set;
+    return was_rgb_backbuffer;
   }
 
   int64_t Render::getQueryResult(Query* query, bool force_flush)

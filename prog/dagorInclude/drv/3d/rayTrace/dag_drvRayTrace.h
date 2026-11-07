@@ -1221,13 +1221,14 @@ struct ShaderBindingTableSubRange : ShaderBindingTableOffset
 /// Shader binding table set, it contains all the binding table data for all shader groups.
 struct ShaderBindingTableSet
 {
-  /// ray gen group binding table data.
+  /// ray gen group binding table data. Requires a valid binding table buffer.
   ShaderBindingTableOffset rayGenGroup;
-  /// miss group binding table data.
+  /// miss group binding table data. Requires a valid binding table buffer.
   ShaderBindingTableSubRange missGroup;
-  /// hit group binding table data.
+  /// hit group binding table data. Requires a valid binding table buffer.
   ShaderBindingTableSubRange hitGroup;
-  /// callable group binding table data.
+  /// callable group binding table data. Optional, set it only when shaders of the pipeline use callable shaders.
+  /// A null binding table buffer or a size of 0 leaves the group unbound.
   ShaderBindingTableSubRange callableGroup;
 };
 

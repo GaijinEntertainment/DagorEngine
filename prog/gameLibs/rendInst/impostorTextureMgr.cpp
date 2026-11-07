@@ -355,7 +355,7 @@ static void set_single_res_consts(const RenderableInstanceLodsResource *res)
 }
 
 void ImpostorTextureManager::render_slice_voxels(const TMatrix &view_to_world, float size_x, float size_y, float zn, float zf,
-  RenderableInstanceLodsResource *res, rendinst::RenderPass render_pass, int block_id, int lod)
+  RenderableInstanceLodsResource *res, rendinst::RenderPass render_pass, int block_id, int lod, const char *only_shader_name)
 {
   if (lod < 0)
     lod = res->getQlMinAllowedLod();
@@ -395,7 +395,7 @@ void ImpostorTextureManager::render_slice_voxels(const TMatrix &view_to_world, f
   rendinst::render::renderRIGenExtraFromBuffer(rendinstMatrixBuf.getBuf(), dag::ConstSpan<IPoint2>(&offsAndCnt, 1),
     dag::ConstSpan<uint16_t>(&riIdx, 1), dag::ConstSpan<uint32_t>(zeroLodOffsets, zeroLodCount), render_pass,
     rendinst::OptimizeDepthPass::No, rendinst::OptimizeDepthPrepass::No, rendinst::IgnoreOptimizationLimits::Yes,
-    rendinst::LayerFlag::Stages, nullptr, 1u, false, nullptr, nullptr, true);
+    rendinst::LayerFlag::Stages, nullptr, 1u, false, nullptr, nullptr, true, only_shader_name);
 
   if (treeCrownBufSlot >= 0)
     d3d::set_buffer(STAGE_PS, treeCrownBufSlot, nullptr);

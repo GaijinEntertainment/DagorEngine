@@ -323,6 +323,8 @@ static bool dumpDbldFields(BinDumpReader &crd, const char *outDir = NULL)
 }
 
 extern bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env);
+extern int checkDbldLmeshIdx16(IGenLoad &crd);
+extern int checkDbldCollSlivers(IGenLoad &crd);
 
 static void stderr_report_fatal_error(const char *, const char *msg, const char *call_stack)
 {
@@ -346,7 +348,14 @@ int DagorWinMain(bool debugmode)
            "       dbldUtil-dev.exe <platform_4CC> <inout.level.bin> -dump\n"
            "       dbldUtil-dev.exe <platform_4CC> <inout.level.bin> -dumpData:<out_dir>\n"
            "       dbldUtil-dev.exe <platform_4CC> <inout.level.bin> -stripGfx[:<out_stripped.bin]>\n"
-           "       dbldUtil-dev.exe <platform_4CC> <inout.level.bin> -deps:<env_config.blk>\n\n"
+           "       dbldUtil-dev.exe <platform_4CC> <inout.level.bin> -deps:<env_config.blk>\n"
+           "       dbldUtil-dev.exe <platform_4CC> <input.level.bin> -checkIdx16\n"
+           "         lists land mesh triangles that use the 16-bit cut index 0xFFFF;\n"
+           "         exit code 2 when the level needs a re-export\n"
+           "       dbldUtil-dev.exe <platform_4CC> <input.level.bin> -checkSlivers\n"
+           "         lists SCol/WCol collision sliver faces (apex under 0.1 mm off the longest edge, or (2*area)^2 <= 1e-12),\n"
+           "         which Jolt asserts on;\n"
+           "         exit code 2 when the level needs a re-export\n\n"
            "env_config.blk format:\n"
            "  root:t=\"...\"\n"
            "  vromfs { file:t=\"...\"; mnt:t=\"...\"; }...\n"
@@ -424,6 +433,24 @@ int DagorWinMain(bool debugmode)
     base_crd.close();
     FullFileSaveCB fcwr(strlen(__argv[3]) > 10 ? __argv[3] + 10 : __argv[2]);
     cwr.copyDataTo(fcwr);
+  }
+  else if (stricmp(__argv[3], "-checkIdx16") == 0)
+  {
+    if (read_be)
+    {
+      printf("ERROR: -checkIdx16 is not implemented for BE streams\n");
+      return 13;
+    }
+    return checkDbldLmeshIdx16(crd.getRawReader());
+  }
+  else if (stricmp(__argv[3], "-checkSlivers") == 0)
+  {
+    if (read_be)
+    {
+      printf("ERROR: -checkSlivers is not implemented for BE streams\n");
+      return 13;
+    }
+    return checkDbldCollSlivers(crd.getRawReader());
   }
   else if (strnicmp(__argv[3], "-deps:", 6) == 0)
   {

@@ -132,6 +132,7 @@ private:
   fft_water::ChopWaterProps genProps;
   Point2 windDir = Point2(1, 0);
   bool lazyInited = false;
+  bool firstUpdate = true;
 
   int pingPongIndex = 0;
 

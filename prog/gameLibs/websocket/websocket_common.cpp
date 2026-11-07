@@ -192,7 +192,7 @@ Error log_close_timeout(int timeout_ms)
 
 Error log_peer_close(PayloadView payload)
 {
-  // constraint: RFC 6455 5.5.1, optional status then reason
+  // RFC 6455 5.5.1, optional status then reason
   CloseStatusInt status = (CloseStatusInt)CloseStatus::NoStatusRcvd;
   eastl::string_view reason;
   if (payload.size() >= 2)

@@ -51,6 +51,7 @@ gamelibs = [
   "render_events",
   "pufd_events",
   "upscale_sampling",
+  "imgui_daeditor",
 ]
 
 import sys

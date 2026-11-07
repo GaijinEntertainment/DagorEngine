@@ -5,6 +5,7 @@
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 #include <util/dag_string.h>
+#include <memory/dag_framemem.h>
 #include <debug/dag_debug.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_roDataBlock.h>
@@ -100,7 +101,9 @@ void ShaderGlobal::set_vars_from_blk(const DataBlock &blk, bool loadTexures, boo
       case DataBlock::TYPE_E3DCOLOR:
       {
         saved_vars.emplace(name, ShaderGlobal::get_float4(id));
-        real mul = blk.getReal(String("__mul_") + blk.getParamName(i), 1.0f);
+        String mulName(framemem_ptr());
+        mulName.printf(0, "__mul_%s", blk.getParamName(i));
+        real mul = blk.getReal(mulName, 1.0f);
         Color4 v = color4(blk.getE3dcolor(i));
         v.r *= mul;
         v.g *= mul;
@@ -193,7 +196,9 @@ void ShaderGlobal::set_vars_from_blk(const RoDataBlock &blk)
       case RoDataBlock::TYPE_E3DCOLOR:
       {
         saved_vars.emplace(name, ShaderGlobal::get_float4(id));
-        real mul = blk.getReal(String("__mul_") + blk.getParamName(i), 1.0f);
+        String mulName(framemem_ptr());
+        mulName.printf(0, "__mul_%s", blk.getParamName(i));
+        real mul = blk.getReal(mulName, 1.0f);
         Color4 v = color4(blk.getE3dcolor(i));
         v.r *= mul;
         v.g *= mul;

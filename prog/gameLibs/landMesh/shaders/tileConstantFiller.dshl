@@ -5,6 +5,8 @@ shader tileConstantFiller
   supports global_frame;
   supports none;
 
+  PS4_DEF_TARGET_FMT_32_R()
+
   cull_mode  = none;
   z_test = false;        // D3DRS_ZFUNC = D3DCMP_ALWAYS
   z_write = false;
@@ -14,7 +16,7 @@ shader tileConstantFiller
     struct VsOutput
     {
       VS_OUT_POSITION(pos)
-      float4 color : TEXCOORD0;
+      uint data : TEXCOORD0;
     };
   }
 
@@ -27,19 +29,21 @@ shader tileConstantFiller
     texture_size_inv@f2 = (1.0 / get_viewport().zw);
   }
   hlsl(vs) {
-    VsOutput fill_constant_vs(int2 pos_wh : POSITION, float4 color:TEXCOORD0)
+    VsOutput fill_constant_vs(int2 pos_wh : POSITION, float4 data_norm:TEXCOORD0)
     {
       VsOutput output;
       float2 pos_screen = pos_wh.xy * texture_size_inv;
       output.pos = float4(pos_screen * YTWO + YMINONE, 1, 1);
-      output.color = float4(BGRA_SWIZZLE(color).rgb, 1);
+
+      uint4 data = uint4(BGRA_SWIZZLE(data_norm.zyxw) * 255.f + 0.5f);
+      output.data = dot(data << uint4(0, 8, 16, 24), 1u);
       return output;
     }
   }
   hlsl(ps) {
-    float4 fill_constant_ps(VsOutput input): SV_Target
+    uint fill_constant_ps(VsOutput input): SV_Target
     {
-      return input.color;
+      return input.data;
     }
   }
   compile("target_ps", "fill_constant_ps");

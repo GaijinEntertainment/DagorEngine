@@ -130,7 +130,7 @@ public:
   }
   constexpr bool anyOtherSet(uint32_t index) const { return 0 != (value & ~(1u << index)); }
   constexpr auto visit() const { return LsbVisitor{value}; }
-  constexpr uint32_t getRequiredCount() const { return 32 - __clz(static_cast<uint32_t>(value)); }
+  uint32_t getRequiredCount() const { return 32 - __clz(static_cast<uint32_t>(value)); }
   constexpr auto raw() const { return value; }
   operator DagorSafeArg() const { return {value}; }
 };

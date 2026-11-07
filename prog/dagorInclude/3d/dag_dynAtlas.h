@@ -27,7 +27,7 @@ public:
     enum
     {
       ST_restoring = 0x7FFDu,
-      ST_waitPictureFactoryFirstRender = 0x7FFEu,
+      ST_pendingRender = 0x7FFEu,
       ST_discarded = 0x7FFFu
     };
     float u0, v0, u1, v1;
@@ -37,7 +37,12 @@ public:
     uint16_t allocW;
     uint32_t lruFrame, hash;
 
+    // the rect holds the final picture, so the UI may draw it
     bool valid() const { return hash != 0 && (!persistent || dx < ST_restoring); }
+    // the rect is reserved for a factory render that has not run yet
+    bool isPendingRender() const { return persistent && hash != 0 && dx == ST_pendingRender; }
+    // the item owns a rect, drawn or not
+    bool isAllocated() const { return valid() || isPendingRender(); }
     void discard() { dx = ST_discarded; }
     bool scheduleRestoring()
     {
@@ -123,6 +128,19 @@ public:
   int getItemsCount() const { return itemData.size(); }
   int getItemsUsed() const { return itemData.size() - itemUu.size(); }
 
+  bool isRepackPending() const { return hasPendingRepack; }
+  uint32_t getRepackRequestFrame() const { return repackRequestFrame; }
+  void repack()
+  {
+    rbp::Rect r = {};
+    reArrangeAndAlloc(r, repackW, repackH);
+
+    if (r.width > 0 && r.height > 0)
+      binPack.freeUsedRect(r, true);
+
+    hasPendingRepack = false;
+  }
+
   const ItemData *findItem(unsigned hash, bool update_lru = true)
   {
     HashToIdx::iterator it = hash2idx.find(hash);
@@ -146,6 +164,9 @@ public:
 
   const ItemData *addItem(int bmin_x, int bmin_y, int bmax_x, int bmax_y, unsigned hash, int idx = -1, bool allow_discard = true)
   {
+    if (persistent && hasPendingRepack)
+      return NULL;
+
     int need_w = (bmax_x - bmin_x) + margin, need_h = (bmax_y - bmin_y) + margin;
     if (cornerResv == 4 && ((need_w % 4) || (need_h % 4)))
       return NULL;
@@ -158,7 +179,7 @@ public:
 
       rbp::Rect r_old;
       for (int i = 0; i < itemData.size(); i++)
-        if (i != idx && itemData[i].valid() && itemData[i].lruFrame + 3 < dagor_frame_no())
+        if (i != idx && itemData[i].isAllocated() && itemData[i].lruFrame + 3 < dagor_frame_no())
         {
           discardItem(i, r_old);
           if (r_old.width >= need_w && r_old.height >= need_h)
@@ -167,7 +188,7 @@ public:
 
       r = binPack.Insert(need_w, need_h, true, binPack.RectBestShortSideFit, binPack.SplitMinimizeArea, false);
       if ((r.width <= 0 || r.height <= 0) && persistent) // try to defragment
-        reArrangeAndAlloc(r, need_w, need_h);
+        requestRepack(need_w, need_h);
       if (r.width <= 0 || r.height <= 0)
         return NULL;
     }
@@ -210,7 +231,7 @@ public:
 
   void discardItem(int i, rbp::Rect &r_old)
   {
-    if (!itemData[i].valid())
+    if (!itemData[i].isAllocated())
       return;
     if (clear_discarded_cb)
       clear_discarded_cb(copy_left_top_margin_cb_arg, tex.first.getTex2D(), itemData[i], margin);
@@ -230,6 +251,7 @@ public:
   }
   void discardAllItems()
   {
+    hasPendingRepack = false;
     if (!persistent)
     {
       itemData.clear();
@@ -241,6 +263,13 @@ public:
         itemData[i].discard();
     binPack.Init(texSz.x, texSz.y);
     binPack.Insert(cornerResv, cornerResv, true, binPack.RectBestShortSideFit, binPack.SplitMinimizeArea, false);
+  }
+  void discardPendingRenderItems()
+  {
+    rbp::Rect r_old;
+    for (int i = 0; i < itemData.size(); i++)
+      if (itemData[i].isPendingRender())
+        discardItem(i, r_old);
   }
 
   const ItemData *addDirectItemOnly(unsigned hash, int x0, int y0, int w, int h, bool sched_for_load = false)
@@ -291,6 +320,42 @@ protected:
   int marginLtOfs = 0;
   int cornerResv = 2;
 
+  bool hasPendingRepack = false;
+  uint32_t repackRequestFrame = 0;
+  int repackW = 0, repackH = 0;
+
+  bool isRearrangeMeaningful(int need_w, int need_h, unsigned &used_area, unsigned &rect_num)
+  {
+    rect_num = 1;
+    used_area = need_w * need_h;
+    for (int i = 0; i < itemData.size(); i++)
+      if (itemData[i].isAllocated() && itemData[i].lruFrame + 3 >= dagor_frame_no())
+        used_area += (itemData[i].w + margin) * (itemData[i].h + margin), rect_num++;
+
+    if (used_area > texSz.x * texSz.y * 9 / 10)
+    {
+      debug("DynAtlas: %s: %d items will use %d%%, rearrange is meaningless", get_managed_texture_name(tex.first.getId()), rect_num,
+        used_area * 100 / (texSz.x * texSz.y));
+      return false;
+    }
+
+    return true;
+  }
+
+  void requestRepack(int need_w, int need_h)
+  {
+    unsigned used_area, rect_num;
+    if (!isRearrangeMeaningful(need_w, need_h, used_area, rect_num))
+      return;
+
+    hasPendingRepack = true;
+    repackRequestFrame = dagor_frame_no();
+    repackW = need_w;
+    repackH = need_h;
+    debug("DynAtlas: %s: rearrange requested for %dx%d (%d%% used) at frame %u", get_managed_texture_name(tex.first.getId()), need_w,
+      need_h, used_area * 100 / (texSz.x * texSz.y), repackRequestFrame);
+  }
+
   void initTc(ItemData &g, unsigned hash, bool update_lru = true)
   {
     g.u0 = g.x0 * invW;
@@ -307,16 +372,9 @@ protected:
     if (!persistent)
       return;
 
-    unsigned used_area = need_w * need_h, rect_num = 1;
-    for (int i = 0; i < itemData.size(); i++)
-      if (itemData[i].valid() && itemData[i].lruFrame + 3 >= dagor_frame_no())
-        used_area += (itemData[i].w + margin) * (itemData[i].h + margin), rect_num++;
-    if (used_area > texSz.x * texSz.y * 9 / 10)
-    {
-      logwarn("%s: %d items will use %d%%, rearrange is meaningless", get_managed_texture_name(tex.first.getId()), rect_num,
-        used_area * 100 / (texSz.x * texSz.y));
+    unsigned used_area, rect_num;
+    if (!isRearrangeMeaningful(need_w, need_h, used_area, rect_num))
       return;
-    }
 
     TextureInfo ti;
     Texture *t = tex.first.getTex2D();
@@ -339,14 +397,18 @@ protected:
       req.id = -1;
       src_rects.push_back(req);
     }
+    eastl::vector<int> pending_idx;
     for (int i = 0; i < itemData.size(); i++)
     {
       ItemData &g = itemData[i];
-      if (!g.valid())
+      if (!g.isAllocated())
         continue;
+      const bool pending = g.isPendingRender();
       g.discard();
       if (g.lruFrame + 3 < dagor_frame_no())
         continue;
+      if (pending)
+        pending_idx.push_back(i);
 
       rbp::RectSizeRequest req;
       req.width = g.w + margin;
@@ -355,7 +417,8 @@ protected:
       src_rects.push_back(req);
     }
 
-    logwarn("%s: rearrange atlas (%d items will use %d%%)", name, src_rects.size(), used_area * 100 / (texSz.x * texSz.y));
+    logwarn("%s: rearrange atlas (%d items will use %d%%) at frame %u, requested at %u", name, src_rects.size(),
+      used_area * 100 / (texSz.x * texSz.y), dagor_frame_no(), repackRequestFrame);
 
     binPack.Init(texSz.x, texSz.y);
     binPack.Insert(cornerResv, cornerResv, true, binPack.RectBestShortSideFit, binPack.SplitMinimizeArea, false);
@@ -392,6 +455,9 @@ protected:
       if (copy_left_top_margin_cb && !marginLtOfs && margin)
         copy_left_top_margin_cb(copy_left_top_margin_cb_arg, tmp_tex, g, margin);
     }
+    for (int i : pending_idx)
+      if (itemData[i].valid())
+        itemData[i].dx = ItemData::ST_pendingRender;
     logwarn("-> allocated %d rects, new_rect=%d,%d %dx%d", new_rects.size(), r.x, r.y, r.width, r.height);
 
     upd_ok = d3d::update_sub_region(tmp_tex, 0, 0, 0, 0, texSz.x, texSz.y, 1, t, 0, 0, 0, 0);
@@ -567,7 +633,7 @@ public:
       if (!d3d::get_event_query_status(writeCompeletionFence, false))
         return false;
 
-      if (!tex->lockimg((void **)&texturePtr, stride, 0, TEXLOCK_WRITE | TEXLOCK_RAWDATA))
+      if (!tex->lockimg((void **)&texturePtr, stride, 0, TEXLOCK_WRITE))
       {
         logerr("DynamicAtlasFencedTexUpdater can't lock texture");
         return false;

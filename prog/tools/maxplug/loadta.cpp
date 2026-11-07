@@ -194,6 +194,17 @@ static void error(const wchar_t *msg)
   throw StopParser();
 }
 
+static constexpr int64_t MAX_FRAMES = 100000;
+
+static void check_frame_count(size_t frames, int64_t more)
+{
+  if (more > MAX_FRAMES - int64_t(frames))
+  {
+    static const std::wstring msg = std::format(L"a .ta file holds at most {} frames", MAX_FRAMES);
+    error(msg.c_str());
+  }
+}
+
 static void skipcomm(char *&text, bool skipnl)
 {
   for (; *text;)
@@ -342,7 +353,8 @@ bool TexAnimFile::parse(char *text)
             ++text;
             break;
           }
-          int f1, f2, fs = 1;
+          int f1, f2;
+          int64_t fs = 1;
           if (!parse_int(text, &f1))
             error(L"expected integer number");
           f2 = f1;
@@ -360,9 +372,10 @@ bool TexAnimFile::parse(char *text)
           {
             ++text;
             skipcomm(text, true);
-            if (!parse_int(text, &fs))
+            int next;
+            if (!parse_int(text, &next))
               error(L"expected integer number");
-            fs = fs - f1;
+            fs = int64_t(next) - f1;
             if (fs == 0)
               error(L"frame step can't be zero");
             skipcomm(text, true);
@@ -372,7 +385,8 @@ bool TexAnimFile::parse(char *text)
             skipcomm(text, true);
             if (!parse_int(text, &f2))
               error(L"expected integer number");
-            if ((f2 - f1) * fs < 0)
+            const int64_t span = int64_t(f2) - f1;
+            if ((span < 0 && fs > 0) || (span > 0 && fs < 0))
               error(L"invalid frame step");
           }
           else if (*text == '*')
@@ -382,26 +396,17 @@ bool TexAnimFile::parse(char *text)
             int rep;
             if (!parse_int(text, &rep))
               error(L"expected integer number");
+            check_frame_count(frm.size(), rep);
             const std::string fn = format_frame_name(templ, f1);
             for (; rep > 0; --rep)
               add_frame(fn);
             continue;
           }
           else {}
-          for (int f = f1;; f += fs)
-          {
-            if (fs > 0)
-            {
-              if (f > f2)
-                break;
-            }
-            else
-            {
-              if (f < f2)
-                break;
-            }
-            add_frame(format_frame_name(templ, f));
-          }
+          const int64_t count = (int64_t(f2) - f1) / fs + 1;
+          check_frame_count(frm.size(), count);
+          for (int64_t i = 0; i < count; ++i)
+            add_frame(format_frame_name(templ, int(f1 + i * fs)));
         }
       }
       else
@@ -419,6 +424,7 @@ bool TexAnimFile::parse(char *text)
         if (text != p || !fn.empty())
         {
           fn.append(p, text - p);
+          check_frame_count(frm.size(), 1);
           add_frame(fn);
         }
       }

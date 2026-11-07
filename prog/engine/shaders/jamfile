@@ -6,6 +6,7 @@ Target      = engine/shaders.lib ;
 
 CamStub ?= yes ;
 ShaderVarsStub ?= no ;
+ShaderRenderPassStub ?= no ;
 
 Sources =
   shaderVariableInfo.cpp
@@ -14,7 +15,6 @@ Sources =
   renderStates.cpp
   shadersBinaryDataDbg2.cpp
   shaderBlock.cpp
-  shaderRenderPass.cpp
   globVarsBlk.cpp
   postFxRenderer.cpp
   shStateBlk.cpp
@@ -49,6 +49,7 @@ Sources =
   instShaderMeshRes.cpp
   matVdata.cpp
   matVdataLoad.cpp
+  shaderMeshlets.cpp
   voxelSurfaceData.cpp
   shaderMeshTexLoadCtrl.cpp
   computeShaders.cpp
@@ -75,6 +76,17 @@ if $(ShaderVarsStub) = no {
 } else {
   Sources +=
     shadersBinaryDataVarsStub.cpp
+  ;
+}
+
+if $(ShaderRenderPassStub) = mock {
+  if $(ShaderVarsStub) != mock { Exit ShaderRenderPassStub\=mock needs ShaderVarsStub\=mock ; }
+  Sources +=
+    shaderRenderPassMock.cpp
+  ;
+} else {
+  Sources +=
+    shaderRenderPass.cpp
   ;
 }
 

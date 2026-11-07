@@ -422,6 +422,7 @@ public:
     if (IRandomSeedHolder *irsh = e->queryInterface<IRandomSeedHolder>())
       seed = irsh->getSeed();
 
+    // enumLeaves() copies this sub-entity choice. Keep them in sync.
     for (int i = 0, j = 0; i < comp.size(); i++)
       if (!comp[i].empty())
       {
@@ -629,6 +630,7 @@ public:
     else
       rndseed = 0;
 
+    // enumLeaves() copies this tm calculation. Keep them in sync.
     const int cnt = comp.size();
     HierIter iter(beginInd, endInd);
     for (int i = 0, k = 0; i < cnt; i++)
@@ -1016,6 +1018,61 @@ public:
     return false;
   }
 
+  // Walks the tree as setTm() does, with the sub-entities that createSubEnt() chooses, but with no placement on collision
+  // or water. Returns false when a composit in the tree has require blocks, because this walk does not apply them.
+  bool enumLeaves(const TMatrix &tm, int rnd_seed, dag::FunctionRef<bool(IObjEntity &leaf, const TMatrix &tm)> leaf_cb)
+  {
+    if (!req.empty())
+      return false;
+
+    TMatrix stm(tm);
+    if (getQuantizeTm())
+    {
+      for (int i = 0; i < 9; ++i)
+        stm.array[i] = floorf(stm.array[i] * 256.0f) / 256.0f;
+      for (int i = 9; i < 12; ++i)
+        stm.array[i] = floorf(stm.array[i] * 32.0f) / 32.0f;
+    }
+
+    // As in createSubEnt(), selectEnt() advances its seed. As in setTm(), every generateNewTm() starts from rnd_seed.
+    int selectSeed = rnd_seed;
+    HierIter iter(beginInd, endInd);
+    for (int i = 0; i < comp.size(); i++)
+    {
+      iter.iterate(i, stm);
+      if (comp[i].type == DST_TYPE_MATRIX)
+      {
+        stm = iter.getTm() * comp[i].ctm();
+      }
+      else
+      {
+        generateNewTm(stm, i, rnd_seed);
+        stm = iter.getTm() * stm;
+      }
+
+      if (comp[i].empty())
+        continue;
+
+      IObjEntity *e = comp[i].selectEnt(selectSeed).ent;
+      if (CompositEntityPool *subPool = getVirtualEntPool(e))
+      {
+        if (!subPool->enumLeaves(stm, selectSeed, leaf_cb))
+          return false;
+      }
+      else if (e && !leaf_cb(*e, stm))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  static CompositEntityPool *getVirtualEntPool(IObjEntity *e)
+  {
+    return e && e->getAssetTypeId() == compositEntityClassId ? static_cast<VirtualCompositEntity *>(e)->getPool() : nullptr;
+  }
+
 protected:
   struct ObjCoordData
   {
@@ -1245,7 +1302,7 @@ protected:
   }
 
   void loadAssetData(const DataBlock &blk, unsigned &nextDataBlockId, const TMatrix &ptm = TMatrix::IDENT, bool need_generate = false,
-    bool set_perinst_seed0 = false)
+    bool set_perinst_seed0 = false, bool disabled = false)
   {
     int bi_pos = beginInd.size();
     beginInd.push_back(comp.size());
@@ -1272,18 +1329,22 @@ protected:
       if (!hasParamInSubtree(b))
         continue;
 
+      // A disabled node loads no assets but still uses up its IDs to stay in sync with the Composite Editor.
+      const bool nodeDisabled = disabled || b.getBool("disabled", false);
+
       TMatrix sztm(ptm);
 
       Component c;
       bool has_ent = false;
 
-      // process entity list
+      // Process entity list.
       bool hasName = false;
       for (int j = 0, nid = b.getNameId("name"); j < b.paramCount(); j++)
         if (b.getParamType(j) == DataBlock::TYPE_STRING && b.getParamNameId(j) == nid)
         {
           hasName = true;
-          if (loadAddEnt(c, b.getStr(j), 1, nextDataBlockId++))
+          const unsigned id = nextDataBlockId++;
+          if (!nodeDisabled && loadAddEnt(c, b.getStr(j), 1, id))
             has_ent = true;
         }
       // Composite Editor gives an ID to a node without a name too.
@@ -1291,8 +1352,20 @@ protected:
         nextDataBlockId++;
       for (int j = 0; j < b.blockCount(); j++)
         if (b.getBlock(j)->getBlockNameId() == ent_nid)
-          if (loadAddEnt(c, b.getBlock(j)->getStr("name", ""), b.getBlock(j)->getReal("weight", 1), nextDataBlockId++))
+        {
+          const unsigned id = nextDataBlockId++;
+          if (!nodeDisabled && loadAddEnt(c, b.getBlock(j)->getStr("name", ""), b.getBlock(j)->getReal("weight", 1), id))
             has_ent = true;
+        }
+
+      // A disabled node makes no component, so it cannot mark the pool as generated. Its subtree only counts IDs.
+      if (nodeDisabled)
+      {
+        if (b.blockCount())
+          loadAssetData(b, nextDataBlockId, ptm, false, false, true);
+        continue;
+      }
+
       for (int j = 0; j < b.blockCount(); j++)
         if (b.getBlock(j)->getBlockNameId() == spline_nid || b.getBlock(j)->getBlockNameId() == polygon_nid)
           if (ISplineGenService *splSrv = EDITORCORE->queryEditorInterface<ISplineGenService>())
@@ -1616,7 +1689,7 @@ void CompositEntity::setCompositPlaceTypeOverride(int placeType)
   pool->getPools()[poolIdx]->setCompositPlaceTypeOverride(placeTypeOverride = placeType, entIdx);
 }
 
-class CompositEntityManagementService : public IEditorService, public IObjEntityMgr
+class CompositEntityManagementService : public IEditorService, public IObjEntityMgr, public ICompositLeafEnumerator
 {
 public:
   CompositEntityManagementService() { compositEntityClassId = IDaEditor3Engine::get().getAssetTypeId("composit"); }
@@ -1663,6 +1736,7 @@ public:
   void *queryInterfacePtr(unsigned huid) override
   {
     RETURN_INTERFACE(huid, IObjEntityMgr);
+    RETURN_INTERFACE(huid, ICompositLeafEnumerator);
     return NULL;
   }
 
@@ -1696,7 +1770,7 @@ public:
       ent = new CompositEntity(compositEntityClassId);
 
     ent->initTm();
-    ent->rndSeed = 123;
+    ent->rndSeed = NEW_ENTITY_RND_SEED;
 
     cPool.addEntity(ent, pool_idx);
     // debug("create ent: %p", ent);
@@ -1729,6 +1803,19 @@ public:
     // debug("clone ent: %p", ent);
     return ent;
   }
+
+  // ICompositLeafEnumerator interface
+  bool enumCompositLeaves(const DagorAsset &asset, dag::FunctionRef<bool(IObjEntity &leaf, const TMatrix &tm)> leaf_cb) override
+  {
+    if (asset.getType() != compositEntityClassId)
+      return false;
+
+    CompositEntityPool *pool = CompositEntityPool::getVirtualEntPool(createEntity(asset, true));
+    // At the origin setTm() adds 0 to an auto seed, so a new entity keeps NEW_ENTITY_RND_SEED.
+    return pool && pool->enumLeaves(TMatrix::IDENT, NEW_ENTITY_RND_SEED, leaf_cb);
+  }
+
+  static constexpr int NEW_ENTITY_RND_SEED = 123;
 
 protected:
   MultiCompositEntityPool cPool;

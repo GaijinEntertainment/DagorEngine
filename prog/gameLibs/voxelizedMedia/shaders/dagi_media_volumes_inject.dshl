@@ -73,12 +73,16 @@ macro DAGI_MEDIA_VOLUMES(code)
     dagi_media_vol_grid_lt_sz@i4 = dagi_media_vol_grid_lt_sz;
     dagi_media_vol_grid_cell@f3 = dagi_media_vol_grid_cell;
     dagi_media_vol_atlas_grid@i4 = dagi_media_vol_atlas_grid;
-    dagi_media_vol_atlas@smp3d = dagi_media_vol_atlas;
+    dagi_media_vol_atlas@tex3d = dagi_media_vol_atlas;
     dagi_media_vol_instances@buf = dagi_media_vol_instances hlsl { ByteAddressBuffer dagi_media_vol_instances@buf; };
     dagi_media_vol_grid@buf = dagi_media_vol_grid hlsl { ByteAddressBuffer dagi_media_vol_grid@buf; };
     dagi_media_vol_grid_ix@buf = dagi_media_vol_grid_ix hlsl { ByteAddressBuffer dagi_media_vol_grid_ix@buf; };
     dagi_media_vol_types@buf = dagi_media_vol_types hlsl { StructuredBuffer<float4> dagi_media_vol_types@buf; };
     dagi_media_vol_albedo@buf = dagi_media_vol_albedo hlsl { ByteAddressBuffer dagi_media_vol_albedo@buf; };
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
+  hlsl(code) {
+    #define dagi_media_vol_atlas_samplerstate global_linear_wrap_sampler
   }
   hlsl(code) {
     #include "dagi_media_volumes.hlsli"

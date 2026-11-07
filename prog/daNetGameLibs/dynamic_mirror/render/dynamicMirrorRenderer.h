@@ -21,7 +21,6 @@ MIRROR_VARS_LIST
 class DynamicRenderableSceneInstance;
 struct RiGenVisibility;
 class TexStreamingContext;
-struct SkiesData;
 
 struct AnimcharMirrorData
 {
@@ -42,12 +41,6 @@ public:
 
   DynamicMirrorRenderer(const DynamicMirrorRenderer &) = delete;
   DynamicMirrorRenderer &operator=(const DynamicMirrorRenderer &) = delete;
-
-  struct MirrorData
-  {
-    int rendAnimcharNodeId = 0;
-    BSphere3 boundingSphere = {};
-  };
 
   struct CameraData
   {
@@ -74,7 +67,7 @@ public:
   [[nodiscard]] bool hasMirrorSet() const;
   [[nodiscard]] const AnimcharMirrorData *getAnimcharMirrorData() const { return hasCameraData ? &animcharMirrorData : nullptr; }
 
-  [[nodiscard]] const dag::Vector<MirrorData> &getMirrors() const { return mirrors; }
+  [[nodiscard]] bool hasMirrors() const { return mirrorNodesFound; }
 
   [[nodiscard]] RiGenVisibility *getVisibility() const { return riVisibility; }
   [[nodiscard]] const CameraData *getCameraData() const { return hasMirrorSet() && hasCameraData ? &currentCameraData : nullptr; }
@@ -82,7 +75,7 @@ public:
   void prepareMirrorRIVisibilityAsync(int texture_height);
   void waitStaticsVisibility();
 
-  void prepareCameraData(const TMatrix &view_itm, const Driver3dPerspective &persp, const Plane3 &mirror_plane);
+  void prepareCameraData(const TMatrix &view_itm, const Driver3dPerspective &persp, const Plane3 &mirror_plane, float znear_bias);
   void clearCameraData();
 
   // This is set from the rendering code and meant to be read by the ECS handlers:
@@ -91,15 +84,12 @@ public:
   IPoint2 getLatestResolution() const { return latestResolution; }
   void setLatestResolution(const IPoint2 &resolution) { latestResolution = resolution; }
 
-  SkiesData *getSkiesData() { return skiesData; }
-
 private:
   bool initialized = false;
   RiGenVisibility *riVisibility = nullptr;
-  SkiesData *skiesData = nullptr;
 
   ecs::EntityId mirrorEntityId = {};
-  dag::Vector<MirrorData> mirrors;
+  bool mirrorNodesFound = false;
   AnimcharMirrorData animcharMirrorData;
   IPoint2 latestResolution = IPoint2(0, 0);
 
@@ -107,7 +97,7 @@ private:
   CameraData currentCameraData;
 
   [[nodiscard]] static CameraData get_common_camera_data(
-    const TMatrix &view_itm, const Driver3dPerspective &persp, const Plane3 &mirror_plane);
+    const TMatrix &view_itm, const Driver3dPerspective &persp, const Plane3 &mirror_plane, float znear_bias);
 };
 
 void render_dynamic_mirrors(const DPoint3 &main_camera_pos,

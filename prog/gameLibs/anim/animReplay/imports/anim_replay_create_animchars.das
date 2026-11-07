@@ -40,6 +40,8 @@ def schedule_animchars_creation(var animchars_data : Array)
   if animchars_to_create != 0
     logerr("Some animchars are already scheduled for creation ({animchars_to_create})")
   animchars_to_create = length(animchars_data)
+  if animchars_to_create == 0
+    broadcastEvent(AnimReplayAnimcharsCreated())
   for animchar in animchars_data
     assume animcharData = *getRW_ecs_object(animchar)
     if has(animcharData, "parentAnimcharIdx")

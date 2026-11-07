@@ -1,13 +1,16 @@
 // Quirrel module under test: dagor.localize (registered by localization.cpp)
-// No localization tables are loaded in csq-dev, so loc() falls back to the
+// Until section 9 no localization table is loaded, so loc() falls back to the
 // provided default or the key, with the params appended to the key as
 // "key: name=value, ...". We exercise that documented passthrough plus
 // language metadata getters.
 
-// getLangId is bound but dereferences a null locTable when no .csv is loaded
-// (and csq-dev never loads one), so it is not exercised here.
-from "dagor.localize" import loc, getLocTextForLang, processHypenationsCN, processHypenationsJP,
-  doesLocTextExist, getCurrentLanguage, getForceLanguage
+import "DataBlock" as DataBlock
+from "dagor.fs" import write_text_to_file, remove_file
+
+// require, not import: the tests check the natives at run time. A folded call runs at
+// compile time, before initLocalization, and a folded call that throws fails the compile.
+let { loc, getLocTextForLang, processHypenationsCN, processHypenationsJP,
+  doesLocTextExist, getCurrentLanguage, getForceLanguage, initLocalization } = require("dagor.localize")
 
 
 // ============================================================
@@ -107,7 +110,7 @@ println("--- Section 7: incorrect input ---")
 
 local threw = false
 try {
-  loc(123)
+  let _ = loc(123)
 } catch (e) {
   threw = true
 }
@@ -115,7 +118,7 @@ try {
 
 threw = false
 try {
-  doesLocTextExist(123)
+  let _ = doesLocTextExist(123)
 } catch (e) {
   threw = true
 }
@@ -123,7 +126,7 @@ assert(threw, "doesLocTextExist with non-string must throw")
 
 threw = false
 try {
-  getLocTextForLang(123, "english")
+  let _ = getLocTextForLang(123, "english")
 } catch (e) {
   threw = true
 }
@@ -131,7 +134,7 @@ try {
 
 threw = false
 try {
-  loc("definitely/missing/key", 123)
+  let _ = loc("definitely/missing/key", 123)
 } catch (e) {
   threw = true
 }
@@ -155,6 +158,43 @@ let r8empty = loc("", {count = 3})
 assert(r8empty == "", $"empty key stays empty: {r8empty}")
 
 println("Section 8 PASSED")
+
+
+// ============================================================
+// Section 9: getLocTextForLang uses the plural rules of the text language
+// ============================================================
+println("--- Section 9: getLocTextForLang uses the plural rules of the text language ---")
+
+let csvName = "_loc_for_lang_test.csv"
+write_text_to_file(csvName, "\r\n".join([
+  "\"<ID|readonly|noverify>\";\"<English>\";\"<Russian>\""
+  "\"apples\";\"{n=en_one/en_other}\";\"{n=ru_one/ru_few/ru_many}\"" //-forgot-subst
+  ""
+]))
+let locBlk = DataBlock()
+locBlk.addNewBlock("locTable").addStr("file", csvName)
+locBlk.addNewBlock("locTableFull").addStr("file", csvName)
+let langsBlk = locBlk.addNewBlock("text_translation")
+langsBlk.addStr("lang", "English")
+langsBlk.addStr("lang", "Russian")
+initLocalization(locBlk, "English")
+
+let r9cur = loc("apples", {n = 5})
+let r9en = getLocTextForLang("apples", "English", {n = 5})
+let r9ru5 = getLocTextForLang("apples", "Russian", {n = 5})
+let r9ru2 = getLocTextForLang("apples", "Russian", {n = 2})
+let r9def = getLocTextForLang("definitely/missing/key", "Russian", "{n=one/other/third}", {n = 5}) //-forgot-subst
+
+initLocalization(DataBlock())
+remove_file(csvName)
+
+assert(r9cur == "en_other", $"loc uses the current language rules: {r9cur}")
+assert(r9en == "en_other", $"english text uses english rules: {r9en}")
+assert(r9ru5 == "ru_many", $"russian text uses russian rules for 5: {r9ru5}")
+assert(r9ru2 == "ru_few", $"russian text uses russian rules for 2: {r9ru2}")
+assert(r9def == "other", $"default text uses the current language rules: {r9def}")
+
+println("Section 9 PASSED")
 
 
 println("ALL TESTS PASSED")

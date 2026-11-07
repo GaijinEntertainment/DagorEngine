@@ -54,13 +54,30 @@ enum
   FEEDBACK_DEFAULT_HEIGHT = 192
 };
 
+struct CacheCoords
+{
+  uint8_t x = 0, y = 0;
+
+  CacheCoords() = default;
+  CacheCoords(int X, int Y) : x(X), y(Y) {}
+
+  uint16_t pack() const { return ((uint16_t)y << 8) | (uint16_t)x; }
+
+  // for error stats
+  bool operator==(const CacheCoords &other) const { return x == other.x && y == other.y; }
+};
+
 class ClipmapRenderer
 {
 public:
   virtual void startRenderTiles(const Point2 &center) = 0;
-  virtual void renderTile(const BBox2 &region) = 0;
+  virtual uint32_t renderClipmapTile(const BBox2 &region, const CacheCoords &cachecoords,
+    int totalMipLevel /*-1 for fallback pages*/) = 0;
   virtual void endRenderTiles() = 0;
+  virtual void discardTile(const CacheCoords &) {} // Callback when a tile (not fallback) is discarded. Does NOT cover close
+                                                   // (destruction) or re-init (initVirtualTexture) scenarios.
   virtual void renderFeedback(const TMatrix4 &) { G_ASSERT(0); }
+  virtual uint32_t getTagClearValue() { return 0; }
 };
 
 struct FeedbackProperties
@@ -124,7 +141,7 @@ public:
   static bool is_uav_supported();
 
   void initVirtualTexture(int cacheDimX, int cacheDimY, int tex_tile_size, int virtual_texture_mip_cnt, int virtual_texture_anisotropy,
-    float maxEffectiveTargetResolution);
+    float maxEffectiveTargetResolution, bool enable_18bit_tags);
   void closeVirtualTexture();
 
   dafg::NodeHandle createPrepareRenderNode(ClipmapPrepareRenderCb prepare_render_cb);
@@ -139,6 +156,7 @@ public:
   int getCurrentTexMips() const;
   void setMaxTileUpdateCount(int count);
   int getZoom() const;
+  int getZoomShift() const;
   float getPixelRatio() const;
 
   void setMaxTexMips(int tex_mips);
@@ -213,6 +231,7 @@ public:
   // Returns true on success
   // Returned false means that changing anisotropy without complete clipmap reinit (init + createCaches) is not possible
   bool setAnisotropy(int anisotropy);
+  float getTileEffectiveRegionCoeff();
 
   void beforeReset();
   void afterReset();
@@ -240,6 +259,7 @@ public:
     Disable,
     FeedbackResponse,
     TilesColoring,
+    TagsColoring
   };
   void setDebugColorMode(DebugMode mode);
 

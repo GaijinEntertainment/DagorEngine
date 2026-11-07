@@ -150,10 +150,8 @@ public:
   {
     OSSpinlockScopedLock stateLock{get_state_guard()};
 
-    for (auto &&s : state.samplerTable)
-    {
-      clb(s);
-    }
+    for (uint32_t i = 0; i < state.samplerTableAllocated; ++i)
+      clb(state.samplerTable[i]);
   }
 
   void completeFrameRecording(DeviceContext &ctx);
@@ -215,12 +213,11 @@ public:
   // all regular SRV and UAV descriptors where pushed and migrated to the active heap.
   // This will then write the current bindless heap revision to the active descriptor heap.
   void pushToResourceHeap(D3DDevice *device, ShaderResourceViewDescriptorHeapManager &target);
+  // When true, wait for the last submit of target and clear its submitted set before pushToResourceHeap.
+  bool wouldOverwriteSubmittedResourceHeaps(const ShaderResourceViewDescriptorHeapManager &target) const;
 
   void setSamplerDescriptor(D3DDevice *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
   void pushToSamplerHeaps(D3DDevice *device, SamplerDescriptorHeapManager &target);
-
-  uint32_t getResourceDescriptorCount() const { return resourceDescriptorSize; }
-  uint32_t getResourceDescriptorRevision() const { return resourceDescriptorHeapRevision; }
 };
 } // namespace backend
 } // namespace drv3d_dx12

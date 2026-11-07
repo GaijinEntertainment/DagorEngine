@@ -31,8 +31,8 @@ class BhvProcessPointingInput : public darg::Behavior
 public:
   BhvProcessPointingInput();
 
-  virtual int pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int btn_id,
-    Point2 pos, int accum_res) override;
+  virtual int pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource touch_src, InputEvent event,
+    int pointer_id, int btn_id, Point2 pos, int accum_res) override;
 };
 
 

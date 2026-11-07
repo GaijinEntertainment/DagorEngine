@@ -79,7 +79,7 @@ public:
     }
     void Finalize();
     SQTable *Clone();
-    SQTable *CopyNodesResolvingWeakRefs();
+    SQTable *CopyForSpread(SQObjectFlags addedFlags);
     ~SQTable()
     {
         uint32_t cnt = _numofnodes_minus_one + 1;
@@ -158,6 +158,16 @@ public:
     //returns true if a new slot has been created false if it was already present
     bool NewSlot(const SQObjectPtr &key,const SQObjectPtr &val  VT_DECL_ARG_DEF);
     SQInteger Next(bool getweakrefs,const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObjectPtr &outval);
+    template <typename F>
+    void ForEachSlot(F f) const
+    {
+        for (uint32_t i = 0; i <= _numofnodes_minus_one; i++)
+        {
+            const _HashNode &n = _nodes[i];
+            if (!(sq_type(n.key) & OT_FREE_TABLE_SLOT))
+                f(n.key, _realval(n.val));
+        }
+    }
 
     SQInteger CountUsed(){ return _usednodes;}
     SQInteger AllocatedNodes(){ return _numofnodes_minus_one + 1; }

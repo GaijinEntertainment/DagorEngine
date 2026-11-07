@@ -161,7 +161,7 @@ void KdopProcessing::renderKdop(bool is_faded)
   set_cached_debug_lines_wtm(TMatrix::IDENT);
   for (int i = 0; i < kdops.size(); ++i)
   {
-    drawKdop(kdops[i], is_faded, E3DCOLOR(colors[(i) % (sizeof(colors) / sizeof(colors[0]))]));
+    drawKdop(kdops[i], is_faded, collision_node_color(i));
   }
 
   if (showKdop && !selectedKdop.vertices.empty())

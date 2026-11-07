@@ -1,0 +1,52 @@
+WARNING: w348 (discarded-nodiscard) The result of 'mkLoadout' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_import.nut:6:0
+
+mkLoadout(3)                  //warning:discarded-nodiscard
+^-----------
+loadouts.mkLoadout(3)         //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'mkLoadout' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_import.nut:7:0
+
+mkLoadout(3)                  //warning:discarded-nodiscard
+loadouts.mkLoadout(3)         //warning:discarded-nodiscard
+^--------------------
+local mkAlias = mkLoadout
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'mkAlias' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_import.nut:9:0
+
+local mkAlias = mkLoadout
+mkAlias(3);                   //warning:discarded-nodiscard
+^---------
+(mkLoadout(3))                //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'mkLoadout' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_import.nut:10:1
+
+mkAlias(3);                   //warning:discarded-nodiscard
+(mkLoadout(3))                //warning:discarded-nodiscard
+ ^-----------
+slotsOf([])                   //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'slotsOf' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_import.nut:11:0
+
+(mkLoadout(3))                //warning:discarded-nodiscard
+slotsOf([])                   //warning:discarded-nodiscard
+^----------
+mkSpareLoadout(3)
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'map' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard_import.nut:14:0
+
+loadouts.mkSpareLoadout(3)
+loadouts.slots.map(@(v) v)    //warning:discarded-nodiscard
+^-------------------------
+
+

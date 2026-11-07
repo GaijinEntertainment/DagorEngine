@@ -40,11 +40,8 @@
 #else
 KRNLIMP extern uint64_t dgs_main_thread_affinity;
 #define MAIN_THREAD_AFFINITY dgs_main_thread_affinity
-#define RESERVED_FOR_MAIN_HT                                                                                            \
-  (cpujobs::get_core_count() >= 8 ? ((1ull << (__ctz_unsafe(dgs_main_thread_affinity) + 1)) | dgs_main_thread_affinity) \
-                                  : MAIN_THREAD_AFFINITY)
 #define WORKER_THREADS_AFFINITY_USE \
-  (cpujobs::get_core_count() >= 3 ? ~RESERVED_FOR_MAIN_HT : ~0ull) // All but reserved for the main thread.
+  (cpujobs::get_core_count() >= 3 ? ~MAIN_THREAD_AFFINITY : ~0ull) // All but reserved for the main thread.
 #define NUM_WORKERS_DEFAULT                                            \
   min(cpujobs::get_core_count() >= 8   ? cpujobs::get_core_count() - 3 \
       : cpujobs::get_core_count() >= 6 ? cpujobs::get_core_count() - 2 \
@@ -52,6 +49,9 @@ KRNLIMP extern uint64_t dgs_main_thread_affinity;
                                        : 1,                            \
     8)
 #endif
+
+// Main and d3d driver worker: +2 on 4+ cores (one step above the thread pool workers), else default
+#define MAIN_THREAD_PRIORITY (cpujobs::DEFAULT_THREAD_PRIORITY + (cpujobs::get_core_count() >= 4 ? 2 : 0))
 
 // Usage example:
 //
@@ -132,6 +132,8 @@ public:
   KRNLIMP static const char *getCurrentThreadName();
   KRNLIMP static bool applyThisThreadPriority(int prio, const char *name = nullptr);
   KRNLIMP static void applyThisThreadAffinity(uint64_t affinity);
+  // No +1/+2 on wake (Windows, Xbox) where MAIN_THREAD_PRIORITY is raised; every DaThread and cpujobs thread calls it
+  KRNLIMP static void disableThisThreadPriorityBoost();
 #if _TARGET_PC | _TARGET_XBOX
   KRNLIMP static bool isDaThreadWinUnsafe(uintptr_t thread_id, bool &minidump_save_stack); // no lock
 #endif

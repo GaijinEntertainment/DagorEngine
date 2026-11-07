@@ -1262,7 +1262,6 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
   cells.resize(mapx0, mapy0, mapx1, mapy1, meshCellSize);
 
   Tab<Mesh *> meshes(tmpmem);
-  Bitarray should_collide(tmpmem);
   Tab<StaticGeometryNode *> nodes(tmpmem);
   Tab<SmallTab<LandMeshCombinedMat, TmpmemAlloc>> matUsed(tmpmem);
   Tab<bool> shouldRemoveUndegroundFaces(tmpmem);
@@ -1285,11 +1284,8 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
     // DEBUG_DUMP_VAR(geomLoftBelowAll);
     if (geomLoftBelowAll)
     {
-      int oldCount = should_collide.size();
       // debug("%s.gatherStaticVisualGeometry", self->getInternalName());
       self->gatherStaticVisualGeometry(*geoCont);
-      should_collide.resize(geoCont->nodes.size() + 1);
-      should_collide.set(oldCount, should_collide.size() - oldCount, 0);
     }
     for (int i = 0; i < DAGORED2->getPluginCount(); ++i)
     {
@@ -1301,19 +1297,9 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
         continue;
       if (geomLoftBelowAll && plugin == self)
         continue;
-      int oldCount = should_collide.size();
 
       // debug("%s.gatherStaticVisualGeometry", plugin->getInternalName());
       geom->gatherStaticVisualGeometry(*geoCont);
-      should_collide.resize(geoCont->nodes.size() + 1);
-
-      unsigned v = 0;
-      if (stricmp(plugin->getInternalName(), "_prefabEntMgr") == 0)
-      {
-        con.addMessage(ILogWriter::REMARK, "adding only %s to collision", (const char *)plugin->getInternalName());
-        v = 1;
-      }
-      should_collide.set(oldCount, should_collide.size() - oldCount, v);
     }
     con.endProgress();
     meshes.reserve(geoCont->nodes.size() + 1);
@@ -1451,9 +1437,6 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
     if (!meshes[mi])
       continue;
     totalAllFaces += meshes[mi]->face.size();
-    // if (!meshes[mi] ||
-    //   (nodes[mi] && !(nodes[mi]->flags&StaticGeometryNode::FLG_COLLIDABLE && should_collide[mi])))
-    //   continue;
     totalVerts += meshes[mi]->vert.size();
     totalFaces += meshes[mi]->face.size();
   }

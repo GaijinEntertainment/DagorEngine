@@ -2,20 +2,13 @@ include "shader_global.dshl"
 include "viewVecVS.dshl"
 include "vr_reprojection.dshl"
 include "flexible_scale_rasterization.dshl"
+include "globtm_no_ofs.dshl"
 
 float object_reflection_distortion = 0.05;
 float water_reflection_normal_scale = 0.1; // when increasing test on high storminess
 float water_reflection_hdr_multiplier = 1;
 float temporal_aa = 0;
 
-float4 globtm_no_ofs_psf_0;
-float4 globtm_no_ofs_psf_1;
-float4 globtm_no_ofs_psf_2;
-float4 globtm_no_ofs_psf_3;
-float4 prev_globtm_no_ofs_psf_0;
-float4 prev_globtm_no_ofs_psf_1;
-float4 prev_globtm_no_ofs_psf_2;
-float4 prev_globtm_no_ofs_psf_3;
 float4 reprojected_world_view_pos;
 
 texture with_water_depth_tex;
@@ -61,7 +54,8 @@ macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
     #include "fftWater/chop_water_reflections.hlsli"
     #define water_downsampled_normals_samplerstate global_linear_wrap_sampler
     #define prev_refl_tex_load_samplerstate global_point_clamp_sampler
-    void getReflectionReprojection(float2 distortedTc, float2 fullResTexSize, float3 cameraToPoint, float worldDist, float ssrDepth, float4 newTarget, int mipLevel, out float4 prevTarget, out float weight)
+    #define prev_water_mask_samplerstate global_point_clamp_sampler
+    void getReflectionReprojection(float2 distortedTc, float3 cameraToPoint, float worldDist, float ssrDepth, float4 newTarget, int mipLevel, out float4 prevTarget, out float weight)
     {
       float4 reprojectedWorldPos = reprojected_world_view_pos;
       float3 prevViewVec = cameraToPoint;
@@ -85,7 +79,7 @@ macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
 
         if (water_mask_exists)
         {
-          float prevIsWater = prev_water_mask[oldUv * fullResTexSize].x;
+          float prevIsWater = tex2Dlod(prev_water_mask, float4(oldUv, 0, 0)).x;
           disocclusionFactor = prevIsWater;
         }
 

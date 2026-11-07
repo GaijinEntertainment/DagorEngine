@@ -97,7 +97,7 @@ public:
   BaseTex(D3DResourceType type, uint32_t cflg, ResourceTagType tg);
 
   /// ->>
-  void setReadStencil(bool on) override { setIsSampleStencil(on && getFormat().isStencil()); }
+  void setReadStencil(bool on) override;
   D3DResourceType getType() const override { return type; }
   uint32_t getSize() const override;
   int getinfo(TextureInfo &ti, int level = 0) const override;

@@ -230,7 +230,9 @@ static bool prepare_file_impl(const char *path, write_stream_t &fpout, int lev_b
     return false;
   if (DAGOR_UNLIKELY(interlocked_compare_exchange_ptr(fpout, fp, (write_stream_t)NULL)))
   { // transaction failed, some other thread managed to write it first
-    write_stream_close(fp);
+    // a std stream must stay open
+    if (fp != file2stream(stdout) && fp != file2stream(stderr))
+      write_stream_close(fp);
     return true;
   }
   if (debug_internal::append_files && debug_internal::append_files_stage > 0)
@@ -349,7 +351,7 @@ void debug_internal::vlog(int lev, const char *fmt, const void *arg, int anum)
     return;
 
   const int lc = ((uint32_t)lev <= LOGLEVEL_REMARK) ? debug_internal::stdTags[lev] : lev; // -V781
-  const int extraLc = (lev == _MAKE4C('D3DE')) ? debug_internal::stdTags[LOGLEVEL_ERR] : 0;
+  const int extraLc = (lev == LOGTAG_D3D_ERROR) ? debug_internal::stdTags[LOGLEVEL_ERR] : 0;
   bool term = !(&dbg_ctx)->holdLine;
 
   bool &lastHoldLine = (&dbg_ctx)->lastHoldLine;

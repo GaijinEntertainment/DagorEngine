@@ -89,18 +89,34 @@ ProcessedAdditionalProbe processAdditionalProbe(DecodedProbe additionalProbe, ui
 #include "sp_upsample_weights_inc.hlsl"
 #undef UseBufferInfo
 
-UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInfo, UpsamplePointInfo pointInfo, float depth_exp = -100, bool processAdditional = true)
+UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInfo, UpsamplePointInfo pointInfo, float depth_exp = -100, bool processAdditional = true, bool anchored = false)
 {
-  float2 probeCoord2DF = pointInfo.screenCoord.xy*vInfo.screenspace_probe_screen_coord_to_probe_coord.x + vInfo.screenspace_probe_screen_coord_to_probe_coord.y;
-  // max after min is used to avoid uint2(-2.0f) conversion, which can lead to gpu hang later on memory access
-  uint2 probeCoord2D = uint2(max(min(probeCoord2DF, vInfo.screenspace_probe_res.xy - 2), 0));
-  //uint2 probeCoord2D = uint2(max(probeCoord2DF, 0));
-  float2 probeCoordFract = saturate(probeCoord2DF - float2(probeCoord2D));
-  //bilinear weights enhanced a bit, to avoid being 0
-  if (pointInfo.bilinearExpand)//fixme: can be made two madd
-    probeCoordFract = saturate((pointInfo.screenCoord.xy - ((probeCoord2D+0.5)*vInfo.screenspace_probe_res.z+0.5) + pointInfo.bilinearExpand)/(vInfo.screenspace_probe_res.z + 2*pointInfo.bilinearExpand));
+  uint tileSize = uint(vInfo.screenspace_probe_res.z);
+  uint2 probeCoord2D;
+  float4 bilWeights = 0;
+  if (anchored)
+  {
+    uint2 pointTile = min(uint2(max(pointInfo.screenCoord, 0))/tileSize, uint2(vInfo.screenspace_probe_res.xy - 1));
+    uint pointTileIndex = pointTile.x + vInfo.screenspace_probe_res.x*pointTile.y;
+    uint2 pointTileOfs = tileSize/2;
+    if (sp_loadEncodedProbe(srvInfo.posBuffer, pointTileIndex))
+      pointTileOfs = decodeCoordOfs(sp_loadEncodedProbeNormalCoord(srvInfo.posBuffer, pointTileIndex, vInfo.screenspace_probes_count__added__total.z));
+    float2 pointTileAnchor = float2(pointTile*tileSize + pointTileOfs) + 0.5;
+    probeCoord2D = uint2(max(min(int2(pointTile) - int2(pointInfo.screenCoord < pointTileAnchor), vInfo.screenspace_probe_res.xy - 2), 0));
+  }
+  else
+  {
+    float2 probeCoord2DF = pointInfo.screenCoord.xy*vInfo.screenspace_probe_screen_coord_to_probe_coord.x + vInfo.screenspace_probe_screen_coord_to_probe_coord.y;
+    // max after min is used to avoid uint2(-2.0f) conversion, which can lead to gpu hang later on memory access
+    probeCoord2D = uint2(max(min(probeCoord2DF, vInfo.screenspace_probe_res.xy - 2), 0));
+    //uint2 probeCoord2D = uint2(max(probeCoord2DF, 0));
+    float2 probeCoordFract = saturate(probeCoord2DF - float2(probeCoord2D));
+    //bilinear weights enhanced a bit, to avoid being 0
+    if (pointInfo.bilinearExpand)//fixme: can be made two madd
+      probeCoordFract = saturate((pointInfo.screenCoord.xy - ((probeCoord2D+0.5)*vInfo.screenspace_probe_res.z+0.5) + pointInfo.bilinearExpand)/(vInfo.screenspace_probe_res.z + 2*pointInfo.bilinearExpand));
+    bilWeights = max(1e-3, float4(1-probeCoordFract, probeCoordFract));
+  }
 
-  float4 bilWeights = max(1e-3, float4(1-probeCoordFract, probeCoordFract));
   float4 scenePlane = float4(pointInfo.worldNormal, dot(pointInfo.camPos, pointInfo.worldNormal)) / pointInfo.sceneLinearDepth;
   #if DEPTH_ONLY_WEIGHTENING
   scenePlane = -float4(vInfo.view_z, dot(pointInfo.camPos, vInfo.view_z)) / pointInfo.sceneLinearDepth;
@@ -115,11 +131,13 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
 
   uint4 encodedScreenProbes = load_encoded_screen_probes(srvInfo, probeCoord2D, vInfo.screenspace_probe_res.x);
 
+  float2 cornerAnchor[4];
   UNROLL
   for (uint i = 0; i < 4; ++i)
   {
     uint2 coordOffset = uint2(i&1, (i&2)>>1);
     uint2 sampleProbeCoord = coordOffset + probeCoord2D;
+    cornerAnchor[i] = float2(sampleProbeCoord*tileSize + tileSize/2) + 0.5;
     uint2 atlasSampleProbeCoord = sampleProbeCoord;
     uint screenProbeIndex = sampleProbeCoord.x + vInfo.screenspace_probe_res.x*sampleProbeCoord.y;
     uint encodedProbe = encodedScreenProbes[i];
@@ -130,6 +148,7 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
     {
       DecodedProbe baseProbe = sp_decodeProbeInfo(encodedProbe);
       uint2 cornerCoordOfs = decodeCoordOfs(sp_loadEncodedProbeNormalCoord(srvInfo.posBuffer, screenProbeIndex, vInfo.screenspace_probes_count__added__total.z));
+      cornerAnchor[i] = float2(sampleProbeCoord*tileSize + cornerCoordOfs) + 0.5;
       float3 probeCamPos = baseProbe.normalizedW*getViewVecFromTc(getScreenProbeAnchorScreenUV(sampleProbeCoord, cornerCoordOfs, vInfo), vInfo.lt, vInfo.hor, vInfo.ver);
 
       float bestRelDepth = pow2(dot(float4(probeCamPos, -1), scenePlane))
@@ -162,6 +181,7 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
 
             const uint ssProbeRes = uint(vInfo.screenspace_probe_res.x);
             bestAtlasSampleProbeCoord = uint2(addProbeIndex % ssProbeRes, addProbeIndex / ssProbeRes);
+            cornerAnchor[i] = float2(sampleProbeCoord*tileSize + addCoordOfs) + 0.5;
           }
         }
       }
@@ -173,6 +193,20 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
       corners.encodedProbes[i] = bestEncodedProbe;
 
     }
+  }
+
+  if (anchored)
+  {
+    float2 p = pointInfo.screenCoord;
+    float upperFracX = saturate((p.x - cornerAnchor[0].x)/(cornerAnchor[1].x - cornerAnchor[0].x));
+    float lowerFracX = saturate((p.x - cornerAnchor[2].x)/(cornerAnchor[3].x - cornerAnchor[2].x));
+    float upperRowY = lerp(cornerAnchor[0].y, cornerAnchor[1].y, upperFracX);
+    float lowerRowY = lerp(cornerAnchor[2].y, cornerAnchor[3].y, lowerFracX);
+    float fracY = saturate((p.y - upperRowY)/(lowerRowY - upperRowY));
+    float2 upperRowW = max(1e-3, float2(1 - upperFracX, upperFracX));
+    float2 lowerRowW = max(1e-3, float2(1 - lowerFracX, lowerFracX));
+    float2 verticalW = max(1e-3, float2(1 - fracY, fracY));
+    corners.sampleBilWeights = select(encodedScreenProbes != 0, float4(upperRowW*verticalW.x, lowerRowW*verticalW.y), float4(0, 0, 0, 0));
   }
 
   corners.cornerDepthBilWeights = max(1e-5, corners.depthWeights)*corners.sampleBilWeights;

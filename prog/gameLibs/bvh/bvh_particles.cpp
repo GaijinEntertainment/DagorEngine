@@ -92,4 +92,44 @@ int64_t get_size_bytes() { return shared.data ? shared.data->getSize() : 0; }
 
 void teardown() { shared.teardown(); }
 
+UniqueBLAS create_billboard_blas(const BillboardVertex (&vertices)[8], UniqueBuf &vb, UniqueBuf &ib, const char *vb_name,
+  const char *ib_name)
+{
+  const uint16_t indices[] = {0, 1, 2, 0, 2, 3, /**/ 4, 5, 6, 4, 6, 7};
+
+  ib = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(indices), 4), ib_name, d3d::buffers::Init::No, RESTAG_BVH);
+  HANDLE_LOST_DEVICE_STATE(ib, {});
+  vb = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(vertices), 4), vb_name, d3d::buffers::Init::No, RESTAG_BVH);
+  HANDLE_LOST_DEVICE_STATE(vb, {});
+
+  ib->updateData(0, sizeof(indices), indices, 0);
+  vb->updateData(0, sizeof(vertices), vertices, 0);
+
+  return build_billboard_blas(vb.getBuf(), ib.getBuf(), countof(vertices) / 4);
+}
+
+UniqueBLAS build_billboard_blas(Sbuffer *vb, Sbuffer *ib, uint32_t quad_count)
+{
+  RaytraceGeometryDescription desc{};
+  desc.data.triangles.vertexBuffer = vb;
+  desc.data.triangles.indexBuffer = ib;
+  desc.data.triangles.vertexCount = quad_count * 4;
+  desc.data.triangles.vertexStride = sizeof(BillboardVertex);
+  desc.data.triangles.vertexFormat = VSDT_FLOAT3;
+  desc.data.triangles.indexCount = quad_count * 6;
+
+  return build_blas(desc, RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY);
+}
+
+void fill_billboard_meta(MeshMeta &meta, uint32_t material_type, uint32_t bindless_indices_index, uint32_t bindless_vertices_index)
+{
+  meta.markInitialized();
+  meta.materialType = material_type;
+  meta.setIndexBitAndTexcoordFormat(2, VSDT_FLOAT2);
+  meta.texcoordOffset = offsetof(BillboardVertex, texcoord);
+  meta.vertexStride = sizeof(BillboardVertex);
+  meta.setIndexBufferIndex(bindless_indices_index);
+  meta.setVertexBufferIndex(bindless_vertices_index);
+}
+
 } // namespace bvh::particles

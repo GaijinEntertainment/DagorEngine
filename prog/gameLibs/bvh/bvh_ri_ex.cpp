@@ -50,17 +50,7 @@ static void handle_flag(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
   MeshMetaAllocator::AllocId &metaAllocId, void *user_data)
 {
   if (!inv_world_tm.has_value())
-  {
-    inv_world_tm = TMatrix4::IDENT;
-
-    mat44f inv44;
-    v_mat44_inverse(inv44, tm);
-    v_mat44_transpose(inv44, inv44);
-    v_stu(&inv_world_tm.value().row[0], inv44.col0);
-    v_stu(&inv_world_tm.value().row[1], inv44.col1);
-    v_stu(&inv_world_tm.value().row[2], inv44.col2);
-    v_stu(&inv_world_tm.value().row[3], inv44.col3);
-  }
+    inv_world_tm = make_full_itm(tm);
 
   int animIndex = -1;
   auto &data = *mapper(context_id, mesh_id, handle, lod_ix, user_data, flagInfo.recycled, animIndex);
@@ -225,27 +215,14 @@ struct RiExtraBVHJob : public cpujobs::IJob
 
   int fetchNextGroupIx() { return nextGroupIx->fetch_add(1); }
 
-  static ReferencedTransformData *mapTreeRiEx(ContextId context_id, uint64_t object_id, uint64_t id, int lod_ix, void *user_data,
+  template <bool is_tree>
+  static ReferencedTransformData *mapRiEx(ContextId context_id, uint64_t object_id, uint64_t id, int lod_ix, void *user_data,
     bool &recycled, int &anim_index)
   {
-    MapRendinstPointers pointers;
-    pointers.uniqueBuffers = make_span(context_id->uniqueRiExtraTreeBuffers, Context::maxUniqueLods);
-    pointers.newUniqueBuffers =
-      make_span(static_cast<RiExtraBVHJob *>(user_data)->newUniqueRiExtraTreeBuffers, Context::maxUniqueLods);
-    pointers.contextId = context_id;
-    pointers.freeUniqueBLASes = &context_id->freeUniqueRiExtraTreeBLASes;
-    return map_rendinst_base<false>(object_id, id, lod_ix, recycled, anim_index, pointers);
-  }
-
-  static ReferencedTransformData *mapFlagRiEx(ContextId context_id, uint64_t object_id, uint64_t id, int lod_ix, void *user_data,
-    bool &recycled, int &anim_index)
-  {
-    MapRendinstPointers pointers;
-    pointers.uniqueBuffers = make_span(context_id->uniqueRiExtraFlagBuffers, Context::maxUniqueLods);
-    pointers.newUniqueBuffers =
-      make_span(static_cast<RiExtraBVHJob *>(user_data)->newUniqueRiExtraFlagBuffers, Context::maxUniqueLods);
-    pointers.contextId = context_id;
-    pointers.freeUniqueBLASes = &context_id->freeUniqueRiExtraFlagBLASes;
+    RiExtraBVHJob *job = static_cast<RiExtraBVHJob *>(user_data);
+    MapRendinstPointers pointers{make_span(is_tree ? context_id->uniqueRiExtraTreeBuffers : context_id->uniqueRiExtraFlagBuffers),
+      make_span(is_tree ? job->newUniqueRiExtraTreeBuffers : job->newUniqueRiExtraFlagBuffers), context_id,
+      is_tree ? &context_id->freeUniqueRiExtraTreeBLASes : &context_id->freeUniqueRiExtraFlagBLASes};
     return map_rendinst_base<false>(object_id, id, lod_ix, recycled, anim_index, pointers);
   }
 
@@ -407,7 +384,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
 
           auto meshId = make_relem_mesh_id(riRes->getBvhId(), lodIx, elemIx);
 
-          if (DAGOR_UNLIKELY(is_tree(contextId, elem))) // TODO: still unlikely??
+          if (DAGOR_UNLIKELY(is_ri_shader_class(contextId, elem, "rendinst_tree"))) // TODO: still unlikely??
           {
             mat44f tm44;
             v_mat43_transpose_to_mat44(tm44, transform);
@@ -441,16 +418,16 @@ struct RiExtraBVHJob : public cpujobs::IJob
               bool isOk = isStationary
                             ? handle_tree<map_rendinst_stationary, true>(contextId, elem, meshId, lodIx, false, tm44, originalPos,
                                 colors, handle, invWorldTm, treeInfo, metaAllocId, this, true, isBurning, hashVal)
-                            : handle_tree<mapTreeRiEx, true>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors, handle,
-                                invWorldTm, treeInfo, metaAllocId, this, false, isBurning, hashVal);
+                            : handle_tree<mapRiEx<true>, true>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors,
+                                handle, invWorldTm, treeInfo, metaAllocId, this, false, isBurning, hashVal);
               if (!isOk)
                 continue;
               const bool forceEnableBackfaceCulling = isTessellated && treeInfo.data.isTrunk;
-              add_riExtra_instance(contextId, meshId, transform, &treeInfo, isStationary, metaAllocId, threadIx,
-                forceEnableBackfaceCulling);
+              add_tree_instance(contextId, contextId->riExtraTreeInstances[threadIx], meshId, transform, &treeInfo, isStationary,
+                metaAllocId, forceEnableBackfaceCulling);
             }
           }
-          else if (DAGOR_UNLIKELY(is_flag(contextId, elem)))
+          else if (DAGOR_UNLIKELY(is_ri_shader_class(contextId, elem, "rendinst_flag")))
           {
             mat44f tm44;
             v_mat43_transpose_to_mat44(tm44, transform);
@@ -464,7 +441,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
               FlagInfo flagInfo;
               flagInfo.data.hashVal = hashVal;
               MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
-              handle_flag<mapFlagRiEx>(contextId, elem, meshId, tm44, handle, lodIx, invWorldTm, flagInfo, metaAllocId, this);
+              handle_flag<mapRiEx<false>>(contextId, elem, meshId, tm44, handle, lodIx, invWorldTm, flagInfo, metaAllocId, this);
               add_riExtra_instance(contextId, meshId, transform, &flagInfo, metaAllocId, threadIx);
             }
           }
@@ -906,19 +883,29 @@ void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc)
 void collect_riex_staged_blas_addresses(ContextId context_id, dag::Vector<uint64_t> &addresses)
 {
   for (auto &jobFlips : riExtraJobGroups[context_id].jobs)
-    for (int flip = 0; flip < 2; ++flip)
+    for (auto &job : jobFlips)
     {
-      for (auto &lodRes : jobFlips[flip].newUniqueRiExtraTreeBuffers)
-        for (auto &tree : lodRes)
-          for (auto &elem : tree.second.elems)
-            if (elem.second.blas)
-              addresses.push_back(elem.second.blas.getGPUAddress());
-      for (auto &lodRes : jobFlips[flip].newUniqueRiExtraFlagBuffers)
-        for (auto &flag : lodRes)
-          for (auto &elem : flag.second.elems)
-            if (elem.second.blas)
-              addresses.push_back(elem.second.blas.getGPUAddress());
+      append_blas_addresses(job.newUniqueRiExtraTreeBuffers, addresses);
+      append_blas_addresses(job.newUniqueRiExtraFlagBuffers, addresses);
     }
+}
+
+void merge_new_unique_buffers(ContextId context_id,
+  eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance> (&new_buffers)[Context::maxUniqueLods],
+  eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance> (&unique_buffers)[Context::maxUniqueLods])
+{
+  for (auto [lodIndex, lodRes] : enumerate(new_buffers))
+  {
+    for (auto &buffer : lodRes)
+      if (!unique_buffers[lodIndex].insert(std::move(buffer)).second)
+        for (auto &elem : buffer.second.elems)
+        {
+          context_id->freeMetaRegion(elem.second.metaAllocId);
+          if (free_process_buffer_region(context_id, elem.second))
+            context_id->processBufferDuplicateDrops.fetch_add(1);
+        }
+    lodRes.clear();
+  }
 }
 
 void tidy_up_riex_trees(ContextId context_id)
@@ -926,29 +913,10 @@ void tidy_up_riex_trees(ContextId context_id)
   TIME_PROFILE(tidy_up_riex_trees)
 
   for (auto &jobFlips : riExtraJobGroups[context_id].jobs)
-  {
-    for (int flip = 0; flip < 2; ++flip)
-    {
-      auto &job = jobFlips[flip];
-      for (auto [lodIndex, lodRes] : enumerate(job.newUniqueRiExtraTreeBuffers))
-      {
-        for (auto &tree : lodRes)
-        {
-          auto [it, inserted] = context_id->uniqueRiExtraTreeBuffers[lodIndex].insert(std::move(tree));
-          if (!inserted)
-            for (auto &elem : tree.second.elems)
-              context_id->freeMetaRegion(elem.second.metaAllocId);
-        }
-        lodRes.clear();
-      }
-    }
-  }
+    for (auto &job : jobFlips)
+      merge_new_unique_buffers(context_id, job.newUniqueRiExtraTreeBuffers, context_id->uniqueRiExtraTreeBuffers);
 
-  TidyUpRendinstPointers pointers;
-  pointers.uniqueBuffers = make_span(context_id->uniqueRiExtraTreeBuffers, Context::maxUniqueLods);
-  pointers.contextId = context_id;
-  pointers.freeUniqueBLASes = &context_id->freeUniqueRiExtraTreeBLASes;
-  tidy_up_rendinsts_base<false>(context_id, pointers);
+  tidy_up_rendinsts_base<false>(context_id, context_id->uniqueRiExtraTreeBuffers, context_id->freeUniqueRiExtraTreeBLASes);
 }
 
 void tidy_up_riex_flags(ContextId context_id)
@@ -956,29 +924,10 @@ void tidy_up_riex_flags(ContextId context_id)
   TIME_PROFILE(tidy_up_riex_flags)
 
   for (auto &jobFlips : riExtraJobGroups[context_id].jobs)
-  {
-    for (int flip = 0; flip < 2; ++flip)
-    {
-      auto &job = jobFlips[flip];
-      for (auto [lodIndex, lodRes] : enumerate(job.newUniqueRiExtraFlagBuffers))
-      {
-        for (auto &flag : lodRes)
-        {
-          auto [it, inserted] = context_id->uniqueRiExtraFlagBuffers[lodIndex].insert(std::move(flag));
-          if (!inserted)
-            for (auto &elem : flag.second.elems)
-              context_id->freeMetaRegion(elem.second.metaAllocId);
-        }
-        lodRes.clear();
-      }
-    }
-  }
+    for (auto &job : jobFlips)
+      merge_new_unique_buffers(context_id, job.newUniqueRiExtraFlagBuffers, context_id->uniqueRiExtraFlagBuffers);
 
-  TidyUpRendinstPointers pointers;
-  pointers.uniqueBuffers = make_span(context_id->uniqueRiExtraFlagBuffers, Context::maxUniqueLods);
-  pointers.contextId = context_id;
-  pointers.freeUniqueBLASes = &context_id->freeUniqueRiExtraFlagBLASes;
-  tidy_up_rendinsts_base<false>(context_id, pointers);
+  tidy_up_rendinsts_base<false>(context_id, context_id->uniqueRiExtraFlagBuffers, context_id->freeUniqueRiExtraFlagBLASes);
 }
 
 } // namespace bvh::ri

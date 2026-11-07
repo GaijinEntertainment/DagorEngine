@@ -89,6 +89,18 @@ ShaderMaterial *new_shader_material(const MaterialData &m, bool sec_dump_for_exp
   return new_shader_material(sec_dump_for_exp ? SEC_EXP_BINDUMP_HANDLE : MAIN_BINDUMP_HANDLE, m, do_log);
 }
 
+ShaderMaterial *new_null_material(const MaterialData &md)
+{
+  MaterialData m = md;
+  for (int i = 0; i < MAXMATTEXNUM; ++i)
+    m.mtex[i] = BAD_TEXTUREID;
+  ShaderMaterialProperties *smp = ShaderMaterialProperties::create(&shaderbindump::null_shader_class(false), m, MAIN_BINDUMP_HANDLE);
+  ShaderMaterial *mat = ScriptedShaderMaterial::create(*smp);
+  delete smp;
+
+  return mat;
+}
+
 ShaderMaterial *new_shader_material_by_name_optional(ShaderBindumpHandle hnd, const char *shader_name, const char *mat_script)
 {
   const shaderbindump::ShaderClass *sc = get_shaders_dump(hnd).findShaderClass(shader_name);

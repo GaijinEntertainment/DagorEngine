@@ -84,7 +84,9 @@ static bool debug_patch = false;
 
 static int get_addressed(const HeightmapHandler &h, int x, int w)
 {
-  return h.isMirror() ? (x < 0 ? -x : (x >= w ? (w << 1) - 1 - x : x)) : clamp(x, 0, w - 1);
+  // If hmap has partial mirroring then it must be a main hmap. Then hmap should fade underwater so sampler
+  // discrepancies should not be visible.
+  return h.hasMirroring() ? (x < 0 ? -x : (x >= w ? (w << 1) - 1 - x : x)) : clamp(x, 0, w - 1);
 }
 
 static float get_interpolated_heightmap(const HeightmapHandler &h, float x, float y)

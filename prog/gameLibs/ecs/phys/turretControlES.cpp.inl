@@ -22,6 +22,8 @@
 #include <daECS/delayedAct/actInThread.h>
 
 #include <EASTL/fixed_string.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <memory/dag_framemem.h>
 
 ECS_UNICAST_EVENT_TYPE(EventOnTurretControlCreated);
 
@@ -145,24 +147,25 @@ bool TurretAimDrivesMult::operator==(const TurretAimDrivesMult &rhs) const { ret
 template <typename Callable>
 inline void turret_payload_gun_ammo_ecs_query(ecs::EntityManager &mgr, ecs::EntityId eid, Callable c);
 
-ECS_NO_ORDER
+ECS_BEFORE(before_net_phys_sync) // FM payload mass reads this ammo in the same frame
 ECS_REQUIRE(eastl::true_type turret_control__hasPayload)
-void __forceinline update_turret_payload_es(const ParallelUpdateFrameDelayed &, ecs::EntityManager &manager, ecs::EntityId eid,
+static inline void update_turret_payload_es(const ParallelUpdateFrameDelayed &, ecs::EntityManager &manager, ecs::EntityId eid,
   const ecs::EidList &turret_control__gunEids)
 {
   if (turret_control__gunEids.empty())
     return;
 
-  EventOnGunsPayloadAmmoUpdate evt(eid, ecs::IntList());
-  ecs::IntList &ammoList = evt.get<1>();
-  ammoList.resize(turret_control__gunEids.size(), 0);
+  const ecs::EntityId ownerEid = ECS_GET_OR(turret_control__gunEids[0], turret__owner, ecs::INVALID_ENTITY_ID);
+  if (ownerEid == ecs::INVALID_ENTITY_ID)
+    return;
+
+  dag::RelocatableFixedVector<int, 16, true, framemem_allocator> ammoList;
+  ammoList.resize(turret_control__gunEids.size()); // zero-inits
   for (int gunIndex = 0; gunIndex < turret_control__gunEids.size(); ++gunIndex)
     turret_payload_gun_ammo_ecs_query(manager, turret_control__gunEids[gunIndex],
       [&](ECS_REQUIRE(ecs::auto_type gun) ECS_REQUIRE(eastl::true_type gun__isPayload) int gun__ammo) {
         ammoList[gunIndex] = gun__ammo;
       });
 
-  const ecs::EntityId ownerEid = ECS_GET_OR(turret_control__gunEids[0], turret__owner, ecs::INVALID_ENTITY_ID);
-  if (ownerEid != ecs::INVALID_ENTITY_ID)
-    manager.sendEvent(ownerEid, eastl::move(evt));
+  manager.sendEventImmediate(ownerEid, EventOnGunsPayloadAmmoUpdate(eid, make_span_const(ammoList)));
 }

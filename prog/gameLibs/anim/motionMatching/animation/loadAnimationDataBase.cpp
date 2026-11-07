@@ -6,6 +6,7 @@
 #include <gameRes/dag_gameResources.h>
 #include <anim/dag_animKeyInterp.h>
 #include <math/dag_mathAng.h>
+#include <math/dag_check_nan.h>
 #include <memory/dag_framemem.h>
 #include <startup/dag_globalSettings.h>
 #include "animationDataBase.h"
@@ -129,7 +130,7 @@ static void load_and_validate_root_scale(AnimationClip &clip, dag::Index16 root_
   clip.rootScale = V_C_UNIT_1110;
   bool valid = true;
   AnimV20Math::PrsAnimSampler<AnimV20Math::DefaultConfig> sampler(clip.animation);
-  for (const AnimationClip::Point3Channel &nodeScale : clip.channelScale)
+  for (const AnimationClip::NodeChannel &nodeScale : clip.channelScale)
   {
     sampler.seekTicks(0);
     vec3f scale = sampler.sampleSclTrack(nodeScale.first);
@@ -159,13 +160,16 @@ static void load_animation_tags(const AnimationDataBase &dataBase, const AnimV20
       uint32_t from = range->getInt("from");
       uint32_t to = range->getInt("to");
       Tags tags = get_tags(dataBase.tags, range->getStr("tags"), &default_tags);
-      if (clip.intervals.empty() || clip.intervals.back().to == from)
+      if (from == (clip.intervals.empty() ? 0 : clip.intervals.back().to) && from < to && to <= uint32_t(clip.tickDuration))
         clip.intervals.emplace_back(AnimationInterval{from, to, tags});
       else
         logerr("MM: wrong tag_ranges in '%s' clip", clip_block->getBlockName());
     }
     if (clip.intervals.empty() || clip.intervals.back().to != clip.tickDuration)
+    {
       logerr("MM: wrong tag_ranges in '%s' clip", clip_block->getBlockName());
+      clip.intervals = {AnimationInterval{0, uint32_t(clip.tickDuration), currentTags}};
+    }
     return;
   }
   uint32_t from = 0;
@@ -324,21 +328,21 @@ static void load_root_motion(const AnimationDataBase &dataBase, AnimationClip &c
   if (rootMotionSmoothing.getBool("enabled", true))
   {
     int polyOrder = rootMotionSmoothing.getInt("poly_order", 3);
-    int posWindow = rootMotionSmoothing.getInt("position_filter_radius", 15);
-    int dirWindow = rootMotionSmoothing.getInt("direction_filter_radius", 30);
     dag::Vector<vec3f, framemem_allocator> tempResult(rootMotionSize, V_C_UNIT_0001);
-    if (rootMotionSize > posWindow * 2)
-    {
-      dag::Vector<vec4f> posWeights = savgol_weigths(posWindow, polyOrder);
-      savgol_filter(posWeights.data(), rootPositions.data(), tempResult.data(), posWindow, rootMotionSize);
-      eastl::swap(rootPositions, tempResult);
-    }
-    if (rootMotionSize > dirWindow * 2)
-    {
-      dag::Vector<vec4f> dirWeights = savgol_weigths(dirWindow, polyOrder);
-      savgol_filter(dirWeights.data(), rootDirections.data(), tempResult.data(), dirWindow, rootMotionSize);
-      eastl::swap(rootDirections, tempResult);
-    }
+    auto smooth = [&](dag::Vector<vec3f, framemem_allocator> &values, const char *radiusName, int defaultRadius) {
+      int radius = rootMotionSmoothing.getInt(radiusName, defaultRadius);
+      if (polyOrder < 0 || polyOrder > radius * 2)
+        logerr("MM: root_motion_smoothing needs 0 <= poly_order (%d) <= 2 * %s (%d), this filter is off%s", polyOrder, radiusName,
+          radius, get_mm_data_base_loading_error_context());
+      else if (rootMotionSize > radius * 2)
+      {
+        dag::Vector<vec4f> weights = savgol_weigths(radius, polyOrder);
+        savgol_filter(weights.data(), values.data(), tempResult.data(), radius, rootMotionSize);
+        eastl::swap(values, tempResult);
+      }
+    };
+    smooth(rootPositions, "position_filter_radius", 15);
+    smooth(rootDirections, "direction_filter_radius", 30);
   }
 
   for (int t = 0; t < rootMotionSize; t++)
@@ -358,9 +362,13 @@ static void load_animation_features(const AnimationDataBase &dataBase, Animation
   v_mat44_ident(m);
   tree.setRootTm(m);
   NodeTSRFixedArray nodes(tree.nodeCount());
-  eastl::fixed_vector<dag::Index16, 8, false> nodeIndexes(dataBase.nodesName.size());
+  eastl::fixed_vector<dag::Index16, 8> nodeIndexes(dataBase.nodesName.size());
   for (int i = 0, n = dataBase.nodesName.size(); i < n; i++)
+  {
     nodeIndexes[i] = tree.findNodeIndex(dataBase.nodesName[i].c_str());
+    if (!nodeIndexes[i])
+      logerr("no node %s in tree", dataBase.nodesName[i].c_str());
+  }
 
   // need to copy size/count to features for wrappers
   clip.features.init(clip.tickDuration + 1, dataBase.nodeCount, dataBase.trajectorySize);
@@ -382,10 +390,7 @@ static void load_animation_features(const AnimationDataBase &dataBase, Animation
         nodePositions[i] = tree.getNodeWposRelScalar(nodeIdx);
       }
       else
-      {
-        logerr("no node %s in tree", dataBase.nodesName[i].c_str());
         nodePositions[i] = Point3(0, 0, 0);
-      }
     }
   }
 
@@ -516,6 +521,11 @@ static void load_anim_tree_timer(const AnimationDataBase &dataBase, AnimationCli
       clip.animTreeTimer = dataBase.referenceAnimGraph->getParamId(timerName, AnimV20::AnimGraphStateHolder::PT_TimeParam);
     clip.immediateAnimTreeTimerSync = timer->getBool("immediate_sync", false);
     clip.animTreeTimerCycle = timer->getReal("timer_cycle", 1.0f);
+    if (!check_finite(clip.animTreeTimerCycle) || clip.animTreeTimerCycle <= 0.f)
+    {
+      logerr("MM: timer_cycle must be positive and finite, anim tree timer is ignored%s", get_mm_data_base_loading_error_context());
+      clip.animTreeTimer = -1;
+    }
   }
 }
 
@@ -597,6 +607,7 @@ static void load_animations(AnimationDataBase &dataBase, const DataBlock &node_m
         else
           logerr("empty animation_mask for %s, add animation_mask in animation block or default_animation_mask in clips block",
             clip_name);
+        clips.pop_back();
         continue;
       }
       clip.animation = animData;
@@ -759,6 +770,14 @@ void load_animations(AnimationDataBase &dataBase, const AnimationRootMotionConfi
   dataBase.featuresNormalizationGroups.clear();
   for (const ecs::string &path : clips_path)
     load_animations(dataBase, node_masks, path);
+  if (dataBase.featuresSize <= 0 || dataBase.clips.empty())
+  {
+    logerr("MM: data base has %d features and %d clips, check its weightsPath and data_bases_paths", dataBase.featuresSize,
+      dataBase.clips.size());
+    dataBase.clips.clear();
+    dataBase.referenceSkeleton.reset();
+    return;
+  }
   dataBase.playOnlyFromStartTag = dataBase.tags.getNameId("play_only_from_start");
   resolve_next_clips(dataBase.clips, dataBase);
   calculate_normalization(dataBase.clips, dataBase.featuresAvg, dataBase.featuresStd, dataBase.featuresSize,

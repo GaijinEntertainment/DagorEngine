@@ -18,6 +18,15 @@ void MotionMatchingController::setup(const AnimationDataBase &data_base, const A
   dataBase = &data_base;
 }
 
+static void set_single_blend_weight(AnimV20::AnimBlender::NodeWeight &wt, AnimV20::AnimBlender::WeightedNode &ch, uint8_t ready_flag,
+  float weight)
+{
+  wt.totalNum = 1;
+  wt.wTotal = weight;
+  ch.readyFlg = ready_flag;
+  ch.blendWt[0] = weight;
+}
+
 bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, const Tab<AnimV20::AnimMap> &anim_map,
   const GeomNodeTree &animchar_node_tree) const
 {
@@ -45,29 +54,12 @@ bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, co
 
 
     AnimV20::AnimBlender::PrsResult &chPrs = tls.chPrs[animId];
-
-    AnimV20::AnimBlender::NodeWeight &wtPos = tls.wtPos[animId];
-    wtPos.totalNum = 1;
-    wtPos.wTotal = nodeWeight;
-    AnimV20::AnimBlender::WeightedNode &chPos = tls.chPos[animId];
-    chPos.readyFlg = AnimV20::AnimBlender::RM_POS_B;
-    chPos.blendWt[0] = nodeWeight;
-
-    AnimV20::AnimBlender::NodeWeight &wtRot = tls.wtRot[animId];
-    wtRot.totalNum = 1;
-    wtRot.wTotal = nodeWeight;
-    AnimV20::AnimBlender::WeightedNode &chRot = tls.chRot[animId];
-    chRot.readyFlg = AnimV20::AnimBlender::RM_ROT_B;
-    chRot.blendWt[0] = nodeWeight;
+    set_single_blend_weight(tls.wtPos[animId], tls.chPos[animId], AnimV20::AnimBlender::RM_POS_B, nodeWeight);
+    set_single_blend_weight(tls.wtRot[animId], tls.chRot[animId], AnimV20::AnimBlender::RM_ROT_B, nodeWeight);
 
     if (geomId == rootId)
     {
-      AnimV20::AnimBlender::NodeWeight &wtScl = tls.wtScl[animId];
-      wtScl.totalNum = 1;
-      wtScl.wTotal = nodeWeight;
-      AnimV20::AnimBlender::WeightedNode &chScl = tls.chScl[animId];
-      chScl.readyFlg = AnimV20::AnimBlender::RM_SCL_B;
-      chScl.blendWt[0] = nodeWeight;
+      set_single_blend_weight(tls.wtScl[animId], tls.chScl[animId], AnimV20::AnimBlender::RM_SCL_B, nodeWeight);
       chPrs.scl = rootScale;
 
       const mat44f &animcharTm = animchar_node_tree.getRootTm();
@@ -125,11 +117,6 @@ static bool next_frame(int &clip_idx, int &frame, int delta, const AnimationData
   const AnimationClip &clip = data_base.clips[clip_idx];
   if (frame >= clip.tickDuration)
   {
-#if DISABLE_MOTION_MATCHING
-    frame = 0;
-    clip_idx = (clip_idx + 1) % data_base.clips.size();
-    return false;
-#endif
     if (clip.nextClip != -1)
     {
       frame %= clip.tickDuration;
@@ -324,11 +311,8 @@ void MotionMatchingController::copyPoseFeaturesFromActiveAnimation(FrameFeatures
   const AnimationClip &clip = dataBase->clips[getCurrentClip()];
   int frame = getClosestFrame();
   ConstNodeFeature srcFeatures = clip.features.get_node_feature(frame);
-  for (int i = 0; i < dataBase->nodeCount; i++)
-  {
-    dstFeatures.nodePositions[i] = srcFeatures.nodePositions[i];
-    dstFeatures.nodeVelocities[i] = srcFeatures.nodeVelocities[i];
-  }
+  mem_copy_from(dstFeatures.nodePositions, srcFeatures.nodePositions.data());
+  mem_copy_from(dstFeatures.nodeVelocities, srcFeatures.nodeVelocities.data());
   int nodeFeaturesOffset = clip.featuresNormalizationGroup * dataBase->featuresSize + goal_features.trajectorySizeInVec4f;
   denormalize_feature(goal_features.get_node_features_raw(0), dataBase->featuresAvg.data() + nodeFeaturesOffset,
     dataBase->featuresStd.data() + nodeFeaturesOffset);

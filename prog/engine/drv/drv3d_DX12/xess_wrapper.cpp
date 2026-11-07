@@ -918,7 +918,7 @@ public:
 
   void sleep(uint32_t frame_id) override
   {
-    if (!handle)
+    if (!isEnabled())
       return;
 
     xellSleep(handle, frame_id);

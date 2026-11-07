@@ -179,7 +179,7 @@ CONSOLE_BOOL_VAL("render", gpu_objects_enable, true);
 void render_optimization_depth(RenderPass render_pass, const RiGenVisibility *visibility,
   IgnoreOptimizationLimits ignore_optimization_instances_limits, uint32_t instance_count_mul)
 {
-  if (!gpuobjects::manager || gpuobjects::manager->getGpuInstancing(visibility[0].gpuObjectsCascadeId))
+  if (!gpuobjects::manager || !gpu_objects_enable.get() || gpuobjects::manager->getGpuInstancing(visibility[0].gpuObjectsCascadeId))
     return;
 
   TIME_D3D_PROFILE(GpuObjects_DepthPrepass);

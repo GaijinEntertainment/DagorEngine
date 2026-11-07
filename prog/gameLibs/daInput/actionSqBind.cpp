@@ -758,6 +758,7 @@ void dainput::bind_sq_api(SqModules *moduleMgr)
     .Func("get_joystick_stick_dead_zone", get_joystick_stick_dead_zone)
     .Func("get_main_gamepad_stick_dead_zone_abs", get_main_gamepad_stick_dead_zone_abs)
     .Func("get_joystick_stick_dead_zone_abs", get_joystick_stick_dead_zone_abs)
+    .Func("suspend_stick_dead_zones", dainput::suspend_stick_dead_zones)
     .Func("enable_joystick_gyroscope", enable_joystick_gyroscope)
 
     .Func("set_default_preset_prefix", set_default_preset_prefix)

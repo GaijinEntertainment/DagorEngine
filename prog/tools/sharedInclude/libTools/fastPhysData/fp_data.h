@@ -54,6 +54,7 @@ public:
   virtual FpdPoint *getPointByName(const char *name) = 0;
   virtual int getPointIndex(FpdObject *point_object) = 0;
   virtual const char *getNodeName(dag::Index16 node) const = 0;
+  virtual FpdBone *getLinkBoneOfEnd(FpdPoint *end_point) = 0;
 };
 
 
@@ -80,6 +81,7 @@ public:
   FpdPoint *getPointByName(const char *name) override;
   int getPointIndex(FpdObject *po) override;
   const char *getNodeName(dag::Index16 node) const override { return nodeTree.getNodeName(node); }
+  FpdBone *getLinkBoneOfEnd(FpdPoint *end_point) override;
 
   // IFpdLoad implementation
   FpdAction *loadAction(const DataBlock &blk) override { return load_action(blk, *this); }

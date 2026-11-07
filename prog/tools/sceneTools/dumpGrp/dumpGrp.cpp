@@ -38,6 +38,9 @@
 #include <util/dag_globDef.h>
 #include <util/dag_texMetaData.h>
 #include <gameRes/grpData.h>
+#include <libTools/collision/collResSliverCheck.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/sort.h>
 #include <debug/dag_debug.h>
 #include <math/dag_mathBase.h>
 #include <stdio.h>
@@ -469,6 +472,165 @@ static void dump_grp_contents(gamerespackbin::GrpData &grp, bool read_be, DataBl
   }
 }
 
+// Returns the sliver count of all collision resources of the pack, or -1 when one does not load.
+// Without grp the file is one collision resource (<name>.collision.bin of dabuild -build).
+static int check_slivers(const gamerespackbin::GrpData *grp, BinDumpReader &crd)
+{
+  CollResSliverStats total;
+  int resCount = 0;
+  for (int i = 0; i < (grp ? grp->resTable.size() : 1); i++)
+  {
+    if (grp && grp->resTable[i].classId != CollisionGameResClassId)
+      continue;
+    const char *res_name = grp ? grp->getName(grp->resTable[i].resId) : dd_get_fname(crd.getRawReader().getTargetName());
+    crd.seekto(grp ? grp->resTable[i].offset : 0);
+    eastl::unique_ptr<CollisionResource> coll = load_collres_checked(crd.getRawReader(), res_name);
+    if (!coll)
+      return -1;
+    check_collres_slivers(*coll, total, res_name);
+    resCount++;
+  }
+  printf("%d collision resource%s\n", resCount, resCount == 1 ? "" : "s");
+  total.print();
+  printf("%s: %s\n", crd.getRawReader().getTargetName(), total.bad ? "RE-EXPORT (sliver collision faces)" : "ok");
+  return total.bad;
+}
+
+struct CollNodeMesh
+{
+  Tab<DPoint3> vert;
+  Tab<int> idx;
+  double area = 0;
+};
+static void get_coll_node_mesh(const CollisionResource &coll, int ni, CollNodeMesh &out)
+{
+  const TMatrix tm = coll.getNodeTm(ni);
+  out.vert.resize(coll.getNodeVertCount(ni));
+  coll.iterateNodeVerts(ni, [&](int i, vec4f v) {
+    Point3 p;
+    v_stu_p3(&p.x, v);
+    p = tm * p;
+    out.vert[i] = DPoint3(p);
+  });
+  coll.iterateNodeFaces(ni, [&](int, uint32_t i0, uint32_t i1, uint32_t i2) {
+    out.idx.push_back(i0), out.idx.push_back(i1), out.idx.push_back(i2);
+    out.area += 0.5 * length((out.vert[i1] - out.vert[i0]) % (out.vert[i2] - out.vert[i0]));
+  });
+}
+
+static double point_seg_dist_sq(const DPoint3 &p, const DPoint3 &a, const DPoint3 &b)
+{
+  const DPoint3 ab = b - a;
+  const double lenSq = ab * ab;
+  return lengthSq(p - (a + ab * (lenSq > 0 ? clamp(((p - a) * ab) / lenSq, 0.0, 1.0) : 0.0)));
+}
+
+// Ericson, Real-Time Collision Detection 5.1.5
+static double point_tri_dist_sq(const DPoint3 &p, const DPoint3 &a, const DPoint3 &b, const DPoint3 &c)
+{
+  const DPoint3 ab = b - a, ac = c - a, ap = p - a, n = ab % ac;
+  // the divisions below are by squared edge lengths and the squared area
+  if (lengthSq(n) == 0)
+    return min(min(point_seg_dist_sq(p, a, b), point_seg_dist_sq(p, b, c)), point_seg_dist_sq(p, c, a));
+  const double d1 = ab * ap, d2 = ac * ap;
+  if (d1 <= 0 && d2 <= 0)
+    return lengthSq(p - a);
+  const DPoint3 bp = p - b;
+  const double d3 = ab * bp, d4 = ac * bp;
+  if (d3 >= 0 && d4 <= d3)
+    return lengthSq(p - b);
+  // n . (x % y) equals Ericson's d1 * d4 - d3 * d2 forms, but its error scales with |n| and does not swamp a thin face
+  const double vc = n * (ap % bp);
+  if (vc <= 0 && d1 >= 0 && d3 <= 0)
+    return lengthSq(p - (a + ab * (d1 / (d1 - d3))));
+  const DPoint3 cp = p - c;
+  const double d5 = ab * cp, d6 = ac * cp;
+  if (d6 >= 0 && d5 <= d6)
+    return lengthSq(p - c);
+  const double vb = n * (cp % ap);
+  if (vb <= 0 && d2 >= 0 && d6 <= 0)
+    return lengthSq(p - (a + ac * (d2 / (d2 - d6))));
+  const double va = n * (bp % cp);
+  if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0)
+    return lengthSq(p - (b + (c - b) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)))));
+  const double denom = 1.0 / (va + vb + vc);
+  return lengthSq(p - (a + ab * (vb * denom) + ac * (vc * denom)));
+}
+
+// Distances from the verts of src that dst lacks to the surface of dst; returns their count
+static int moved_vert_dist(const CollNodeMesh &src, const CollNodeMesh &dst, double &max_d, double &sum_d)
+{
+  auto less = [](const DPoint3 &l, const DPoint3 &r) { return l.x != r.x ? l.x < r.x : l.y != r.y ? l.y < r.y : l.z < r.z; };
+  Tab<DPoint3> dstSorted(dst.vert);
+  eastl::sort(dstSorted.begin(), dstSorted.end(), less);
+  int moved = 0;
+  for (const DPoint3 &p : src.vert)
+  {
+    if (eastl::binary_search(dstSorted.begin(), dstSorted.end(), p, less))
+      continue;
+    moved++;
+    double dSq = 1e60;
+    for (int i = 0; i + 2 < dst.idx.size(); i += 3)
+      dSq = min(dSq, point_tri_dist_sq(p, dst.vert[dst.idx[i]], dst.vert[dst.idx[i + 1]], dst.vert[dst.idx[i + 2]]));
+    const double d = sqrt(dSq);
+    max_d = max(max_d, d), sum_d += d;
+  }
+  return moved;
+}
+
+static int compare_collres(const char *fn_a, const char *fn_b)
+{
+  eastl::unique_ptr<CollisionResource> res[2];
+  const char *fn[2] = {fn_a, fn_b};
+  for (int k = 0; k < 2; k++)
+  {
+    FullFileLoadCB crd(fn[k]);
+    if (!crd.fileHandle)
+    {
+      printf("ERROR: cannot open %s\n", fn[k]);
+      return 13;
+    }
+    res[k] = load_collres_checked(crd, fn[k]);
+    if (!res[k])
+      return 13;
+  }
+  double maxAB = 0, maxBA = 0, maxAreaRel = 0;
+  int nodes = 0;
+  for (uint16_t ni : res[0]->meshNodes())
+  {
+    const char *name = res[0]->getNodeNameStr(res[0]->getAllNodes()[ni]);
+    const int nj = res[1]->getNodeIndexByName(name);
+    if (nj < 0)
+    {
+      printf("  node '%s': only in A\n", name);
+      continue;
+    }
+    CollNodeMesh a, b;
+    get_coll_node_mesh(*res[0], ni, a);
+    get_coll_node_mesh(*res[1], nj, b);
+    if (a.idx.empty() != b.idx.empty()) // a node without faces has no verts and no surface to measure against
+    {
+      printf("  node '%s': faces only in %c\n", name, b.idx.empty() ? 'A' : 'B');
+      continue;
+    }
+    double mAB = 0, sAB = 0, mBA = 0, sBA = 0;
+    const int movedAB = moved_vert_dist(a, b, mAB, sAB), movedBA = moved_vert_dist(b, a, mBA, sBA);
+    const double areaRel = a.area > 0 ? (b.area - a.area) / a.area : 0;
+    maxAB = max(maxAB, mAB), maxBA = max(maxBA, mBA), maxAreaRel = max(maxAreaRel, fabs(areaRel)), nodes++;
+    if (movedAB || movedBA || a.idx.size() != b.idx.size() || a.vert.size() != b.vert.size())
+      printf("  node '%s': faces %d->%d verts %d->%d area %.6g->%.6g (%+.3g%%) | A->B %d verts max %.3g mean %.3g | "
+             "B->A %d verts max %.3g mean %.3g\n",
+        name, a.idx.size() / 3, b.idx.size() / 3, a.vert.size(), b.vert.size(), a.area, b.area, areaRel * 100, movedAB, mAB,
+        movedAB ? sAB / movedAB : 0., movedBA, mBA, movedBA ? sBA / movedBA : 0.);
+  }
+  for (uint16_t nj : res[1]->meshNodes())
+    if (const char *name = res[1]->getNodeNameStr(res[1]->getAllNodes()[nj]); name && res[0]->getNodeIndexByName(name) < 0)
+      printf("  node '%s': only in B\n", name);
+  printf("%s vs %s: %d nodes compared, max A->B %.3g m, max B->A %.3g m, max area change %.3g%%\n", fn_a, fn_b, nodes, maxAB, maxBA,
+    maxAreaRel * 100);
+  return 0;
+}
+
 static inline IGenLoad &ptr_to_ref(IGenLoad *crd) { return *crd; }
 static void extract_grp_contents(gamerespackbin::GrpData &grp, BinDumpReader &crd, const char *out_dir, int file_sz)
 {
@@ -896,7 +1058,7 @@ int DagorWinMain(bool debugmode)
   if (dgs_argc < 2)
   {
     print_header();
-    printf("usage: dumpGrp-dev.exe <grp_binary|level_bin|tex_pack|res_list_blk> [commands...]\n\n"
+    printf("usage: dumpGrp-dev.exe <grp_binary|level_bin|tex_pack|res_list_blk|collision_bin> [commands...]\n\n"
            "where commands are:\n"
            "  -dump[:out.blk]\n"
            "  -dumpR\n"
@@ -908,6 +1070,11 @@ int DagorWinMain(bool debugmode)
            "  -exp[:<DIR>]\n"
            "  -expU[:<DIR>]\n"
            "  -shaders:<shdump_bin_prefix>\n"
+           "  -checkSlivers  lists collision sliver faces (apex under 0.1 mm off the longest edge, or (2*area)^2 <= 1e-12),\n"
+           "                 which Jolt asserts on;\n"
+           "                 exit code 2 when the pack needs a re-export; also takes a .collision.bin of dabuild -build\n"
+           "  -compareColl:<b.collision.bin>  compares the mesh nodes of two .collision.bin files: counts, area, and\n"
+           "                                   the distance of moved verts to the other surface\n"
            "\nPC only:\n"
            "  -expDDS[:<DIR>]\n"
            "\n");
@@ -948,8 +1115,11 @@ int DagorWinMain(bool debugmode)
   LevelBinData *lev = NULL;
   DxpBinData *dxp = NULL;
   DataBlock resList;
+  bool collRes = false;
 
-  if (trail_stricmp(dgs_argv[1], ".grp") || trail_stricmp(dgs_argv[1], ".grpcache.bin"))
+  if (trail_stricmp(dgs_argv[1], ".collision.bin"))
+    collRes = true;
+  else if (trail_stricmp(dgs_argv[1], ".grp") || trail_stricmp(dgs_argv[1], ".grpcache.bin"))
     grp = load_grp(crd, df_length(base_crd.fileHandle));
   else if (trail_stricmp(dgs_argv[1], ".dxp.bin") || trail_stricmp(dgs_argv[1], ".dxp.bincache.bin"))
     dxp = load_tex_pack(crd);
@@ -958,15 +1128,36 @@ int DagorWinMain(bool debugmode)
   else if (trail_stricmp(dgs_argv[1], ".blk"))
     resList.loadFromStream(base_crd);
 
-  if (!grp && !lev && !dxp && !resList.paramCount())
+  if (!grp && !lev && !dxp && !collRes && !resList.paramCount())
   {
     print_header();
     printf("ERR: unrecognized file %s", dgs_argv[1]);
     return 13;
   }
   DataBlock out_blk;
+  int exitCode = 0;
   for (int i = 2; i < dgs_argc; i++)
-    if (strnicmp(dgs_argv[i], "-ext", 4) == 0)
+    if (stricmp(dgs_argv[i], "-checkSlivers") == 0)
+    {
+      if (!(grp || collRes) || crd.readBE())
+      {
+        printf("irrelevant command: %s, BE=%d", dgs_argv[i], crd.readBE());
+        continue;
+      }
+      // not 1: a fatal error exits with 1
+      int bad = check_slivers(grp, crd);
+      exitCode = bad < 0 ? 13 : (bad ? 2 : exitCode);
+    }
+    else if (strnicmp(dgs_argv[i], "-compareColl:", 13) == 0)
+    {
+      if (!collRes)
+      {
+        printf("irrelevant command: %s", dgs_argv[i]);
+        continue;
+      }
+      exitCode = max(exitCode, compare_collres(dgs_argv[1], dgs_argv[i] + 13));
+    }
+    else if (strnicmp(dgs_argv[i], "-ext", 4) == 0)
     {
       if (grp)
       {
@@ -1140,5 +1331,5 @@ int DagorWinMain(bool debugmode)
   del_it(dxp);
   gameres_reset_desc(gameres_rendinst_desc);
   gameres_reset_desc(gameres_dynmodel_desc);
-  return 0;
+  return exitCode;
 }

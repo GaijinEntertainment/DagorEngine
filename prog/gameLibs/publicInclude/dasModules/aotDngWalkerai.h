@@ -49,10 +49,10 @@ inline void walker_agent_nav_areaUpdateCylinder(walkerai::EntityAgent &agent, in
   agent.getCustomNav()->areaUpdateCylinder(area_id, BBox3(p - tmp, p + tmp), w1, w2, optimize);
 }
 inline void walker_custom_nav_areaUpdateFadingCylinder(pathfinder::CustomNav &custom_nav, int area_id, const Point3 &p,
-  const Point2 &radius, float w1, float w2, float fadeTimeStart, float fadeTimeEnd, bool optimize)
+  const Point2 &radius, float w1, float w2, float fade_time_start, float fade_time_end, uint32_t usage_mask, bool optimize)
 {
   Point3 tmp(radius.x, radius.y, radius.x);
-  custom_nav.areaUpdateCylinder(area_id, BBox3(p - tmp, p + tmp), w1, w2, fadeTimeStart, fadeTimeEnd, optimize);
+  custom_nav.areaUpdateCylinder(area_id, BBox3(p - tmp, p + tmp), w1, w2, fade_time_start, fade_time_end, usage_mask, optimize);
 }
 inline void walker_custom_nav_areaUpdateCylinder(pathfinder::CustomNav &custom_nav, int area_id, const Point3 &p, const Point2 &radius,
   float w1, float w2, bool optimize)

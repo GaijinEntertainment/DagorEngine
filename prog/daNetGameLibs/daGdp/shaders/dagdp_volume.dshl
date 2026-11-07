@@ -1,4 +1,5 @@
 include "shader_global.dshl"
+include "hardware_defines.dshl"
 include "frustum.dshl"
 include "dagdp_common_placer.dshl"
 include "dagdp_volume_utils.dshl"
@@ -19,6 +20,7 @@ buffer dagdp_volume__volume_variants;
 buffer dagdp_volume__areas;
 buffer dagdp_volume__dispatch_args;
 buffer dagdp_volume__mesh_objects;
+buffer dagdp_volume__dispatch_group_base;
 
 float dagdp_volume__max_placeable_bounding_radius;
 float dagdp_volume__debug_frustum_culling_bias;
@@ -42,6 +44,11 @@ int dagdp_volume__viewport_index;
 
 int dagdp_volume__dispatch_index;
 int dagdp_volume__num_dispatches;
+int dagdp_volume__dispatch_args_total_offset;
+
+buffer dagdp_volume__dispatch_viewport;
+buffer dagdp_volume__viewport_data;
+int dagdp_volume__vertex_bufs_base;
 
 int4 dagdp_volume__mesh_params;
 int dagdp_volume__areas_start_offset;
@@ -59,7 +66,7 @@ hlsl {
 // TODO: fully duplicates macro in prog/gameLibs/render/shaders/gpu_objects_placer.dshl
 macro GPU_OBJECTS_LOAD_MESH_TRIANGLE()
   hlsl(cs) {
-    void load_mesh_triangle_internal(uint start_index, uint face_id, uint base_vertex, uint stride,
+    void load_mesh_triangle_internal(ByteAddressBuffer vertexBuf, uint start_index, uint face_id, uint base_vertex, uint stride,
                                      out uint4 v1_n, out uint4 v2_n, out uint4 v3_n)
     {
       uint3 indices;
@@ -77,11 +84,11 @@ macro GPU_OBJECTS_LOAD_MESH_TRIANGLE()
       v3_n = loadBuffer4(vertexBuf, indices.z);
     }
 
-    void load_mesh_triangle(uint start_index, uint face_id, uint base_vertex, uint stride,
-                            out float3 v1, out float3 v2, out float3 v3)
+    void load_mesh_triangle(ByteAddressBuffer vertexBuf, uint start_index, uint face_id, uint base_vertex, uint stride,
+                             out float3 v1, out float3 v2, out float3 v3)
     {
       uint4 v1_n, v2_n, v3_n;
-      load_mesh_triangle_internal(start_index, face_id, base_vertex, stride, v1_n, v2_n, v3_n);
+      load_mesh_triangle_internal(vertexBuf, start_index, face_id, base_vertex, stride, v1_n, v2_n, v3_n);
       v1 = asfloat(v1_n.xyz);
       v2 = asfloat(v2_n.xyz);
       v3 = asfloat(v3_n.xyz);
@@ -92,11 +99,12 @@ macro GPU_OBJECTS_LOAD_MESH_TRIANGLE()
       return (uint3(encoded_normal >> 16, encoded_normal >> 8, encoded_normal) & 0xff) / 127.5 - 1.0;
     }
 
-    void load_mesh_triangle(uint start_index, uint face_id, uint base_vertex, uint stride,
-                            out float3 v1, out float3 v2, out float3 v3, out float3 n1, out float3 n2, out float3 n3)
+    void load_mesh_triangle(ByteAddressBuffer vertexBuf, uint start_index, uint face_id, uint base_vertex, uint stride,
+                             out float3 v1, out float3 v2, out float3 v3,
+                             out float3 n1, out float3 n2, out float3 n3)
     {
       uint4 v1_n, v2_n, v3_n;
-      load_mesh_triangle_internal(start_index, face_id, base_vertex, stride, v1_n, v2_n, v3_n);
+      load_mesh_triangle_internal(vertexBuf, start_index, face_id, base_vertex, stride, v1_n, v2_n, v3_n);
       v1 = asfloat(v1_n.xyz);
       v2 = asfloat(v2_n.xyz);
       v3 = asfloat(v3_n.xyz);
@@ -190,7 +198,7 @@ shader dagdp_volume_mesh_process_tri
       if (dtId < numFaces)
       {
         float3 v0, v1, v2;
-        load_mesh_triangle(startIndex, dtId, baseVertex, stride, v0, v1, v2);
+        load_mesh_triangle(vertexBuf, startIndex, dtId, baseVertex, stride, v0, v1, v2);
         area = 0.5 * length(cross(v1 - v0, v2 - v0));
       }
 
@@ -390,8 +398,56 @@ shader dagdp_volume_set_args
   compile("target_cs", "main");
 }
 
-shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
+shader dagdp_volume_prefix_args
 {
+  (cs) {
+    dispatch_group_base@uav = dagdp_volume__dispatch_group_base hlsl {
+      RWStructuredBuffer<uint> dispatch_group_base@uav;
+    }
+
+    dispatch_args@uav = dagdp_volume__dispatch_args hlsl {
+      RWByteAddressBuffer dispatch_args@uav;
+    }
+
+    num_dispatches@i1 = dagdp_volume__num_dispatches;
+    total_offset@i1 = dagdp_volume__dispatch_args_total_offset;
+  }
+
+  hlsl(cs) {
+    [numthreads(1, 1, 1)]
+    void main()
+    {
+      uint total = 0;
+      for (uint dispatchIndex = 0; dispatchIndex < uint(num_dispatches); dispatchIndex++)
+      {
+        const uint groupCount = loadBuffer(dispatch_args, dispatchIndex * 12);
+        structuredBufferAt(dispatch_group_base, dispatchIndex) = total;
+        total += groupCount;
+      }
+
+      storeBuffer(dispatch_args, total_offset + 0, total);
+      storeBuffer(dispatch_args, total_offset + 4, 1);
+      storeBuffer(dispatch_args, total_offset + 8, 1);
+    }
+  }
+  compile("target_cs", "main");
+}
+
+shader dagdp_volume_place_stage0, dagdp_volume_place_stage1,
+       dagdp_volume_place_stage0_bindless, dagdp_volume_place_stage1_bindless
+{
+  bool isStage1 = (shader == dagdp_volume_place_stage1 || shader == dagdp_volume_place_stage1_bindless);
+  bool isBindlessShader = (shader == dagdp_volume_place_stage0_bindless || shader == dagdp_volume_place_stage1_bindless);
+  bool isBindlessPlatform = hardware.bindless
+    && !hardware.ps4; // no NonUniformResourceIndex
+  bool isBindless = isBindlessShader && isBindlessPlatform;
+  // Always keep the non-bindless variants compiled: the per-dispatch fallback
+  // path uses them when bindless is not available at runtime.
+  if (!isBindlessPlatform && isBindlessShader)
+  {
+    dont_render;
+  }
+
   GPU_OBJECTS_LOAD_MESH_TRIANGLE()
   INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
 
@@ -400,6 +456,10 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
     #define GROUP_SIZE MESH_PLACE_GROUP_SIZE
     groupshared uint g_storage[GROUP_SIZE * 2];
     groupshared uint g_cond;
+
+    ##if isBindless
+      BINDLESS_BUF_ARRAY(ByteAddressBuffer, dagdp_volume__vertex_bufs, 7);
+    ##endif
   }
 
   USE_DAGDP_COMMON()
@@ -475,7 +535,6 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
     max_placeable_bounding_radius@f1 = dagdp_volume__max_placeable_bounding_radius;
     num_renderables@i1 = dagdp_volume__num_renderables;
     num_placeables@i1 = dagdp_volume__num_placeables;
-    dispatch_index@u1 = dagdp_volume__dispatch_index;
 
     prng_seed_placeable@i1 = dagdp_volume__prng_seed_placeable;
     prng_seed_slope@i1 = dagdp_volume__prng_seed_slope;
@@ -487,16 +546,40 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
     prng_seed_triangle1@i1 = dagdp_volume__prng_seed_triangle1;
     prng_seed_triangle2@i1 = dagdp_volume__prng_seed_triangle2;
 
-    viewport_pos@f3 = dagdp_volume__viewport_pos;
-    viewport_max_distance@f1 = dagdp_volume__viewport_max_distance;
-    viewport_index@i1 = dagdp_volume__viewport_index;
-
     indexBuf@buf : register(dagdp_volume__index_buf_reg_no) hlsl {
       ByteAddressBuffer indexBuf@buf;
     }
 
-    vertexBuf@buf : register(dagdp_volume__vertex_buf_reg_no) hlsl {
-      ByteAddressBuffer vertexBuf@buf;
+    if (!isBindless)
+    {
+      dispatch_index@u1 = dagdp_volume__dispatch_index;
+
+      viewport_pos@f3 = dagdp_volume__viewport_pos;
+      viewport_max_distance@f1 = dagdp_volume__viewport_max_distance;
+      viewport_index@i1 = dagdp_volume__viewport_index;
+
+      vertexBuf@buf : register(dagdp_volume__vertex_buf_reg_no) hlsl {
+        ByteAddressBuffer vertexBuf@buf;
+      }
+    }
+
+    if (isBindless)
+    {
+      dispatch_viewport@buf = dagdp_volume__dispatch_viewport hlsl {
+        StructuredBuffer<uint> dispatch_viewport@buf;
+      }
+
+      dispatch_group_base@buf = dagdp_volume__dispatch_group_base hlsl {
+        StructuredBuffer<uint> dispatch_group_base@buf;
+      }
+
+      viewport_data@buf = dagdp_volume__viewport_data hlsl {
+        #include "dagdp_volume.hlsli"
+        StructuredBuffer<VolumeViewportGpuData> viewport_data@buf;
+      }
+
+      num_dispatches@i1 = dagdp_volume__num_dispatches;
+      vb_slot_base@i1 = dagdp_volume__vertex_bufs_base;
     }
   }
 
@@ -504,7 +587,7 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
     [numthreads(GROUP_SIZE, 1, 1)]
     void main(uint dtId : SV_DispatchThreadID, uint tId : SV_GroupThreadID)
     {
-      ##if shader == dagdp_volume_place_stage1
+      ##if isStage1
         // Early exit if the optimistic placement already did the job.
         const bool isEarlyExit = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) != 0u;
 
@@ -520,12 +603,64 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
         ##endif
       ##endif
 
+      ##if isBindless
+        // Resolve dispatch and viewport per thread.
+        const uint groupIndex = dtId / GROUP_SIZE;
+
+        uint dispatchIndex;
+        uint dispatchGroupBase;
+        {
+          const uint totalDispatches = max(uint(num_dispatches), 1u);
+          const uint maxIterations = firstbithigh(totalDispatches) + 1;
+          uint dispatchIndexLower = 0;
+          uint dispatchIndexUpper = totalDispatches;
+          bool wasFound = false;
+
+          LOOP
+          for (uint i = 0; i < maxIterations; i++)
+          {
+            FLATTEN
+            if (dispatchIndexLower < dispatchIndexUpper)
+            {
+              const uint mid = (dispatchIndexLower + dispatchIndexUpper) / 2;
+
+              FLATTEN
+              if (structuredBufferAt(dispatch_group_base, mid) <= groupIndex)
+              {
+                dispatchIndexLower = mid + 1;
+                wasFound = true;
+              }
+              else
+                dispatchIndexUpper = mid;
+            }
+          }
+
+          dispatchIndex = dispatchIndexLower - 1;
+          dispatchGroupBase = structuredBufferAt(dispatch_group_base, dispatchIndex);
+          ##assert(wasFound && dispatchIndex < uint(num_dispatches), "groupIndex = %d, dispatchIndex = %d, numDispatches = %d", groupIndex, dispatchIndex, num_dispatches);
+        }
+
+        const uint localDtId = dtId - dispatchGroupBase * GROUP_SIZE;
+
+        const uint vpIndex = structuredBufferAt(dispatch_viewport, dispatchIndex);
+        const VolumeViewportGpuData viewportData = structuredBufferAt(viewport_data, vpIndex);
+
+        float3 vp_worldPos = viewportData.worldPos;
+        float vp_maxDistance = viewportData.maxDistance;
+      ##else
+        uint dispatchIndex = dispatch_index;
+        #define localDtId dtId
+        float3 vp_worldPos = viewport_pos;
+        float vp_maxDistance = viewport_max_distance;
+        uint vpIndex = viewport_index;
+      ##endif
+
       // find mesh for this instance
-      const uint meshStartIndex = structuredBufferAt(dispatches, dispatch_index);
-      const uint meshEndIndex = structuredBufferAt(dispatches, dispatch_index + 1);
+      const uint meshStartIndex = structuredBufferAt(dispatches, dispatchIndex);
+      const uint meshEndIndex = structuredBufferAt(dispatches, dispatchIndex + 1);
 
       const uint objectsEnd = structuredBufferAt(mesh_objects, meshEndIndex * 2 - 1);
-      const bool isMeshValid = dtId < objectsEnd;
+      const bool isMeshValid = localDtId < objectsEnd;
 
       uint meshIndex;
       uint objLow, objHigh;
@@ -544,18 +679,18 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
           objHigh = structuredBufferAt(mesh_objects, meshIndex * 2 + 1);
 
           FLATTEN
-          if (dtId < objLow)
+          if (localDtId < objLow)
             meshIndexUpper = meshIndex;
-          else if (dtId >= objHigh)
+          else if (localDtId >= objHigh)
             meshIndexLower = meshIndex;
           else
             wasFound = true; // Keep iterating for uniform flow.
         }
 
-        ##assert(wasFound, "dtId = %d / %d, meshes %d..%d -> %d..%d, objs %d..%d", dtId, objectsEnd, meshStartIndex, meshEndIndex, meshIndexLower, meshIndexUpper, objLow, objHigh);
+        ##assert(wasFound, "localDtId = %d / %d, meshes %d..%d -> %d..%d, objs %d..%d", localDtId, objectsEnd, meshStartIndex, meshEndIndex, meshIndexLower, meshIndexUpper, objLow, objHigh);
       }
 
-      const uint instanceIndex = dtId - objLow;
+      const uint instanceIndex = localDtId - objLow;
       const uint instanceCount = objHigh - objLow;
 
       const MeshIntersection mesh = structuredBufferAt(meshes, meshIndex);
@@ -610,7 +745,10 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
 
         float3 n0, n1, n2;
         float3 v0, v1, v2;
-        load_mesh_triangle(mesh.startIndex, faceIndex, mesh.baseVertex, mesh.stride, v0, v1, v2, n0, n1, n2);
+        ##if isBindless
+          ByteAddressBuffer vertexBuf = nonUniformBindlessBAB(dagdp_volume__vertex_bufs, vb_slot_base + mesh.vbIndex);
+        ##endif
+        load_mesh_triangle(vertexBuf, mesh.startIndex, faceIndex, mesh.baseVertex, mesh.stride, v0, v1, v2, n0, n1, n2);
         area2 = length(cross(v1 - v0, v2 - v0));
 
         FLATTEN
@@ -629,10 +767,15 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
 
       const float3 localPos = localVolumePos(instancePos, volume);
       const bool isAreaOk = area2 >= volumeVariant.minTriangleArea2;
-      const bool isViewportDistanceOk = distance(instancePos, viewport_pos) - max_placeable_bounding_radius < viewport_max_distance;
-      const bool isFrustumOk = testSphereB(instancePos, max_placeable_bounding_radius + debug_frustum_culling_bias);
+      const bool isViewportDistanceOk = distance(instancePos, vp_worldPos) - max_placeable_bounding_radius < vp_maxDistance;
+      ##if isBindless
+        const bool isFrustumOk = baseTestSphereB(instancePos, max_placeable_bounding_radius + debug_frustum_culling_bias, viewportData.frustumPlanes);
+      ##else
+        const bool isFrustumOk = testSphereB(instancePos, max_placeable_bounding_radius + debug_frustum_culling_bias);
+      ##endif
       const bool isVolumeOk = isInsideVolumeLocal(localPos, volume.volumeType);
-      const bool isVisible = isAreaOk && isInstanceValid && isViewportDistanceOk && isFrustumOk && isVolumeOk;
+      const bool isAboveHeightmap = instancePos.y >= volume.discardBelowY;
+      const bool isVisible = isAreaOk && isInstanceValid && isViewportDistanceOk && isFrustumOk && isVolumeOk && isAboveHeightmap;
 
       uint placeableIndex = ~0u;
       FLATTEN
@@ -656,11 +799,11 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
       float dist = localVolumeDistance(localPos - volumeVariant.distBasedCenter, volume.volumeType);
       float scaleFactor = lerp(volumeVariant.distBasedScale.x, volumeVariant.distBasedScale.y, dist * volumeVariant.distBasedInvRange);
       const float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale)) * scaleFactor;
-      const uint renderableIndex = getRenderableIndex(variant, placeableIndex, instancePos, viewport_pos, randScale);
+      const uint renderableIndex = getRenderableIndex(variant, placeableIndex, instancePos, vp_worldPos, randScale);
 
       bool isPlaced = renderableIndex != ~0u;
       const SameRenderableInfo rInfo = getSameRenderableInfo(renderableIndex, tId);
-      const uint counterIndex = getCounterIndex(renderableIndex, viewport_index, num_renderables);
+      const uint counterIndex = getCounterIndex(renderableIndex, vpIndex, num_renderables);
 
       DynAlloc allocRegion;
       FLATTEN
@@ -677,7 +820,7 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
 
         if (baseInstanceOffset + rInfo.count > allocRegion.capacity)
         {
-          ##if shader == dagdp_volume_place_stage1
+          ##if isStage1
             ##assert(false, "Placement overflowed: %d < %d + %d", allocRegion.capacity, baseInstanceOffset, rInfo.count);
           ##endif
 
@@ -701,7 +844,7 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
         randRot.x = stableRand(stablePos, prng_seed_yaw);
         randRot.y = stableRand(stablePos, prng_seed_pitch);
         randRot.z = stableRand(stablePos, prng_seed_roll);
-        writeInstance(placeable, instancePos, surfaceNormal, randRot, randScale, instanceElementOffset);
+        writeInstance(placeable, instancePos, surfaceNormal, randRot, randScale, instanceElementOffset, getInstanceExtra(instancePos));
       }
     }
   }

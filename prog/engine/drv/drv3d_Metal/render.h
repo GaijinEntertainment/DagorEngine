@@ -1047,7 +1047,8 @@ public:
       int check_offset = buf ? buf->getDynamicOffset() + offset : offset;
       if ((buffers[slot] != buf || buffers_offset[slot] != check_offset) && shader)
       {
-        if (buf && buf->getTexture())
+        // check the old buffer too: an unbind must drop its texture view
+        if ((buf && buf->getTexture()) || (buffers[slot] && buffers[slot]->getTexture()))
         {
           if (shader->tex_slot_remap[slot] >= 0)
             storage.texture_dirty_mask |= 1ull << shader->tex_slot_remap[slot];

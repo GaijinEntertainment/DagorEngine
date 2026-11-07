@@ -136,7 +136,7 @@ static void load_animation_data_base(ecs::EntityManager &manager, ecs::EntityId 
       const ecs::StringList &main_database__direction_nodes, const ecs::FloatList &main_database__direction_weights,
       const ecs::StringList &main_database__center_of_mass_nodes, const ecs::Point4List &main_database__center_of_mass_params,
       const ecs::string &main_database__nodeMasksPath, const ecs::Object &main_database__pbcWeightOverrides,
-      const ecs::string &main_database__footLockerCtrlName, const ecs::StringList main_database__footLockerNodes,
+      const ecs::string &main_database__footLockerCtrlName, const ecs::StringList &main_database__footLockerNodes,
       float main_database__validateNextClipPosThreshold, float main_database__validateNextClipRotThreshold,
       float main_database__validateNextClipSclThreshold, AnimationDataBase &dataBase) {
       G_ASSERT(!main_database__loaded);
@@ -240,6 +240,12 @@ static void init_animations_es(const ecs::Event &, ecs::EntityManager &manager, 
     {
       // most likely `load_data_base_ecs_query` failed and better not to confuse people with next logerr about different skeleton
       logerr("Motion Matching: failed to load '%s' database", dbTemplateName);
+      animchar.setMotionMatchingController(nullptr);
+      motion_matching__controller.dataBase = nullptr;
+      motion_matching__controller.currentClipInfo = {};
+      motion_matching__enabled = false;
+      motion_matching__presetIdx = -1;
+      motion_matching__dataBaseEid = ecs::INVALID_ENTITY_ID;
       return;
     }
     if (dataBase.getReferenceSkeleton() != animchar.getOriginalNodeTree())
@@ -283,12 +289,13 @@ static void init_animations_es(const ecs::Event &, ecs::EntityManager &manager, 
   motion_matching__goalFeature.init(1, dataBase.nodeCount, dataBase.trajectorySize);
 
   int skeletonNodeCount = motion_matching__controller.nodeCount;
-  if (motion_matching__controller.offset.position.empty()) // on_appear event, no need to reset bones on db invalidation
+  if ((int)motion_matching__controller.offset.position.size() != skeletonNodeCount) // keep bones on db invalidation, same skeleton
   {
     motion_matching__controller.offset.set_bone_count(skeletonNodeCount);
     motion_matching__controller.currentAnimation.set_bone_count(skeletonNodeCount);
     motion_matching__controller.resultAnimation.set_bone_count(skeletonNodeCount);
-    motion_matching__controller.perNodeWeights.resize(skeletonNodeCount, 0.0f);
+    motion_matching__controller.perNodeWeights.assign(skeletonNodeCount, 0.0f);
+    motion_matching__controller.motionMatchingWeight = 0.0f;
     for (int i = 0; i < skeletonNodeCount; ++i)
       motion_matching__controller.currentAnimation.position[i] = tree.getNodeTm(dag::Index16(i)).col3;
   }

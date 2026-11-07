@@ -337,6 +337,9 @@ Subpass roles, beyond those of :ref:`simple-render-passes`:
 - A ``depth()`` target that is also in the subpass ``read()`` list binds read-only, and the shaders
   drawn in that subpass must set ``z_write = false``. Metal cannot read a depth target; write the depth
   value to a color target there.
+- A subpass cannot both sample and read its depth: ``sampled_depth(T)`` with ``read(T)`` is an
+  error. Use ``sampled_depth(T)`` to sample it, or ``depth(T)`` with ``read(T)`` to read it in the
+  subpass.
 
 On Metal the color slot is the target declaration index, not the ``color()`` list position. Declare
 the targets that every shape shares first, so a target added in a ``hardware`` branch does not move the

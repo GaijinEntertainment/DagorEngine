@@ -26,6 +26,10 @@ float4 preparedScatteringDistToTc = float4((110/128.)*(110/128.)/80000.,0,
 texture preparedLoss;
 int skies_panoramic_scattering = 0;
 
+int skies_ground_relative_froxels = 0;
+interval skies_ground_relative_froxels: no < 1, yes;
+assume_if_not_assumed skies_ground_relative_froxels = yes;
+
 int4 skies_froxels_resolution = (1, 1, 1, 1);
 float skies_froxels_dist = 1;
 texture skies_frustum_scattering;
@@ -34,6 +38,13 @@ float4x4 skies_globtm; // directions only; row 3: froxel ground ray; z column: f
 
 define_macro_if_not_defined INIT_BRUNETON_FOG_COMPAT(stage)
   INIT_BRUNETON_FOG(stage)
+endmacro
+
+// must come before BASE_USE_BRUNETON_FOG
+define_macro_if_not_defined USE_SCATTERING_TC_Z_PRECISE(code)
+  hlsl(code) {
+    #define SCATTERING_TC_Z_PRECISE 1
+  }
 endmacro
 
 macro INIT_BRUNETON_FOG(stage)
@@ -48,7 +59,7 @@ macro INIT_BRUNETON_FOG(stage)
       skies_panoramic_scattering,
       skies_frustum_scattering_last_tz/skies_froxels_dist,
       2*skies_froxels_resolution.z,//we use clamp addressing, so our zero slice is always in center (0.5) of slice. And so it is never no scattering, even in 0.01 meters from camera
-      //to fight that we make SW border 'addressing', based on z-texcoord (for now!), or, alternatively based on distance.
+      //to fight that we make SW border 'addressing', based on distance (the z-texcoord fraction squared).
       //4*skies_froxels_resolution.z*skies_froxels_resolution.z/skies_froxels_dist,//we use clamp addressing, so our zero slice is always in center (0.5) of slice. And so it is never no scattering, even in 0.01 meters from camera
       skies_frustum_scattering_last_tz);//can be combined with preparedScatteringDistToTc
     skies_globtm@f44 = skies_globtm;
@@ -87,6 +98,7 @@ macro BASE_FOG_MATH(code)
       }
       return scatteringTC;
     }
+    ##if skies_ground_relative_froxels == yes
     float get_froxel_ground_dist(float mu, float4 ground_ray)
     {
       float rMu = ground_ray.x*mu;
@@ -102,6 +114,27 @@ macro BASE_FOG_MATH(code)
     {
       return ground_dist*rcp(max(1. - ground_ray.w, 1e-6));
     }
+    // cx, cy, cw: x, y and w columns of a view-projection matrix; its view ray is affine in screen
+    void get_froxel_corners_for(float2 tc, float2 res, float3 cx, float3 cy, float3 cw, float4 ground_ray,
+      out float4 range_scale, out float2 w, out float2 tc00, out float2 tc11)
+    {
+      float2 texel = clamp(tc*res - 0.5, 0, res - 1);
+      float2 corner = min(floor(texel), res - 2);
+      w = texel - corner;
+      tc00 = (corner + 0.5)/res;
+      tc11 = (corner + 1.5)/res;
+      float2 screen = tc00*float2(2, -2) + float2(-1, 1);
+      float3 v00 = cross(cx - screen.x*cw, cy - screen.y*cw);
+      float3 v10 = v00 + cross(cy, cw)*(2/res.x);
+      float3 v01 = v00 + cross(cx, cw)*(2/res.y);
+      float3 v11 = v10 + v01 - v00;
+      float4 mu = float4(v00.y, v10.y, v01.y, v11.y)*rsqrt(float4(dot(v00, v00), dot(v10, v10), dot(v01, v01), dot(v11, v11)));
+      mu *= dot(v00, cw) < 0 ? -1. : 1.;
+      UNROLL
+      for (int i = 0; i < 4; ++i)
+        range_scale[i] = get_froxel_range_scale(get_froxel_ground_dist(mu[i], ground_ray), ground_ray);
+    }
+    ##endif
   }
 endmacro
 
@@ -120,6 +153,7 @@ macro BASE_USE_BRUNETON_FOG(code)
       r.tex_smp = global_linear_clamp_sampler;
       return (half3)GetPreparedTransmittanceUV(r, prepared_tc);
     }
+    ##if skies_ground_relative_froxels == yes
     // callers' view sign varies; tc is reliable
     float get_froxel_view_mu(float2 tc)
     {
@@ -130,45 +164,57 @@ macro BASE_USE_BRUNETON_FOG(code)
       float3 v = cross(cx - screen.x*cw, cy - screen.y*cw);
       return v.y*rsqrt(dot(v, v))*(dot(v, cw) < 0 ? -1. : 1.);
     }
-    float get_froxel_bilinear_range_scale(float2 tc, float4 ground_ray)
+    void get_froxel_corners(float2 tc, float4 ground_ray, out float4 range_scale, out float2 w, out float2 tc00, out float2 tc11)
     {
       float2 res = float2(skies_globtm[0].z, skies_globtm[1].z);
-      float2 texel = clamp(tc*res - 0.5, 0, res - 1);
-      float2 corner = min(floor(texel), res - 2);
-      float2 w = texel - corner;
-      float2 screen = (corner + 0.5)/res*float2(2, -2) + float2(-1, 1);
       float3 cx = float3(skies_globtm[0].x, skies_globtm[1].x, skies_globtm[2].x);
       float3 cy = float3(skies_globtm[0].y, skies_globtm[1].y, skies_globtm[2].y);
       float3 cw = float3(skies_globtm[0].w, skies_globtm[1].w, skies_globtm[2].w);
-      // the get_froxel_view_mu ray is affine in screen
-      float3 v00 = cross(cx - screen.x*cw, cy - screen.y*cw);
-      float3 v10 = v00 + cross(cy, cw)*(2/res.x);
-      float3 v01 = v00 + cross(cx, cw)*(2/res.y);
-      float3 v11 = v10 + v01 - v00;
-      float4 mu = float4(v00.y, v10.y, v01.y, v11.y)*rsqrt(float4(dot(v00, v00), dot(v10, v10), dot(v01, v01), dot(v11, v11)));
-      mu *= dot(v00, cw) < 0 ? -1. : 1.;
+      get_froxel_corners_for(tc, res, cx, cy, cw, ground_ray, range_scale, w, tc00, tc11);
+    }
+    float get_froxel_bilinear_range_scale(float2 tc, float4 ground_ray)
+    {
       float4 rs;
-      UNROLL
-      for (int i = 0; i < 4; ++i)
-        rs[i] = get_froxel_range_scale(get_froxel_ground_dist(mu[i], ground_ray), ground_ray);
+      float2 w, tc00, tc11;
+      get_froxel_corners(tc, ground_ray, rs, w, tc00, tc11);
       return lerp(lerp(rs.x, rs.y, w.x), lerp(rs.z, rs.w, w.x), w.y);
     }
-    float get_scattering_tc_z(float2 tc, float dist)
+    bool is_froxel_near_horizon(float mu, float4 ground_ray)
+    {
+      float rMu = ground_ray.x*mu;
+      return abs(ground_ray.y + rMu*rMu) < skies_globtm[2].z;
+    }
+    // a ground point reads each column's ground
+    float get_froxel_on_ground_weight(float dist, float ground_dist)
+    {
+      float onGround = saturate(0.001*dist/ground_dist);
+      onGround *= onGround;
+      return onGround*onGround;
+    }
+    float get_scattering_tc_z_fast(float2 tc, float dist)
+    {
+      float4 groundRay = skies_globtm[3];
+      float rangeScale = get_froxel_range_scale(get_froxel_ground_dist(get_froxel_view_mu(tc), groundRay), groundRay);
+      return sqrt(dist*skies_panoramic_scattering__inv_distance.y/rangeScale);
+    }
+    float get_scattering_tc_z_precise(float2 tc, float dist)
     {
       float4 groundRay = skies_globtm[3];
       float mu = get_froxel_view_mu(tc);
       float groundDist = get_froxel_ground_dist(mu, groundRay);
       float rangeScale = get_froxel_range_scale(groundDist, groundRay);
-      float rMu = groundRay.x*mu;
       BRANCH
-      if (abs(groundRay.y + rMu*rMu) < skies_globtm[2].z)
-      {
-        // a ground point reads each column's ground
-        float onGround = saturate(0.001*dist/groundDist);
-        onGround *= onGround;
-        rangeScale = lerp(get_froxel_bilinear_range_scale(tc, groundRay), rangeScale, onGround*onGround);
-      }
+      if (is_froxel_near_horizon(mu, groundRay))
+        rangeScale = lerp(get_froxel_bilinear_range_scale(tc, groundRay), rangeScale, get_froxel_on_ground_weight(dist, groundDist));
       return sqrt(dist*skies_panoramic_scattering__inv_distance.y/rangeScale);
+    }
+    float get_scattering_tc_z(float2 tc, float dist)
+    {
+    #if SCATTERING_TC_Z_PRECISE
+      return get_scattering_tc_z_precise(tc, dist);
+    #else
+      return get_scattering_tc_z_fast(tc, dist);
+    #endif
     }
     // a point on the ground sphere is where its froxel column ends
     float get_scattering_tc_z_on_ground(float dist)
@@ -177,6 +223,17 @@ macro BASE_USE_BRUNETON_FOG(code)
       return sqrt(dist*skies_panoramic_scattering__inv_distance.y/rangeScale);
     }
 
+    ##else
+    float get_scattering_tc_z(float2 tc, float dist)
+    {
+      return sqrt(dist*skies_panoramic_scattering__inv_distance.y);
+    }
+    float get_scattering_tc_z_on_ground(float dist)
+    {
+      return sqrt(dist*skies_panoramic_scattering__inv_distance.y);
+    }
+
+    ##endif
     float2 getPreparedScatteringTc(float mu, float dist)
     {
       return short_get_prepared_scattering_tc(mu, dist, preparedScatteringDistToTc.xy);
@@ -191,14 +248,54 @@ macro BASE_USE_BRUNETON_FOG(code)
     {
       half4 combined = (half4)tex3Dlod(skies_frustum_scattering, float4(texcoord, tcZ, 0));
       combined.rgb *= apply_sky_polarization_filter();
-      combined = lerp(half4(0.h,0.h,0.h,1.h), combined, (half)saturate(tcZ*skies_panoramic_scattering__inv_distance.z));
+      half zeroSliceCoverageZ = (half)saturate(tcZ * skies_panoramic_scattering__inv_distance.z);
+      half zeroSliceCoverageLinear = zeroSliceCoverageZ * zeroSliceCoverageZ;
+      combined = lerp(half4(0.h,0.h,0.h,1.h), combined, zeroSliceCoverageLinear);
       return combined;
     }
+  ##if skies_ground_relative_froxels == yes
+  #if SCATTERING_TC_Z_PRECISE
+    // near the horizon the row scales differ a lot, so no single tcZ fits both rows of a trilinear tap
+    half4 get_scattering_tc_scatter_loss(float2 texcoord, float dist, out float tcZ)
+    {
+      float4 groundRay = skies_globtm[3];
+      float mu = get_froxel_view_mu(texcoord);
+      float groundDist = get_froxel_ground_dist(mu, groundRay);
+      float rangeScale = get_froxel_range_scale(groundDist, groundRay);
+      float scaledDist = dist*skies_panoramic_scattering__inv_distance.y;
+      float lastTcZ = skies_panoramic_scattering__inv_distance.w;
+      BRANCH
+      if (is_froxel_near_horizon(mu, groundRay))
+      {
+        // one tap per row at the row center, bilinear in x: the scale changes mostly between rows
+        float4 cornerScale;
+        float2 w, tc00, tc11;
+        get_froxel_corners(texcoord, groundRay, cornerScale, w, tc00, tc11);
+        cornerScale = lerp(cornerScale, rangeScale, get_froxel_on_ground_weight(dist, groundDist));
+        float2 rowScale = lerp(cornerScale.xz, cornerScale.yw, w.x);
+        float2 rowTcZ = min(sqrt(scaledDist/rowScale), lastTcZ);
+        half4 s0 = get_scattering_scatter_loss_at_z(float2(texcoord.x, tc00.y), rowTcZ.x);
+        half4 s1 = get_scattering_scatter_loss_at_z(float2(texcoord.x, tc11.y), rowTcZ.y);
+        tcZ = lerp(rowTcZ.x, rowTcZ.y, w.y);
+        return lerp(s0, s1, (half)w.y);
+      }
+      tcZ = min(sqrt(scaledDist/rangeScale), lastTcZ);
+      return get_scattering_scatter_loss_at_z(texcoord, tcZ);
+    }
+  #else
     half4 get_scattering_tc_scatter_loss(float2 texcoord, float dist, out float tcZ)
     {
       tcZ = min(get_scattering_tc_z(texcoord, dist), skies_panoramic_scattering__inv_distance.w);
       return get_scattering_scatter_loss_at_z(texcoord, tcZ);
     }
+  #endif
+  ##else
+    half4 get_scattering_tc_scatter_loss(float2 texcoord, float dist, out float tcZ)
+    {
+      tcZ = min(get_scattering_tc_z(texcoord, dist), skies_panoramic_scattering__inv_distance.w);
+      return get_scattering_scatter_loss_at_z(texcoord, tcZ);
+    }
+  ##endif
 
     float coloredTransmittanceInnerScaleInv(float3 colored_transmittance)
     {

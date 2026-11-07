@@ -147,6 +147,7 @@ VirtualRomFsPack *open_backed_vromfs_pack(const char *fname, IMemAlloc *mem, Vir
   bd->getDataArg = gfd_arg;
 
   fs->data.init(fs->data.data(), fs->files.map.size());
+  fs->isPack = true;
   fs->_resv = 'BCKD';
   fs->ptr = bd;
   G_ASSERT(fs->isValid());

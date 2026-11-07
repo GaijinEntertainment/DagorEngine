@@ -12,8 +12,10 @@ thousands separators, no leading zeros, no format specifiers - the same text
 
 ## Notes
 
-Takes no arguments: `(5).tostring(1)` throws `wrong number of parameters
-passed to native closure 'tostring' (2 passed, 1 required)`.
+Takes no arguments: for an integer `n`, `n.tostring(1)` throws `wrong number
+of parameters passed to native closure 'tostring' (2 passed, 1 required)`. With
+a constant receiver, such as `(5).tostring(1)`, the compiler folds the call, so
+the error fails the compile.
 
 This calls the same VM conversion as `tostring()`, so every built-in type has
 a `tostring` of its own; see [`types.Float.tostring`](sym:types.Float.tostring)

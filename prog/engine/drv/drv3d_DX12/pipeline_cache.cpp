@@ -2,105 +2,899 @@
 
 #include "pipeline_cache.h"
 #include "d3d12_error_handling.h"
-#include "pipeline/blk_cache.h"
+#include "variant_vector.h"
 
+#include <util/dag_base85.h>
+#include <3d/gpu_pipeline_serialization.h>
 #include <ioSys/dag_fileIo.h>
-#include <ioSys/dag_zstdIo.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
-#include <util/dag_finally.h>
+#include <osApiWrappers/dag_threads.h>
+#include <osApiWrappers/dag_addressWait.h>
 
 
 using namespace drv3d_dx12;
 
-#define DX12_ENABLE_CACHE_COMPRESSION 1
 
-#if 0
-#define CACHE_INFO_VERBOSE(...) logdbg(__VA_ARGS__)
-#else
-#define CACHE_INFO_VERBOSE(...)
-#endif
-
+#if _TARGET_PC_WIN
 namespace
 {
-struct CacheFileHeader
+struct UngroupedPipelineLibraryFileHeader
 {
+  // (U)n(g)rouped (P)ipeline (L)ibrary
+  static constexpr uint32_t magic_value = 'UgPL';
+  // Versions:
+  // 1: Initial version
+  //    - Support for dedicated hash arrays for vertex, pixel and compute shaders
+  //    - Support for pipeline library to store all pipelines
+  //    - Integrity of vertex, pixel and compute shader hash arrays
+  //    - Layout is: FileHeader (this type), hash of FileHeader as ShaderHashValue, vertex shader hash array, pixel shader hash
+  //      array, compute shader hash array, shader library blob.
+  static constexpr uint32_t version_value = 1;
+
+  // Header identifier, hash to match magic_value.
   uint32_t magic;
+  // File version, hash to match version_value.
   uint32_t version;
-  uint32_t pointerSize;
-  uint32_t deviceVendorID;
-  uint32_t deviceID;
-  uint32_t subSystemID;
-  uint32_t revisionID;
-  uint32_t flags;
-  uint32_t shaderHashCount;
-  uint32_t computeCaches;
-  uint32_t graphicsBaseCaches;
-  uint32_t computeSignatureCaches;
-  uint32_t graphicsSignatureCaches;
-  uint32_t graphicsMeshSignatureCaches;
-  uint32_t graphicsStaticStateCaches;
-  uint32_t inputLayoutCaches;
-  uint32_t framebufferLayoutCaches;
+  ShaderHashValue vertexShaderArrayHash;
+  ShaderHashValue pixelShaderArrayHash;
+  ShaderHashValue computeShaderArrayHash;
+  uint32_t vertexShaderArraySize;
+  uint32_t pixelShaderArraySize;
+  uint32_t computeShaderArraySize;
   uint32_t librarySize;
-  uint32_t compressedContentSize;
-  uint32_t uncompressedContentSize;
-  uint64_t rawDriverVersion;
-  dxil::HashValue headerChecksum;
-  dxil::HashValue dataChecksum;
-  dxil::HashValue shaderHashHash;
+  uint64_t runIndex;
 };
 
-enum CacheFileFlags
+struct ShaderDumpPipelineLibraryFileHeader
 {
-  CFF_ROOT_SIGNATURES_USES_CBV_DESCRIPTOR_RANGES = 1u << 0,
+  // (S)hader (D)ump (P)ipeline (L)ibrary
+  static constexpr uint32_t magic_value = 'SDPL';
+  // Versions:
+  // 1: Initial version
+  //    - Support for dedicated hash arrays for vertex, pixel and compute shaders
+  //    - Support for pipeline library to store all pipelines
+  //    - Integrity of vertex, pixel and compute shader hash arrays
+  //    - Layout is: FileHeader (this type), hash of FileHeader as ShaderHashValue, vertex shader hash array, pixel shader hash
+  //      array, compute shader hash array, shader library blob.
+  static constexpr uint32_t version_value = 1;
+  // Header identifier, hash to match magic_value.
+  uint32_t magic;
+  // File version, hash to match version_value.
+  uint32_t version;
+  ShaderHashValue vertexShaderHashArrayHash;
+  ShaderHashValue pixelShaderHashArrayHash;
+  ShaderHashValue computeShaderHashArrayHash;
+  uint32_t vertexShaderHashArraySize;
+  uint32_t pixelShaderHashArraySize;
+  uint32_t computeShaderHashArraySize;
+  uint32_t librarySize;
 };
 
-constexpr uint32_t CACHE_FILE_MAGIC = _MAKE4C('CX12');
-constexpr uint32_t CACHE_FILE_VERSION = 34;
-constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *));
-// Version history:
-// 1 - initial
-// 2 - addition graphics and compute signature cache
-// 3 - signatures support root constants
-// 4 - render state update
-// 5 - bindless textures
-// 6 - renamed unboundedStartIndices to indicesToUnboundedSRVs
-// 7 - bindless samplers
-// 8 - removal of old static state and replacement with input layouts and wire frame bit
-// 9 - framebuffer layout is now a separate element and pipelines reference it with ids
-// 10 - bugfix in root signature generator fixed, all cached blobs are wrong
-// 11 - internal structure refinement, shader header change, bindless root signature update
-// 12 - added pointerSize member in header to be able to see if the 32 or 64 bit exe did write the cache file
-// 13 - added driver version and to disable cache on old driver versions
-// 14 - changed uav descriptor table layout of root signatures
-// 15 - changed srv descriptor table layout of root signatures
-// 16 - added flags field to header
-// 17 - use of shader header inOutSemanticMask changed, masking rules for color outputs of graphics pipelines
-//      have been updated and result in different masks and active render targets
-// 18 - added support for view instancing
-// 19 - mesh shader support, cache for mesh pipeline signatures
-// 20 - independent blending support
-// 21 - BasePipelineIdentifier only has hashes for vs and ps. Dropped hashes for gs, hs and ds as its no longer used.
-//      Also changes pipeline library names.
-// 22 - GraphicsPipeline::VariantCacheEntry changed
-// 23 - MSAA support
-// 24 - shader bin dump table / cache invalidation
-// 25 - graphics root signature was using wrong type for combine masks
-// 26 - InputLayout data structure updated, fixed padding issues, reduced size, fixed issues with uninitialized bits
-// 27 - FramebufferLayout data structure updated, fixed padding issues, fixed issues with uninitialized bits
-// 28 - Dual source blending support
-// 29 - Stream output support
-// 30 - Dual source blending fix
-// 31 - Add useResourceDescriptorHeapIndexing and useSamplerDescriptorHeapIndexing in root signature definitions
-// 32 - Bit packing of root signature definitions
-// 33 - Added isMesh bit to graphics root signature definitions to properly distinguish between regular and mesh root signatures
-// 34 - Shader dump dataHash now covers the bytecode, all shader identity hashes and pipeline library names changed
+struct RootSignatureProperties
+{
+  bool usesConstBufferRootDescriptors = false;
+};
+
+struct GroupPipelineNameStore
+{
+  eastl::wstring name;
+
+  GroupPipelineNameStore(const D3D12_PIPELINE_STATE_STREAM_DESC &desc, const RootSignatureProperties &properties)
+  {
+    const auto *bytes = reinterpret_cast<const uint8_t *>(&properties);
+    auto blob = serialize_pipeline({.shaderHashes = true}, desc, {bytes, sizeof(properties)});
+
+    name.reserve(calculate_max_base_85_string_length(blob.size()));
+    eastl::span<const uint8_t> data{blob};
+    while (data.size() >= 4)
+    {
+      auto encodedBlock = encode_32_bit_word_to_base_85_block(uint32_t(data[0]) | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
+      for (auto c : encodedBlock.data)
+      {
+        if ('\0' == c)
+        {
+          break;
+        }
+        name += static_cast<wchar_t>(c);
+      }
+      data = data.subspan(4);
+    }
+    if (!data.empty())
+    {
+      uint32_t word = data[0];
+      if (data.size() > 1)
+      {
+        word |= uint32_t(data[1]) << 8;
+      }
+      if (data.size() > 2)
+      {
+        word |= uint32_t(data[2]) << 16;
+      }
+      // can not be > 3
+      auto encodedBlock = encode_32_bit_word_to_base_85_block(word);
+      for (auto c : encodedBlock.data)
+      {
+        if ('\0' == c)
+        {
+          break;
+        }
+        name += static_cast<wchar_t>(c);
+      }
+    }
+  }
+};
+
+// Generates a cache file name from a dump file name, the dump file name has usually a sub directory (so its a relative path).
+// The generator takes the name and "normalizes" it by converting all non alpha numeric characters into a underscore, this
+// ensures that the name will be ok for the file system. The name gets prefixed with "cache/", the relative cache folder
+// and post fixed with the extension ".cache".
+struct GroupCacheFileName
+{
+  eastl::string name;
+  GroupCacheFileName(eastl::string_view dump_name)
+  {
+    // -2 because sizeof of the pre and post fix include the null terminator each
+    name.reserve(sizeof(DUMP_CACHE_FILE_PREFIX) + sizeof(DUMP_CACHE_FILE_POSTFIX) + dump_name.length() - 2);
+    name = DUMP_CACHE_FILE_PREFIX;
+    for (auto c : dump_name)
+    {
+      if (isalnum(static_cast<unsigned char>(c)))
+      {
+        name += c;
+      }
+      else
+      {
+        name += '_';
+      }
+    }
+    name += DUMP_CACHE_FILE_POSTFIX;
+  }
+};
+
+enum class ReaderWrapperErrorCode
+{
+  GenericReadError,
+};
+
+template <typename T>
+class ReadWrapper
+{
+  T &source;
+
+public:
+  ReadWrapper(T &t) : source{t} {}
+  using ErrorCode = ReaderWrapperErrorCode;
+  dag::Expected<void, ErrorCode> readBytes(void *ptr, size_t sz)
+  {
+    if (sz != source.tryRead(ptr, sz))
+    {
+      return dag::Unexpected{ErrorCode::GenericReadError};
+    }
+    return {};
+  }
+  template <typename U>
+  dag::Expected<void, ErrorCode> readArray(U *ptr, size_t cnt)
+  {
+    return readBytes(ptr, sizeof(U) * cnt);
+  }
+  template <typename U>
+  dag::Expected<U, ErrorCode> readValue()
+  {
+    U value;
+    return readBytes(&value, sizeof(U)).and_then([&]() -> dag::Expected<U, ErrorCode> { return eastl::move(value); });
+  }
+  template <typename U>
+  dag::Expected<U, ErrorCode> readContainer(uint32_t count)
+  {
+    U data;
+    data.resize(count);
+    return readArray(data.data(), data.size()).and_then([&]() -> dag::Expected<U, ErrorCode> { return eastl::move(data); });
+  }
+};
+
+template <typename T>
+class WriteWrapper
+{
+  T &target;
+  bool ok = true;
+
+public:
+  WriteWrapper(T &t) : target{t} {}
+  void writeBytes(const void *ptr, size_t sz) { ok = ok && ((0 == sz) || ((nullptr != ptr) && (sz == target.tryWrite(ptr, sz)))); }
+  template <typename U>
+  void writeArray(const U *ptr, size_t count)
+  {
+    writeBytes(ptr, sizeof(U) * count);
+  }
+  template <typename U>
+  void write(const U &value)
+  {
+    return writeBytes(&value, sizeof(U));
+  }
+  bool close()
+  {
+    target.close();
+    return ok;
+  }
+};
+
+bool load_shader_cache_for_group(const auto &group, eastl::string_view dump_name)
+{
+  GroupCacheFileName fileName{dump_name};
+  FullFileLoadCB cacheFile{fileName.name.c_str(), DF_IGNORE_MISSING | DF_READ};
+  if (!cacheFile.fileHandle)
+  {
+    logwarn("DX12: Failed to open <%s> to load shader dump pipeline cache", fileName.name);
+    return false;
+  }
+
+  ReadWrapper reader{cacheFile};
+  auto headerReadResult = reader.readValue<ShaderDumpPipelineLibraryFileHeader>();
+  if (!headerReadResult)
+  {
+    logwarn("DX12: Failed to read <%s> file header", fileName.name);
+    return false;
+  }
+  auto &header = headerReadResult.value();
+
+  if ((ShaderDumpPipelineLibraryFileHeader::magic_value != header.magic) ||
+      (ShaderDumpPipelineLibraryFileHeader::version_value != header.version))
+  {
+    logwarn("DX12: File header <%s> incompatible", fileName.name);
+    return false;
+  }
+
+  auto headerHashReadResult = reader.readValue<ShaderHashValue>();
+  if (!headerHashReadResult)
+  {
+    logwarn("DX12: Failed to read <%s> file header hash", fileName.name);
+    return false;
+  }
+  if (ShaderHashValue::calculate(&headerReadResult.value(), 1) != headerHashReadResult.value())
+  {
+    logwarn("DX12: File header hash <%s> not matching", fileName.name);
+    return false;
+  }
+
+  auto vertexShaderHashArrayReadResult = reader.readContainer<DynamicArray<dxil::HashValue>>(header.vertexShaderHashArraySize);
+  if (!vertexShaderHashArrayReadResult)
+  {
+    logwarn("DX12: Failed to read <%s> vertex shader hash array", fileName.name);
+    return false;
+  }
+  if (ShaderHashValue::calculate(vertexShaderHashArrayReadResult->data(), vertexShaderHashArrayReadResult->size()) !=
+      header.vertexShaderHashArrayHash)
+  {
+    logwarn("DX12: Vertex shader hash array hash <%s> not matching", fileName.name);
+    return false;
+  }
+
+  auto pixelShaderHashArrayReadResult = reader.readContainer<DynamicArray<dxil::HashValue>>(header.pixelShaderHashArraySize);
+  if (!pixelShaderHashArrayReadResult)
+  {
+    logwarn("DX12: Failed to read <%s> pixel shader hash array", fileName.name);
+    return false;
+  }
+  if (ShaderHashValue::calculate(pixelShaderHashArrayReadResult->data(), pixelShaderHashArrayReadResult->size()) !=
+      header.pixelShaderHashArrayHash)
+  {
+    logwarn("DX12: Pixel shader hash array hash <%s> not matching", fileName.name);
+    return false;
+  }
+
+  auto computeShaderHashArrayReadResult = reader.readContainer<DynamicArray<dxil::HashValue>>(header.computeShaderHashArraySize);
+  if (!computeShaderHashArrayReadResult)
+  {
+    logwarn("DX12: Failed to read <%s> compute shader hash array", fileName.name);
+    return false;
+  }
+  if (ShaderHashValue::calculate(computeShaderHashArrayReadResult->data(), computeShaderHashArrayReadResult->size()) !=
+      header.computeShaderHashArrayHash)
+  {
+    logwarn("DX12: Compute shader hash array hash <%s> not matching", fileName.name);
+    return false;
+  }
+
+  auto libraryBlobReadResult = reader.readContainer<DynamicArray<uint8_t>>(header.librarySize);
+  if (!libraryBlobReadResult)
+  {
+    logwarn("DX12: Failed to read <%s> pipeline library blob", fileName.name);
+    return false;
+  }
+
+  group->constantState.libraryBlob = eastl::move(libraryBlobReadResult.value());
+  group->constantState.vertexShaderSet.insert(vertexShaderHashArrayReadResult->begin(), vertexShaderHashArrayReadResult->end());
+  group->constantState.pixelShaderSet.insert(pixelShaderHashArrayReadResult->begin(), pixelShaderHashArrayReadResult->end());
+  group->constantState.computeShaderSet.insert(computeShaderHashArrayReadResult->begin(), computeShaderHashArrayReadResult->end());
+  return true;
+}
+
+void store_cache_for_pipeline_group(const auto &group, eastl::string_view dump_name, dag::AtomicInteger<uint32_t> &issue_counter,
+  dag::AtomicInteger<uint32_t> &pending_counter)
+{
+  if (!group->hasLibrary())
+  {
+    return;
+  }
+
+  if (!group->hasChanged())
+  {
+    logdbg("DX12: No changes for group for <%s>, skipping store", dump_name);
+    return;
+  }
+
+  auto libSerializeResult = group->serializeLibrary();
+  if (!libSerializeResult)
+  {
+    logwarn("DX12: Failed to obtain pipeline library blob for <%s>: %s", dump_name,
+      dxgi_error_code_to_string(libSerializeResult.error()));
+    return;
+  }
+
+  auto &libraryBlob = libSerializeResult.value();
+  auto vertexShaderHashArray = group->serializeVertexShaderInfos();
+  auto pixelShaderHashArray = group->serializePixelShaderInfo();
+  auto computeShaderHashArray = group->serializeComputeShaderInfo();
+
+  const ShaderDumpPipelineLibraryFileHeader header{
+    .magic = ShaderDumpPipelineLibraryFileHeader::magic_value,
+    .version = ShaderDumpPipelineLibraryFileHeader::version_value,
+    .vertexShaderHashArrayHash = ShaderHashValue::calculate(vertexShaderHashArray.data(), vertexShaderHashArray.size()),
+    .pixelShaderHashArrayHash = ShaderHashValue::calculate(pixelShaderHashArray.data(), pixelShaderHashArray.size()),
+    .computeShaderHashArrayHash = ShaderHashValue::calculate(computeShaderHashArray.data(), computeShaderHashArray.size()),
+    .vertexShaderHashArraySize = static_cast<uint32_t>(vertexShaderHashArray.size()),
+    .pixelShaderHashArraySize = static_cast<uint32_t>(pixelShaderHashArray.size()),
+    .computeShaderHashArraySize = static_cast<uint32_t>(computeShaderHashArray.size()),
+    .librarySize = static_cast<uint32_t>(libraryBlob.size()),
+  };
+
+  // all those size checks are unlikely to happen, if they hit those limits its most likely an indicator that something is broken so
+  // still log them
+  if (uint64_t{header.vertexShaderHashArraySize} != vertexShaderHashArray.size())
+  {
+    logwarn("DX12: Too many vertex shader hashes to store for <%s>", dump_name);
+    return;
+  }
+  if (uint64_t{header.pixelShaderHashArraySize} != pixelShaderHashArray.size())
+  {
+    logwarn("DX12: Too many pixel shader hashes to store for <%s>", dump_name);
+    return;
+  }
+  if (uint64_t{header.computeShaderHashArraySize} != computeShaderHashArray.size())
+  {
+    logwarn("DX12: Too many compute shader hashes to store for <%s>", dump_name);
+    return;
+  }
+  if (uint64_t{header.librarySize} != libraryBlob.size())
+  {
+    logwarn("DX12: Pipeline library blob too big to store for <%s>", dump_name);
+    return;
+  }
+
+  GroupCacheFileName fileName{dump_name};
+  issue_counter.fetch_add(1);
+  execute_in_new_thread(
+    [fileName, header, vsha = eastl::move(vertexShaderHashArray), psha = eastl::move(pixelShaderHashArray),
+      csha = eastl::move(computeShaderHashArray), lb = eastl::move(libraryBlob), &issue_counter, &pending_counter](auto) {
+      pending_counter.fetch_add(1);
+      issue_counter.fetch_sub(1);
+      ::notify_one(issue_counter);
+
+      dd_mkpath(fileName.name.c_str());
+      FullFileSaveCB cacheFile{fileName.name.c_str(), DF_WRITE | DF_CREATE | DF_IGNORE_MISSING};
+      if (cacheFile.fileHandle)
+      {
+        auto headerHash = ShaderHashValue::calculate(&header, 1);
+
+        WriteWrapper writer{cacheFile};
+        writer.write(header);
+        writer.write(headerHash);
+        writer.writeArray(vsha.data(), vsha.size());
+        writer.writeArray(psha.data(), psha.size());
+        writer.writeArray(csha.data(), csha.size());
+        writer.writeArray(lb.data(), lb.size());
+
+        if (writer.close())
+        {
+          logdbg("DX12: Written shader dump group cache file <%s>", fileName.name);
+          logdbg("DX12: vertex shader hash count: %u", header.vertexShaderHashArraySize);
+          logdbg("DX12: pixel shader hash count: %u", header.pixelShaderHashArraySize);
+          logdbg("DX12: compute shader hash count: %u", header.computeShaderHashArraySize);
+          ByteUnits librarySizeInBytes{header.librarySize};
+          logdbg("DX12: Pipeline library size: %.4f %s", librarySizeInBytes.units(), librarySizeInBytes.name());
+        }
+        else
+        {
+          logwarn("DX12: Error while attempting to write shader dump group cache file to <%s>", fileName.name);
+        }
+      }
+      else
+      {
+        logwarn(
+          "DX12: Failed to open <%s> to serialize pipeline cache, missing cache folder or insufficient privileges might be the cause "
+          "for this error",
+          fileName.name);
+      }
+      pending_counter.fetch_sub(1);
+      ::notify_one(pending_counter);
+    },
+    "DX12: Pipeline group cache write");
+}
+
+dag::Expected<ComPtr<ID3D12PipelineState>, HRESULT> load_graphics_pipeline_variant_from_store(auto &store,
+  const D3D12_PIPELINE_STATE_STREAM_DESC &desc, const BasePipelineIdentifier &ident, const RootSignatureProperties &properties,
+  auto &&...write_params)
+{
+  auto access = store.access();
+  if (!access->hasLibrary())
+  {
+    return dag::Unexpected<HRESULT>{E_INVALIDARG};
+  }
+
+  auto vsInCacheLoc = access->hasVertexShader(ident.vs);
+  auto psInCacheLoc = access->hasPixelShader(ident.ps);
+
+  GroupPipelineNameStore name{desc, properties};
+  HRESULT errorCode = E_INVALIDARG;
+  ComPtr<ID3D12PipelineState> pipeline;
+
+  // TODO this can be improved
+  if (decltype(vsInCacheLoc)::Missing != vsInCacheLoc && decltype(psInCacheLoc)::Missing != psInCacheLoc)
+  {
+    errorCode = access->constantState.library->LoadPipeline(name.name.c_str(), &desc, COM_ARGS(&pipeline));
+    if (pipeline)
+    {
+      // store may track data that needs to rewritten on load
+      if (access->needsLoadRewrite())
+      {
+        access->rewriteVertexShaderInfo(ident.vs, eastl::move(write_params)...);
+        access->rewritePixelShaderInfo(ident.ps, eastl::move(write_params)...);
+      }
+
+      if (access->isInReplacementMode())
+      {
+        auto errorCode = access->dynamicState.library->StorePipeline(name.name.c_str(), pipeline.Get());
+        if (SUCCEEDED(errorCode))
+        {
+          access->replacementVertexShaderUse(ident.vs);
+          access->replacementPixelShaderUse(ident.ps);
+        }
+        else
+        {
+          logwarn("DX12: Store into replacement library failed: %s", dxgi_error_code_to_string(errorCode));
+        }
+      }
+    }
+  }
+
+  if (!pipeline && access->isInReplacementMode() &&
+      (decltype(vsInCacheLoc)::InDynamicStore == vsInCacheLoc && decltype(psInCacheLoc)::InDynamicStore == psInCacheLoc))
+  {
+    errorCode = access->dynamicState.library->LoadPipeline(name.name.c_str(), &desc, COM_ARGS(&pipeline));
+    // when it comes of dynamic store, the cache entries are already up to date and no extra update is needed
+  }
+
+  if (!pipeline)
+  {
+    return dag::Unexpected<HRESULT>{errorCode};
+  }
+
+  return eastl::move(pipeline);
+}
+
+dag::Expected<void, HRESULT> add_graphics_pipeline_vairiant_to_store(auto &store, ID3D12PipelineState *pipeline,
+  const D3D12_PIPELINE_STATE_STREAM_DESC &desc, const BasePipelineIdentifier &ident, const RootSignatureProperties &properties,
+  auto &&...add_params)
+{
+  auto access = store.access();
+  if (!access->hasLibrary())
+  {
+    return dag::Unexpected<HRESULT>{E_INVALIDARG};
+  }
+  GroupPipelineNameStore name{desc, properties};
+  auto errorCode = access->dynamicState.library->StorePipeline(name.name.c_str(), pipeline);
+  if (FAILED(errorCode))
+  {
+    return dag::Unexpected{errorCode};
+  }
+
+  access->addVertexShaderInfo(ident.vs, eastl::move(add_params)...);
+  access->addPixelShaderInfo(ident.ps, eastl::move(add_params)...);
+  return {};
+}
+
+dag::Expected<ComPtr<ID3D12PipelineState>, HRESULT> load_compute_pipeline_from_store(auto &store,
+  const D3D12_PIPELINE_STATE_STREAM_DESC &desc, const dxil::HashValue &shader_identifier, const RootSignatureProperties &properties,
+  auto &&...write_params)
+{
+  auto access = store.access();
+  if (!access->hasLibrary())
+  {
+    return dag::Unexpected<HRESULT>{E_INVALIDARG};
+  }
+
+  GroupPipelineNameStore name{desc, properties};
+  HRESULT errorCode = E_INVALIDARG;
+  ComPtr<ID3D12PipelineState> pipeline;
+
+  auto csInCacheLoc = access->hasComputeShader(shader_identifier);
+  // TODO this can be improved
+  if (decltype(csInCacheLoc)::Missing != csInCacheLoc)
+  {
+    errorCode = access->constantState.library->LoadPipeline(name.name.c_str(), &desc, COM_ARGS(&pipeline));
+
+    if (pipeline)
+    {
+      if (access->needsLoadRewrite())
+      {
+        access->rewriteComputeShaderInfo(shader_identifier, eastl::move(write_params)...);
+      }
+
+      if (access->isInReplacementMode())
+      {
+        auto errorCode = access->dynamicState.library->StorePipeline(name.name.c_str(), pipeline.Get());
+        if (SUCCEEDED(errorCode))
+        {
+          access->replacementComputeShaderUse(shader_identifier);
+        }
+        else
+        {
+          logwarn("DX12: Store into replacement library failed: %s", dxgi_error_code_to_string(errorCode));
+        }
+      }
+    }
+  }
+
+  if (!pipeline && access->isInReplacementMode() && decltype(csInCacheLoc)::InDynamicStore == csInCacheLoc)
+  {
+    errorCode = access->dynamicState.library->LoadPipeline(name.name.c_str(), &desc, COM_ARGS(&pipeline));
+    // when it comes of dynamic store, the cache entries are already up to date and no extra update is needed
+  }
+
+  if (!pipeline)
+  {
+    return dag::Unexpected<HRESULT>{errorCode};
+  }
+
+  return eastl::move(pipeline);
+}
+
+dag::Expected<void, HRESULT> add_compute_to_store(auto &store, ID3D12PipelineState *pipeline,
+  const D3D12_PIPELINE_STATE_STREAM_DESC &desc, const dxil::HashValue &shader_identifier, const RootSignatureProperties &properties,
+  auto &&...add_params)
+{
+  auto access = store.access();
+  if (!access->hasLibrary())
+  {
+    return dag::Unexpected<HRESULT>{E_INVALIDARG};
+  }
+  GroupPipelineNameStore name{desc, properties};
+  auto errorCode = access->dynamicState.library->StorePipeline(name.name.c_str(), pipeline);
+  if (FAILED(errorCode))
+  {
+    return dag::Unexpected{errorCode};
+  }
+
+  access->addComputeShaderInfo(shader_identifier, eastl::move(add_params)...);
+  return {};
+}
+
+bool has_base_pipeline_in_store(auto &store, const BasePipelineIdentifier &ident)
+{
+  auto readAccess = store.access();
+  auto vsResult = readAccess->hasVertexShader(ident.vs);
+  auto psResult = readAccess->hasPixelShader(ident.ps);
+  return decltype(vsResult)::Missing != vsResult && decltype(psResult)::Missing != psResult;
+}
+
+bool has_compute_pipeline_in_store(auto &store, const dxil::HashValue &shader_identifier)
+{
+  auto readAccess = store.access();
+  auto csResult = readAccess->hasComputeShader(shader_identifier);
+  return decltype(csResult)::Missing != csResult;
+}
+
+bool create_default_libraries(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS features, auto &store)
+{
+  if (0 == (D3D12_SHADER_CACHE_SUPPORT_LIBRARY & features))
+  {
+    return true;
+  }
+  if (store->hasLibrary())
+  {
+    return true;
+  }
+  ComPtr<ID3D12PipelineLibrary1> loadedLib;
+  if (FAILED(DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreatePipelineLibrary(nullptr, 0, COM_ARGS(&loadedLib)))))
+  {
+    return false;
+  }
+  if (!store->constantState.library)
+  {
+    store->constantState.library = loadedLib;
+  }
+  if (!store->dynamicState.library)
+  {
+    store->dynamicState.library = loadedLib;
+  }
+  return true;
+}
+
+bool recover_for_store(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS features, const auto &store, const eastl::string_view &what)
+{
+  return store->recover(device, features)
+    .transform([&](auto from_blob_result) {
+      if (FAILED(from_blob_result))
+      {
+        logwarn("DX12: Failed to restore pipeline library for <%s> pipelines: %s", what, dxgi_error_code_to_string(from_blob_result));
+      }
+      else if (S_OK == from_blob_result)
+      {
+        logdbg("DX12: Restored pipeline library for <%s> pipelines", what);
+      }
+      else
+      {
+        logdbg("DX12: New pipeline library for <%s> pipelines", what);
+      }
+      return true;
+    })
+    .transform_error([&](auto error_code) {
+      if (E_NOINTERFACE != error_code)
+      {
+        logwarn("DX12: Failed to create new pipeline library for <%s> pipelines: %s", what, dxgi_error_code_to_string(error_code));
+      }
+      return error_code;
+    })
+    .value_or(false);
+}
+
+bool setup_for_group(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS features, const auto &group, const eastl::string_view &what,
+  eastl::span<const dxil::HashValue> all_shader_hashes)
+{
+  if (!recover_for_store(device, features, group, what))
+  {
+    return false;
+  }
+
+  uint32_t vsHit = 0;
+  uint32_t psHit = 0;
+  uint32_t csHit = 0;
+  uint32_t miss = 0;
+  for (auto &hash : all_shader_hashes)
+  {
+    if (0 < group->constantState.vertexShaderSet.count(hash))
+    {
+      ++vsHit;
+    }
+    else if (0 < group->constantState.pixelShaderSet.count(hash))
+    {
+      ++psHit;
+    }
+    else if (0 < group->constantState.computeShaderSet.count(hash))
+    {
+      ++csHit;
+    }
+    else
+    {
+      ++miss;
+    }
+  }
+  logdbg("DX12: Disk cache compare to shader dump loaded:");
+  logdbg("DX12: Disk cache has %u vertex shaders not in shader dump", group->constantState.vertexShaderSet.size() - vsHit);
+  logdbg("DX12: Disk cache has %u pixel shaders not in shader dump (at least one will always not be in shader dump, because of 'null "
+         "pixel shader')",
+    group->constantState.pixelShaderSet.size() - psHit);
+  logdbg("DX12: Disk cache has %u compute shaders not in shader dump", group->constantState.computeShaderSet.size() - csHit);
+  logdbg("DX12: Disk cache does not cover %u shaders found in shader dump", miss);
+  const uint32_t totalHit = vsHit + psHit + csHit;
+  const auto totalSize = group->constantState.vertexShaderSet.size() + group->constantState.pixelShaderSet.size() +
+                         group->constantState.computeShaderSet.size();
+  // when less than 75% of all shader hashes are still part of the dump, we start the replacement process into a new lib
+  constexpr uint32_t lib_replacement_threshold_rate = 75;
+  if (totalSize && (totalHit * 100 / totalSize < lib_replacement_threshold_rate))
+  {
+    ComPtr<ID3D12PipelineLibrary1> replacementLib;
+    if (SUCCEEDED(DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreatePipelineLibrary(nullptr, 0, COM_ARGS(&replacementLib)))))
+    {
+      group->dynamicState.library = replacementLib;
+      logdbg("DX12: Disk cache has %u%% of shaders in cache that are not part of the shader dump, starting replacement of pipeline "
+             "library",
+        100 - totalHit * 100 / totalSize);
+    }
+  }
+  else
+  {
+    logdbg("DX12: Using disk cache as is");
+  }
+
+  return true;
+}
+
+bool recover_ungrouped_pipeline_library(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS features, const auto &write_access,
+  const eastl::string_view &what, uint64_t ungrouped_pipelines_run_index)
+{
+  if (!recover_for_store(device, features, write_access, what))
+  {
+    return false;
+  }
+
+  // assumes one run per day, keeping the min age to at least a month
+  // for now we don't use timestamps, if it turns out its problematic we can still change this, counter is 64 bits so time can be used
+  // instead at any moment
+  // with time based multiply by
+  constexpr uint32_t min_runs_since_first = 30;
+  auto isCurrentEvaluator = [currentRun = ungrouped_pipelines_run_index](const auto &pair) {
+    auto &[hash, info] = pair;
+    // keep it when:
+    // - it was just tapped this run
+    // - its first seen run is not old enough
+    // - the time the entry was used is larger than the time it was not used since
+    return (info.lastRun == currentRun) || ((currentRun - info.firstRun) < min_runs_since_first) ||
+           ((info.lastRun - info.firstRun) > (currentRun - info.lastRun));
+  };
+
+  auto isCurrentCount = eastl::count_if(write_access->constantState.vertexShaderSet.begin(),
+    write_access->constantState.vertexShaderSet.end(), isCurrentEvaluator);
+  isCurrentCount += eastl::count_if(write_access->constantState.pixelShaderSet.begin(),
+    write_access->constantState.pixelShaderSet.end(), isCurrentEvaluator);
+  isCurrentCount += eastl::count_if(write_access->constantState.computeShaderSet.begin(),
+    write_access->constantState.computeShaderSet.end(), isCurrentEvaluator);
+  // values stored in dynamic are per convention always current
+  isCurrentCount += write_access->dynamicState.vertexShaderSet.size();
+  isCurrentCount += write_access->dynamicState.pixelShaderSet.size();
+  isCurrentCount += write_access->dynamicState.computeShaderSet.size();
+
+  auto totalCount = write_access->constantState.vertexShaderSet.size() + write_access->constantState.pixelShaderSet.size() +
+                    write_access->constantState.computeShaderSet.size() + write_access->dynamicState.vertexShaderSet.size() +
+                    write_access->dynamicState.pixelShaderSet.size() + write_access->dynamicState.computeShaderSet.size();
+
+  constexpr uint32_t lib_replacement_threshold_rate = 75;
+
+  if (totalCount && (isCurrentCount * 100 / totalCount) < lib_replacement_threshold_rate)
+  {
+    ComPtr<ID3D12PipelineLibrary1> replacementLib;
+    auto errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreatePipelineLibrary(nullptr, 0, COM_ARGS(&replacementLib)));
+    if (FAILED(errorCode))
+    {
+      logwarn("DX12: Failed to create new pipeline library for ungrouped pipeline library replacement, continuing with old");
+      write_access->dynamicState.vertexShaderSet.clear();
+      write_access->dynamicState.pixelShaderSet.clear();
+      write_access->dynamicState.computeShaderSet.clear();
+    }
+    if (replacementLib)
+    {
+      logdbg("DX12: Using new pipeline library for ungrouped library replacement, because %u%% of shaders are considered too old",
+        100 - isCurrentCount * 100 / totalCount);
+      write_access->dynamicState.library = replacementLib;
+    }
+  }
+
+  return true;
+}
+
+bool load_ungrouped_pipeline_library_file(const auto &write_access, uint64_t &ungrouped_pipelines_run_index, const char *dump_name)
+{
+  FullFileLoadCB cacheFile{dump_name, DF_IGNORE_MISSING | DF_READ};
+  if (!cacheFile.fileHandle)
+  {
+    logwarn("DX12: Failed to open <%s> to load ungrouped pipelines cache", dump_name);
+    return false;
+  }
+
+  ReadWrapper reader{cacheFile};
+  auto headerReadResult = reader.readValue<UngroupedPipelineLibraryFileHeader>();
+  if (!headerReadResult)
+  {
+    logwarn("DX12: Failed to read the file header from <%s>", dump_name);
+    return false;
+  }
+
+  if ((UngroupedPipelineLibraryFileHeader::magic_value != headerReadResult->magic) ||
+      (UngroupedPipelineLibraryFileHeader::version_value != headerReadResult->version))
+  {
+    logwarn("DX12: Invalid ungrouped file header, magic or version mismatch <%s>", dump_name);
+    return false;
+  }
+
+  auto headerHashReadResult = reader.readValue<ShaderHashValue>();
+  if (!headerHashReadResult)
+  {
+    logwarn("DX12: Failed to read header hash value <%s>", dump_name);
+    return false;
+  }
+
+  if (ShaderHashValue::calculate(&headerReadResult.value(), 1) != headerHashReadResult.value())
+  {
+    logwarn("DX12: Invalid ungrouped file header, hash mismatch <%s>", dump_name);
+    return false;
+  }
+
+  auto vertexShaderSetArrayReadResult =
+    reader.readContainer<DynamicArray<eastl::decay_t<decltype(*write_access->constantState.vertexShaderSet.begin())>>>(
+      headerReadResult->vertexShaderArraySize);
+  if (!vertexShaderSetArrayReadResult)
+  {
+    logwarn("DX12: Failed to read vertex shader set array <%s>", dump_name);
+    return false;
+  }
+
+  if (ShaderHashValue::calculate(vertexShaderSetArrayReadResult->data(), vertexShaderSetArrayReadResult->size()) !=
+      headerReadResult->vertexShaderArrayHash)
+  {
+    logwarn("DX12: Invalid ungrouped file, vertex shader set array hash mismatch <%s>", dump_name);
+    return false;
+  }
+
+  auto pixelShaderSetArrayReadResult =
+    reader.readContainer<DynamicArray<eastl::decay_t<decltype(*write_access->constantState.pixelShaderSet.begin())>>>(
+      headerReadResult->pixelShaderArraySize);
+  if (!pixelShaderSetArrayReadResult)
+  {
+    logwarn("DX12: Failed to read pixel shader set array <%s>", dump_name);
+    return false;
+  }
+
+  if (ShaderHashValue::calculate(pixelShaderSetArrayReadResult->data(), pixelShaderSetArrayReadResult->size()) !=
+      headerReadResult->pixelShaderArrayHash)
+  {
+    logwarn("DX12: Invalid ungrouped file, pixel shader set array hash mismatch <%s>", dump_name);
+    return false;
+  }
+
+  auto computeShaderSetArrayReadResult =
+    reader.readContainer<DynamicArray<eastl::decay_t<decltype(*write_access->constantState.computeShaderSet.begin())>>>(
+      headerReadResult->computeShaderArraySize);
+  if (!computeShaderSetArrayReadResult)
+  {
+    logwarn("DX12: Failed to read compute shader set array <%s>", dump_name);
+    return false;
+  }
+
+  if (ShaderHashValue::calculate(computeShaderSetArrayReadResult->data(), computeShaderSetArrayReadResult->size()) !=
+      headerReadResult->computeShaderArrayHash)
+  {
+    logwarn("DX12: Invalid ungrouped file, compute shader set array hash mismatch <%s>", dump_name);
+    return false;
+  }
+
+  auto libraryBlobReadResult = reader.readContainer<DynamicArray<uint8_t>>(headerReadResult->librarySize);
+  if (!libraryBlobReadResult)
+  {
+    logwarn("DX12: Failed to read pipeline library blob <%s>", dump_name);
+    return false;
+  }
+
+  auto transferArray = [](auto &target, auto &source) {
+    target.reserve(source.size());
+    // each hash and lifetime array may has duplicated hash entries, we have to properly merge them
+    for (auto &e : source)
+    {
+      auto result = target.insert(e);
+      if (!result.second)
+      {
+        result.first->second.firstRun = eastl::min(result.first->second.firstRun, e.second.firstRun);
+        result.first->second.lastRun = eastl::max(result.first->second.lastRun, e.second.lastRun);
+      }
+    }
+  };
+
+  write_access->reset();
+  transferArray(write_access->constantState.vertexShaderSet, *vertexShaderSetArrayReadResult);
+  transferArray(write_access->constantState.pixelShaderSet, *pixelShaderSetArrayReadResult);
+  transferArray(write_access->constantState.computeShaderSet, *computeShaderSetArrayReadResult);
+
+  write_access->constantState.libraryBlob = eastl::move(libraryBlobReadResult.value());
+
+  ungrouped_pipelines_run_index = 1 + headerReadResult->runIndex;
+
+  return true;
+}
 } // namespace
+#endif
 
-void PipelineCache::init(const SetupParameters &params)
+void PipelineCache::init([[maybe_unused]] const SetupParameters &params)
 {
-  G_UNUSED(params);
 #if _TARGET_PC_WIN
   D3D12_FEATURE_DATA_SHADER_CACHE cacheFlags = {};
   if (DX12_CHECK_OK(params.device->CheckFeatureSupport(D3D12_FEATURE_SHADER_CACHE, &cacheFlags, sizeof(cacheFlags))))
@@ -114,657 +908,63 @@ void PipelineCache::init(const SetupParameters &params)
   logdbg("Automatic OS in memory cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_INPROC_CACHE) != 0);
   logdbg("Automatic OS on disk cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE) != 0);
 
-  library.Reset();
-
-  loadFromFile(params);
-  if (!library && useLibrary())
-  {
-    // just report an error but don't abort, library is not essential
-    DX12_DEBUG_RESULT(params.device->CreatePipelineLibrary(nullptr, 0, COM_ARGS(&library)));
-  }
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+  rootSignaturesUsesCBVDescriptorRanges = params.rootSignaturesUsesCBVDescriptorRanges;
+#endif
 
   setupBuildInPipelineLibrary(params, deviceFeatures);
+  setupUngroupedPipelineLibrary(params);
 #endif
 }
 
-struct MemoryWriteBuffer
+void PipelineCache::shutdown([[maybe_unused]] const ShutdownParameters &params)
 {
-  dag::Vector<uint8_t> buf;
-  void append(const void *ptr, size_t sz)
-  {
-    buf.insert(buf.end(), reinterpret_cast<const uint8_t *>(ptr), reinterpret_cast<const uint8_t *>(ptr) + sz);
-  }
-};
-
-void PipelineCache::shutdown(const ShutdownParameters &params)
-{
-  G_UNUSED(params);
 #if _TARGET_PC_WIN
-  FINALLY([&]() {
-    library.Reset();
-    initialPipelineBlob.clear();
-    graphicsCache.clear();
-    computeBlobs.clear();
-    computeSignatures.clear();
-    graphicsSignatures.clear();
-    graphicsMeshSignatures.clear();
-  });
-
   storeBuildInPipelineLibraryFile(params);
   shutdownBuildInPipelineLibrary();
 
-  if ((hasChanged || params.alwaysGenerateBlks) && params.generateBlks)
-  {
-    DataBlock cacheOutBlock;
-    if (auto inputLayoutOutBlock = cacheOutBlock.addNewBlock("input_layouts"))
-    {
-      pipeline::DataBlockEncodeVisitor<pipeline::InputLayoutEncoder> visitor{*inputLayoutOutBlock};
-      for (auto &layout : inputLayouts)
-      {
-        visitor.encode2(layout);
-      }
-    }
+  storeUngroupedPipelineLibraryFile(params);
+  shutdownUngroupedPipelineLibrary();
 
-    if (auto renderStateOutBlock = cacheOutBlock.addNewBlock("render_states"))
-    {
-      pipeline::DataBlockEncodeVisitor<pipeline::RenderStateEncoder> visitor{*renderStateOutBlock};
-      for (auto &state : staticRenderStates)
-      {
-        visitor.encode2(state);
-      }
-    }
-
-    if (auto framebufferLayoutOutBlock = cacheOutBlock.addNewBlock("framebuffer_layouts"))
-    {
-      pipeline::DataBlockEncodeVisitor<pipeline::FramebufferLayoutEncoder> visitor{*framebufferLayoutOutBlock};
-      for (auto &layout : framebufferLayouts)
-      {
-        visitor.encode2(layout);
-      }
-    }
-
-    cacheOutBlock.saveToTextFile("cache/dx12_cache.blk");
-  }
-
-  if (!hasChanged)
-    return;
-
-  dd_mkpath(params.fileName);
-
-  FullFileSaveCB cacheFile{params.fileName, DF_WRITE | DF_CREATE | DF_IGNORE_MISSING};
-  if (!cacheFile.fileHandle)
-  {
-    D3D_ERROR("DX12: Failed to open %s to serialize pipeline cache, missing cache folder or "
-              "insufficient privileges might be the cause for this error",
-      params.fileName);
-    return;
-  }
-
-  logdbg("DX12: Serializing pipeline caches to %s", params.fileName);
-
-  CacheFileHeader fileHeader = {};
-  fileHeader.magic = CACHE_FILE_MAGIC;
-  fileHeader.version = CACHE_FILE_VERSION;
-  fileHeader.pointerSize = EXPECTED_POINTER_SIZE;
-  fileHeader.deviceVendorID = params.deviceVendorID;
-  fileHeader.deviceID = params.deviceID;
-  fileHeader.subSystemID = params.subSystemID;
-  fileHeader.revisionID = params.revisionID;
-  fileHeader.shaderHashCount = shaderInDumpCount;
-  fileHeader.computeCaches = static_cast<uint32_t>(computeBlobs.size());
-  fileHeader.graphicsBaseCaches = static_cast<uint32_t>(graphicsCache.size());
-  fileHeader.computeSignatureCaches = static_cast<uint32_t>(computeSignatures.size());
-  fileHeader.graphicsSignatureCaches = static_cast<uint32_t>(graphicsSignatures.size());
-  fileHeader.graphicsMeshSignatureCaches = static_cast<uint32_t>(graphicsMeshSignatures.size());
-  fileHeader.graphicsStaticStateCaches = static_cast<uint32_t>(staticRenderStates.size());
-  fileHeader.inputLayoutCaches = static_cast<uint32_t>(inputLayouts.size());
-  fileHeader.framebufferLayoutCaches = static_cast<uint32_t>(framebufferLayouts.size());
-  fileHeader.shaderHashHash = shaderInDumpHash;
-  fileHeader.flags = 0;
-  if (params.rootSignaturesUsesCBVDescriptorRanges)
-  {
-    fileHeader.flags |= CFF_ROOT_SIGNATURES_USES_CBV_DESCRIPTOR_RANGES;
-  }
-  fileHeader.rawDriverVersion = params.rawDriverVersion;
-  if (library)
-  {
-    uint64_t libSize = library->GetSerializedSize();
-    G_ASSERTF_RETURN(libSize <= eastl::numeric_limits<decltype(fileHeader.librarySize)>::max(), ,
-      "DX12: Shader lib sizes of %llu bytes exceeded the bit limit of the header field", uint64_t{libSize});
-
-    fileHeader.librarySize = static_cast<uint32_t>(libSize);
-  }
-
-  MemoryWriteBuffer mem;
-  for (auto &&cc : computeBlobs)
-  {
-    G_ASSERTF_RETURN(cc.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
-      "DX12: cc.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{cc.blob.size()});
-
-    mem.append(&cc.hash, sizeof(cc.hash));
-    auto s = static_cast<uint32_t>(cc.blob.size());
-    mem.append(&s, sizeof(s));
-    mem.append(cc.blob.data(), cc.blob.size());
-  }
-
-  for (auto &&gc : graphicsCache)
-  {
-    G_ASSERTF_RETURN(gc.variantCache.size() <= eastl::numeric_limits<uint32_t>::max(), ,
-      "DX12: gc.variantCache.size() %llu exceeds bit storage limit of the size field", uint64_t{gc.variantCache.size()});
-
-    mem.append(&gc.ident, sizeof(gc.ident));
-    auto s = static_cast<uint32_t>(gc.variantCache.size());
-    mem.append(&s, sizeof(s));
-    for (auto &&v : gc.variantCache)
-    {
-      G_ASSERTF_RETURN(v.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
-        "DX12: v.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{v.blob.size()});
-
-      mem.append(&v.topology, sizeof(v.topology));
-      mem.append(&v.framebufferLayoutIndex, sizeof(v.framebufferLayoutIndex));
-      mem.append(&v.inputLayoutIndex, sizeof(v.inputLayoutIndex));
-      mem.append(&v.isWireFrame, sizeof(v.isWireFrame));
-      mem.append(&v.staticRenderStateIndex, sizeof(v.staticRenderStateIndex));
-      auto s2 = static_cast<uint32_t>(v.blob.size());
-      mem.append(&s2, sizeof(s2));
-      mem.append(v.blob.data(), v.blob.size());
-    }
-  }
-
-  for (auto &&cs : computeSignatures)
-  {
-    G_ASSERTF_RETURN(cs.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
-      "DX12: cs.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{cs.blob.size()});
-
-    mem.append(&cs.def, sizeof(cs.def));
-    auto s = static_cast<uint32_t>(cs.blob.size());
-    mem.append(&s, sizeof(s));
-    mem.append(cs.blob.data(), cs.blob.size());
-  }
-
-  for (auto &&gs : graphicsSignatures)
-  {
-    G_ASSERTF_RETURN(gs.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
-      "DX12: gs.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{gs.blob.size()});
-
-    mem.append(&gs.def, sizeof(gs.def));
-    auto s = static_cast<uint32_t>(gs.blob.size());
-    mem.append(&s, sizeof(s));
-    mem.append(gs.blob.data(), gs.blob.size());
-  }
-
-  for (auto &&gs : graphicsMeshSignatures)
-  {
-    G_ASSERTF_RETURN(gs.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
-      "DX12: gs.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{gs.blob.size()});
-
-    mem.append(&gs.def, sizeof(gs.def));
-    auto s = static_cast<uint32_t>(gs.blob.size());
-    mem.append(&s, sizeof(s));
-    mem.append(gs.blob.data(), gs.blob.size());
-  }
-
-  for (auto &&gs : staticRenderStates)
-    mem.append(&gs, sizeof(gs));
-
-  for (auto &&il : inputLayouts)
-    mem.append(&il, sizeof(il));
-
-  for (auto &&fbl : framebufferLayouts)
-    mem.append(&fbl, sizeof(fbl));
-
-  if (library)
-  {
-    dag::Vector<uint8_t> blob;
-    blob.resize(library->GetSerializedSize());
-    library->Serialize(blob.data(), blob.size());
-    mem.append(blob.data(), blob.size());
-  }
-
-  dag::Vector<uint8_t> compressedMemory;
-#if DX12_ENABLE_CACHE_COMPRESSION
-  compressedMemory.resize(mem.buf.size() * 2);
-  // level 5 is the time/size sweet spot for this payload: near-best
-  // ratio at a fraction of the compression time.
-  auto compSize = zstd_compress(compressedMemory.data(), compressedMemory.size(), mem.buf.data(), mem.buf.size(), 5);
-  // if we encountered an error or for some reason the data is not smaller,
-  // use uncompressed instead
-  if (compSize >= mem.buf.size())
-    compSize = 0;
-  compressedMemory.resize(compSize);
-#endif
-
-  G_ASSERTF_RETURN(mem.buf.size() <= eastl::numeric_limits<decltype(fileHeader.uncompressedContentSize)>::max(), ,
-    "DX12: library memory size of %llu bytes, exceeds bit limit of header field", uint64_t{mem.buf.size()});
-
-  fileHeader.compressedContentSize = static_cast<uint32_t>(compressedMemory.size());
-  fileHeader.uncompressedContentSize = static_cast<uint32_t>(mem.buf.size());
-  fileHeader.dataChecksum = dxil::HashValue::calculate(mem.buf.data(), mem.buf.size());
-  fileHeader.headerChecksum = dxil::HashValue::calculate(&fileHeader, 1);
-
-  logdbg("D12: Writing pipeline cache with %u bytes of size",
-    sizeof(fileHeader) + (fileHeader.compressedContentSize ? fileHeader.compressedContentSize : fileHeader.uncompressedContentSize));
-  cacheFile.write(&fileHeader, sizeof(fileHeader));
-  if (!compressedMemory.empty())
-    cacheFile.write(compressedMemory.data(), compressedMemory.size());
-  else
-    cacheFile.write(mem.buf.data(), mem.buf.size());
-  cacheFile.close();
+  waitForWriterThreads();
 #endif
 }
-
-GraphicsPipelineBaseCacheId PipelineCache::getGraphicsPipeline(const BasePipelineIdentifier &ident)
-{
-  OSSpinlockScopedLock lock(pipelineCacheGuard);
-
-  auto ref =
-    eastl::find_if(begin(graphicsCache), end(graphicsCache), [=](const GraphicsPipeline &pipe) { return pipe.ident == ident; });
-
-  if (ref == end(graphicsCache))
-  {
-    ref = graphicsCache.insert(ref, GraphicsPipeline{});
-    ref->ident = ident;
-  }
-
-  return GraphicsPipelineBaseCacheId{ref - eastl::begin(graphicsCache)};
-}
-
-bool PipelineCache::containsGraphicsPipeline(const BasePipelineIdentifier &ident)
-{
-  OSSpinlockScopedLock lock(pipelineCacheGuard);
-
-  auto ref =
-    eastl::find_if(begin(graphicsCache), end(graphicsCache), [=](const GraphicsPipeline &pipe) { return pipe.ident == ident; });
-
-  return ref != end(graphicsCache);
-}
-
-size_t PipelineCache::addGraphicsPipelineVariant(GraphicsPipelineBaseCacheId base_id, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology,
-  const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, ID3D12PipelineState *pipeline)
-{
-  G_UNUSED(base_id);
-  G_UNUSED(topology);
-  G_UNUSED(input_layout);
-  G_UNUSED(is_wire_frame);
-  G_UNUSED(static_state);
-  G_UNUSED(fb_layout);
-  G_UNUSED(pipeline);
-#if _TARGET_PC_WIN
-  OSSpinlockScopedLock lock(pipelineCacheGuard);
-
-  auto &base = graphicsCache[base_id.get()];
-  auto inputLayoutIndex = getInputLayoutIndex(input_layout);
-  auto staticRenderStateIndex = getStaticRenderStateIndex(static_state);
-  auto framebufferLayoutIndex = getFramebufferLayoutIndex(fb_layout);
-  auto ref = eastl::find_if(begin(base.variantCache), end(base.variantCache),
-    [=](const GraphicsPipeline::VariantCacheEntry &vce) //
-    {
-      return vce.topology == topology && vce.inputLayoutIndex == inputLayoutIndex && (vce.isWireFrame != 0) == is_wire_frame &&
-             vce.staticRenderStateIndex == staticRenderStateIndex && vce.framebufferLayoutIndex == framebufferLayoutIndex;
-    });
-  if (ref == end(base.variantCache))
-  {
-    ref = base.variantCache.insert(ref, GraphicsPipeline::VariantCacheEntry{});
-    ref->topology = topology;
-    ref->inputLayoutIndex = inputLayoutIndex;
-    ref->isWireFrame = is_wire_frame;
-    ref->staticRenderStateIndex = staticRenderStateIndex;
-    ref->framebufferLayoutIndex = framebufferLayoutIndex;
-  }
-  if (usePSOBlobs())
-  {
-    ComPtr<ID3DBlob> blob;
-    if (DX12_CHECK_OK(pipeline->GetCachedBlob(&blob)))
-    {
-      if (blob->GetBufferSize() > 1)
-      {
-        auto from = reinterpret_cast<const uint8_t *>(blob->GetBufferPointer());
-        auto to = from + blob->GetBufferSize();
-        ref->blob.assign(from, to);
-      }
-    }
-  }
-  else if (library)
-  {
-    GraphicsPipelineVariantName name;
-    name.generate(base.ident, topology, inputLayoutIndex, is_wire_frame, staticRenderStateIndex, framebufferLayoutIndex);
-    library->StorePipeline(name.str, pipeline);
-  }
-  hasChanged = true;
-  return static_cast<size_t>(ref - begin(base.variantCache));
-#endif
-  return 0;
-}
-
-size_t PipelineCache::addGraphicsMeshPipelineVariant(GraphicsPipelineBaseCacheId base_id, bool is_wire_frame,
-  const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, ID3D12PipelineState *pipeline)
-{
-#if _TARGET_PC_WIN
-  OSSpinlockScopedLock lock(pipelineCacheGuard);
-
-  // Uses vertex pipeline entries for now, topology is set to undefined and input layout index to 0.
-  auto &base = graphicsCache[base_id.get()];
-  auto staticRenderStateIndex = getStaticRenderStateIndex(static_state);
-  auto framebufferLayoutIndex = getFramebufferLayoutIndex(fb_layout);
-  auto ref = eastl::find_if(begin(base.variantCache), end(base.variantCache),
-    [=](const GraphicsPipeline::VariantCacheEntry &vce) //
-    {
-      return (vce.isWireFrame != 0) == is_wire_frame && vce.staticRenderStateIndex == staticRenderStateIndex &&
-             vce.framebufferLayoutIndex == framebufferLayoutIndex;
-    });
-  if (ref == end(base.variantCache))
-  {
-    ref = base.variantCache.insert(ref, GraphicsPipeline::VariantCacheEntry{});
-    ref->topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
-    ref->inputLayoutIndex = 0;
-    ref->isWireFrame = is_wire_frame;
-    ref->staticRenderStateIndex = staticRenderStateIndex;
-    ref->framebufferLayoutIndex = framebufferLayoutIndex;
-  }
-  if (usePSOBlobs())
-  {
-    ComPtr<ID3DBlob> blob;
-    if (DX12_CHECK_OK(pipeline->GetCachedBlob(&blob)))
-    {
-      if (blob->GetBufferSize() > 1)
-      {
-        auto from = reinterpret_cast<const uint8_t *>(blob->GetBufferPointer());
-        auto to = from + blob->GetBufferSize();
-        ref->blob.assign(from, to);
-      }
-    }
-  }
-  else if (library)
-  {
-    GraphicsPipelineVariantName name;
-    name.generate(base.ident, D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED, 0, is_wire_frame, staticRenderStateIndex,
-      framebufferLayoutIndex);
-    library->StorePipeline(name.str, pipeline);
-  }
-  hasChanged = true;
-  return static_cast<size_t>(ref - begin(base.variantCache));
-#else
-  G_UNUSED(base_id);
-  G_UNUSED(is_wire_frame);
-  G_UNUSED(static_state);
-  G_UNUSED(fb_layout);
-  G_UNUSED(pipeline);
-#endif
-  return 0;
-}
-
-ComPtr<ID3D12PipelineState> PipelineCache::loadGraphicsPipelineVariant(GraphicsPipelineBaseCacheId base_id,
-  D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const InputLayout &input_layout, bool is_wire_frame,
-  const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, D3D12_PIPELINE_STATE_STREAM_DESC desc,
-  D3D12_CACHED_PIPELINE_STATE &blob_target)
-{
-  G_UNUSED(base_id);
-  G_UNUSED(topology);
-  G_UNUSED(input_layout);
-  G_UNUSED(is_wire_frame);
-  G_UNUSED(static_state);
-  G_UNUSED(fb_layout);
-  G_UNUSED(desc);
-  G_UNUSED(blob_target);
-#if _TARGET_PC_WIN
-  // The pipeline library is thread-safe except for loading the same pipeline concurrently. So we might exclude LoadPipeline from the
-  // lock scope.
-  OSSpinlockScopedLock lock(pipelineCacheGuard);
-
-  ComPtr<ID3D12PipelineState> result;
-  auto &base = graphicsCache[base_id.get()];
-  auto inputLayoutIndex = getInputLayoutIndex(input_layout);
-  auto staticRenderStateIndex = getStaticRenderStateIndex(static_state);
-  auto framebufferLayoutIndex = getFramebufferLayoutIndex(fb_layout);
-  if (usePSOBlobs())
-  {
-    auto ref = eastl::find_if(begin(base.variantCache), end(base.variantCache),
-      [=](const GraphicsPipeline::VariantCacheEntry &vce) //
-      {
-        return vce.topology == topology && vce.inputLayoutIndex == inputLayoutIndex && (vce.isWireFrame != 0) == is_wire_frame &&
-               vce.staticRenderStateIndex == staticRenderStateIndex && vce.framebufferLayoutIndex == framebufferLayoutIndex;
-      });
-    if (ref != end(base.variantCache))
-    {
-      if (!ref->blob.empty())
-      {
-        blob_target.pCachedBlob = ref->blob.data();
-        blob_target.CachedBlobSizeInBytes = ref->blob.size();
-        CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache hit");
-      }
-      else
-      {
-        CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache miss (no blob)");
-      }
-    }
-    else
-    {
-      CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache miss (no entry)");
-    }
-  }
-  else if (library)
-  {
-    GraphicsPipelineVariantName name;
-    name.generate(base.ident, topology, inputLayoutIndex, is_wire_frame, staticRenderStateIndex, framebufferLayoutIndex);
-    auto errorCode = library->LoadPipeline(name.str, &desc, COM_ARGS(&result));
-    if (SUCCEEDED(errorCode))
-    {
-      CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache hit");
-    }
-    else
-    {
-      CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache miss");
-    }
-  }
-  return result;
-#endif
-  return nullptr;
-}
-
-ComPtr<ID3D12PipelineState> PipelineCache::loadGraphicsMeshPipelineVariant(GraphicsPipelineBaseCacheId base_id, bool is_wire_frame,
-  const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, D3D12_PIPELINE_STATE_STREAM_DESC desc,
-  D3D12_CACHED_PIPELINE_STATE &blob_target)
-{
-#if _TARGET_PC_WIN
-  OSSpinlockScopedLock lock(pipelineCacheGuard);
-
-  ComPtr<ID3D12PipelineState> result;
-  auto &base = graphicsCache[base_id.get()];
-  auto staticRenderStateIndex = getStaticRenderStateIndex(static_state);
-  auto framebufferLayoutIndex = getFramebufferLayoutIndex(fb_layout);
-  if (usePSOBlobs())
-  {
-    auto ref = eastl::find_if(begin(base.variantCache), end(base.variantCache),
-      [=](const GraphicsPipeline::VariantCacheEntry &vce) //
-      {
-        return (vce.isWireFrame != 0) == is_wire_frame && vce.staticRenderStateIndex == staticRenderStateIndex &&
-               vce.framebufferLayoutIndex == framebufferLayoutIndex;
-      });
-    if (ref != end(base.variantCache))
-    {
-      if (!ref->blob.empty())
-      {
-        blob_target.pCachedBlob = ref->blob.data();
-        blob_target.CachedBlobSizeInBytes = ref->blob.size();
-        CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache hit");
-      }
-      else
-      {
-        CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache miss (no blob)");
-      }
-    }
-    else
-    {
-      CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache miss (no entry)");
-    }
-  }
-  else if (library)
-  {
-    GraphicsPipelineVariantName name;
-    name.generate(base.ident, D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED, 0, is_wire_frame, staticRenderStateIndex,
-      framebufferLayoutIndex);
-    auto errorCode = library->LoadPipeline(name.str, &desc, COM_ARGS(&result));
-    if (SUCCEEDED(errorCode))
-    {
-      CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache hit");
-    }
-    else
-    {
-      CACHE_INFO_VERBOSE("DX12: Graphics pipeline cache miss");
-    }
-  }
-  return result;
-#else
-  G_UNUSED(base_id);
-  G_UNUSED(is_wire_frame);
-  G_UNUSED(static_state);
-  G_UNUSED(fb_layout);
-  G_UNUSED(desc);
-  G_UNUSED(blob_target);
-#endif
-  return nullptr;
-}
-
-void PipelineCache::addCompute(const dxil::HashValue &shader, ID3D12PipelineState *pipeline)
-{
-  G_UNUSED(shader);
-  G_UNUSED(pipeline);
-#if _TARGET_PC_WIN
-  OSSpinlockScopedLock lock(pipelineCacheGuard);
-  if (usePSOBlobs())
-  {
-    ComPtr<ID3DBlob> blob;
-    if (DX12_CHECK_OK(pipeline->GetCachedBlob(&blob)))
-    {
-      if (blob->GetBufferSize() > 1)
-      {
-        auto ref = eastl::find_if(begin(computeBlobs), end(computeBlobs),
-          [&](const ComputeBlob &blob_info) { return blob_info.hash == shader; });
-        auto from = reinterpret_cast<const uint8_t *>(blob->GetBufferPointer());
-        auto to = from + blob->GetBufferSize();
-        if (ref != end(computeBlobs))
-        {
-          CACHE_INFO_VERBOSE("DX12: Updating compute pipeline cache");
-          ref->blob.assign(from, to);
-        }
-        else
-        {
-          CACHE_INFO_VERBOSE("DX12: New compute pipeline cache entry");
-          ComputeBlob newComputeBlob;
-          newComputeBlob.hash = shader;
-          newComputeBlob.blob.assign(from, to);
-          computeBlobs.push_back(eastl::move(newComputeBlob));
-        }
-      }
-    }
-  }
-  else if (library)
-  {
-    ComputePipelineName name = shader;
-    library->StorePipeline(name.str, pipeline);
-  }
-  hasChanged = true;
-#endif
-}
-
-ComPtr<ID3D12PipelineState> PipelineCache::loadCompute(const dxil::HashValue &shader, D3D12_PIPELINE_STATE_STREAM_DESC desc,
-  D3D12_CACHED_PIPELINE_STATE &blob_target)
-{
-  G_UNUSED(shader);
-  G_UNUSED(desc);
-  G_UNUSED(blob_target);
-#if _TARGET_PC_WIN
-  OSSpinlockScopedLock lock(pipelineCacheGuard);
-  ComPtr<ID3D12PipelineState> result;
-  if (usePSOBlobs())
-  {
-    auto ref =
-      eastl::find_if(begin(computeBlobs), end(computeBlobs), [&](const ComputeBlob &blob_info) { return blob_info.hash == shader; });
-    if (ref != end(computeBlobs))
-    {
-      blob_target.pCachedBlob = ref->blob.data();
-      blob_target.CachedBlobSizeInBytes = ref->blob.size();
-      CACHE_INFO_VERBOSE("DX12: Compute pipeline cache hit");
-    }
-    else
-    {
-      CACHE_INFO_VERBOSE("DX12: Compute pipeline cache miss");
-    }
-  }
-  else if (library)
-  {
-    ComputePipelineName name = shader;
-    auto errorCode = library->LoadPipeline(name.str, &desc, COM_ARGS(&result));
-    if (SUCCEEDED(errorCode))
-    {
-      CACHE_INFO_VERBOSE("DX12: Compute pipeline cache hit");
-    }
-    else
-    {
-      CACHE_INFO_VERBOSE("DX12: Compute pipeline cache miss");
-    }
-  }
-  return result;
-#endif
-  return nullptr;
-}
-
-namespace
-{
-struct MemoryReadBuffer
-{
-  dag::Vector<uint8_t> buf;
-  size_t location = 0;
-  template <typename T>
-  const T *readRange(size_t cnt = 1)
-  {
-    auto left = buf.size() - location;
-    if (cnt * sizeof(T) > left)
-      return nullptr;
-    auto ptr = buf.data() + location;
-    location += sizeof(T) * cnt;
-    return reinterpret_cast<const T *>(ptr);
-  }
-  template <typename T>
-  bool read(T &target)
-  {
-    auto left = buf.size() - location;
-    if (sizeof(T) > left)
-      return false;
-    target = *reinterpret_cast<const T *>(buf.data() + location);
-    location += sizeof(T);
-    return true;
-  }
-};
-} // namespace
 
 void PipelineCache::preRecovery()
 {
 #if _TARGET_PC_WIN
-  if (library && hasChanged)
+  preRecoveryBuildInPipelineLibrary();
+  preRecoveryUngroupedPipelineLibrary();
+
+  preRecoverActiveGroup = 0;
+  for (auto &group : shaderDumpsInfos)
   {
-    // try to recover pipeline library cache blob and reuse it later
-    dag::Vector<uint8_t> newBlob;
-    auto sz = library->GetSerializedSize();
-    if (sz)
+    auto result = group.access()->preRecovery();
+    // +1 because group 0 is special and all others start from 1
+    auto groupId = eastl::distance(&shaderDumpsInfos[0], &group) + 1;
+    switch (result)
     {
-      newBlob.resize(sz);
-      library->Serialize(newBlob.data(), newBlob.size());
-      // delete lib object and then swap memory blob to reuse later
-      library.Reset();
-      initialPipelineBlob = eastl::move(newBlob);
+      case GroupPreRecoveryResult::NoLibs:
+        // most common case, when the group is not used, then there is no lib and nothing to do
+        break;
+      case GroupPreRecoveryResult::NoChanges:
+        logdbg("DX12: No rescue for pipeline library blob for group <%d> pipelines attempted", groupId);
+        preRecoverActiveGroup |= 1u << groupId;
+        break;
+      case GroupPreRecoveryResult::NoRescue:
+        logdbg("DX12: Attempt to rescue pipeline library blob for group <%d> pipelines failed", groupId);
+        preRecoverActiveGroup |= 1u << groupId;
+        break;
+      case GroupPreRecoveryResult::Rescue:
+        logdbg("DX12: Rescued pipeline library blob for group <%d> pipelines", groupId);
+        preRecoverActiveGroup |= 1u << groupId;
+        break;
     }
   }
-  if (library)
-  {
-    library.Reset();
-  }
-  preRecoveryBuildInPipelineLibrary();
 #endif
 }
 
-void PipelineCache::recover(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS allowed_modes)
+void PipelineCache::recover([[maybe_unused]] D3DDevice *device, [[maybe_unused]] D3D12_SHADER_CACHE_SUPPORT_FLAGS allowed_modes)
 {
 #if _TARGET_PC_WIN
   D3D12_FEATURE_DATA_SHADER_CACHE cacheFlags = {};
@@ -773,65 +973,24 @@ void PipelineCache::recover(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS 
     deviceFeatures = cacheFlags.SupportFlags & allowed_modes;
   }
 
-  logdbg("PipelineCache features:");
-  logdbg("Per PSO cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO) != 0);
-  logdbg("Pipeline cache library: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_LIBRARY) != 0);
-  logdbg("Automatic OS in memory cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_INPROC_CACHE) != 0);
-  logdbg("Automatic OS on disk cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE) != 0);
-
-  library.Reset();
-
-  if (useLibrary())
-  {
-    // just report an error but don't abort, library is not essential
-    DX12_DEBUG_RESULT(device->CreatePipelineLibrary(initialPipelineBlob.data(), initialPipelineBlob.size(), COM_ARGS(&library)));
-    if (!library)
-    {
-      DX12_DEBUG_RESULT(device->CreatePipelineLibrary(nullptr, 0, COM_ARGS(&library)));
-    }
-  }
+  logdbg("DX12: PipelineCache features:");
+  logdbg("DX12: Per PSO cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO) != 0);
+  logdbg("DX12: Pipeline cache library: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_LIBRARY) != 0);
+  logdbg("DX12: Automatic OS in memory cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_INPROC_CACHE) != 0);
+  logdbg("DX12: Automatic OS on disk cache: %u", (deviceFeatures & D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE) != 0);
 
   recoverBuildInPipelineLibrary(device, deviceFeatures);
-#else
-  G_UNUSED(device);
-  G_UNUSED(allowed_modes);
-#endif
-}
-
-bool PipelineCache::onBindumpLoad(D3DDevice *device, eastl::span<const dxil::HashValue> all_shader_hashes)
-{
-  logdbg("DX12: onBindumpLoad...");
-  auto newHash = dxil::HashValue::calculate(all_shader_hashes.data(), all_shader_hashes.size());
-
-  if (static_cast<uint32_t>(all_shader_hashes.size()) == shaderInDumpCount && newHash == shaderInDumpHash)
+  recover_ungrouped_pipeline_library(device, deviceFeatures, ungroupedPipelinesInfo.access(), "ungrouped", ungroupedPipelinesRunIndex);
+  for (auto &group : shaderDumpsInfos)
   {
-    logdbg("DX12: Full match!");
-    return true;
+    auto groupId = eastl::distance(&shaderDumpsInfos[0], &group) + 1;
+    if (0 == (preRecoverActiveGroup & (1u << groupId)))
+    {
+      continue;
+    }
+    recover_for_store(device, deviceFeatures, group.access(), "shaderDumpGroup");
   }
-
-  logdbg("DX12: No match, resetting cache");
-  // not matching
-  shaderInDumpCount = static_cast<uint32_t>(all_shader_hashes.size());
-  shaderInDumpHash = newHash;
-  // only need to clear out pipelines
-  graphicsCache.clear();
-  computeBlobs.clear();
-  computeSignatures.clear();
-  graphicsSignatures.clear();
-  graphicsMeshSignatures.clear();
-#if !_TARGET_SCARLETT
-  library.Reset();
-
-  if (useLibrary())
-  {
-    DX12_DEBUG_RESULT(device->CreatePipelineLibrary(nullptr, 0, COM_ARGS(&library)));
-  }
-#else
-  G_UNUSED(device);
 #endif
-  initialPipelineBlob.clear();
-  hasChanged = true;
-  return false;
 }
 
 #if _TARGET_PC_WIN
@@ -951,447 +1110,116 @@ const dag::Vector<DXGI_FORMAT> *PipelineCache::getKnownPipelineFormats(FormatBas
 bool PipelineCache::hasFormatBasedBuildInLibrary() { return static_cast<bool>(buildInPipelineLibrary); }
 
 bool PipelineCache::hasExistingFormatBasedBuildInLibrary() { return 0 < loadedBuildInPipelineLibraryBlob.size(); }
-#endif
 
-bool PipelineCache::loadFromFile(const SetupParameters &params)
+bool PipelineCache::loadCacheForShaderGroup(D3DDevice *device, uint32_t group_index, eastl::string_view dump_name,
+  eastl::span<const dxil::HashValue> all_shader_hashes)
 {
-  shaderInDumpCount = 0;
-  shaderInDumpHash = {};
-
-  FullFileLoadCB cacheFile{params.fileName, DF_IGNORE_MISSING | DF_READ};
-  if (!cacheFile.fileHandle)
+  if (dump_name.empty())
   {
-    logwarn("DX12: Failed to open %s to load pipeline cache", params.fileName);
+    logwarn("DX12: Can not de-serialize shader dump pipeline cache, as no name was provided");
     return false;
   }
 
-  CacheFileHeader fileHeader = {};
-  auto ln = cacheFile.tryRead(&fileHeader, sizeof(fileHeader));
-  if (ln != sizeof(fileHeader) || (fileHeader.magic != CACHE_FILE_MAGIC))
+  auto group = getGroup(group_index);
+  if (!group)
   {
-    logwarn("DX12: Pipeline cache file is invalid");
+    logwarn("DX12: Can not de-serialize shader dump pipeline cache, group was %u", group_index);
     return false;
   }
 
-  if (fileHeader.version != CACHE_FILE_VERSION)
+  // writer may still access the file we want to access (after dump reload)
+  waitForWriterThreads();
+
+  auto writeAccess = group->access();
+  // first reset everything
+  writeAccess->reset();
+
+  auto ok = load_shader_cache_for_group(writeAccess, dump_name);
+  ok = ok && setup_for_group(device, deviceFeatures, writeAccess, dump_name, all_shader_hashes);
+  if (!create_default_libraries(device, deviceFeatures, writeAccess))
   {
-    // begin outdated is okay.
-    logdbg("DX12: Pipeline cache file is outdated");
-    return false;
+    ok = false;
   }
 
-  if ((0 != (fileHeader.flags & CFF_ROOT_SIGNATURES_USES_CBV_DESCRIPTOR_RANGES)) != params.rootSignaturesUsesCBVDescriptorRanges)
-  {
-    // If used root signature mode does not match, we can not reuse cache
-    logdbg("DX12: Pipeline incompatible root signature layout mode (CBV root descriptors vs "
-           "descriptor ranges)");
-    return false;
-  }
-
-  if ((fileHeader.deviceVendorID != params.deviceVendorID) || (fileHeader.deviceID != params.deviceID) ||
-      (fileHeader.subSystemID != params.subSystemID) || (fileHeader.revisionID != params.revisionID))
-  {
-    // there is a chance that we might preload incompatible stuff, so we better throw away
-    // the cache and rebuild everything from scratch.
-    logwarn("DX12: Pipeline cache is incompatible, restoration aborted");
-    return false;
-  }
-
-  dxil::HashValue compareHash = fileHeader.headerChecksum;
-  fileHeader.headerChecksum = dxil::HashValue{};
-  if (compareHash != dxil::HashValue::calculate(&fileHeader, 1))
-  {
-    logwarn("DX12: Pipeline cache file is corrupted");
-    return false;
-  }
-
-  MemoryReadBuffer data;
-  data.buf.resize(fileHeader.uncompressedContentSize);
-  if (fileHeader.compressedContentSize)
-  {
-    dag::Vector<uint8_t> compressedData;
-    compressedData.resize(fileHeader.compressedContentSize);
-    ln = cacheFile.tryRead(compressedData.data(), compressedData.size());
-    if (ln != compressedData.size())
-    {
-      logwarn("DX12: Error while reading data");
-      return false;
-    }
-    auto outSize = zstd_decompress(data.buf.data(), data.buf.size(), compressedData.data(), compressedData.size());
-    if (outSize != data.buf.size())
-    {
-      logwarn("DX12: Error while decompressing data");
-      return false;
-    }
-  }
-  else
-  {
-    ln = cacheFile.tryRead(data.buf.data(), data.buf.size());
-    if (ln != data.buf.size())
-    {
-      logwarn("DX12: Error while reading data");
-      return false;
-    }
-  }
-
-  if (fileHeader.dataChecksum != dxil::HashValue::calculate(data.buf.data(), data.buf.size()))
-  {
-    logwarn("DX12: Pipeline cache file is corrupted");
-    return false;
-  }
-
-  bool shouldLoadBlobsOrLibrary = true;
-  // we have to drop the pipeline library/blob when the generator of the cache file was a different
-  // bit version than we are running now, as drivers might fail to load 32 bit versions into 64 bit
-  // versions and vice versa.
-  if (fileHeader.pointerSize != EXPECTED_POINTER_SIZE)
-  {
-    shouldLoadBlobsOrLibrary = false;
-    logwarn("DX12: Detected mismatch of pointer size of running executable (%u) and loaded cache "
-            "(%u), drivers might fail to load cache library/blob so they will be ignored.",
-      EXPECTED_POINTER_SIZE, fileHeader.pointerSize);
-  }
-
-  if (fileHeader.rawDriverVersion != params.rawDriverVersion)
-  {
-    shouldLoadBlobsOrLibrary = false;
-    logwarn("DX12: Detected driver version mismatch, drivers might fail to load cache library/blob "
-            "so they will be ignored.");
-  }
-
-  uint32_t computeBlobsLoaded = 0;
-  size_t computeBlobsSize = 0;
-
-  for (uint32_t cbi = 0; cbi < fileHeader.computeCaches; ++cbi)
-  {
-    ComputeBlob blob = {};
-    if (!data.read(blob.hash))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      return false;
-    }
-    uint32_t sz = 0;
-    if (!data.read(sz))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      return false;
-    }
-    auto pso = data.readRange<uint8_t>(sz);
-    if (!pso)
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      return false;
-    }
-    if (usePSOBlobs() && shouldLoadBlobsOrLibrary)
-    {
-      blob.blob.assign(pso, pso + sz);
-      computeBlobs.push_back(eastl::move(blob));
-      ++computeBlobsLoaded;
-      computeBlobsSize += sz;
-    }
-  }
-
-  uint32_t graphicsWithAnyVariant = 0;
-  uint32_t graphicsVairantsFound = 0;
-  uint32_t graphicsVariantBlobsLoaded = 0;
-  size_t graphicsVariantBlobsSize = 0;
-
-  for (uint32_t gbci = 0; gbci < fileHeader.graphicsBaseCaches; ++gbci)
-  {
-    GraphicsPipeline blob = {};
-    if (!data.read(blob.ident))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      return false;
-    }
-    uint32_t sz = 0;
-    if (!data.read(sz))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      return false;
-    }
-
-    graphicsVairantsFound += sz;
-    graphicsWithAnyVariant += sz > 0 ? 1 : 0;
-
-    for (uint32_t vi = 0; vi < sz; ++vi)
-    {
-      GraphicsPipeline::VariantCacheEntry vce = {};
-      if (!data.read(vce.topology))
-      {
-        logwarn("DX12: Error while decoding pipeline cache");
-        computeBlobs.clear();
-        graphicsCache.clear();
-        return false;
-      }
-      if (!data.read(vce.framebufferLayoutIndex))
-      {
-        logwarn("DX12: Error while decoding pipeline cache");
-        computeBlobs.clear();
-        graphicsCache.clear();
-        return false;
-      }
-      if (!data.read(vce.inputLayoutIndex))
-      {
-        logwarn("DX12: Error while decoding pipeline cache");
-        computeBlobs.clear();
-        graphicsCache.clear();
-        return false;
-      }
-      if (!data.read(vce.isWireFrame))
-      {
-        logwarn("DX12: Error while decoding pipeline cache");
-        computeBlobs.clear();
-        graphicsCache.clear();
-        return false;
-      }
-      if (!data.read(vce.staticRenderStateIndex))
-      {
-        logwarn("DX12: Error while decoding pipeline cache");
-        computeBlobs.clear();
-        graphicsCache.clear();
-        return false;
-      }
-      uint32_t psoSz = 0;
-      if (!data.read(psoSz))
-      {
-        logwarn("DX12: Error while decoding pipeline cache");
-        computeBlobs.clear();
-        graphicsCache.clear();
-        return false;
-      }
-      auto pso = data.readRange<uint8_t>(psoSz);
-      if (!pso)
-      {
-        logwarn("DX12: Error while decoding pipeline cache");
-        computeBlobs.clear();
-        graphicsCache.clear();
-        return false;
-      }
-      if (usePSOBlobs() && shouldLoadBlobsOrLibrary)
-      {
-        vce.blob.assign(pso, pso + psoSz);
-        graphicsVariantBlobsLoaded++;
-        graphicsVariantBlobsSize += psoSz;
-      }
-      blob.variantCache.push_back(eastl::move(vce));
-    }
-    graphicsCache.push_back(eastl::move(blob));
-  }
-
-  size_t computeSignatureBlobSize = 0;
-
-  for (uint32_t csi = 0; csi < fileHeader.computeSignatureCaches; ++csi)
-  {
-    ComputeSignatureBlob csb = {};
-    if (!data.read(csb.def))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      return false;
-    }
-    uint32_t sigSz = 0;
-    if (!data.read(sigSz))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      return false;
-    }
-    auto sig = data.readRange<uint8_t>(sigSz);
-    if (!sig)
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      return false;
-    }
-    csb.blob.assign(sig, sig + sigSz);
-    computeSignatures.push_back(eastl::move(csb));
-    computeSignatureBlobSize += sigSz;
-  }
-
-  size_t graphicsSignatureBlobSize = 0;
-
-  for (uint32_t gsi = 0; gsi < fileHeader.graphicsSignatureCaches; ++gsi)
-  {
-    GraphicsSignatureBlob gsb = {};
-    if (!data.read(gsb.def))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      graphicsSignatures.clear();
-      return false;
-    }
-    uint32_t sigSz = 0;
-    if (!data.read(sigSz))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      graphicsSignatures.clear();
-      return false;
-    }
-    auto sig = data.readRange<uint8_t>(sigSz);
-    if (!sig)
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      graphicsSignatures.clear();
-      return false;
-    }
-    gsb.blob.assign(sig, sig + sigSz);
-    graphicsSignatures.push_back(eastl::move(gsb));
-    graphicsSignatureBlobSize += sigSz;
-  }
-
-  size_t graphicsMeshSignatureBlobSize = 0;
-
-  for (uint32_t gsi = 0; gsi < fileHeader.graphicsMeshSignatureCaches; ++gsi)
-  {
-    GraphicsSignatureBlob gsb = {};
-    if (!data.read(gsb.def))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      graphicsSignatures.clear();
-      graphicsMeshSignatures.clear();
-      return false;
-    }
-    uint32_t sigSz = 0;
-    if (!data.read(sigSz))
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      graphicsSignatures.clear();
-      graphicsMeshSignatures.clear();
-      return false;
-    }
-    auto sig = data.readRange<uint8_t>(sigSz);
-    if (!sig)
-    {
-      logwarn("DX12: Error while decoding pipeline cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      graphicsSignatures.clear();
-      graphicsMeshSignatures.clear();
-      return false;
-    }
-    gsb.blob.assign(sig, sig + sigSz);
-    graphicsMeshSignatures.push_back(eastl::move(gsb));
-    graphicsMeshSignatureBlobSize += sigSz;
-  }
-
-  staticRenderStates.resize(fileHeader.graphicsStaticStateCaches);
-  for (uint32_t i = 0; i < fileHeader.graphicsStaticStateCaches; ++i)
-  {
-    if (!data.read(staticRenderStates[i]))
-    {
-      logwarn("DX12: Error while decoding static render state cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      graphicsSignatures.clear();
-      staticRenderStates.clear();
-      return false;
-    }
-  }
-
-  inputLayouts.resize(fileHeader.inputLayoutCaches);
-  for (uint32_t i = 0; i < fileHeader.inputLayoutCaches; ++i)
-  {
-    if (!data.read(inputLayouts[i]))
-    {
-      logwarn("DX12: Error while decoding input layout cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      graphicsSignatures.clear();
-      staticRenderStates.clear();
-      inputLayouts.clear();
-      return false;
-    }
-  }
-
-  framebufferLayouts.resize(fileHeader.framebufferLayoutCaches);
-  for (uint32_t i = 0; i < fileHeader.framebufferLayoutCaches; ++i)
-  {
-    if (!data.read(framebufferLayouts[i]))
-    {
-      logwarn("DX12: Error while decoding framebuffer layout cache");
-      computeBlobs.clear();
-      graphicsCache.clear();
-      computeSignatures.clear();
-      graphicsSignatures.clear();
-      staticRenderStates.clear();
-      inputLayouts.clear();
-      framebufferLayouts.clear();
-      return false;
-    }
-  }
-
-  if (fileHeader.librarySize && useLibrary() && shouldLoadBlobsOrLibrary)
-  {
-    auto lib = data.readRange<uint8_t>(fileHeader.librarySize);
-    // for whatever reason the pipeline object will not copy the blob
-    // but will later reference it, so the original blob has to be
-    // kept around.
-    initialPipelineBlob.assign(lib, lib + fileHeader.librarySize);
-
-#if _TARGET_PC_WIN
-    if (DX12_DEBUG_FAIL(
-          params.device->CreatePipelineLibrary(initialPipelineBlob.data(), initialPipelineBlob.size(), COM_ARGS(&library))))
-    {
-      // delete old blob, for some reason we could not restore a lib from it
-      initialPipelineBlob.clear();
-    }
-#endif
-  }
-
-  logdbg("DX12: Pipeline cache load statistics:");
-  logdbg("DX12: Restored %u compute pipelines with %u bytes from cache", computeBlobsLoaded, computeBlobsSize);
-  logdbg("DX12: Restored %u compute pipeline signatures with %u bytes from cache", fileHeader.computeSignatureCaches,
-    computeSignatureBlobSize);
-  logdbg("DX12: Restored %u graphics pipeline variants of %u (%u) base pipelines", graphicsVairantsFound, graphicsWithAnyVariant,
-    fileHeader.graphicsBaseCaches);
-  logdbg("DX12: Restored %u graphics pipelines with %u bytes from cache", graphicsVariantBlobsLoaded, graphicsVariantBlobsSize);
-  logdbg("DX12: Restored %u graphics pipeline signatures with %u bytes from cache", fileHeader.graphicsSignatureCaches,
-    graphicsSignatureBlobSize);
-  logdbg("DX12: Restored %u graphics mesh pipeline signatures with %u bytes from cache", fileHeader.graphicsMeshSignatureCaches,
-    graphicsMeshSignatureBlobSize);
-  logdbg("DX12: Restored %u graphics pipeline static render states", staticRenderStates.size());
-  logdbg("DX12: Restored %u graphics pipeline input layouts", inputLayouts.size());
-  logdbg("DX12: Restored %u graphics pipeline framebuffer layouts", framebufferLayouts.size());
-  logdbg("DX12: Restored pipeline library with %u bytes from cache", initialPipelineBlob.size());
-
-  hasChanged = false;
-
-  shaderInDumpCount = fileHeader.shaderHashCount;
-  shaderInDumpHash = fileHeader.shaderHashHash;
-
-  return true;
+  return ok;
 }
+
+void PipelineCache::storeAndUnloadCacheForShaderGroup(uint32_t group_index, eastl::string_view dump_name)
+{
+  if (dump_name.empty())
+  {
+    logwarn("DX12: Can not serialize shader dump pipeline cache, as no name was provided");
+    return;
+  }
+
+  auto group = getGroup(group_index);
+  if (!group)
+  {
+    logwarn("DX12: Can not serialize shader dump pipeline cache, group was %u", group_index);
+    return;
+  }
+
+  // prevent any alterations to the group so data is consistent for the whole serialization process
+  auto writeAccess = group->access();
+
+  store_cache_for_pipeline_group(writeAccess, dump_name, issuedCacheWrites, pendingCacheWrites);
+
+  writeAccess->reset();
+}
+
+dag::Expected<void, HRESULT> PipelineCache::addGraphicsPipelineVariant(uint32_t group_index, ID3D12PipelineState *pipeline,
+  const D3D12_PIPELINE_STATE_STREAM_DESC &desc, const BasePipelineIdentifier &ident)
+{
+  auto group = getGroup(group_index);
+  return group ? add_graphics_pipeline_vairiant_to_store(*group, pipeline, desc, ident,
+                   {.usesConstBufferRootDescriptors = rootSignaturesUsesCBVDescriptorRanges})
+               : add_graphics_pipeline_vairiant_to_store(ungroupedPipelinesInfo, pipeline, desc, ident,
+                   {.usesConstBufferRootDescriptors = rootSignaturesUsesCBVDescriptorRanges}, ungroupedPipelinesRunIndex);
+}
+
+dag::Expected<ComPtr<ID3D12PipelineState>, HRESULT> PipelineCache::loadGraphicsPipelineVariant(uint32_t group_index,
+  const D3D12_PIPELINE_STATE_STREAM_DESC &desc, const BasePipelineIdentifier &ident)
+{
+  auto group = getGroup(group_index);
+  return group ? load_graphics_pipeline_variant_from_store(*group, desc, ident,
+                   {.usesConstBufferRootDescriptors = rootSignaturesUsesCBVDescriptorRanges})
+               : load_graphics_pipeline_variant_from_store(ungroupedPipelinesInfo, desc, ident,
+                   {.usesConstBufferRootDescriptors = rootSignaturesUsesCBVDescriptorRanges}, ungroupedPipelinesRunIndex);
+}
+
+dag::Expected<void, HRESULT> PipelineCache::addComputePipeline(uint32_t group_index, ID3D12PipelineState *pipeline,
+  const D3D12_PIPELINE_STATE_STREAM_DESC &desc, const dxil::HashValue &shader_identifier)
+{
+  auto group = getGroup(group_index);
+  return group ? add_compute_to_store(*group, pipeline, desc, shader_identifier,
+                   {.usesConstBufferRootDescriptors = rootSignaturesUsesCBVDescriptorRanges})
+               : add_compute_to_store(ungroupedPipelinesInfo, pipeline, desc, shader_identifier,
+                   {.usesConstBufferRootDescriptors = rootSignaturesUsesCBVDescriptorRanges}, ungroupedPipelinesRunIndex);
+}
+
+dag::Expected<ComPtr<ID3D12PipelineState>, HRESULT> PipelineCache::loadComputePipeline(uint32_t group_index,
+  const D3D12_PIPELINE_STATE_STREAM_DESC &desc, const dxil::HashValue &shader_identifier)
+{
+  auto group = getGroup(group_index);
+  return group ? load_compute_pipeline_from_store(*group, desc, shader_identifier,
+                   {.usesConstBufferRootDescriptors = rootSignaturesUsesCBVDescriptorRanges})
+               : load_compute_pipeline_from_store(ungroupedPipelinesInfo, desc, shader_identifier,
+                   {.usesConstBufferRootDescriptors = rootSignaturesUsesCBVDescriptorRanges}, ungroupedPipelinesRunIndex);
+}
+
+bool PipelineCache::hasBasePipeline(uint32_t group_index, const BasePipelineIdentifier &ident)
+{
+  auto group = getGroup(group_index);
+  return group ? has_base_pipeline_in_store(*group, ident) : has_base_pipeline_in_store(ungroupedPipelinesInfo, ident);
+}
+
+bool PipelineCache::hasComputePipeline(uint32_t group_index, const dxil::HashValue &shader_identifier)
+{
+  auto group = getGroup(group_index);
+  return group ? has_compute_pipeline_in_store(*group, shader_identifier)
+               : has_compute_pipeline_in_store(ungroupedPipelinesInfo, shader_identifier);
+}
+#endif
 
 #if _TARGET_PC_WIN
 void PipelineCache::setupBuildInPipelineLibrary(const SetupParameters &params, const D3D12_SHADER_CACHE_SUPPORT_FLAGS cache_support)
@@ -1402,49 +1230,6 @@ void PipelineCache::setupBuildInPipelineLibrary(const SetupParameters &params, c
 
   recoverBuildInPipelineLibrary(params.device, cache_support);
 }
-
-namespace
-{
-enum class ReaderWrapperErrorCode
-{
-  GenericReadError,
-};
-template <typename S>
-class ReadWrapper
-{
-  S &source;
-
-public:
-  ReadWrapper(S &s) : source{s} {}
-  using ErrorCode = ReaderWrapperErrorCode;
-  dag::Expected<void, ErrorCode> readBytes(void *ptr, size_t sz)
-  {
-    if (sz != source.tryRead(ptr, sz))
-    {
-      return dag::Unexpected{ErrorCode::GenericReadError};
-    }
-    return {};
-  }
-  template <typename T>
-  dag::Expected<void, ErrorCode> readArray(T *ptr, size_t cnt)
-  {
-    return readBytes(ptr, sizeof(T) * cnt);
-  }
-  template <typename T>
-  dag::Expected<T, ErrorCode> readValue()
-  {
-    T value;
-    return readBytes(&value, sizeof(T)).and_then([&]() -> dag::Expected<T, ErrorCode> { return eastl::move(value); });
-  }
-  template <typename T>
-  dag::Expected<T, ErrorCode> readContainer(uint32_t count)
-  {
-    T data;
-    data.resize(count);
-    return readArray(data.data(), data.size()).and_then([&]() -> dag::Expected<T, ErrorCode> { return eastl::move(data); });
-  }
-};
-} // namespace
 
 void PipelineCache::loadBuildInPipelineLibraryFile(const SetupParameters &params)
 {
@@ -1549,30 +1334,6 @@ void PipelineCache::loadBuildInPipelineLibraryFile(const SetupParameters &params
           });
       });
 }
-
-namespace
-{
-template <typename T>
-class WriteWrapper
-{
-  T &target;
-  bool ok = true;
-
-public:
-  WriteWrapper(T &t) : target{t} {}
-  void writeBytes(const void *ptr, size_t sz) { ok = ok && ((0 == sz) || ((nullptr != ptr) && (sz == target.tryWrite(ptr, sz)))); }
-  template <typename U>
-  void write(const U &value)
-  {
-    return writeBytes(&value, sizeof(U));
-  }
-  bool close()
-  {
-    target.close();
-    return ok;
-  }
-};
-} // namespace
 
 void PipelineCache::storeBuildInPipelineLibraryFile(const ShutdownParameters &params)
 {
@@ -1726,5 +1487,162 @@ void PipelineCache::shutdownBuildInPipelineLibrary()
 {
   buildInPipelineLibrary.Reset();
   loadedBuildInPipelineLibraryBlob.resize(0);
+}
+
+bool PipelineCache::setupUngroupedPipelineLibrary(const SetupParameters &params)
+{
+  if (!params.fileName || '\0' == params.fileName[0])
+  {
+    logwarn("DX12: Can not de-serialize ungrouped pipeline cache, as no name was provided");
+    return false;
+  }
+
+  auto writeAccess = ungroupedPipelinesInfo.access();
+  if (load_ungrouped_pipeline_library_file(writeAccess, ungroupedPipelinesRunIndex, params.fileName))
+  {
+    recover_ungrouped_pipeline_library(params.device, deviceFeatures, writeAccess, params.fileName, ungroupedPipelinesRunIndex);
+  }
+  return create_default_libraries(params.device, deviceFeatures, writeAccess);
+}
+
+void PipelineCache::storeUngroupedPipelineLibraryFile(const ShutdownParameters &params)
+{
+  auto writeAccess = ungroupedPipelinesInfo.access();
+
+  if (!writeAccess->hasLibrary())
+  {
+    return;
+  }
+
+  if (!writeAccess->hasAnyData())
+  {
+    return;
+  }
+
+  // have to always store the ungrouped cache as the run index changes each time, so no has changed checks
+
+  auto libSerializeResult = writeAccess->serializeLibrary();
+  if (!libSerializeResult)
+  {
+    logwarn("DX12: Failed to obtain pipeline library blob for ungrouped: %s", dxgi_error_code_to_string(libSerializeResult.error()));
+    return;
+  }
+
+  auto &libraryBlob = libSerializeResult.value();
+  auto vertexShaderArray = writeAccess->serializeVertexShaderInfos();
+  auto pixelShaderArray = writeAccess->serializePixelShaderInfo();
+  auto computeShaderArray = writeAccess->serializeComputeShaderInfo();
+
+  const UngroupedPipelineLibraryFileHeader header{
+    .magic = UngroupedPipelineLibraryFileHeader::magic_value,
+    .version = UngroupedPipelineLibraryFileHeader::version_value,
+    .vertexShaderArrayHash = ShaderHashValue::calculate(vertexShaderArray.data(), vertexShaderArray.size()),
+    .pixelShaderArrayHash = ShaderHashValue::calculate(pixelShaderArray.data(), pixelShaderArray.size()),
+    .computeShaderArrayHash = ShaderHashValue::calculate(computeShaderArray.data(), computeShaderArray.size()),
+    .vertexShaderArraySize = static_cast<uint32_t>(vertexShaderArray.size()),
+    .pixelShaderArraySize = static_cast<uint32_t>(pixelShaderArray.size()),
+    .computeShaderArraySize = static_cast<uint32_t>(computeShaderArray.size()),
+    .librarySize = static_cast<uint32_t>(libraryBlob.size()),
+    .runIndex = ungroupedPipelinesRunIndex,
+  };
+
+  dd_mkpath(params.fileName);
+  FullFileSaveCB cacheFile{params.fileName, DF_WRITE | DF_CREATE | DF_IGNORE_MISSING};
+  if (!cacheFile.fileHandle)
+  {
+    logwarn(
+      "DX12: Failed to open <%s> to serialize pipeline cache, missing cache folder or insufficient privileges might be the cause "
+      "for this error",
+      params.fileName);
+    return;
+  }
+
+  auto headerHash = ShaderHashValue::calculate(&header, 1);
+
+  WriteWrapper writer{cacheFile};
+  writer.write(header);
+  writer.write(headerHash);
+  writer.writeArray(vertexShaderArray.data(), vertexShaderArray.size());
+  writer.writeArray(pixelShaderArray.data(), pixelShaderArray.size());
+  writer.writeArray(computeShaderArray.data(), computeShaderArray.size());
+  writer.writeArray(libraryBlob.data(), libraryBlob.size());
+
+  if (writer.close())
+  {
+    logdbg("DX12: Written ungrouped pipelines cache file <%s>", params.fileName);
+    logdbg("DX12: vertex shader count: %u", header.vertexShaderArraySize);
+    logdbg("DX12: pixel shader count: %u", header.pixelShaderArraySize);
+    logdbg("DX12: compute shader count: %u", header.computeShaderArraySize);
+    ByteUnits librarySizeInBytes{header.librarySize};
+    logdbg("DX12: Pipeline library size: %.4f %s", librarySizeInBytes.units(), librarySizeInBytes.name());
+  }
+  else
+  {
+    logwarn("DX12: Error while attempting to write ungrouped pipelines cache file to <%s>", params.fileName);
+  }
+}
+
+void PipelineCache::preRecoveryUngroupedPipelineLibrary()
+{
+  auto result = ungroupedPipelinesInfo.access()->preRecovery();
+  switch (result)
+  {
+    case GroupPreRecoveryResult::NoLibs:
+    case GroupPreRecoveryResult::NoChanges:
+      logdbg("DX12: No rescue for pipeline library blob for ungrouped pipelines attempted");
+      break;
+    case GroupPreRecoveryResult::NoRescue:
+      logdbg("DX12: Attempt to rescue pipeline library blob for ungrouped pipelines failed");
+      break;
+    case GroupPreRecoveryResult::Rescue: logdbg("DX12: Rescued pipeline library blob for ungrouped pipelines"); break;
+  }
+}
+
+void PipelineCache::shutdownUngroupedPipelineLibrary() { ungroupedPipelinesInfo.access()->reset(); }
+
+void PipelineCache::waitForWriterThreads()
+{
+  constexpr int run_wait_ms = 100;
+  auto issuedWriteCounter = issuedCacheWrites.load();
+  if (0 != issuedWriteCounter)
+  {
+    logdbg("DX12: Still waiting for %u async cache write threads to launch...", issuedWriteCounter);
+    constexpr int total_wait_ms = run_wait_ms * 100;
+    auto now = ref_time_ticks();
+    for (uint32_t runs = 0; get_time_usec(now) < (1000 * total_wait_ms); ++runs)
+    {
+      issuedWriteCounter = issuedCacheWrites.load();
+      if (0 == issuedWriteCounter)
+      {
+        break;
+      }
+      logdbg("DX12: ...waiting for ~%dms, attempt %u...", run_wait_ms, 1 + runs);
+      os_wait_on_address(reinterpret_cast<volatile unsigned *>(&issuedCacheWrites), reinterpret_cast<unsigned *>(&issuedWriteCounter),
+        run_wait_ms);
+    }
+    if (0 != issuedWriteCounter)
+    {
+      logwarn("DX12: ...giving up on waiting for async writer thread launches, %u are still pending to be launched",
+        issuedWriteCounter);
+    }
+  }
+
+  auto pendingWriteCounter = pendingCacheWrites.load();
+  if (0 != pendingWriteCounter)
+  {
+    logdbg("DX12: Still waiting for %u async cache writes to be completed...", pendingWriteCounter);
+    // here we do not have a run limit as we know threads are working and we want to let them finish
+    for (uint32_t runs = 0;; ++runs)
+    {
+      pendingWriteCounter = pendingCacheWrites.load();
+      if (0 == pendingWriteCounter)
+      {
+        break;
+      }
+      logdbg("DX12: ...waiting for %dms, attempt %u...", run_wait_ms, 1 + runs);
+      os_wait_on_address(reinterpret_cast<volatile unsigned *>(&pendingCacheWrites),
+        reinterpret_cast<unsigned *>(&pendingWriteCounter), run_wait_ms);
+    }
+  }
 }
 #endif

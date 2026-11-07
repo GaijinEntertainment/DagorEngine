@@ -122,6 +122,13 @@ void init_ecsviewer_plugin();
 struct IDmViewerSource;
 // The plugin keeps the pointer, so source must outlive the plugin or be reset to nullptr first.
 void set_dmviewer_source(const IDmViewerSource *source);
+// The plugin keeps its target while the list holds it, so the game calls this whenever collectDmObjects can return a different list.
+void mark_dmviewer_objects_changed();
+// The page gets the DM event log only on open and after this call, so the game calls it whenever it writes the log.
+// The plugin reads the log in websocket::update(), so a writer on another thread must finish before that call.
+void mark_dmviewer_events_changed();
+bool is_dmviewer_plugin_active();
+bool dmviewer_draws_collision_names();
 void set_ecsviewer_entity_manager(ecs::EntityManager *);
 
 }; // namespace webui

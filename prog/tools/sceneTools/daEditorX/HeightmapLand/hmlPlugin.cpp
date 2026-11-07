@@ -89,6 +89,7 @@ int HmapLandPlugin::lmeshSubtypeMask = -1;
 int HmapLandPlugin::lmeshDetSubtypeMask = -1;
 int HmapLandPlugin::grasspSubtypeMask = -1;
 int HmapLandPlugin::navmeshSubtypeMask = -1;
+int HmapLandPlugin::loftTaggedSubtypeMask = -1;
 bool HmapLandPlugin::forceRiExtra = false;
 extern bool game_res_sys_v2;
 bool allow_debug_bitmap_dump = false;
@@ -2727,6 +2728,7 @@ void HmapLandPlugin::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyCo
       // onWholeLandChanged();
       break;
   }
+  gpuGrassPanel.onChangeFinished(pcb_id, panel);
 }
 
 
@@ -4807,24 +4809,24 @@ void HmapLandPlugin::loadGrassFromLevelBlk()
 bool HmapLandPlugin::loadGPUGrassFromBlk(const DataBlock &level_blk)
 {
   const DataBlock *gpuGrassBlock = level_blk.getBlockByNameEx("grass", nullptr);
+  if (!gpuGrassBlock && grassBlk)
+  {
+    gpuGrassBlock = grassBlk->getBlockByNameEx("small_grass", nullptr);
+  }
   if (!gpuGrassBlock)
   {
-    if (grassBlk)
-    {
-      const DataBlock *smallGrassBlk = grassBlk->getBlockByNameEx("small_grass", nullptr);
-      if (smallGrassBlk)
-      {
-        enableGrass = true;
-        delete gpuGrassBlk;
-        gpuGrassBlk = new DataBlock(*smallGrassBlk);
-        return true;
-      }
-    }
     return false;
   }
   enableGrass = true;
-  delete gpuGrassBlk;
-  gpuGrassBlk = new DataBlock(*gpuGrassBlock);
+  // gpuGrassPanel keeps this pointer between refills, so the block is reused.
+  if (gpuGrassBlk)
+  {
+    *gpuGrassBlk = DataBlock(*gpuGrassBlock);
+  }
+  else
+  {
+    gpuGrassBlk = new DataBlock(*gpuGrassBlock);
+  }
   return true;
 }
 

@@ -19,4 +19,5 @@ struct PhysBodyCreationData
   bool useMotionState = true, autoMask = true, autoInertia = false;
   bool addToWorld = true, kinematic = false;
   bool allowFastInaccurateCollTm = true;
+  Point3 centerOfMassOffset = Point3(0, 0, 0); //< body-local COM shift that does not move geometry; Jolt only
 };

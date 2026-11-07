@@ -478,6 +478,7 @@ bool d3d::draw_base(int prim_type, int start_vertex, int numprim, uint32_t num_i
   if (!flush_all())
     return true;
   RenderState &rs = g_render_state;
+  check_draw_uav_formats(rs);
 
   D3D_CONTRACT_ASSERTF(prim_type != PRIM_TRIFAN, "vertex buffer can't contain tringle fan lists");
   D3D_CONTRACT_ASSERTF(rs.nextVertexShader != drv3d_generic::BAD_HANDLE, "vertex shader can't be null");
@@ -508,6 +509,7 @@ bool d3d::drawind_base(int prim_type, int start_index, int numprim, int base_ver
   if (!flush_all())
     return true;
   RenderState &rs = g_render_state;
+  check_draw_uav_formats(rs);
 
   D3D_CONTRACT_ASSERTF(prim_type != PRIM_TRIFAN, "vertex buffer can't contain tringle fan lists");
   D3D_CONTRACT_ASSERTF(rs.nextVertexShader != drv3d_generic::BAD_HANDLE, "vertex shader can't be null");
@@ -588,6 +590,7 @@ bool d3d::draw_indirect(int prim_type, Sbuffer *args, uint32_t byte_offset)
   if (!flush_all())
     return true;
   RenderState &rs = g_render_state;
+  check_draw_uav_formats(rs);
 
   D3D_CONTRACT_ASSERT(rs.nextVertexShader != drv3d_generic::BAD_HANDLE);
   // D3D_CONTRACT_ASSERT(rs.nextPixelShader != BAD_HANDLE);
@@ -619,6 +622,7 @@ bool d3d::draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t byte_offs
   if (!flush_all())
     return true;
   RenderState &rs = g_render_state;
+  check_draw_uav_formats(rs);
 
   D3D_CONTRACT_ASSERT(rs.nextVertexShader != drv3d_generic::BAD_HANDLE);
   // D3D_CONTRACT_ASSERT(rs.nextPixelShader != BAD_HANDLE);
@@ -650,6 +654,7 @@ bool d3d::multi_draw_indirect(int prim_type, Sbuffer *args, uint32_t draw_count,
   if (!flush_all())
     return true;
   RenderState &rs = g_render_state;
+  check_draw_uav_formats(rs);
 
   D3D_CONTRACT_ASSERT(rs.nextVertexShader != drv3d_generic::BAD_HANDLE);
   // D3D_CONTRACT_ASSERT(rs.nextPixelShader != BAD_HANDLE);
@@ -686,6 +691,7 @@ bool d3d::multi_draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t dra
   if (!flush_all())
     return true;
   RenderState &rs = g_render_state;
+  check_draw_uav_formats(rs);
 
   D3D_CONTRACT_ASSERT(rs.nextVertexShader != drv3d_generic::BAD_HANDLE);
   // D3D_CONTRACT_ASSERT(rs.nextPixelShader != BAD_HANDLE);

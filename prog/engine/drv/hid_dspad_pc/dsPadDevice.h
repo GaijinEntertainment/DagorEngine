@@ -3,13 +3,14 @@
 
 #include <drv/hid/dag_hiJoystick.h>
 #include <drv/hid/dag_hiJoyTriggerEffect.h>
-#include <drv/hid/dag_hiTouchpadGestures.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Quat.h>
 #include "dsPadProtocol.h"
 #include "../hid_commonCode/joystickAxisUtils.h"
+#include "../hid_commonCode/joyMotionHistory.h"
+#include "../hid_commonCode/touchpadFrameQueue.h"
 
 namespace HumanInput
 {
@@ -17,7 +18,7 @@ namespace HumanInput
 // One DualSense, DualSense Edge or DualShock 4. The driver IO thread feeds reports in and takes output
 // reports out; the main thread reads the IGenJoystick state. Button and axis numbering equals the PS5 pad
 // driver so the console presets and glyphs apply unchanged.
-class SonyPadDevice final : public IGenJoystick
+class DsPadDevice final : public IGenJoystick
 {
 public:
   enum
@@ -36,29 +37,28 @@ public:
 
   struct InitInfo
   {
-    sonypad::Model model = sonypad::Model::UNKNOWN;
-    bool bluetooth = false;
-    bool rumbleV2 = true;
-    sonypad::FirmwareInfo firmware;
+    dspad::FirmwareInfo firmware;
     char mac[18] = {};
+    dspad::Model model = dspad::Model::UNKNOWN;
+    bool bluetooth = false;
   };
 
-  SonyPadDevice(const InitInfo &info, int ord_id);
-  ~SonyPadDevice() { setClient(nullptr); }
+  DsPadDevice(const InitInfo &info, int ord_id);
+  ~DsPadDevice() { setClient(nullptr); }
 
   // IO thread side; true when the pad presence changed: a DualShock 4 USB adapter answers the calibration request once paired
   bool onInputReport(const uint8_t *data, int len);
   bool takeOutputReport(uint8_t *out, int cap, int &len, bool quiet = false); // quiet: rumble off, triggers free
-  void setCalibration(const sonypad::SensorCalibration &calib, bool from_device);
+  void setCalibration(const dspad::SensorCalibration &calib, bool from_device);
   void setLost();
 
   // main thread side
   bool updateState(int dt_msec, bool def);
-  sonypad::Model getModel() const { return model; }
+  dspad::Model getModel() const { return model; }
   const char *getMac() const { return mac; }
 
   // IGenJoystick
-  const char *getName() const override { return sonypad::model_name(model); }
+  const char *getName() const override { return dspad::model_name(model); }
   const char *getDeviceID() const override { return "ds4"; }
   bool getDeviceDesc(DataBlock &out_desc) const override;
   unsigned short getUserId() const override { return ordId; }
@@ -99,9 +99,11 @@ public:
   void setPlayerLeds(unsigned mask) override;
   void setMicLed(JoystickMicLed mode) override;
   void setTriggerEffect(const TriggerEffectParam &param) override;
+  bool getTriggerEffectState(TriggerEffectStateInfo &out) const override;
   bool getMotionState(JoystickMotionState &out) const override;
-  bool getTouchpadState(JoystickTouchpadState &out) const override;
-  bool fetchTouchpadGestures(GestureCb cb) override;
+  void enableMotionHistory(bool enable) override;
+  int fetchMotionSamples(dag::Span<JoystickMotionSample> out, uint32_t &dropped) override;
+  int fetchTouchpadFrames(dag::Span<JoystickTouchpadFrame> out) override;
 
   bool isConnected() override { return !interlocked_acquire_load(lost); }
   // false until the first report that shows a pad, a DualShock 4 USB adapter can be empty
@@ -110,40 +112,39 @@ public:
   bool isGamepadLayout() const override { return true; }
   void enableSensorsTiltCorrection(bool enable) override;
   void reportGyroSensorsAngDelta(bool report_ang_delta) override;
+  void calibrateGyro() override;
 
 private:
   // shared by the IO thread and the main thread under cs: input and motion flow in, output and sensor modes flow out
   struct Shared
   {
-    sonypad::InputSample sample;
+    dspad::InputSample sample;
     JoystickMotionState motion;
-    Point3 deltaLocal = Point3(0, 0, 0); // integrated rotation since the last updateState, pad frame, rad
-    float deltaWorldYaw = 0;             // the same as the player space yaw of GyroWiki
+    Point3 delta = Point3(0, 0, 0); // rotation since the last updateState, rad, pad frame but yaw around gravity with tilt correction
     Quat orient = Quat(0, 0, 0, 1);
-    Point3 gravity = Point3(0, 1, 0);
     uint32_t prevTicks = 0;
     int64_t prevHostTicks = 0;
     bool haveTicks = false;
     bool gyroEnabled = true;
     bool tiltCorrection = false;
     bool resetOrientation = false;
-    sonypad::OutputState out;
+    dspad::OutputState out;
     bool outDirty = true;
   };
 
-  void integrateSensors(const sonypad::InputSample &s);
+  void integrateSensors(const dspad::InputSample &s);
+  void queueTouchpadFrame(const dspad::InputSample &s, bool present);
   void fillState(const Shared &snap, int dt_msec);
 
   mutable WinCritSec cs;
   Shared shared;
-  // under cs: the IO thread feeds the recognizer per report, the main thread drains the queue
-  TouchpadGestureRecognizer gestures;
-  TouchpadGestureQueue gestureQueue;
-  sonypad::SensorCalibration calibration;
+  JoystickMotionHistory motionHistory;
+  hid::TouchpadFrameQueue touchpadFrames; // under cs: the IO thread pushes, the main thread fetches
+  dspad::SensorCalibration calibration;
   bool calibrated = false;
-  sonypad::FirmwareInfo firmware;
-  sonypad::Model model;
-  bool bluetooth, rumbleV2;
+  dspad::FirmwareInfo firmware;
+  dspad::Model model;
+  bool bluetooth;
   volatile bool lost = false;
   uint8_t btSeq = 0;
   char mac[18];

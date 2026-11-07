@@ -5,6 +5,7 @@
 #include <daRg/dag_element.h>
 #include <daRg/dag_properties.h>
 #include <daRg/dag_stringKeys.h>
+#include <daRg/dag_scriptHandlers.h>
 
 #include "guiScene.h"
 #include "dargDebugUtils.h"
@@ -81,8 +82,8 @@ void BhvMoveResize::onDetach(Element *elem, DetachMode)
 }
 
 
-int BhvMoveResize::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id,
-  int button_id, Point2 pos, int accum_res)
+int BhvMoveResize::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int pointer_id, int button_id, Point2 pos, int accum_res)
 {
   BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(elem->csk->moveResizeData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
@@ -107,7 +108,11 @@ int BhvMoveResize::pointingEvent(ElementTree *etree, Element *elem, InputDevice 
         HSQUIRRELVM vm = scriptDesc.GetVM();
         Sqrat::Function onMoveResizeStarted(vm, scriptDesc, scriptDesc.RawGetSlot("onMoveResizeStarted"));
         if (!onMoveResizeStarted.IsNull())
-          onMoveResizeStarted(pos.x, pos.y, elem->getElementBBox(vm));
+        {
+          Sqrat::Table bbox = elem->getElementBBox(vm);
+          etree->guiScene->queueScriptHandler(
+            new ScriptHandlerSqFunc<float, float, Sqrat::Table>(onMoveResizeStarted, pos.x, pos.y, bbox));
+        }
         result |= R_PROCESSED;
       }
     }
@@ -124,7 +129,7 @@ int BhvMoveResize::pointingEvent(ElementTree *etree, Element *elem, InputDevice 
       HSQUIRRELVM vm = scriptDesc.GetVM();
       Sqrat::Function onMoveResizeFinished(vm, scriptDesc, scriptDesc.RawGetSlot("onMoveResizeFinished"));
       if (!onMoveResizeFinished.IsNull())
-        onMoveResizeFinished();
+        etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<>(onMoveResizeFinished));
 
       result |= R_PROCESSED;
     }

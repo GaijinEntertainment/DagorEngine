@@ -2,11 +2,13 @@
 
 #include "treeDestr.h"
 
+#include <ioSys/dag_dataBlock.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_TMatrix.h>
 #include <vecmath/dag_vecMath.h>
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physics.h>
+#include <startup/dag_globalSettings.h>
 #include <util/dag_convar.h>
 
 #include <gamePhys/collision/collisionLib.h>
@@ -53,6 +55,24 @@ static bool is_branch_destruction_supported = true; // ULQ doesn't support it
 static rendinstdestr::on_tree_destr_created_callback on_tree_destr_created_cb = NULL;
 static ri_tree_sound_cb g_tree_sound_cb = nullptr;
 static CollisionObject tree_collision;
+static bool assert_on_incorrect_impulse = false;
+
+// Assert once, bad data repeats each frame
+#define LOGERR_INCORRECT_IMPULSE_AND_DO(expression, action, ...) \
+  do                                                             \
+  {                                                              \
+    if (DAGOR_UNLIKELY(!(expression)))                           \
+    {                                                            \
+      if (assert_on_incorrect_impulse)                           \
+      {                                                          \
+        assert_on_incorrect_impulse = false;                     \
+        G_ASSERT_FAIL(__VA_ARGS__);                              \
+      }                                                          \
+      else                                                       \
+        logerr(__VA_ARGS__);                                     \
+      action;                                                    \
+    }                                                            \
+  } while (0)
 
 namespace rendinstdestr
 {
@@ -66,6 +86,9 @@ void rendinstdestr::init_tree_destr(ri_tree_sound_cb tree_sound_cb, bool enable_
   debugTreeInstData.branchDestrOther = get_tree_destr().branchDestrOther;
   is_branch_destruction_supported = enable_branch_destruction;
   g_tree_sound_cb = tree_sound_cb;
+#if DAGOR_DBGLEVEL > 0
+  assert_on_incorrect_impulse = dgs_get_settings()->getBlockByNameEx("debug")->getBool("assertOnIncorrectImpulse", false);
+#endif
 }
 
 CollisionObject &rendinstdestr::get_tree_collision() { return tree_collision; }
@@ -99,11 +122,8 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
 {
   G_UNUSED(impactPos);
   Point3 impulse = _impulse;
-  if (check_nan(_impulse) || lengthSq(_impulse) > sqr(MAX_RI_DESTROY_IMPULSE))
-  {
-    logerr("Bad impulse %@ in create_tree_rend_inst_destr", _impulse);
-    impulse = Point3();
-  }
+  LOGERR_INCORRECT_IMPULSE_AND_DO(!check_nan(_impulse) && lengthSq(_impulse) <= sqr(MAX_RI_DESTROY_IMPULSE), impulse = Point3(),
+    "rendinstdestr: bad tree impulse %@ for '%s' " FMT_DESC_STR, _impulse, rendinst::getRIGenResName(desc), FMT_DESC_V(desc));
 
   const rendinst::RiDestrData riDestrData = rendinst::gather_ri_destr_data(desc, from_damage);
   if (!riDestrData.branchDestr)
@@ -144,10 +164,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
   const float treeHeightSpringThreshold = 3.f;
   const rendinstdestr::TreeDestr &treeDestr = rendinstdestr::get_tree_destr();
 
-  const RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-  const rendinst::props::RendinstProperties *riProp = nullptr;
-  if (!desc.isRiExtra() && (uint32_t)desc.pool < rgl->rtData->riProperties.size())
-    riProp = &rgl->rtData->riProperties[desc.pool];
+  const rendinst::props::RendinstProperties *riProp = rendinst::props::get_by_desc<rendinst::props::RendinstProperties>(desc);
 
   mat43f m43 = rendinst::getRIGenExtra43(ri->riHandle);
   mat44f m44;
@@ -234,8 +251,8 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
   if (phys.isPhysObject())
   {
     float canopyStartHt = canopyBox.lim[0].y;
-    float trunkStartHt = (constrained_phys ? height * 0.035f : 0.f) + radius;
-    float trunkHt = max(canopyStartHt * 0.9f - trunkStartHt, 2.f * radius);
+    float trunkStartHt = min((constrained_phys ? height * 0.035f : 0.f) + radius, height * 0.5f);
+    float trunkHt = min(max(canopyStartHt * 0.9f - trunkStartHt, 2.f * radius), height - trunkStartHt);
     float trunkHalfHt = trunkHt * 0.5f;
 
     TMatrix fallDirTm;
@@ -344,7 +361,10 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
     float vel = omega * arm;
     G_UNUSED(vel);
     float impulseVal = safediv(omega * momentOfInertia.x, arm);
-    G_ASSERTF(!check_nan(impulseVal) && impulseVal < MAX_RI_DESTROY_IMPULSE, "impulseVal %f", impulseVal);
+    LOGERR_INCORRECT_IMPULSE_AND_DO(!check_nan(impulseVal) && impulseVal < MAX_RI_DESTROY_IMPULSE, impulseVal = 0.f,
+      "rendinstdestr: bad tree impulseVal %f for '%s' " FMT_DESC_STR " pos=%@ scale=%@ radius=%f height=%f mass=%f comHt=%f",
+      impulseVal, rendinst::getRIGenResName(desc), FMT_DESC_V(desc), tmOriginal.getcol(3), scale, radius, height, mass,
+      trunkHalfHt + trunkStartHt);
 
     if (constrained_phys)
     {
@@ -369,8 +389,9 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
       // imp = vel * mass
       // imp = omega * arm * mass
       float additionalImpulseVal = omega * (height - sphRad) * canopyMass;
-      G_ASSERTF(!check_nan(additionalImpulseVal) && additionalImpulseVal < MAX_RI_DESTROY_IMPULSE, "additionalImpulseVal %f",
-        additionalImpulseVal);
+      LOGERR_INCORRECT_IMPULSE_AND_DO(!check_nan(additionalImpulseVal) && additionalImpulseVal < MAX_RI_DESTROY_IMPULSE,
+        additionalImpulseVal = 0.f, "rendinstdestr: bad tree additionalImpulseVal %f for '%s' " FMT_DESC_STR, additionalImpulseVal,
+        rendinst::getRIGenResName(desc), FMT_DESC_V(desc));
       phys.additionalBody->addImpulse((tm * sphTm).getcol(3), additionalImpulseVal * Point3::x0y(impulseDir));
     }
     phys.lastValidTm = tm;
@@ -422,13 +443,9 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
   debugTreeInstData.impulsePositions.clear();
 
   Point3 impulse = _impulse;
-  float impulseStrength = length(_impulse);
-  if (check_nan(_impulse) || impulseStrength > MAX_RI_DESTROY_IMPULSE)
-  {
-    logerr("Bad impulse %@ in create_tree_rend_inst_destr", _impulse);
-    impulseStrength = 0.0f;
-    impulse = Point3();
-  }
+  LOGERR_INCORRECT_IMPULSE_AND_DO(!check_nan(_impulse) && lengthSq(_impulse) <= sqr(MAX_RI_DESTROY_IMPULSE), impulse = Point3(),
+    "rendinstdestr: bad tree impulse %@ for '%s' " FMT_DESC_STR, _impulse, rendinst::getRIGenResName(desc), FMT_DESC_V(desc));
+  const float impulseStrength = length(impulse);
 
   const rendinstdestr::TreeDestr &treeDestr = rendinstdestr::get_tree_destr();
   const rendinst::RiDestrData riDestrData = rendinst::gather_ri_destr_data(desc, from_damage);
@@ -526,10 +543,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
   BBox3 canopyBboxLocal;
   rendinst::getRIGenCanopyBBox(desc, TMatrix::IDENT, canopyBboxLocal);
 
-  const RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-  const rendinst::props::RendinstProperties *riProp = nullptr;
-  if (!desc.isRiExtra() && (uint32_t)desc.pool < rgl->rtData->riProperties.size())
-    riProp = &rgl->rtData->riProperties[desc.pool];
+  const rendinst::props::RendinstProperties *riProp = rendinst::props::get_by_desc<rendinst::props::RendinstProperties>(desc);
 
   Point3 bboxSize = bbox.width();
   float totalTreeHeight = bboxSize.y * scale.y * riDestrData.collisionHeightScale;
@@ -656,7 +670,9 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
     float arm = safediv(momentOfInertia.x, mass * height * 0.5f);
     float vel = omega * arm;
     float impulseVal = safediv(omega * momentOfInertia.x, arm);
-    G_ASSERTF(!check_nan(impulseVal) && impulseVal < MAX_RI_DESTROY_IMPULSE, "impulseVal %f", impulseVal);
+    LOGERR_INCORRECT_IMPULSE_AND_DO(!check_nan(impulseVal) && impulseVal < MAX_RI_DESTROY_IMPULSE, impulseVal = 0.f,
+      "rendinstdestr: bad tree impulseVal %f for '%s' " FMT_DESC_STR " pos=%@ scale=%@ radius=%f height=%f mass=%f", impulseVal,
+      rendinst::getRIGenResName(desc), FMT_DESC_V(desc), tmOriginal.getcol(3), scale, radius, height, mass);
 
     RendInstPhys &phys =
       riPhys.emplace_back(RendInstPhysType::TREE, desc, tmNoScale, mass, momentOfInertia, scale, Point3(0.f, height * 0.5f, 0.f),
@@ -979,8 +995,9 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
         // imp = omega * arm * mass
         // Try to just not add impulse to the canopy separately
         float additionalImpulseVal = omega * canopySizeScaled.y * 0.5f * canopyMass * canopyImpulseMul;
-        G_ASSERTF(!check_nan(additionalImpulseVal) && additionalImpulseVal < MAX_RI_DESTROY_IMPULSE, "additionalImpulseVal %f",
-          additionalImpulseVal);
+        LOGERR_INCORRECT_IMPULSE_AND_DO(!check_nan(additionalImpulseVal) && additionalImpulseVal < MAX_RI_DESTROY_IMPULSE,
+          additionalImpulseVal = 0.f, "rendinstdestr: bad tree additionalImpulseVal %f for '%s' " FMT_DESC_STR, additionalImpulseVal,
+          rendinst::getRIGenResName(desc), FMT_DESC_V(desc));
         phys.additionalBody->addImpulse((tmNoScale * sphTm).getcol(3), additionalImpulseVal * Point3::x0y(impulseDir));
       }
 
@@ -994,6 +1011,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
         else
           debugTreeInstData.last_object_was_from_damage = from_damage;
       }
+      phys.treeInstData.branchDestr.newPhysics = true;
       phys.lastValidTm = tmNoScale;
 
       const char *destrFxTemplate = coll_info ? rendinst::getRIGenDestrPropsFxTemplate(coll_info->desc) : "";

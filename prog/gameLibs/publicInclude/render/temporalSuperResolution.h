@@ -16,8 +16,6 @@
 #include <EASTL/optional.h>
 #include <EASTL/fixed_function.h>
 
-class TextureIDPair;
-
 namespace dafg
 {
 class Registry;

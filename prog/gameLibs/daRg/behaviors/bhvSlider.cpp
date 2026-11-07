@@ -6,8 +6,10 @@
 #include <daRg/dag_inputIds.h>
 #include <daRg/dag_stringKeys.h>
 #include <daRg/dag_properties.h>
+#include <daRg/dag_scriptHandlers.h>
 
 #include "elementTree.h"
+#include "guiScene.h"
 #include "behaviorHelpers.h"
 #include "dargDebugUtils.h"
 
@@ -168,8 +170,8 @@ int BhvSlider::kbdEvent(ElementTree *, Element *elem, InputEvent event, int key_
 }
 
 
-int BhvSlider::pointingEvent(ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
-  Point2 pointer_pos, int accum_res)
+int BhvSlider::pointingEvent(ElementTree *, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int pointer_id, int button_id, Point2 pointer_pos, int accum_res)
 {
   BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(elem->csk->sliderData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
@@ -264,7 +266,7 @@ void BhvSlider::updateSliderHover(darg::Element *elem, darg::BhvSliderData *bhvD
       if (bhvData->sliderHoverValue != value || !bhvData->isSliderHover)
       {
         bhvData->sliderHoverValue = value;
-        onSliderMouseMove(value);
+        elem->etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<float>(onSliderMouseMove, value));
       }
       bhvData->isSliderHover = true;
     }
@@ -275,7 +277,10 @@ void BhvSlider::updateSliderHover(darg::Element *elem, darg::BhvSliderData *bhvD
     {
       Sqrat::Function onSliderMouseMove = elem->props.scriptDesc.GetFunction(elem->csk->onSliderMouseMove);
       if (!onSliderMouseMove.IsNull())
-        onSliderMouseMove(Sqrat::Object(elem->getVM()));
+      {
+        Sqrat::Object noValue(elem->getVM());
+        elem->etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<Sqrat::Object>(onSliderMouseMove, noValue));
+      }
       bhvData->isSliderHover = false;
     }
   }
@@ -370,7 +375,7 @@ void BhvSlider::setVal(Element *elem, float req_val)
   {
     Sqrat::Function onChange = elem->props.scriptDesc.GetFunction(elem->csk->onChange);
     if (!onChange.IsNull())
-      onChange(fVal);
+      elem->etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<float>(onChange, fVal));
   }
 }
 

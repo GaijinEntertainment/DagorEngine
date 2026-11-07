@@ -33,41 +33,29 @@ using TmpString = eastl::fixed_string<char, 64, false>;
 
 static int numMips = -1;
 
-struct ColorDepthTexturePair
+static UniqueTex create_temp_color(const char *name, uint32_t size, int mips)
+{
+  int flags = TEXCF_RTARGET;
+  if (mips > 1)
+    flags |= TEXCF_GENERATEMIPS;
+  return dag::create_tex(nullptr, size, size, flags, mips, name, RESTAG_RENDINST);
+}
+
+static UniqueTex create_temp_depth(const char *name, uint32_t size)
+{
+  return dag::create_tex(nullptr, size, size, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, name, RESTAG_RENDINST);
+}
+
+struct LowresColorTarget
 {
   UniqueTex colorTex;
-  UniqueTex depthTex;
-  bool colorReadbackPending;
-
-  void createTextures(const char *name, int index, uint32_t size, int mips)
-  {
-    colorTex.close();
-    TmpString texName{TmpString::CtorSprintf{}, "%sColor%d", name, index};
-    int flags = TEXCF_RTARGET;
-    if (mips > 1)
-      flags |= TEXCF_GENERATEMIPS;
-    colorTex = dag::create_tex(nullptr, size, size, flags, mips, texName.c_str(), RESTAG_RENDINST);
-    createDepth(name, index, size);
-    colorReadbackPending = false;
-  }
-
-  void createDepth(const char *name, int index, uint32_t size)
-  {
-    depthTex.close();
-    TmpString texName{TmpString::CtorSprintf{}, "%sDepth%d", name, index};
-    depthTex = dag::create_tex(nullptr, size, size, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, texName.c_str(), RESTAG_RENDINST);
-  }
-
-  void reset()
-  {
-    colorTex.close();
-    depthTex.close();
-    colorReadbackPending = false;
-  }
+  bool colorReadbackPending = false;
 };
 
-static dag::Vector<ColorDepthTexturePair> g_lowres_tex;
-static dag::Vector<ColorDepthTexturePair> g_fullres_tex;
+static dag::Vector<LowresColorTarget> g_lowres_tex;
+static UniqueTex g_lowres_depth;
+static UniqueTex g_fullres_color;
+static UniqueTex g_fullres_depth;
 static shaders::OverrideStateId g_zfunc_state_id;
 static unsigned int rendinstGlobalShadowTexSize = 0;
 static int shadowBatch = 4;
@@ -105,7 +93,9 @@ namespace rendinst
 void closeImpostorShadowTempTex()
 {
   g_lowres_tex.clear();
-  g_fullres_tex.clear();
+  g_lowres_depth.close();
+  g_fullres_color.close();
+  g_fullres_depth.close();
   g_compressor.reset();
   g_shadow_storage = {};
 
@@ -184,7 +174,7 @@ static void init_impostor_shadow_temp_tex(bool use_compression)
 {
   if (numMips < 0)
   {
-    const DataBlock *rendinstShadowsBlock = ::dgs_get_game_params()->getBlockByNameEx("rendinstShadows");
+    const DataBlock *rendinstShadowsBlock = ::dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("rendinstShadows");
     rendinstGlobalShadowTexSize = rendinstShadowsBlock->getInt("globalTexSize", 256);
     numMips = max((int)1, (int)get_log2i_of_pow2(rendinstGlobalShadowTexSize) - 2); // last mip is set
     shadowBatch = rendinstShadowsBlock->getInt("shadowBatch", shadowBatch);
@@ -208,18 +198,19 @@ static void init_impostor_shadow_temp_tex(bool use_compression)
       }
     }
 
+    const uint32_t lowresSize = max(rendinstGlobalShadowTexSize / 4, (unsigned)64);
     g_lowres_tex.resize(shadowBatch);
-    g_fullres_tex.resize(shadowBatch);
     for (int i = 0; i < shadowBatch; ++i)
     {
-      g_lowres_tex[i].createTextures("rtTempLowres", i, max(rendinstGlobalShadowTexSize / 4, (unsigned)64), 1);
-      if (g_shadow_storage.mode == GlobalShadowFill::DIRECT)
-        g_fullres_tex[i].createDepth("rtTempFullres", i, rendinstGlobalShadowTexSize);
-      else
-        // Only a GPU encoder consumes mips of the temp; a CPU one downsamples the top level itself.
-        g_fullres_tex[i].createTextures("rtTempFullres", i, rendinstGlobalShadowTexSize,
-          g_shadow_storage.mode == GlobalShadowFill::GPU_ENCODE ? g_shadow_storage.mips : 1);
+      TmpString name{TmpString::CtorSprintf{}, "rtTempLowresColor%d", i};
+      g_lowres_tex[i].colorTex = create_temp_color(name.c_str(), lowresSize, 1);
     }
+    g_lowres_depth = create_temp_depth("rtTempLowresDepth", lowresSize);
+    g_fullres_depth = create_temp_depth("rtTempFullresDepth", rendinstGlobalShadowTexSize);
+    if (g_shadow_storage.mode != GlobalShadowFill::DIRECT)
+      // Only a GPU encoder consumes mips of the temp; a CPU one downsamples the top level itself.
+      g_fullres_color = create_temp_color("rtTempFullresColor", rendinstGlobalShadowTexSize,
+        g_shadow_storage.mode == GlobalShadowFill::GPU_ENCODE ? g_shadow_storage.mips : 1);
   }
 
   if (!g_zfunc_state_id)
@@ -337,11 +328,11 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
   Texture *depthTex = nullptr;
   if (task.phase == GlobalShadowPhase::HIGH_PASS)
   {
-    depthTex = g_fullres_tex[task.batchIndex].depthTex.getTex2D();
+    depthTex = g_fullres_depth.getTex2D();
     if (directRender)
       colorTex = pool.rendinstGlobalShadowTex.getArrayTex();
     else
-      colorTex = g_fullres_tex[task.batchIndex].colorTex.getTex2D();
+      colorTex = g_fullres_color.getTex2D();
   }
   else
   {
@@ -357,7 +348,7 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
         return GlobalShadowRet::WAIT_NEXT_FRAME;
     }
     colorTex = g_lowres_tex[task.batchIndex].colorTex.getTex2D();
-    depthTex = g_lowres_tex[task.batchIndex].depthTex.getTex2D();
+    depthTex = g_lowres_depth.getTex2D();
   }
   G_ASSERT_RETURN(colorTex, GlobalShadowRet::ERR);
   G_ASSERT_RETURN(depthTex, GlobalShadowRet::ERR);
@@ -526,10 +517,10 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
   if (g_shadow_storage.mode == GlobalShadowFill::GPU_ENCODE)
   {
     G_ASSERT_RETURN(g_compressor, GlobalShadowRet::ERR);
-    g_fullres_tex[task.batchIndex].colorTex->generateMips();
+    g_fullres_color->generateMips();
     for (int mip = 0; mip < g_shadow_storage.mips; ++mip)
     {
-      g_compressor->updateFromMip(g_fullres_tex[task.batchIndex].colorTex.getTexId(), mip, mip);
+      g_compressor->updateFromMip(g_fullres_color.getTexId(), mip, mip);
       g_compressor->copyToMip(pool.rendinstGlobalShadowTex.getArrayTex(), mip + task.rotationId * g_shadow_storage.mips, 0, 0, mip);
     }
   }

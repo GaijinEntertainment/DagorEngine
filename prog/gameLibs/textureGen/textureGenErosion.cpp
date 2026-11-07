@@ -3,6 +3,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_rwResource.h>
 #include <math/dag_adjpow2.h>
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
@@ -11,9 +12,10 @@
 #include <math/dag_Point2.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/random/dag_random.h>
+#include <EASTL/algorithm.h>
 #include <EASTL/vector.h>
+#include <EASTL/fixed_vector.h>
 #include <EASTL/optional.h>
-#include <perfMon/dag_pix.h>
 
 #include <textureGen/textureRegManager.h>
 #include <textureGen/textureGenShader.h>
@@ -23,6 +25,7 @@
 static class TextureGenErosion : public TextureGenShader
 {
 private:
+  static constexpr int OLD_HARDNESS_INPUT = 1, HARDNESS_INPUT = 4;
   int h, w;
   eastl::vector<float> hardnessMap, heightMap;
   eastl::optional<eastl::vector<float>> sedimentMap, depositMap, waterFlowMap, flowMapX, flowMapY;
@@ -49,7 +52,7 @@ private:
         float len = sqrt(dx * dx + dy * dy);
         if (len <= radius)
         {
-          float weight = 1 - len / radius;
+          float weight = radius > 0 ? 1 - len / radius : 1;
           conus_weight.push_back(weight);
           sum_weights += weight;
           conus_index.push_back(IPoint2(dx, dy));
@@ -71,7 +74,7 @@ private:
   else if (max_val < var_name)                                                                                              \
   {                                                                                                                         \
     texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "the %s must be less than or equal %f", #var_name, max_val));    \
-    var_name = min_val;                                                                                                     \
+    var_name = max_val;                                                                                                     \
   }
 #define CHECK_FLOAT_PARAMETERS(var_name, def_value, min_val, max_val) \
   var_name = data.getReal(#var_name, def_value);                      \
@@ -94,7 +97,7 @@ private:
     CHECK_FLOAT_PARAMETERS(flow_map_inertion, 0.5f, 0.f, 1.f)
     CHECK_FLOAT_PARAMETERS(drops_multiplier, 1.f, 0.f, 100.f)
 
-    CHECK_INT_PARAMETERS(erosion_radius, 1, 1, 5)
+    CHECK_INT_PARAMETERS(erosion_radius, 1, 1, 7)
     CHECK_INT_PARAMETERS(drop_lifetime, 1, 1, 70)
 
     CHECK_BOOL_PARAMETERS(flow_map_normalized, false)
@@ -183,7 +186,7 @@ private:
           {
             int erodeIndex = index(node + erosion_index[i]);
             float weightedErodeAmount = erosion_weights[i];
-            (*flowMapY)[erodeIndex] = lerp((*flowMapY)[erodeIndex], dir.x, flow_map_inertion * weightedErodeAmount);
+            (*flowMapY)[erodeIndex] = lerp((*flowMapY)[erodeIndex], dir.y, flow_map_inertion * weightedErodeAmount);
             (*flowMapX)[erodeIndex] = lerp((*flowMapX)[erodeIndex], dir.x, flow_map_inertion * weightedErodeAmount);
           }
         }
@@ -228,43 +231,91 @@ private:
     }
   }
 
+  bool toNodeMap(BaseTexture *&src_texture, Texture *&converted, bool any_format = false, uint32_t fmt = TEXFMT_R32F,
+    bool one_texel_is_no_map = false)
+  {
+    TextureInfo texInfo;
+    src_texture->getinfo(texInfo);
+    if ((texInfo.h == h && texInfo.w == w && (any_format || (texInfo.cflg & TEXFMT_MASK) == fmt)) ||
+        (one_texel_is_no_map && texInfo.w == 1 && texInfo.h == 1))
+      return true;
+    converted = d3d::create_tex(NULL, w, h, fmt | TEXCF_RTARGET, 1, "erosion_input", RESTAG_TEXGEN);
+    if (!converted)
+      return false;
+    d3d::stretch_rect(src_texture, converted);
+    src_texture = converted;
+    return true;
+  }
+
   bool readTexture(BaseTexture *src_texture, eastl::vector<float> &dest_array)
   {
-    size_t map_byte_size = h * w * sizeof(float);
     dest_array.resize(h * w);
-    TextureInfo texInfo;
-    if (src_texture)
-      src_texture->getinfo(texInfo);
-    if (!src_texture || texInfo.h != h || texInfo.w != w || (texInfo.cflg & TEXFMT_MASK) != TEXFMT_R32F)
+    if (!src_texture)
     {
-      memset(dest_array.data(), 0, map_byte_size);
+      memset(dest_array.data(), 0, h * w * sizeof(float));
       return true;
     }
+    Texture *converted = nullptr;
+    if (!toNodeMap(src_texture, converted))
+      return false;
     void *mapData = nullptr;
     int stride = 0;
     const bool locked = src_texture->lockimg(&mapData, stride, 0, TEXLOCK_READ);
     if (locked && mapData)
-      memcpy(dest_array.data(), mapData, map_byte_size);
+      for (int row = 0; row < h; row++)
+        memcpy(dest_array.data() + size_t(row) * w, (uint8_t *)mapData + size_t(row) * stride, w * sizeof(float));
     if (locked)
       src_texture->unlockimg();
+    del_d3dres(converted);
     return locked && mapData;
   }
 
-  void writeTexture(Texture *dest_texture, const eastl::optional<eastl::vector<float>> &src_array, Texture *temp_tex)
+  static bool mayBeAboveZero(BaseTexture *tex)
+  {
+    TextureInfo info;
+    tex->getinfo(info);
+    Texture *converted = nullptr;
+    if ((info.cflg & TEXFMT_MASK) != TEXFMT_R32F)
+    {
+      converted = d3d::create_tex(NULL, info.w, info.h, TEXFMT_R32F | TEXCF_RTARGET, 1, "erosion_old_hardness", RESTAG_TEXGEN);
+      if (!converted)
+        return true;
+      d3d::stretch_rect(tex, converted);
+      tex = converted;
+    }
+    void *mapData = nullptr;
+    int stride = 0;
+    const bool locked = tex->lockimg(&mapData, stride, 0, TEXLOCK_READ);
+    bool zero = locked && mapData;
+    for (int row = 0; zero && row < info.h; row++)
+    {
+      const float *texels = (const float *)((const uint8_t *)mapData + size_t(row) * stride);
+      zero = eastl::all_of(texels, texels + info.w, [](float v) { return v <= 0; });
+    }
+    if (locked)
+      tex->unlockimg();
+    del_d3dres(converted);
+    return !zero;
+  }
+
+  static TextureInput hardnessInput(dag::ConstSpan<TextureInput> inputs)
+  {
+    return inputs.size() > HARDNESS_INPUT ? inputs[HARDNESS_INPUT] : TextureInput();
+  }
+
+  bool writeTexture(Texture *dest_texture, const eastl::vector<float> *src_array, Texture *temp_tex)
   {
     if (!dest_texture || !src_array)
-      return;
-    TextureInfo info;
-    dest_texture->getinfo(info);
-    if (!(info.cflg & TEXFMT_R32F))
-      return;
+      return true;
     void *mapData = nullptr;
     int stride = 0;
     if (!temp_tex->lockimg(&mapData, stride, 0, TEXLOCK_WRITE) || !mapData)
-      return;
-    memcpy(mapData, src_array->data(), src_array->size() * sizeof(float));
+      return false;
+    for (int row = 0; row < h; row++)
+      memcpy((uint8_t *)mapData + size_t(row) * stride, src_array->data() + size_t(row) * w, w * sizeof(float));
     temp_tex->unlockimg();
     dest_texture->update(temp_tex);
+    return true;
   }
 
   eastl::optional<eastl::vector<float>> prepareCleanMap(bool hasMap, size_t mapSize)
@@ -274,18 +325,19 @@ private:
     return eastl::nullopt;
   }
 
-  bool cpu_algorithm(dag::ConstSpan<TextureInput> &inputs, dag::ConstSpan<D3dResource *> &outputs)
+  bool cpu_algorithm(TextureGenerator &gen, dag::ConstSpan<TextureInput> &inputs, dag::ConstSpan<D3dResource *> &outputs)
   {
     size_t mapSize = h * w;
+    auto outAt = [&](int i) -> Texture * { return i < outputs.size() ? (Texture *)outputs[i] : nullptr; };
 
-    if (!inputs[0].tex || !readTexture(inputs[0].tex, heightMap) || !readTexture(inputs[1].tex, hardnessMap))
+    if (!inputs[0].tex || !readTexture(inputs[0].tex, heightMap) || !readTexture(hardnessInput(inputs).tex, hardnessMap))
       return false;
 
-    sedimentMap = prepareCleanMap(outputs[1] != nullptr, mapSize);
-    depositMap = prepareCleanMap(outputs[2] != nullptr, mapSize);
-    flowMapX = prepareCleanMap(outputs[3] != nullptr, mapSize);
-    flowMapY = prepareCleanMap(outputs[4] != nullptr, mapSize);
-    waterFlowMap = prepareCleanMap(outputs[5] != nullptr, mapSize);
+    sedimentMap = prepareCleanMap(outAt(1) != nullptr, mapSize);
+    depositMap = prepareCleanMap(outAt(2) != nullptr, mapSize);
+    flowMapX = prepareCleanMap(outAt(3) != nullptr, mapSize);
+    flowMapY = prepareCleanMap(outAt(4) != nullptr, mapSize);
+    waterFlowMap = prepareCleanMap(outAt(5) != nullptr, mapSize);
 
     set_rnd_seed(630498480);
     process_drops((int)(h * w * drops_multiplier));
@@ -313,44 +365,58 @@ private:
     }
     // need temp texture because can't write in render target textures. All editors testures are RT
     Texture *temp_tex = d3d::create_tex(NULL, w, h, TEXFMT_R32F, 1, "temp", RESTAG_TEXGEN);
+    if (!temp_tex)
+    {
+      texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "%s can not create temp texture %dx%d", getName(), w, h));
+      return false;
+    }
 
-    writeTexture((Texture *)outputs[0], heightMap, temp_tex);
-    writeTexture((Texture *)outputs[1], sedimentMap, temp_tex);
-    writeTexture((Texture *)outputs[2], depositMap, temp_tex);
-    writeTexture((Texture *)outputs[3], flowMapX, temp_tex);
-    writeTexture((Texture *)outputs[4], flowMapY, temp_tex);
-    writeTexture((Texture *)outputs[5], waterFlowMap, temp_tex);
+    auto ptr = [](const eastl::optional<eastl::vector<float>> &map) { return map ? &*map : nullptr; };
+    bool written = writeTexture(outAt(0), &heightMap, temp_tex);
+    written = writeTexture(outAt(1), ptr(sedimentMap), temp_tex) && written;
+    written = writeTexture(outAt(2), ptr(depositMap), temp_tex) && written;
+    written = writeTexture(outAt(3), ptr(flowMapX), temp_tex) && written;
+    written = writeTexture(outAt(4), ptr(flowMapY), temp_tex) && written;
+    written = writeTexture(outAt(5), ptr(waterFlowMap), temp_tex) && written;
 
     del_d3dres(temp_tex);
-    return true;
+    return written;
   }
 
-  void gpu_algorithm(const TextureGenNodeData &data, TextureGenerator &gen, TextureRegManager &regs,
+  bool gpu_algorithm(const TextureGenNodeData &data, TextureGenerator &gen, TextureRegManager &regs,
     dag::ConstSpan<TextureInput> &inputs, dag::ConstSpan<D3dResource *> &outputs)
   {
     if (!inputs[0].tex)
-      return;
+      return false;
 #define REQUIRE(a)                                                                                            \
   TextureGenShader *a = texgen_get_shader(&gen, #a);                                                          \
   if (!a)                                                                                                     \
   {                                                                                                           \
     texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "no shader <%s> required for %s", #a, getName())); \
-    return;                                                                                                   \
+    return false;                                                                                             \
   }
     REQUIRE(erosion_shader);
-    int cellRadius = data.params.getInt("drop_lifetime") + data.params.getInt("erosion_radius");
+    // The GPU path has no CPU upper limits.
+    const int dropLifetime = data.params.getInt("drop_lifetime", 1), erosionRadius = data.params.getInt("erosion_radius", 1);
+    int cellRadius = max(1, dropLifetime + erosionRadius);
     int cellSize = 2 * cellRadius;
     int cellCount = (w + cellSize - 1) / cellSize;
     DataBlock params = data.params;
+    params.setInt("drop_lifetime", dropLifetime);
+    params.setInt("erosion_radius", erosionRadius);
     params.setInt("mapSize", w);
     params.setInt("cellCount", cellCount);
     params.setInt("cellSize", cellSize);
-    params.setInt("weightsCount", erosion_weights.size());
 
     Texture *tempOutputTex = d3d::create_tex(NULL, w, h, TEXFMT_R32F | TEXCF_UNORDERED | TEXCF_RTARGET, 1, "temp_out0", RESTAG_TEXGEN);
+    if (!tempOutputTex)
+    {
+      texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "%s can not create temp texture %dx%d", getName(), w, h));
+      return false;
+    }
     d3d::stretch_rect(inputs[0].tex, tempOutputTex);
 
-    int iterations = (int)(cellSize * cellSize * data.params.getReal("drops_multiplier"));
+    int iterations = (int)(cellSize * cellSize * data.params.getReal("drops_multiplier", 1.f));
     set_rnd_seed(630498480);
     eastl::vector<Point2> offsets(cellSize * cellSize);
     for (int i = 0; i < cellSize; i++)
@@ -358,32 +424,55 @@ private:
         offsets[i * cellSize + j] = Point2(i, j);
     for (int i = offsets.size() - 1; i > 0; i--)
       eastl::swap(offsets[i], offsets[rnd_int(0, i - 1)]);
-#if DAGOR_DBGLEVEL > 1
-    PIX_GPU_BEGIN_CAPTURE(D3D12XBOX_PIX_CAPTURE_API, L"D:\\YourName.xpix");
-#endif
 
+    eastl::fixed_vector<TextureInput, 4> shaderInputs(inputs.begin(), inputs.begin() + min<int>(inputs.size(), 4));
+    shaderInputs[1] = hardnessInput(inputs);
+    Texture *maps[3] = {};
+    const auto freeTextures = [&] {
+      for (Texture *&map : maps)
+        del_d3dres(map);
+      del_d3dres(tempOutputTex);
+    };
+    // Shader loads any format by node pixel.
+    const uint32_t mapFormats[3] = {TEXFMT_R32F, TEXFMT_R32F, TEXFMT_G32R32F};
+    for (int i = 1; i < shaderInputs.size(); i++)
+      if (shaderInputs[i].tex && !toNodeMap(shaderInputs[i].tex, maps[i - 1], true, mapFormats[i - 1], i > 1))
+      {
+        texgen_get_logger(&gen)->log(LOGLEVEL_ERR,
+          String(128, "%s node <%s> can not create input %d map %dx%d", getName(), data.nodeName, i == 1 ? HARDNESS_INPUT : i, w, h));
+        freeTextures();
+        return false;
+      }
+    // The drops add into these outputs, and a new texture may hold old data.
+    const float zero[4] = {0, 0, 0, 0};
     eastl::vector<D3dResource *> writableOutputs = {tempOutputTex};
     for (int i = 1; i < outputs.size(); i++)
+    {
+      if (outputs[i])
+        d3d::clear_rwtexf((Texture *)outputs[i], zero, 0, 0);
       writableOutputs.push_back(outputs[i]);
+    }
 
+    TextureGenNodeData nodeData(cellCount, cellCount, NO_BLENDING, false, params, shaderInputs, writableOutputs, NULL);
     for (int i = 0; i < iterations; i++)
     {
       Point2 offset = offsets[i % offsets.size()] + Point2(rnd_float(0, 1), rnd_float(0, 1));
-      params.setReal("cellOffsetX", offset.x);
-      params.setReal("cellOffsetY", offset.y);
+      nodeData.params.setReal("cellOffsetX", offset.x);
+      nodeData.params.setReal("cellOffsetY", offset.y);
 
-      erosion_shader->processAll(gen, regs,
-        TextureGenNodeData(cellCount, cellCount, NO_BLENDING, false, params, inputs, writableOutputs, NULL));
+      if (!erosion_shader->processAll(gen, regs, nodeData))
+      {
+        texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "%s: erosion_shader failed", getName()));
+        freeTextures();
+        return false;
+      }
     }
 
     if (outputs[0])
       d3d::stretch_rect(tempOutputTex, (Texture *)outputs[0]);
 
-    del_d3dres(tempOutputTex);
-
-#if DAGOR_DBGLEVEL > 1
-    PIX_GPU_END_CAPTURE();
-#endif
+    freeTextures();
+    return true;
   }
 
 public:
@@ -391,10 +480,11 @@ public:
   virtual void destroy() {}
 
   virtual const char *getName() const { return "erosion"; }
+  virtual bool mapsResourcesOnCpu(int) const { return true; }
   virtual int getInputParametersCount() const { return 6; }
   virtual bool isInputParameterOptional(int) const { return true; }
 
-  virtual int getRegCount(TShaderRegType tp) const { return tp == TSHADER_REG_TYPE_INPUT ? 4 : 6; }
+  virtual int getRegCount(TShaderRegType tp) const { return tp == TSHADER_REG_TYPE_INPUT ? HARDNESS_INPUT + 1 : 6; }
   virtual bool isRegOptional(TShaderRegType tp, int reg) const { return tp == TSHADER_REG_TYPE_INPUT ? reg != 0 : false; }
 
   virtual bool process(TextureGenerator &gen, TextureRegManager &regs, const TextureGenNodeData &data, int)
@@ -412,16 +502,33 @@ public:
       texgen_get_logger(&gen)->log(LOGLEVEL_REMARK, String(128, "not enough outputs for %s", getName()));
       return true;
     }
-    erosion_radius = data.params.getInt("erosion_radius");
-    drop_lifetime = data.params.getInt("drop_lifetime");
-
+    for (int i = 0; i < outputs.size(); i++)
+    {
+      if (!outputs[i])
+        continue;
+      if (outputs[i]->getType() != D3DResourceType::TEX)
+      {
+        texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "%s output #%d must be a texture", getName(), i));
+        return false;
+      }
+      TextureInfo info;
+      ((Texture *)outputs[i])->getinfo(info);
+      if ((info.cflg & TEXFMT_MASK) != TEXFMT_R32F)
+      {
+        texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "%s output #%d must be R32F", getName(), i));
+        return false;
+      }
+    }
+    if (BaseTexture *oldHardness = inputs[OLD_HARDNESS_INPUT].tex; oldHardness && mayBeAboveZero(oldHardness))
+      texgen_get_logger(&gen)->log(LOGLEVEL_ERR,
+        String(0, "%s node <%s>: its 'hardness map' input may be above 0 and is not read; connect it to the 'hardness' input",
+          getName(), data.nodeName));
     if (!data.params.getBool("use_gpu", false))
     {
       read_parameters(data.params, gen);
-      return cpu_algorithm(inputs, outputs);
+      return cpu_algorithm(gen, inputs, outputs);
     }
-    gpu_algorithm(data, gen, regs, inputs, outputs);
-    return inputs[0].tex != nullptr;
+    return gpu_algorithm(data, gen, regs, inputs, outputs);
   }
 } texgen_erosion;
 

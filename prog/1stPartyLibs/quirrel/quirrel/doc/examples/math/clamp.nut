@@ -8,8 +8,10 @@ println("clamp(-1.5, 0.5, 1.0) =", clamp(-1.5, 0.5, 1.0))
 println("type(clamp(15, 0, 10.0)) =", type(clamp(15, 0, 10.0)))
 println("type(clamp(5, 0.0, 10.0)) =", type(clamp(5, 0.0, 10.0)))
 
+// with constant arguments the call runs at compile time, and this error would fail the compile
+let x = 1
 try {
-  clamp(1, 10, 0)
+  clamp(x, 10, 0)
 } catch (e) {
-  println("clamp(1, 10, 0) throws:", e)
+  println("clamp(x, 10, 0) throws:", e)
 }

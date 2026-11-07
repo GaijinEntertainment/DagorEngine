@@ -305,6 +305,9 @@ static void android_app_set_window(struct android_app* android_app, ANativeWindo
 static void android_app_set_activity_state(struct android_app* android_app, int8_t cmd) {
     if (android_should_ignore_cmd(cmd)) {
         LOGV("Ignoring activity state %d", cmd);
+        pthread_mutex_lock(&android_app->mutex);
+        android_app->activityState = cmd;
+        pthread_mutex_unlock(&android_app->mutex);
         return;
     }
 

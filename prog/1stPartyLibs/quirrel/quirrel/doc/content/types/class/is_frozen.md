@@ -19,9 +19,9 @@ to the frozen result, as in `SomeClass = freeze(SomeClass)`.
 
 A frozen class rejects `newmember` and `rawset` with `trying to modify
 immutable 'class'` and `Cannot modify immutable object` respectively (the two
-native paths report it with different text). This is a stronger block than
-`lock()`: a locked-but-unfrozen class still accepts new static and function
-members, while a frozen one rejects every mutation.
+native paths report it with different text). `lock()` also rejects every
+mutation, but through every reference and only from the moment the class
+locks; a frozen reference rejects them on a class that is not locked yet too.
 
 ## Example
 

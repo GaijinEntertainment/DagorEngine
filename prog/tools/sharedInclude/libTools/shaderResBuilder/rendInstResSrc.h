@@ -26,6 +26,11 @@ class Bitarray;
 class ILogWriter;
 class DagorMatShaderSubstitute;
 
+namespace AlphaTestValidation
+{
+struct Context;
+}
+
 namespace voxelcache
 {
 struct CacheDump;
@@ -136,6 +141,7 @@ public:
   int numVoxelLayers;
   SimpleString assetName;
   ILogWriter *log = nullptr;
+  AlphaTestValidation::Context *atestValidationCtx = nullptr;
 
 
   RenderableInstanceLodsResSrc(IProcessMaterialData *pm = nullptr) :
@@ -199,6 +205,7 @@ private:
   // add mesh node, if mesh found
   void addMeshNode(int lod_no, Lod &lod, Node *n, Node *key_node, LodsEqualMaterialGather &mat_gather);
   void processImpostorMesh(Mesh &m, dag::ConstSpan<ShaderMaterial *> mat);
+  bool calcTreeSplitBoxes(const BBox3 &bbox, BBox3 &trunk_bbox, BBox3 &crown_bbox) const;
 
   void splitRealTwoSided(Mesh &m, Bitarray &is_material_real_two_sided_array);
 

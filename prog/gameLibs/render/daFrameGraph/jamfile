@@ -78,6 +78,8 @@ Sources =
   runtime/bindlessSlotManager.cpp
 ;
 
+UseProgLibs = engine/consoleProc ;
+
 if $(DAFG_ENABLE_DAS_INTEGRATION) = yes {
   Target = $(Target:S=~das.lib) ;
   AddIncludes +=
@@ -113,6 +115,9 @@ if $(Config) in dbg dev {
     debug/jsonDumpRegistry.cpp
     debug/jsonDumpIntermediate.cpp
     debug/jsonDumpStateDeltas.cpp
+    debug/jsonDumpEvents.cpp
+    debug/jsonDumpLayout.cpp
+    debug/shaderVarDump.cpp
 
     debug/visualizationManager.cpp
     debug/visualization/structuresCommon.cpp
@@ -134,6 +139,7 @@ if $(Config) in dbg dev {
   Sources +=
     debug/stub/backendDebugStub.cpp
     debug/stub/gpuRangeCaptureStub.cpp
+    debug/stub/shaderVarDumpStub.cpp
   ;
 }
 

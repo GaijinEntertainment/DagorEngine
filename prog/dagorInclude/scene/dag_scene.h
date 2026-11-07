@@ -11,6 +11,7 @@
 #include <dag/dag_vector.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <supp/dag_prefetch.h>
+#include <EASTL/type_traits.h>
 
 class IGenSave;
 class IGenLoad;
@@ -37,6 +38,19 @@ __forceinline void unset_node_flags(mat44f &node, uint16_t flags);
 __forceinline void construct_camplanes_transposed(mat44f_cref clip, vec4f &plane03X, vec4f &plane03Y, vec4f &plane03Z, vec4f &plane03W,
   vec4f &plane47X, vec4f &plane47Y, vec4f &plane47Z, vec4f &plane47W);
 __forceinline bbox3f frustum_box_from_clip(mat44f_cref clip);
+
+// Returns true when a bool callback stops
+template <typename VisibleNodesFunctor>
+__forceinline bool invoke_visible_node(VisibleNodesFunctor &visible_nodes, node_index ni, mat44f_cref m)
+{
+  if constexpr (eastl::is_same_v<decltype(visible_nodes(ni, m)), bool>)
+    return visible_nodes(ni, m);
+  else
+  {
+    visible_nodes(ni, m);
+    return false;
+  }
+}
 
 enum : uint32_t
 {
@@ -120,7 +134,8 @@ public:
     frustumCull(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags, const Occlusion *occlusion,
       VisibleNodesFunctor visible_nodes) const;
 
-  template <bool use_flags, bool use_pools, typename VisibleNodesFunctor> // VisibleNodesFunctor(scene::node_index, mat44f_cref)
+  // VisibleNodesFunctor(scene::node_index, mat44f_cref) returns void, or bool true to stop
+  template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
   void boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes) const;
 
 
@@ -533,7 +548,7 @@ void scene::SimpleScene::frustumCull(mat44f_cref globtm, vec4f pos_distscale, ui
   }
 }
 
-template <bool use_flags, bool use_pools, typename VisibleNodesFunctor> // VisibleNodesFunctor(scene::node_index, mat44f_cref)
+template <bool use_flags, bool use_pools, typename VisibleNodesFunctor>
 void scene::SimpleScene::boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t equal_flags, VisibleNodesFunctor visible_nodes) const
 {
   test_flags <<= 16;
@@ -578,6 +593,7 @@ void scene::SimpleScene::boxCull(bbox3f_cref box, uint32_t test_flags, uint32_t 
           continue;
       }
     }
-    visible_nodes(getNodeFromIndex(i), m);
+    if (invoke_visible_node(visible_nodes, getNodeFromIndex(i), m))
+      return;
   }
 }

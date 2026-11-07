@@ -92,9 +92,13 @@ shader fill_initial_conditions_from_tex
     solid_boundaries@smp3d = cfd_solid_boundaries_tex;
 
     standard_density@f1 = (standard_density, 0, 0, 0);
-    initial_velocity_density@smp3d = initial_velocity_density_tex;
+    initial_velocity_density@tex3d = initial_velocity_density_tex;
 
     texSize@i3 = (tex_size.x, tex_size.y, tex_size.z, 0);
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(cs)
+  hlsl(cs) {
+    #define initial_velocity_density_samplerstate global_linear_wrap_sampler
   }
 
   hlsl(cs) {

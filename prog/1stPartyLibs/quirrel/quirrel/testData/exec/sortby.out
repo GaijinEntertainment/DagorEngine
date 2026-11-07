@@ -1,0 +1,32 @@
+as a stable sort, 0: ok true
+as a stable sort, 1: ok true
+as a stable sort, 2: ok true
+as a stable sort, 31: ok true
+as a stable sort, 32: ok true
+as a stable sort, 33: ok true
+as a stable sort, 100: ok true
+as a stable sort, 1000: ok true
+strings: ok fig,pear,kiwi,banana
+floats and integers: ok 3,2,2,1.5,0.5
+index param: ok 9,3,5
+array param: ok 9,5,3
+key calls in order: ok 5,3,9,1
+no calls for one element: ok 0
+key throws, array unchanged: ok nine: 5,3,9,1
+incomparable keys, array unchanged: ok true: 5,3,9,1
+key resizes the array: error: array resized during sort operation
+keys with _cmp: ok 9,5,3,1
+native key function: ok 3.5,1,2,a,b
+wrong param count: error: wrong number of parameters passed to '(sortby.nut:92)' testData/exec/sortby.nut:92 (4 passed, 5 required)
+immutable array: error: Cannot modify immutable object
+key _cmp resizes the array: error: array resized during sort operation
+deep key, three params: ok 9,5,3,1
+  hook saw the calls: true
+  hook saw the calls: true
+under a debug hook: ok 1,3,5,9
+weakref elements keep weak ownership: ok true
+weakref identity keys: ok 1,2
+expired weakref elements: ok -1,3
+sortby in a _cmp metamethod: ok 1,3,5,7,9
+sortby in a key function: ok 31,50,29
+collect during key calls: ok true,true

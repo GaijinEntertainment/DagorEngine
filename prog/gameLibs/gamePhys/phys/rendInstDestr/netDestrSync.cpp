@@ -144,7 +144,7 @@ rendinst::riex_handle_t RestorableRendinst::restore()
   rendinstdestr::remove_tree_rendinst_destr(riDesc);
   rendinst::delRIGenExtra(generatedHandle);
   destructables::removeDestructableById(destrId);
-  rendinst::riex_handle_t h = rendinst::restoreRendInst(riBuffer, true);
+  rendinst::riex_handle_t h = restore_rendinst(riBuffer);
   VERBOSE_SYNC("restored ri (likely no sync received) desc:" FMT_DESC_STR " restored:%i", FMT_DESC_V(riDesc),
     h != rendinst::RIEX_HANDLE_NULL);
 #if ENABLE_APEX

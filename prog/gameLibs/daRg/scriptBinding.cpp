@@ -19,7 +19,6 @@
 #include "behaviors/bhvTextInput.h"
 #include "behaviors/bhvSlider.h"
 #include "behaviors/bhvPannable.h"
-#include "behaviors/bhvPannable2Touch.h"
 #include "behaviors/bhvMoveResize.h"
 #include "behaviors/bhvSmoothScrollStack.h"
 #include "behaviors/bhvMarquee.h"
@@ -180,9 +179,7 @@ static void register_constants(HSQUIRRELVM vm)
     .Const("TEXFMT_SRGB_DECAL", SRGB_DECAL)
 
     .CONST(TOVERFLOW_CLIP)
-    .CONST(TOVERFLOW_CHAR)
-    .CONST(TOVERFLOW_WORD)
-    .CONST(TOVERFLOW_LINE)
+    .CONST(TOVERFLOW_ELLIPSIS)
 
     .CONST(DIR_UP)
     .CONST(DIR_DOWN)
@@ -195,9 +192,6 @@ static void register_constants(HSQUIRRELVM vm)
     .Const("GESTURE_DETECTOR_DRAG", GestureDetector::Type::DRAG)
     .Const("GESTURE_DETECTOR_PINCH", GestureDetector::Type::PINCH)
     .Const("GESTURE_DETECTOR_ROTATE", GestureDetector::Type::ROTATE)
-    .Const("GESTURE_DETECTOR_TAP", GestureDetector::Type::TAP)
-    .Const("GESTURE_DETECTOR_DOUBLE_TAP", GestureDetector::Type::DOUBLE_TAP)
-    .Const("GESTURE_DETECTOR_HOLD", GestureDetector::Type::HOLD)
 
     ///@const Linear
     /// Easing function for prebuilt animations functions.
@@ -378,8 +372,6 @@ static void register_constants(HSQUIRRELVM vm)
     .PREFORMATTED_FLAG(FMT_KEEP_SPACES)
     ///@const FMT_IGNORE_TAGS
     .PREFORMATTED_FLAG(FMT_IGNORE_TAGS)
-    ///@const FMT_HIDE_ELLIPSIS
-    .PREFORMATTED_FLAG(FMT_HIDE_ELLIPSIS)
     ///@const FMT_AS_IS
     .PREFORMATTED_FLAG(FMT_AS_IS)
 
@@ -388,6 +380,16 @@ static void register_constants(HSQUIRRELVM vm)
     .CONST(DEVID_JOYSTICK)
     .CONST(DEVID_TOUCH)
     .CONST(DEVID_VR)
+
+    ///@const TOUCH_SRC_NONE
+    /// touchSrc of a pointing event: not a touch, or a touch with no HID source (VR panel)
+    .Const("TOUCH_SRC_NONE", TouchSource::TS_none)
+    ///@const TOUCH_SRC_PAD
+    .Const("TOUCH_SRC_PAD", TouchSource::TS_touchPad)
+    ///@const TOUCH_SRC_SCREEN
+    .Const("TOUCH_SRC_SCREEN", TouchSource::TS_touchScreen)
+    ///@const TOUCH_SRC_EMU_SCREEN
+    .Const("TOUCH_SRC_EMU_SCREEN", TouchSource::TS_emuTouchScreen)
 
     ///@const KEEP_ASPECT_NONE
     .CONST(KEEP_ASPECT_NONE)
@@ -428,7 +430,7 @@ Keeps Aspect ratio and cover all component size. So image can be outside compone
     .CONST(R_PROCESSED);
 
   ///@const daRg/SIZE_TO_CONTENT
-  script_set_userpointer_to_slot(constTbl, "SIZE_TO_CONTENT", (SQUserPointer)SizeSpec::CONTENT); //-V566
+  script_set_userpointer_to_slot(constTbl, "SIZE_TO_CONTENT", encode_size_spec(SizeSpec::CONTENT, 0));
 
 #undef CONST
 #undef EASING
@@ -524,11 +526,7 @@ static SQInteger make_size(HSQUIRRELVM vm)
 {
   float val = 0;
   sq_getfloat(vm, 2, &val);
-
-  SQUserPointer up = sq_newuserdata(vm, sizeof(SizeSpec));
-  SizeSpec *ss = reinterpret_cast<SizeSpec *>(up);
-  ss->mode = mode;
-  ss->value = val;
+  sq_pushuserpointer(vm, encode_size_spec(mode, val));
   return 1;
 }
 
@@ -539,11 +537,7 @@ SQInteger make_size<SizeSpec::FLEX>(HSQUIRRELVM vm)
   float val = 1;
   if (sq_gettop(vm) >= 2)
     sq_getfloat(vm, 2, &val);
-
-  SQUserPointer up = sq_newuserdata(vm, sizeof(SizeSpec));
-  SizeSpec *ss = reinterpret_cast<SizeSpec *>(up);
-  ss->mode = SizeSpec::FLEX;
-  ss->value = val;
+  sq_pushuserpointer(vm, encode_size_spec(SizeSpec::FLEX, val));
   return 1;
 }
 
@@ -555,16 +549,15 @@ static void register_std_behaviors(SqModules *module_mgr)
 #define REG_BHV_DATA(name) Sqrat::Class<name, Sqrat::NoConstructor<name>> sq##name(vm, #name);
   REG_BHV_DATA(BhvButtonData)
   REG_BHV_DATA(BhvPannableData)
-  REG_BHV_DATA(BhvPannable2touchData)
   REG_BHV_DATA(BhvTransitionSizeData)
   REG_BHV_DATA(BhvMarqueeData)
   REG_BHV_DATA(BhvSliderData)
+  REG_BHV_DATA(BhvTextInputData)
   REG_BHV_DATA(BhvMoveResizeData)
   REG_BHV_DATA(BhvPieMenuData)
   REG_BHV_DATA(BhvBoundPropsData)
   REG_BHV_DATA(BhvVirtualListData)
   REG_BHV_DATA(BhvParallaxData)
-  REG_BHV_DATA(GestureDetector)
 #undef REG_BHV_DATA
 
   Sqrat::Table tblBhv(vm);
@@ -608,7 +601,7 @@ static void register_std_behaviors(SqModules *module_mgr)
 
   @code Properties for behavior and rendObj:
     text: string
-    textOverflowY = TOVERFLOW_LINE // TOVERFLOW_CLIP, TOVERFLOW_CHAR, TOVERFLOW_WORD
+    textOverflow = TOVERFLOW_CLIP // or TOVERFLOW_ELLIPSIS
   code@
   */
   BHV(TextArea, bhv_text_area)
@@ -618,8 +611,6 @@ static void register_std_behaviors(SqModules *module_mgr)
   BHV(Slider, bhv_slider)
   ///@const Pannable
   BHV(Pannable, bhv_pannable)
-  ///@const Pannable2touch
-  BHV(Pannable2touch, bhv_pannable_2touch)
   ///@const MoveResize
   BHV(MoveResize, bhv_move_resize)
   ///@const ComboPopup
@@ -1088,12 +1079,12 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
     .SquirrelFuncDeclString(encode_e3dcolor, "pure fastcall Color(r: number, g: number, b: number, [alpha: number]): int")
     .SquirrelFuncDeclString(calc_screen_w_percent, "pure fastcall sw(percent: number): number")
     .SquirrelFuncDeclString(calc_screen_h_percent, "pure fastcall sh(percent: number): number")
-    .SquirrelFuncDeclString(make_size<SizeSpec::FLEX>, "pure fastcall flex([weight: number]): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::FONT_H>, "pure fastcall fontH(percent: number): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_W>, "pure fastcall pw(percent: number): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_H>, "pure fastcall ph(percent: number): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_W>, "pure fastcall elemw(percent: number): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_H>, "pure fastcall elemh(percent: number): userdata")
+    .SquirrelFuncDeclString(make_size<SizeSpec::FLEX>, "pure fastcall flex([weight: number]): userpointer")
+    .SquirrelFuncDeclString(make_size<SizeSpec::FONT_H>, "pure fastcall fontH(percent: number): userpointer")
+    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_W>, "pure fastcall pw(percent: number): userpointer")
+    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_H>, "pure fastcall ph(percent: number): userpointer")
+    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_W>, "pure fastcall elemw(percent: number): userpointer")
+    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_H>, "pure fastcall elemh(percent: number): userpointer")
     .SquirrelFunc("locate_element_source", locate_element_source, 2, ".x")
     .SquirrelFunc("get_element_info", get_element_info, 2, ".x")
     .SquirrelFunc("resolve_button", resolve_button, 2, ".s")

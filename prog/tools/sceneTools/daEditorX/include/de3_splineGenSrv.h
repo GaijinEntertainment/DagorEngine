@@ -13,6 +13,7 @@
 #include <util/dag_roHugeHierBitMap2d.h>
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_hierBitArray.h>
+#include <math/dag_e3dColor.h>
 
 class GeomObject;
 class IHeightmap;
@@ -23,6 +24,13 @@ namespace objgenerator
 class LandClassData;
 struct WorldHugeBitmask;
 } // namespace objgenerator
+
+inline const E3DCOLOR LOFT_TAGGED_GEOM_DEF_COLOR(0, 0, 0, 255);
+struct GeomTagDrawParams
+{
+  const char *tag = nullptr;
+  E3DCOLOR color = LOFT_TAGGED_GEOM_DEF_COLOR;
+};
 
 class ISplineGenObj
 {
@@ -149,11 +157,18 @@ public:
 
   virtual void gatherLoftLayers(LayerIndexList &loft_layers, bool only_visible) const = 0;
   virtual void gatherGeneratedGeomOrderLayers(LayerIndexList &order_layers) const = 0;
-  virtual void gatherGeneratedGeomTags(OAHashNameMap<true> &loft_tags) const = 0;
+  virtual void gatherGeneratedGeomTags(OAHashNameMap<true> &loft_tags, int stage = -1) const = 0;
+  virtual void gatherGeomLayerTags(const ISplineGenObj *gen, OAHashNameMap<true> &tags, int stage = -1) const = 0;
+  virtual void gatherGeomLayerTags(const IPolygonGenObj *gen, OAHashNameMap<true> &tags, int stage = -1) const = 0;
   virtual void gatherStaticGeometry(StaticGeometryContainer &cont, int flags, bool collision, int layer, int stage, int layer_order,
     LayerHiddenMask lh_mask = LayerHiddenMask()) const = 0;
 
   virtual void renderGeneratedGeom(int layer, bool opaque, const Frustum &frustum, int layer_order, bool asHeightmapPatch = false) = 0;
+  // draw all generated lofts and polygons, hidden edit layers are skipped
+  virtual void renderLoftMaskTags(const Frustum &frustum, dag::ConstSpan<GeomTagDrawParams> params) = 0;
+  // draw only the given generators, with no hidden layer test: the caller passes only what it wants drawn
+  virtual void renderLoftMaskTags(dag::ConstSpan<const ISplineGenObj *> spline_gens, dag::ConstSpan<const IPolygonGenObj *> poly_gens,
+    const Frustum &frustum, dag::ConstSpan<GeomTagDrawParams> params) = 0;
   virtual bool traceRayFoundationLoftGeom(int layer, const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) const = 0;
   virtual bool traceRayFoundationPolyGeom(int layer, const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) const = 0;
 

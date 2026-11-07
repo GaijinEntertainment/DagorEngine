@@ -2,8 +2,10 @@
 
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderCommon.h>
 #include "scriptSElem.h"
 #include "scriptSMat.h"
+#include <shaders/dag_shaderMeshlets.h>
 #include <3d/dag_render.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_functionRef.h>
@@ -35,8 +37,10 @@ void GlobalVertexData::initGvd(const char *name, unsigned vNum, unsigned vStride
 
   vbMem = NULL;
   ibMem = NULL;
+  meshlets = nullptr;
   vbIdx = vOfs = iOfs = 0;
   iPackedSz = (flags & VDATA_PACKED_IB) ? idxPacked : 0;
+  posTypeEncoded = posOfsInBytes = 0;
   vCnt = vNum;
   iCnt = idxSize / getIbElemSz();
 
@@ -49,7 +53,7 @@ void GlobalVertexData::initGvd(const char *name, unsigned vNum, unsigned vStride
   // create vertex buffer
   unsigned vbFlags = 0;
   if (flags & VDATA_BIND_SHADER_RES)
-    vbFlags |= SBCF_BIND_SHADER_RES;
+    vbFlags |= SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES;
   if (flags & VDATA_NO_VB)
   {
     vbMem = memalloc(vNum * vStride + sizeof(int), tmpmem);
@@ -68,7 +72,7 @@ void GlobalVertexData::initGvd(const char *name, unsigned vNum, unsigned vStride
     if (flags & VDATA_I32)
       ibFlags |= SBCF_INDEX32;
     if (flags & VDATA_BIND_SHADER_RES)
-      ibFlags |= SBCF_BIND_SHADER_RES;
+      ibFlags |= SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES;
     if (flags & VDATA_NO_IB)
     {
       ibMem = memalloc(idxSize + sizeof(int), tmpmem);
@@ -311,8 +315,10 @@ void GlobalVertexData::unpackToReadCb(IGenLoad &zcrd, ShaderMatVDataReadCb cb, T
 }
 
 void GlobalVertexData::unpackToSharedBuffer(IGenLoad &zcrd, Vbuffer *shared_vb, Ibuffer *shared_ib, int &vb_byte_pos, int &ib_byte_pos,
-  Tab<uint8_t> &buf_stor)
+  Tab<uint8_t> &buf_stor, shader_meshlets::VdataElemSpan meshlet_elems)
 {
+  releaseMeshlets();
+
   vb = shared_vb;
   indices = shared_ib;
 
@@ -325,25 +331,40 @@ void GlobalVertexData::unpackToSharedBuffer(IGenLoad &zcrd, Vbuffer *shared_vb, 
 #else
   constexpr bool forceIntermediateBufUpdate = false;
 #endif
-  auto updateSBufData = [&](Sbuffer *sbuf, int ofs, int size, ShaderMatVDataReadCbSrc &src) {
+  using CpuCopyBuffer = dag::Vector<uint8_t, framemem_allocator>;
+  auto updateSBufData = [&](Sbuffer *sbuf, int ofs, int size, ShaderMatVDataReadCbSrc &src, CpuCopyBuffer *cpu_copy) {
+    if (cpu_copy)
+    {
+      cpu_copy->resize_noinit(size);
+      src.read(cpu_copy->data());
+    }
+
     if (!forceIntermediateBufUpdate)
     {
       void *xbdata = nullptr;
       if (DAGOR_LIKELY(sbuf->lock(ofs, size, &xbdata, VBLOCK_WRITEONLY)))
       {
         G_FAST_ASSERT(xbdata);
-        src.read(xbdata);
+        if (cpu_copy)
+          memcpy(xbdata, cpu_copy->data(), size);
+        else
+          src.read(xbdata);
         sbuf->unlock();
       }
       else
         d3d_err(xbdata);
     }
+    else if (cpu_copy)
+      d3d_err(sbuf->updateData(ofs, size, cpu_copy->data(), VBLOCK_WRITEONLY));
     else
       src.readTmp([&](dag::ConstSpan<uint8_t> buf) {
         d3d_err(sbuf->updateData(ofs, buf.size(), buf.data(), VBLOCK_WRITEONLY));
         ofs += buf.size();
       });
   };
+
+  const bool buildMeshlets = !meshlet_elems.empty();
+  CpuCopyBuffer vbCopy, ibCopy;
 
   unpackToReadCb(
     zcrd,
@@ -352,23 +373,50 @@ void GlobalVertexData::unpackToSharedBuffer(IGenLoad &zcrd, Vbuffer *shared_vb, 
       {
         const int sz = src.getReadSize();
         G_ASSERTF((vb_byte_pos % 4) == 0 && (sz % 4) == 0, "broken VB alignment: vb_byte_pos==%d sz=%d", vb_byte_pos, sz);
-        updateSBufData(shared_vb, vb_byte_pos, sz, src);
+        updateSBufData(shared_vb, vb_byte_pos, sz, src, buildMeshlets ? &vbCopy : nullptr);
         vb_byte_pos += sz;
       }
       else
       {
         const int sza = src.getReadSize();
-        updateSBufData(shared_ib, ib_byte_pos, sza, src);
+        updateSBufData(shared_ib, ib_byte_pos, sza, src, buildMeshlets ? &ibCopy : nullptr);
         G_ASSERTF(!(ib_byte_pos & 3) && !(sza & 3), "broken IB alignment: ib_byte_pos==%d sz=%d", ib_byte_pos,
           iCnt * sizeof(uint16_t));
         ib_byte_pos += sza;
       }
     },
     buf_stor);
+
+  if (buildMeshlets)
+    meshlets = shader_meshlets::build(*this, meshlet_elems, vbCopy.data(), (const uint16_t *)ibCopy.data());
+}
+
+void GlobalVertexData::initPositionChannel(const char *name, dag::ConstSpan<CompiledShaderChannelId> vdecl)
+{
+  posTypeEncoded = posOfsInBytes = 0;
+
+  int type = -1;
+  unsigned size = 0;
+  const int offset = find_vertex_channel_offset(vdecl, SCUSAGE_POS, 0, &type, &size);
+
+  G_ASSERTF_RETURN(offset >= 0, , "%s: vdata has no position channel in stream 0, or a channel up to it has an unknown type", name);
+  G_ASSERTF_RETURN(offset <= 0xFF, , "%s: vdata position (offset %d) doesn't fit in 8 bits", name, offset);
+  G_ASSERTF_RETURN(offset + size <= vstride, , "%s: vdata position (type 0x%X, %d bytes at offset %d) is out of stride %d", name, type,
+    size, offset, vstride);
+
+  posTypeEncoded = (type >> 16) + 1;
+  posOfsInBytes = offset;
+}
+
+void GlobalVertexData::releaseMeshlets()
+{
+  shader_meshlets::GlobalMeshletData::destroy(meshlets);
+  meshlets = nullptr;
 }
 
 void GlobalVertexData::free()
 {
+  releaseMeshlets();
   if (cflags & VDATA_SRC_ONLY)
   {
     if (vbIdx == 0 && indices && iOfs == 0 && vb && vOfs == 0) // previously allocated tight vb/ib for single res, release it here

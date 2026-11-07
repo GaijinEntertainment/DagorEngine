@@ -35,6 +35,25 @@
               ]
             },
             {
+              "Id": "1da31ea1-a5fd-48cd-8b07-b6f4c304954e",
+              "Command": "FlipPresent",
+              "ExclusiveMode": true,
+              "Items": [
+                {
+                  "Id": "cbe43090-1c06-4b09-a085-2289e2993e9f",
+                  "Command": ""
+                },
+                {
+                  "Id": "4f271cd7-0dbd-407e-bf88-0de2b7f52bab",
+                  "Command": "-config:directx/flipPresent:b=no"
+                },
+                {
+                  "Id": "d8bd6e6e-b1c5-4710-a2df-0e9229d85fee",
+                  "Command": "-config:directx/flipPresent:b=yes"
+                }
+              ]
+            },
+            {
               "Id": "35a7cda3-b6da-4bc2-9c98-19d817b4a3f3",
               "Command": "ForceDx10",
               "ExclusiveMode": true,

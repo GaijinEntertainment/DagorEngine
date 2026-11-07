@@ -186,6 +186,7 @@ enum class ConsoleModel
 
 KRNLIMP ConsoleModel get_console_model();
 KRNLIMP const char *get_console_model_revision(ConsoleModel model);
+KRNLIMP bool is_running_on_handheld();
 
 template <typename F>
 __forceinline void spin_wait_no_profile(F keep_waiting_cb, int init_spins = SPINS_BEFORE_SLEEP / 16)

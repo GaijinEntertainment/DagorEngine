@@ -13,10 +13,12 @@ AddIncludes =
 
 Sources =
   customRendinstTrace.cpp
+  landMinMax.cpp
 ;
 
 UseProgLibs +=
   gameLibs/landMesh
+  gameLibs/heightmap
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

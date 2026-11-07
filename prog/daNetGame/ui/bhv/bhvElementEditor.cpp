@@ -67,8 +67,15 @@ void BhvElementEditor::onDetach(Element *elem, DetachMode)
   }
 }
 
-int BhvElementEditor::pointingEvent(
-  ElementTree *, Element *elem, darg::InputDevice, InputEvent event, int touch_idx, int /*btn_id*/, Point2 pos, int accum_res)
+int BhvElementEditor::pointingEvent(ElementTree *,
+  Element *elem,
+  darg::InputDevice,
+  TouchSource,
+  InputEvent event,
+  int touch_idx,
+  int /*btn_id*/,
+  Point2 pos,
+  int accum_res)
 {
   if (event != INP_EV_PRESS && event != INP_EV_RELEASE && event != INP_EV_POINTER_MOVE)
     return 0;

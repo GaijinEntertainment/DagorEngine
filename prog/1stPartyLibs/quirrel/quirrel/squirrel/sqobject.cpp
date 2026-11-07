@@ -273,24 +273,42 @@ bool SQArray::IsBinaryEqual(const SQArray *o)
     return memcmp(_values._vals, o->_values._vals, _values.size() * sizeof(SQObjectPtr)) == 0;
 }
 
+void SQFunctionProto::FormatDerivedName(char *buf, size_t size, const char *sourcename, int line)
+{
+    const char *slash = strrchr(sourcename, '/');
+    const char *backslash = strrchr(sourcename, '\\');
+    if (backslash > slash)
+        slash = backslash;
+    scsprintf(buf, size, "(%s:%d)", slash ? slash + 1 : sourcename, line);
+}
+
+const SQObjectPtr &SQFunctionProto::GetName() const
+{
+    if (sq_type(_name) == OT_NULL) {
+        char buf[256];
+        FormatDerivedName(buf, sizeof(buf), _stringval(_sourcename), _lineinfos->_first_line);
+        _name = SQString::Create(_string(_sourcename)->_sharedstate, buf);
+    }
+    return _name;
+}
+
 const char* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop)
 {
-    SQUnsignedInteger nvars=_nlocalvarinfos;
-    const char *res=NULL;
-    if(nvars>=nseq){
-        for(SQUnsignedInteger i=0;i<nvars;i++){
-            if(_localvarinfos[i]._start_op<=nop && _localvarinfos[i]._end_op>=nop)
-            {
-                if(nseq==0){
-                    vm->Push(vm->_stack[stackbase+_localvarinfos[i]._pos]);
-                    res=_stringval(_localvarinfos[i]._name);
-                    break;
-                }
-                nseq--;
+    for(SQInteger i=0;i<_nlocalvarinfos;i++){
+        if(_localvarinfos[i]._start_op<=nop && _localvarinfos[i]._end_op>=nop)
+        {
+            if(nseq==0){
+                vm->Push(vm->_stack[stackbase+GetLocalVarSlots()[i]]);
+                return _localvarinfos[i]._name->_val;
             }
+            nseq--;
         }
     }
-    return res;
+    if(nseq>=SQUnsignedInteger(_nparameters))
+        return NULL;
+    SQInteger pos=_nparameters-1-SQInteger(nseq); // params follow, from the last slot
+    vm->Push(vm->_stack[stackbase+pos]);
+    return _stringval(_parameters[pos]);
 }
 
 

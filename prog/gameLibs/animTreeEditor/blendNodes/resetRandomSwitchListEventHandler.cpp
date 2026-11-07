@@ -4,16 +4,7 @@
 #include "../animTreeUtils.h"
 #include "../animTreePanelPids.h"
 #include <propPanel/control/container.h>
-#include <propPanel/control/menu.h>
 #include <util/dag_simpleString.h>
-
-namespace ContextMenu
-{
-enum
-{
-  EDIT = 0,
-};
-}
 
 ResetRandomSwitchListEventHandler::ResetRandomSwitchListEventHandler(dag::Vector<AnimCtrlData> &controllers) : controllers(controllers)
 {}
@@ -26,27 +17,10 @@ bool ResetRandomSwitchListEventHandler::onListBoxContextMenu(int pcb_id, PropPan
     if (selectedName.empty())
       return false;
 
-    PropPanel::IMenu &menu = list_box_interface.createContextMenu();
-    menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::EDIT, "Edit");
-    menu.setEventHandler(this);
+    createEditMenu(list_box_interface);
     return true;
   }
   return false;
-}
-
-int ResetRandomSwitchListEventHandler::onMenuItemClick(unsigned id)
-{
-  switch (id)
-  {
-    case ContextMenu::EDIT: editSelectedNode(); break;
-  }
-  return 0;
-}
-
-void ResetRandomSwitchListEventHandler::setEventHandler(PropPanel::ContainerPropertyControl *panel, AnimTreeEditor *event_handler)
-{
-  pluginPanel = panel;
-  eventHandler = event_handler;
 }
 
 void ResetRandomSwitchListEventHandler::editSelectedNode()

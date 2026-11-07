@@ -3,6 +3,7 @@ options gen2
 module aot_cpp private
 
 require strings
+require math
 
 require daslib/match
 require daslib/strings_boost
@@ -2700,9 +2701,8 @@ class public CppAot : AstVisitor {
         if (val == -DBL_MIN) return "(-DBL_MIN)"
         if (val == DBL_MAX) return "DBL_MAX"
         if (val == -DBL_MAX) return "(-DBL_MAX)"
-        if (val != val) return "((double)NAN)"        // nolint:LINT007 — canonical IEEE-754 NaN test
-        if (val > DBL_MAX) return "((double)INFINITY)"
-        if (val < -DBL_MAX) return "((double)(-INFINITY))"
+        if (is_nan(val)) return "((double)NAN)"
+        if (!is_finite(val)) return val > 0lf ? "((double)INFINITY)" : "((double)(-INFINITY))"
         return "{val:.17e}"
     }
 

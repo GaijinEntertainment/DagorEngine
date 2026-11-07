@@ -13,6 +13,7 @@
 #include <util/dag_fastNameMapTS.h>
 #include <util/dag_console.h>
 #include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <EASTL/string.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_viewScissor.h>
@@ -73,6 +74,7 @@ struct Context
   dag::Vector<System> systems;
   int activeSystem = -1;
   int activeSystemRefcount = 0;
+  volatile int numActiveSystems = 0;
   float lastGlobalTime = 0.f;
   eastl::unique_ptr<PostFxRenderer> showTexRenderer;
   shaders::UniqueOverrideStateId scissorState;
@@ -98,6 +100,8 @@ int get_active_nolock(eastl::string_view sys, eastl::string_view cmd)
 
 bool active(eastl::string_view sys, eastl::string_view cmd)
 {
+  if (!interlocked_relaxed_load(g_ctx.numActiveSystems))
+    return false;
   OSSpinlockScopedLock lock(g_ctx.critSec);
   return get_active_nolock(sys, cmd) != -1;
 }
@@ -203,7 +207,12 @@ void on_console_cmd(const char *argv[], int argc)
   {
     System &sys = g_ctx.systems[i];
     if (cmdId >= 0 || sys.autoToggle)
+    {
+      bool wasActive = sys.active;
       sys.active = forceOn ? true : (forceOff ? false : !sys.active);
+      if (wasActive != sys.active)
+        interlocked_relaxed_store(g_ctx.numActiveSystems, g_ctx.numActiveSystems + (sys.active ? 1 : -1));
+    }
     console::print_d("render.debug %s %s %s", g_ctx.names.getName(sys.sysId), sys.cmdId >= 0 ? g_ctx.names.getName(sys.cmdId) : "",
       sys.active ? "on" : "off");
   }
@@ -414,6 +423,8 @@ void clear()
 // NOTE: conditional locking is too complicated for thread safety analysis
 bool begin_debug(eastl::string_view sys, eastl::string_view cmd) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
+  if (!interlocked_relaxed_load(g_ctx.numActiveSystems))
+    return false;
   g_ctx.critSec.lock();
   int sysId = g_ctx.names.getNameId(sys.data());
   G_ASSERT_AND_DO(g_ctx.activeSystem == -1 || g_ctx.systems[g_ctx.activeSystem].sysId == sysId, {

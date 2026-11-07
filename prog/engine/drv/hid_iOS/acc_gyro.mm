@@ -8,8 +8,7 @@ namespace hid_ios
 {
 double acc_x = 0, acc_y = 0, acc_z = 0;
 double g_acc_x = 0, g_acc_y = 0, g_acc_z = 0;
-double m_acc_x = 0, m_acc_y = 0, m_acc_z = 0;
-double r_rate_x = 0, r_rate_y = 0, r_rate_z = 0;
+double r_rate_x = 0, r_rate_y = 0;
 double g_base_acc_x = 0, g_base_acc_y = 0, g_base_acc_z = -1;
 double g_rel_ang_x = 0, g_rel_ang_y = 0;
 } // namespace hid_ios
@@ -18,6 +17,8 @@ double g_rel_ang_x = 0, g_rel_ang_y = 0;
 static CMMotionManager *motion = NULL;
 static CMAttitude *refAtt = NULL;
 
+void hid_iOS_term_motion();
+
 void hid_iOS_init_motion()
 {
   if (motion)
@@ -25,15 +26,17 @@ void hid_iOS_init_motion()
   motion = [[CMMotionManager alloc] init];
   refAtt = [motion.deviceMotion.attitude retain];
 
-  motion.accelerometerUpdateInterval = motion.gyroUpdateInterval = 0.02;
-  [motion startAccelerometerUpdates];
-  [motion startGyroUpdates];
+  motion.accelerometerUpdateInterval = motion.gyroUpdateInterval = motion.deviceMotionUpdateInterval = 0.02;
+  if (motion.deviceMotionAvailable)
+    [motion startDeviceMotionUpdates];
+  else
+  {
+    [motion startAccelerometerUpdates];
+    [motion startGyroUpdates];
+  }
   if (!motion.gyroAvailable)
   {
-    [motion stopGyroUpdates];
-    refAtt = nil;
-    [motion release];
-    motion = NULL;
+    hid_iOS_term_motion();
     DEBUG_CTX("no gyroscope");
   }
 }
@@ -42,6 +45,7 @@ void hid_iOS_term_motion()
 {
   if (motion)
   {
+    [motion stopDeviceMotionUpdates];
     [motion stopAccelerometerUpdates];
     [motion stopGyroUpdates];
     refAtt = nil;
@@ -54,7 +58,9 @@ void hid_iOS_update_motion()
 {
   if (motion)
   {
-    CMAcceleration acceleration = [[motion accelerometerData] acceleration];
+    CMDeviceMotion *deviceMotion = motion.deviceMotion;
+    CMAcceleration acceleration = deviceMotion ? deviceMotion.gravity : motion.accelerometerData.acceleration;
+    CMRotationRate rate = deviceMotion ? deviceMotion.rotationRate : motion.gyroData.rotationRate;
     using namespace hid_ios;
     const double filt_factor = 0.1;
 
@@ -65,10 +71,6 @@ void hid_iOS_update_motion()
     g_acc_x = acceleration.x * filt_factor + g_acc_x * (1.0 - filt_factor);
     g_acc_y = acceleration.y * filt_factor + g_acc_y * (1.0 - filt_factor);
     g_acc_z = acceleration.z * filt_factor + g_acc_z * (1.0 - filt_factor);
-
-    m_acc_x = acceleration.x - g_acc_x;
-    m_acc_y = acceleration.y - g_acc_y;
-    m_acc_z = acceleration.z - g_acc_z;
 
     double norm;
 
@@ -97,16 +99,15 @@ void hid_iOS_update_motion()
         g_rel_ang_x = 0;
     }
 
-    // CMRotationRate *rate = [[motion deviceMotion] rotationRate];
-    CMRotationRate rate = [[motion gyroData] rotationRate];
     r_rate_x = rate.x * 180 / M_PI;
     r_rate_y = rate.y * 180 / M_PI;
-    r_rate_z = rate.z * 180 / M_PI;
   } else {
+    hid_ios::acc_x = 0;
+    hid_ios::acc_y = 0;
+    hid_ios::acc_z = 0;
     hid_ios::g_rel_ang_x = 0;
     hid_ios::g_rel_ang_y = 0;
     hid_ios::r_rate_x = 0;
     hid_ios::r_rate_y = 0;
-    hid_ios::r_rate_z = 0;
   }
 }

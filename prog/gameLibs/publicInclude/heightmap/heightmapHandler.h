@@ -127,10 +127,12 @@ public:
   const UniqueTex *getTexture() const { return renderData ? &renderData->heightmap : nullptr; }
   void setTexture(UniqueTex &&);
   void setSampler(d3d::SamplerHandle &&);
-  void setMirroring(bool);
+  void setMirroring(float x_pos_meters, float x_neg_meters, float z_pos_meters, float z_neg_meters);
+  void setMirroring(bool mirror);
   void setVars() const;
   void makeBookKeeping();
-  bool isMirror() const { return mirror; }
+  bool isMainHmap() const { return mainHmap; }
+  bool hasMirroring() const { return anyMirror; }
   const MetricsErrors *getMetricsRaw() const { return metrics; }
   void initMetrics(float water_level, float shore_error_meters = 2.0f, int metrics_min_calc_level = -1,
     int metrics_max_calc_level = -1);
@@ -140,6 +142,7 @@ protected:
   void prepareHmapModificaton();
   void fillHmapRegionDetailed(IPoint2 region_pivot, IPoint2 region_width, bool updateMips, BaseTexture *upload_tex,
     LockedImageRawBytes upload_texlock, eastl::span<uint16_t> temp_mem, bool NVworkaround_applyOnNextFrame = false);
+  void initMirroringSampler();
   SimpleHeightmapRenderer renderer;
   eastl::unique_ptr<HeightmapRenderData> renderData;
   bool fillHmapTexturesNeeded = false;

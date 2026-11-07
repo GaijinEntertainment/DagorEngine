@@ -31,7 +31,7 @@ class SendRequestFn : AstFunctionAnnotation
           var exprAddr = reinterpret<ExprAddr?>(arg)
           if !string(exprAddr.target) |> starts_with(genFnPrefix)
             let newName = "{genFnPrefix}{exprAddr.target}"
-            var fn = compiling_module() |> find_unique_function(newName)
+            let fn = compiling_module() |> find_unique_function(newName)
             if fn == null
               compiling_program() |> macro_error(newCall.at, "can't find <{newName}> function, annotate function\n[rpc_handler]\ndef {exprAddr.target}...")
               return default<ExpressionPtr>

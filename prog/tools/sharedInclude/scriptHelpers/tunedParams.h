@@ -31,6 +31,10 @@ public:
 
   const char *getName() const { return name; }
   void setName(const char *n) { name = n; }
+  const char *getDesc() const { return desc; }
+  void setDesc(const char *d) { desc = d; }
+  int getPanelPid() const { return panelPid; }
+  void setPanelPid(int pid) { panelPid = pid; }
 
   virtual int subElemCount() const = 0;
   virtual TunedElement *getSubElem(int index) const = 0;
@@ -81,6 +85,9 @@ public:
 
 protected:
   String name;
+  String desc;
+  // Id of this element's control in the last filled panel, -1 when not shown.
+  int panelPid = -1;
 };
 
 }; // namespace ScriptHelpers
@@ -273,4 +280,7 @@ TunedElement *create_tuned_visibility_array(const char *name, TunedElement *base
 TunedGroup *create_tuned_struct(const char *name, int version, dag::ConstSpan<TunedElement *> elems);
 
 TunedGroup *create_tuned_group(const char *name, int version, dag::ConstSpan<TunedElement *> elems);
+
+// Sets the tooltip text of a parameter control; only simple params and enums show it.
+void set_tuned_element_desc(TunedElement &e, const char *desc);
 }; // namespace ScriptHelpers

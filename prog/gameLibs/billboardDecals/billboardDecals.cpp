@@ -88,11 +88,10 @@ bool BillboardDecals::init(float hard_dist, float soft_dist, unsigned max_holes,
 {
   close();
   // Create material.
+  G_ASSERTF(max_holes > MAX_DECALS_TO_UPDATE, "max_holes %d must exceed the %d updates of one frame", max_holes, MAX_DECALS_TO_UPDATE);
   maxHoles = max_holes;
   holesRenderer.init(decal_shader_name, NULL, 0, "billboard");
   holesMaskRenderer.init("billboard_hole_mask", NULL, 0, "billboard", true);
-  freeDecalIds.resize(maxHoles);
-  recentlyFreedIds.reserve(maxHoles);
 
   // todo: on dx10, we can just use texture and copy data there
   holesGenerator = new_compute_shader(generator_shader_name);
@@ -135,9 +134,6 @@ void BillboardDecals::close()
 {
   index_buffer::release_quads_16bit();
   maxHoles = 0;
-  numFreeDecals = 0;
-  freeDecalIds.clear();
-  recentlyFreedIds.clear();
   del_d3dres(holesToUpdateBuf);
 }
 
@@ -147,11 +143,6 @@ void BillboardDecals::prepareRender(const Frustum & /*frustum*/, const Point3 & 
 {
   G_STATIC_ASSERT(sizeof(holesToUpdate[0]) % 16 == 0);
   G_STATIC_ASSERT(sizeof(spheresToClear[0]) % 16 == 0);
-
-  for (int i = 0; i < recentlyFreedIds.size(); i++)
-    freeDecalIds[numFreeDecals++] = recentlyFreedIds[i];
-
-  recentlyFreedIds.clear();
 
   if (numHoles == 0 && holesToUpdate.size() == 0 && spheresToClear.size() == 0)
     return;
@@ -240,44 +231,26 @@ void BillboardDecals::renderBillboards()
 int32_t BillboardDecals::addHole(const Point3 &pos, const Point3 &norm, const Point3 &up, float size, uint32_t texture_id,
   uint32_t matrix_id)
 {
-  uint32_t hole_id = nextHoleNo;
-  if (numFreeDecals > 0)
-    hole_id = freeDecalIds[numFreeDecals - 1];
-  if (!updateHole(pos, norm, up, size, hole_id, texture_id, matrix_id, true))
+  const uint32_t hole_id = nextHoleNo;
+  if (!updateHole(pos, norm, up, size, hole_id, texture_id, matrix_id))
     return -1;
-  if (hole_id == nextHoleNo)
-  {
-    nextHoleNo = (nextHoleNo + 1) % maxHoles;
-    numHoles = min(numHoles + 1, maxHoles);
-  }
-  else
-    --numFreeDecals;
+  nextHoleNo = (nextHoleNo + 1) % maxHoles;
+  numHoles = min(numHoles + 1, maxHoles);
   return hole_id;
 }
 
 bool BillboardDecals::updateHole(const Point3 &pos, const Point3 &norm, const Point3 &up, float size, uint32_t id, uint32_t texture_id,
-  uint32_t matrix_id, bool allow_rapid_update)
+  uint32_t matrix_id)
 {
   if (texture_id >= holesTypes)
     return false;
-#if DAGOR_DBGLEVEL > 0
-  // Same decal cannot be updated twice in the same frame
-  if (!allow_rapid_update)
-    for (unsigned int i = 0; i < holesToUpdate.size(); ++i)
-      G_ASSERT(holesToUpdate[i].id != id);
-#endif
-  BillboardToUpdate *decalItr = holesToUpdate.end();
-  if (allow_rapid_update)
-  {
-    // A bullet hole can be created and deleted in the same frame, when an object is destroyed by the bullet
-    decalItr = eastl::find_if(holesToUpdate.begin(), holesToUpdate.end(), [id](const BillboardToUpdate &b) { return b.id == id; });
-  }
+  BillboardToUpdate *decalItr =
+    eastl::find_if(holesToUpdate.begin(), holesToUpdate.end(), [id](const BillboardToUpdate &b) { return b.id == id; });
   if (decalItr == holesToUpdate.end())
   {
-    if (holesToUpdate.size() < holesToUpdate.capacity())
-      append_items(holesToUpdate, 1);
-    else
+    if (holesToUpdate.size() == holesToUpdate.capacity())
       return false;
+    append_items(holesToUpdate, 1);
     decalItr = holesToUpdate.end() - 1;
   }
   decalItr->pos_size = Point4::xyzV(pos, size);
@@ -288,11 +261,10 @@ bool BillboardDecals::updateHole(const Point3 &pos, const Point3 &norm, const Po
   decalItr->id = id;
   return true;
 }
-void BillboardDecals::removeHole(uint32_t id)
+bool BillboardDecals::removeHole(uint32_t id)
 {
-  G_ASSERT(numFreeDecals < freeDecalIds.size()); // Probably a decal has been deleted mulptiple times
-  recentlyFreedIds.push_back(id);
-  updateHole(Point3(0, 0, 0), Point3(0, 0, 0), Point3(0, 0, 0), 0, id, 0, DecalsMatrices::INVALID_MATRIX_ID, true);
+  G_ASSERTF_RETURN(id < maxHoles, true, "removeHole: id %d out of %d", id, maxHoles);
+  return updateHole(Point3(0, 0, 0), Point3(0, 0, 0), Point3(0, 0, 0), 0, id, 0, DecalsMatrices::INVALID_MATRIX_ID);
 }
 
 void BillboardDecals::afterReset() { clear(); }

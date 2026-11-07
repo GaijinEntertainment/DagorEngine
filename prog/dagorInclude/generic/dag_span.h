@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <util/dag_stdint.h>
+#include <EASTL/type_traits.h>
 
 namespace dag
 {
@@ -13,15 +14,6 @@ template <typename T>
 class Span;
 template <typename T>
 using ConstSpan = dag::Span<T const>;
-
-template <typename T1, typename T2>
-struct is_same
-{};
-template <typename T1>
-struct is_same<T1, T1>
-{
-  static constexpr bool is_true = true;
-};
 } // namespace dag
 
 #ifdef _DEBUG_TAB_
@@ -63,14 +55,23 @@ public:
     dcnt = n;
   }
   /// Construct from vector/container (to ConstSpan<T>==Span<T const> only!)
-  template <typename V, typename U = T, bool s = dag::is_same<U, typename V::value_type const>::is_true>
+  template <typename V>
+    requires eastl::is_same_v<T, typename V::value_type const>
   constexpr Span(const V &v) : Span(v.data(), v.size())
+  {}
+  /// Construct from C array; not for char arrays, as size would count the terminating null
+  template <size_t N>
+    requires(!eastl::is_same_v<eastl::remove_cv_t<T>, char> && !eastl::is_same_v<eastl::remove_cv_t<T>, char8_t> &&
+             !eastl::is_same_v<eastl::remove_cv_t<T>, char16_t> && !eastl::is_same_v<eastl::remove_cv_t<T>, char32_t> &&
+             !eastl::is_same_v<eastl::remove_cv_t<T>, wchar_t>)
+  constexpr Span(T (&a)[N]) : Span(a, N)
   {}
 
   // operator =
   constexpr Span &operator=(Span &&gs) = default;
   constexpr Span &operator=(const Span &gs) = default;
-  template <typename V, typename U = T, bool s = dag::is_same<U, typename V::value_type const>::is_true>
+  template <typename V>
+    requires eastl::is_same_v<T, typename V::value_type const>
   constexpr Span &operator=(const V &v)
   {
     dptr = v.data();

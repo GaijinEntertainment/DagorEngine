@@ -7,6 +7,7 @@
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_dynLib.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_files.h>
 
 #include <cstdio>
 
@@ -39,9 +40,12 @@ void RenderDocCaptureModule::setCapturePathTemplate(const wchar_t *name)
   size_t pathLen = strlen(path);
   WideCharToMultiByte(CP_UTF8, 0, name, -1, path + pathLen, sizeof(path) - (int)pathLen, nullptr, nullptr);
 #else
+  const char *gpuCapturesDir = "GpuCaptures";
+  dd_mkdir(gpuCapturesDir);
+  // RenderDoc resolves relative paths against the process cwd, not the app files dir
+  const char *realDir = df_get_real_folder_name(gpuCapturesDir);
   char path[512];
-  snprintf(path, sizeof(path), "GpuCaptures/");
-  dd_mkdir(path);
+  snprintf(path, sizeof(path), "%s/", realDir ? realDir : gpuCapturesDir);
   size_t pathLen = strlen(path);
   // wchar_t to UTF-8 for non-Windows
   for (size_t i = 0; name[i] && pathLen < sizeof(path) - 1; ++i)

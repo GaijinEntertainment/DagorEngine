@@ -1,0 +1,20 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daCSG/graph ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+include $(Root)/prog/gameLibs/daCSG/daCSG-options.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/daCSG/graph.lib ;
+
+Sources =
+  graph.cpp
+  optimize.cpp
+;
+
+UseProgLibs +=
+  gameLibs/daCSG/mesh
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

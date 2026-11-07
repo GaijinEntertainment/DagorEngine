@@ -8,6 +8,26 @@ struct Grid3dTile
 {
   int3 pos;
   uint volumeRange;
+  uint placerViewport;
+  uint _pad1;
+  uint _pad2;
+  uint _pad3;
+};
+
+struct Grid3dPlacerGpuData
+{
+  uint prngSeed;
+  float tilePosDelta;
+  float gridJitter;
+  float _pad;
+};
+
+struct Grid3dViewportGpuData
+{
+  float4 frustumPlanes[6];
+
+  float3 worldPos;
+  float maxDistance;
 };
 
 #endif // DAGDP_GRID3D_PLACER_HLSLI_INCLUDED

@@ -7,6 +7,7 @@
 #include <drv/3d/dag_resetDevice.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
+#include <debug/dag_streamingLog.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <util/dag_finally.h>
 #include <util/dag_string.h>
@@ -253,7 +254,10 @@ bool texmgr_internal::evict_managed_tex_and_id(TEXTUREID tid)
     }
 
     if (auto f = RMGR.getFactory(idx))
+    {
+      STREAMING_LOG("tex evict %s", RMGR.getName(idx));
       f->onUnregisterTexture(tid);
+    }
     else if (auto res = RMGR.getD3dResRelaxed(idx))
     {
       if (res != d3d::get_backbuffer_tex() && res != d3d::get_secondary_backbuffer_tex())

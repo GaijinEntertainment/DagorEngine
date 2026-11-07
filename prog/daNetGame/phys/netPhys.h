@@ -132,6 +132,7 @@ public:
   int16_t netPhysId = -1;         // index in physEidsList
   bool clientSideOnly = false;    // if true, this Phys Actor exists exclusively on the client
   bool externalSnapshots = false; // set once: it chooses the union half
+  int createdAtMsec;              // real time: sync time can move back
 
   static StaticTab<phys_eids_list_t *, (int)PhysType::NUM> allPhysActorsLists;
   static phys_sync_states_packed_t *allSyncStates[(int)PhysType::NUM];

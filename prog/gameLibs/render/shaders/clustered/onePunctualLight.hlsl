@@ -19,19 +19,19 @@
     EXIT_STATEMENT;
   #endif
   half invSqrRad = rcp(radius2);
-  half attenuation = getDistanceAtt( distSqFromLight, invSqrRad );
+  float attenuation = getDistanceAtt( distSqFromLight, invSqrRad );
 
   half3 lightDir = point2light*rsqrt(0.0000001h+distSqFromLight);
   half NoL = saturate(dot(half3(gbuffer.normal), lightDir));
-  half shadowTerm = attenuation;//no shadows
+  float shadowTerm = attenuation;//no shadows
   shadowTerm *= calc_micro_shadow(NoL, ao);
 
-  #if OMNI_SHADOWS
+  #if !RT_DYNAMIC_LIGHTS && OMNI_SHADOWS
     shadowTerm *= getOmniShadow(shadowTcToAtlas, pos_and_radius, worldPos, NoL, screenpos, shadow_zn_zfar, source_radius);
   #endif
 
   #if !DYNAMIC_LIGHTS_SPECULAR
-  half3 lightBRDF = diffuseLambert(gbuffer.diffuseColor)*(NoL*shadowTerm)*color_and_attenuation.xyz;
+  half3 lightBRDF = half3(diffuseLambert(gbuffer.diffuseColor)*(NoL*shadowTerm)*float3(color_and_attenuation.xyz));
   #else
   half3 diffuse = diffuseLambert(gbuffer.diffuseColor);
 
@@ -66,7 +66,7 @@
     EXIT_STATEMENT;
   #endif
 
-  #if OMNI_SHADOWS
+  #if !RT_DYNAMIC_LIGHTS && OMNI_SHADOWS
     attenuation *= getOmniShadow(shadowTcToAtlas, pos_and_radius, worldPos, NoL, screenpos, float2(0, 0), source_radius);
   #endif
 

@@ -15,58 +15,43 @@ inline const TMatrix &unscale_tm(TMatrix &tm) // Faster than tm.orthonormalize; 
   return tm;
 }
 
-PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup,
-  uint16_t fmask, float scale) :
+PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, const TMatrix &tm, void *userData, uint16_t fgroup,
+  uint16_t fmask, bool add_to_world) :
   resource(res), bodies(midmem), joints(midmem)
 {
   G_ASSERT(res);
   G_ASSERT(world);
 
-  if (tm)
-  {
-    float sx = length(tm->getcol(0)), sy = length(tm->getcol(1)), sz = length(tm->getcol(2));
-    scaleTm.setcol(0, Point3(sx, 0.f, 0.f));
-    scaleTm.setcol(1, Point3(0.f, sy, 0.f));
-    scaleTm.setcol(2, Point3(0.f, 0.f, sz));
-    scaleTm.setcol(3, ZERO<Point3>());
-    scale *= cbrtf(sx * sy * sz);
-  }
-  else
-    scaleTm = TMatrix(scale);
+  float sx = length(tm.getcol(0)), sy = length(tm.getcol(1)), sz = length(tm.getcol(2));
+  scaleTm.setcol(0, Point3(sx, 0.f, 0.f));
+  scaleTm.setcol(1, Point3(0.f, sy, 0.f));
+  scaleTm.setcol(2, Point3(0.f, 0.f, sz));
+  scaleTm.setcol(3, ZERO<Point3>());
+  const float scale = cbrtf(sx * sy * sz);
 
-  G_ASSERTF(scale > /* 1% */ 1e-2f, "Unreasonable scale=%f, tm=%@", scale, *(tm ? tm : &TMatrix::IDENT));
+  G_ASSERTF(scale > /* 1% */ 1e-2f, "Unreasonable scale=%f, tm=%@", scale, tm);
 
   bodies.reserve(resource->getBodies().size());
   int jcnt = resource->getRdBallJoints().size() + resource->getRdHingeJoints().size() + resource->getRevoluteJoints().size() +
              resource->getSphericalJoints().size();
   for (auto &rb : resource->getBodies())
-    bodies.emplace_back(rb, world, tm, userData, fgroup, fmask, jcnt > 0, scale);
+    bodies.emplace_back(rb, world, tm, userData, fgroup, fmask, jcnt > 0, add_to_world, scale);
 
   joints.reserve(jcnt);
 
-  auto jointPos = [&](const Point3 &p) { return tm ? (*tm) * p : p * scale; };
-  auto jointDir = [&](const Point3 &d) { return tm ? normalize((*tm) % d) : d; };
+  auto jointPos = [&](const Point3 &p) { return tm * p; };
+  auto jointDir = [&](const Point3 &d) { return normalize(tm % d); };
 
   for (const auto &jnt : resource->getRdBallJoints())
   {
-    TMatrix jtm;
-    if (tm)
-    {
-      jtm = (*tm) * jnt.tm;
-      unscale_tm(jtm);
-    }
-    else
-    {
-      jtm = jnt.tm;
-      jtm.setcol(3, jnt.tm.getcol(3) * scale);
-    }
+    TMatrix jtm = tm * jnt.tm;
+    unscale_tm(jtm);
     PhysJoint *j = world->createRagdollBallJoint(bodies[jnt.body1].body.get(), bodies[jnt.body2].body.get(), jtm, jnt.minLimit,
       jnt.maxLimit, jnt.damping, jnt.twistDamping, jnt.stiffness);
 
-    if (j)
-      joints.push_back(j);
-    else
+    if (!j)
       logerr("can't create RagBall Joint");
+    joints.push_back(j);
   }
 
   for (const auto &jnt : resource->getRdHingeJoints())
@@ -74,10 +59,9 @@ PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, c
     PhysJoint *j = world->createRagdollHingeJoint(bodies[jnt.body1].body.get(), bodies[jnt.body2].body.get(), jointPos(jnt.pos),
       jointDir(jnt.axis), jointDir(jnt.midAxis), jointDir(jnt.xAxis), jnt.angleLimit, jnt.damping, jnt.stiffness);
 
-    if (j)
-      joints.push_back(j);
-    else
+    if (!j)
       logerr("can't create Hinge Joint");
+    joints.push_back(j);
   }
 
   for (const auto &jnt : resource->getRevoluteJoints())
@@ -86,10 +70,9 @@ PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, c
       jointDir(jnt.axis), jnt.minAngle, jnt.maxAngle, jnt.minRestitution, jnt.maxRestitution, jnt.spring, jnt.projType, jnt.projAngle,
       jnt.projDistance, jnt.damping, jnt.flags);
 
-    if (j)
-      joints.push_back(j);
-    else
+    if (!j)
       logerr("can't create Revolution Joint");
+    joints.push_back(j);
   }
 
   for (const auto &jnt : resource->getSphericalJoints())
@@ -99,10 +82,9 @@ PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, c
       jnt.swingRestitution, jnt.spring, jnt.damping, jnt.swingSpring, jnt.swingDamping, jnt.twistSpring, jnt.twistDamping,
       jnt.projType, jnt.projDistance, jnt.flags);
 
-    if (j)
-      joints.push_back(j);
-    else
+    if (!j)
       logerr("can't create Spherical Joint");
+    joints.push_back(j);
   }
 #if defined(USE_JOLT_PHYSICS)
   if (joints.size())
@@ -133,15 +115,11 @@ static inline bool match_joint(const T &jnt, int body1, int body2)
   return (jnt.body1 == body1 && jnt.body2 == body2) || (jnt.body1 == body2 && jnt.body2 == body1);
 }
 
-template <typename T>
-static inline bool filter_out_joints(const T &res_joints, Tab<PhysJoint *> &joints, int body_idx1, int body_idx2, int &j)
+static inline bool is_no_collision_pair(const PhysicsResource &res, int body1, int body2)
 {
-  for (int i = 0; i < res_joints.size(); ++i, ++j)
-    if (match_joint(res_joints[i], body_idx1, body_idx2))
-    {
-      del_it(joints[j]);
+  for (const auto &pr : res.getNoCollisionPairs())
+    if ((pr.body0 == body1 && pr.body1 == body2) || (pr.body0 == body2 && pr.body1 == body1))
       return true;
-    }
   return false;
 }
 
@@ -252,6 +230,32 @@ void PhysSystemInstance::driveBodiesToAnimcharPose(const dag::Span<mat44f *> &sk
 }
 
 
+template <typename Pred>
+bool PhysSystemInstance::removeJointsIf(Pred pred)
+{
+  bool removed = false;
+  int j = 0;
+  auto removeFrom = [&](const auto &res_joints) {
+    for (const auto &jnt : res_joints)
+    {
+      PhysJoint *&joint = joints[j++];
+      if (!joint || !pred(jnt))
+        continue;
+      del_it(joint);
+      removed = true;
+#if defined(USE_JOLT_PHYSICS)
+      if (!is_no_collision_pair(*resource, jnt.body1, jnt.body2))
+        phys_jolt_enable_collision_between_bodies(bodies, jnt.body1, jnt.body2);
+#endif
+    }
+  };
+  removeFrom(resource->getRdBallJoints());
+  removeFrom(resource->getRdHingeJoints());
+  removeFrom(resource->getRevoluteJoints());
+  removeFrom(resource->getSphericalJoints());
+  return removed;
+}
+
 bool PhysSystemInstance::removeJoint(const char *body1, const char *body2)
 {
   int bodyIdx1 = findBodyIdByName(body1);
@@ -260,62 +264,35 @@ bool PhysSystemInstance::removeJoint(const char *body1, const char *body2)
   if (bodyIdx1 < 0 || bodyIdx2 < 0)
     return false;
 
-  int j = 0;
-  if (filter_out_joints(resource->getRdBallJoints(), joints, bodyIdx1, bodyIdx2, j))
-    return true;
-  if (filter_out_joints(resource->getRdHingeJoints(), joints, bodyIdx1, bodyIdx2, j))
-    return true;
-  if (filter_out_joints(resource->getRevoluteJoints(), joints, bodyIdx1, bodyIdx2, j))
-    return true;
-  if (filter_out_joints(resource->getSphericalJoints(), joints, bodyIdx1, bodyIdx2, j))
-    return true;
-
-  return false;
+  return removeJointsIf([&](const auto &jnt) { return match_joint(jnt, bodyIdx1, bodyIdx2); });
 }
 
 void PhysSystemInstance::removeJoint(const char *name)
 {
-  int j = 0;
+  removeJointsIf([&](const auto &jnt) { return dd_stricmp(jnt.name, name) == 0; });
+}
 
-  for (int i = 0; i < resource->getRdBallJoints().size(); ++i, ++j)
+void PhysSystemInstance::addBodiesToWorld(dag::ConstSpan<int> body_ids, bool drop_joints_to_inactive)
+{
+  if (drop_joints_to_inactive && !body_ids.empty())
   {
-    const PhysicsResource::RdBallJoint &jnt = resource->getRdBallJoints()[i];
-    if (dd_stricmp(jnt.name, name) == 0)
-    {
-      del_it(joints[j]);
-      return;
-    }
+    auto activated = [&](int b) { return find_value_idx(body_ids, b) >= 0; };
+    auto inactive = [&](int b) { return !activated(b) && !bodies[b].body->isInWorld(); };
+    removeJointsIf(
+      [&](const auto &jnt) { return (activated(jnt.body1) && inactive(jnt.body2)) || (inactive(jnt.body1) && activated(jnt.body2)); });
   }
 
-  for (int i = 0; i < resource->getRdHingeJoints().size(); ++i, ++j)
-  {
-    const PhysicsResource::RdHingeJoint &jnt = resource->getRdHingeJoints()[i];
-    if (dd_stricmp(jnt.name, name) == 0)
-    {
-      del_it(joints[j]);
-      return;
-    }
-  }
-
-  for (int i = 0; i < resource->getRevoluteJoints().size(); ++i, ++j)
-  {
-    const PhysicsResource::RevoluteJoint &jnt = resource->getRevoluteJoints()[i];
-    if (dd_stricmp(jnt.name, name) == 0)
-    {
-      del_it(joints[j]);
-      return;
-    }
-  }
-
-  for (int i = 0; i < resource->getSphericalJoints().size(); ++i, ++j)
-  {
-    const PhysicsResource::SphericalJoint &jnt = resource->getSphericalJoints()[i];
-    if (dd_stricmp(jnt.name, name) == 0)
-    {
-      del_it(joints[j]);
-      return;
-    }
-  }
+  auto addBody = [&](int b) {
+    PhysBody *body = bodies[b].body.get();
+    if (!body->isInWorld())
+      body->getPhysWorld()->addBody(body, /* kinematic */ false);
+  };
+  if (body_ids.empty())
+    for (int b = 0; b < bodies.size(); ++b)
+      addBody(b);
+  else
+    for (int b : body_ids)
+      addBody(b);
 }
 
 
@@ -434,8 +411,8 @@ SimpleString PhysSystemInstance::getBodyMaterialName(PhysBody *body) const
 }
 
 
-PhysSystemInstance::Body::Body(const PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix *tm, void *userData,
-  uint16_t fgroup, uint16_t fmask, bool has_joints, float scale)
+PhysSystemInstance::Body::Body(const PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix &tm, void *userData,
+  uint16_t fgroup, uint16_t fmask, bool has_joints, bool add_to_world, float scale)
 {
   tmHelpers.resize(res_body.tmHelpers.size());
   for (int i = 0; i < tmHelpers.size(); ++i)
@@ -533,13 +510,10 @@ PhysSystemInstance::Body::Body(const PhysicsResource::Body &res_body, PhysWorld 
   PhysMat::MatID matId = PhysMat::getMaterialId(res_body.materialName);
   if (IsPhysMatID_Valid(matId))
     pbcd.materialId = PhysMat::getMaterial(matId).physBodyMaterial;
-  pbcd.addToWorld = tm != nullptr;
+  pbcd.addToWorld = add_to_world;
 
-  TMatrix physBodyTm = tm ? ((*tm) * res_body.tm) : res_body.tm; // Note: `*tm` is already pre-scaled
-  if (tm != nullptr)
-    unscale_tm(physBodyTm);
-  else
-    physBodyTm.setcol(3, res_body.tm.getcol(3) * scale);
+  TMatrix physBodyTm = tm * res_body.tm; // Note: `tm` is already pre-scaled
+  unscale_tm(physBodyTm);
 
   body.reset(new PhysBody(world, res_body.mass, &coll, physBodyTm, pbcd));
 

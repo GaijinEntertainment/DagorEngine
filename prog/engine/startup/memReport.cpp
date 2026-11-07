@@ -42,7 +42,7 @@ void memreport::dump_memory_usage_report(int time_interval_msec, bool sysmem, bo
   {
     debug("GPUmem: %dK  [%dK (%d tex) +%dK pers]", mem_used_discardable_kb + mem_used_persistent_kb, mem_used_discardable_kb,
       tex_used_discardable_cnt, mem_used_persistent_kb);
-    debug("GPUmem: Quota=%dM  Max=%dM [%dM + %dM]", tql::mem_quota_kb >> 10, mem_used_sum_kb_max >> 10,
+    debug("GPUmem: Quota=%dM  Max=%dM [%dM + %dM]", interlocked_relaxed_load(tql::mem_quota_kb) >> 10, mem_used_sum_kb_max >> 10,
       mem_used_discardable_kb_max >> 10, mem_used_persistent_kb_max >> 10);
   }
   if (sysmem || gpumem)

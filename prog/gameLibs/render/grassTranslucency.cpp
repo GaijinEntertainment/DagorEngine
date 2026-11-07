@@ -50,8 +50,10 @@ void GrassTranslucency::recreateTex(int sz)
 
   grass_color_tex.close();
   grass_mask_tex.close();
-  grass_color_tex =
-    dag::create_tex(NULL, sz, sz, TEXCF_SRGBWRITE | TEXCF_SRGBREAD | TEXCF_RTARGET, 1, "grass_color_tex", RESTAG_GRASS);
+  // GPUGrass owns the "grass_*_tex" texture names (daEditorX runs both), so only the shader vars keep those names
+  grass_color_tex = UniqueTexWithShaderVar(
+    dag::create_tex(NULL, sz, sz, TEXCF_SRGBWRITE | TEXCF_SRGBREAD | TEXCF_RTARGET, 1, "grass_translucency_color_tex", RESTAG_GRASS),
+    "grass_color_tex");
   ShaderGlobal::set_sampler(get_shader_variable_id("grass_color_tex_samplerstate", true), d3d::request_sampler({}));
 
   if (sz > 1)
@@ -59,7 +61,8 @@ void GrassTranslucency::recreateTex(int sz)
     uint32_t r8fmt = TEXFMT_R8;
     if (!(d3d::get_texformat_usage(r8fmt) & d3d::USAGE_RTARGET))
       r8fmt = 0;
-    grass_mask_tex = dag::create_tex(NULL, sz, sz, r8fmt | TEXCF_RTARGET, 1, "grass_mask_tex", RESTAG_GRASS);
+    grass_mask_tex = UniqueTexWithShaderVar(
+      dag::create_tex(NULL, sz, sz, r8fmt | TEXCF_RTARGET, 1, "grass_translucency_mask_tex", RESTAG_GRASS), "grass_mask_tex");
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
     ShaderGlobal::set_sampler(get_shader_variable_id("grass_mask_tex_samplerstate", true), d3d::request_sampler(smpInfo));

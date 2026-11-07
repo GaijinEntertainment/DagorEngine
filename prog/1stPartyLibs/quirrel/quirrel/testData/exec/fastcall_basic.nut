@@ -2,19 +2,22 @@
 
 from "math" import abs
 
-println(abs(5))
-println(abs(-5))
-println(abs(0))
-println(abs(-2.5))
-println(abs(2.5))
-println(abs(-0.0))
+// Its result is not a constant, so a call with it runs as _OP_FASTCALL and is not folded
+let runtime = @(v) v
+
+println(abs(runtime(5)))
+println(abs(runtime(-5)))
+println(abs(runtime(0)))
+println(abs(runtime(-2.5)))
+println(abs(runtime(2.5)))
+println(abs(runtime(-0.0)))
 
 // result type is preserved (int stays int, float stays float)
-println(typeof abs(-5))
-println(typeof abs(-2.5))
+println(typeof abs(runtime(-5)))
+println(typeof abs(runtime(-2.5)))
 
 // nested / used as a subexpression
-println(abs(-3) + abs(-4))
+println(abs(runtime(-3)) + abs(runtime(-4)))
 local x = -7
 println(abs(x) * 2)
 

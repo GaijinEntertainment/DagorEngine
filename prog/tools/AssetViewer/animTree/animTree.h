@@ -58,6 +58,9 @@ private:
   bool confirmCreateNewBlk(const char *path) override;
   void showInfoBox(const char *title, const char *text) override;
   int showYesNoCancelBox(const char *title, const char *text) override;
+  bool canSelectInGraph() override;
+  void selectInGraph(const char *name) override;
+  bool canPlayAnimation() override;
   void setSelectedA2dName(const char *name) override;
   void resetSelectedA2dName() override;
   void loadA2dResource(PropPanel::ContainerPropertyControl *panel, const dag::Vector<AnimParamData> &params,

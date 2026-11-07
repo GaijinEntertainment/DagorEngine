@@ -61,6 +61,15 @@ using namespace ShaderParser;
 
 static bool is_hlsl_debug() { return shc::config().hlslDebugLevel != DebugLevel::NONE; }
 
+static DebugLevel get_shader_debug_level(bool full_debug, bool pdb_debug)
+{
+  if (full_debug)
+    return DebugLevel::FULL_DEBUG_INFO;
+  if (pdb_debug && !is_hlsl_debug())
+    return DebugLevel::BASIC;
+  return shc::config().hlslDebugLevel;
+}
+
 #if _TARGET_PC_WIN
 #include <windows.h>
 #else
@@ -2384,6 +2393,7 @@ void CompileShaderJob::doJobBody()
   static constexpr const char PRAGMA_PREFIX[] = "#pragma ";
 
   bool full_debug = false;
+  bool pdb_debug = false;
 
 #if _CROSS_TARGET_DX12
   // For phase one compilation we don't store the pdb. Unless it's CS, which does both phases in one go.
@@ -2398,12 +2408,14 @@ void CompileShaderJob::doJobBody()
 #define PRAGMA(b) (strncmp(pragma, b, strlen(b)) == 0)
       if (PRAGMA("debugfull") || PRAGMA("dfull"))
         full_debug = true;
+      else if (PRAGMA("pdb"))
+        pdb_debug = true;
       else
         continue;
     }
   }
 
-  separateDebugInfoIsNeeded = separateDebugInfoIsNeededForPhase && (shc::config().hlslDebugLevel != DebugLevel::NONE || full_debug);
+  separateDebugInfoIsNeeded = separateDebugInfoIsNeededForPhase && get_shader_debug_level(full_debug, pdb_debug) != DebugLevel::NONE;
 #endif
 
   const unsigned sourceLen = (unsigned)strlen(source);
@@ -2573,6 +2585,10 @@ void CompileShaderJob::doJobBody()
     {
       debugParts = DebugParts::EMBED_SOURCE;
     }
+    else if (PRAGMA("pdb"))
+    {
+      pdb_debug = true;
+    }
     else if (PRAGMA("force_disable_warnings"))
     {
       forceDisableWarnings = true;
@@ -2714,7 +2730,7 @@ void CompileShaderJob::doJobBody()
       .skipValidation = shc::config().hlslSkipValidation,
       .optimize = localHlslOptimizationLevel ? true : false,
       .enableBindless = shc::config().enableBindless,
-      .embedDebugData = full_debug || shc::config().hlslDebugLevel != DebugLevel::NONE,
+      .embedDebugData = get_shader_debug_level(full_debug, pdb_debug) != DebugLevel::NONE,
       .dumpSpirvOnly = shc::config().dumpSpirvOnly,
       .validateGlobalConstsOffsetOrder = shc::config().sortGlobalConstsByOffset,
       .noConversionWarnings = shc::config().noConversionWarnings,
@@ -2740,7 +2756,7 @@ void CompileShaderJob::doJobBody()
     .platform = shc::config().targetPlatform,
     .warningsAsErrors = !forceDisableWarnings && shc::config().hlslWarningsAsErrors,
     .debugParts = debugParts,
-    .debugLevel = full_debug ? DebugLevel::FULL_DEBUG_INFO : shc::config().hlslDebugLevel,
+    .debugLevel = get_shader_debug_level(full_debug, pdb_debug),
     .compilationOptions =
       {
         .optimizeLevel = (uint32_t)eastl::min(localHlslOptimizationLevel, dx12::dxil::MAX_OPTIMIZE_LEVEL),
@@ -2769,8 +2785,7 @@ void CompileShaderJob::doJobBody()
                          : (localHlslOptimizationLevel >= 1 ? D3DCOMPILE_OPTIMIZATION_LEVEL0 : D3DCOMPILE_SKIP_OPTIMIZATION)));
   flags |= shc::config().hlslWarningsAsErrors ? D3DCOMPILE_WARNINGS_ARE_ERRORS : 0;
   compile_result = compileShaderDX11(shaderName, source, NULL, profile, entry, !shc::config().hlslNoDisassembly,
-    full_debug ? DebugLevel::FULL_DEBUG_INFO : shc::config().hlslDebugLevel, shc::config().hlslSkipValidation, debugParts, flags,
-    implicitCbufRegCount);
+    get_shader_debug_level(full_debug, pdb_debug), shc::config().hlslSkipValidation, debugParts, flags, implicitCbufRegCount);
 #endif
 
   if (shc::config().hlslDumpCodeAlways)

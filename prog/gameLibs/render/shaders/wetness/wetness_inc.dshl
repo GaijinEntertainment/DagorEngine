@@ -290,10 +290,8 @@ if (compatibility_mode == compatibility_mode_off)
     {
 #if use_grad
       half4 droplets_sample = tex3Dgrad(droplets_8bit_tex, tc, tc_dx, tc_dy);
-#elif stage == cs
-      half4 droplets_sample = tex3Dlod(droplets_8bit_tex, float4(tc, 0));
 #else
-      half4 droplets_sample = tex3D(droplets_8bit_tex, tc);
+      half4 droplets_sample = tex3Dlod(droplets_8bit_tex, float4(tc, 0));
 #endif
 
       // droplets_8bit_tex stores normals packed in R8 per channel.
@@ -512,20 +510,23 @@ macro USE_GBUF_WETNESS()
 endmacro
 
 macro USE_ENV_WETNESS_STAGE(stage)
-  bool wetness_use_grad = (stage == ps);
   INIT_WETNESS_STAGE(stage)
   USE_WETNESS_STAGE(stage)
   INIT_WRITE_GBUFFER_WETNESS_BASE(stage)
   WRITE_GBUFFER_WETNESS_STAGE(stage)
-  USE_CUBE_RAIN_DROPLETS_STAGE(stage, wetness_use_grad)
+  USE_CUBE_RAIN_DROPLETS_STAGE(stage, _SHADER_STAGE_PS)
 
   hlsl(stage) {
-    void apply_env_wetness(float3 world_pos, float3 vertical_normal, float3 view, inout UnpackedGbuffer g_buf, float noise_amplitude = 0.0f, float2 noise = float2(0, 0))
+    void apply_env_wetness(float3 world_pos, float3 vertical_normal, float3 view, inout UnpackedGbuffer g_buf, float noise_amplitude = 0.0f, float2 noise = float2(0, 0), bool rain_ripples = true)
     {
-      float depthInfl = 1;
+      float waterBorder;
+      float wetness = get_base_wetness(world_pos, vertical_normal, waterBorder);
+      wetness *= 1.0 - smoothstep(0, 0.1, world_pos_to_clouds_alt.x * world_pos.y + world_pos_to_clouds_alt.y); // Fade out by altitude in clouds
+      float wetnessFade = smoothstep(-1.0, 0.0, length(world_pos - world_view_pos.xyz) - wetness_params.w); // Fade out in cockpit
+      wetness *= wetnessFade;
       ##if compatibility_mode == compatibility_mode_off
         BRANCH
-        if (world_pos.y > get_wetness_water_level())
+        if (wetness > 0 && world_pos.y > get_wetness_water_level())
         {
           float3 biasedWorldPos = world_pos.xyz + vertical_normal;
           float depthVignette = 0;
@@ -546,19 +547,12 @@ macro USE_ENV_WETNESS_STAGE(stage)
           ##endif
           float depthAbove = get_depth_above_fast(biasedWorldPos, depthVignette);
 
-          depthInfl = 1 - saturate(depthAbove - biasedWorldPos.y);
+          float depthInfl = lerp(1 - saturate(depthAbove - biasedWorldPos.y), 1, depthVignette);
 
-          BRANCH
-          if (depthInfl < 0.0001)
-            return;
+          wetness *= depthInfl < 0.0001 ? 0 : depthInfl;
         }
       ##endif
 
-      float waterBorder;
-      float wetness = get_base_wetness(world_pos, vertical_normal, waterBorder);
-      wetness *= 1.0 - smoothstep(0, 0.1, world_pos_to_clouds_alt.x * world_pos.y + world_pos_to_clouds_alt.y); // Fade out by altitude in clouds
-      float wetnessFade = smoothstep(-1.0, 0.0, length(world_pos - world_view_pos.xyz) - wetness_params.w); // Fade out in cockpit
-      wetness = lerp(0.0, wetness * depthInfl, wetnessFade);
       if (wetness > 0)
       {
         BRANCH
@@ -566,12 +560,12 @@ macro USE_ENV_WETNESS_STAGE(stage)
           apply_gbuf_wetness(wetness, waterBorder, vertical_normal, view, g_buf);
 
         BRANCH
-        if (check_rain_ripples_condition() && g_buf.normal.y > 0)
+        if (rain_ripples && check_rain_ripples_condition() && g_buf.normal.y > 0)
         {
           float4 ripplesTc;
           float ripplesPower;
           float3 ripplesNorm;
-          #if wetness_use_grad
+          #if _SHADER_STAGE_PS
             float3 ripplesTcDx, ripplesTcDy;
             get_rain_ripples_tc(world_pos, vertical_normal, g_buf.smoothness, ripplesTc, ripplesTcDx, ripplesTcDy);
             get_rain_ripples(ripplesTc, world_pos, vertical_normal, g_buf.smoothness, wetnessFade * (g_buf.isLandscape ? 1.0 : hpuddles_gfade.y), ripplesNorm, ripplesPower, ripplesTcDx, ripplesTcDy);

@@ -35,6 +35,8 @@ inline void set_visbits_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid
 template <typename Callable>
 inline void get_hero_cockpit_entities_const_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
+inline void get_hero_cockpit_decorations_entities_ecs_query(ecs::EntityManager &manager, Callable c);
+template <typename Callable>
 inline void render_depth_prepass_hero_cockpit_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
 inline void fill_hero_cockpit_textures_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
@@ -167,8 +169,17 @@ static dafg::NodeHandle makePrepareHeroCockpitNode()
   return dafg::register_node("prepare_hero_cockpit", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     // `prepare_hero_cockpit` can modify animchar visbits to hide cockpit during main dynamics rendering
     registry.create("prepare_hero_cockpit_token").blob<OrderingToken>();
-    return []() { set_cockpit_visibility(); };
+    auto earlyPassOnlyHndl = registry.create("hero_cockpit_early_pass_only").blob<bool>().handle();
+    return [earlyPassOnlyHndl]() {
+      earlyPassOnlyHndl.ref() = false;
+      set_cockpit_visibility();
+    };
   });
+}
+
+static bool skip_hero_cockpit_decorations(bool early_pass_only, bool render_hero_cockpit_into_early_prepass)
+{
+  return early_pass_only && need_hero_cockpit_flag_in_prepass && render_hero_cockpit_into_early_prepass;
 }
 
 static dafg::NodeHandle makeHeroCockpitEarlyPrepassNode()
@@ -243,12 +254,15 @@ static dafg::NodeHandle makeHeroCockpitLatePrepassNode()
     registry.readBlob<CameraParams>("current_cockpit_camera")
       .bindAsView<&CameraParams::viewRotTm>()
       .bindAsProj<&CameraParams::jitterProjTm>();
-    return [] {
-      get_hero_cockpit_entities_const_ecs_query(*g_entity_mgr, [&](const ecs::EidList &hero_cockpit_entities) {
-        if (hero_cockpit_entities.empty())
-          return;
-        render_hero_cockpit_prepass(*g_entity_mgr, hero_cockpit_entities);
-      });
+    auto earlyPassOnlyHndl = registry.readBlob<bool>("hero_cockpit_early_pass_only").handle();
+    return [earlyPassOnlyHndl] {
+      get_hero_cockpit_decorations_entities_ecs_query(*g_entity_mgr,
+        [&](const ecs::EidList &hero_cockpit_entities, bool render_hero_cockpit_into_early_prepass) {
+          if (hero_cockpit_entities.empty() ||
+              skip_hero_cockpit_decorations(earlyPassOnlyHndl.ref(), render_hero_cockpit_into_early_prepass))
+            return;
+          render_hero_cockpit_prepass(*g_entity_mgr, hero_cockpit_entities);
+        });
     };
   });
 }
@@ -267,17 +281,20 @@ static dafg::NodeHandle makeHeroCockpitColorpassNode()
                            .handle();
     auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
+    auto earlyPassOnlyHndl = registry.readBlob<bool>("hero_cockpit_early_pass_only").handle();
 
-    return [strmCtxHndl, curCameraHndl, prevCameraHndl] {
-      get_hero_cockpit_entities_const_ecs_query(*g_entity_mgr, [&](const ecs::EidList &hero_cockpit_entities) {
-        if (hero_cockpit_entities.empty())
-          return;
+    return [strmCtxHndl, curCameraHndl, prevCameraHndl, earlyPassOnlyHndl] {
+      get_hero_cockpit_decorations_entities_ecs_query(*g_entity_mgr,
+        [&](const ecs::EidList &hero_cockpit_entities, bool render_hero_cockpit_into_early_prepass) {
+          if (hero_cockpit_entities.empty() ||
+              skip_hero_cockpit_decorations(earlyPassOnlyHndl.ref(), render_hero_cockpit_into_early_prepass))
+            return;
 
-        auto &curCamera = curCameraHndl.ref();
-        auto &prevCamera = prevCameraHndl.ref();
-        render_hero_cockpit_colorpass(*g_entity_mgr, hero_cockpit_entities, strmCtxHndl.ref(), curCamera.viewRotTm,
-          curCamera.jitterProjTm, prevCamera.viewRotTm, get_prev_proj_tm_with_cur_jitter(prevCamera, curCamera));
-      });
+          auto &curCamera = curCameraHndl.ref();
+          auto &prevCamera = prevCameraHndl.ref();
+          render_hero_cockpit_colorpass(*g_entity_mgr, hero_cockpit_entities, strmCtxHndl.ref(), curCamera.viewRotTm,
+            curCamera.jitterProjTm, prevCamera.viewRotTm, get_prev_proj_tm_with_cur_jitter(prevCamera, curCamera));
+        });
     };
   });
 }

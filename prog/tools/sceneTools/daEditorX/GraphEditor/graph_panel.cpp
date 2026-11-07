@@ -2,19 +2,28 @@
 
 #include "graph_panel.h"
 
+#include "command_definitions.h"
 #include "graph_document.h"
 #include "graph_hotkeys_bar.h"
+#include "graph_node_render.h"
+#include "graph_open_subgraphs.h"
 #include "graph_status_bar.h"
 #include "graph_subgraph_window.h"
 #include "graph_tab.h"
+#include "graph_theme.h"
+#include "graph_undo.h"
 #include "plugin.h"
 
 #include "pluginService/graph_tex_gen_service.h"
 
 #include <de3_interface.h>
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_interface.h>
+#include <libTools/util/hdpiUtil.h>
 #include <libTools/util/undo.h>
 #include <osApiWrappers/dag_direct.h>
+#include <propPanel/control/container.h>
+#include <propPanel/imguiHelper.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <imgui/imgui_internal.h>
@@ -28,6 +37,31 @@
 namespace
 {
 constexpr const char *TAB_STRIP_ID = "graph_tabs";
+
+enum
+{
+  TOOLBAR_ID = 1,
+  TOOLBAR_NEW_GRAPH,
+  TOOLBAR_LOAD_GRAPH,
+  TOOLBAR_SAVE_GRAPH,
+  TOOLBAR_SAVE_GRAPH_AS,
+  TOOLBAR_CREATE_SUBGRAPH,
+  TOOLBAR_SAVE_SUBGRAPH,
+  TOOLBAR_SAVE_SUBGRAPH_AS,
+  FLOATING_NODE_CONTROLS_ID,
+  FLOATING_GRAPH_CONTROLS_ID,
+};
+
+constexpr int FLOATING_TOOLBAR_OFFSET = 8;
+constexpr int FLOATING_TOOLBAR_SPACING = 4; // the design's padding and gap are one size
+constexpr int FLOATING_TOOLBAR_ROUNDING = 3;
+constexpr int FLOATING_TOOLBAR_DIVIDER = 1;
+constexpr int MAX_LIVE_PIN_ROUNDS = 8; // deeper than any real nesting of subgraphs
+
+float scaled(int px) { return static_cast<float>(hdpi::_pxS(px)); }
+
+// Must match ToolbarContainerPropertyControl::updateImgui in propPanel.
+float toolbar_font_size() { return ImGui::GetStyle().FontSizeBase * DAGORED2->getToolbarScalePercent() * 0.01f; }
 
 // The window of the root focused last, else the root's own canvas.
 GraphTab &focused_surface(GraphTab &root)
@@ -84,6 +118,28 @@ GraphTab *find_surface(const eastl::vector<eastl::unique_ptr<GraphTab>> &tabs, P
   return nullptr;
 }
 
+// The tabs held for undo, of one root or of all (null). Collected before use: removing their entries can free a holder.
+void append_held_tabs(const eastl::vector<HeldSurfaces *> &held, const GraphTab *only_root, eastl::vector<GraphTab *> &out)
+{
+  for (const HeldSurfaces *hs : held)
+  {
+    if (!only_root || &hs->root == only_root)
+    {
+      hs->appendTabs(out);
+    }
+  }
+}
+
+// Every surface, in the UI and held. A copy: dropping entries can bury held ones while it is walked.
+eastl::vector<GraphTab *> collect_all_surfaces(const eastl::vector<eastl::unique_ptr<GraphTab>> &tabs,
+  const eastl::vector<HeldSurfaces *> &held)
+{
+  eastl::vector<GraphTab *> out;
+  for_each_surface(tabs, [&out](GraphTab &t) { out.push_back(&t); });
+  append_held_tabs(held, nullptr, out);
+  return out;
+}
+
 // A file keeps the pins its instances had when it was saved. Rebuilt before the document takes the
 // graph, so it opens unmodified and the file catches up on its next save.
 void upgrade_subgraph_instances(GraphData &gd, const DataBlock &base_nodes_blk, const char *path)
@@ -97,11 +153,7 @@ void upgrade_subgraph_instances(GraphData &gd, const DataBlock &base_nodes_blk, 
     {
       continue;
     }
-    for (const DroppedInstanceEdge &d : dropped)
-    {
-      DAEDITOR3.conWarning("GraphEditor: %s: instance '%s' id=%d: edge %d dropped, pin '%s' no longer exists", path,
-        n.descName.c_str(), n.id, d.edgeId, d.pinName.c_str());
-    }
+    warn_dropped_instance_edges(path, n, dropped);
     // In place, one instance at a time: the next one reads these edges, and the file keeps its order.
     const int id = n.id;
     n = eastl::move(fresh);
@@ -167,6 +219,39 @@ eastl::fixed_vector<SubgraphWindow *, 8> subgraph_window_tree(GraphTab &root, Su
   }
   return tree;
 }
+
+// The node block a status message names; null for the compile issues, or no message.
+const eastl::string *status_message_block(const TexGenPipelineStatus &pipeline, GraphStatusFocus focus)
+{
+  switch (focus)
+  {
+    case GraphStatusFocus::ErrorNode: return &pipeline.lastErrorNode;
+    case GraphStatusFocus::WarningNode: return &pipeline.lastWarningNode;
+    default: return nullptr;
+  }
+}
+
+eastl::vector<int> status_message_nodes(const GraphDocument &doc, const TexGenPipelineStatus &pipeline, GraphStatusFocus focus)
+{
+  eastl::vector<int> ids;
+  const eastl::string *block = status_message_block(pipeline, focus);
+  if (focus == GraphStatusFocus::CompileIssues)
+  {
+    for (const CompileNodeIssue &issue : doc.getCompileNodeIssues())
+    {
+      ids.push_back(issue.nodeId);
+    }
+  }
+  else if (block && !block->empty())
+  {
+    ids.push_back(doc.blockNodeId(block->c_str()));
+  }
+  eastl::sort(ids.begin(), ids.end());
+  ids.erase(eastl::unique(ids.begin(), ids.end()), ids.end());
+  const GraphData &gd = doc.getGraphData();
+  ids.erase(eastl::remove_if(ids.begin(), ids.end(), [&gd](int id) { return !find_node_by_id(gd, id); }), ids.end());
+  return ids;
+}
 } // namespace
 
 GraphPanel::GraphPanel(GraphEditorPlg &plg) : plugin(plg) {}
@@ -174,7 +259,12 @@ GraphPanel::GraphPanel(GraphEditorPlg &plg) : plugin(plg) {}
 GraphPanel::~GraphPanel()
 {
   // No undo entry may outlive the document it points into.
+  queuedSurfaceMoves.clear();
   dropUndoOps();
+  flushGraveyard(); // before the roots its windows point at
+  graveyard.clear();
+  graveyardTabs.clear();
+  G_ASSERT(heldSurfaces.empty());
   tabs.clear();
   destroyWindow();
 }
@@ -183,6 +273,7 @@ void GraphPanel::createWindow()
 {
   G_ASSERT(!panelWindow);
   panelWindow = IEditorCoreEngine::get()->createPropPanel(this, "Graph");
+  createToolbar();
 }
 
 void GraphPanel::destroyWindow()
@@ -191,8 +282,180 @@ void GraphPanel::destroyWindow()
   {
     return;
   }
+  toolbar = nullptr;
+  for (PropPanel::ContainerPropertyControl *&group : floatingControls)
+  {
+    group = nullptr;
+  }
   IEditorCoreEngine::get()->deleteCustomPanel(panelWindow);
   panelWindow = nullptr;
+}
+
+void GraphPanel::createToolbar()
+{
+  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
+  toolbar = panelWindow->createToolbarPanel(TOOLBAR_ID);
+  const auto addButton = [&](int id, const char *command_id, const char *icon, const char *tooltip) {
+    commandSystem->createToolbarButton(*toolbar, id, command_id, tooltip);
+    toolbar->setButtonPictures(id, icon);
+  };
+  addButton(TOOLBAR_NEW_GRAPH, NEW_GRAPH, "create_graph", "Create new graph");
+  addButton(TOOLBAR_LOAD_GRAPH, LOAD_GRAPH_BLK, "load_graph", "Load graph");
+  addButton(TOOLBAR_SAVE_GRAPH, SAVE_GRAPH, "save_graph", "Save graph");
+  addButton(TOOLBAR_SAVE_GRAPH_AS, SAVE_GRAPH_BLK, "save_graph_as", "Save graph as");
+  toolbar->createSeparator();
+  addButton(TOOLBAR_CREATE_SUBGRAPH, CANVAS_CREATE_SUBGRAPH, "create_subgraph", "Create subgraph");
+  addButton(TOOLBAR_SAVE_SUBGRAPH, SAVE_SUBGRAPH, "save_subgraph", "Save subgraph");
+  addButton(TOOLBAR_SAVE_SUBGRAPH_AS, SAVE_AS_SUBGRAPH_BLK, "save_subgraph_as", "Save subgraph as");
+
+  floatingControls[0] = panelWindow->createToolbarPanel(FLOATING_NODE_CONTROLS_ID);
+  floatingControls[1] = panelWindow->createToolbarPanel(FLOATING_GRAPH_CONTROLS_ID);
+  plugin.fillFloatingToolbar(*floatingControls[0], *floatingControls[1]);
+}
+
+void GraphPanel::drawFloatingToolbar(const ImVec2 &canvas_min, const ImVec2 &canvas_max)
+{
+  if (!floatingControls[0])
+  {
+    return;
+  }
+  const float spacing = scaled(FLOATING_TOOLBAR_SPACING);
+  const float divider = scaled(FLOATING_TOOLBAR_DIVIDER);
+  const float rounding = scaled(FLOATING_TOOLBAR_ROUNDING);
+  ImGui::PushFont(nullptr, toolbar_font_size());
+  const float iconSize = ImGui::GetTextLineHeight();
+  const ImVec2 button = PropPanel::ImguiHelper::getImageButtonSize(ImVec2(iconSize, iconSize)); // as a toolbar button sizes itself
+  float height = spacing + static_cast<float>(eastl::size(floatingControls) - 1) * (divider + spacing);
+  for (PropPanel::ContainerPropertyControl *group : floatingControls)
+  {
+    height += static_cast<float>(group->getChildCount()) * (button.y + spacing);
+  }
+  const ImVec2 boxSize(button.x + 2.0f * spacing, height);
+  const ImVec2 boxMin(canvas_min.x + scaled(FLOATING_TOOLBAR_OFFSET), canvas_min.y + scaled(FLOATING_TOOLBAR_OFFSET));
+  const ImVec2 boxMax(boxMin.x + boxSize.x, boxMin.y + boxSize.y);
+  floatingToolbarTopRight = ImVec2(boxMax.x, boxMin.y);
+
+  // A child, so the canvas under it takes no hover. It paints its own fill: ImGui would put a child's
+  // background into the parent's list, under the canvas drawn after it.
+  // A child clips to the parent's clip at Begin, so a canvas shorter than the box keeps it off the bars below.
+  ImGui::PushClipRect(canvas_min, canvas_max, true);
+  ImGui::SetCursorScreenPos(boxMin);
+  if (ImGui::BeginChild("graph_floating_toolbar", boxSize, ImGuiChildFlags_None,
+        ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+  {
+    ImDrawList &dl = *ImGui::GetWindowDrawList();
+    dl.PushClipRect(canvas_min, canvas_max, false); // the shadow reaches past the child's own rect
+    draw_soft_shadow(&dl, boxMin, boxMax, rounding);
+    dl.PopClipRect();
+    dl.AddRectFilled(boxMin, boxMax, FLOATING_TOOLBAR_BG_COLOR, rounding);
+
+    ImGui::PushStyleColor(ImGuiCol_Button, FLOATING_TOOLBAR_BUTTON_COLOR);
+    // A toolbar button also hovers with ButtonActive.
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, FLOATING_TOOLBAR_BUTTON_ACTIVE_COLOR);
+    // A press that focused this child would take the keys from the canvas.
+    ImGui::PushItemFlag(ImGuiItemFlags_NoFocus, true);
+    float y = boxMin.y + spacing;
+    for (PropPanel::ContainerPropertyControl *group : floatingControls)
+    {
+      if (group != floatingControls[0])
+      {
+        dl.AddRectFilled(ImVec2(boxMin.x + spacing, y), ImVec2(boxMax.x - spacing, y + divider), FLOATING_TOOLBAR_DIVIDER_COLOR);
+        y += divider + spacing;
+      }
+      for (unsigned i = 0; i < group->getChildCount(); ++i)
+      {
+        PropPanel::PropertyControlBase *control = group->getByIndex(i);
+        ImGui::SetCursorScreenPos(ImVec2(boxMin.x + spacing, y));
+        ImGui::PushID(control);
+        control->updateImgui();
+        ImGui::PopID();
+        y += button.y + spacing;
+      }
+    }
+    // Last, so the buttons take the hover first: a press between them stays here.
+    ImGui::SetCursorScreenPos(boxMin);
+    ImGui::InvisibleButton("box", boxSize,
+      ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
+    // The box cannot take a press on a disabled button, which ImGui would turn into focusing this child.
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemActive())
+    {
+      ImGui::SetActiveID(ImGui::GetID("floating_toolbar_column"), ImGui::GetCurrentWindow());
+    }
+    ImGui::PopItemFlag();
+    ImGui::PopStyleColor(2);
+  }
+  ImGui::EndChild();
+  ImGui::PopClipRect();
+  ImGui::PopFont();
+}
+
+void GraphPanel::drawToolbar()
+{
+  if (!toolbar)
+  {
+    return;
+  }
+  GraphTab &surface = activeSurface();
+  const bool inWindow = surface.getHostWindow() != nullptr;
+  toolbar->setEnabledById(TOOLBAR_CREATE_SUBGRAPH, surface.getHotkeyContext().createSubgraphAvailable);
+  toolbar->setEnabledById(TOOLBAR_SAVE_SUBGRAPH, inWindow);
+  toolbar->setEnabledById(TOOLBAR_SAVE_SUBGRAPH_AS, inWindow);
+  // The editor refreshes the shortcut in the tooltips of its own toolbars only, so a rebind would leave these stale.
+  EDITORCORE->queryEditorInterface<IEditorCommandSystem>()->updateToolbarButtons(*panelWindow);
+  const ImVec2 rowMin = ImGui::GetCursorScreenPos();
+  // A press that focused this window would move the focus from a subgraph window to the root canvas.
+  ImGui::PushItemFlag(ImGuiItemFlags_NoFocus, true);
+  ImGui::PushFont(nullptr, toolbar_font_size());
+  toolbar->updateImgui();
+  ImGui::PopFont();
+  ImGui::PopItemFlag();
+  const ImVec2 rowMax(rowMin.x + ImGui::GetContentRegionAvail().x, ImGui::GetItemRectMax().y);
+  // ImGui focuses the window on a press no item takes, a disabled button's too; an active id stops it.
+  if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(rowMin, rowMax) && ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
+      !ImGui::IsAnyItemActive())
+  {
+    ImGui::SetActiveID(ImGui::GetID("toolbar_row"), ImGui::GetCurrentWindow());
+  }
+  // The design puts as much space under the toolbar as above it, where the window padding is.
+  const ImGuiStyle &style = ImGui::GetStyle();
+  ImGui::SetCursorPosY(ImGui::GetCursorPosY() + style.WindowPadding.y - style.ItemSpacing.y);
+}
+
+// PropPanel delivers a toolbar click between frames, where a dialog may open.
+void GraphPanel::onClick(int pcb_id, PropPanel::ContainerPropertyControl * /*panel*/) { runToolbarCommand(pcb_id); }
+
+void GraphPanel::runToolbarCommand(int id)
+{
+  GraphTab &surface = activeSurface();
+  switch (id)
+  {
+    case TOOLBAR_NEW_GRAPH: openNewTab(); break;
+    case TOOLBAR_LOAD_GRAPH: plugin.promptAndLoadGraphBlk(); break;
+    // The graph buttons save the tab, also when a subgraph window over it has the focus.
+    case TOOLBAR_SAVE_GRAPH: saveActiveGraph(); break;
+    case TOOLBAR_SAVE_GRAPH_AS: plugin.saveGraphAs(activeTab()); break;
+    // The canvas reads its selection later in the frame, like Ctrl+G.
+    case TOOLBAR_CREATE_SUBGRAPH: surface.requestSubgraphFromSelection(); break;
+    case TOOLBAR_SAVE_SUBGRAPH: saveFocusedSubgraph(); break;
+    case TOOLBAR_SAVE_SUBGRAPH_AS:
+      if (surface.getHostWindow())
+      {
+        plugin.saveAsSubgraphBlk(surface);
+      }
+      break;
+  }
+}
+
+void GraphPanel::saveActiveGraph() { plugin.saveGraph(activeTab()); }
+
+void GraphPanel::saveFocusedSubgraph()
+{
+  GraphTab &surface = activeSurface();
+  if (surface.getHostWindow())
+  {
+    plugin.saveSubgraph(surface);
+  }
 }
 
 // The first tab is built on first use, the way the strip opens the rest.
@@ -216,6 +479,7 @@ GraphTab &GraphPanel::openNewTab()
 {
   GraphTab &tab = createTab();
   activateTab(tab);
+  recordTabOpened(tab);
   return tab;
 }
 
@@ -237,7 +501,17 @@ GraphTab *GraphPanel::openGraphFile(const char *path)
   tab.getDocument().replaceGraphData([&loaded](GraphData &gd) { gd = eastl::move(loaded); });
   tab.onGraphDataChanged();
   activateTab(tab);
+  recordTabOpened(tab);
   return &tab;
+}
+
+void GraphPanel::recordTabOpened(GraphTab &tab)
+{
+  // The first tab of an empty strip stands for the bootstrap one: undoing its open would empty the strip.
+  if (tabs.size() > 1)
+  {
+    recordSurfaceLifetime(eastl::make_shared<HeldSurfaces>(*this, tab, nullptr), false);
+  }
 }
 
 void GraphPanel::activateTab(GraphTab &tab) { setActiveIndex(indexOfTab(tab)); }
@@ -288,16 +562,147 @@ void GraphPanel::openSubgraph(GraphTab &from, const char *stem)
     DAEDITOR3.conError("GraphEditor: failed to load subgraph %s", path.str());
     return;
   }
-  auto window =
-    eastl::make_unique<SubgraphWindow>(plugin, nextTabId++, root, from.getHostWindow(), stem, root.getSubgraphWindowLayout(stem));
-  window->getTab().getDocument().replaceGraphData([&loaded](GraphData &gd) { gd = eastl::move(loaded); });
+  SubgraphWindow &opened = showSubgraphWindow(root,
+    makeSubgraphWindow(root, from.getHostWindow(), stem, root.getSubgraphWindowLayout(stem), eastl::move(loaded)));
+  recordSurfaceLifetime(eastl::make_shared<HeldSurfaces>(*this, root, &opened), false);
+}
+
+eastl::unique_ptr<SubgraphWindow> GraphPanel::makeSubgraphWindow(GraphTab &root, SubgraphWindow *opened_from, const char *stem,
+  const SubgraphWindowLayout &layout, GraphData graph)
+{
+  auto window = eastl::make_unique<SubgraphWindow>(plugin, nextTabId++, root, opened_from, stem, layout);
+  window->getTab().getDocument().replaceGraphData([&graph](GraphData &gd) { gd = eastl::move(graph); });
   window->getTab().onGraphDataChanged();
-  SubgraphWindow &opened = *window;
+  return window;
+}
+
+SubgraphWindow &GraphPanel::showSubgraphWindow(GraphTab &root, eastl::unique_ptr<SubgraphWindow> window)
+{
+  SubgraphWindow &shown = *window;
   root.getSubgraphWindows().push_back(eastl::move(window));
-  focusSurface(root, &opened);
+  focusSurface(root, &shown);
+  return shown;
+}
+
+bool GraphPanel::confirmCloseWindowsOpenedFrom(GraphTab &surface)
+{
+  SubgraphWindow *const window = surface.getHostWindow();
+  G_ASSERT_RETURN(window, false);
+  for (SubgraphWindow *w : subgraph_window_tree(surface.getRootTab(), *window))
+  {
+    if (w != window && !confirmClose(w->getTab(), "Close subgraph"))
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool GraphPanel::isSubgraphOpen(const char *stem) const { return findSurfaceByPath(plugin.getSubgraphPath(stem)) != nullptr; }
+
+void GraphPanel::reopenSubgraphWindowAs(GraphTab &surface, const char *path)
+{
+  SubgraphWindow *const old = surface.getHostWindow();
+  G_ASSERT_RETURN(old, );
+  GraphTab &root = surface.getRootTab();
+  const eastl::string stem = graph_file_stem(path);
+  // Not loaded back: a load takes nested instances to their files, so a wire to a pin that is only live would go.
+  GraphData written = surface.getDocument().getGraphData();
+  written.sourcePath = path;
+  auto window = makeSubgraphWindow(root, old->getParent(), stem.c_str(), old->getLayout(), eastl::move(written));
+  const String entryName(0, "Save subgraph %s as %s", old->getStem().c_str(), stem.c_str());
+  eastl::shared_ptr<HeldSurfaces> held = eastl::make_shared<HeldSurfaces>(*this, root, old);
+  holdWindows(*held);
+  SubgraphWindow &opened = showSubgraphWindow(root, eastl::move(window));
+  recordSurfaceLifetime(eastl::move(held), true, eastl::make_shared<HeldSurfaces>(*this, root, &opened), entryName.str());
+}
+
+void GraphPanel::moveTabToFile(GraphTab &tab, const char *path)
+{
+  // By hand: the tab need not be the focused surface, nor this plugin the current one (a close-all prompt).
+  UndoSystem *undo = EDITORCORE->getUndoSystem();
+  undo->set_op_owner(tab.getUndoToken());
+  tab.getDocument().recordGraphPath(path);
+  // A reused token holds the save point of its last time on this file; mark the file just written.
+  tab.markSaved();
+  if (EDITORCORE->curPlugin() == static_cast<IGenEditorPlugin *>(&plugin))
+  {
+    stampUndoOwner();
+  }
+  else
+  {
+    undo->set_op_owner(EDITORCORE->curPlugin()); // what the engine stamps on a plugin switch
+  }
+}
+
+void GraphPanel::recordLivePinSync()
+{
+  // Until queued holds and restores apply, the windows in the UI are not the ones the history says.
+  if (!queuedSurfaceMoves.empty())
+  {
+    return;
+  }
+  OpenSubgraphs &open = plugin.getOpenSubgraphs();
+  // The rounds change instance pins only, never which windows are open.
+  eastl::vector<OpenSubgraphDoc> docs;
+  collectOpenSubgraphs(docs);
+  for (int round = 0; round < MAX_LIVE_PIN_ROUNDS; ++round)
+  {
+    open.refreshInterfaces(make_span_const(docs));
+    bool changed = false;
+    for_each_surface(tabs, [&open, &changed](GraphTab &t) { changed = t.recordLivePins(open) || changed; });
+    if (!changed)
+    {
+      return;
+    }
+  }
+  DAEDITOR3.conWarning("GraphEditor: subgraph instance pins still change after %d rounds", MAX_LIVE_PIN_ROUNDS);
+}
+
+eastl::vector<eastl::string> GraphPanel::stemsLeavingUi(const HeldSurfaces &surfaces) const
+{
+  eastl::vector<OpenSubgraphDoc> stillOpen;
+  collectOpenSubgraphs(stillOpen);
+  eastl::vector<eastl::string> stems;
+  auto add = [&](const SubgraphWindow &w) {
+    auto sameStem = [&w](const OpenSubgraphDoc &d) { return d.stem == w.getStem(); };
+    if (eastl::none_of(stillOpen.begin(), stillOpen.end(), sameStem))
+    {
+      stems.push_back(w.getStem());
+    }
+  };
+  for (const HeldSurfaces::HeldWindow &h : surfaces.held)
+  {
+    add(*h.window);
+  }
+  if (surfaces.heldRoot)
+  {
+    for (const eastl::unique_ptr<SubgraphWindow> &w : surfaces.heldRoot->getSubgraphWindows())
+    {
+      add(*w);
+    }
+  }
+  return stems;
+}
+
+void GraphPanel::collectOpenSubgraphs(eastl::vector<OpenSubgraphDoc> &out) const
+{
+  out.clear();
+  for (const eastl::unique_ptr<GraphTab> &root : tabs)
+  {
+    for (const eastl::unique_ptr<SubgraphWindow> &window : root->getSubgraphWindows())
+    {
+      const String path = plugin.getSubgraphPath(window->getStem().c_str());
+      const GraphDocument &doc = window->getTab().getDocument();
+      auto samePath = [&path](const OpenSubgraphDoc &d) { return d.path == path.str(); };
+      if (!dd_fname_equal(doc.getGraphData().sourcePath.c_str(), path.str()) || eastl::any_of(out.begin(), out.end(), samePath))
+      {
+        continue;
+      }
+      out.push_back(OpenSubgraphDoc{window->getTab().getId(), window->getStem(), eastl::string(path.str()), &doc});
+    }
+  }
+}
 
 void GraphPanel::rebindTexGen()
 {
@@ -341,18 +746,22 @@ void GraphPanel::stampUndoOwner(GraphTab &owner)
   {
     return;
   }
-  EDITORCORE->getUndoSystem()->set_op_owner(&owner);
+  EDITORCORE->getUndoSystem()->set_op_owner(owner.getUndoToken());
 }
 
 bool GraphPanel::ownsUndoToken(const void *token) const
 {
-  return find_surface(tabs, [token](GraphTab &t) { return token == static_cast<const void *>(&t); }) != nullptr;
+  return find_surface(tabs, [token](GraphTab &t) { return t.hasUndoToken(token); }) != nullptr ||
+         eastl::any_of(heldSurfaces.begin(), heldSurfaces.end(), [token](const HeldSurfaces *hs) { return hs->holdsTab(token); });
 }
 
 void GraphPanel::dropUndoOps()
 {
   UndoSystem *undo = EDITORCORE->getUndoSystem();
-  for_each_surface(tabs, [undo](GraphTab &t) { undo->remove_ops_by_owner(&t); });
+  for (GraphTab *t : collect_all_surfaces(tabs, heldSurfaces))
+  {
+    t->dropUndoOps();
+  }
   // The engine re-stamps its own token on each plugin switch, so an entry accepted between that
   // and our next frame carries it instead of the tab.
   undo->remove_ops_by_owner(static_cast<IGenEditorPlugin *>(&plugin));
@@ -361,9 +770,11 @@ void GraphPanel::dropUndoOps()
 // The ### suffix keeps each tab id stable while its label follows the file name.
 void GraphPanel::drawTabStrip()
 {
+  // One frame without Reorderable makes ImGui sort the bar by submission order, which a restored tab needs.
+  const bool resyncOrder = stripOrderResync;
   const ImGuiTabBarFlags barFlags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_FittingPolicyScroll |
                                     ImGuiTabBarFlags_NoTooltip | ImGuiTabBarFlags_NoCloseWithMiddleMouseButton |
-                                    ImGuiTabBarFlags_Reorderable;
+                                    (resyncOrder ? ImGuiTabBarFlags_None : ImGuiTabBarFlags_Reorderable);
   if (!ImGui::BeginTabBar(TAB_STRIP_ID, barFlags))
   {
     return;
@@ -429,7 +840,14 @@ void GraphPanel::drawTabStrip()
   }
   ImGui::PopStyleVar();
   ImGui::PopStyleColor(2);
-  syncTabOrderFromBar(make_span_const(imguiTabIds));
+  if (resyncOrder)
+  {
+    stripOrderResync = false;
+  }
+  else
+  {
+    syncTabOrderFromBar(make_span_const(imguiTabIds));
+  }
   ImGui::EndTabBar();
   // Outside the bar, so the switch never runs between BeginTabBar and EndTabBar. By id, because
   // the sync above may have moved the tab the click landed on.
@@ -478,6 +896,7 @@ void GraphPanel::syncTabOrderFromBar(dag::ConstSpan<ImGuiID> imgui_tab_ids)
 
 void GraphPanel::updateImgui()
 {
+  drawToolbar();
   drawTabStrip();
   GraphTab &root = activeTab();
   if (rootFocusRequested)
@@ -494,8 +913,15 @@ void GraphPanel::updateImgui()
   const ImVec2 canvasMax(canvasMin.x + avail.x, canvasMin.y + canvasHeight);
   SubgraphWindow *const focusedWindow = drawSubgraphWindows(root, canvasMin, canvasMax);
   const float stackWidth = drawMinimizedSubgraphWindows(root, canvasMin, canvasMax);
+  drawFloatingToolbar(canvasMin, canvasMax); // after the windows, so it stays on top of them
+  TexGenPipelineStatus pipeline;
+  if (IGraphTexGenService *svc = plugin.getTexGenService())
+  {
+    pipeline = svc->getPipelineStatus();
+  }
+  root.getDocument().setMessagesCompileStamp(pipeline.nodeMessagesStamp);
   stampUndoOwner(root);
-  root.updateCanvas(canvasMin, canvasMax);
+  root.updateCanvas(canvasMin, canvasMax, &pipeline.nodeMessages);
   // The panels drawn after the canvases edit the focused surface's document.
   stampUndoOwner();
   // Focus leaving for another panel keeps the surface.
@@ -507,12 +933,7 @@ void GraphPanel::updateImgui()
   {
     focusSurface(root, focusedWindow);
   }
-  TexGenPipelineStatus pipeline;
-  if (IGraphTexGenService *svc = plugin.getTexGenService())
-  {
-    pipeline = svc->getPipelineStatus();
-  }
-  // constraint: the design frames the focused surface only while windows exist to tell it from.
+  // the design frames the focused surface only while windows exist to tell it from.
   if (!root.getFocusedWindow() && !root.getSubgraphWindows().empty())
   {
     draw_focus_frame(*ImGui::GetWindowDrawList(), canvasMin, canvasMax, 0.0f, pipeline.graphCompileFailed || pipeline.hasErrors);
@@ -521,12 +942,34 @@ void GraphPanel::updateImgui()
   GraphTab &surface = activeSurface();
   draw_graph_hotkeys_bar(canvasMin, canvasMax, surface.getHotkeyContext(), stackWidth);
   ImGui::SetCursorScreenPos(ImVec2(canvasMin.x, canvasMax.y));
-  draw_graph_status_bar(surface.getDocument().getGraphData(), pipeline, surface.getSelectedObjectCount(), statusBarHeight);
+  const GraphStatusFocus statusFocus =
+    draw_graph_status_bar(surface.getDocument().getGraphData(), pipeline, surface.getSelectedObjectCount(), statusBarHeight);
+  // The message is about the graph the texgen service runs: the root's, even with a window focused.
+  const eastl::string *block = status_message_block(pipeline, statusFocus);
+  const SubgraphNodeSource *spliced = block && !pipeline.compilePending ? root.getDocument().blockSource(block->c_str()) : nullptr;
+  if (!spliced || !focusSubgraphNode(root, *spliced))
+  {
+    eastl::vector<int> focusIds = status_message_nodes(root.getDocument(), pipeline, statusFocus);
+    if (!focusIds.empty())
+    {
+      focusSurface(root, nullptr);
+      // Every window is drawn over the root canvas, so the framed node shows only with all of them minimized.
+      for (const eastl::unique_ptr<SubgraphWindow> &window : root.getSubgraphWindows())
+      {
+        if (!window->isMinimized())
+        {
+          minimizeSubgraphWindow(root, *window);
+        }
+      }
+      root.requestFocusNodes(eastl::move(focusIds));
+    }
+  }
 }
 
 bool GraphPanel::hasPendingActions() const
 {
-  bool pending = pendingCloseTabId >= 0 || pendingWindowAction.tabId >= 0 || pendingActivateTabId >= 0 || plusRequested;
+  bool pending = pendingCloseTabId >= 0 || pendingWindowAction.tabId >= 0 || pendingActivateTabId >= 0 || plusRequested ||
+                 !queuedSurfaceMoves.empty();
   if (activeIndex >= 0)
   {
     pending = pending || find_surface_of(*tabs[activeIndex], [](GraphTab &t) { return t.hasPendingActions(); }) != nullptr;
@@ -630,13 +1073,30 @@ void GraphPanel::requestFrameSelected()
   }
 }
 
+void GraphPanel::requestAddNode()
+{
+  if (panelWindow)
+  {
+    // The toolbar covers the canvas corner itself.
+    activeSurface().requestAddNodeAt(ImVec2(floatingToolbarTopRight.x + scaled(FLOATING_TOOLBAR_OFFSET), floatingToolbarTopRight.y));
+  }
+}
+
 void GraphPanel::invalidateDerivedState()
 {
-  for_each_surface(tabs, [](GraphTab &t) { t.invalidateDerivedState(); });
+  for (GraphTab *t : collect_all_surfaces(tabs, heldSurfaces))
+  {
+    t->invalidateDerivedState();
+  }
 }
 
 void GraphPanel::applyPendingCompileResults()
 {
+  // Fresh, so the drain keeps the block map of the compile the messages name now, not a frame ago.
+  if (IGraphTexGenService *svc = plugin.getTexGenService(); svc && activeIndex >= 0)
+  {
+    tabs[activeIndex]->getDocument().setMessagesCompileStamp(svc->getNodeMessagesStamp());
+  }
   for_each_surface(tabs, [](GraphTab &t) { t.getDocument().applyPendingCompileResults(); });
 }
 
@@ -766,7 +1226,10 @@ void GraphPanel::closeAllTabs()
   // The properties panel may hold controls built for any of these documents, and an edit still open.
   for_each_surface(tabs, [this](GraphTab &t) { plugin.beforeTabCloses(t.getDocument()); });
   G_ASSERT(!EDITORCORE->getUndoSystem()->is_holding());
+  // A queued move keeps its surfaces held, so it would keep them out of the graveyard.
+  queuedSurfaceMoves.clear();
   dropUndoOps();
+  flushGraveyard();
   tabs.clear();
   activeIndex = -1;
   pendingCloseTabId = -1;
@@ -784,56 +1247,17 @@ void GraphPanel::closeTabNow(int tab_id)
     return;
   }
 
-  GraphTab &tab = *tabs[idx];
-  // The properties panel may hold controls built for this document, or for one of its windows.
-  for_each_surface_of(tab, [this](GraphTab &t) { plugin.beforeTabCloses(t.getDocument()); });
-  // Before its entries go: a gesture it ends records its outcome.
-  for_each_surface_of(tab, [](GraphTab &t) { t.onDeactivated(); });
-  UndoSystem *undo = EDITORCORE->getUndoSystem();
-  G_ASSERT(!undo->is_holding());
-  for_each_surface_of(tab, [undo](GraphTab &t) { undo->remove_ops_by_owner(&t); });
-
-  // The strip is never empty: the last tab closing leaves a fresh untitled one.
-  if (tabs.size() == 1)
-  {
-    createTab();
-  }
   const bool wasActive = idx == activeIndex;
-  const int nextIdx = idx + 1 < static_cast<int>(tabs.size()) ? idx + 1 : idx - 1;
-
-  IGraphTexGenService *svc = plugin.getTexGenService();
-  if (svc)
+  eastl::shared_ptr<HeldSurfaces> held = eastl::make_shared<HeldSurfaces>(*this, *tabs[idx], nullptr);
+  holdRootTab(*held);
+  // The strip is never empty: the last tab closing leaves a fresh untitled one, which undo takes away again.
+  eastl::shared_ptr<HeldSurfaces> fresh;
+  if (tabs.empty())
   {
-    // Drains a compile of any tab that is still in flight, so none commits into a dead document.
-    svc->setGraphCompiler(nullptr);
+    fresh = eastl::make_shared<HeldSurfaces>(*this, createTab(), nullptr);
   }
-  if (wasActive)
-  {
-    if (svc)
-    {
-      // Re-point before the document dies: the service holds the pointer, not a copy.
-      svc->setGraphData(tabs[nextIdx]->getDocument().dataForTexGenService());
-    }
-    activeIndex = -1;
-  }
-
-  tabs.erase(tabs.begin() + idx);
-
-  if (wasActive)
-  {
-    setActiveIndex(nextIdx > idx ? nextIdx - 1 : nextIdx);
-  }
-  else
-  {
-    if (activeIndex > idx)
-    {
-      --activeIndex;
-    }
-    if (svc)
-    {
-      svc->setGraphCompiler(activeTab().getCompiler());
-    }
-  }
+  recordSurfaceLifetime(eastl::move(held), true, eastl::move(fresh));
+  settleSurfaces(nullptr, wasActive ? idx : -1);
 }
 
 SubgraphWindow *GraphPanel::drawSubgraphWindows(GraphTab &root, const ImVec2 &canvas_min, const ImVec2 &canvas_max)
@@ -854,7 +1278,7 @@ SubgraphWindow *GraphPanel::drawSubgraphWindows(GraphTab &root, const ImVec2 &ca
     }
   }
   // ImGui puts the child begun last on top.
-  // constraint: the design keeps a maximized window behind the others, which it would hide.
+  // the design keeps a maximized window behind the others, which it would hide.
   eastl::sort(order.begin(), order.end(), [](const SubgraphWindow *a, const SubgraphWindow *b) {
     if (a->getLayout().maximized != b->getLayout().maximized)
     {
@@ -977,27 +1401,299 @@ bool GraphPanel::confirmCloseSubgraphWindow(GraphTab &root, SubgraphWindow &wind
 // The windows opened from it go too: their crumbs and Tab lead through it.
 void GraphPanel::closeSubgraphWindowNow(GraphTab &root, SubgraphWindow &window)
 {
-  const eastl::fixed_vector<SubgraphWindow *, 8> closing = subgraph_window_tree(root, window);
-  if (eastl::find(closing.begin(), closing.end(), root.getFocusedWindow()) != closing.end())
+  eastl::shared_ptr<HeldSurfaces> held = eastl::make_shared<HeldSurfaces>(*this, root, &window);
+  holdWindows(*held);
+  recordSurfaceLifetime(eastl::move(held), true);
+}
+
+void GraphPanel::recordSurfaceLifetime(eastl::shared_ptr<HeldSurfaces> surfaces, bool closing,
+  eastl::shared_ptr<HeldSurfaces> then_opened, const char *entry_name)
+{
+  UndoSystem *undo = EDITORCORE->getUndoSystem();
+  G_ASSERT_RETURN(!undo->is_holding(), );
+  GraphTab &owner = surfaces->ownerTab();
+  const eastl::vector<eastl::string> leaving = closing ? stemsLeavingUi(*surfaces) : eastl::vector<eastl::string>();
+  const String entryName = entry_name ? String(entry_name) : surfaces->entryName(closing);
+  stampUndoOwner(owner);
+  undo->begin();
+  undo->put<UndoSurfaceLifetime>(eastl::move(surfaces), closing);
+  if (then_opened)
   {
-    focusSurface(root, nearest_shown_window(window.getParent()));
+    undo->put<UndoSurfaceLifetime>(eastl::move(then_opened), false);
+  }
+  for (const eastl::string &stem : leaving)
+  {
+    if (!find_node_desc(&plugin.getBaseNodesBlk(), (eastl::string("subgraph::") + stem).c_str()) && isSubgraphInstanced(stem.c_str()))
+    {
+      DAEDITOR3.conWarning("GraphEditor: subgraph '%s' has no valid file, its instances keep their pins", stem.c_str());
+    }
+  }
+  // After the hold, so an undo gives the parents their live pins back before the window returns.
+  if (!leaving.empty())
+  {
+    for_each_surface(tabs, [&leaving](GraphTab &t) { t.getDocument().revertLiveSubgraphInstances(leaving); });
+  }
+  // A reverted instance can rename an unnamed boundary of the window it sits in.
+  recordLivePinSync();
+  undo->accept(entryName.str());
+  stampUndoOwner();
+}
+
+void GraphPanel::holdWindows(HeldSurfaces &surfaces)
+{
+  GraphTab &root = surfaces.root;
+  const eastl::fixed_vector<SubgraphWindow *, 8> tree = subgraph_window_tree(root, *surfaces.top);
+  auto inTree = [&tree](const SubgraphWindow *w) { return eastl::find(tree.begin(), tree.end(), w) != tree.end(); };
+  if (inTree(root.getFocusedWindow()))
+  {
+    SubgraphWindow *const parent = nearest_shown_window(surfaces.top->getParent());
+    focusSurface(root, parent);
+    // focusSurface moves nothing on a root that is not shown.
+    root.setFocusedWindow(parent);
   }
   eastl::vector<eastl::unique_ptr<SubgraphWindow>> &windows = root.getSubgraphWindows();
-  UndoSystem *undo = EDITORCORE->getUndoSystem();
-  for (SubgraphWindow *w : closing)
+  // All detached before any leaves the list: a detach can commit an edit, whose live pin pass walks the windows.
+  for (SubgraphWindow *w : tree)
   {
     root.setSubgraphWindowLayout(w->getStem().c_str(), w->getLayout());
-    plugin.beforeTabCloses(w->getTab().getDocument());
-    G_ASSERT(!undo->is_holding());
-    undo->remove_ops_by_owner(&w->getTab());
-    windows.erase(
-      eastl::find_if(windows.begin(), windows.end(), [w](const eastl::unique_ptr<SubgraphWindow> &uw) { return uw.get() == w; }));
+    detachForHold(w->getTab());
+  }
+  for (int i = 0; i < static_cast<int>(windows.size()); ++i)
+  {
+    if (inTree(windows[i].get()))
+    {
+      surfaces.held.push_back(HeldSurfaces::HeldWindow{eastl::move(windows[i]), i});
+    }
+  }
+  stampUndoOwner();
+  windows.erase(eastl::remove(windows.begin(), windows.end(), nullptr), windows.end());
+}
+
+void GraphPanel::restoreWindows(HeldSurfaces &surfaces)
+{
+  eastl::vector<eastl::unique_ptr<SubgraphWindow>> &windows = surfaces.root.getSubgraphWindows();
+  // Ascending, so each one lands where it was.
+  for (HeldSurfaces::HeldWindow &h : surfaces.held)
+  {
+    h.window->getTab().onActivated();
+    windows.insert(windows.begin() + eastl::min(h.listIndex, static_cast<int>(windows.size())), eastl::move(h.window));
+  }
+  surfaces.held.clear();
+}
+
+void GraphPanel::queueSurfaceMove(eastl::shared_ptr<HeldSurfaces> surfaces, bool hold)
+{
+  queuedSurfaceMoves.push_back(QueuedSurfaceMove{eastl::move(surfaces), hold});
+}
+
+void GraphPanel::applyQueuedSurfaceMoves()
+{
+  // An open operation would swallow entries recorded under it.
+  if (EDITORCORE->getUndoSystem()->is_holding())
+  {
+    return;
+  }
+  flushGraveyard();
+  if (queuedSurfaceMoves.empty())
+  {
+    return;
+  }
+  eastl::vector<QueuedSurfaceMove> moves;
+  moves.swap(queuedSurfaceMoves);
+  applyingSurfaceMove = true;
+  HeldSurfaces *shown = nullptr;
+  int heldActiveIndex = -1;
+  // No activeTab() in here: the strip can be empty between two moves of one entry.
+  for (const QueuedSurfaceMove &m : moves)
+  {
+    HeldSurfaces &surfaces = *m.surfaces;
+    if (m.hold == surfaces.isHolding())
+    {
+      continue;
+    }
+    if (!surfaces.top)
+    {
+      if (m.hold)
+      {
+        const bool wasActive = activeIndex >= 0 && tabs[activeIndex].get() == &surfaces.root;
+        const int index = holdRootTab(surfaces);
+        if (wasActive)
+        {
+          heldActiveIndex = index;
+        }
+        else if (index >= 0 && index < heldActiveIndex)
+        {
+          --heldActiveIndex;
+        }
+      }
+      else
+      {
+        restoreRootTab(surfaces);
+      }
+      shown = m.hold ? nullptr : &surfaces;
+      continue;
+    }
+    const int rootIndex = indexOfTab(surfaces.root);
+    G_ASSERT_CONTINUE(rootIndex >= 0);
+    // Undo shows what it changes: the graph comes to the front first.
+    setActiveIndex(rootIndex);
+    if (m.hold)
+    {
+      holdWindows(surfaces);
+    }
+    else
+    {
+      restoreWindows(surfaces);
+    }
+    shown = m.hold ? nullptr : &surfaces;
+  }
+  settleSurfaces(shown, heldActiveIndex);
+  applyingSurfaceMove = false;
+  stampUndoOwner();
+}
+
+void GraphPanel::detachForHold(GraphTab &surface)
+{
+  // Whatever these record is the surface's own.
+  stampUndoOwner(surface);
+  surface.onDeactivated();
+  plugin.beforeTabCloses(surface.getDocument());
+  surface.dropPendingActions();
+}
+
+int GraphPanel::holdRootTab(HeldSurfaces &surfaces)
+{
+  const int index = indexOfTab(surfaces.root);
+  if (index < 0)
+  {
+    return -1;
+  }
+  for_each_surface_of(surfaces.root, [this](GraphTab &t) { detachForHold(t); });
+  surfaces.stripIndex = index;
+  surfaces.heldRoot = eastl::move(tabs[index]);
+  tabs.erase(tabs.begin() + index);
+  if (activeIndex == index)
+  {
+    activeIndex = -1;
+  }
+  else if (activeIndex > index)
+  {
+    --activeIndex;
+  }
+  stampUndoOwner();
+  return index;
+}
+
+void GraphPanel::restoreRootTab(HeldSurfaces &surfaces)
+{
+  const int index = eastl::min(surfaces.stripIndex, static_cast<int>(tabs.size()));
+  tabs.insert(tabs.begin() + index, eastl::move(surfaces.heldRoot));
+  if (activeIndex >= index)
+  {
+    ++activeIndex;
+  }
+  stripOrderResync = true;
+}
+
+void GraphPanel::settleSurfaces(HeldSurfaces *shown, int held_active_index)
+{
+  // Unreachable through undo; keeps the strip non-empty if it happens.
+  G_ASSERT(!tabs.empty());
+  if (tabs.empty())
+  {
+    createTab();
+  }
+  if (shown)
+  {
+    // What came back wins over a switch queued since the last tick.
+    pendingActivateTabId = -1;
+    setActiveIndex(indexOfTab(shown->root));
+    if (shown->top && !shown->top->isMinimized())
+    {
+      focusSurface(shown->root, shown->top);
+    }
+  }
+  else if (activeIndex < 0)
+  {
+    setActiveIndex(eastl::clamp(held_active_index, 0, static_cast<int>(tabs.size()) - 1));
+  }
+  // A restored tab is new to ImGui, and AutoSelectNewTabs would select it over the active one.
+  if (stripOrderResync)
+  {
+    selectTabIdNextFrame = tabs[activeIndex]->getId();
+  }
+}
+
+void GraphPanel::registerHeld(HeldSurfaces &surfaces) { heldSurfaces.push_back(&surfaces); }
+
+void GraphPanel::unregisterHeld(HeldSurfaces &surfaces)
+{
+  heldSurfaces.erase(eastl::remove(heldSurfaces.begin(), heldSurfaces.end(), &surfaces), heldSurfaces.end());
+}
+
+void GraphPanel::bury(eastl::unique_ptr<SubgraphWindow> window) { graveyard.push_back(eastl::move(window)); }
+
+void GraphPanel::buryTab(eastl::unique_ptr<GraphTab> tab) { graveyardTabs.push_back(eastl::move(tab)); }
+
+void GraphPanel::flushGraveyard()
+{
+  UndoSystem *undo = EDITORCORE->getUndoSystem();
+  if (undo->is_holding())
+  {
+    return;
+  }
+  // An entry recorded on a held surface outlives its holder when the history is trimmed. A dead root buries the
+  // windows held for it: repeat until empty.
+  while (!graveyard.empty() || !graveyardTabs.empty())
+  {
+    eastl::vector<eastl::unique_ptr<GraphTab>> deadTabs;
+    deadTabs.swap(graveyardTabs);
+    for (const eastl::unique_ptr<GraphTab> &t : deadTabs)
+    {
+      dropHeldWindowsOf(*t);
+      for_each_surface_of(*t, [](GraphTab &s) { s.dropUndoOps(); });
+    }
+    eastl::vector<eastl::unique_ptr<SubgraphWindow>> deadWindows;
+    deadWindows.swap(graveyard);
+    for (const eastl::unique_ptr<SubgraphWindow> &w : deadWindows)
+    {
+      w->getTab().dropUndoOps();
+    }
+  }
+}
+
+void GraphPanel::dropHeldWindowsOf(GraphTab &root)
+{
+  queuedSurfaceMoves.erase(eastl::remove_if(queuedSurfaceMoves.begin(), queuedSurfaceMoves.end(),
+                             [&root](const QueuedSurfaceMove &m) { return &m.surfaces->root == &root; }),
+    queuedSurfaceMoves.end());
+  eastl::vector<GraphTab *> heldTabs;
+  append_held_tabs(heldSurfaces, &root, heldTabs);
+  for (GraphTab *t : heldTabs)
+  {
+    t->dropUndoOps();
   }
 }
 
 GraphTab *GraphPanel::findSurface(int tab_id) const
 {
   return find_surface(tabs, [tab_id](GraphTab &t) { return t.getId() == tab_id; });
+}
+
+bool GraphPanel::isSubgraphInstanced(const char *stem) const
+{
+  const eastl::vector<GraphTab *> surfaces = collect_all_surfaces(tabs, heldSurfaces);
+  return eastl::any_of(surfaces.begin(), surfaces.end(), [stem](GraphTab *t) {
+    const eastl::vector<GraphData::Node> &nodes = t->getDocument().getGraphData().nodes;
+    return eastl::any_of(nodes.begin(), nodes.end(),
+      [stem](const GraphData::Node &n) { return is_subgraph_instance(n) && n.descName == stem; });
+  });
+}
+
+bool GraphPanel::isFileShownElsewhere(const char *path, const GraphTab &except) const
+{
+  const GraphTab *shown = findSurfaceByPath(path);
+  return shown && shown != &except;
 }
 
 GraphTab *GraphPanel::findSurfaceByPath(const char *path) const
@@ -1018,6 +1714,30 @@ void GraphPanel::activateSurface(GraphTab &surface)
     window->unminimize();
   }
   focusSurface(root, window);
+}
+
+bool GraphPanel::focusSubgraphNode(GraphTab &root, const SubgraphNodeSource &source)
+{
+  const int queuedActivateTabId = pendingActivateTabId;
+  GraphTab *surface = &root;
+  for (const eastl::string &stem : source.stems)
+  {
+    openSubgraph(*surface, stem.c_str());
+    surface = findSurfaceByPath(plugin.getSubgraphPath(stem.c_str()));
+    if (!surface)
+    {
+      // A window found open on the way queued itself, and would take the focus from the caller's fallback.
+      pendingActivateTabId = queuedActivateTabId;
+      return false;
+    }
+  }
+  // openSubgraph queues the activation of a window found open; the last surface must win.
+  pendingActivateTabId = surface->getId();
+  if (find_node_by_id(surface->getDocument().getGraphData(), source.nodeId))
+  {
+    surface->requestFocusNodes({source.nodeId});
+  }
+  return true;
 }
 
 int GraphPanel::indexOfTab(const GraphTab &tab) const

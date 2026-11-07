@@ -14,21 +14,7 @@ void create_critical_section(void *p, [[maybe_unused]] const char *name)
   csimpl::type *cc = csimpl::get(p);
 #if HAVE_WINAPI
   G_STATIC_ASSERT(sizeof(csimpl::type) == sizeof(CritSecStorage));
-  // By default, CRITICAL_SECTIONs are initialized with a spin count of 0. MSDN says the Windows heap manager uses a spin count of
-  // 4000, but Joe Duffy's "Concurrent Programming on Windows" book suggests 1500 is a "more reasonable starting point". On
-  // single-processor systems, the spin count is ignored and the critical section spin count is set to 0.
-  constexpr int CS_SPIN_COUNT = 1500;
-#if _TARGET_64BIT // Note: InitializeCriticalSectionEx supported since Vista
-  int initFlags = 0;
-#if DAGOR_DBGLEVEL == 0 && _TARGET_PC_WIN
-  initFlags = CRITICAL_SECTION_NO_DEBUG_INFO; // this flag is required in order to fully clean-up critical sections on destroy
-#endif
-  if (InitializeCriticalSectionEx(cc, CS_SPIN_COUNT, initFlags)) [[likely]]
-    return;
-  DAG_FATAL("InitializeCriticalSectionEx failed with %d", ::GetLastError());
-#else // Winxp compat
-  InitializeCriticalSectionAndSpinCount(cc, CS_SPIN_COUNT);
-#endif
+  InitializeCriticalSection(cc); // Since Win8 the default spin count is 2000 with an adaptive spin policy
 #else
   G_STATIC_ASSERT(sizeof(csimpl::type) <= sizeof(CritSecStorage::critSec));
 #if _TARGET_C1 | _TARGET_C2

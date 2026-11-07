@@ -366,7 +366,7 @@ int DagorWinMain(bool debugmode)
     else if (strnicmp(__argv[i], "-progress_shm:", 14) == 0)
       progress_shm_name = __argv[i] + 14;
     else if (strcmp(__argv[i], "-noeh") == 0 || strcmp(__argv[i], "-show_warn") == 0)
-      ; // constraint: old command lines still pass these switches
+      ; // old command lines still pass these switches
     else if (stricmp(__argv[i], "-help") == 0)
     {
       showTitle();

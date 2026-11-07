@@ -20,6 +20,7 @@
 #include <stddef.h> // offsetof
 #include <supp/dag_zstdObfuscate.h>
 #include <util/dag_unpatchedRoNameMap.h>
+#include <../osApiWrappers/romFileReader.h>
 
 #define SIGNATURE_MAX_SIZE (1024)
 
@@ -149,6 +150,7 @@ static void register_indexed_vrom_ref(VirtualRomFsData *fs, void *shared_body, u
 }
 
 void set_vromfs_shared_mem_storage(GlobalSharedMemStorage *sm) { vromfs_shared_mem_storage = sm; }
+GlobalSharedMemStorage *get_vromfs_shared_mem_storage() { return vromfs_shared_mem_storage; }
 
 // returns true if fs is shared (caller must NOT free it) and was released during call;
 // returns false if fs is private (possibly a released index) and still needs freeing.
@@ -674,7 +676,8 @@ bool dissect_vromfs_dump_body(const VromfsDumpSections &sections, VromfsDumpBody
   int fileDataOffsetToCheck = 0;
   int filesNum = fs_copy.data.size();
   result.sha1Hashes.reset();
-  if ((size_t)fs_copy.files.map.data() - (sizeof(fs_copy) - FS_OFFS) == 16)
+  result.hasPackHeader = (size_t)fs_copy.files.map.data() - (sizeof(fs_copy) - FS_OFFS) == 16;
+  if (result.hasPackHeader)
   {
     // there are 16 bytes between fs.data and files.map.dptr, we have pack header
     int sha1SectionOffset = 0;
@@ -1513,7 +1516,7 @@ struct VirtualRomFsPackHdr
   PATCHABLE_DATA64(char *, fpath);
 };
 
-VirtualRomFsPack *open_vromfs_pack(const char *fname, IMemAlloc *mem, int file_flags)
+VirtualRomFsPack *open_vromfs_pack(const char *fname, IMemAlloc *mem, int file_flags, bool keep_file)
 {
   debug("%s <%s>", __FUNCTION__, fname);
 
@@ -1530,7 +1533,8 @@ VirtualRomFsPack *open_vromfs_pack(const char *fname, IMemAlloc *mem, int file_f
   G_STATIC_ASSERT(sizeof(fs_attr_ofs) == 4);
   VirtualRomFsPack *fs = NULL;
 
-  file_ptr_t fp = open_vrom_fp(fname, file_flags, st);
+  int fpathOfs = 0;
+  file_ptr_t fp = open_vrom_fp(fname, file_flags | (keep_file ? DF_REALFILE_ONLY : 0), st);
   if (!fp || df_read(fp, &hdr.file, sizeof(hdr.file)) != sizeof(hdr.file))
     goto load_fail;
   if (hdr.file.label != _MAKE4C('VRFs') && hdr.file.label != _MAKE4C('VRFx'))
@@ -1559,12 +1563,16 @@ VirtualRomFsPack *open_vromfs_pack(const char *fname, IMemAlloc *mem, int file_f
     goto load_fail;
 
   fpath = df_get_real_name(fname);
+  if (!fpath)
+    goto load_fail;
   fpathLen = (int)strlen(fpath);
+  fpathOfs = keep_file ? ((hdr.pack.hdrSz + 7) & ~7) + (int)sizeof(void *) : hdr.pack.hdrSz;
 
-  fs = (VirtualRomFsPack *)mem->tryAlloc(FS_OFFS + hdr.pack.hdrSz + fpathLen + 1);
+  fs = (VirtualRomFsPack *)mem->tryAlloc(FS_OFFS + fpathOfs + fpathLen + 1);
   if (!fs)
     goto load_fail;
   new (fs, _NEW_INPLACE) VirtualRomFsPack();
+  fs->isPack = true;
   fs->flags = hdr.ext.flags;
   fs->version = hdr.ext.version;
   df_seek_to(fp, sizeof(hdr.file) + hdr.ext.size);
@@ -1576,15 +1584,26 @@ VirtualRomFsPack *open_vromfs_pack(const char *fname, IMemAlloc *mem, int file_f
   if (!init_patched_fs_file_attr(fs, (char *)fs + FS_OFFS, hdr.pack.hdrSz, fs_attr_ofs))
     goto load_fail;
 
-  fs->_resv = 0;
+  fs->_resv = keep_file ? 'FILE' : 0;
   fs->ptr = fs->ptr ? (char *)fs + FS_OFFS + ptrdiff_t(fs->ptr) : reinterpret_cast<char *>((uintptr_t)1);
 
-  G_ASSERTF((char *)fs + FS_OFFS + hdr.pack.hdrSz == fs->getFilePath(), "fs=%p getFilePath()=%p inlinePtr=%p", fs, fs->getFilePath(),
-    (char *)fs + FS_OFFS + hdr.pack.hdrSz);
+  G_ASSERTF((char *)fs + FS_OFFS + fpathOfs == fs->getFilePath(), "fs=%p getFilePath()=%p inlinePtr=%p", fs, fs->getFilePath(),
+    (char *)fs + FS_OFFS + fpathOfs);
   if (char *fn_dest = (char *)fs->getFilePath())
     memcpy(fn_dest, fpath, fpathLen + 1);
 
-  df_close(fp);
+  if (keep_file)
+  {
+    void *mem_kept = mem->tryAlloc(sizeof(KeptPackFile));
+    if (!mem_kept)
+      goto load_fail;
+    KeptPackFile *kept = new (mem_kept, _NEW_INPLACE) KeptPackFile;
+    kept->fp = (FILE *)fp;
+    os_spinlock_init(&kept->lock);
+    *fs->getFileSlot() = kept;
+  }
+  else
+    df_close(fp);
   G_ASSERT(fs->isValid());
   return fs;
 
@@ -1619,6 +1638,19 @@ void close_vromfs_pack(VirtualRomFsPack *fs, IMemAlloc *mem)
     }
     memfree(fs->ptr, mem);
   }
+  if (fs->getFile())
+  {
+    KeptPackFile *kept = (KeptPackFile *)*fs->getFileSlot();
+    if (os_spinlock_trylock(&kept->lock))
+    {
+      df_close(kept->fp);
+      os_spinlock_unlock(&kept->lock);
+      os_spinlock_destroy(&kept->lock);
+      memfree(kept, mem);
+    }
+    else // the reader unlocks it later, so it stays
+      logwarn("close_vromfs_pack(%s): an entry opened with df_open() still reads the pack file", fs->getFilePath());
+  }
   memfree(fs, mem);
 }
 
@@ -1636,6 +1668,7 @@ VirtualRomFsSingleFile *VirtualRomFsSingleFile::make_file_link(IMemAlloc *mem, c
   char *inl_relfn = inl_packfn + dest_fn_lenz;
 
   fs->firstPriority = true;
+  fs->isPack = true;
   fs->mtime = -1;
   fs->files.map.init(inl_name, 1);
   fs->data.init(inl_data, 1);
@@ -1675,6 +1708,7 @@ VirtualRomFsSingleFile *VirtualRomFsSingleFile::make_mem_data(IMemAlloc *mem, vo
   char *inl_data_p = inl_relfn + rel_fn_lenz;
 
   fs->firstPriority = true;
+  fs->isPack = true;
   fs->mtime = -1;
   fs->files.map.init(inl_name, 1);
   fs->data.init(inl_data, 1);

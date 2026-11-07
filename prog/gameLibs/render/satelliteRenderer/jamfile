@@ -1,0 +1,19 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../../.. ;
+Module = satelliteRenderer ;
+Location = prog/gameLibs/render/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+local AllSrcFolder_CPP = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP += . ;
+  UseProgLibs = gameLibs/render gameLibs/rendInst ;
+}
+
+include $(Root)/prog/gameLibs/build_module.jam ;

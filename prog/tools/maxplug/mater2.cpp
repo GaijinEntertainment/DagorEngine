@@ -6,6 +6,7 @@
 #include <memory>
 #include <sstream>
 #include <algorithm>
+#include <charconv>
 #include <locale>
 #include <format>
 #include <string_view>
@@ -394,9 +395,9 @@ static std::vector<ParamInfo> get_blk_shader_params(const DataBlock *shaderBlk)
 }
 
 
-static ParamInfo get_param_info(const std::vector<ParamInfo> &shader_params, std::wstring_view classname, std::wstring_view param_name)
+static ParamInfo get_param_info(const std::vector<ParamInfo> &shader_params, std::wstring_view param_name)
 {
-  if (classname.empty() || param_name.empty())
+  if (param_name.empty())
     return ParamInfo();
 
   auto it =
@@ -410,35 +411,35 @@ static ParamInfo get_param_info(const std::vector<ParamInfo> &shader_params, std
   return param;
 }
 
-static DataBlock::ParamType guess_blk_type_by_value(const std::wstring &value)
+static DataBlock::ParamType guess_blk_type_by_value(const std::wstring &value, bool whole_reals = false)
 {
   if (iequal(value, L"yes") || iequal(value, L"true") || iequal(value, L"no") || iequal(value, L"false"))
     return DataBlock::ParamType::TYPE_BOOL;
 
   const std::string narrow = wideToStr(value);
 
-  // an integer type is only guessed when the whole value is consumed, a real one may leave a tail
-  auto whole_value = [&narrow](auto &...v) {
+  // an integer type is only guessed when the whole value is consumed, a real one may leave a tail unless whole_reals
+  auto parsed = [&narrow](bool whole, auto &...v) {
     std::string_view left(narrow);
-    return parse_nums_sep(left, ",", v...) == int(sizeof...(v)) && left.empty();
+    return parse_nums_sep(left, ",", v...) == int(sizeof...(v)) && (!whole || left.empty());
   };
 
   int ix, iy, iz;
-  if (whole_value(ix, iy, iz))
+  if (parsed(true, ix, iy, iz))
     return DataBlock::ParamType::TYPE_IPOINT3;
-  if (whole_value(ix, iy))
+  if (parsed(true, ix, iy))
     return DataBlock::ParamType::TYPE_IPOINT2;
-  if (whole_value(ix))
+  if (parsed(true, ix))
     return DataBlock::ParamType::TYPE_INT;
 
   float x, y, z, w;
-  if (4 == parse_nums(narrow, x, y, z, w))
+  if (parsed(whole_reals, x, y, z, w))
     return DataBlock::ParamType::TYPE_POINT4;
-  if (3 == parse_nums(narrow, x, y, z))
+  if (parsed(whole_reals, x, y, z))
     return DataBlock::ParamType::TYPE_POINT3;
-  if (2 == parse_nums(narrow, x, y))
+  if (parsed(whole_reals, x, y))
     return DataBlock::ParamType::TYPE_POINT2;
-  if (1 == parse_nums(narrow, x))
+  if (parsed(whole_reals, x))
     return DataBlock::ParamType::TYPE_REAL;
 
   return DataBlock::ParamType::TYPE_STRING;
@@ -513,8 +514,7 @@ static std::wstring drop_param_lines(std::wstring_view script, Drop drop)
   return res;
 }
 
-static ParamInfo get_blk_param_info_value(const std::vector<ParamInfo> &shader_params, std::wstring_view line,
-  std::wstring_view classname)
+static ParamInfo get_blk_param_info_value(const std::vector<ParamInfo> &shader_params, std::wstring_view line)
 {
   ParamInfo res;
 
@@ -525,7 +525,7 @@ static ParamInfo get_blk_param_info_value(const std::vector<ParamInfo> &shader_p
   // name itself might contain type: atest:f --> { atest, f }
   const ParamName parsed = split_param_name(*part);
 
-  res = get_param_info(shader_params, classname, parsed.name);
+  res = get_param_info(shader_params, parsed.name);
   if (!parsed.type.empty())
   {
     // the type the line declares wins over the config
@@ -562,7 +562,7 @@ static std::vector<ParamInfo> get_blk_params(const DataBlock *dataBlk, std::wstr
     if (line.empty())
       continue;
 
-    auto param = get_blk_param_info_value(shader_params, line, classname);
+    auto param = get_blk_param_info_value(shader_params, line);
     if (param.name.empty())
       continue;
 
@@ -753,6 +753,7 @@ public:
   bool valid;
   bool isActive;
   bool paramsMirrorScript; // false until RestoreParams() has built the widgets out of the script
+  std::wstring widgetsScript;
   ControlPtr<IColorSwatch> csa, csd, css, cse;
   TexDADMgr dadmgr;
 
@@ -762,6 +763,8 @@ public:
   ToolTipExtender tooltip;
 
   std::vector<std::unique_ptr<AbstractWidget>> parameters;
+  bool shaderFound = false;
+  std::vector<ParamInfo> shaderParams;
 
   fs::path proxyPath;
   FilterList filterList;
@@ -773,6 +776,7 @@ public:
   HWND AddPage(int res_id, DLGPROC proc, const wchar_t *title);
 
   void RestoreParams();
+  std::wstring BuildScript() const;
   void SaveParams();
   void DeleteAllParams();
 
@@ -782,10 +786,11 @@ public:
   void Update2SidedWidget();
   void AddParam(ParamInfo param);
   AbstractWidget *GetParam(std::wstring_view name);
+  void AddParams(const std::vector<std::wstring> &names);
   void RemParam(std::wstring_view name);
   void RemParamGroup(std::wstring_view group_name);
   void SetScript(const std::wstring &script);
-  void MarkUnknownParams(const DataBlock *dataBlk);
+  void MarkParam(AbstractWidget &p);
   void setToolTip(HWND hWnd, const std::wstring &hint, HWND hExclude);
   std::vector<RECT> GetParamGroupRectangles() const;
 
@@ -843,6 +848,7 @@ public:
   float shin;
   float power;
   Color cola, cold, cols, cole;
+  bool useTexAlpha = false;
   Sides twosided;
   std::wstring classname, script;
   DagorMat2PostLoadCallback postLoadCallback;
@@ -850,6 +856,7 @@ public:
   DagorMat2(BOOL loading);
   ~DagorMat2() override;
   void NotifyChanged();
+  void NotifyScriptChanged();
   void ClearDlg(Dagormat2Dialog *d)
   {
     if (dlg == d)
@@ -944,7 +951,7 @@ public:
   void ActivateTexDisplay(BOOL onoff) override;
   void DiscardTexHandles();
   void updateViewportTexturesState();
-  bool hasAlpha();
+  bool hasAlpha() const;
 };
 
 void Dagormat2Dialog::setToolTip(HWND hWnd, const std::wstring &hint, HWND hExclude)
@@ -1194,16 +1201,7 @@ static INT_PTR CALLBACK ParamDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
         std::wstring shader = dlg->GetShaderName();
         NewParameterDialog new_par(dlg, shader);
         if (new_par.DoModal() == IDOK)
-        {
-          const auto &names = new_par.GetNewParamNames();
-          const std::vector<ParamInfo> shader_params = get_blk_shader_params(get_blk_shader(get_shared_blk(), shader));
-          for (const auto &name : names)
-          {
-            const ParamInfo param = get_param_info(shader_params, shader, name);
-            append_param_line(dlg->theMtl->script, param.name, param.value);
-          }
-          dlg->RestoreParams();
-        }
+          dlg->AddParams(new_par.GetNewParamNames());
       }
       else if (wParam == MAKEWPARAM(IDC_PARAM_DELETE_ALL, BN_CLICKED) &&
                MessageBox(hWnd, L"Delete all parameters? Are you sure?", L"Delete all", MB_ICONQUESTION | MB_YESNO) == IDYES)
@@ -1370,7 +1368,7 @@ static INT_PTR CALLBACK ProxyDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
 
 const TCHAR *Dagormat2Dialog::defaultExtension = L"proxymat.blk";
 
-// constraint: the destructor detaches only the pages recorded here, so a page added elsewhere keeps a dangling dialog pointer
+// the destructor detaches only the pages recorded here, so a page added elsewhere keeps a dangling dialog pointer
 HWND Dagormat2Dialog::AddPage(int res_id, DLGPROC proc, const wchar_t *title)
 {
   HWND page = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(res_id), proc, title, (LPARAM)this);
@@ -1408,98 +1406,81 @@ Dagormat2Dialog::~Dagormat2Dialog()
   DeleteObject(hFramePen);
 }
 
-void Dagormat2Dialog::MarkUnknownParams(const DataBlock *dataBlk)
+void Dagormat2Dialog::MarkParam(AbstractWidget &p)
 {
-  if (!dataBlk)
+  if (!shaderFound || !p.hasWindow())
     return;
 
-  std::wstring shader_name = GetShaderName();
-  if (shader_name.empty())
-    return;
+  HWND hDel = GetDlgItem(p.hPanel, IDC_PARAM_DELETE);
 
-  const DataBlock *shader_blk = get_blk_shader(dataBlk, shader_name);
-  if (!shader_blk)
-    return;
-
-  std::vector<ParamInfo> params = get_blk_shader_params(shader_blk);
-
-  for (auto &p : parameters)
+  if (p.param.is_group)
   {
-    if (!p->hasWindow())
-      continue;
+    tooltip.SetToolTip(hDel, (L"Delete group " + p.param.name).data());
+    return;
+  }
+  tooltip.SetToolTip(hDel, (L"Delete parameter " + p.param.name).data());
 
-    HWND hDel = GetDlgItem(p->hPanel, IDC_PARAM_DELETE);
+  auto it = std::ranges::find_if(shaderParams, [&p](const ParamInfo &p_i) { return !p_i.is_group && iequal(p_i.name, p.param.name); });
 
-    if (p->param.is_group)
+  // known parameter
+  if (it != shaderParams.end())
+  {
+    std::wstring hint = it->name;
+
+    if (!it->description.empty())
     {
-      tooltip.SetToolTip(hDel, (L"Delete group " + p->param.name).data());
-      continue;
+      hint += L"\n";
+      hint += it->description;
+    }
+
+    if (it->def_enabled)
+    {
+      hint += L"\nDefault: ";
+      hint += it->def;
     }
     else
-      tooltip.SetToolTip(hDel, (L"Delete parameter " + p->param.name).data());
+      hint += L"\nDefault is unknown";
 
-    auto it = std::ranges::find_if(params, [&p](ParamInfo &p_i) { return iequal(p_i.name, p->param.name); });
-
-    // known parameter
-    if (it != params.end())
+    if (it->soft_min_enabled || it->soft_max_enabled)
     {
-      std::wstring hint = it->name;
+      hint += L"\nExpected range: [";
 
-      if (!it->description.empty())
+      if (it->soft_min_enabled)
       {
-        hint += L"\n";
-        hint += it->description;
+        if (it->isInt())
+          hint += std::to_wstring(int(it->soft_min));
+        else
+          hint += std::to_wstring(it->soft_min);
       }
 
-      if (it->def_enabled)
+      hint += L"..";
+
+      if (it->soft_max_enabled)
       {
-        hint += L"\nDefault: ";
-        hint += it->def;
-      }
-      else
-        hint += L"\nDefault is unknown";
-
-      if (it->soft_min_enabled || it->soft_max_enabled)
-      {
-        hint += L"\nExpected range: [";
-
-        if (it->soft_min_enabled)
-        {
-          if (it->isInt())
-            hint += std::to_wstring(int(it->soft_min));
-          else
-            hint += std::to_wstring(it->soft_min);
-        }
-
-        hint += L"..";
-
-        if (it->soft_max_enabled)
-        {
-          if (it->isInt())
-            hint += std::to_wstring(int(it->soft_max));
-          else
-            hint += std::to_wstring(it->soft_max);
-        }
-
-        hint += L"]";
-
-        WidgetNumeric *wn = dynamic_cast<WidgetNumeric *>(p.get());
-        if (wn && wn->isOutOfRange())
-          hint += L"\nOUT OF RANGE!";
+        if (it->isInt())
+          hint += std::to_wstring(int(it->soft_max));
+        else
+          hint += std::to_wstring(it->soft_max);
       }
 
-      setToolTip(p->hPanel, hint, hDel);
-      continue;
+      hint += L"]";
+
+      WidgetNumeric *wn = dynamic_cast<WidgetNumeric *>(&p);
+      if (wn && wn->isOutOfRange())
+        hint += L"\nOUT OF RANGE!";
     }
 
-    // unknown parameter
-    if (p->hSType)
-      ::SetWindowText(p->hSType, (L'*' + p->param.name).data());
-
-    std::wstringstream ss;
-    ss << p->param.name << _T("\n*not specified in the shader\n") << shader_name;
-    setToolTip(p->hPanel, ss.str(), hDel);
+    setToolTip(p.hPanel, hint, hDel);
+    return;
   }
+
+  // unknown parameter
+  if (p.hSType)
+    ::SetWindowText(p.hSType, (L'*' + p.param.name).data());
+
+  std::wstringstream ss;
+  ss << p.param.name << L"\n*not specified in the shader\n" << theMtl->classname.data();
+  setToolTip(p.hPanel, ss.str(), hDel);
 }
 
 
@@ -1567,13 +1548,12 @@ static std::optional<ParamInfo> find_param_info(const std::vector<ParamInfo> &pa
   return std::nullopt;
 }
 
-static std::vector<ParamInfo> get_script_params(const std::vector<ParamInfo> &shader_params, std::wstring_view classname,
-  std::wstring_view script)
+static std::vector<ParamInfo> get_script_params(const std::vector<ParamInfo> &shader_params, std::wstring_view script)
 {
   std::vector<ParamInfo> params;
   for (const std::wstring &line : split(simplifyRN(script), L'\n'))
     if (!line.empty())
-      params.emplace_back(get_blk_param_info_value(shader_params, line, classname));
+      params.emplace_back(get_blk_param_info_value(shader_params, line));
 
   return params;
 }
@@ -1640,7 +1620,10 @@ void Dagormat2Dialog::RestoreParams()
 {
   parameters.clear();
   paramsMirrorScript = false;
+  widgetsScript.clear();
   tooltip.RemoveToolTips();
+  shaderFound = false;
+  shaderParams.clear();
 
   std::wstring shader_name = theMtl->classname.data();
   if (shader_name.empty())
@@ -1650,10 +1633,12 @@ void Dagormat2Dialog::RestoreParams()
 
   // get list of shader parameters (including group names)
   const DataBlock *shader_blk = get_blk_shader(get_shared_blk(), shader_name);
-  std::vector<ParamInfo> all_params = get_blk_shader_params(shader_blk);
+  shaderFound = shader_blk != nullptr;
+  shaderParams = get_blk_shader_params(shader_blk);
 
-  const std::vector<ParamInfo> script_params = get_script_params(all_params, shader_name, theMtl->script);
+  const std::vector<ParamInfo> script_params = get_script_params(shaderParams, theMtl->script);
 
+  const IDagorMat::Sides sides = theMtl->twosided;
   // "real_two_sided" is treated as a radio button
   for (const ParamInfo &param : script_params)
     if (iequal(param.name, REAL_TWO_SIDED))
@@ -1667,7 +1652,7 @@ void Dagormat2Dialog::RestoreParams()
     }
 
   for_each_material_param(
-    all_params, script_params,
+    shaderParams, script_params,
     [this](const ParamInfo &group) { parameters.emplace_back(std::unique_ptr<WidgetGroup>(new WidgetGroup(group, this))); },
     [this](ParamInfo param, const ParamInfo &group) {
       param.parent = group.name;
@@ -1676,9 +1661,12 @@ void Dagormat2Dialog::RestoreParams()
     });
 
   paramsMirrorScript = true;
-  SaveParams();
+  widgetsScript = BuildScript();
+  if (theMtl->twosided != sides)
+    theMtl->NotifyChanged();
   DialogsReposition();
-  MarkUnknownParams(get_shared_blk());
+  for (auto &p : parameters)
+    MarkParam(*p);
 }
 
 // an emptied list stands for the whole script on purpose, unlike one RestoreParams() never filled,
@@ -1691,19 +1679,12 @@ void Dagormat2Dialog::DeleteAllParams()
   RestoreParams();
 }
 
-void Dagormat2Dialog::SaveParams()
+std::wstring Dagormat2Dialog::BuildScript() const
 {
-  // the widgets only stand for the whole script once RestoreParams() has run through. Writing them
-  // back before that would cut the script down to whatever few of them exist.
-  if (!paramsMirrorScript)
-    return;
-
   std::wstring buffer;
 
-  for (size_t i = 0; i < parameters.size(); ++i)
+  for (const std::unique_ptr<AbstractWidget> &p : parameters)
   {
-    AbstractWidget *p = parameters[i].get();
-
     if (!p || p->param.is_group || p->param.name.empty())
       continue;
 
@@ -1711,10 +1692,24 @@ void Dagormat2Dialog::SaveParams()
     append_param_line(buffer, p->param.name_with_type(), p->param.value);
   }
 
-  buffer += (theMtl->twosided == IDagorMat::Sides::RealDoubleSided) ? _T("real_two_sided=yes\r\n") : _T("real_two_sided=no\r\n");
+  buffer += (theMtl->twosided == IDagorMat::Sides::RealDoubleSided) ? L"real_two_sided=yes\r\n" : L"real_two_sided=no\r\n";
+  return buffer;
+}
 
-  theMtl->script = buffer.c_str();
-  theMtl->NotifyChanged();
+void Dagormat2Dialog::SaveParams()
+{
+  // the widgets only stand for the whole script once RestoreParams() has run through. Writing them
+  // back before that would cut the script down to whatever few of them exist.
+  if (!paramsMirrorScript)
+    return;
+
+  std::wstring buffer = BuildScript();
+  if (buffer == widgetsScript)
+    return;
+
+  widgetsScript = std::move(buffer);
+  theMtl->script = widgetsScript;
+  theMtl->NotifyScriptChanged();
 }
 
 int Dagormat2Dialog::FindSubTexFromHWND(HWND hw)
@@ -1788,9 +1783,24 @@ void Dagormat2Dialog::AddParam(ParamInfo param)
 AbstractWidget *Dagormat2Dialog::GetParam(std::wstring_view name)
 {
   for (auto &p : parameters)
-    if (iequal(p->param.name, name))
+    if (!p->param.is_group && iequal(p->param.name, name))
       return p.get();
   return nullptr;
+}
+
+void Dagormat2Dialog::AddParams(const std::vector<std::wstring> &names)
+{
+  const std::wstring shader = GetShaderName();
+  const std::vector<ParamInfo> shader_params = get_blk_shader_params(get_blk_shader(get_shared_blk(), shader));
+  std::wstring script = theMtl->script;
+  if (!script.empty() && script.back() != L'\n')
+    script += L"\r\n";
+  for (const std::wstring &name : names)
+  {
+    const ParamInfo param = get_param_info(shader_params, name);
+    append_param_line(script, param.name, param.value);
+  }
+  SetScript(script);
 }
 
 void Dagormat2Dialog::RemParam(std::wstring_view name)
@@ -1810,7 +1820,7 @@ void Dagormat2Dialog::RemParamGroup(std::wstring_view group_name)
 void Dagormat2Dialog::SetScript(const std::wstring &script)
 {
   theMtl->script = script;
-  theMtl->NotifyChanged();
+  theMtl->NotifyScriptChanged();
   RestoreParams();
 }
 
@@ -2071,7 +2081,7 @@ void DagorMat2::Shade(ShadeContext &sc)
   {
     AColor mc = texmaps->texmap[0]->EvalColor(sc);
 
-    if (!hasAlpha())
+    if (!useTexAlpha)
       mc.a = 1.f;
 
     Color c(mc.r * mc.a, mc.g * mc.a, mc.b * mc.a);
@@ -2098,9 +2108,18 @@ void DagorMat2::ActivateTexDisplay(BOOL onoff)
 }
 
 
-bool DagorMat2::hasAlpha()
+bool DagorMat2::hasAlpha() const
 {
-  return (script.find(L"atest") != std::wstring::npos) || (classname.find(L"alpha") != std::wstring::npos);
+  if (classname.find(L"alpha") != std::wstring::npos)
+    return true;
+
+  for (const std::wstring &line : split(simplifyRN(script), L'\n'))
+  {
+    const std::optional<std::wstring_view> part = param_line_name(line);
+    if (part && iequal(split_param_name(*part).name, L"atest"))
+      return wcstol(line.c_str() + part->size() + 1, nullptr, 0) >= 1;
+  }
+  return false;
 }
 
 
@@ -2211,6 +2230,7 @@ void DagorMat2::Update(TimeValue t, Interval &valid)
   pblock->GetValue(PB_EMIS, t, cole, ivalid);
   pblock->GetValue(PB_SHIN, t, shin, ivalid);
   power = powf(2.0f, shin / 10.0f) * 4.0f;
+  useTexAlpha = hasAlpha();
   valid &= ivalid;
 }
 
@@ -2457,9 +2477,14 @@ IOResult DagorMat2::Load(ILoad *iload)
 
 void DagorMat2::NotifyChanged()
 {
+  NotifyScriptChanged();
+  DiscardTexHandles();
+}
+
+void DagorMat2::NotifyScriptChanged()
+{
   updateViewportTexturesState();
   NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
-  DiscardTexHandles();
 }
 
 void DagorMat2::SetAmbient(Color c, TimeValue t)
@@ -2575,7 +2600,7 @@ void DagorMat2::enumerate_parameters(EnumParamCB &cb)
   const DataBlock *shader_blk = get_blk_shader(get_shared_blk(), shader_name);
   std::vector<ParamInfo> all_params = get_blk_shader_params(shader_blk);
 
-  const std::vector<ParamInfo> script_params = get_script_params(all_params, shader_name, script);
+  const std::vector<ParamInfo> script_params = get_script_params(all_params, script);
 
   for_each_material_param(
     all_params, script_params, [](const ParamInfo &) {},
@@ -2657,7 +2682,7 @@ void DagorMat2::set_script(const TCHAR *s)
     script = s;
   else
     script = _T("");
-  NotifyChanged();
+  NotifyScriptChanged();
   RestoreDialogParams();
 }
 
@@ -2860,6 +2885,9 @@ bool NewParameterDialog::GetAndVerifyParamName()
     if (parent->GetParam(name))
       err = _T("Name already exists");
 
+    if (iequal(name, REAL_TWO_SIDED))
+      err = L"real_two_sided is set by the real2sided button, not by a parameter";
+
     if (err)
     {
       MessageBox(hWnd, err, _T("Error"), MB_OK | MB_ICONSTOP);
@@ -2880,18 +2908,22 @@ bool NewParameterDialog::GetAndVerifyParamName()
 
   std::vector<std::wstring> verified;
   verified.reserve(selected.size());
+  auto verify = [this, &verified](const std::wstring &name) {
+    if (!parent->GetParam(name) && std::ranges::find(verified, name) == verified.end())
+      verified.emplace_back(name);
+  };
 
   // any selected parameters
   for (const auto &param : shader_params)
-    if (!param.is_group && is_selected(param.name) && !parent->GetParam(param.name))
-      verified.emplace_back(param.name);
+    if (!param.is_group && is_selected(param.name))
+      verify(param.name);
 
   // override with grouped parameters
   for (const auto &param : shader_params)
     if (param.is_group && is_selected(mangled_category_name(1, param.name)))
       for (const auto &p : shader_params)
-        if (p.parent == param.name && !parent->GetParam(p.name))
-          verified.emplace_back(p.name);
+        if (p.parent == param.name)
+          verify(p.name);
 
   if (verified.empty())
   {
@@ -3288,7 +3320,6 @@ INT_PTR WidgetNumeric::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
       SetValue(param.value);
       InvalidateRect(hWnd, NULL, TRUE);
       UpdateWindow(hWnd);
-      parent->MarkUnknownParams(get_shared_blk());
       break;
 
     case WM_COMMAND:
@@ -3328,7 +3359,7 @@ INT_PTR WidgetNumeric::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
         GetValue();
         InvalidateRect(hWnd, NULL, TRUE);
         UpdateWindow(hWnd);
-        parent->MarkUnknownParams(get_shared_blk());
+        parent->MarkParam(*this);
       }
       break;
 
@@ -3548,7 +3579,9 @@ std::wstring normalize_value(std::wstring_view v)
 
   for (T t; iss >> t;)
   {
-    oss << t;
+    char buf[32];
+    const std::to_chars_result res = std::to_chars(buf, buf + sizeof(buf), t);
+    oss << std::wstring(buf, res.ptr);
 
     while (iss.peek() == L' ')
       iss.ignore();
@@ -3571,7 +3604,7 @@ static std::wstring normalize_param(DataBlock::ParamType type, std::wstring_view
   // a parameter declared as text may still hold a number, and "1, 2" has to normalize the same way
   // whatever it was declared as. Text that is not a number stays text.
   if (type == DataBlock::ParamType::TYPE_STRING)
-    type = guess_blk_type_by_value(value);
+    type = guess_blk_type_by_value(value, true);
 
   switch (type)
   {

@@ -133,7 +133,7 @@ static const int c_NodePinChannel            = 3;
 static const int c_NodeContentChannel        = 4;
 
 static const float c_GroupSelectThickness       = 6.0f;  // canvas pixels
-static const float c_LinkSelectThickness        = 5.0f;  // canvas pixels
+static const float c_LinkSelectThickness        = 5.0f;  // screen pixels
 static const float c_NavigationZoomMargin       = 0.1f;  // percentage of visible bounds
 static const float c_MouseZoomDuration          = 0.15f; // seconds
 static const float c_SelectionFadeOutDuration   = 0.15f; // seconds
@@ -515,7 +515,12 @@ static void ImDrawList_AddDashedBezier(ImDrawList* drawList, const ImCubicBezier
             const bool  on    = phase < dash_size;
             const float step  = ImMin(on ? (dash_size - phase) : (period - phase), segLength - done);
             if (on)
-                drawList->AddLine(prev + delta * (done / segLength), prev + delta * ((done + step) / segLength), color, thickness);
+            // MODIFICATION BY GAIJIN: AddLine snaps by +0.5 in canvas units, which shifts dashes off the curve when zoomed in.
+            {
+                drawList->PathLineTo(prev + delta * (done / segLength));
+                drawList->PathLineTo(prev + delta * ((done + step) / segLength));
+                drawList->PathStroke(color, ImDrawFlags_None, thickness);
+            }
             done   += step;
             walked += step;
         }
@@ -1040,17 +1045,25 @@ bool ed::Link::TestHit(const ImVec2& point, float extraThickness) const
     if (!m_IsLive)
         return false;
 
-    auto bounds = GetBounds();
-    if (extraThickness > 0.0f)
-        bounds.Expand(extraThickness);
+    const auto maxDistance = m_Thickness + extraThickness;
 
-    if (!bounds.Contains(point))
+    auto bounds = GetBounds();
+    bounds.Expand(maxDistance);
+    if (point.x < bounds.Min.x || point.y < bounds.Min.y || point.x > bounds.Max.x || point.y > bounds.Max.y)
         return false;
 
-    const auto bezier = GetCurve();
-    const auto result = ImProjectOnCubicBezier(point, bezier.P0, bezier.P1, bezier.P2, bezier.P3, 50);
+    return GetDistance(point) <= maxDistance;
+}
 
-    return result.Distance <= m_Thickness + extraThickness;
+// MODIFICATION BY GAIJIN: distance to the polyline AddBezierCubic draws; its sample count adapts to the link length.
+float ed::Link::GetDistance(const ImVec2& point) const
+{
+    const auto bezier = GetCurve();
+    if (bezier.P0 == bezier.P3) // ImBezierCubicClosestPointCasteljau records no point on a zero-length curve and returns (0,0)
+        return ImLength(point - bezier.P0);
+    const auto closest = ImBezierCubicClosestPointCasteljau(bezier.P0, bezier.P1, bezier.P2, bezier.P3, point, ImGui::GetStyle().CurveTessellationTol);
+
+    return ImLength(point - closest);
 }
 
 bool ed::Link::TestHit(const ImRect& rect, bool allowIntersect) const
@@ -2329,11 +2342,24 @@ void ed::EditorContext::MakeDirty(SaveReasonFlags reason, Node* node)
 
 ed::Link* ed::EditorContext::FindLinkAt(const ImVec2& p)
 {
+    const auto extraThickness = c_LinkSelectThickness * GetView().InvScale;
+    // MODIFICATION BY GAIJIN: where hit bands overlap, the link nearest to the point wins.
+    Link* nearestLink = nullptr;
+    float nearestDistance = FLT_MAX;
     for (auto& link : m_Links)
-        if (link->TestHit(p, c_LinkSelectThickness))
-            return link;
+    {
+        if (!link->TestHit(p, extraThickness))
+            continue;
 
-    return nullptr;
+        const auto distance = link->GetDistance(p);
+        if (distance < nearestDistance)
+        {
+            nearestLink     = link;
+            nearestDistance = distance;
+        }
+    }
+
+    return nearestLink;
 }
 
 ImU32 ed::EditorContext::GetColor(StyleColor colorIndex) const

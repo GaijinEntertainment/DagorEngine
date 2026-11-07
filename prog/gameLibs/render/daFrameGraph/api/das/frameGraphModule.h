@@ -13,6 +13,7 @@
 #include <frontend/internalRegistry.h>
 #include <api/das/genericBindings/relocatableFixedVector.h>
 #include <api/das/genericBindings/optional.h>
+#include <api/das/genericBindings/variant.h>
 #include <api/das/genericBindings/fixedVectorSet.h>
 #include <api/das/genericBindings/fixedVectorMap.h>
 #include <api/das/genericBindings/idHierarchicalNameMap.h>
@@ -79,6 +80,17 @@ MAKE_TYPE_FACTORY(VrsStateRequirements, dafg::VrsStateRequirements)
 MAKE_TYPE_FACTORY(VirtualSubresourceRef, dafg::VirtualSubresourceRef)
 MAKE_TYPE_FACTORY(Binding, dafg::Binding)
 MAKE_TYPE_FACTORY(nullopt, eastl::nullopt_t)
+
+namespace das
+{
+template <>
+struct VariantBinding<dafg::RenderingRequirements>
+{
+  static constexpr const char *name = "RenderingRequirements";
+  static constexpr const char *cppName = "dafg::RenderingRequirements";
+  static constexpr const char *alternatives[] = {"none", "virtualPass"};
+};
+} // namespace das
 
 using NodeHandleVector = dag::Vector<dafg::NodeHandle>;
 DAS_BIND_VECTOR(NodeHandleVector, NodeHandleVector, dafg::NodeHandle, "::dag::Vector<dafg::NodeHandle>")

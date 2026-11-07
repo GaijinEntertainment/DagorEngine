@@ -36,7 +36,7 @@ shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
   if (gi_quality != off)
   {
     USE_IN_FRUSTUM_GI(ps)
-    hlsl {
+    hlsl(ps) {
       #define GLASS_USE_GI 1
     }
   }

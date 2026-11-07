@@ -2820,7 +2820,10 @@ namespace das {
                 if (expr->typeexpr->isStructure()) {
                     auto decl = expr->typeexpr->structType->findField(expr->subtrait);
                     // NOTE: we do need to check if its fully sealed here
-                    if (expr->typeexpr->isFullySealed()) {
+                    if (!decl) {
+                        error("typeinfo(offsetof<" + expr->subtrait + "> ...) field not found, " + describeType(expr->typeexpr), "", "",
+                              expr->at, CompilationError::lookup_structure_field);
+                    } else if (expr->typeexpr->isFullySealed()) {
                         reportAstChanged();
                         return new ExprConstInt(expr->at, decl->offset);
                     } else {

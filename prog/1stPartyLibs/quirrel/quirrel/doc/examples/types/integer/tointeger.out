@@ -1,3 +1,3 @@
 (42).tointeger() = 42
-(42).tointeger(16) throws: wrong number of parameters passed to native closure 'tointeger' (2 passed, 1 required)
+n.tointeger(16) throws: wrong number of parameters passed to native closure 'tointeger' (2 passed, 1 required)
 "2A".tointeger(16) = 42

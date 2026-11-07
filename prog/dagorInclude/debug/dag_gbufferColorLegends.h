@@ -41,12 +41,12 @@ static const Tab<eastl::pair<const char *, E3DCOLOR>> debugMeshLegend = {
   {"LEVEL: 6", E3DCOLOR_MAKE(255, 0, 255, 255)},
 };
 
-inline void renderColorLegend(const Tab<eastl::pair<const char *, E3DCOLOR>> &values)
+inline void renderColorLegend(const Tab<eastl::pair<const char *, E3DCOLOR>> &values, float x = 100)
 {
   for (int i = 0; i < values.size(); i++)
   {
     const eastl::pair<const char *, E3DCOLOR> &entry = values[i];
-    add_debug_text_mark(100, 50, entry.first, -1, i * 2, entry.second);
+    add_debug_text_mark(x, 50, entry.first, -1, i * 2, entry.second);
   }
 }
 }; // namespace gbuffer_debug_color_legends

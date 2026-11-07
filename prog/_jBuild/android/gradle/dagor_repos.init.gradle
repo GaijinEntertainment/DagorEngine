@@ -1,0 +1,92 @@
+// Gradle init script for dagor builds, passed by android/clang-link.jam.
+// Selects the repositories that gradle takes libraries and plugins from
+// (jam GradleLibAllowDownload, -PDAGOR_GRADLE_ALLOW_DOWNLOAD):
+//   no (default) - only the local maven repo DAGOR_GRADLE_LIBS_DIR
+//                  (devtools/android_libs); all other repositories of
+//                  build.gradle, root.gradle and project.gradle are removed
+//   yes          - the repositories of the build, then DAGOR_GRADLE_LIBS_DIR
+//                  (when present) for the libraries that they do not have;
+//                  the module versions listed in its dagor_complete_modules.txt
+//                  (written by export_gradle_libs.py) come only from
+//                  DAGOR_GRADLE_LIBS_DIR, so a failing remote repository (5xx,
+//                  timeout) does not break them; a listed version whose
+//                  files are not in DAGOR_GRADLE_LIBS_DIR any more is skipped
+//                  with a warning and comes from the remote repositories
+// The same applies to buildscript {} repositories (AGP and other plugins) and
+// to the plugins {} block repositories.
+// An init script is used so that game root.gradle files need no change.
+
+def props = gradle.startParameter.projectProperties
+def libsDirPath = props['DAGOR_GRADLE_LIBS_DIR']
+def allowDownload = props['DAGOR_GRADLE_ALLOW_DOWNLOAD'] == 'yes'
+def libsDir = libsDirPath ? new File(libsDirPath) : null
+def localRepoName = 'dagorPrebuiltLibs'
+
+def completeVersions = []
+def completeList = libsDir ? new File(libsDir, 'dagor_complete_modules.txt') : null
+if (allowDownload && completeList?.isFile()) {
+  def entries = [:]
+  def files = null
+  completeList.readLines().each { line ->
+    if (!line.trim())
+      return
+    if (Character.isWhitespace(line.charAt(0)))
+      files?.add(line.trim())
+    else if (line.trim().split(':').size() == 3) {
+      files = []
+      entries[line.trim()] = files
+    } else
+      files = null
+  }
+  def fixHint = "to fix the list run export_gradle_libs.py --update-metadata ${libsDir}"
+  def unverified = 0
+  entries.each { gav, names ->
+    def (g, a, v) = gav.split(':').toList()
+    def dir = new File(libsDir, "${g.replace('.', '/')}/${a}/${v}")
+    def missing = names.findAll { !new File(dir, it).isFile() }
+    if (!names)
+      unverified++
+    else if (!missing)
+      completeVersions << [g, a, v]
+    else
+      logger.quiet("warning: ${completeList.name} lists ${gav}, but ${missing.join(', ')} not found in ${libsDir}, " +
+                   "so it is taken from the remote repositories; ${fixHint}")
+  }
+  if (unverified)
+    logger.quiet("warning: ${completeList.name} lists ${unverified} version(s) without their file names, " +
+                 "so they are taken from the remote repositories; ${fixHint}")
+}
+
+def setupRepos = { RepositoryHandler repos, boolean addPluginPortal ->
+  def localRepo = null
+  if (libsDir?.isDirectory())
+    localRepo = repos.maven { name = localRepoName; url = libsDir.toURI() }
+  if (allowDownload) {
+    if (localRepo != null) {
+      repos.all { ArtifactRepository repo ->
+        if (repo.name != localRepoName) {
+          repos.remove(localRepo)
+          repos.addLast(localRepo)
+          if (completeVersions)
+            repo.content { c -> completeVersions.each { v -> c.excludeVersion(v[0], v[1], v[2]) } }
+        }
+      }
+    }
+    if (addPluginPortal)
+      repos.gradlePluginPortal()
+    return
+  }
+  repos.all { ArtifactRepository repo ->
+    if (repo.name != localRepoName)
+      repos.remove(repo)
+  }
+}
+
+beforeSettings { settings ->
+  setupRepos(settings.pluginManagement.repositories, true)
+}
+
+allprojects { project ->
+  setupRepos(project.buildscript.repositories, false)
+  setupRepos(project.repositories, false)
+}

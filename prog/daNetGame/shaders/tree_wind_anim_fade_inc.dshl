@@ -1,0 +1,24 @@
+// The fade is a linear function of the distance, so the vertex shader does one mad: weight = saturate(dist * x + y).
+// A distance of 0 means no fade and encodes as (0, 1).
+macro INIT_TREE_WIND_ANIM_FADE(stage)
+  (stage) {
+    tree_wind_anim_fade@f2 = (fsel(-tree_wind_anim_distance, 0, -1 / max(tree_wind_anim_fade_range, 0.001)),
+      fsel(-tree_wind_anim_distance, 1, 1 + tree_wind_anim_distance / max(tree_wind_anim_fade_range, 0.001)), 0, 0);
+    dagdp_wind_anim_fade@f2 = (fsel(-dagdp_wind_anim_distance, 0, -1 / max(dagdp_wind_anim_fade_range, 0.001)),
+      fsel(-dagdp_wind_anim_distance, 1, 1 + dagdp_wind_anim_distance / max(dagdp_wind_anim_fade_range, 0.001)), 0, 0);
+  }
+endmacro
+
+macro USE_TREE_WIND_ANIM_FADE(stage)
+  hlsl(stage) {
+    float get_wind_anim_weight(float dist_to_instance, float2 fade)
+    {
+      return saturate(dist_to_instance * fade.x + fade.y);
+    }
+
+    float get_tree_wind_anim_weight(float dist_to_instance)
+    {
+      return get_wind_anim_weight(dist_to_instance, tree_wind_anim_fade);
+    }
+  }
+endmacro

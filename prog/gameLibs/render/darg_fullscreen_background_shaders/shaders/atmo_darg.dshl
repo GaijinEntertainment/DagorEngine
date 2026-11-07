@@ -1,0 +1,30 @@
+include "darg_shader_inc.dshl"
+
+shader atmo_embers, atmo_ash, atmo_dust, atmo_fog, atmo_smoke, atmo_rain
+{
+  DARG_PIXEL_SHADER_SETUP()
+
+  if (shader == atmo_embers) { hlsl(ps) {
+    #include "atmo_embers_darg.hlsl"
+  }}
+  if (shader == atmo_ash) { hlsl(ps) {
+    #include "atmo_ash_darg.hlsl"
+  }}
+  if (shader == atmo_dust) { hlsl(ps) {
+    #include "atmo_dust_darg.hlsl"
+  }}
+  if (shader == atmo_fog) { hlsl(ps) {
+    #include "atmo_fog_darg.hlsl"
+  }}
+  if (shader == atmo_smoke) { hlsl(ps) {
+    #include "atmo_smoke_darg.hlsl"
+  }}
+  if (shader == atmo_rain) { hlsl(ps) {
+    #include "atmo_rain_darg.hlsl"
+  }}
+
+  hlsl(ps) {
+    float4 main_ps(VsOutput input) : SV_Target { return darg_ps(input.texcoord); }
+  }
+  compile("target_ps", "main_ps");
+}

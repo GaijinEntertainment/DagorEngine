@@ -94,7 +94,7 @@ bool ConsoleProcessorFunctionAnnotation::processCommand(const char *argv[], int 
     {
       callFunction(func.second, funcArgs);
       for (const ConsoleProcessorHint &hint : hints)
-        console::collector_cmp(argv[0], argc, hint.name.c_str(), hint.minArgs, hint.maxArgs, hint.description.c_str(),
+        console::collector_cmp(argv[0], argc, hint.name.c_str(), hint.minArgs + 1, hint.maxArgs + 1, hint.description.c_str(),
           hint.argsDescription.c_str());
       hints.clear();
     }

@@ -558,7 +558,11 @@ bool str_matches_wildcard_pattern(const char *text, const char *pattern)
     {
       case 0: return !*text;
 
-      case '?': ++text; break;
+      case '?':
+        if (!*text)
+          return false;
+        ++text;
+        break;
 
       case '*':
         while (*++pattern == '*')

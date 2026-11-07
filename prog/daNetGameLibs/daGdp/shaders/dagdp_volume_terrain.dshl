@@ -169,7 +169,8 @@ shader dagdp_volume_terrain_place_stage0, dagdp_volume_terrain_place_stage1
 
       float dist = localVolumeDistance(localPos - volumeVariant.distBasedCenter, volume.volumeType);
       float scaleFactor = lerp(volumeVariant.distBasedScale.x, volumeVariant.distBasedScale.y, dist * volumeVariant.distBasedInvRange);
-      finishPlacement(tId.y, stablePos, pd, placeableIndex, placeable, variant, scaleFactor);
+      finishPlacement(tId.y, stablePos, pd, placeableIndex, placeable, variant, scaleFactor,
+        getInstanceExtraIfPlaceable(placeableIndex, pd.position));
     }
   }
   compile("target_cs", "main");

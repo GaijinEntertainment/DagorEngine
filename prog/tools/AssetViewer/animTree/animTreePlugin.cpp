@@ -127,6 +127,12 @@ int AnimTreePlugin::showYesNoCancelBox(const char *title, const char *text)
   return PropPanel::DIALOG_ID_CANCEL;
 }
 
+bool AnimTreePlugin::canSelectInGraph() { return false; }
+
+void AnimTreePlugin::selectInGraph(const char *name) { G_UNUSED(name); }
+
+bool AnimTreePlugin::canPlayAnimation() { return true; }
+
 void AnimTreePlugin::setSelectedA2dName(const char *name) { animPlayer.setSelectedA2dName(name); }
 
 void AnimTreePlugin::resetSelectedA2dName() { animPlayer.resetSelectedA2dName(); }

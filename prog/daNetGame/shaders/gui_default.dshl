@@ -586,17 +586,17 @@ shader gui_default
         PsOutput ret;
       ##if (hdr_ps_output_mode != sdr_only)
         ##if mask_tex != NULL
-          ret.hdr_result = input.linearCol * mask;
+          ret.hdr_result = saturate(input.linearCol) * mask;
         ##else
-          ret.hdr_result = input.linearCol;
+          ret.hdr_result = saturate(input.linearCol);
         ##endif
       ##endif
 
       ##if (hdr_ps_output_mode == sdr_only) || (hdr_ps_output_mode == hdr10_and_sdr)
         ##if mask_tex != NULL
-          ret.sdr_result = input.col * mask;
+          ret.sdr_result = saturate(input.col) * mask;
         ##else
-          ret.sdr_result = input.col;
+          ret.sdr_result = saturate(input.col);
         ##endif
 
         ret.sdr_result.rgb = apply_shader_gamma_gui(ret.sdr_result.rgb, ret.sdr_result.a);

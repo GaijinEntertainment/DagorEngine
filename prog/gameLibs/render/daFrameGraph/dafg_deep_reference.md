@@ -71,7 +71,7 @@ NodeData {
   FixedVectorMap<ResNameId, ResourceRequest> resourceRequests;
   FixedVectorMap<ResNameId, ResourceRequest> historyResourceReadRequests;
 
-  optional<VirtualPassRequirements> renderingRequirements;
+  RenderingRequirements renderingRequirements;
   variant<monostate, DispatchRequirements, DrawRequirements, CopyRequirements> executeRequirements;
   BindingsMap bindings;               // shader var ID -> Binding
   ShaderBlockLayersInfo shaderBlockLayers;
@@ -81,11 +81,13 @@ NodeData {
 
 ### intermediate::Graph (`backend/intermediateRepresentation.h`)
 Post-multiplexing IR representation:
-- `IdSparseIndexedMapping<NodeIndex, Node> nodes`
+- `IdHideableSparseIndexedMapping<NodeIndex, Node> nodes`
 - `IdSparseIndexedMapping<ResourceIndex, Resource> resources`
-- `IdSparseIndexedMapping<NodeIndex, RequiredNodeState> nodeStates`
-- `IdSparseIndexedMapping<NodeIndex, DebugNodeName> nodeNames`
+- `IdHideableSparseIndexedMapping<NodeIndex, RequiredNodeState> nodeStates`
+- `IdHideableSparseIndexedMapping<NodeIndex, DebugNodeName> nodeNames`
 - `IdSparseIndexedMapping<ResourceIndex, DebugResourceName> resourceNames`
+
+The sorted IR graph hides the `SideEffects::None` nodes in `nodes`, `nodeStates` and `nodeNames`. The stages after scheduling see a hidden node as a hole. `all()` reaches every node, hidden ones included. The `predecessors` of a visible node can still name hidden nodes, so a reader after scheduling must test `nodes.isMapped(pred)` before it uses one.
 
 `intermediate::Node` contains: `priority`, `resourceRequests` (list of `Request{resource, usage, fromLastFrame}`), `supressedRequests` (resources technically requested but suppressed for `SideEffects::None` nodes), `predecessors`, `frontendNode`, `multiplexingIndex`, `hasSideEffects`.
 
@@ -240,7 +242,10 @@ A changed node rebuilds all resources it requests (`addResourcesToGraph`). The
 
 **Resolves**: daFG cannot put a barrier in a pass, so `BarrierScheduler` gives each request a
 `ResolveRole`. A Vulkan pass resolves at the color output stage, also for depth. The DX12 pass
-(`resolveMSAATargets`) leaves the source in `ResolveSource`.
+(`resolveMSAATargets`) leaves the source in `ResolveSource`. Without
+`caps.hasRenderPassDepthResolve` the pass has no depth resolve and the depth source gets no role.
+The destination keeps `DepthDest`, so a native pass gives it a depth layout; its contents are
+undefined.
 
 **Manual flags**: `prog/codecheck.py` bans untracked flags outside daFG, the drivers and the
 driver tests. On a custom execution node they assert (`banUntrackedRequests`).
@@ -388,6 +393,8 @@ Pruning: nodes with `Internal` side effects whose outputs are not consumed by an
 - `PoolResourceAllocator` -- for DX11. Simulates heaps via resource pools (`resourcePool/resourcePool.h`). Does NOT support dynamic resolution.
 
 **Pack interface**: `try_pack_into_layout(layout, heaps[], wanted[], limits, timeline, boundary)` returns a `ProposedPacking`. It holds the placed rects, the indices of the wanted rects that fit nowhere, and the proposed heaps. `apply_packing` commits it. Lifetimes can wrap around the frame ring. The rects the heaps come in with keep their offsets. A heap that holds a frame resource the next frame reads (a preserved rect) is pinned to its size, because a driver heap loses its contents when it is created again. A class whose resize keeps the contents (`HeapLimits::resizeKeepsContents`, the Dx11 pools) is not pinned. The other exception is a relocation that the policy chose. Then the preserved rects move into fresh heaps, and the allocator copies their contents from the old objects before the old heaps go (`dafg.relocation_max_mb`, 0 means never copy). The waste that triggers a defragmentation (a pack of the class from zero) is split by `measure_recoverable_waste` into what comes free and what is locked behind preserved rects. It is measured per heap too. `select_heaps_to_defragment` packs anew only the most wasteful heaps when their waste alone makes the class tight.
+
+**Heap policy settings**: the `dafg/heaps` block of settings.blk sets the `HeapPolicySettings` numbers and the growth steps (`growthStepMb`, `cpuGrowthStepKb`, `defragmentWasteFraction`, `defragmentMinWasteMb`, `defragmentDelayFrames`, `relocationMaxMb`, `noAliasing`, ...). Each has a `dafg.*` console variable of the same name (`dafg.defragment_waste_fraction`). A `dafg/heaps/<platform id>` sub-block such as `win64` or `ps5` overrides a value for that platform only, for when the trade-off between a re-created heap and kept waste differs per platform.
 
 ## 17. Debug & Validation
 

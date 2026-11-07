@@ -17,7 +17,7 @@ public:
   CompositeEditorPanel(PropPanel::ControlEventHandler *event_handler, int x, int y, unsigned w, unsigned h);
 
   void fill(const CompositeEditorTreeData &treeData, const CompositeEditorTreeDataNode *selectedTreeDataNode,
-    PropPanel::IDropTargetHandler *dropTargetHandler);
+    PropPanel::IDropTargetHandler *dropTargetHandler, bool readOnly);
   void updateTransformParams(const CompositeEditorTreeData &treeData, CompositeEditorTreeDataNode *selectedTreeDataNode);
   CompositeEditorRefreshType onChange(CompositeEditorTreeDataNode &treeDataNode, int pcb_id);
   CompositeEditorRefreshType onClick(CompositeEditorTreeDataNode &treeDataNode, int pcb_id);
@@ -60,8 +60,8 @@ private:
   void addNonDefaultParam(int index, CompositeEditorTreeDataNode &treeDataNode, real tmValue, real def);
   void removeTransformParamsWithoutRandomRange(CompositeEditorTreeDataNode &treeDataNode);
 
-  void fillInternal(const CompositeEditorTreeDataNode &treeDataNode, PropPanel::IDropTargetHandler *dropTargetHandler,
-    bool isRootNode);
+  void fillInternal(const CompositeEditorTreeDataNode &treeDataNode, PropPanel::IDropTargetHandler *dropTargetHandler, bool isRootNode,
+    bool readOnly);
   CompositeEditorRefreshType onAddNodeParametersClicked(CompositeEditorTreeDataNode &treeDataNode);
   CompositeEditorRefreshType onRemoveNodeParametersClicked(CompositeEditorTreeDataNode &treeDataNode);
   CompositeEditorRefreshType onPasteNodeParametersClicked(CompositeEditorTreeDataNode &treeDataNode);

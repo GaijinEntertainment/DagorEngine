@@ -5,11 +5,6 @@
 #include <lightFx_decl.h>
 #include <math/dag_color.h>
 
-enum
-{
-  HUID_ACES_RESET = 0xA781BF24u
-};
-
 class LightEffect : public BaseEffectObject
 {
 public:
@@ -153,13 +148,6 @@ public:
       case _MAKE4C('LFXO'): par.color.allow_game_override = value ? *(bool *)value : false; break;
       case _MAKE4C('FXSH'): par.shadow = value ? *(LightfxShadowParams *)value : LightfxShadowParams(); break;
       case HUID_COLOR4_MULT: setColor4Mult((Color4 *)value); break;
-      case HUID_ACES_RESET:
-        time = 0;
-        globalTime = 0;
-        fadeoutCur = 0;
-        fadeoutMax = 0;
-        unsetEmitter = false;
-        break;
       default: break;
     }
   }

@@ -160,7 +160,7 @@ struct OpusTuning
 #if _TARGET_PC
   int complexity = 8;
 #else
-  // constraint: consoles and mobile keep the old complexity until a CPU check there
+  // consoles and mobile keep the old complexity until a CPU check there
   int complexity = 4;
 #endif
   bool inbandFec = true;

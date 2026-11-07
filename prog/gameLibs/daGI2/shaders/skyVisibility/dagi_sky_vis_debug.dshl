@@ -1,6 +1,7 @@
 include "shader_global.dshl"
 include "dagi_sky_vis_common.dshl"
 include "frustum.dshl"
+include "tonemapHelpers/debug_draw_hdr_inc.dshl"
 
 int dagi_sky_vis_debug_type;
 
@@ -8,6 +9,7 @@ shader dagi_sky_vis_draw_debug
 {
   supports global_frame;
   supports none;
+  color_write = rgb;
   (vs) {
     globtm@f44 = globtm;
     dagi_sky_vis_debug_type@i1 = dagi_sky_vis_debug_type;
@@ -51,8 +53,7 @@ shader dagi_sky_vis_draw_debug
     }
   }
 
-  INIT_HDR(ps)
-  USE_HDR(ps)
+  INIT_AND_USE_DEBUG_DRAW_HDR()
   hlsl(ps) {
     #include <sh1.hlsl>
     half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
@@ -61,7 +62,7 @@ shader dagi_sky_vis_draw_debug
       float3 dir = normalize(input.norm);
       //float vis = dot(sh1, diffuse_transfer_sh1(dir));
       float vis = dot(sh1, float4(1, dir.yzx));
-      return pack_hdr(saturate(vis));
+      return pack_debug_draw_hdr(saturate(vis));
     }
   }
   compile("target_vs", "test_vs");

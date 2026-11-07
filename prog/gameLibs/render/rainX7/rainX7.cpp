@@ -199,7 +199,7 @@ RainX7::~RainX7()
 
 void RainX7::update(float dt, const Point3 &camera_speed)
 {
-  timePassed = dt;
+  timePassed = feq(dt, 0.f) ? 1.0f / 60.0f : dt;
 
   for (size_t i = 0; i < MAX_VIEWS; i++)
   {
@@ -218,9 +218,9 @@ void RainX7::update(float dt, const Point3 &camera_speed)
 
   // increment the noise lookup values for each axis
 
-  noiseX += (int)(timePassed * 5000.0f);
-  noiseY += (int)(timePassed * 5000.0f);
-  noiseZ += (int)(timePassed * 5000.0f);
+  noiseX += (int)(dt * 5000.0f);
+  noiseY += (int)(dt * 5000.0f);
+  noiseZ += (int)(dt * 5000.0f);
 
 
   // get a noise vector
@@ -233,13 +233,13 @@ void RainX7::update(float dt, const Point3 &camera_speed)
   {
     // calculate and add the per-pass gravity and wind
 
-    float gravity = parSpeed * timePassed * passes[passNo].speedScale;
+    float gravity = parSpeed * dt * passes[passNo].speedScale;
     passes[passNo].wind = noise * wind * (float)((passNo + 1) % (int)wrap);
 
 
     // add the movement from wind
 
-    passes[passNo].offset += passes[passNo].wind * timePassed;
+    passes[passNo].offset += passes[passNo].wind * dt;
 
 
     // add the movement due to gravity
@@ -299,9 +299,6 @@ void RainX7::render(const Point3 &view_pos, const TMatrix &view_tm, const TMatri
 void RainX7::setConstants(uint32_t view_id, const Point3 &view_pos, const TMatrix &view_tm, const TMatrix4 &proj_tm,
   const TMatrix4 &globtm)
 {
-  if (feq(timePassed, 0.f))
-    return;
-
   currentCameraPos[view_id] = view_pos;
   Point3 cameraMovement = prevCameraPos[view_id] - currentCameraPos[view_id];
 

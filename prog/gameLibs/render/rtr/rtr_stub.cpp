@@ -1,17 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/rtr.h>
+#include <render/rtr/rtr_api.h>
 
 namespace rtr
 {
 
-void initialize(denoiser::ReflectionMethod, bool, bool) {}
+void initialize(bool, bool, bool) {}
 void teardown() {}
-
-void change_method(denoiser::ReflectionMethod) {}
-
-void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &) {}
-void get_required_transient_texture_descriptors(denoiser::TexInfoMap &) {}
+void set_resolution(const IPoint2 &) {}
+void set_dynamic_resolution(const IPoint2 &) {}
 
 void set_performance_mode(bool) {}
 
@@ -19,22 +16,17 @@ void set_water_params() {}
 void set_rtr_hit_distance_params() {}
 void set_ray_limit_params(float, float, float, bool) {}
 void set_use_anti_firefly(bool) {}
+void set_blur_radius(float) {}
 
-bool prepare(bvh::ContextId, bool, const denoiser::TexMap &, bool) { return false; }
-void bind_params() {}
-void unbind_params() {}
-void do_update_probes(bool) {}
-void do_trace(const TMatrix4 &) {}
-void denoise(const denoiser::TexMap &, bool) {}
-void render(bvh::ContextId, const TMatrix4 &, bool, const denoiser::TexMap &, bool, bool) {}
+denoiser::ParamsHandle<FrameParams> create_frame_params(dafg::Registry registry)
+{
+  return registry.createBlob<FrameParams>("rtr_frame_params").handle();
+}
 
-void render_validation_layer() {}
-void render_probes() {}
+void register_nodes(const NodeParams &, dag::Vector<dafg::NodeHandle> &) {}
 
 bool is_validation_layer_enabled() { return false; }
-
-void turn_off() {}
-
-void denoise_noop(const denoiser::TexMap &) {}
+void render_validation_layer() {}
+void render_probes() {}
 
 } // namespace rtr

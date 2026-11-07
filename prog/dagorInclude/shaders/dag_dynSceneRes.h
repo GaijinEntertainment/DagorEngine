@@ -689,6 +689,7 @@ public:
   void setDisableAutoChooseLod(bool dis) { disableAutoChooseLod = dis; }
 
   inline int getCurrentLodNo() const { return curLodNo; }
+  int getLodNoForDistMul(float lod_dist_mul) const;
   inline bool validateLod(uint32_t lod) const;
 
   // Switches LODs
@@ -772,6 +773,7 @@ protected:
   uint8_t autoCalcBBox : 1, disableAutoChooseLod : 1, instanceActive : 1, _resv : 5;
 
   float distSq = 0.0f;
+  float lodDistSq = 0.0f;
 
   Point3 origin;
   Point3 originPrev;

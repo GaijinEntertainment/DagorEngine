@@ -44,27 +44,6 @@ macro USE_FLUID_WIND_SIMULATION()
     #define DEBUG_PRESSURE 2
     #define DEBUG_SPEED 1
     #define DEBUG_DIVERGENCE 1
-
-  ##if fluid_wind_debug_mode == fluid_wind_debug_3d
-    #define DEBUG_SLICES_MODE DEBUG_SLICES_3D
-  ##elif fluid_wind_debug_mode == fluid_wind_debug_pressure
-    #define DEBUG_SLICES_MODE DEBUG_PRESSURE
-    #define DEBUG_SLICES_DIM float3(dim.x / 4, dim.y, dim.z)
-  ##elif fluid_wind_debug_mode == fluid_wind_debug_speed
-    #define DEBUG_SLICES_MODE DEBUG_SPEED
-    #define DEBUG_SLICES_DIM float3(dim.x, dim.y, dim.z)
-  ##elif fluid_wind_debug_mode == fluid_wind_debug_divergence
-    #define DEBUG_SLICES_MODE DEBUG_DIVERGENCE
-    #define DEBUG_SLICES_DIM float3(dim.x / 4, dim.y, dim.z)
-  ##endif
-
-  ##if fluid_wind_border_bounds == fluid_wind_border_bounds_on
-    #define ENABLE_BORDER_BOUNDS 1
-  ##endif
-
-  ##if fluid_wind_use_pressure == fluid_wind_use_pressure_on
-    #define USE_PRESSURE 1
-  ##endif
   }
 
   (cs) {
@@ -201,6 +180,10 @@ shader fluid_wind_jaccobi3d
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
+  ##if fluid_wind_use_pressure == fluid_wind_use_pressure_on
+    #define USE_PRESSURE 1
+  ##endif
+
     // jaccobi iteration to make gradient pressure equal to speed (before it has divergence 0)
     [numthreads(16, 4, 4)]
     void main(uint3 Gid: SV_GroupID, uint3 i: SV_DispatchThreadID, uint3 GTid: SV_GroupThreadID, uint GI: SV_GroupIndex)
@@ -242,6 +225,10 @@ shader fluid_wind_project3d
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
+  ##if fluid_wind_border_bounds == fluid_wind_border_bounds_on
+    #define ENABLE_BORDER_BOUNDS 1
+  ##endif
+
     // jaccobi iteration to make gradient pressure equal to speed (before it has divergence 0)
     [numthreads(16, 4, 4)]
     void main(uint3 Gid: SV_GroupID, uint3 i: SV_DispatchThreadID, uint3 GTid: SV_GroupThreadID, uint GI: SV_GroupIndex)
@@ -307,6 +294,19 @@ shader fluid_wind_render
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
+  ##if fluid_wind_debug_mode == fluid_wind_debug_3d
+    #define DEBUG_SLICES_MODE DEBUG_SLICES_3D
+  ##elif fluid_wind_debug_mode == fluid_wind_debug_pressure
+    #define DEBUG_SLICES_MODE DEBUG_PRESSURE
+    #define DEBUG_SLICES_DIM float3(dim.x / 4, dim.y, dim.z)
+  ##elif fluid_wind_debug_mode == fluid_wind_debug_speed
+    #define DEBUG_SLICES_MODE DEBUG_SPEED
+    #define DEBUG_SLICES_DIM float3(dim.x, dim.y, dim.z)
+  ##elif fluid_wind_debug_mode == fluid_wind_debug_divergence
+    #define DEBUG_SLICES_MODE DEBUG_DIVERGENCE
+    #define DEBUG_SLICES_DIM float3(dim.x / 4, dim.y, dim.z)
+  ##endif
+
     [numthreads(16, 16, 1)]
     void main(uint3 Gid: SV_GroupID, uint3 DTid: SV_DispatchThreadID, uint3 GTid: SV_GroupThreadID, uint GI: SV_GroupIndex)
     {

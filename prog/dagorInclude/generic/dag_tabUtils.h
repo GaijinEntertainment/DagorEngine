@@ -11,6 +11,7 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_ptrTab.h>
 #include <util/dag_globDef.h>
+#include <EASTL/type_traits.h>
 #include <generic/dag_DObject.h>
 
 namespace tabutils
@@ -99,7 +100,8 @@ inline bool deleteElement(V &tab, int index)
   usage:
   deleteElement(tab_ptr_array, index);
 ************************************************************************/
-template <class V, typename T, typename U = typename V::value_type, bool s = dag::is_same<T *, U>::is_true>
+template <class V, typename T, typename U = typename V::value_type>
+  requires eastl::is_same_v<T *, U>
 inline bool deleteElement(V &tab, T *element)
 {
   int index = -1;
@@ -140,7 +142,8 @@ typename V::size_type erase_if(V &tab, Predicate predicate)
   T element;
   int index = getIndex(tab_ptr_array, element);
 ************************************************************************/
-template <class V, typename T, typename U = typename V::value_type, bool s = dag::is_same<T *const, U const>::is_true>
+template <class V, typename T, typename U = typename V::value_type>
+  requires eastl::is_same_v<T *const, U const>
 inline int getIndex(const V &tab, const T &element_to_find)
 {
   for (int i = 0; i < tab.size(); i++)
@@ -157,7 +160,8 @@ inline int getIndex(const V &tab, const T &element_to_find)
   T element;
   int index = getIndex(tab_array, element);
 ************************************************************************/
-template <typename V, typename U = typename V::value_type, typename T, bool s = dag::is_same<T const, U const>::is_true>
+template <typename V, typename U = typename V::value_type, typename T>
+  requires eastl::is_same_v<T const, U const>
 inline int getIndex(const V &tab, const T &element_to_find)
 {
   for (int i = 0; i < tab.size(); i++)
@@ -185,7 +189,8 @@ inline int getIndex(const PtrTab<T> &tab, const T *element_to_find)
   T element;
   T* found = find(tab_ptr_array, element);
 ************************************************************************/
-template <class V, typename T, typename U = typename V::value_type, bool s = dag::is_same<T *const, U const>::is_true>
+template <class V, typename T, typename U = typename V::value_type>
+  requires eastl::is_same_v<T *const, U const>
 inline T *find(const V &tab, const T &element_to_find)
 {
   int index = getIndex(tab, element_to_find);
@@ -209,7 +214,8 @@ usage:
 T element;
 bool found = find(tab_array, element);
 ************************************************************************/
-template <class V, typename U = typename V::value_type, typename T, bool s = dag::is_same<T const, U const>::is_true>
+template <class V, typename U = typename V::value_type, typename T>
+  requires eastl::is_same_v<T const, U const>
 inline bool find(const V &tab, const T &element_to_find)
 {
   int index = getIndex(tab, element_to_find);
@@ -285,7 +291,8 @@ inline bool equals(const V &first, const V &second)
   usage:
   append(tab_ptr_array, new T(...));
 ************************************************************************/
-template <class V, typename T, typename U = typename V::value_type, bool s = dag::is_same<T *, U>::is_true>
+template <class V, typename T, typename U = typename V::value_type>
+  requires eastl::is_same_v<T *, U>
 inline int append(V &tab, T *value)
 {
   return append_items(tab, 1, &value);
@@ -298,7 +305,8 @@ inline int append(V &tab, T *value)
   usage:
   erase(tab, value);
 ************************************************************************/
-template <class V, typename T, typename U = typename V::value_type, bool s = dag::is_same<T, U>::is_true>
+template <class V, typename T, typename U = typename V::value_type>
+  requires eastl::is_same_v<T, U>
 inline bool erase(V &tab, const T &value)
 {
   int index = getIndex(tab, value);
@@ -315,7 +323,8 @@ inline bool erase(V &tab, const T &value)
   usage:
   addUnique(tab, elem);
 ************************************************************************/
-template <class V, typename T, typename U = typename V::value_type, bool s = dag::is_same<T, U>::is_true>
+template <class V, typename T, typename U = typename V::value_type>
+  requires eastl::is_same_v<T, U>
 inline bool addUnique(V &tab, const T &value)
 {
   if (find(tab, value))
@@ -349,7 +358,8 @@ inline bool addUnique(PtrTab<T> &tab, const Ptr<T> &value)
   usage:
   setAll(tab, value);
 ************************************************************************/
-template <class V, typename T, typename U = typename V::value_type, bool s = dag::is_same<T, U>::is_true>
+template <class V, typename T, typename U = typename V::value_type>
+  requires eastl::is_same_v<T, U>
 inline void setAll(V &tab, const T &value)
 {
   for (int i = 0; i < tab.size(); i++)

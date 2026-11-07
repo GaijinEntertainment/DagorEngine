@@ -4,6 +4,7 @@
 #include <EASTL/fixed_string.h>
 #include <EASTL/string.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/vector.h>
 #include <EASTL/array.h>
 #include <generic/dag_span.h>
 #include <memory/dag_framemem.h>
@@ -77,12 +78,29 @@ struct DebugMessage
 
 using FrameString = eastl::fixed_string<char, 32, true, framemem_allocator>;
 
-static eastl::array<FMOD::Studio::EventDescription *, 2048> events_list;
 static eastl::array<FMOD::Studio::EventInstance *, 1024> instance_list;
 static eastl::array<FMOD::Studio::Bank *, 256> banks_list;
 
 static eastl::fixed_vector<const FMOD::Studio::EventDescription *, 16> g_3d_instances_in_zero;
 static eastl::basic_string<char> g_cur_scene_name;
+
+using EventDescList = eastl::vector<FMOD::Studio::EventDescription *, framemem_allocator>;
+
+static FMOD_RESULT get_bank_event_list(const FMOD::Studio::Bank &bank, EventDescList &list)
+{
+  list.clear();
+  int count = 0;
+  FMOD_RESULT result = bank.getEventCount(&count);
+  if (FMOD_OK != result || count <= 0)
+    return result;
+  list.resize(count);
+  result = bank.getEventList(list.begin(), count, &count);
+  if (FMOD_OK != result)
+    list.clear();
+  else
+    list.resize(count);
+  return result;
+}
 
 static int g_first_message_id = 0;
 static int g_num_messages = 0;
@@ -472,16 +490,13 @@ static void print_samples_instances(int offset)
   const int bottom = StdGuiRender::get_viewport().rightBottom.y;
 
   const auto banksSlice = make_span(banks_list.begin(), numBanks);
+  EventDescList descs;
   for (const FMOD::Studio::Bank *bank : banksSlice)
   {
-    int numDescs = 0;
-    if (FMOD_OK != bank->getEventList(events_list.begin(), events_list.size(), &numDescs))
+    if (FMOD_OK != get_bank_event_list(*bank, descs))
       continue;
-    G_ASSERT(numDescs <= events_list.size());
-    numDescs = min(numDescs, (int)events_list.size());
 
-    const auto descsSlice = make_span(events_list.begin(), numDescs);
-    for (const FMOD::Studio::EventDescription *evtDesc : descsSlice)
+    for (const FMOD::Studio::EventDescription *evtDesc : descs)
     {
       int numInstances = 0;
       if (FMOD_OK != evtDesc->getInstanceList(instance_list.begin(), instance_list.size(), &numInstances))
@@ -911,20 +926,17 @@ void debug_enum_events()
   G_ASSERT(numBanks <= banks_list.size());
   numBanks = min(numBanks, (int)banks_list.size());
   const auto banksSlice = make_span(banks_list.begin(), numBanks);
+  EventDescList descs;
   for (const FMOD::Studio::Bank *bank : banksSlice)
   {
     int len = 0;
     bank->getPath(bankName.begin(), bankName.size(), &len);
     bankName[bankName.size() - 1] = 0;
 
-    int numDescs = 0;
-    if (FMOD_OK != bank->getEventList(events_list.begin(), events_list.size(), &numDescs))
+    if (FMOD_OK != get_bank_event_list(*bank, descs))
       continue;
-    G_ASSERT(numDescs <= events_list.size());
-    numDescs = min(numDescs, (int)events_list.size());
-    totalEvents += numDescs;
-    const auto descsSlice = make_span(events_list.begin(), numDescs);
-    for (const FMOD::Studio::EventDescription *desc : descsSlice)
+    totalEvents += descs.size();
+    for (const FMOD::Studio::EventDescription *desc : descs)
     {
       len = 0;
       desc->getPath(eventName.begin(), eventName.size(), &len);
@@ -971,18 +983,15 @@ void debug_enum_events(const char *bank_name, eastl::function<void(const char *)
     return;
   }
 
-  int numDescs = 0;
-  result = bank->getEventList(events_list.begin(), events_list.size(), &numDescs);
+  EventDescList descs;
+  result = get_bank_event_list(*bank, descs);
   if (FMOD_OK != result)
   {
     logerr("Get event list from bank '%s' failed: %s", bank_name, FMOD_ErrorString(result));
     return;
   }
 
-  G_ASSERT(numDescs <= events_list.size());
-  numDescs = min(numDescs, (int)events_list.size());
-  const auto descsSlice = make_span(events_list.begin(), numDescs);
-  for (const FMOD::Studio::EventDescription *desc : descsSlice)
+  for (const FMOD::Studio::EventDescription *desc : descs)
   {
     int len = 0;
     result = desc->getPath(eventName.begin(), eventName.size(), &len);

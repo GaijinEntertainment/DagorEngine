@@ -5,6 +5,7 @@ include "bvh.dshl"
 include "rt/rt_lighting.dshl"
 include "rt/rt_direct_surface_reflection.dshl"
 include "rt/rt_prev_frame_sample.dshl"
+include "rt_path_tracing.dshl"
 include "use_prefiltered_gf.dshl"
 include "wetness_inc.dshl"
 include "bvh_common_includes.dshl"
@@ -23,6 +24,7 @@ texture translucent_gbuffer_depth;
 texture rt_nr;
 
 texture rtr_validation_texture;
+float4 rtr_validation_uv_scale = (1, 1, 0, 0);
 
 int rtr_frame_index;
 
@@ -58,19 +60,34 @@ interval rtr_depth_mode : def < 1, checker < 2, smart;
 
 texture half_selected_depth_rtr;
 
+int rtr_rr_stochastic_ray = 1;
+int denoiser_apply_wetness = 0;
+interval denoiser_apply_wetness : no < 1, yes;
+
+// The count includes the reflection ray
+int rtr_pt_max_bounces = 3;
+// Without the probe fallback a short ray misses into the bright sky
+float rtr_pt_min_ray_length = 100;
+float rtr_pt_max_ray_length = 400;
+int rtr_has_path_tracing;
+interval rtr_has_path_tracing: no < 1, yes;
+assume_if_not_assumed rtr_has_path_tracing = no;
+
 hlsl {
   #pragma hlsl2021
 
   #define RTR_REBLUR 0
   #define RTR_RELAX  1
-  #define RTR_RR     2
+  #define RTR_RR     255
+  #define RTR_BLUR   2
 }
 
-shader rt_reflection
+shader rt_reflection, rt_reflection_pt
 {
   INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
 
   if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+  if (shader == rt_reflection_pt && rtr_has_path_tracing == no) { dont_render; }
 
   (cs) {
     from_sun_direction@f3 = from_sun_direction;
@@ -96,9 +113,19 @@ shader rt_reflection
     denoised@uav = rtr_denoised hlsl { RWTexture2D<float4> denoised@uav; };
     viewZTexture@uav = denoiser_view_z hlsl { RWTexture2D<float> viewZTexture@uav; };
     rtr_use_prev_frame_sample@i1 = rtr_use_prev_frame_sample;
+    rtr_rr_stochastic_ray@i1 = rtr_rr_stochastic_ray;
     rtr_is_binocular@i1 = rtr_is_binocular;
     rtr_output_type@u1 = rtr_output_type;
     nr_texture@tex2d = rt_nr;
+  }
+
+  if (shader == rt_reflection_pt)
+  {
+    (cs) {
+      max_bounces@u1 = rtr_pt_max_bounces;
+      min_ray_length@f1 = rtr_pt_min_ray_length;
+      max_ray_length@f1 = rtr_pt_max_ray_length;
+    }
   }
 
   if (rtr_depth_mode == checker)
@@ -137,10 +164,19 @@ shader rt_reflection
 
   USE_ADAPTIVE_RAY_OFFSET(cs)
 
-  INIT_RT_LIGHTING(cs, false, true, true, rtr_shadow == on)
-  INIT_RT_DIRECT_SURFACE_REFLECTION(cs)
-  USE_RT_LIGHTING(cs, 0, false)
-  USE_RT_DIRECT_SURFACE_REFLECTION(cs)
+  if (shader == rt_reflection_pt)
+  {
+    INIT_RT_LIGHTING(cs, false, true, false, true)
+    USE_RT_LIGHTING(cs, 0, false)
+    USE_RT_PATH_TRACING(cs)
+  }
+  else
+  {
+    INIT_RT_LIGHTING(cs, false, true, true, rtr_shadow == on)
+    INIT_RT_DIRECT_SURFACE_REFLECTION(cs)
+    USE_RT_LIGHTING(cs, 0, false)
+    USE_RT_DIRECT_SURFACE_REFLECTION(cs)
+  }
   INIT_BVH_ATMOSPHERE(cs)
   USE_BVH_ATMOPHERE(cs)
   RT_PREV_FRAME_SAMPLE(cs, RTRScreenSample, rtr_use_prev_frame_sample)
@@ -155,6 +191,8 @@ shader rt_reflection
   }
   INIT_BVH_WATER_FADE_RTR(cs)
   USE_BVH_WATER_FADE_RTR(cs)
+  INIT_RT_WATER_MEDIUM(cs)
+  USE_RT_WATER_MEDIUM(cs)
 
   GET_SCATTERED_REFLECTION_VECTOR(cs)
 
@@ -208,6 +246,110 @@ shader rt_reflection
 
     #define PT_SPEC_LOBE_ENERGY 0.95
 
+    float load_trace_depth(uint2 index)
+    {
+      ##if rtr_res_mul == half_res
+        ##if rtr_depth_mode != def
+          return texture2DAt(rtr_tracing_depth, index).r;
+        ##else
+          return texture2DAt(half_res_depth_tex, index).r;
+        ##endif
+      ##else
+        return loadGbufferDepth(index);
+      ##endif
+    }
+
+    ##if denoiser_apply_wetness == yes
+      float wet(float roughness, float3 world_pos, float3 vertical_normal, float3 view, float material, bool isLandscape, float3 normal)
+      {
+        half3 albedo = 1;
+        half smoothness = 1 - roughness;
+        half reflectance = 1;
+        apply_env_wetness(world_pos, vertical_normal, view, material, isLandscape, albedo, smoothness, normal, reflectance);
+        return 1 - smoothness;
+      }
+    ##endif
+
+    // the denoise skips a marked pixel, one with an INF view z: the ones this trace marks and the ones the shadow
+    // trace marked before it, so every marked pixel takes the traced value
+    void write_marked(uint2 index, bool mark, float4 value)
+    {
+      if (mark)
+        texture2DAt(viewZTexture, index) = INF;
+      // a sky pixel of the pair has an INF view z too and keeps its clear
+      if ((mark || texture2DAt(viewZTexture, index) >= INF) && load_trace_depth(index) > 0)
+        texture2DAt(denoised, index) = value;
+    }
+
+    float calc_ray_length(float roughness)
+    {
+      const float invThresholdRoughness = 1/0.01;
+      return ray_limit_coeff > 0 ?
+          min(hit_dist_params.x, ray_limit_coeff * pow(roughness * invThresholdRoughness, ray_limit_power)) :
+          lerp(hit_dist_params.x, rough_ray_length, roughness);
+    }
+
+    ##if shader == rt_reflection_pt
+      #define PT_THROUGHPUT_THRESHOLD 0.001
+      #define PT_SKY_DIFFUSE_MIP 3
+      #define PT_SHADOW_RAY_LENGTH 10000
+
+      // Light that reaches the reflection hit from the rest of the path, as seen from the hit
+      float3 trace_bounces(SurfaceParams surface, float path_length)
+      {
+        float3 radiance = 0;
+        float3 throughput = 1;
+
+        [loop]
+        for (uint bounce = 1; bounce < max_bounces && any(throughput > PT_THROUGHPUT_THRESHOLD); ++bounce)
+        {
+          if (bounce > 1 && !rt_pt_survive(throughput))
+            break;
+
+          bool isDiffuse = rt_pt_choose_diffuse_lobe(surface, throughput);
+          float3 sampleDir = rt_pt_sample_lobe(surface, isDiffuse);
+          throughput *= calc_throughput_mod(surface, isDiffuse, sampleDir, surface.albedo);
+
+          float3 origin = applyAdaptiveRayOffset(surface.position, surface.normal);
+          float lobeRoughness = isDiffuse ? 1 : 1 - surface.smoothness;
+          float rayLength = clamp(calc_ray_length(lobeRoughness), min_ray_length, max_ray_length);
+          float traceEnd = rt_water_trace_end(origin, sampleDir, rayLength);
+
+          // Alpha test on the bounces costs much and gives little
+          HitInfo hitInfo;
+          bool isHit = trace_ray_with_screen_sample<RTRScreenSample>(bvhMain, origin, sampleDir, 0, traceEnd, path_length, bvhGroupGI, hitInfo, RAY_FLAG_FORCE_OPAQUE);
+
+          float3 waterTransmittance, waterInscatter;
+          if (!isHit)
+          {
+            rt_water_segment(origin, sampleDir, false, 0, waterTransmittance, waterInscatter);
+            float skyMip = isDiffuse ? PT_SKY_DIFFUSE_MIP : ComputeReflectionCaptureMipFromRoughness(1 - surface.smoothness);
+            radiance += (sample_envi_probe(half4(sampleDir, skyMip)).rgb * waterTransmittance + waterInscatter) * throughput;
+            break;
+          }
+
+          rt_water_segment(origin, sampleDir, true, hitInfo.t, waterTransmittance, waterInscatter);
+
+          if (hitInfo.isScreenHit)
+          {
+            // The previous frame is already fully lit, the path can stop here
+            radiance += (hitInfo.screenRadiance * waterTransmittance + waterInscatter) * throughput;
+            break;
+          }
+
+          SurfaceParams hitSurface = calc_surface_params(hitInfo, -sampleDir, path_length, path_length);
+          path_length += hitInfo.t;
+
+          half3 hitLighting = light_hit_surface(hitSurface, -sampleDir, path_length, hitInfo.t, PT_SHADOW_RAY_LENGTH, 0, false, RAY_FLAG_FORCE_OPAQUE);
+          radiance += (hitLighting * waterTransmittance + waterInscatter) * throughput;
+          throughput *= waterTransmittance;
+          surface = hitSurface;
+        }
+
+        return radiance;
+      }
+    ##endif
+
     [numthreads(8, 8, 1)]
     void rt_reflection_cs(uint2 dtid : SV_DispatchThreadID)
     {
@@ -240,19 +382,14 @@ shader rt_reflection
       if (any(rayIndex >= resolution))
         return;
 
-      float rawDepth;
-      ##if rtr_res_mul == half_res
-        ##if rtr_depth_mode != def
-          rawDepth = texture2DAt(rtr_tracing_depth, rayIndex).r;
-        ##else
-          rawDepth = texture2DAt(half_res_depth_tex, rayIndex).r;
-        ##endif
-      ##else
-        rawDepth = loadGbufferDepth(rayIndex);
-      ##endif
+      float rawDepth = load_trace_depth(rayIndex);
+      bool noSurface = rawDepth <= 0 || !bvhMainValid;
+
+      if (rtr_output_type != RTR_RR && noSurface)
+        texture2DAt(output, outputIndex) = 0;
 
       [branch]
-      if (rawDepth <= 0 || !bvhMainValid)
+      if (noSurface)
         return;
 
       float2 tc = (float2(rayIndex) + 0.5) * inv_aligned_resolution;
@@ -261,7 +398,8 @@ shader rt_reflection
       float w = linearize_z(rawDepth, zn_zfar.zw);
 
       ##if rtr_res_mul == full_res
-        uint bvhFlags  = loadBvhFlags(rayIndex * rtr_res_mul);
+        uint2 gbufferTexel = rayIndex * rtr_res_mul;
+        uint bvhFlags  = loadBvhFlags(gbufferTexel);
         bool isGrass   = bvhFlags & BVH_GRASS;
         bool isFoliage = bvhFlags & BVH_FOLIAGE;
       ##else
@@ -273,7 +411,8 @@ shader rt_reflection
         depths.w = loadGbufferDepth(rayIndex * rtr_res_mul + uint2(1, 1));
         bool4 aoMask = depths == rawDepth;
         uint2 offsetForSampling = aoMask.x ? uint2(0, 0) : (aoMask.y ? uint2(1, 0) : (aoMask.z ? uint2(0, 1) : uint2(1, 1)));
-        uint bvhFlags  = loadBvhFlags(rayIndex * rtr_res_mul + offsetForSampling);
+        uint2 gbufferTexel = rayIndex * rtr_res_mul + offsetForSampling;
+        uint bvhFlags  = loadBvhFlags(gbufferTexel);
         bool isGrass   = bvhFlags & BVH_GRASS;
         bool isFoliage = bvhFlags & BVH_FOLIAGE;
       ##endif
@@ -291,6 +430,9 @@ shader rt_reflection
         ProcessedGbuffer gbuffer = processGbuffer(unpackGbuffer(loadPackedGbuffer(rayIndex)));
         normal = gbuffer.normal;
         roughness = gbuffer.linearRoughness;
+        ##if denoiser_apply_wetness == yes
+          roughness = wet(gbuffer.linearRoughness, bvh_origin + relPos, gbuffer.normal, -toPoint, gbuffer.material, gbuffer.isLandscape, gbuffer.normal);
+        ##endif
         ##if rtr_use_specular_occlusion == yes
           ao = gbuffer.ao;
         ##endif
@@ -318,14 +460,35 @@ shader rt_reflection
       ml::Rng::Hash::Initialize(rayIndex, frame_index);
 
       float3 toCamera = -toPoint;
-      float3x3 localBasis = ml::Geometry::GetBasis(normal);
-      float3 localVector = ml::Geometry::RotateVector(localBasis, toCamera);
 
-      float2 rnd = ml::Rng::Hash::GetFloat2();
-      float3 localRay = ml::ImportanceSampling::VNDF::GetRay(rnd, roughness, localVector, PT_SPEC_LOBE_ENERGY);
-      localRay = reflect(-localVector, localRay);
+      float rayCastChance = 1;
+      float3 sampleDir;
+      BRANCH
+      if (rtr_output_type == RTR_BLUR)
+        sampleDir = normalize(getRoughReflectionVec(reflect(normalize(relPos), float3(normal)), normal, roughness * roughness));
+      else
+      {
+        float2 rnd = ml::Rng::Hash::GetFloat2();
 
-      float3 sampleDir = ml::Geometry::RotateVectorInverse(localBasis, localRay);
+        [branch]
+        if (rtr_output_type == RTR_RR && rtr_rr_stochastic_ray)
+        {
+          rayCastChance = lerp(1.0, 0.5, roughness);
+          [branch]
+          if (ml::Rng::Hash::GetFloat() >= rayCastChance)
+          {
+            texture2DAt(output, outputIndex) = 0;
+            return;
+          }
+        }
+
+        float3x3 localBasis = ml::Geometry::GetBasis(normal);
+        float3 localVector = ml::Geometry::RotateVector(localBasis, toCamera);
+        float3 localRay = ml::ImportanceSampling::VNDF::GetRay(rnd, roughness, localVector, PT_SPEC_LOBE_ENERGY);
+        localRay = reflect(-localVector, localRay);
+        sampleDir = ml::Geometry::RotateVectorInverse(localBasis, localRay);
+      }
+      float3 cubeDir = sampleDir;
 
       float3 geometryNormal = normal;
       if (!isGrass)
@@ -345,12 +508,14 @@ shader rt_reflection
 
       relPos = applyAdaptiveRayOffset(relPos, geometryNormal);
 
-      const float invThresholdRoughness = 1/0.01;
-      float maxReflectionDistance = ray_limit_coeff > 0 ?
-          min(hit_dist_params.x, ray_limit_coeff * pow(roughness * invThresholdRoughness, ray_limit_power)) :
-          lerp(hit_dist_params.x, rough_ray_length, roughness);
+      float maxReflectionDistance = calc_ray_length(roughness);
+      ##if shader == rt_reflection_pt
+        // Only the minimum here, a gloss ray keeps its full length
+        maxReflectionDistance = max(maxReflectionDistance, min_ray_length);
+      ##endif
 
-      float underwaterFade = calc_underwater_fade(w, rayIndex, inv_aligned_resolution, world_view_pos);
+      bool isDynamicSurface = unpackGbuffer(loadPackedGbuffer(gbufferTexel)).dynamic;
+      float underwaterFade = calc_underwater_fade(w, rayIndex, inv_aligned_resolution, world_view_pos, isDynamicSurface);
 
       // The surface area of grass and foliage surfaces is small on the screen, so a reflection image will
       // not form on it. There is no need to shoot rays from them, calc_direct_surface_reflection should be
@@ -360,25 +525,33 @@ shader rt_reflection
 
       HitInfo hitInfo;
       bool isHit = false;
+      float traceEnd = maxReflectionDistance;
       [branch]
       if (shootReflectionRay)
       {
+        float terrainEnd = rt_water_trace_end(relPos, sampleDir, 100000);
+        traceEnd = min(terrainEnd, maxReflectionDistance);
         if (rtr_output_type != RTR_RR)
         {
-          isHit = trace_ray_with_screen_sample<RTRScreenSample>(bvhMain, relPos, sampleDir, 0, maxReflectionDistance, w, bvhGroupRender, hitInfo);
+          isHit = trace_ray_with_screen_sample<RTRScreenSample>(bvhMain, relPos, sampleDir, 0, traceEnd, w, bvhGroupRender, hitInfo);
         }
         else
         {
-          isHit = trace_ray(bvhMain, relPos, sampleDir, 0, maxReflectionDistance, w, bvhGroupRender, hitInfo);
+          isHit = trace_ray(bvhMain, relPos, sampleDir, 0, traceEnd, w, bvhGroupRender, hitInfo);
         }
 
         // main TLAS hits only: the terrain fallback sees no occluders and terrain is never culled
         if (isHit)
           bvh_voxel_activity_mark(hitInfo.position);
 
+        ##if shader == rt_reflection_pt
+          bool probesCoverMiss = false;
+        ##else
+          bool probesCoverMiss = rtr_probes_cover_miss(maxReflectionDistance);
+        ##endif
         [branch]
-        if (!isHit && bvhTerrainValid && !rtr_probes_cover_miss(maxReflectionDistance))
-          isHit = trace_ray<true>(bvhTerrain, relPos, sampleDir, maxReflectionDistance, 100000, w, bvhGroupRender, hitInfo);
+        if (!isHit && bvhTerrainValid && terrainEnd > maxReflectionDistance && !probesCoverMiss)
+          isHit = trace_ray<true>(bvhTerrain, relPos, sampleDir, maxReflectionDistance, terrainEnd, w, bvhGroupRender, hitInfo);
       }
 
       half3 reflectionColor;
@@ -387,8 +560,11 @@ shader rt_reflection
       {
         if (!hitInfo.isScreenHit)
         {
-          SurfaceParams hitSurface = calc_surface_params(hitInfo, -sampleDir, w);
-          reflectionColor = light_hit_surface(hitSurface, -sampleDir, w + hitInfo.t, hitInfo.t, hit_dist_params.x);
+          SurfaceParams hitSurface = calc_surface_params(hitInfo, -sampleDir, w, w);
+          reflectionColor = light_hit_surface(hitSurface, -sampleDir, w + hitInfo.t, hitInfo.t, hit_dist_params.x, 1.0 - roughness, true);
+          ##if shader == rt_reflection_pt
+            reflectionColor += (half3)trace_bounces(hitSurface, w + hitInfo.t);
+          ##endif
           calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
         }
         else
@@ -398,7 +574,23 @@ shader rt_reflection
       else
       {
         reflectionDistance = NRD_FP16_MAX;
-        reflectionColor = calc_direct_surface_reflection(bvh_origin + relPos, normal, roughness, toCamera, w, length(relPos), sampleDir, shootReflectionRay ? maxReflectionDistance : 0, rayIndex, reflectionDistance);
+        BRANCH
+        if (rtr_output_type == RTR_BLUR)
+        {
+          // the cube of the resolve above the probe treshold, in its direction without the geometry normal hack: misses and
+          // the upsample at a roughness edge show no seam
+          reflectionColor = (half3)texCUBElod(envi_probe_specular, float4(cubeDir, ComputeReflectionCaptureMipFromRoughness(roughness))).rgb;
+        }
+        else
+        {
+        ##if shader == rt_reflection_pt
+          // An unshot ray has no lobe sample of its own, the prefiltered mip stands in for it
+          float skyMip = shootReflectionRay ? 0 : ComputeReflectionCaptureMipFromRoughness(roughness);
+          reflectionColor = (half3)sample_envi_probe(float4(sampleDir, skyMip)).rgb;
+        ##else
+          reflectionColor = calc_direct_surface_reflection(bvh_origin + relPos, normal, roughness, toCamera, w, length(relPos), sampleDir, shootReflectionRay ? maxReflectionDistance : 0, rayIndex, reflectionDistance);
+        ##endif
+        }
         ##if rtr_use_specular_occlusion == yes
           if (!shootReflectionRay)
           {
@@ -414,10 +606,22 @@ shader rt_reflection
         ##endif
       }
 
+      float3 waterTransmittance, waterInscatter;
+      rt_water_segment(relPos, sampleDir, reflectionDistance < NRD_FP16_MAX, reflectionDistance, waterTransmittance, waterInscatter);
+      reflectionColor = half3(reflectionColor * waterTransmittance + waterInscatter);
+
       if (shootReflectionRay)
       {
         float fxt = -1;
-        trace_ray_fx_translucent(relPos, sampleDir, 0, isHit ? hitInfo.t : maxReflectionDistance, w, reflectionColor, fxt, 1.0 - roughness);
+        float3 fxColor;
+        float fxCoverage;
+        trace_ray_fx_translucent_split(relPos, sampleDir, 0, isHit ? hitInfo.t : traceEnd, w, fxColor, fxCoverage, fxt, 1.0 - roughness);
+
+        if (fxt > 0)
+        {
+          rt_water_segment(relPos, sampleDir, true, fxt, waterTransmittance, waterInscatter);
+          reflectionColor = half3(reflectionColor * (1 - fxCoverage) + fxColor * waterTransmittance + fxCoverage * waterInscatter);
+        }
 
         if (!isHit && fxt > 0)
           reflectionDistance = fxt;
@@ -443,7 +647,7 @@ shader rt_reflection
 
       if (rtr_output_type == RTR_RR)
       {
-        texture2DAt(output, outputIndex) = float4(reflectionDistance, reflectionColor);
+        texture2DAt(output, outputIndex) = float4(reflectionDistance, reflectionColor / rayCastChance);
       }
       else
       {
@@ -453,32 +657,27 @@ shader rt_reflection
           float hitDist = REBLUR_FrontEnd_GetNormHitDist(reflectionDistance, w, hit_dist_params, roughness);
           packedReflection = REBLUR_FrontEnd_PackRadianceAndNormHitDist(reflectionColor, hitDist, false);
         }
-        else if (rtr_output_type == RTR_RELAX)
+        else
         {
-          packedReflection = RELAX_FrontEnd_PackRadianceAndHitDist(reflectionColor, reflectionDistance, false);
+          // a Blur texel without a ray (grass, foliage, above the gate) packs hit distance 0, reflection_blur.dshl reads it
+          packedReflection = RELAX_FrontEnd_PackRadianceAndHitDist(reflectionColor,
+            rtr_output_type == RTR_BLUR && !shootReflectionRay ? 0 : reflectionDistance, false);
         }
 
         texture2DAt(output, outputIndex) = packedReflection;
 
-        if (underwaterFade == 0 || isBinocularArea)
+        const bool mark = underwaterFade == 0 || isBinocularArea;
+        uint2 zIndex = dtid;
+        BRANCH
+        if (rtr_checkerboard)
         {
-          uint2 zIndex = dtid;
-          BRANCH
-          if (rtr_checkerboard)
-          {
-            zIndex.x *= 2;
-            texture2DAt(viewZTexture, zIndex) = INF;
-            texture2DAt(denoised, zIndex) = packedReflection;
-            zIndex.x = min(zIndex.x + 1, resolution.x - 1);
-            texture2DAt(viewZTexture, zIndex) = INF;
-            texture2DAt(denoised, zIndex) = packedReflection;
-          }
-          else
-          {
-            texture2DAt(viewZTexture, zIndex) = INF;
-            texture2DAt(denoised, zIndex) = packedReflection;
-          }
+          zIndex.x *= 2;
+          write_marked(zIndex, mark, packedReflection);
+          zIndex.x = min(zIndex.x + 1, resolution.x - 1);
+          write_marked(zIndex, mark, packedReflection);
         }
+        else
+          write_marked(zIndex, mark, packedReflection);
       }
     }
   }
@@ -528,6 +727,8 @@ shader rt_glass_reflection
   USE_RT_LIGHTING(cs, 1, false)
   INIT_BVH_ATMOSPHERE(cs)
   USE_BVH_ATMOPHERE(cs)
+  INIT_RT_WATER_MEDIUM(cs)
+  USE_RT_WATER_MEDIUM(cs)
 
   USE_CALC_CAMERA_RELATIVE_POS(cs)
 
@@ -570,31 +771,44 @@ shader rt_glass_reflection
 
       float maxReflectionDistance = hit_dist_params.x;
 
+      float terrainEnd = rt_water_trace_end(relPos, sampleDir, 100000);
+      float traceEnd = min(terrainEnd, maxReflectionDistance);
       HitInfo hitInfo;
-      bool isHit = trace_ray(bvhMain, relPos, sampleDir, 0, maxReflectionDistance, w, bvhGroupRender, hitInfo);
+      bool isHit = trace_ray(bvhMain, relPos, sampleDir, 0, traceEnd, w, bvhGroupRender, hitInfo);
 
       // main TLAS hits only: the terrain fallback sees no occluders and terrain is never culled
       if (isHit)
         bvh_voxel_activity_mark(hitInfo.position);
 
       [branch]
-      if (!isHit && bvhTerrainValid)
-        isHit = trace_ray<true>(bvhTerrain, relPos, sampleDir, maxReflectionDistance, 100000, w, bvhGroupRender, hitInfo);
+      if (!isHit && bvhTerrainValid && terrainEnd > maxReflectionDistance)
+        isHit = trace_ray<true>(bvhTerrain, relPos, sampleDir, maxReflectionDistance, terrainEnd, w, bvhGroupRender, hitInfo);
 
       float3 reflectionColor;
 
       if (isHit)
       {
-        SurfaceParams hitSurface = calc_surface_params(hitInfo, -sampleDir, w);
-        reflectionColor = light_hit_surface(hitSurface, -sampleDir, w + hitInfo.t, hitInfo.t, hit_dist_params.x);
+        SurfaceParams hitSurface = calc_surface_params(hitInfo, -sampleDir, w, w);
+        reflectionColor = light_hit_surface(hitSurface, -sampleDir, w + hitInfo.t, hitInfo.t, hit_dist_params.x, 1, true);
         calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
       }
       else
         reflectionColor = texCUBElod(envi_probe_specular, float4(sampleDir, 0)).rgb * apply_sky_polarization_filter();
 
+      float3 waterTransmittance, waterInscatter;
+      rt_water_segment(relPos, sampleDir, isHit, isHit ? hitInfo.t : 0, waterTransmittance, waterInscatter);
+      reflectionColor = reflectionColor * waterTransmittance + waterInscatter;
+
       float fxt = -1;
-      trace_ray_fx_translucent(relPos, sampleDir, 0, isHit ? hitInfo.t : maxReflectionDistance, w, reflectionColor, fxt, 1.0);
-      texture2DAt(rt_glass_gbuffer, dtid) = float4(reflectionColor, 1);
+      float3 fxColor;
+      float fxCoverage;
+      trace_ray_fx_translucent_split(relPos, sampleDir, 0, isHit ? hitInfo.t : traceEnd, w, fxColor, fxCoverage, fxt, 1.0);
+      if (fxt > 0)
+      {
+        rt_water_segment(relPos, sampleDir, true, fxt, waterTransmittance, waterInscatter);
+        reflectionColor = reflectionColor * (1 - fxCoverage) + fxColor * waterTransmittance + fxCoverage * waterInscatter;
+      }
+      texture2DAt(rt_glass_gbuffer, dtid) = float4(reflectionColor * rt_water_receiver_fade(relPos), 1);
     }
   }
 
@@ -603,6 +817,7 @@ shader rt_glass_reflection
 
 texture rtr_reflection_decode_src;
 texture rtr_reflection_decode_dst;
+int4 rtr_reflection_decode_size;
 
 shader rt_reflection_decode
 {
@@ -610,7 +825,7 @@ shader rt_reflection_decode
   (cs) {
     input@tex2d = rtr_reflection_decode_src;
     output@uav = rtr_reflection_decode_dst hlsl { RWTexture2D<float4> output@uav; };
-    resolution@f2 = get_dimensions(rtr_reflection_decode_dst, 0).xy;
+    input_resolution@i4 = rtr_reflection_decode_size; // the node sets the valid size, a checkerboard trace output is packed
     rtr_output_type@u1 = rtr_output_type;
   }
 
@@ -620,8 +835,9 @@ shader rt_reflection_decode
     [numthreads(8, 8, 1)]
     void rt_reflection_cs(uint2 dtid : SV_DispatchThreadID)
     {
+      // 2x2 texels of the input, the output only grows with the dynamic resolution
       BRANCH
-      if (any(dtid >= resolution))
+      if (any(dtid >= uint2(input_resolution.xy) / 2))
         return;
 
       float3 c1, c2, c3, c4;
@@ -633,7 +849,7 @@ shader rt_reflection_decode
         c4 = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(input, dtid * 2 + uint2(1, 1))).rgb;
 
       }
-      else if (rtr_output_type == RTR_RELAX)
+      else if (rtr_output_type == RTR_RELAX || rtr_output_type == RTR_BLUR)
       {
         c1 = RELAX_BackEnd_UnpackRadiance(texture2DAt(input, dtid * 2 + uint2(0, 0))).rgb;
         c2 = RELAX_BackEnd_UnpackRadiance(texture2DAt(input, dtid * 2 + uint2(0, 1))).rgb;
@@ -655,6 +871,63 @@ shader rt_reflection_decode
   compile("cs_6_5", "rt_reflection_cs");
 }
 
+texture rtr_blur_debug_lobe;
+texture rtr_blur_debug_trace;
+texture rtr_blur_debug_dst;
+int4 rtr_blur_debug_size; // xy: the size, z: 1 the lobe radius or 2 the hit distance, w: the largest blur radius
+
+shader rtr_blur_debug
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+  (cs) {
+    lobe_tex@tex2d = rtr_blur_debug_lobe;
+    trace_tex@tex2d = rtr_blur_debug_trace;
+    output@uav = rtr_blur_debug_dst hlsl { RWTexture2D<float4> output@uav; };
+    debug_size@i4 = rtr_blur_debug_size;
+    rtr_checkerboard@i1 = rtr_checkerboard;
+  }
+
+  hlsl(cs) {
+    #include <NRD.hlsli>
+
+    float3 heat(float t)
+    {
+      return saturate(float3(2 - 4 * t, min(4 * t, 4 - 4 * t), 4 * t - 2));
+    }
+
+    [numthreads(8, 8, 1)]
+    void rtr_blur_debug_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= uint2(debug_size.xy)))
+        return;
+
+      float lobe = texture2DAt(lobe_tex, dtid).a;
+      float4 color = 0;
+      if (lobe < -1.5)
+        color = float4(1, 0, 1, 0.5);
+      else if (lobe >= 0 && debug_size.z == 1)
+      {
+        float mip = log2(max(lobe, 1));
+        float maxMip = log2(max(float(debug_size.w), 2));
+        float3 c = lobe <= debug_size.w ? float3(0, 0.25 + 0.75 * saturate(mip / maxMip), 0)
+                                        : lerp(float3(1, 1, 0), float3(1, 0, 0), saturate((mip - maxMip) / 5));
+        color = float4(c * ((uint(mip) & 1) ? 0.75 : 1), 0.75);
+      }
+      else if (lobe >= 0)
+      {
+        // a checkerboard trace holds its output packed in the left half, a hole shows the traced texel of its pair
+        float hitDist = texture2DAt(trace_tex, uint2(rtr_checkerboard != 0 ? dtid.x >> 1 : dtid.x, dtid.y)).a;
+        float octave = max(log2(hitDist) + 4, 0);
+        color = hitDist >= NRD_FP16_MAX ? float4(1, 1, 1, 0.75)
+                                        : float4(heat(saturate(octave / 14)) * ((uint(octave) & 1) ? 0.75 : 1), 0.75);
+      }
+      texture2DAt(output, dtid) = color;
+    }
+  }
+
+  compile("cs_6_5", "rtr_blur_debug_cs");
+}
+
 shader rtr_validation_renderer
 {
   cull_mode  = none;
@@ -673,6 +946,7 @@ shader rtr_validation_renderer
 
   (ps) {
     rtr_validation_texture@smp2d = rtr_validation_texture;
+    rtr_validation_uv_scale@f2 = rtr_validation_uv_scale;
   }
 
   USE_POSTFX_VERTEX_POSITIONS()
@@ -690,7 +964,8 @@ shader rtr_validation_renderer
   hlsl(ps) {
     float4 rtr_validation_renderer_ps(VsOutput i) : SV_Target
     {
-      return tex2D(rtr_validation_texture, i.uv);
+      // the frame fills the top left of the debug copy
+      return tex2D(rtr_validation_texture, i.uv * rtr_validation_uv_scale);
     }
   }
 

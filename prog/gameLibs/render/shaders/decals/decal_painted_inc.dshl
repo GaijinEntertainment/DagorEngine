@@ -22,7 +22,7 @@ macro INIT_DECAL_PAINTED_BASE()
   USE_PAINT_DETAILS()
 endmacro
 
-// constraint: always painted, doesn't define/read use_painting
+// always painted, doesn't define/read use_painting
 macro INIT_DECAL_PAINTED()
   hlsl {
     #define COLOR_NEEDED 1

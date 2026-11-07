@@ -23,6 +23,7 @@ struct Frustum;
 class AcesEffect;
 class ComputeShaderElement;
 class RingDynamicSB;
+class SmokeTracerManager;
 struct TrailType;
 
 struct TracerSegment
@@ -99,6 +100,8 @@ protected:
   bool queueSegmentAddition;
   AmplificationBehavior amplificationBehavior;
   Point3 positionQueued;
+  int smokeId;
+  int smokeTrailTypeNo;
 };
 
 
@@ -135,6 +138,8 @@ public:
   void readBlk(const DataBlock *blk);
   void clear();
   void resetConfig();
+  // Keeps live tracers and their smoke trails, so it is safe with bullets in flight.
+  void reloadBlk(const DataBlock *blk);
   void afterResetDevice();
   void restoreBuffers();
 
@@ -184,7 +189,10 @@ protected:
   void renderTrails();
   void initHeads();
   void renderHeads(const Point3 &view_pos, const TMatrix &view_itm);
+  void initSmokeTails();
+  void updateSmokeTails();
   void releaseRes(bool release_tracers_data = true);
+  void releaseHeadTrailRes(bool release_tracers_data);
 
   uint32_t numTracers, numVisibleTracers, maxTracerNo;
   carray<Tracer, MAX_FX_TRACERS> tracers;
@@ -252,6 +260,11 @@ protected:
   BufPtr tailInstancesIds;
   VDECL tailInstancingVdecl = BAD_VDECL;
   DrawBuffer tailParticles;
+
+  eastl::unique_ptr<SmokeTracerManager> smokeTails;
+  bool smokeTailsRequested = false;
+  String smokeTailTexture;
+  float smokeDt = 0.f;
 
   bool isMTMode = false;
   WinCritSec mutexCS;

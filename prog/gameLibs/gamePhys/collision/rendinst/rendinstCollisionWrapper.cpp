@@ -19,6 +19,14 @@ CollisionObject WrapperRendInstCollisionImplCB::processCollisionInstance(const r
   return instance ? instance->getCollisionObject(coll_info.desc, normalized_tm) : alternative_obj;
 }
 
+void WrapperRendInstCollisionImplCB::contactTestPair(PhysWorld *phys_world, const PhysBody *body_b)
+{
+  if (shapeA)
+    phys_world->contactTestPair(*shapeA, shapeTmA, body_b, resultCallback);
+  else
+    phys_world->contactTestPair(objA.body, body_b, resultCallback);
+}
+
 void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::CollisionInfo &coll_info)
 {
   if (!coll_info.handle)
@@ -85,14 +93,15 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::Collision
   cobj.body->setUserData(&userInfo);
   PhysWorld *physWorld = dacoll::get_phys_world();
   physWorld->fetchSimRes(true);
-  physWorld->contactTestPair(objA.body, cobj.body, resultCallback);
+  contactTestPair(physWorld, cobj.body);
   cobj.body->setUserData(userInfo.prevUserPtrB); // Restore
 
 #if DAGOR_DBGLEVEL > 0
   if (physdbg::isInDebugMode(physWorld))
   {
     physdbg::renderOneBody(physWorld, cobj.body, physdbg::RenderFlag::BODIES);
-    physdbg::renderOneBody(physWorld, objA.body, physdbg::RenderFlag::BODIES, 0xFF0000);
+    if (objA.body)
+      physdbg::renderOneBody(physWorld, objA.body, physdbg::RenderFlag::BODIES, 0xFF0000);
   }
 #endif
 }
@@ -146,13 +155,14 @@ void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo 
   obj.body->setUserData((void *)&userInfo);
   PhysWorld *physWorld = dacoll::get_phys_world();
   physWorld->fetchSimRes(true);
-  physWorld->contactTestPair(objA.body, obj.body, resultCallback);
+  contactTestPair(physWorld, obj.body);
 
 #if DAGOR_DBGLEVEL > 0
   if (physdbg::isInDebugMode(physWorld))
   {
     physdbg::renderOneBody(physWorld, obj.body, normalizedTm, physdbg::RenderFlag::BODIES);
-    physdbg::renderOneBody(physWorld, objA.body, physdbg::RenderFlag::BODIES, 0xFF0000);
+    if (objA.body)
+      physdbg::renderOneBody(physWorld, objA.body, physdbg::RenderFlag::BODIES, 0xFF0000);
   }
 #endif
   obj.body->setUserData(userInfo.prevUserPtrB);
@@ -215,13 +225,14 @@ void WrapperRendInstCollisionImplCB::addNonDestrBushCheck(const rendinst::Collis
   obj.body->setUserData((void *)&userInfo);
   PhysWorld *physWorld = dacoll::get_phys_world();
   physWorld->fetchSimRes(true);
-  physWorld->contactTestPair(objA.body, obj.body, resultCallback);
+  contactTestPair(physWorld, obj.body);
 
 #if DAGOR_DBGLEVEL > 0
   if (physdbg::isInDebugMode(physWorld))
   {
     physdbg::renderOneBody(physWorld, obj.body, normalizedTm, physdbg::RenderFlag::BODIES);
-    physdbg::renderOneBody(physWorld, objA.body, physdbg::RenderFlag::BODIES, 0xFF0000);
+    if (objA.body)
+      physdbg::renderOneBody(physWorld, objA.body, physdbg::RenderFlag::BODIES, 0xFF0000);
   }
 #endif
   obj.body->setUserData(userInfo.prevUserPtrB);

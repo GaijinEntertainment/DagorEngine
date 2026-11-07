@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <ranges>
+#include <set>
 #include <sstream>
 
 #include "common.h"
@@ -38,29 +39,32 @@ float get_master_scale()
 
 bool is_dag_file(const fs::path &filename) { return iequal(filename.extension().native(), L".dag"); }
 
+static void glob_into(const fs::path &dir, bool recursive, std::set<fs::path> &walked, std::vector<fs::path> &files)
+{
+  std::error_code ec;
+  for (fs::directory_iterator it(dir, fs::directory_options::skip_permission_denied, ec), end; !ec && it != end; it.increment(ec))
+  {
+    std::error_code entryEc;
+    if (recursive && it->is_directory(entryEc))
+    {
+      const fs::path real = fs::canonical(it->path(), entryEc);
+      if (!entryEc && walked.insert(real).second)
+        glob_into(it->path(), true, walked, files);
+    }
+    else if (it->is_regular_file(entryEc) && is_dag_file(it->path().filename()))
+      files.push_back(it->path());
+  }
+}
+
 std::vector<fs::path> glob(const fs::path &dir, bool recursive)
 {
   std::vector<fs::path> files;
   files.reserve(32);
 
+  std::set<fs::path> walked;
   std::error_code ec;
-  auto collect = [&](const fs::directory_entry &entry) {
-    if (entry.is_regular_file(ec) && is_dag_file(entry.path().filename()))
-      files.push_back(entry.path());
-  };
-
-  if (recursive)
-  {
-    for (const auto &entry : fs::recursive_directory_iterator(dir,
-           fs::directory_options::skip_permission_denied | fs::directory_options::follow_directory_symlink, ec))
-      collect(entry);
-  }
-  else
-  {
-    for (const auto &entry : fs::directory_iterator(dir, fs::directory_options::skip_permission_denied, ec))
-      collect(entry);
-  }
-
+  walked.insert(fs::canonical(dir, ec));
+  glob_into(dir, recursive, walked, files);
   return files;
 }
 

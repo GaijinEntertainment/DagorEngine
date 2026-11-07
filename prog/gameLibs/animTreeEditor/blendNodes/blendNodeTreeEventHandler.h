@@ -6,11 +6,12 @@
 #include <propPanel/control/treeInterface.h>
 
 class DagorAsset;
+class IAnimTreeEditorHost;
 
 class BlendNodeTreeEventHandler : public PropPanel::ITreeControlEventHandler, public PropPanel::IMenuEventHandler
 {
 public:
-  BlendNodeTreeEventHandler(dag::Vector<BlendNodeData> &blend_nodes, dag::Vector<String> &paths);
+  BlendNodeTreeEventHandler(dag::Vector<BlendNodeData> &blend_nodes, dag::Vector<String> &paths, IAnimTreeEditorHost &host);
   bool onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id, PropPanel::ITreeInterface &tree_interface) override;
   int onMenuItemClick(unsigned id) override;
   void setAsset(DagorAsset *cur_asset);
@@ -21,6 +22,7 @@ private:
   DagorAsset *asset = nullptr;
   dag::Vector<BlendNodeData> &blendNodes;
   dag::Vector<String> &paths;
+  IAnimTreeEditorHost &host;
 
   String getA2dName();
 };

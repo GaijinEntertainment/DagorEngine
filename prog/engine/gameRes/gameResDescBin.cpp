@@ -159,6 +159,10 @@ void gameres_patch_desc(DataBlock &desc, const char *patch_desc_fn, const char *
 {
   if (gamereshooks::on_gameres_pack_load_confirm && !gamereshooks::on_gameres_pack_load_confirm(patch_desc_fn, false))
     return;
+  String resolved;
+  if (!dd_file_exists(patch_desc_fn) && gamereshooks::on_missing_pack_resolve &&
+      gamereshooks::on_missing_pack_resolve(patch_desc_fn, resolved))
+    patch_desc_fn = resolved;
   if (dd_file_exists(patch_desc_fn))
   {
     DataBlock blk;

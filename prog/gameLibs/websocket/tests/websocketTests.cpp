@@ -502,7 +502,7 @@ TEST_CASE("a frame flood arrives intact and in order", "[websocket]")
       INFO("message " << i);
       CHECK(client.messages[i].payload == to_payload(eastl::string(eastl::string::CtorSprintf(), "message %d", i)));
     }
-    // constraint: the compat client sends one PONG for all pings parsed in one transfer step
+    // the compat client sends one PONG for all pings parsed in one transfer step
     if (impl == Impl::CurlWs)
       REQUIRE(run_until(client, server, [&] { return server.pongs.size() == messageCount / pingEvery; }));
     CHECK(client.closeCalls == 0);

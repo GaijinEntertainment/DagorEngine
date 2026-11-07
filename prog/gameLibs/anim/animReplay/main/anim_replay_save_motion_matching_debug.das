@@ -105,7 +105,7 @@ def get_transition_frame(controller : MotionMatchingController;
   if transitionFrame >= 0
     return transitionFrame
   elif clip.looped
-    return (clip.tickDuration - transitionFrame % clip.tickDuration) % clip.tickDuration
+    return (transitionFrame % clip.tickDuration + clip.tickDuration) % clip.tickDuration
   else
     logerr("Negative transition frame {transitionFrame} for non looped anim, dt {dt}, cur_frame {cur_frame}," +
            " last trans {controller.lastTransitionTime}")

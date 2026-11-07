@@ -15,9 +15,6 @@ namespace breakpad
 
 static size_t on_response_data(void *ptr, size_t size, size_t nmemb, void *userp)
 {
-  if (!userp)
-    return 0;
-
   std::string *response = reinterpret_cast<std::string *>(userp);
   size_t real_size = size * nmemb;
   response->append(reinterpret_cast<char *>(ptr), real_size);
@@ -71,14 +68,8 @@ bool upload(const Configuration &cfg, const std::string &url, std::string &respo
     response += error_buffer;
   }
 
-  if (headerlist)
-    curl_slist_free_all(headerlist);
-
-  if (form)
-  {
-    CURL_IGNORE_DEPRECATION(curl_formfree(form);)
-  }
-
+  curl_slist_free_all(headerlist);
+  CURL_IGNORE_DEPRECATION(curl_formfree(form);)
   curl_easy_cleanup(curl);
 
   return err_code == CURLE_OK;

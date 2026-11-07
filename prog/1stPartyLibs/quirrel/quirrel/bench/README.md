@@ -1,25 +1,26 @@
 # Quirrel benchmarks
 
-Single home for all interpreter benchmarks. One folder per language, and each
+The cross-language suite and vmperf. One folder per language, and each
 folder holds idiomatic code for that language and the prebuilt interpreter:
 
 - `quirrel/` - modern Quirrel (`*.nut`): `import`, `const`, `let`, `[pure]`
-  functions, string interpolation. Both suites.
+  functions, string interpolation. The documentation suite and the vmperf
+  workloads.
 - `squirrel/` - Squirrel 3.2 (`*.nut`) and the prebuilt `sq3-64.exe`. The two
   languages are no longer close enough to share sources.
 - `lua/` - Lua 5.5 (`<const>`, integers, bitwise operators, `table.create`) and
-  the prebuilt `lua.exe` (5.5.1). Both suites.
+  the prebuilt `lua.exe` (5.5.1).
 - `luajit/` - Lua 5.1 dialect with the `bit` library and `table.new`, and the
   prebuilt `luajit.exe` (2.1 rolling), which benchmarks.py runs with `-joff`.
 - `luau/` - modern Luau (type annotations, generalized iteration, compound
-  assignment) and the prebuilt `luau.exe` (0.735). Both suites, each at `-O0`,
-  `-O1` and `-O2`.
+  assignment) and the prebuilt `luau.exe` (0.735), run at `-O0`, `-O1` and `-O2`.
 - `js/` - modern JavaScript (ES modules, classes, `Map`, `performance.now()`)
   and the prebuilt `qjs.exe` (QuickJS-ng 0.16.2).
 
-Quirrel itself is not committed as a binary: both harnesses run
+Quirrel itself is not committed as a binary: benchmarks.py runs
 `tools/dagor_cdk/windows-x86_64/csq.exe`, the release build from this tree
-(`jam -sConfig=rel` in `prog/tools/consoleSq`), with `--opt-closure-hoisting`,
+(`jam -sConfig=rel -sUseWholeOpt=yes` in `prog/tools/consoleSq`: clang with
+whole program optimization), with `--opt-closure-hoisting`,
 because the game runtime turns closure hoisting on (`bindQuirrelEx`). That is the
 shipped runtime configuration (clang, mimalloc); a build on the CRT heap, such as
 a plain cmake `sq.exe`, is up to 2x slower on table-sweep workloads, which
@@ -37,7 +38,7 @@ functions, preallocation, the fastest idiomatic loop. Ports use the generic
 container of their language only: no typed arrays, buffers or vector types.
 
 Each workload except fibonacci-loop and float2string prints its result (see the
-table below). Both harnesses compare the results of all interpreters and fail on
+table below). The harness compares the results of all interpreters and fails on
 a mismatch, which means that a port does other work. Quirrel and Squirrel use
 32-bit floats and the other four use doubles, so a float result of Quirrel or
 Squirrel only has to agree to 1e-3 relative; integer results and the float
@@ -97,8 +98,8 @@ page has the diff: `os.clock()` reads the performance counter, because the CRT
 Squirrel and Lua 5.5 time with that 1 ms clock; Luau and QuickJS have a
 high-resolution one.
 
-Two harnesses run different slices of these sources, to compare Quirrel with
-the other languages. To measure what a Quirrel change does, use `vmperf/` (see
+benchmarks.py compares Quirrel with the other languages. To measure what a
+Quirrel change does, use `vmperf/` (see
 `vmperf/README.md`): code layout alone moves the VM by up to 17%, so one run
 before and one after the change show nothing.
 
@@ -125,7 +126,7 @@ Each cell is `--runs` whole processes and the fastest is published. Best of N
 iterations inside one process cannot see a process that was slow for its whole
 life, and what makes a whole process slow - a shared core, the code alignment that
 process happened to get - only adds time, so the fastest run is the reproducible
-one; run_vm_bench.py publishes the median of its runs instead. A cell whose runs
+one. A cell whose runs
 spread more than 5% says so, as long as they also differ by more than 5 ms: on a
 row of tens of milliseconds the clock alone is worth percents. Such a row is worth
 measuring again on a quiet machine with `-u`, which keeps the lower of the
@@ -134,7 +135,7 @@ committed and the new time of every cell it measures, for the same reason. So
 slower, bump its label or run without `-u`.
 
     python benchmarks.py             # run everything, update the doc side-car
-    python benchmarks.py -l Quirrel-4.43.1 -t queen sort   # subset
+    python benchmarks.py -l Quirrel-4.44.1 -t queen sort   # subset
     python benchmarks.py -u -l Lua-5.5.1 -t tree   # re-measure, keep the lowest
     python benchmarks.py -r /tmp/try.json   # trial run, side-car untouched
     python benchmarks.py --quirrel <csq.exe>   # another Quirrel build
@@ -149,23 +150,6 @@ wants a full run.
 When the interpreter version changes, bump the Quirrel row label in
 benchmarks.py so committed results state what was measured; the harness warns
 when the label and `csq --sqversion` differ.
-
-## run_vm_bench.py - VM against Lua and Luau
-
-Head-to-head Quirrel vs Lua 5.5 and Luau (-O0, -O1, -O2) on paired workloads with
-identical algorithms (`quirrel/<name>.nut`, `lua/<name>.lua`, `luau/<name>.luau`):
-general interpreter loads (fib, binarytrees, life, mandel, strings) and
-daRg-UI-shaped loads (desc_churn, probe_storm, nullable_probe, closure_storm,
-method_calls). Workloads self-report five in-process reps as
-`BENCH <name> <ms> ms (r=<result>)` lines; the harness takes the best rep per
-process, median over `--runs` processes, checks that every VM computed the same
-result, and prints a ratio table.
-
-    python run_vm_bench.py                        # measures the release csq
-    python run_vm_bench.py --quirrel <other.exe>  # or any other build
-
-Lua/Luau default to the prebuilt binaries above. A snapshot of results is
-committed at `../doc/content/_vm_bench.json`, which the Performance page renders.
 
 ## run.bat
 

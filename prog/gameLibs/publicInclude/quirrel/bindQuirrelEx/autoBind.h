@@ -15,9 +15,7 @@ namespace sq
 enum VmType
 {
   VM_GAME = 0x01,
-  VM_INTERNAL_UI = 0x02,
-  VM_USER_UI = 0x04,
-  VM_UI_ALL = VM_INTERNAL_UI | VM_USER_UI,
+  VM_UI = 0x02,
 
   VM_ALL = 0xFFFF,
   VM_FLG_REGFUNC = 0x10000,

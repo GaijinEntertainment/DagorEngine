@@ -213,7 +213,7 @@ bool prefetch_effect(int) { G_ASSERT_RETURN(false, false); }
 void setup_camera_and_debug(float, const TMatrix &, const Driver3dPerspective &, int, int) { G_ASSERT(0); }
 void update_fx_managers(float) { G_ASSERT(0); }
 void flush_dafx_commands() { G_ASSERT(0); }
-void start_dafx_update(float) { G_ASSERT(0); }
+void start_dafx_update(float, bool) { G_ASSERT(0); }
 void finish_update_main_camera(const TMatrix4 &tm) { G_ASSERT(0); }
 void finish_update(const TMatrix4 &, Occlusion *) { G_ASSERT(0); }
 void stop_effect(AcesEffect *&) { G_ASSERT(0); }
@@ -572,6 +572,9 @@ namespace uishared
 TMatrix view_tm, view_itm;
 }
 
+#include <input/uiInput.h>
+bool uiinput::is_mouse_used_by_ui() { G_ASSERT_RETURN(false, false); }
+
 #include <daECS/io/blk.h>
 #include <daECS/scene/scene.h>
 namespace ecs
@@ -655,6 +658,7 @@ void add_decal(Point3, Point3)
 } // namespace blood_decals
 
 #include <animChar/dag_animCharacter2.h>
+#include <generic/dag_span.h>
 
 bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &, dag::FunctionRef<void(ShaderMaterial *) const>)
 {
@@ -667,6 +671,11 @@ bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &, const c
 bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &,
   const eastl::vector<const char *, framemem_allocator> &,
   dag::FunctionRef<void(ShaderMaterial *) const>)
+{
+  G_ASSERT_RETURN(false, false);
+}
+bool recreate_node_materials(
+  AnimV20::AnimcharRendComponent &, dag::ConstSpan<const char *>, dag::FunctionRef<void(int, ShaderMaterial *) const>)
 {
   G_ASSERT_RETURN(false, false);
 }

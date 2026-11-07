@@ -17,10 +17,6 @@ typedef BaseTexture Texture;
 //! start AVI writer; settings are read from DataBlock; return false on error
 bool avi_start_write(const DataBlock &stg);
 
-//! start AVI writer using explicit settings; return false on error
-bool avi_start_write(const char *dest_folder = ".", int act_rate = 60, int acts_per_frame = 2, const char *codec_str = NULL,
-  int codec_quality = 100);
-
 //! return true when AVI writer is started and writing file
 bool avi_is_writing_file();
 

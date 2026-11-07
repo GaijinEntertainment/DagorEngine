@@ -110,26 +110,18 @@ macro SKY_VIS_RAY_CAST(code)
     dagi_sky_vis_trace_dist@f2 = dagi_sky_vis_trace_dist;
     da_sky_vis_enviSPH012 @f4 = ((enviSPH0+enviSPH1)+enviSPH2);
   }
-  if (dagi_lit_voxel_scene_alpha != NULL)
-  {
-    PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
-    hlsl(code) {
-      bool dagi_get_radiance_at_mono(float3 worldPos, float3 worldNormal, inout float radiance)
-      {
-        //fixme add per-project ray hit result (as some of ray hits can return additional info)
-        uint cascade = 0;
-        uint maxCascade = dagi_lit_scene_voxels_clip_count();
-
-        float3 radiance3;
-        if (!dagi_get_voxels_lit_scene_radiance_at(worldPos, worldNormal, radiance3))
+  DAGI_SURFACE_CACHE_READ(code)
+  hlsl(code) {
+    bool dagi_get_radiance_at_mono(float3 worldPos, float3 worldNormal, inout float radiance)
+    {
+      //fixme add per-project ray hit result (as some of ray hits can return additional info)
+      float3 radiance3;
+      // nested: && runs both calls
+      if (!dagi_surface_cache_get(worldPos, worldNormal, radiance3))
+        if (!dagi_surface_cache_voxel_get(worldPos, radiance3))
           return false;
-        radiance = radiance3.x;
-        return true;
-      }
-    }
-  } else {
-    hlsl(code) {
-      bool dagi_get_radiance_at_mono(float3 worldPos, float3 worldNormal, inout float radiance){return false;}
+      radiance = luminance(radiance3);
+      return true;
     }
   }
 

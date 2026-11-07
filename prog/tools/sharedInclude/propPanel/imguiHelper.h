@@ -144,6 +144,10 @@ public:
   static void renderFrameWithRoundingOptions(ImVec2 p_min, ImVec2 p_max, ImU32 fill_col, bool borders, float rounding,
     ImDrawFlags draw_flags);
 
+  // Similar to ImGui::TextLink() but without the underline.
+  // Unlike ImGui::TextLink() the label shows an ellipsis at the end of the visible text if needed.
+  static bool textLinkWithoutUnderline(const char *label, const char *label_end = nullptr);
+
   // Display a label.
   // The label show ellipsis at the end of the visible text if the entire text cannot be displayed.
   // It sets the baseline, so it looks correct beside other controls (unlike ImGui::TextUnformatted()).
@@ -196,8 +200,15 @@ public:
 
   static void treeNodeWithSpecialHoverBehaviorRender(TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool show_arrow = true);
 
-  // This uses LastItemData, so do not add new widgets between calling TreeNodeWithSpecialHoverBehaviorStart and
-  // TreeNodeWithSpecialHoverBehaviorEnd.
+  // The clipped label tooltip tests the hover on the last item, so do not add new widgets between
+  // treeNodeWithSpecialHoverBehaviorStart() and this call.
+  static void treeNodeWithSpecialHoverBehaviorRenderLabel(const TreeNodeWithSpecialHoverBehaviorEndData &end_data,
+    const float *label_clip_max_x = nullptr);
+
+  // This uses LastItemData, so do not add new widgets between treeNodeWithSpecialHoverBehaviorStart and this call.
+  static void treeNodeWithSpecialHoverBehaviorTreePush(const TreeNodeWithSpecialHoverBehaviorEndData &end_data);
+
+  // Same as treeNodeWithSpecialHoverBehaviorRenderLabel() followed by treeNodeWithSpecialHoverBehaviorTreePush().
   static void treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialHoverBehaviorEndData &end_data,
     const float *label_clip_max_x = nullptr);
 

@@ -1,0 +1,40 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/paddleboat ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/paddleboat.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(Platform) != android {
+  exit $(Target)":" "Error: unsupported platform:" $(Platform) ;
+}
+
+AddIncludes =
+  $(Root)/$(Location)/src/main/cpp/paddleboat/include
+  $(Root)/$(Location)/include
+;
+
+Sources =
+  src/main/cpp/InternalControllerTable.cpp
+  src/main/cpp/GameController.cpp
+  src/main/cpp/GameControllerDeviceInfo.cpp
+  src/main/cpp/GameControllerLog.cpp
+  src/main/cpp/GameControllerManager.cpp
+  src/main/cpp/GameControllerMappingUtils.cpp
+  src/main/cpp/paddleboat_c.cpp
+;
+
+# upstream builds as C++17, where mixing its two flag enums in one bitwise expression is not deprecated
+CPPopt += -Wno-deprecated-enum-enum-conversion ;
+
+AndroidSources =
+  src/main/java/com/google/android/games/paddleboat/GameControllerInfo.java
+  src/main/java/com/google/android/games/paddleboat/GameControllerListener.java
+  src/main/java/com/google/android/games/paddleboat/GameControllerManager.java
+  src/main/java/com/google/android/games/paddleboat/GameControllerThread.java
+;
+
+AndroidProguard = and.proguard ;
+
+include $(Root)/prog/_jBuild/build.jam ;

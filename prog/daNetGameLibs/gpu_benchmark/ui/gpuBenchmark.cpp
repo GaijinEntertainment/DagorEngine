@@ -67,7 +67,7 @@ static eastl::string getPresetForMaxFPS()
   return graphicsAutodetect->getPresetForMaxFPS().str();
 }
 
-SQ_DEF_AUTO_BINDING_MODULE_EX(bind_gpu_benchmark, "gpuBenchmark", sq::VM_INTERNAL_UI)
+SQ_DEF_AUTO_BINDING_MODULE_EX(bind_gpu_benchmark, "gpuBenchmark", sq::VM_UI)
 {
   Sqrat::Table tbl(vm);
   tbl //

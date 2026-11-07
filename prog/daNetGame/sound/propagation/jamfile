@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/daNetGame/sound/propagation ;
+StrictCompile = yes ;
+TargetType  = lib ;
+Target = daNetGame/sound-propagation.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  dngSoundPropagation.cpp
+;
+
+AddIncludes =
+  $(Root)/prog
+  $(Root)/prog/daNetGame
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  gameLibs/soundPropagationHost/dacoll
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

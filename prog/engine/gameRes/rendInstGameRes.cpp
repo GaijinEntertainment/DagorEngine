@@ -16,6 +16,7 @@
 #include <drv/3d/dag_resetDevice.h>
 #include <util/dag_delayedAction.h>
 #include <debug/dag_log.h>
+#include <debug/dag_streamingLog.h>
 #include <gameRes/dag_dumpResRefCountImpl.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_mutex.h>
@@ -143,6 +144,12 @@ public:
         if (!riUnitedVdata.delRes(res) && res->getRefCount() > 1)
           continue; // this resource was not referenced in streaming, so only free it if this is the only ref
       }
+      if (ri_factory && is_streaming_log_enabled())
+      {
+        String name;
+        get_game_resource_name(gameRes[i].resId, name);
+        STREAMING_LOG("rendInst free %s res=%p", name, res);
+      }
       gameRes.erase(gameRes.begin() + i);
       result = true;
       if (once)
@@ -155,6 +162,8 @@ public:
       voxeldata::rgbaAtlasManager.clear();
       voxeldata::normAtlasManager.clear();
     }
+    else if (ri_factory && result)
+      riUnitedVdata.releaseUnusedBuffers();
     return result;
   }
 
@@ -177,6 +186,7 @@ public:
     textag_mark_begin(TEXTAG_RENDINST);
     int flags = SRLOAD_SRC_ONLY;
     RPtr srcRes = RenderableInstanceLodsResource::loadResource(cb, flags, name, gameres_find_ri_desc_block(name));
+    STREAMING_LOG("rendInst load %s res=%p", name, srcRes.get());
     if (srcRes)
       riUnitedVdata.addRes(srcRes);
     textag_mark_end();

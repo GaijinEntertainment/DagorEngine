@@ -102,7 +102,11 @@ endmacro
 
 macro DAGI_MEDIA_SCENE_SRV(code)
   (code) {
-    dagi_media_scene@smp3d = dagi_media_scene;
+    dagi_media_scene@tex3d = dagi_media_scene;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
+  hlsl(code) {
+    #define dagi_media_scene_samplerstate global_linear_wrap_sampler
   }
 endmacro
 

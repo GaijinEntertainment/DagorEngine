@@ -21,4 +21,11 @@ void FastPhysSystem::debugRender()
 
     ::draw_cached_debug_line(pt.pos, pt.pos - pt.vel * 0.1f, velColor);
   }
+
+  E3DCOLOR boxColor(20, 255, 255);
+  for (const TMatrix &box : clipBoxes)
+    ::draw_cached_debug_box(box.getcol(3) - box.getcol(0) - box.getcol(1) - box.getcol(2), box.getcol(0) * 2, box.getcol(1) * 2,
+      box.getcol(2) * 2, boxColor);
+  for (const Capsule &capsule : clipCapsules)
+    ::draw_cached_debug_capsule_w(capsule, boxColor);
 }

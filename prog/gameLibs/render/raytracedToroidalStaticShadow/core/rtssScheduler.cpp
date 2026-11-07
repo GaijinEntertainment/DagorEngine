@@ -181,7 +181,7 @@ void RtssScheduler::reset()
   idle = false;
 }
 
-// constraint: the slot ends the tie, so sort() keeps the order in which the queue is filled
+// the slot ends the tie, so sort() keeps the order in which the queue is filled
 bool RtssScheduler::innerLevelOrder(const QueueItem &a, const QueueItem &b)
 {
   return eastl::tie(a.inner, a.level, a.order, a.slot) < eastl::tie(b.inner, b.level, b.order, b.slot);
@@ -243,7 +243,8 @@ double RtssScheduler::hOverE(const Level &l, double duration) const
 void RtssScheduler::updateSweep(int level)
 {
   Level &l = lvl[level];
-  if (!l.live)
+  const bool fresh = !l.live;
+  if (fresh)
   {
     l.xform[0] = rtss_first_transform(sunDir, camera, rtss_aniso_scale(sunDir, set.maxAnisotropy));
     l.live = 1;
@@ -291,8 +292,23 @@ void RtssScheduler::updateSweep(int level)
     return;
   }
   const double step = angle_between(-l.xform[l.cur].d, sunDir);
-  if (!belowHorizon && step >= tol * 0.5)
+  if (belowHorizon || fresh || step < tol * 0.5) // fresh faces this sun: no restart loop
+    return;
+  if (set.sunSweep)
     startSweep(l, sunDir, t0, duration, h, step > fastLimit);
+  else
+    restartLevel(level);
+}
+
+void RtssScheduler::restartLevel(int level)
+{
+  const int W = set.windowPages;
+  for (Slot &s : lvl[level].slots)
+    s.state = EMPTY;
+  eastl::fill_n(slotTab.begin() + level * W * W, W * W, RtssSlot{});
+  slotTabDirty = true;
+  lvl[level].live = 0;
+  updateSweep(level);
 }
 
 void RtssScheduler::startSweep(Level &l, const Point3 &dir_end, double t0, double duration, double h_over_e, bool fast)
@@ -336,7 +352,7 @@ void RtssScheduler::updateWindow(int level)
       const double rz = b == tgt ? eastl::max(e, sweepZ) : e, hz = eastl::max(double(set.maxCasterReach), 2 * rz);
       const double lo = eastl::max(c.z - rz, boxLo.z), hi = eastl::min(c.z + rz, boxHi.z);
       l.boxZ[b][0] = eastl::max(c.z - hz, boxLo.z);
-      l.boxZ[b][1] = eastl::max(l.boxZ[b][0], eastl::min(c.z + hz, boxHi.z)); // constraint: the L16 depth step needs a short range
+      l.boxZ[b][1] = eastl::max(l.boxZ[b][0], eastl::min(c.z + hz, boxHi.z)); // the L16 depth step needs a short range
       l.reqZ[b][0] = lo <= hi ? lo : DBL_MAX;
       l.reqZ[b][1] = lo <= hi ? hi : -DBL_MAX;
     }
@@ -360,7 +376,7 @@ void RtssScheduler::updateWindow(int level)
       l.pretrace[a] = Pretrace();
     }
   }
-  // constraint: rtss_pack_page keeps 16 bits of a page, so a page more than W out of the window could alias
+  // rtss_pack_page keeps 16 bits of a page, so a page more than W out of the window could alias
   for (int i = 0; l.origin != oldOrigin && i < W * W; ++i)
   {
     Slot &s = l.slots[i];
@@ -602,7 +618,7 @@ void RtssScheduler::planRequired()
   eastl::sort(required.begin(), required.end(), [last](const QueueItem &a, const QueueItem &b) {
     if ((a.level == last) != (b.level == last))
       return a.level == last;
-    // constraint: the coarsest level has no fallback, so its pages go nearest the camera first, inner or not
+    // the coarsest level has no fallback, so its pages go nearest the camera first, inner or not
     return a.level == last ? eastl::tie(a.order, a.slot) < eastl::tie(b.order, b.slot) : innerLevelOrder(a, b);
   });
   auto require = [&](const QueueItem &q) {
@@ -614,7 +630,7 @@ void RtssScheduler::planRequired()
     addJob(q.level, q.slot, q.page, samePage ? SAME_PAGE : NEW_PAGE, RTSS_REQUIRED, requiredLeft(q.level));
   };
 
-  // constraint: no fallback, so a missing coarsest page takes the update budget too, past the burst and first
+  // no fallback, so a missing coarsest page takes the update budget too, past the burst and first
   burstLeft += updateLeft;
   size_t i = 0;
   for (; i < required.size() && required[i].level == last; ++i)
@@ -714,7 +730,7 @@ void RtssScheduler::planQueue()
     due |= q.cls == RTSS_DIRTY || (q.cls == RTSS_PRETRACE && q.order <= now);
   for (const Level &l : lvl)
     due |= headDeadline(l) <= now;
-  // constraint: a dispatch waits for its slowest rays
+  // a dispatch waits for its slowest rays
   const double horizon = due ? NEVER : now, sweepHorizon = now + (set.batchFrames - 1) * frameDt;
   for (size_t i = 0;; ++i)
   {
@@ -814,7 +830,7 @@ RtssFramePlan &RtssScheduler::plan(const DPoint3 &camera_pos, const Point3 &came
   cameraVel = length(camera_velocity) <= set.maxCameraSpeed ? camera_velocity : Point3(0, 0, 0);
   if (hasWorldBox && (camera.y < worldBox[0].y || camera.y > worldBox[1].y))
   {
-    // constraint: no caster or receiver lies outside the height of the world box, so the window keeps to its edge
+    // no caster or receiver lies outside the height of the world box, so the window keeps to its edge
     camera.y = eastl::clamp(camera.y, double(worldBox[0].y), double(worldBox[1].y));
     cameraVel.y = 0;
   }
@@ -924,6 +940,30 @@ bool RtssScheduler::isReady(const BBox3 &box, uint32_t level_mask) const
       }
   }
   return true;
+}
+
+float RtssScheduler::casterReach() const
+{
+  double reach = DBL_MAX;
+  for (const Level &l : lvl)
+    for (int b = 0; b < 2; ++b)
+    {
+      if (!(l.live & (1 << b)))
+        continue;
+      DPoint3 boxLo(0, 0, -DBL_MAX), boxHi(0, 0, DBL_MAX);
+      if (hasWorldBox)
+        ls_bounds(l.xform[b], worldBox, boxLo, boxHi);
+      for (const Slot &s : l.slots)
+        if (s.bit == b && inUse(l, s)) // a start plane on the box holds every caster
+          reach = eastl::min(reach, s.zStart > boxLo.z + 1e-3 ? l.camLs[b].z - s.zStart : double(FLT_MAX));
+    }
+  return reach == DBL_MAX ? 0.f : float(eastl::max(reach, 0.0));
+}
+
+float RtssScheduler::fullWeightDistance() const
+{
+  const Level &l = lvl[set.levels - 1];
+  return float((1 - set.seamBand) * l.extent / l.xform[l.newestBit()].sy);
 }
 
 void RtssScheduler::getStats(RtssSchedulerStats &out) const

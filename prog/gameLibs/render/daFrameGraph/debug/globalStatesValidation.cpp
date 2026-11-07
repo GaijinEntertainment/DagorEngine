@@ -132,8 +132,7 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
           }
           continue;
         }
-        if (eastl::holds_alternative<MissingOptionalResource>(it->second) &&
-            nodeData.resourceRequests.find(res.resource)->second.optional)
+        if (eastl::holds_alternative<MissingOptionalResource>(it->second))
           continue;
       }
     }
@@ -206,10 +205,10 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
   validateBlock(nodeData.shaderBlockLayers.objectLayer, ShaderGlobal::getBlock(ShaderGlobal::LAYER_OBJECT), "object");
 
   // Only check on platforms that use generic RP implementation
-  if (nodeData.renderingRequirements.has_value() && !d3d::get_driver_code().is(d3d::stub) &&
-      !d3d::get_driver_desc().caps.hasNativeRenderPassSubPasses)
+  const auto *virtualPass = eastl::get_if<VirtualPassRequirements>(&nodeData.renderingRequirements);
+  if (virtualPass && !d3d::get_driver_code().is(d3d::stub) && !d3d::get_driver_desc().caps.hasNativeRenderPassSubPasses)
   {
-    const auto &expectedRts = *nodeData.renderingRequirements;
+    const auto &expectedRts = *virtualPass;
 
     Driver3dRenderTarget observedRts;
     d3d::get_render_target(observedRts);

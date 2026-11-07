@@ -33,7 +33,7 @@ function listdir(path_or_options=null){
   local path = path_or_options?.path
   let {recursive = false} = path_or_options
   path = path ?? "."
-  let sorter = @(a,b) a.name<=>b.name
+  let sorter = @(a) a.name
   let files = scan_folder({root=path, vromfs = false, realfs = true, recursive})
     .map(function(v) {
       let p = v.split("/")
@@ -44,7 +44,7 @@ function listdir(path_or_options=null){
       throw null
     })
   let vroms_files = vrom_file_tree?[path].filter(@(v) !v.isDir) ?? []
-  files.extend(vroms_files).sort(sorter)
+  files.extend(vroms_files).sortby(sorter)
   let dirs = scan_folder({root=path, vromfs = false, realfs = true, recursive, directories_only=true})
     .map(function(v) {
       let p = v.split("/")
@@ -54,7 +54,7 @@ function listdir(path_or_options=null){
       return {name, isDir=true}
     })
   let vroms_dirs = vrom_file_tree?[path].filter(@(v) v.isDir) ?? []
-  dirs.extend(vroms_dirs).sort(sorter)
+  dirs.extend(vroms_dirs).sortby(sorter)
   return dirs.extend(files)
 }
 

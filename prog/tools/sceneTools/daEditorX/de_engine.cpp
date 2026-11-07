@@ -361,13 +361,15 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
 
   const DataBlock &blk = *appblk.getBlockByNameEx("assets");
   const DataBlock *exp_blk = appblk.getBlockByNameEx("assets")->getBlockByName("export");
-  bool loadDDSxPacks = appblk.getBlockByNameEx("assets")->getStr("ddsxPacks", NULL) != NULL || minimize_dabuild_usage;
+  const char *ddsxPref = blk.getStr("ddsxPacks", src_assets_scan_allowed ? NULL : "#gameRes");
+  bool loadDDSxPacks = ddsxPref != NULL || minimize_dabuild_usage;
 
 
   // scan game resources
   ::reset_game_resources();
   de3scannedResBlk.reset();
-  set_gameres_scan_recorder(&de3scannedResBlk, blk.getStr("gameRes", NULL), blk.getStr("ddsxPacks", NULL));
+  const char *gameResPref = blk.getStr("gameRes", src_assets_scan_allowed ? NULL : "#gameRes");
+  set_gameres_scan_recorder(&de3scannedResBlk, gameResPref, ddsxPref);
 
   if (exp_blk)
   {

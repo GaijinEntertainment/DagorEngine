@@ -11,11 +11,11 @@ namespace dafg
 
 VirtualPassRequest::VirtualPassRequest(NodeNameId node, InternalRegistry *reg) : nodeId{node}, registry{reg}
 {
-  if (DAGOR_UNLIKELY(registry->nodes[nodeId].renderingRequirements.has_value()))
+  if (DAGOR_UNLIKELY(!eastl::holds_alternative<eastl::monostate>(registry->nodes[nodeId].renderingRequirements)))
     logerr("daFG: Encountered two renderpass requests within '%s' framegraph node!"
            " Ignoring one of them!",
       registry->knownNames.getName(nodeId));
-  registry->nodes[nodeId].renderingRequirements.emplace();
+  registry->nodes[nodeId].renderingRequirements.emplace<VirtualPassRequirements>();
 }
 
 template <detail::ResourceRequestPolicy disallowPolicies, detail::ResourceRequestPolicy requirePolicies>
@@ -35,7 +35,7 @@ detail::ResUid VirtualPassRequest::getResUidForAttachment(
 VirtualPassRequest VirtualPassRequest::color(std::initializer_list<ColorRwVirtualAttachmentRequest> attachments) &&
 {
   auto &nodeData = registry->nodes[nodeId];
-  auto &colors = nodeData.renderingRequirements->colorAttachments;
+  auto &colors = eastl::get<VirtualPassRequirements>(nodeData.renderingRequirements).colorAttachments;
   if (DAGOR_UNLIKELY(!colors.empty()))
   {
     logerr("daFG: Encountered duplicate color attachment calls on the same pass request"
@@ -58,7 +58,8 @@ VirtualPassRequest VirtualPassRequest::color(std::initializer_list<ColorRwVirtua
 VirtualPassRequest VirtualPassRequest::depth(RwVirtualAttachmentRequest attachment) &&
 {
   auto &nodeData = registry->nodes[nodeId];
-  auto &depth = nodeData.renderingRequirements->depthAttachment;
+  auto &reqs = eastl::get<VirtualPassRequirements>(nodeData.renderingRequirements);
+  auto &depth = reqs.depthAttachment;
   if (DAGOR_UNLIKELY(depth.nameId != ResNameId::Invalid))
   {
     logerr("daFG: Encountered duplicate depth attachment calls on the same pass request"
@@ -70,15 +71,16 @@ VirtualPassRequest VirtualPassRequest::depth(RwVirtualAttachmentRequest attachme
   nodeData.modifiedResources.insert(resId);
   nodeData.resourceRequests[resId].usage = ResourceUsage{Usage::DEPTH_ATTACHMENT, Access::READ_WRITE, Stage::POST_RASTER};
   depth = VirtualSubresourceRef{resId, attachment.mipLevel, attachment.layer};
-  nodeData.renderingRequirements->depthReadOnly = false;
-  nodeData.renderingRequirements->depthReadTestOnly = false;
+  reqs.depthReadOnly = false;
+  reqs.depthReadTestOnly = false;
   return *this;
 }
 
 VirtualPassRequest VirtualPassRequest::depthReadTestOnly(DepthReadTestOnlyVirtualAttachmentRequest attachment) &&
 {
   auto &nodeData = registry->nodes[nodeId];
-  auto &depth = nodeData.renderingRequirements->depthAttachment;
+  auto &reqs = eastl::get<VirtualPassRequirements>(nodeData.renderingRequirements);
+  auto &depth = reqs.depthAttachment;
   if (DAGOR_UNLIKELY(depth.nameId != ResNameId::Invalid))
   {
     logerr("daFG: Encountered duplicate depth attachment calls on the same pass request"
@@ -99,8 +101,8 @@ VirtualPassRequest VirtualPassRequest::depthReadTestOnly(DepthReadTestOnlyVirtua
   // reader, not a writer.
   nodeData.resourceRequests[resId].usage = ResourceUsage{Usage::DEPTH_ATTACHMENT, Access::READ_WRITE, Stage::POST_RASTER};
   depth = VirtualSubresourceRef{resId, attachment.mipLevel, attachment.layer};
-  nodeData.renderingRequirements->depthReadOnly = false;
-  nodeData.renderingRequirements->depthReadTestOnly = true;
+  reqs.depthReadOnly = false;
+  reqs.depthReadTestOnly = true;
   return *this;
 }
 
@@ -109,7 +111,8 @@ VirtualPassRequest VirtualPassRequest::depthReadTestAndSample(DepthReadTestAndSa
 {
   auto &nodeData = registry->nodes[nodeId];
 
-  auto &depth = nodeData.renderingRequirements->depthAttachment;
+  auto &reqs = eastl::get<VirtualPassRequirements>(nodeData.renderingRequirements);
+  auto &depth = reqs.depthAttachment;
   if (DAGOR_UNLIKELY(depth.nameId != ResNameId::Invalid))
   {
     logerr("daFG: Encountered duplicate depth attachment calls on the same pass request"
@@ -126,8 +129,8 @@ VirtualPassRequest VirtualPassRequest::depthReadTestAndSample(DepthReadTestAndSa
     nodeData.readResources.insert(resId);
 
   depth = VirtualSubresourceRef{resId, attachment.mipLevel, attachment.layer};
-  nodeData.renderingRequirements->depthReadOnly = true;
-  nodeData.renderingRequirements->depthReadTestOnly = false;
+  reqs.depthReadOnly = true;
+  reqs.depthReadTestOnly = false;
 
   detail::VirtualResourceRequestBase fakeReq{{resId, hist}, nodeId, registry};
   for (auto name : shader_var_names)
@@ -154,8 +157,9 @@ VirtualPassRequest VirtualPassRequest::resolve(RwVirtualAttachmentRequest from, 
   G_ASSERT(!toHist);
 
   auto &nodeData = registry->nodes[nodeId];
+  auto &reqs = eastl::get<VirtualPassRequirements>(nodeData.renderingRequirements);
 
-  if (nodeData.renderingRequirements->resolves.contains(fromId))
+  if (reqs.resolves.contains(fromId))
     logerr("daFG: Encountered duplicate resolve request for attachment '%s' "
            "in node '%s'! Ignoring one of them!",
       registry->knownNames.getName(fromId), registry->knownNames.getName(nodeId));
@@ -163,7 +167,7 @@ VirtualPassRequest VirtualPassRequest::resolve(RwVirtualAttachmentRequest from, 
   nodeData.modifiedResources.insert(toId);
   nodeData.resourceRequests[toId].usage = ResourceUsage{Usage::RESOLVE_ATTACHMENT, Access::READ_WRITE, Stage::TRANSFER};
 
-  nodeData.renderingRequirements->resolves.emplace(fromId, toId);
+  reqs.resolves.emplace(fromId, toId);
 
   return *this;
 }
@@ -181,7 +185,7 @@ VirtualPassRequest VirtualPassRequest::vrsRate(RoVirtualAttachmentRequest attach
   }
 
   auto &nodeData = registry->nodes[nodeId];
-  auto &rate = nodeData.renderingRequirements->vrsRateAttachment;
+  auto &rate = eastl::get<VirtualPassRequirements>(nodeData.renderingRequirements).vrsRateAttachment;
   if (DAGOR_UNLIKELY(rate.nameId != ResNameId::Invalid))
   {
     logerr("daFG: Encountered duplicate VRS rate attachment calls on the same pass request"

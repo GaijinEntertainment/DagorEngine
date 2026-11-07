@@ -9,7 +9,7 @@ require daslib/option
 // DISABLED — file is renamed with a leading underscore so dastest skips it
 // (see dastest/fs.das filter on filenames starting with `_`).
 //
-// Why: this file fails to compile in `test_aot -use-aot` mode on
+// this file fails to compile in `test_aot -use-aot` mode on
 // darwin26-Release runners specifically (PR #2485 CI). Same daslang frontend
 // + same source compiles fine on darwin15, linux, windows, and on
 // darwin26-Debug — points to a Release-optimization-induced bug in daslang's

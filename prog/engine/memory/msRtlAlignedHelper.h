@@ -9,9 +9,15 @@
 extern "C" __declspec(noinline) void *__cdecl _expand_base(void *const block, size_t const size);
 #define MSIZE_BASE  _msize_base
 #define EXPAND_BASE _expand_base
+#define DAGMEM_NO_ASAN
 #else
 #define MSIZE_BASE  _msize
 #define EXPAND_BASE _expand
+#if defined(_MSC_VER) && !defined(__clang__)
+#define DAGMEM_NO_ASAN __declspec(no_sanitize_address)
+#else
+#define DAGMEM_NO_ASAN __attribute__((no_sanitize("address")))
+#endif
 #endif
 
 struct MsRtlAllocatorAlignedChunkHdr
@@ -27,15 +33,7 @@ static inline void *dagmem_mark_aligned_chunk(void *aligned_ptr, void *orig_ptr)
   chunk_hdr->origAddrInv = ~uintptr_t(orig_ptr);
   return aligned_ptr;
 }
-#if DAGOR_ADDRESS_SANITIZER
-#if defined(_MSC_VER) && !defined(__clang__)
-__declspec(no_sanitize_address)
-#else
-__attribute__((no_sanitize("address")))
-#endif
-#endif
-static inline bool
-dagmem_is_marked_aligned_chunk(const MsRtlAllocatorAlignedChunkHdr &ch)
+DAGMEM_NO_ASAN static inline bool dagmem_is_marked_aligned_chunk(const MsRtlAllocatorAlignedChunkHdr &ch)
 {
   if (ch.origAddr != ~ch.origAddrInv)
     return false;
@@ -47,17 +45,10 @@ static inline void dagmem_clear_aligned_chunk_mark(MsRtlAllocatorAlignedChunkHdr
   chunk_hdr->origAddrInv = 0;
 }
 
-extern bool is_address_natively_allocated(const void *addr);
+// constraint: msvc takes no_sanitize from first declaration
+DAGMEM_NO_ASAN extern bool is_address_natively_allocated(const void *addr);
 
-#if DAGOR_ADDRESS_SANITIZER
-#if defined(_MSC_VER) && !defined(__clang__)
-__declspec(no_sanitize_address)
-#else
-__attribute__((no_sanitize("address")))
-#endif
-#endif
-static inline const MsRtlAllocatorAlignedChunkHdr *
-dagmem_is_aligned_chunk_min_guarded(const void *p)
+DAGMEM_NO_ASAN static inline const MsRtlAllocatorAlignedChunkHdr *dagmem_is_aligned_chunk_min_guarded(const void *p)
 {
   if (!p)
     return nullptr;

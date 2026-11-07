@@ -25,7 +25,7 @@ struct RAIIVrom
   bool isLoaded() const { return vrom != NULL; }
 };
 
-enum class ReqVromSign
+enum class ReqVromSign : uint8_t
 {
   No,
   Yes
@@ -38,10 +38,12 @@ struct VromLoadInfo // -V730
   const char *stripPrefixes;
   bool isPack, optional;
   ReqVromSign reqSign = ReqVromSign::Yes;
+  bool keepFile = false;
 };
 
 String get_eff_vrom_fpath(const char *name);
-VirtualRomFsData *mount_vrom(const char *name, const char *mnt_path, bool is_pack, bool is_optional, ReqVromSign req_sign);
+VirtualRomFsData *mount_vrom(
+  const char *name, const char *mnt_path, bool is_pack, bool is_optional, ReqVromSign req_sign, bool keep_file);
 void apply_vrom_list_difference(const DataBlock &blk, dag::ConstSpan<VromLoadInfo> extra_list = {}); // unload extra, load new
 void unmount_all_vroms();
 
@@ -73,12 +75,18 @@ bool check_vromfs_version_newer(updater::Version base_ver, updater::Version upd_
 bool init_expected_vromfs_version();
 void install_vromfs_signature_check(signature_checker_factory_cb sig);
 
+// debug/downloadResPatch, on for Xbox, PS4, PS5
+bool is_res_patch_download_enabled();
+// root ends with PATH_DELIM; nullptr: build patch
+const char *get_actual_res_patch_folder();
+
 namespace updater
 {
 namespace binarycache
 {
 const eastl::string &get_cache_folder();
 const eastl::string &get_remote_folder();
+const eastl::string &get_res_patch_folder();
 
 Version get_cache_version();
 } // namespace binarycache

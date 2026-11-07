@@ -157,6 +157,7 @@ public:
     RENDER_DEPTH = 5,
     RENDER_ONE_SHADER = 6, // all shaders are the same! feedback, heightmap, vsm. render only landmesh and landmesh_combined
     RENDER_PATCHES = 7,
+    RENDER_WATER_DECALS = 8,
     RENDER_TYPES_COUNT
   };
   static constexpr int DET_TEX_NUM = ::DET_TEX_NUM; // single definition in landMesh/lmeshTools.h
@@ -283,6 +284,9 @@ protected:
     shaders::OverrideStateId cullFlippedPrevStateId, cullFlippedCurStateId;
     bool skipBottomRendering = false;
     bool useExclBox = false; // this pass's cull decision (LandMeshCullingData::useExclBox)
+    // the detail map clamp sampler, requested at the pass start: a handle kept longer would outlive a driver
+    // release and re-init (a daEditorX workspace switch)
+    d3d::SamplerHandle clampSampler = d3d::INVALID_SAMPLER_HANDLE;
     // This pass's cull frustum bbox (LandMeshCullingData::frustumWorldBBox); decal elements
     // clip to it when the desc has no renderInBBox.
     bbox3f frustumWorldBBox = {};
@@ -363,16 +367,10 @@ protected:
   bool prepared = false;
   landmesh::OptimizedScene *optScn;
 
-  enum StateDepthBias
-  {
-    STATE_DEPTH_BIAS_ZERO,
-    STATE_DEPTH_BIAS_BOTTOM
-  };
-
   shaders::OverrideStateId setOverride(const shaders::OverrideState &new_state);
   void resetOverride(shaders::OverrideStateId &prev_state);
   shaders::OverrideStateId setStateFlipCull(bool flip_cull);
-  shaders::OverrideStateId setStateDepthBias(StateDepthBias depth_bias);
+  shaders::OverrideStateId setStateDepthBias(); // overrides any material depth bias to zero
 
   eastl::vector_map<uint32_t, eastl::vector<shaders::UniqueOverrideStateId>> overrideStateMap;
 

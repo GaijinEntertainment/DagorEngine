@@ -177,4 +177,13 @@ bool tilecache_ri_obstacle_remove(rendinst::riex_handle_t ri_handle, bool sync)
   G_UNUSED(sync);
   return false;
 }
+
+bool tilecache_ri_after_destroy_obstacle_add(rendinst::riex_handle_t ri_handle, const TMatrix &tm)
+{
+  G_UNUSED(ri_handle);
+  G_UNUSED(tm);
+  return false;
+}
+
+void tilecache_ri_after_destroy_obstacles_remove() {}
 } // namespace pathfinder

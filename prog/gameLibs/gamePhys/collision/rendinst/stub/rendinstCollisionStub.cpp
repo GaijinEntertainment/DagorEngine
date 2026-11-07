@@ -27,6 +27,8 @@ CollisionObject WrapperRendInstCollisionImplCB::processCollisionInstance(const r
   return CollisionObject();
 }
 
+void WrapperRendInstCollisionImplCB::contactTestPair(PhysWorld *, const PhysBody *) {}
+
 void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::CollisionInfo &) {}
 
 void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo &) {}

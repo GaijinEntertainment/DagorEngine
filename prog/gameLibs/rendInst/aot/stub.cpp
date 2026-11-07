@@ -123,6 +123,7 @@ Point3 getRIGenExtraBsphPos(uint32_t) { G_ASSERT_RETURN(false, Point3()); }
 Point4 getRIGenExtraBSphereByTM(uint32_t, const TMatrix &) { G_ASSERT_RETURN(false, Point4()); }
 int getRIGenExtraParentForDestroyedRiIdx(uint32_t) { G_ASSERT_RETURN(false, -1); }
 bool isRIGenExtraDestroyedPhysResExist(uint32_t) { G_ASSERT_RETURN(false, false); }
+bool isRIGenExtraDestroyedPhysNetSynced(uint32_t) { G_ASSERT_RETURN(false, false); }
 int getRIGenExtraDestroyedRiIdx(uint32_t) { G_ASSERT_RETURN(false, -1); }
 void moveToOriginalScene(riex_handle_t) { G_ASSERT(0); }
 void removeFromTiledScene(riex_handle_t) { G_ASSERT(0); }

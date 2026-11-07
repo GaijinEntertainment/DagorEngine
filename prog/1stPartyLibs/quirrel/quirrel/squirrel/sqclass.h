@@ -101,17 +101,13 @@ public:
     uint64_t lockedTypeId() const {return _lockedTypeId;}
 
     enum {CLASS_BITS = 40};
-    //all x64 bit platforms have only 48 meaningful bits in pointers. Yet, 3 lsb are always zero (or meaningless, as pointers are aligned)
-    //actually, even more bits are meaningless - as any class can't alias with other, there should be at least sizeof(SQClass) difference
-    //sizeof is at least 256 on all platforms, so there are no more than 40 meaningful bits (after first 8)
-    //still more than 32, unfortunately
     bool isLocked() const {return _lockedTypeId != 0;}
     static uint64_t classTypeFromHint(uint64_t hint)
     {
-      static_assert(sizeof(SQClass)>=256);
       return hint&((1ull<<uint64_t(CLASS_BITS)) - 1);
     }
-    uint64_t currentHint() const {return classTypeFromHint(uintptr_t(this)>>uintptr_t(8));}
+    // not the address: a reused address keeps old hints
+    uint64_t newLockedTypeId() {return classTypeFromHint(++_sharedstate->_classTypeIdCounter);}
     void Finalize();
 #ifndef NO_GARBAGE_COLLECTOR
     void Mark(SQCollectable ** );

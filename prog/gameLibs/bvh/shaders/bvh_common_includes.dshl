@@ -11,7 +11,6 @@ macro USE_CLIPMAP_BINDLESS_TEXTURE_DECLARATIONS(code)
 hlsl(code){
   static Texture2D<float4> cache_tex0 = nonUniformBindlessTex2D(bvh_textures, cache_tex0_tex_slot);
   static SamplerState cache_tex0_samplerstate = bvh_clamp_sampler;
-  static Texture2D<float4> indirection_tex = nonUniformBindlessTex2D(bvh_textures, indirection_tex_tex_slot);
   static Texture2D<float4> cache_tex1 = nonUniformBindlessTex2D(bvh_textures, cache_tex1_tex_slot);
   static Texture2D<float4> cache_tex2 = nonUniformBindlessTex2D(bvh_textures, cache_tex2_tex_slot);
   static Texture2D<float4> last_clip_tex = nonUniformBindlessTex2D(bvh_textures, last_clip_tex_tex_slot);
@@ -72,7 +71,7 @@ macro WETNESS_FOR_SPEC_BRDF(stage)
       float3 biasedWorldPos = world_pos + vertical_normal;
       float depthAbove = get_depth_above_fast(biasedWorldPos, depthVignette);
 
-      float depthInfl = 1 - saturate(depthAbove - biasedWorldPos.y);
+      float depthInfl = lerp(1 - saturate(depthAbove - biasedWorldPos.y), 1, depthVignette);
       BRANCH
       if (depthInfl < 0.0001)
         return;

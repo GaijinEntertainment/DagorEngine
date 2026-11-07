@@ -503,7 +503,7 @@ def render_AnimBlendCtrl_Fifo3(var nod : IAnimBlendNode?; var graph : AnimationG
 
       let timeScaleParam = *node |> anim_blend_node_getTimeScaleParamId(state)
       draw_param_info(graph, state, timeScaleParam, "Time scale")
-      var queue : AnimFifo3Queue? = reinterpret<AnimFifo3Queue?>(state |> anim_state_holder_getInlinePtr(paramId))
+      let queue : AnimFifo3Queue? = reinterpret<AnimFifo3Queue?>(state |> anim_state_holder_getInlinePtr(paramId))
       draw_param_info(graph, state, paramId, "Param")
 
     render_AnimFifo3QueueParam(paramId, graph, state, context) <| $(childNode, idx, childWeight)
@@ -595,7 +595,7 @@ def get_state_node_name(graph : AnimationGraph; node_id : int)
 
 
 def is_state_node_supported(graph : AnimationGraph; node_id : int; mask_ofs : int)
-  var nodePtr = graph |> anim_graph_getBlendNodePtr(node_id + mask_ofs)
+  let nodePtr = graph |> anim_graph_getBlendNodePtr(node_id + mask_ofs)
   return nodePtr != null
 
 
@@ -861,7 +861,7 @@ Adding and removing nodes through anim graph viewer is only supported for const 
         imgui::InputFloat("Weight##hubaddnodeweight{nodeId}", safe_addr(newNodeWeight))
 
         if imgui::Button("Add##hubaddnode{nodeId}")
-          var childPtr = graph |> anim_graph_getBlendNodePtr(context.nodeIds[newNodeSelectedIndex])
+          let childPtr = graph |> anim_graph_getBlendNodePtr(context.nodeIds[newNodeSelectedIndex])
           if childPtr != null
             var act : UndoRedoAction
             act.kind = UndoRedoActionKind.HUB_ADD
@@ -1009,7 +1009,7 @@ def render_AnimBlendCtrl_LinearPoly(var nod : IAnimBlendNode?; var graph : Anima
         imgui::InputFloat("p0##lpaddnodep0_{nodeId}", safe_addr(lpNewNodeP0))
 
         if imgui::Button("Add##lpaddnodebtn_{nodeId}")
-          var childPtr = graph |> anim_graph_getBlendNodePtr(context.nodeIds[lpNewNodeSelectedIndex])
+          let childPtr = graph |> anim_graph_getBlendNodePtr(context.nodeIds[lpNewNodeSelectedIndex])
           if childPtr != null
             var act : UndoRedoAction
             act.kind = UndoRedoActionKind.LINEAR_POLY_ADD
@@ -1183,7 +1183,7 @@ def render_AnimBlendCtrl_ParametricSwitcher(var nod : IAnimBlendNode?; var graph
         imgui::InputFloat("end##psaddend_{nodeId}", safe_addr(psNewEnd))
 
         if imgui::Button("Add##psaddbtn_{nodeId}")
-          var childPtr = graph |> anim_graph_getBlendNodePtr(context.nodeIds[psNewNodeSelectedIndex])
+          let childPtr = graph |> anim_graph_getBlendNodePtr(context.nodeIds[psNewNodeSelectedIndex])
           if childPtr != null
             var act : UndoRedoAction
             act.kind = UndoRedoActionKind.PARAM_SWITCH_ADD
@@ -1286,7 +1286,7 @@ def render_AnimPostBlendParamFromNode(var nod : IAnimBlendNode?; var graph : Ani
     imgui::Text("node: {node.nodeName}")
     imgui::Text("slotId: {node.slotId} ({animchar_getSlotName(node.slotId)})")
     draw_param_info(graph, state, node.destVarId, "destVarId")
-    var localData = reinterpret<AnimPostBlendParamFromNodeLocalData?>(state |> anim_state_holder_getInlinePtr(node.varId))
+    let localData = reinterpret<AnimPostBlendParamFromNodeLocalData?>(state |> anim_state_holder_getInlinePtr(node.varId))
     imgui::Text("lastRefUid: {EntityId(uint(localData.lastRefUid))}")
     imgui::Text("destVarWtId: {node.destVarWtId}")
     imgui::Text("defVal: {node.defVal}")
@@ -1314,7 +1314,7 @@ def render_AttachGeomNodeCtrl(var nod : IAnimBlendNode?; var graph : AnimationGr
         imgui::Text("  wScaleInverted: {n.wScaleInverted}")
         draw_param_info(graph, state, n.nodeWtm, "  nodeWtm param")
         if n.nodeWtm >= 0
-          var AttachDesc : AttachGeomNodeCtrlAttachDesc? = reinterpret<AttachGeomNodeCtrlAttachDesc?>(state |> anim_state_holder_getInlinePtr(n.nodeWtm))
+          let AttachDesc : AttachGeomNodeCtrlAttachDesc? = reinterpret<AttachGeomNodeCtrlAttachDesc?>(state |> anim_state_holder_getInlinePtr(n.nodeWtm))
           var tm_pos, tm_scale : float3
           var tm_rot_q : float4
           decompose(float4x4(AttachDesc.wtm), tm_pos, tm_rot_q, tm_scale)
@@ -1786,7 +1786,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
             let maskOfs = graph |> anim_graph_getStateChanNodemaskOfs(chanIdx)
 
             imgui::Separator()
-            var fifoNode = graph |> anim_graph_getStateChanFifo(chanIdx)
+            let fifoNode = graph |> anim_graph_getStateChanFifo(chanIdx)
             imgui::Text("chan {chanIdx}: fifo '{graph |> anim_graph_getBlendNodeName(fifoNode)}'")
 
             unsafe
@@ -2489,28 +2489,37 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
             else
               NavigateToContent(0.2f)
 
-          query() <| $ [es] (var animgraph_prop_panel__select_request : das_string&; animgraph_prop_panel__select_tree : das_string)
-            let requested = "{animgraph_prop_panel__select_request}"
-            if requested != ""
+          query() <| $ [es] (var animgraph_prop_panel__select_request : StringList&; animgraph_prop_panel__select_tree : das_string)
+            if !empty(animgraph_prop_panel__select_request)
               // Non-empty status is the consume ack; panel treats empty as still pending.
               let drawnTree = get_game_resource_name(graph.resId)
-              var status = "Selected '{requested}'"
+              var status = ""
               let requestTree = "{animgraph_prop_panel__select_tree}"
               if requestTree != drawnTree
                 status = "Select failed: request was made for '{requestTree}', the viewer draws '{drawnTree}'"
               else
-                let selIdx = ctx.nodeNames |> find_index(requested)
-                if selIdx < 0
-                  status = "Select failed: node '{requested}' not found in graph"
-                elif selIdx >= length(isNodeRendered) || !isNodeRendered[selIdx]
-                  status = "Select failed: node '{requested}' is not drawn (draw mode or node filter)"
+                // One blk block can make several runtime nodes; the panel sends all of them.
+                var drawnIdxs : array<int>
+                let requestedCount = length(animgraph_prop_panel__select_request)
+                for requested in animgraph_prop_panel__select_request
+                  let selIdx = ctx.nodeNames |> find_index(string(requested))
+                  if selIdx >= 0 && isNodeRendered[selIdx]
+                    drawnIdxs |> push(selIdx)
+                if length(drawnIdxs) == 0
+                  status = "Select failed: no requested node is drawn (draw mode or node filter)"
                 else
                   imgui_node_editor::ClearSelection()
-                  imgui_node_editor::SelectNode(get_node_idx(ctx.nodeIds[selIdx]), true)
+                  for selIdx in drawnIdxs
+                    imgui_node_editor::SelectNode(get_node_idx(ctx.nodeIds[selIdx]), true)
                   NavigateToSelection(false, 0.2f)
+                  let firstName = ctx.nodeNames[drawnIdxs[0]]
+                  if length(drawnIdxs) == requestedCount
+                    status = requestedCount == 1 ? "Selected '{firstName}'" : "Selected {requestedCount} nodes ('{firstName}', ...)"
+                  else
+                    status = "Selected {length(drawnIdxs)} of {requestedCount} nodes, others are not drawn (draw mode or node filter)"
               query() <| $ [es] (var animgraph_prop_panel__select_status : das_string&)
                 animgraph_prop_panel__select_status := status
-              animgraph_prop_panel__select_request := ""
+              clear(animgraph_prop_panel__select_request)
 
           imgui_node_editor::Suspend()
 

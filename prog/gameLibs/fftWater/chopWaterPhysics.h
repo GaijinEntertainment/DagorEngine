@@ -65,7 +65,7 @@ public:
 
   void syncRun(int nextLastTick);
 
-  void runAsyncTask(int nextLastTick, float tasks);
+  void runAsyncTask(int nextLastTick, float tasks, bool wake_up_pool);
   void setCascadesSimulationTime(double time);
 
   int updateSnapshotRows(int start, int count);
@@ -75,7 +75,7 @@ public:
 
   bool isAsyncRunning() const;
   void wait();
-  void increaseTime(double time);
+  void increaseTime(double time, bool wake_up_pool);
 
   // duplicate of WaterNVPhysics::getAbsFifoIndex
   void getAbsFifoIndex(double time, int &fifo1, int &fifo2, float &fifo2Part) const // lerp(fifo1, fifo2, fifo2Part);

@@ -514,7 +514,7 @@ void PipelineStageStateBase::trackUResAccesses(uint32_t slot, ExtendedShaderStag
 void PipelineStageStateBase::trackBResAccesses(uint32_t slot, ExtendedShaderStage stage)
 {
   const BufferRef &reg = bBinds[slot];
-  if (slot == GCBSlot && bGCBActive)
+  if (slot == GCBSlot && bGCBActive && reg.buffer->hasMappedMemory())
     return;
   Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::B), reg.buffer,
     {reg.bufOffset(0), reg.visibleDataSize});

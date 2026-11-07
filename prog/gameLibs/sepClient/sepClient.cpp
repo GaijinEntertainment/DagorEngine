@@ -11,6 +11,8 @@
 #include <perfMon/dag_statDrv.h>
 
 #include <EASTL/atomic.h>
+#include <EASTL/numeric_limits.h>
+#include <mutex>
 
 
 namespace sepclient
@@ -33,7 +35,7 @@ static void initialize_rpc_message_id()
 
     G_ASSERT(initialValue > 0); // do not use zero value just in case
     // leave enough values not to get overflow and negative numbers in case of many requests:
-    G_ASSERT(initialValue <= std::numeric_limits<sepclient::RpcMessageId>::max() / 2);
+    G_ASSERT(initialValue <= eastl::numeric_limits<sepclient::RpcMessageId>::max() / 2);
 
     next_rpc_message_id = initialValue;
   }
@@ -104,7 +106,7 @@ SepClient::~SepClient()
     logdbg("%sSepClient::~SepClient() called", logPrefix.c_str());
   }
 
-  const std::scoped_lock lock(mutex);
+  const dag::lock_guard lock(mutex);
   if (state != State::INITIAL && state != State::INITIALIZED && state != State::CLOSED)
   {
     logwarn("%sWARN! SepClient object was not closed properly! Network connection may be hard closed. (state: %s)", logPrefix.c_str(),
@@ -172,7 +174,7 @@ void SepClient::initialize(AuthenticationFailureCallback &&authentication_failur
 
   initialize_rpc_message_id();
 
-  const std::scoped_lock lock(mutex);
+  const dag::lock_guard lock(mutex);
 
   G_ASSERT_RETURN(authentication_failure_callback, );
   authenticationFailureCallback = eastl::move(authentication_failure_callback);
@@ -291,7 +293,7 @@ bool SepClient::updateAuthorizationToken(eastl::string_view new_authorization_to
     logdbg("%supdateAuthorizationToken() called", logPrefix.c_str());
   }
 
-  const std::scoped_lock lock(mutex);
+  const dag::lock_guard lock(mutex);
   const bool tokenWasUpdated = connectionConfigGenerator.updateAuthorizationToken(new_authorization_token);
 
   if (!tokenWasUpdated)
@@ -323,7 +325,7 @@ TransactionId SepClient::generateTransactionId()
 {
   const uint64_t randomValue = abstraction::generate_random_uint64();
 
-  static_assert(std::numeric_limits<TransactionId>::max() == std::numeric_limits<uint64_t>::max() / 2);
+  static_assert(eastl::numeric_limits<TransactionId>::max() == eastl::numeric_limits<uint64_t>::max() / 2);
   const TransactionId transactionId = randomValue / 2;
   return transactionId ? transactionId : 1; // ensure that we never return zero
 }
@@ -355,7 +357,7 @@ void SepClient::rpcCall(const RpcRequest &request, ResponseCallback &&response_c
   details::RpcContextPtr context =
     eastl::make_unique<details::RpcContext>(request, eastl::move(response_callback), defaultContextSettings);
 
-  const std::scoped_lock lock(mutex);
+  const dag::lock_guard lock(mutex);
   executeRpcCall(eastl::move(context));
 }
 
@@ -700,7 +702,7 @@ void SepClient::initiateClose()
     logdbg("%sinitiateClose() called", logPrefix.c_str());
   }
 
-  const std::scoped_lock lock(mutex);
+  const dag::lock_guard lock(mutex);
   connection->initiateClose();
 
   if (state != State::CLOSING && state != State::CLOSED)
@@ -712,14 +714,14 @@ void SepClient::initiateClose()
 
 bool SepClient::isCallable() const
 {
-  const std::scoped_lock lock(mutex);
+  const dag::lock_guard lock(mutex);
   return state == State::INITIALIZED || state == State::WORKING;
 }
 
 
 bool SepClient::isCloseCompleted() const
 {
-  const std::scoped_lock lock(mutex);
+  const dag::lock_guard lock(mutex);
   return state == State::CLOSED;
 }
 

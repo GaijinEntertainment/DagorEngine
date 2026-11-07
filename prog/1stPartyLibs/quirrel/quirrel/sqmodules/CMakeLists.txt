@@ -13,7 +13,6 @@ target_link_libraries(sqmodules sqstdlib squirrel)
 target_include_directories(sqmodules PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/sqmodules>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
   PRIVATE
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/sqrat/include>"
   )

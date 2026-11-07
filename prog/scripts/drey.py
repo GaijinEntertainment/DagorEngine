@@ -231,6 +231,7 @@ UNCHECKED_PREFIXES = (
     "prog/1stPartyLibs/quirrel/quirrel/testData",
     "prog/1stPartyLibs/quirrel/quirrel/doc/examples",
     "prog/1stPartyLibs/quirrel/quirrel/bench/squirrel/",
+    "prog/tools/consoleSq/tests/",
     "prog/commonFx/",
     "skyquake/prog/scripts",
 )

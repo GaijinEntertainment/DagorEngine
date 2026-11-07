@@ -36,6 +36,32 @@ static WinCritSec &das_compile_lock()
   return lock;
 }
 
+static eastl::vector<DasScriptsData *> das_managers; // das_compile_lock only
+
+// constraint: a module group's reset reads each shared module that it lists, so reset it before they go.
+static void reset_module_groups()
+{
+  for (DasScriptsData *mgr : das_managers)
+    if (mgr->moduleGroup)
+    {
+      das::daScriptEnvironmentGuard envGuard(mgr->dasEnv, mgr->dasEnv);
+      mgr->moduleGroup->reset();
+    }
+}
+
+void lock_das_compile()
+{
+  das_compile_lock().lock();
+  reset_module_groups();
+}
+void unlock_das_compile(bool host_compiled)
+{
+  if (host_compiled)
+    for (DasScriptsData *mgr : das_managers)
+      mgr->ownSharedModules.clear();
+  das_compile_lock().unlock();
+}
+
 
 // Set while a worker compile/simulate mutates shared das state. Read only on das exception
 // paths to flag eval/compile overlap (the "eval is env-free" assumption is unenforced; this
@@ -211,6 +237,18 @@ static bool is_das_inited()
     return true;
   });
   return isDargBound;
+}
+
+
+static das::vector<Module *> promoted_modules()
+{
+  das::vector<Module *> promoted;
+  Module::foreach([&](Module *mod) {
+    if (mod->promoted)
+      promoted.push_back(mod);
+    return true;
+  });
+  return promoted;
 }
 
 
@@ -393,7 +431,11 @@ public:
     dasMgr->fAccess->invalidateFileInfo(fileName);
 #endif
 
+    const das::vector<Module *> sharedBefore = promoted_modules();
     program = compileDaScript(fileName.c_str(), dasMgr->fAccess, dasMgr->logWriter, *dasMgr->moduleGroup, policies);
+    for (Module *mod : promoted_modules())
+      if (eastl::find(sharedBefore.begin(), sharedBefore.end(), mod) == sharedBefore.end())
+        dasMgr->ownSharedModules.insert(mod->name);
     if (!program || program->failed())
     {
       buildError("Failed to compile");
@@ -589,6 +631,43 @@ DasScript::~DasScript()
 /****************************************************************************/
 
 
+// A host env keeps shared modules after a reload. Drop the ones that this manager compiled, so a reload sees edits;
+// a module of another owner and the modules that it requires stay.
+void DasScriptsData::clearOwnSharedModules()
+{
+#if DAGOR_DBGLEVEL > 0
+  if (ownSharedModules.empty())
+    return;
+  const das::vector<Module *> promoted = promoted_modules();
+  das_hash_set<Module *> drop;
+  das::vector<Module *> keep;
+  for (Module *mod : promoted)
+    if (ownSharedModules.find(mod->name) != ownSharedModules.end())
+      drop.insert(mod);
+    else
+      keep.push_back(mod);
+  das_hash_set<das::string> stillOwn;
+  while (!keep.empty())
+  {
+    Module *mod = keep.back();
+    keep.pop_back();
+    for (auto &dep : mod->requireModule)
+      if (drop.erase(dep.first))
+      {
+        stillOwn.insert(dep.first->name);
+        keep.push_back(dep.first);
+      }
+  }
+  ownSharedModules.swap(stillOwn);
+  reset_module_groups();
+  for (Module *mod : drop)
+    delete mod;
+#else
+  ownSharedModules.clear();
+#endif
+}
+
+
 void DasScriptsData::initModuleGroup()
 {
   G_ASSERT(dasEnv);
@@ -609,13 +688,15 @@ void DasScriptsData::initModuleGroup()
   typeConstPropsRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<const Properties &>(*moduleGroup));
 
   if (asyncJobMgrId < 0)
-    asyncJobMgrId = cpujobs::create_virtual_job_manager(256 << 10, WORKER_THREADS_AFFINITY_MASK, "DargDasJobMgr");
+    asyncJobMgrId = cpujobs::create_virtual_job_manager(128 << 10, WORKER_THREADS_AFFINITY_MASK, "DargDasJobMgr");
 }
 
 
 DasScriptsData::DasScriptsData(const char *das_project)
 {
   dasProject = das_project ? das_project : "";
+  WinAutoLock lock(das_compile_lock());
+  das_managers.push_back(this);
   if (is_das_inited())
   {
     dasEnv = *daScriptEnvironment::bound;
@@ -627,12 +708,14 @@ DasScriptsData::DasScriptsData(const char *das_project)
 
 DasScriptsData::~DasScriptsData()
 {
-  waitAllJobsDone();
+  shutdownDasEnvironment();
   if (asyncJobMgrId >= 0)
   {
     cpujobs::destroy_virtual_job_manager(asyncJobMgrId, true);
     asyncJobMgrId = -1;
   }
+  WinAutoLock lock(das_compile_lock());
+  das_managers.erase(eastl::find(das_managers.begin(), das_managers.end(), this));
 }
 
 
@@ -645,6 +728,7 @@ void DasScriptsData::initDasEnvironment(TInitDasEnv init_callback)
   }
 
   shutdownDasEnvironment();
+  WinAutoLock lock(das_compile_lock());
   dasEnv = new das::daScriptEnvironment();
   isOwnedDasEnv = true;
   initCallback = init_callback;
@@ -675,6 +759,9 @@ void DasScriptsData::shutdownDasEnvironment()
 
     // module group must be destroyed before dasEnv
     moduleGroup.reset();
+    if (!isOwnedDasEnv && dasEnv)
+      clearOwnSharedModules();
+    ownSharedModules.clear();
   }
   if (isOwnedDasEnv)
   {
@@ -698,6 +785,11 @@ void DasScriptsData::resetBeforeReload()
   WinAutoLock lock(das_compile_lock());
   if (isOwnedDasEnv)
     initDasEnvironment(initCallback); // recreate environment to lose all stored shared modules
+  else if (dasEnv)
+  {
+    das::daScriptEnvironmentGuard envGuard(dasEnv, dasEnv);
+    clearOwnSharedModules();
+  }
   if (fAccess)
     fAccess->reset();
 }
@@ -736,6 +828,8 @@ void DasScriptsData::cleanupModuleGroupLocked()
     moduleGroup->reset();
   if (isOwnedDasEnv)
     das::Module::ClearSharedModules();
+  else if (dasEnv)
+    clearOwnSharedModules();
 }
 
 

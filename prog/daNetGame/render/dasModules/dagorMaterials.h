@@ -52,6 +52,22 @@ inline bool recreate_material_with_new_params_2(AnimV20::AnimcharRendComponent &
   });
 }
 
+inline bool recreate_node_materials(AnimV20::AnimcharRendComponent &animchar_render,
+  const das::TArray<char *> &node_names,
+  const das::TBlock<void, int, das::TTemporary<ShaderMaterial>> &block,
+  das::Context *context,
+  das::LineInfoArg *at)
+{
+  eastl::vector<const char *, framemem_allocator> names(node_names.size);
+  for (int i = 0; i < node_names.size; i++)
+    names[i] = node_names[i] ? node_names[i] : "";
+  return ::recreate_node_materials(animchar_render, make_span_const(names.data(), names.size()),
+    [&](int name_idx, ShaderMaterial *mat) {
+      vec4f args[2] = {das::cast<int>::from(name_idx), das::cast<ShaderMaterial *>::from(mat)};
+      context->invoke(block, args, nullptr, at);
+    });
+}
+
 inline void scene_lods_gather_mats(const DynamicRenderableSceneLodsResource &scene_lods,
   int lod,
   const das::TBlock<void, const das::TTemporary<const das::TArray<ShaderMaterial *>>> &block,

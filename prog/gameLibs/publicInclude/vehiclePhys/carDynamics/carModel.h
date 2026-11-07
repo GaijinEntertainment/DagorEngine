@@ -15,8 +15,8 @@
 class CarDynamicsModel
 {
 public:
-  static constexpr unsigned NUM_WHEELS = 4;
-  static constexpr unsigned NUM_DIFFERENTIALS = 3; // Enough for a 4WD Jeep
+  static constexpr unsigned NUM_DIFFERENTIALS = MAX_DRIVELINE_DIFFS;
+  static constexpr unsigned NUM_WHEELS = NUM_DIFFERENTIALS * 2;
 
 protected:
   // Objects that make the car a car
@@ -44,7 +44,7 @@ public:
   CarWheelState *getWheelState(int n) { return wheel[n]; }
   int getNumWheels() { return numWheels; }
   CarDifferential *getDiff(int n) { return diff[n]; }
-  int getDiffCount() { return diffCount; }
+  int getDiffCount() const { return diffCount; }
 
   void addWheelDifferential(int wheel0, int wheel1, const PhysCarDifferentialParams &params);
   // void addMasterDifferential(const DataBlock *diff_blk);

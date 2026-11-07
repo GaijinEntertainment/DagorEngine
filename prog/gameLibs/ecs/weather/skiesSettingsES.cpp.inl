@@ -31,6 +31,7 @@ static float get_randomized_float_from_point2(const Point2 &v12, uint32_t seed, 
 #define STRATA_CLOUDS(name)      RANDOMIZE_PARAM(strata_clouds__##name, #name)
 #define CLOUDS_WEATHER_GEN(name) RANDOMIZE_PARAM(clouds_weather_gen__##name, #name)
 #define CLOUDS_FORM(name)        RANDOMIZE_PARAM(clouds_form__##name, #name)
+#define CLOUDS_FORM_OPT(name)    (clouds_form__##name ? RANDOMIZE_PARAM(*clouds_form__##name, #name) : cloudsForm.name)
 #define SKY_ATMOSPHERE(name)     RANDOMIZE_PARAM(sky_atmosphere__##name, #name)
 #define LAYER(name)                                                                                   \
   get_randomized_float_from_point2(layer.getMemberOr<Point2>(ECS_HASH(#name), Point2()), weatherSeed, \
@@ -179,7 +180,10 @@ ECS_TRACK(*)
 ECS_ON_EVENT(on_appear, EventSkiesLoaded)
 static __forceinline void clouds_form_es_event_handler(const ecs::Event &, ecs::EntityManager &manager,
   const ecs::Array &clouds_form__layers, const Point2 &clouds_form__extinction, const Point2 &clouds_form__turbulenceStrength,
-  int clouds_form__shapeNoiseScale, int clouds_form__cumulonimbusShapeScale, int clouds_form__turbulenceFreq)
+  int clouds_form__shapeNoiseScale, int clouds_form__cumulonimbusShapeScale, int clouds_form__turbulenceFreq,
+  const Point2 *clouds_form__density_alter_strength, const Point2 *clouds_form__anvil_amount,
+  const Point2 *clouds_form__mushroom_amount, const Point2 *clouds_form__anvil_spread, const Point2 *clouds_form__anvil_flare_from,
+  const Point2 *clouds_form__anvil_flare_pow, const Point2 *clouds_form__cumulonimbus_top)
 {
   DaSkies *skies = get_daskies_impl();
   if (!skies)
@@ -205,6 +209,13 @@ static __forceinline void clouds_form_es_event_handler(const ecs::Event &, ecs::
   cloudsForm.shapeNoiseScale = clouds_form__shapeNoiseScale;
   cloudsForm.cumulonimbusShapeScale = clouds_form__cumulonimbusShapeScale;
   cloudsForm.turbulenceFreq = clouds_form__turbulenceFreq;
+  cloudsForm.density_alter_strength = CLOUDS_FORM_OPT(density_alter_strength);
+  cloudsForm.anvil_amount = CLOUDS_FORM_OPT(anvil_amount);
+  cloudsForm.mushroom_amount = CLOUDS_FORM_OPT(mushroom_amount);
+  cloudsForm.anvil_spread = CLOUDS_FORM_OPT(anvil_spread);
+  cloudsForm.anvil_flare_from = CLOUDS_FORM_OPT(anvil_flare_from);
+  cloudsForm.anvil_flare_pow = CLOUDS_FORM_OPT(anvil_flare_pow);
+  cloudsForm.cumulonimbus_top = CLOUDS_FORM_OPT(cumulonimbus_top);
   skies->setCloudsForm(cloudsForm);
   manager.broadcastEventImmediate(CmdSkiesInvalidate());
 }

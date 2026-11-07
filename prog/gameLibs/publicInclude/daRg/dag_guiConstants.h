@@ -46,9 +46,7 @@ enum Orientation
 enum TextOverflow
 {
   TOVERFLOW_CLIP = 0,
-  TOVERFLOW_CHAR,
-  TOVERFLOW_WORD,
-  TOVERFLOW_LINE
+  TOVERFLOW_ELLIPSIS
 };
 
 

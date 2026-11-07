@@ -38,7 +38,7 @@ def update_anim_graph_data_after_reload(evt : AssetChangedEvent; var anim_replay
     query(eid) <| $ [es] (animchar : AnimcharBaseComponent)
       if animchar.animGraph == null || animchar.animState == null
         return
-      datablock_get_block(*persistent_anim_graph_data, uint(i)) <| $(anim_state_params)
+      datablock_get_block(*persistent_anim_graph_data, "animchar{i}") <| $(anim_state_params)
         patch_anim_graph_data(*animcharData, *animchar.animGraph, *animchar.animState, anim_state_params)
     var cachedAnimStateParams = getRW_ecs_array(animcharData, "cachedAnimStateParams")
     if cachedAnimStateParams != null

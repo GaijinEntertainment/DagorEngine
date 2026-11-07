@@ -114,13 +114,13 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
 
 void DriverConfig::fillDeviceBits()
 {
-  has.gpuTimestamps = !(Globals::VK::phy.properties.limits.timestampComputeAndGraphics == VK_FALSE ||
-                        Globals::VK::queue[DeviceQueueType::GRAPHICS].getTimestampBits() < 1);
-  has.fragmentShaderUAV = VK_FALSE != Globals::VK::phy.features.fragmentStoresAndAtomics;
-  has.depthBoundsTest = VK_FALSE != Globals::VK::phy.features.depthBounds;
-  has.anisotropicSampling = VK_FALSE != Globals::VK::phy.features.samplerAnisotropy;
-  has.multiDrawIndirect = VK_FALSE != Globals::VK::phy.features.multiDrawIndirect;
-  has.drawIndirectFirstInstance = VK_FALSE != Globals::VK::phy.features.drawIndirectFirstInstance;
+  has.gpuTimestamps = (Globals::VK::phy.properties.limits.timestampComputeAndGraphics == VK_TRUE) ||
+                      (Globals::VK::queue[DeviceQueueType::GRAPHICS].getTimestampBits() > 0);
+  has.fragmentShaderUAV = VK_TRUE == Globals::VK::phy.features.fragmentStoresAndAtomics;
+  has.depthBoundsTest = VK_TRUE == Globals::VK::phy.features.depthBounds;
+  has.anisotropicSampling = VK_TRUE == Globals::VK::phy.features.samplerAnisotropy;
+  has.multiDrawIndirect = VK_TRUE == Globals::VK::phy.features.multiDrawIndirect;
+  has.drawIndirectFirstInstance = VK_TRUE == Globals::VK::phy.features.drawIndirectFirstInstance;
   has.depthStencilResolve = Globals::VK::phy.hasDepthStencilResolve;
   has.adrenoViewportConflictWithCS = Globals::VK::phy.vendor == GpuVendor::QUALCOMM;
 
@@ -201,6 +201,11 @@ void DriverConfig::configurePerDeviceDriverFeatures()
     bits.compileSeenGrPipelinesUsingSyncCompile = pipeCompilerProp->getBool("useSyncCompileForSeenGrPipelines", false);
     if (bits.compileSeenGrPipelinesUsingSyncCompile)
       debug("vulkan: using sync compile for seen graphics pipelines");
+
+    bits.allowPipelineCacheFile = ::dgs_get_settings()->getBlockByNameEx("vulkan")->getBool("allowPipelineCache", true) &&
+                                  pipeCompilerProp->getBool("allowPipelineCache", true);
+    if (!bits.allowPipelineCacheFile)
+      debug("vulkan: pipeline cache file disabled by config");
   }
 
   {
@@ -216,6 +221,11 @@ void DriverConfig::configurePerDeviceDriverFeatures()
     const DataBlock *pipelineCacheProp = getPerDriverPropertyBlock("pipelineCache");
     pipelineCacheBlockingSaveMaxSizeMb = pipelineCacheProp->getInt("blockingSaveMaxSizeMb", 256);
     pipelineCacheMaxSizeMb = pipelineCacheProp->getInt("maxSizeMb", 1920);
+#if _TARGET_C3
+
+#else
+    pipelineCacheFileName = ::dgs_get_settings()->getBlockByNameEx("vulkan")->getStr("cachefile", "cache/vulkan.bin");
+#endif
   }
 
   {
@@ -365,7 +375,7 @@ void DriverConfig::configurePerDeviceDriverFeatures()
     );
     bits.useSwapchainAcquireExclusiveTest =
       swapchainProp->getBool("useAcquireExclusiveTest", Globals::VK::phy.vendor == GpuVendor::AMD);
-    bits.recreateSwapchainWhenImageAcquired = swapchainProp->getBool("recreteWhenImageAcquired", false);
+    bits.recreateSwapchainWhenImageAcquired = swapchainProp->getBool("recreteWhenImageAcquired", true);
     swapchainMaxExtraImages = swapchainProp->getInt("maxExtraImages",
 #if _TARGET_ANDROID || _TARGET_C3
       1 // one image is usually locked by presentation engine
@@ -1062,8 +1072,8 @@ void DriverConfig::setBindlessConfig()
     256 * 1024, 0, 0, Globals::VK::phy.maxBindlessTextures, "bindlessTextureCountMin", "bindlessTextureCountMax", "textures", false};
   bindlessSetLimits[spirv::bindless::SAMPLER_DESCRIPTOR_SET_ACTUAL_INDEX] = {
     2048, 0, 0, Globals::VK::phy.maxBindlessSamplers, "bindlessSamplerCountMin", "bindlessSamplerCountMax", "samplers", false};
-  bindlessSetLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX] = {
-    256 * 1024, 0, 0, Globals::VK::phy.maxBindlessBuffers, "bindlessBufferCountMin", "bindlessBufferCountMax", "buffers", false};
+  bindlessSetLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX] = {256 * 1024, 0, 0,
+    Globals::VK::phy.maxBindlessStorageBuffers, "bindlessBufferCountMin", "bindlessBufferCountMax", "buffers", false};
 
   bool allLimitsFit = true;
   for (BindlessSetLimit &i : bindlessSetLimits)

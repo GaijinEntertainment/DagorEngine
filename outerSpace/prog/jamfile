@@ -97,6 +97,9 @@ if $(Dedicated) = no {
     daNetGameLibs_frame_graph_renderer_DAS_pull_AOT
   ;
 }
+include $(Root)/prog/daNetGameLibs/phys_kind/_lib.jam ;
+include $(Root)/prog/daNetGameLibs/phys_kind_jolt_vehicle/_lib.jam ;
+include $(Root)/prog/daNetGameLibs/package_motorbike/_lib.jam ;
 AddGamePullsToSources ;
 
 AddIncludes +=

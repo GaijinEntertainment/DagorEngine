@@ -8,6 +8,9 @@
 #include <propPanel/propPanel.h>
 #include <gui/dag_imgui.h>
 
+static const E3DCOLOR MISSING_ROW_COLOR(222, 76, 71, 77);
+static const E3DCOLOR CONTAINS_MISSING_ROW_COLOR(217, 122, 7, 77);
+
 CompositeEditorTree::CompositeEditorTree(PropPanel::ITreeViewEventHandler *event_handler, void *phandle, int x, int y, unsigned w,
   unsigned h, const char caption[]) :
   TreeBaseWindow(event_handler, phandle, x, y, hdpi::_pxActual(w), hdpi::_pxActual(h), caption, true, true, true)
@@ -27,6 +30,10 @@ CompositeEditorTree::CompositeEditorTree(PropPanel::ITreeViewEventHandler *event
 
 PropPanel::IconId CompositeEditorTree::getImageId(CompositeEditorTreeDataNode &treeDataNode) const
 {
+  const auto it = nodeStates.find(&treeDataNode);
+  if (it != nodeStates.end() && it->second == NodeState::Missing)
+    return alertImageId;
+
   if (treeDataNode.hasEntBlock())
     return gameObjImageId;
 
@@ -54,22 +61,51 @@ PropPanel::IconId CompositeEditorTree::getImageId(CompositeEditorTreeDataNode &t
   return gameObjImageId;
 }
 
+bool CompositeEditorTree::collectMissingStates(const CompositeEditorTreeDataNode &treeDataNode)
+{
+  // A disabled subtree loads no assets, so a missing asset in it is not an error.
+  if (treeDataNode.isDisabled())
+    return false;
+
+  bool containsMissing = false;
+  for (const eastl::unique_ptr<CompositeEditorTreeDataNode> &subNode : treeDataNode.nodes)
+    containsMissing |= collectMissingStates(*subNode);
+
+  if (treeDataNode.isAssetMissing())
+  {
+    nodeStates[&treeDataNode] = NodeState::Missing;
+    return true;
+  }
+
+  if (containsMissing)
+    nodeStates[&treeDataNode] = NodeState::ContainsMissing;
+
+  return containsMissing;
+}
+
 void CompositeEditorTree::fillInternal(CompositeEditorTreeDataNode &treeDataNode, PropPanel::TLeafHandle parent,
   CompositeEditorTreeDataNode *treeDataNodeToSelect, const dag::Vector<CompositeEditorTreeDataNode *> &dataBlocksToMultiSelect,
-  eastl::hash_map<const void *, bool> &closedNodes)
+  eastl::hash_map<const void *, bool> &closedNodes, bool parentDisabled)
 {
   for (int nodeIndex = 0; nodeIndex < treeDataNode.nodes.size(); ++nodeIndex)
   {
     CompositeEditorTreeDataNode &treeDataSubNode = *treeDataNode.nodes[nodeIndex];
 
+    const bool nodeIsDisabled = parentDisabled || treeDataSubNode.isDisabled();
     const char *name = treeDataSubNode.getName();
-    const PropPanel::IconId imageId = getImageId(treeDataSubNode);
+    const PropPanel::IconId imageId = nodeIsDisabled ? PropPanel::IconId::Invalid : getImageId(treeDataSubNode);
     PropPanel::TLeafHandle subBlockTreeNode = addItem(name, imageId, parent, &treeDataSubNode);
 
-    if (treeDataSubNode.isEntBlock())
+    if (treeDataSubNode.isEntBlock() && !nodeIsDisabled)
       changeItemStateImage(subBlockTreeNode, gameObjImageId);
 
-    fillInternal(treeDataSubNode, subBlockTreeNode, treeDataNodeToSelect, dataBlocksToMultiSelect, closedNodes);
+    if (nodeIsDisabled)
+    {
+      setColor(subBlockTreeNode, E3DCOLOR(128, 128, 128, 255));
+      nodeStates[&treeDataSubNode] = parentDisabled ? NodeState::ParentDisabled : NodeState::Disabled;
+    }
+
+    fillInternal(treeDataSubNode, subBlockTreeNode, treeDataNodeToSelect, dataBlocksToMultiSelect, closedNodes, nodeIsDisabled);
 
     if (closedNodes.find(&treeDataSubNode) == closedNodes.end())
       expand(subBlockTreeNode);
@@ -90,9 +126,12 @@ void CompositeEditorTree::fill(CompositeEditorTreeData &treeData, CompositeEdito
     getClosedNodes(closedNodes);
 
   clear();
+  nodeStates.clear();
 
   if (!treeData.isComposite)
     return;
+
+  collectMissingStates(treeData.rootNode);
 
   PropPanel::TLeafHandle itemRootNode = addItem(treeData.assetName, compositImageId, nullptr, &treeData.rootNode);
   fillInternal(treeData.rootNode, itemRootNode, treeDataNodeToSelect, dataBlocksToMultiSelect, closedNodes);
@@ -243,27 +282,53 @@ void CompositeEditorTree::updateImgui(float control_height)
   TreeBaseWindow::updateImgui(control_height);
 }
 
-eastl::optional<ImU32> CompositeEditorTree::getBorderColor() const
+eastl::optional<E3DCOLOR> CompositeEditorTree::getBorderColor() const
 {
   if (!get_app().getCompositeEditor().isEditingSubComposite())
     return eastl::nullopt;
-  return IM_COL32(255, 128, 0, 255);
+  return E3DCOLOR(255, 128, 0, 255);
 }
 
-bool CompositeEditorTree::treeNodeStart(const NodeStartData &data)
+void CompositeEditorTree::drawTreeNode(PropPanel::TreeNodeDrawContext &ctx)
 {
-  return PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(data.id, data.flags, data.label, data.labelEnd, data.endData,
-    data.allowBlockedHover);
-}
+  const auto it = nodeStates.find(getItemData(ctx.getHandle()));
+  if (it == nodeStates.end())
+  {
+    ctx.drawDefault();
+    return;
+  }
 
-void CompositeEditorTree::treeNodeRender(PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool show_arrow)
-{
-  PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorRender(end_data, show_arrow);
-}
+  const char *tooltip = nullptr;
+  switch (it->second)
+  {
+    case NodeState::Missing:
+      ctx.setNormalBackgroundColor(MISSING_ROW_COLOR);
+      tooltip = "Asset not found.";
+      break;
+    case NodeState::ContainsMissing:
+      ctx.setNormalBackgroundColor(CONTAINS_MISSING_ROW_COLOR);
+      tooltip = "Contains missing asset.";
+      break;
+    case NodeState::Disabled: tooltip = "Disabled."; break;
+    case NodeState::ParentDisabled: tooltip = "An ancestor is disabled."; break;
+  }
+  ctx.drawDefault();
 
-void CompositeEditorTree::treeNodeEnd(PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data)
-{
-  PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(end_data);
-}
+  if (!PropPanel::should_show_imgui_control_tooltip(ImGui::GetItemID()))
+    return;
 
-void CompositeEditorTree::treeItemRenderEx([[maybe_unused]] const ItemRenderData &data) {}
+  if (!ImGui::BeginTooltipEx(ImGuiTooltipFlags_OverridePrevious, ImGuiWindowFlags_None))
+    return;
+
+  if (ctx.isLabelClipped())
+  {
+    ImGui::TextUnformatted(ctx.getLabel(), ctx.getLabelEnd());
+    ImGui::NewLine();
+  }
+
+  ImGui::PushFont(imgui_get_bold_font(), 0.0f);
+  ImGui::TextUnformatted(tooltip);
+  ImGui::PopFont();
+
+  ImGui::EndTooltip();
+}

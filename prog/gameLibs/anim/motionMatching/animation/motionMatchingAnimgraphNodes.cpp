@@ -20,6 +20,7 @@ void load_motion_matching_animgraph_nodes(AnimationDataBase &data_base, AnimV20:
     if (!node || !node->isSubOf(AnimV20::AnimBlendCtrl_SetMotionMatchingTagCID))
       continue;
     AnimV20::AnimBlendCtrl_SetMotionMatchingTag *mmTagNode = static_cast<AnimV20::AnimBlendCtrl_SetMotionMatchingTag *>(node);
+    mmTagNode->setTagIdx(-1);
     const char *tagName = mmTagNode->getTagName();
     bool tagNegation = false;
     if (tagName[0] == '!')
@@ -35,9 +36,9 @@ void load_motion_matching_animgraph_nodes(AnimationDataBase &data_base, AnimV20:
         tagName, anim_graph->getBlendNodeName(mmTagNode));
       continue;
     }
-    if (tagIdx >= AnimV20::AnimBlendCtrl_SetMotionMatchingTag::MAX_TAGS_COUNT)
+    if (data_base.animGraphNodeTagsRemap.size() >= AnimV20::AnimBlendCtrl_SetMotionMatchingTag::MAX_TAGS_COUNT)
     {
-      logerr("MM: max number of tags in animGraph reached");
+      logerr("MM: max number of tag nodes in animGraph reached, node '%s' ignored", anim_graph->getBlendNodeName(mmTagNode));
       continue;
     }
     mmTagNode->setTagIdx(data_base.animGraphNodeTagsRemap.size());

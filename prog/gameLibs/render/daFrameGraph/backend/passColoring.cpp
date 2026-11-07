@@ -48,6 +48,18 @@ public:
     return result;
   }
 };
+template <>
+class hash<dafg::intermediate::NodePass>
+{
+public:
+  size_t operator()(const dafg::intermediate::NodePass &pass) const
+  {
+    size_t result = pass.index();
+    if (const auto *renderPass = eastl::get_if<dafg::intermediate::RenderPass>(&pass))
+      hashPack(result, hash<dafg::intermediate::RenderPass>{}(*renderPass));
+    return result;
+  }
+};
 } // namespace eastl
 
 namespace dafg
@@ -121,9 +133,9 @@ void PassColorer::recalcFbLabels(const intermediate::Graph &graph)
 {
   fbLabels.assign(graph.nodeStates.totalKeys(), FbLabel{0});
 
-  FRAMEMEM_VALIDATE;
-  using MaybePass = eastl::optional<intermediate::RenderPass>;
-  ska::flat_hash_map<MaybePass, FbLabel, eastl::hash<MaybePass>, eastl::equal_to<MaybePass>, framemem_allocator> passes;
+  FRAMEMEM_REGION; // if probe chain is long, flat_hash_map will grow => must reset framemem on scope exit
+  using NodePass = intermediate::NodePass;
+  ska::flat_hash_map<NodePass, FbLabel, eastl::hash<NodePass>, eastl::equal_to<NodePass>, framemem_allocator> passes;
   passes.reserve(graph.nodeStates.totalKeys());
   for (const auto &[idx, state] : graph.nodeStates.enumerate())
     if (auto it = passes.find(state.pass); it != passes.end())
@@ -219,14 +231,8 @@ void PassColorer::performSubpassColoring(const intermediate::Graph &graph, const
         predecessorColors.insert(subpassColoring[pred]);
       }
 
-      // Note that our graph is already topsorted, so if there is a path
-      // v <- u, then v_idx < u_idx. Therefore, the reachability matrix
-      // of the graph will be lower-triangular. Same applies to the
-      // color reachability matrix by it's construction, so we only have
-      // to OR the rows of predecessor colors up to the diagonal, hence
-      // the .first call here.
       for (auto color : predecessorColors)
-        reachableFromCurrent |= colorReachability.row(color).first(eastl::to_underlying(color));
+        reachableFromCurrent |= colorReachability.row(color).first(nextColor);
     }
 
     dag::VectorSet<SubpassColor, eastl::less<SubpassColor>, framemem_allocator> conflictingColors;

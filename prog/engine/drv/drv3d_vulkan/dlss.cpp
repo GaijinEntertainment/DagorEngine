@@ -371,6 +371,8 @@ bool DLSSSuperResolutionDirect::setOptionsBackend(VkDevice vk_device, VkCommandB
     };
 
     CHECK_NVAPI(NGX_VULKAN_CREATE_DLSSD_EXT1(vk_device, vk_cmd, 1, 1, &dlssFeature, ngxParams, &dlssCreateParams), return false);
+
+    useRR = true;
   }
   else
   {
@@ -389,6 +391,8 @@ bool DLSSSuperResolutionDirect::setOptionsBackend(VkDevice vk_device, VkCommandB
     set_preset(ngxParams, use_legacy_model ? NVSDK_NGX_DLSS_Hint_Render_Preset_K : NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
 
     CHECK_NVAPI(NGX_VULKAN_CREATE_DLSS_EXT(vk_cmd, 1, 1, &dlssFeature, ngxParams, &dlssCreateParams), return false);
+
+    useRR = false;
   }
 
   return true;

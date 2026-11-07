@@ -59,6 +59,10 @@ public:
     int tri_count);
   void combineWithSWRasterization();
   void prepareDebugSWRasterization();
+  void mergeOcclusions(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile, uint32_t last_tile)
+  {
+    moc->mergeOcclusions(another_occl, occl_count, first_tile, last_tile);
+  }
   void mergeOcclusionsZmin(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile, uint32_t last_tile)
   {
     moc->mergeOcclusionsZmin(another_occl, occl_count, first_tile, last_tile);
@@ -832,6 +836,11 @@ void Occlusion::finalizeSWOcclusion()
 }
 
 void Occlusion::finalizeOcclusion() { impl->buildMips(); }
+
+void Occlusion::mergeOcclusions(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile, uint32_t last_tile)
+{
+  impl->mergeOcclusions(another_occl, occl_count, first_tile, last_tile);
+}
 
 void Occlusion::mergeOcclusionsZmin(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile,
   uint32_t last_tile)

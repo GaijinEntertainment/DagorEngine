@@ -1120,6 +1120,7 @@ public:
   real speed_min;
   real speed_max;
   bool motion_vectors;
+  int motion_vectors_channels;
   int motion_vectors_min_quality;
   real motion_vectors_strength;
   FxValueCurveOpt over_part_life;
@@ -1130,13 +1131,14 @@ public:
   bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION_OPT(ptr, len, 3);
+    CHECK_FX_VERSION_OPT(ptr, len, 4);
 
     enabled = readType<int>(ptr, len);
     animated_flipbook = readType<int>(ptr, len);
     speed_min = readType<real>(ptr, len);
     speed_max = readType<real>(ptr, len);
     motion_vectors = readType<int>(ptr, len);
+    motion_vectors_channels = readType<int>(ptr, len);
     motion_vectors_min_quality = readType<int>(ptr, len);
     motion_vectors_strength = readType<real>(ptr, len);
     if (!over_part_life.load(ptr, len, load_cb))
@@ -1322,53 +1324,42 @@ public:
   }
 };
 
-class FxAdvancedTranslucency
-{
-public:
-  bool enabled;
-  Point3 tranclucency_color_mul;
-  bool weigh_translucency_by_view_light_degree;
-  bool use_alpha_as_translucency;
-  real alpha_for_translucent_min;
-  real alpha_for_translucent_max;
-  real min_translucency_value;
-  real max_translucency_value;
-  bool use_normal_as_translucency;
-  bool use_viewvector_for_normal_based_translucency;
-  bool invert_accepted_degrees;
-  real from_degree;
-  real to_degree;
-
-
-  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
-
-  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
-  {
-    G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION_OPT(ptr, len, 1);
-
-    enabled = readType<int>(ptr, len);
-    tranclucency_color_mul = readType<Point3>(ptr, len);
-    weigh_translucency_by_view_light_degree = readType<int>(ptr, len);
-    use_alpha_as_translucency = readType<int>(ptr, len);
-    alpha_for_translucent_min = readType<real>(ptr, len);
-    alpha_for_translucent_max = readType<real>(ptr, len);
-    min_translucency_value = readType<real>(ptr, len);
-    max_translucency_value = readType<real>(ptr, len);
-    use_normal_as_translucency = readType<int>(ptr, len);
-    use_viewvector_for_normal_based_translucency = readType<int>(ptr, len);
-    invert_accepted_degrees = readType<int>(ptr, len);
-    from_degree = readType<real>(ptr, len);
-    to_degree = readType<real>(ptr, len);
-    return true;
-  }
-};
-
 class FxTranslucency
 {
 public:
   real translucency_val;
-  FxAdvancedTranslucency advanced_translucency;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION_OPT(ptr, len, 2);
+
+    translucency_val = readType<real>(ptr, len);
+    return true;
+  }
+};
+
+class FxScatterLighting
+{
+public:
+  bool opacity_src_remapped;
+  bool opacity_src_is_thickness;
+  E3DCOLOR opacity_src_mask;
+  real max_opacity;
+  real rim_intensity;
+  real rim_opacity;
+  real rim_width;
+  real rim_backlit;
+  real sun_backlit_boost;
+  real sun_self_shadow;
+  real sun_shadow_fill;
+  real sun_thin_fade;
+  real ambient_self_shadow;
+  bool scale_opacity_with_radius;
+  bool alpha_from_opacity;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -1378,9 +1369,21 @@ public:
     G_UNREFERENCED(load_cb);
     CHECK_FX_VERSION_OPT(ptr, len, 1);
 
-    translucency_val = readType<real>(ptr, len);
-    if (!advanced_translucency.load(ptr, len, load_cb))
-      return false;
+    opacity_src_remapped = readType<int>(ptr, len);
+    opacity_src_is_thickness = readType<int>(ptr, len);
+    opacity_src_mask = readType<E3DCOLOR>(ptr, len);
+    max_opacity = readType<real>(ptr, len);
+    rim_intensity = readType<real>(ptr, len);
+    rim_opacity = readType<real>(ptr, len);
+    rim_width = readType<real>(ptr, len);
+    rim_backlit = readType<real>(ptr, len);
+    sun_backlit_boost = readType<real>(ptr, len);
+    sun_self_shadow = readType<real>(ptr, len);
+    sun_shadow_fill = readType<real>(ptr, len);
+    sun_thin_fade = readType<real>(ptr, len);
+    ambient_self_shadow = readType<real>(ptr, len);
+    scale_opacity_with_radius = readType<int>(ptr, len);
+    alpha_from_opacity = readType<int>(ptr, len);
     return true;
   }
 };
@@ -1392,10 +1395,13 @@ public:
   real sphere_normal_radius;
   real sphere_normal_power;
   real normal_softness;
-  bool specular_enabled;
   real specular_power;
   real specular_strength;
+  real direction_ambient_min;
+  bool specular_enabled;
   bool external_lights_enabled;
+  bool use_direction_ambient;
+  FxScatterLighting scatter_lighting;
   FxTranslucency translucency;
 
 
@@ -1404,16 +1410,20 @@ public:
   bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION_OPT(ptr, len, 6);
+    CHECK_FX_VERSION_OPT(ptr, len, 9);
 
     type = readType<int>(ptr, len);
     sphere_normal_radius = readType<real>(ptr, len);
     sphere_normal_power = readType<real>(ptr, len);
     normal_softness = readType<real>(ptr, len);
-    specular_enabled = readType<int>(ptr, len);
     specular_power = readType<real>(ptr, len);
     specular_strength = readType<real>(ptr, len);
+    direction_ambient_min = readType<real>(ptr, len);
+    specular_enabled = readType<int>(ptr, len);
     external_lights_enabled = readType<int>(ptr, len);
+    use_direction_ambient = readType<int>(ptr, len);
+    if (!scatter_lighting.load(ptr, len, load_cb))
+      return false;
     if (!translucency.load(ptr, len, load_cb))
       return false;
     return true;

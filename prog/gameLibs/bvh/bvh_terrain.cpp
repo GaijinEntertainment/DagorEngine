@@ -56,14 +56,14 @@ void remove_patches(ContextId context_id)
   }
 }
 
-static bool generate_indices()
+void init()
 {
   indices = dag::buffers::create_persistent_sr_byte_address(divide_up(terrain_cell_index_count, 2), "bvh_terrain_indices",
     d3d::buffers::Init::No, RESTAG_BVH);
-  HANDLE_LOST_DEVICE_STATE(indices, false);
+  HANDLE_LOST_DEVICE_STATE(indices, );
 
   auto upload = lock_sbuffer<uint16_t>(indices.getBuf(), 0, 0, VBLOCK_WRITEONLY);
-  HANDLE_LOST_DEVICE_STATE(upload, false);
+  HANDLE_LOST_DEVICE_STATE(upload, );
 
   for (int z = 0; z < terrain_cell_size; ++z)
     for (int x = 0; x < terrain_cell_size; ++x)
@@ -82,43 +82,16 @@ static bool generate_indices()
   upload.close();
 
   d3d::resource_barrier(ResourceBarrierDesc(indices.getBuf(), bindlessSRVBarrier));
-
-  return true;
 }
 
 template <bool embed_normals>
-bool generate_patch_buffer(UniqueBVHBuffer &vertices, void *scratch, int cell_size, bool scratch_ready)
+bool generate_patch_buffer(UniqueBVHBuffer &vertices, void *scratch)
 {
   using TerrainVertex = ::bvh::terrain::TerrainVertex<embed_normals>;
-  if (!scratch_ready)
-  {
-    TerrainVertex *scratchT = (TerrainVertex *)scratch;
-
-    for (int z = 0; z <= terrain_cell_size; ++z)
-      for (int x = 0; x <= terrain_cell_size; ++x)
-      {
-        Point2 loc(x * cell_size, z * cell_size);
-
-        TerrainVertex &v = scratchT[z * (terrain_cell_size + 1) + x];
-        v.position.x = loc.x;
-        v.position.z = loc.y;
-
-        if constexpr (embed_normals)
-        {
-          v.position.y = 0;
-          v.normal = 0;
-        }
-        else
-        {
-          v.position.y = 0;
-        }
-      }
-  }
-
-  static uint32_t vb_gen = 0;
-  String vbName = String(64, "bvh_terrain_patch_vertices_%u", ++vb_gen);
   if (!vertices)
   {
+    static uint32_t vb_gen = 0;
+    String vbName = String(64, "bvh_terrain_patch_vertices_%u", ++vb_gen);
     vertices.reset(d3d::buffers::create_persistent_sr_byte_address(divide_up(sizeof(TerrainVertex) * terrain_cell_vertex_count, 4),
       vbName, d3d::buffers::Init::No, RESTAG_BVH));
     HANDLE_LOST_DEVICE_STATE(vertices, false);
@@ -158,49 +131,46 @@ static UniqueBLAS create_patch_blas(Sbuffer *vertices)
 }
 
 template <bool embed_normals>
-static bool generate_patch_template(int cell_size, TerrainPatch &patch, TerrainVertex<embed_normals> *scratch)
+static void generate_patch_template(TerrainPatch &patch)
 {
-  patch.position = Point2::ZERO;
+  dag::Vector<TerrainVertex<embed_normals>, framemem_allocator> scratch(terrain_cell_vertex_count);
+  for (int z = 0; z <= terrain_cell_size; ++z)
+    for (int x = 0; x <= terrain_cell_size; ++x)
+    {
+      auto &v = scratch[z * (terrain_cell_size + 1) + x];
+      v.position = Point3(x * terrain_cell_size, 0, z * terrain_cell_size);
+      if constexpr (embed_normals)
+        v.normal = 0;
+    }
 
-  if (!generate_patch_buffer<embed_normals>(patch.vertices, scratch, cell_size, false))
-    return false;
-
-  patch.blas = create_patch_blas<embed_normals>(patch.vertices.get());
-  HANDLE_LOST_DEVICE_STATE(patch.blas, false);
+  if (!generate_patch_buffer<embed_normals>(patch.vertices, scratch.data()))
+    return;
 
   auto patch_desc = get_patch_blas_desc<embed_normals>(patch.vertices.get());
-
-  raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
-  buildInfo.geometryDesc = &patch_desc;
-  buildInfo.geometryDescCount = 1;
-  buildInfo.flags = blas_flags;
-  buildInfo.scratchSpaceBuffer = alloc_scratch_buffer(patch.blas.getBuildScratchSize(), buildInfo.scratchSpaceBufferOffsetInBytes);
-  buildInfo.scratchSpaceBufferSizeInBytes = patch.blas.getBuildScratchSize();
-
-  d3d::build_bottom_acceleration_structure(patch.blas.get(), buildInfo);
+  patch.blas = build_blas(patch_desc, blas_flags);
+  if (!patch.blas)
+    return;
 
   // build_bottom_acceleration_structure is not flushing the BLAS, so we flush it here, before cloning it.
   d3d::resource_barrier(ResourceBarrierDesc(patch.blas.get()));
-
-  return true;
 }
 
 template <bool embed_normals>
-static bool instantiate_patch(ContextId context_id, TerrainPatch &patch, void *scratch, Point2 origin, int cell_size)
+static void instantiate_patch(ContextId context_id, TerrainPatch &patch, void *scratch, Point2 origin)
 {
-  CHECK_LOST_DEVICE_STATE_RET(false);
+  CHECK_LOST_DEVICE_STATE();
 
   patch.position = origin;
 
-  if (!generate_patch_buffer<embed_normals>(patch.vertices, scratch, cell_size, true))
-    return false;
+  if (!generate_patch_buffer<embed_normals>(patch.vertices, scratch))
+    return;
 
   auto patch_desc = get_patch_blas_desc<embed_normals>(patch.vertices.get());
 
   if (!patch.blas)
   {
     patch.blas = create_patch_blas<embed_normals>(patch.vertices.get());
-    HANDLE_LOST_DEVICE_STATE(patch.blas, false);
+    HANDLE_LOST_DEVICE_STATE(patch.blas, );
     d3d::copy_raytrace_acceleration_structure(patch.blas.get(), context_id->terrainPatchTemplate.blas.get());
   }
 
@@ -233,9 +203,9 @@ static bool instantiate_patch(ContextId context_id, TerrainPatch &patch, void *s
     meta.setIndexBufferIndex(indices_bindless_slot);
     meta.setVertexBufferIndex(bindlessVerticesIndex);
   }
-
-  return true;
 }
+
+static constexpr Point2 patch_offsets[] = {{0, 0}, {1, 0}, {2, 0}, {0, 1}, {2, 1}, {0, 2}, {1, 2}, {2, 2}, {1, 1}};
 
 struct TerrainBVHJob : public cpujobs::IJob
 {
@@ -264,53 +234,35 @@ struct TerrainBVHJob : public cpujobs::IJob
 
     if (scratches.empty())
     {
+      // The middle one is all the lower lods, except for the lowest one
       scratches.resize(lodIx == 0 ? 9 : 8);
       for (auto &scratch : scratches)
         scratch.resize(terrain_cell_vertex_count * (normals ? sizeof(TerrainVertexPositionNormal) : sizeof(TerrainVertexPosition)));
     }
 
+    if (state == Idle || state == Done)
+      return;
+
     int lodCellSize = terrain_cell_size * lodGridSize;
-    switch (state)
-    {
-      case Idle:
-      case Done: break;
-      case Start2:
-        contextId->heightProvider->getHeight(scratches[0].data(), leftBottomOrigin + Point2(0, 0) * lodCellSize, lodGridSize,
-          terrain_cell_size);
-        contextId->heightProvider->getHeight(scratches[1].data(), leftBottomOrigin + Point2(1, 0) * lodCellSize, lodGridSize,
-          terrain_cell_size);
-        state = State(state + 1);
-        break;
-      case Start4:
-        contextId->heightProvider->getHeight(scratches[2].data(), leftBottomOrigin + Point2(2, 0) * lodCellSize, lodGridSize,
-          terrain_cell_size);
-        contextId->heightProvider->getHeight(scratches[3].data(), leftBottomOrigin + Point2(0, 1) * lodCellSize, lodGridSize,
-          terrain_cell_size);
-        state = State(state + 1);
-        break;
-      case Start6:
-        contextId->heightProvider->getHeight(scratches[4].data(), leftBottomOrigin + Point2(2, 1) * lodCellSize, lodGridSize,
-          terrain_cell_size);
-        contextId->heightProvider->getHeight(scratches[5].data(), leftBottomOrigin + Point2(0, 2) * lodCellSize, lodGridSize,
-          terrain_cell_size);
-        state = State(state + 1);
-        break;
-      case Start8:
-        contextId->heightProvider->getHeight(scratches[6].data(), leftBottomOrigin + Point2(1, 2) * lodCellSize, lodGridSize,
-          terrain_cell_size);
-        contextId->heightProvider->getHeight(scratches[7].data(), leftBottomOrigin + Point2(2, 2) * lodCellSize, lodGridSize,
-          terrain_cell_size);
-
-        // The middle one is all the lower lods, except for the lowest one
-        if (lodIx == 0)
-          contextId->heightProvider->getHeight(scratches[8].data(), leftBottomOrigin + Point2(1, 1) * lodCellSize, lodGridSize,
-            terrain_cell_size);
-
-        state = State(state + 1);
-        break;
-    }
+    int firstPatch = 2 * (state - Start2);
+    int patchEnd = state == Start8 ? scratches.size() : firstPatch + 2;
+    for (int patchIx = firstPatch; patchIx < patchEnd; ++patchIx)
+      contextId->heightProvider->getHeight(scratches[patchIx].data(), leftBottomOrigin + patch_offsets[patchIx] * lodCellSize,
+        lodGridSize, terrain_cell_size);
+    state = State(state + 1);
   }
 } terrain_bvh_jobs[terrain_thread_count];
+
+static void stop_jobs(ContextId context_id)
+{
+  for (int lodIx = 0; lodIx < context_id->terrainLods.size(); ++lodIx)
+  {
+    auto &job = terrain_bvh_jobs[lodIx];
+    threadpool::wait(&job);
+    job.state = TerrainBVHJob::Idle;
+    job.scratches.clear();
+  }
+}
 
 template <bool embed_normals>
 static void update_terrain(ContextId context_id, const Point2 &location)
@@ -335,62 +287,13 @@ static void update_terrain(ContextId context_id, const Point2 &location)
     auto &job = terrain_bvh_jobs[lodIx];
     if (job.state == TerrainBVHJob::Done)
     {
-      lod.patches.resize(lodIx == 0 ? 9 : 8);
-
-      bool normals = context_id->heightProvider->embedNormals();
-
+      lod.patches.resize(job.scratches.size());
       int lodCellSize = terrain_cell_size * job.lodGridSize;
-
-      if (!normals)
-      {
-        instantiate_patch<false>(context_id, lod.patches[0], job.scratches[0].data(),
-          job.leftBottomOrigin + Point2(0, 0) * lodCellSize, job.lodGridSize);
-        instantiate_patch<false>(context_id, lod.patches[1], job.scratches[1].data(),
-          job.leftBottomOrigin + Point2(1, 0) * lodCellSize, job.lodGridSize);
-        instantiate_patch<false>(context_id, lod.patches[2], job.scratches[2].data(),
-          job.leftBottomOrigin + Point2(2, 0) * lodCellSize, job.lodGridSize);
-        instantiate_patch<false>(context_id, lod.patches[3], job.scratches[3].data(),
-          job.leftBottomOrigin + Point2(0, 1) * lodCellSize, job.lodGridSize);
-        instantiate_patch<false>(context_id, lod.patches[4], job.scratches[4].data(),
-          job.leftBottomOrigin + Point2(2, 1) * lodCellSize, job.lodGridSize);
-        instantiate_patch<false>(context_id, lod.patches[5], job.scratches[5].data(),
-          job.leftBottomOrigin + Point2(0, 2) * lodCellSize, job.lodGridSize);
-        instantiate_patch<false>(context_id, lod.patches[6], job.scratches[6].data(),
-          job.leftBottomOrigin + Point2(1, 2) * lodCellSize, job.lodGridSize);
-        instantiate_patch<false>(context_id, lod.patches[7], job.scratches[7].data(),
-          job.leftBottomOrigin + Point2(2, 2) * lodCellSize, job.lodGridSize);
-      }
-      else
-      {
-        instantiate_patch<true>(context_id, lod.patches[0], job.scratches[0].data(), job.leftBottomOrigin + Point2(0, 0) * lodCellSize,
-          job.lodGridSize);
-        instantiate_patch<true>(context_id, lod.patches[1], job.scratches[1].data(), job.leftBottomOrigin + Point2(1, 0) * lodCellSize,
-          job.lodGridSize);
-        instantiate_patch<true>(context_id, lod.patches[2], job.scratches[2].data(), job.leftBottomOrigin + Point2(2, 0) * lodCellSize,
-          job.lodGridSize);
-        instantiate_patch<true>(context_id, lod.patches[3], job.scratches[3].data(), job.leftBottomOrigin + Point2(0, 1) * lodCellSize,
-          job.lodGridSize);
-        instantiate_patch<true>(context_id, lod.patches[4], job.scratches[4].data(), job.leftBottomOrigin + Point2(2, 1) * lodCellSize,
-          job.lodGridSize);
-        instantiate_patch<true>(context_id, lod.patches[5], job.scratches[5].data(), job.leftBottomOrigin + Point2(0, 2) * lodCellSize,
-          job.lodGridSize);
-        instantiate_patch<true>(context_id, lod.patches[6], job.scratches[6].data(), job.leftBottomOrigin + Point2(1, 2) * lodCellSize,
-          job.lodGridSize);
-        instantiate_patch<true>(context_id, lod.patches[7], job.scratches[7].data(), job.leftBottomOrigin + Point2(2, 2) * lodCellSize,
-          job.lodGridSize);
-      }
+      for (int patchIx = 0; patchIx < lod.patches.size(); ++patchIx)
+        instantiate_patch<embed_normals>(context_id, lod.patches[patchIx], job.scratches[patchIx].data(),
+          job.leftBottomOrigin + patch_offsets[patchIx] * lodCellSize);
 
       CHECK_LOST_DEVICE_STATE();
-
-      if (lodIx == 0)
-      {
-        if (!normals)
-          instantiate_patch<false>(context_id, lod.patches[8], job.scratches[8].data(),
-            job.leftBottomOrigin + Point2(1, 1) * lodCellSize, job.lodGridSize);
-        else
-          instantiate_patch<true>(context_id, lod.patches[8], job.scratches[8].data(),
-            job.leftBottomOrigin + Point2(1, 1) * lodCellSize, job.lodGridSize);
-      }
 
       context_id->terrainDirty = true;
 
@@ -406,10 +309,13 @@ static void update_terrain(ContextId context_id, const Point2 &location)
   if (isWorking)
     return;
 
+  uint32_t heightVersion = context_id->heightProvider->getVersion();
   auto distance = location - context_id->terrainMiddlePoint;
-  if (abs(distance.x) <= terrain_cell_size / 2 && abs(distance.y) <= terrain_cell_size / 2)
+  if (heightVersion == context_id->terrainHeightVersion && abs(distance.x) <= terrain_cell_size / 2 &&
+      abs(distance.y) <= terrain_cell_size / 2)
     return;
 
+  context_id->terrainHeightVersion = heightVersion;
   context_id->terrainMiddlePoint = location;
   context_id->terrainMiddlePoint.x = round(context_id->terrainMiddlePoint.x / terrain_cell_size) * terrain_cell_size;
   context_id->terrainMiddlePoint.y = round(context_id->terrainMiddlePoint.y / terrain_cell_size) * terrain_cell_size;
@@ -431,8 +337,6 @@ static void update_terrain(ContextId context_id, const Point2 &location)
     leftBottomOrigin.x -= lodGridSize * terrain_cell_size;
   }
 }
-
-void init() { generate_indices(); }
 
 void init(ContextId context_id)
 {
@@ -461,23 +365,14 @@ void teardown(ContextId context_id)
 
 bool is_dirty(ContextId context_id) { return context_id->terrainDirty; }
 
-dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2>> get_blases(ContextId context_id)
+dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2>, framemem_allocator> get_blases(ContextId context_id)
 {
   TIME_PROFILE(terrain_get_blases);
 
-  Point2 leftBottomOrigin = context_id->terrainMiddlePoint - Point2(3 * terrain_cell_size / 2, 3 * terrain_cell_size / 2);
-  int lodGridSize = 1;
-
-  dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2>> blases;
-  for (int lodIx = 0; lodIx < context_id->terrainLods.size(); ++lodIx)
-  {
-    for (auto &patch : context_id->terrainLods[lodIx].patches)
+  dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2>, framemem_allocator> blases;
+  for (auto &lod : context_id->terrainLods)
+    for (auto &patch : lod.patches)
       blases.push_back({patch.blas.getGPUAddress(), patch.metaAllocId, patch.position});
-
-    lodGridSize *= 3;
-    leftBottomOrigin.y -= lodGridSize * terrain_cell_size;
-    leftBottomOrigin.x -= lodGridSize * terrain_cell_size;
-  }
   return blases;
 }
 
@@ -498,15 +393,9 @@ void add_terrain(ContextId context_id, HeightProvider *height_provider)
 
 void remove_terrain(ContextId context_id)
 {
-  for (int lodIx = 0; lodIx < context_id->terrainLods.size(); ++lodIx)
-  {
-    auto &job = terrain::terrain_bvh_jobs[lodIx];
-    threadpool::wait(&job);
-    job.state = terrain::TerrainBVHJob::Idle;
-    job.scratches.clear();
-  }
-
+  terrain::stop_jobs(context_id);
   add_terrain(context_id, nullptr);
+  context_id->terrainMiddlePoint = Context::noTerrainPoint;
 }
 
 void update_terrain(ContextId context_id, const Point2 &location)
@@ -519,6 +408,7 @@ void update_terrain(ContextId context_id, const Point2 &location)
 
   if (bvh_terrain_lod_count != context_id->terrainLods.size())
   {
+    terrain::stop_jobs(context_id);
     terrain::remove_patches(context_id);
     context_id->terrainLods.clear();
     context_id->terrainLods.resize(bvh_terrain_lod_count);
@@ -528,15 +418,9 @@ void update_terrain(ContextId context_id, const Point2 &location)
   if (!context_id->terrainPatchTemplate.blas)
   {
     if (context_id->heightProvider->embedNormals())
-    {
-      dag::Vector<terrain::TerrainVertex<true>, framemem_allocator> scratch(terrain::terrain_cell_vertex_count);
-      terrain::generate_patch_template<true>(terrain::terrain_cell_size, context_id->terrainPatchTemplate, scratch.data());
-    }
+      terrain::generate_patch_template<true>(context_id->terrainPatchTemplate);
     else
-    {
-      dag::Vector<terrain::TerrainVertex<false>, framemem_allocator> scratch(terrain::terrain_cell_vertex_count);
-      terrain::generate_patch_template<false>(terrain::terrain_cell_size, context_id->terrainPatchTemplate, scratch.data());
-    }
+      terrain::generate_patch_template<false>(context_id->terrainPatchTemplate);
   }
 
   CHECK_LOST_DEVICE_STATE();

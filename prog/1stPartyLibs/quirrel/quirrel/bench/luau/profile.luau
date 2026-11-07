@@ -15,12 +15,4 @@ local function benchmark(name: string, runs: number, workload: () -> ...any, rep
   print(string.format('"%s", %.8f, %d%s', name, best / repeatCount, runs * repeatCount, tail))
 end
 
-local function vmBench(name: string, workload: () -> any)
-  for _ = 1, 5 do
-    local start = os.clock()
-    local result = workload()
-    print(string.format("BENCH %s %.3f ms (r=%s)", name, (os.clock() - start) * 1000, tostring(result)))
-  end
-end
-
-return { benchmark = benchmark, vmBench = vmBench }
+return { benchmark = benchmark }

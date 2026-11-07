@@ -1,0 +1,20 @@
+ModuleDependsOnVars = PhysName ;
+
+Module = phys_kind_jolt_vehicle ;
+Root    ?= ../../.. ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+;
+UseProgLibs =
+  daNetGameLibs/phys_kind
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = . ;
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

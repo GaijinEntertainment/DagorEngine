@@ -209,6 +209,8 @@ Template::Template(const char *tname, ComponentsMap &&amap, component_set &&trac
   if (singleton_)
     components[ECS_HASH(SINGLETON_NAME)] = ecs::Tag();
   components.shrink_to_fit();
+  for (const auto &c : components)
+    componentsBloom |= componentBloomBit(c.first);
 }
 
 Template::Template() {} // needed only for dummy template in 'getEntityTemplate'
@@ -231,6 +233,7 @@ Template::Template(const Template &t)
   inheritedFlags = t.inheritedFlags;
   tag = t.tag;
   components = t.components;
+  componentsBloom = t.componentsBloom;
   dependencies = t.dependencies; // localFlags may carry FLAG_DEPENDENCIES_RESOLVED; flag and cache must not diverge
 }
 
@@ -239,9 +242,9 @@ Template::Template(const Template &t)
 const ChildComponent *Template::getComponentDFS(const HashedConstString &hashed_name, const TemplatesData &db,
   eastl::bitvector<framemem_allocator> &visited) const
 {
-  auto it = components.find(hashed_name);
+  auto it = findOwnComponent(hashed_name.hash);
   if (it)
-    return &*it;
+    return it;
   for (const int pid : parents)
   {
     if (visited.test(pid, false))
@@ -257,7 +260,7 @@ const ChildComponent *Template::getComponentDFS(const HashedConstString &hashed_
 bool Template::hasComponentDFS(const HashedConstString &hashed_name, const TemplatesData &db,
   eastl::bitvector<framemem_allocator> &visited) const
 {
-  if (components.find(hashed_name))
+  if (findOwnComponent(hashed_name.hash))
     return true;
   for (const int pid : parents)
   {
@@ -272,7 +275,7 @@ bool Template::hasComponentDFS(const HashedConstString &hashed_name, const Templ
 
 bool Template::hasComponent(const HashedConstString &hashed_name, const TemplatesData &db) const
 {
-  auto it = components.find(hashed_name);
+  auto it = findOwnComponent(hashed_name.hash);
   // CHECK_IT_HASH(it, components, hashed_name.str, hashed_name.hash);
   if (it)
     return true;
@@ -321,7 +324,7 @@ void Template::validateSets(const TemplatesData &db, const TemplateDBInfo *info,
 
 const ChildComponent &Template::getComponent(const HashedConstString &hashed_name, const TemplatesData &db) const
 {
-  auto it = components.find(hashed_name);
+  auto it = findOwnComponent(hashed_name.hash);
   // CHECK_IT_HASH(it, components, hashed_name.str, hashed_name.hash);
   if (it)
     return *it;
@@ -650,6 +653,7 @@ void TemplateRefs::amend(Template &&templ, Template::ParentsList &&parentNameIds
     eit->localFlags |= templ.localFlags;
     for (auto &&c : templ.components)
       eit->components[c.first] = eastl::move(c.second);
+    eit->componentsBloom |= templ.componentsBloom;
     eit->setInstantiatable(eit->calcValidDependencies(*this));
   }
 }

@@ -1326,19 +1326,19 @@ void ApbAnimateCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 
       if (!nm || !*nm)
       {
-        G_ASSERT_LOG(0, "bad param in ApbAnimateCtrl '%s', block %d", nm, name, j);
+        G_ASSERT_LOG(0, "bad param '%s' in ApbAnimateCtrl '%s', block %d", nm, name, j);
         continue;
       }
-      IAnimBlendNode *n = bnl_nm ? graph.getBlendNodePtr(bnl_nm) : NULL;
       if (!bnl_nm || !*bnl_nm)
       {
-        G_ASSERT_LOG(0, "bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
+        G_ASSERT_LOG(0, "Missing BNL ref '%s' in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
         continue;
       }
+      IAnimBlendNode *n = graph.getBlendNodePtr(bnl_nm);
       if (!n || !n->isSubOf(AnimBlendNodeLeafCID))
       {
         if (!is_ignoring_unavailable_resources())
-          G_ASSERT_LOG(0, "bad BNL ref in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
+          G_ASSERT_LOG(0, "bad BNL ref '%s' in ApbAnimateCtrl '%s', block %d", bnl_nm, name, j);
         continue;
       }
 

@@ -1,5 +1,6 @@
 include "use_downsampled_checkerboard_depth_tex.dshl"
 
+int rtr_rendered = 0;
 int rtr_bindless_slot = -1;
 int rtr_bindless_sampler_slot = -1;
 
@@ -8,9 +9,10 @@ int rtr_normal_roughness_bindless_sampler_slot = -1;
 
 int rtr_output_type = 0;
 int rtr_res_mul = 1;
+float rtr_probe_treshold = 0.75;
+float rtr_blur_radius = 0.03;
 int4 rtr_resolutionI = (1,1,1,1);
-int4 rtr_texture_resolution = (1,1,1,1);
-float4 rtr_uv_max;
+int4 rtr_output_resolutionI = (1,1,1,1); // only the reflection trace writes it, the glass and the water traces write rtr_resolutionI
 
 int rtr_depth_mode = 0;
 interval rtr_depth_mode : def < 1, checker < 2, smart;
@@ -21,16 +23,13 @@ macro CHECKING_RTR(stage)
   if (use_hw_raytracing)
   {
     (stage) {
-      rtr_bindless_slot@i1 = rtr_bindless_slot;
-      rtr_bindless_sampler_slot@u1 = rtr_bindless_sampler_slot;
-      rtr_normal_roughness_bindless_slot@i1 = rtr_normal_roughness_bindless_slot;
-      rtr_normal_roughness_bindless_sampler_slot@u1 = rtr_normal_roughness_bindless_sampler_slot;
+      rtr_rendered@i1 = rtr_rendered;
     }
 
     hlsl (stage) {
       bool isRTREnabled()
       {
-        return rtr_bindless_slot >= 0;
+        return rtr_rendered != 0;
       }
     }
   }
@@ -46,14 +45,18 @@ macro CHECKING_RTR(stage)
 endmacro
 
 macro USING_RTR(stage)
-  CHECKING_RTR(stage)
-
   if (use_hw_raytracing)
   {
     (stage) {
+      rtr_rendered@i1 = rtr_rendered;
+      rtr_bindless_slot@i1 = rtr_bindless_slot;
+      rtr_bindless_sampler_slot@u1 = rtr_bindless_sampler_slot;
+      rtr_normal_roughness_bindless_slot@i1 = rtr_normal_roughness_bindless_slot;
+      rtr_normal_roughness_bindless_sampler_slot@u1 = rtr_normal_roughness_bindless_sampler_slot;
       rtr_output_type@i1 = rtr_output_type;
-      inv_output_resolution_rt@f2 = (1.0 / (rtr_texture_resolution.x * rtr_res_mul), 1.0 / (rtr_texture_resolution.y * rtr_res_mul));
-      rtr_uv_max@f2 = rtr_uv_max;
+      rtr_probe_treshold@f1 = rtr_probe_treshold;
+      rtr_blur_radius_texels@f1 = rtr_blur_radius * rtr_output_resolutionI.y;
+      inv_output_resolution_rt@f2 = (1.0 / (rtr_output_resolutionI.x * rtr_res_mul), 1.0 / (rtr_output_resolutionI.y * rtr_res_mul));
       rtr_res_mul@u1 = rtr_res_mul;
     }
 
@@ -74,7 +77,8 @@ macro USING_RTR(stage)
 
       #define RTR_REBLUR 0
       #define RTR_RELAX  1
-      #define RTR_RR     2
+      #define RTR_RR     255
+      #define RTR_BLUR   2
 
       ##if rtr_depth_mode == def
         #define SOFTWARE_BILATERAL_FILTERING 0
@@ -84,18 +88,26 @@ macro USING_RTR(stage)
 
       #include <rt_texture_outputs.inc.hlsli>
 
-      float3 getRTR(uint2 tci, float roughness, float w, uint nrd_material)
+      bool isRTREnabled()
+      {
+        return rtr_rendered != 0 && rtr_bindless_slot >= 0;
+      }
+
+      // the blur traces only below the probe treshold, the other pixels take the reflection of the resolve
+      bool isRTRCovered(float roughness)
+      {
+        return rtr_output_type != RTR_BLUR || roughness < rtr_probe_treshold;
+      }
+
+      // the output at a full res pixel, still packed: a half res output takes its texels by the roughness
+      float4 getRTRPacked(uint2 tci, float roughness, float w, uint nrd_material)
       {
         BRANCH
-        if (rtr_output_type == RTR_RR)
-        {
-          return texture2DAt(uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot), tci).gba;
-        }
-        else if (rtr_res_mul != 1)
+        if (rtr_res_mul != 1)
         {
           // Read the roughness for the RTR as well. Sample an RTR value where the roughness matches the gbuffer.
           // TODO: Supplying uv as-is for gather4 is not correct. Revisit it later
-          float2 uv = min(rtr_uv_max, (tci.xy + 0.5) * inv_output_resolution_rt);
+          float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
 
 
 
@@ -118,10 +130,22 @@ macro USING_RTR(stage)
                weights *= rtrMaterialIds == nrd_material;
             #endif
 
+            // a Blur code is no radius: only the texels with a ray mix, and with none of them there is no ray
+            float4 blurAlpha = 0;
+            BRANCH
+            if (rtr_output_type == RTR_BLUR)
+            {
+              blurAlpha = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherAlpha(global_samplers_array[rtr_bindless_sampler_slot], uv, 0);
+              weights *= blurAlpha >= 0;
+            }
+
             float3 accum = float3(dot(weights, red), dot(weights, green), dot(weights, blue));
             float weightSum = dot(weights, 1);
 
             color.rgb = accum / max(weightSum, 1e-6);
+            BRANCH
+            if (rtr_output_type == RTR_BLUR)
+              color.a = weightSum > 0 ? dot(weights, blurAlpha) / weightSum : -2;
           #else
             float4 rtrRoughness;
             #if( NRD_NORMAL_ENCODING == NRD_NORMAL_ENCODING_R10G10B10A2_UNORM )
@@ -141,7 +165,12 @@ macro USING_RTR(stage)
             float minr = min(min(rtrRoughness.x, rtrRoughness.y), min(rtrRoughness.z, rtrRoughness.w));
             float maxr = max(max(rtrRoughness.x, rtrRoughness.y), max(rtrRoughness.z, rtrRoughness.w));
 
-            bool closeMatch = abs(minr - maxr) < tolerance;
+            float4 blurAlpha = 0;
+            BRANCH
+            if (rtr_output_type == RTR_BLUR)
+              blurAlpha = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherAlpha(global_samplers_array[rtr_bindless_sampler_slot], uv, 0);
+            // a linear sample would mix a Blur code into a radius
+            bool closeMatch = abs(minr - maxr) < tolerance && all(blurAlpha >= 0);
             [branch]
             if (closeMatch)
               color = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).SampleLevel(global_samplers_array[rtr_bindless_sampler_slot], uv, 0);
@@ -164,22 +193,64 @@ macro USING_RTR(stage)
               color.r = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherRed(global_samplers_array[rtr_bindless_sampler_slot], uv, 0)[di];
               color.g = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherGreen(global_samplers_array[rtr_bindless_sampler_slot], uv, 0)[di];
               color.b = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherBlue(global_samplers_array[rtr_bindless_sampler_slot], uv, 0)[di];
+              BRANCH
+              if (rtr_output_type == RTR_BLUR)
+                color.a = blurAlpha[di];
             }
           #endif
 
-          return rtr_output_type == RTR_REBLUR
-                ? REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb
-                : RELAX_BackEnd_UnpackRadiance(color).rgb;
+          return color;
         }
         else
         {
-          float2 uv = min(rtr_uv_max, (tci.xy + 0.5) * inv_output_resolution_rt);
-          float4 color = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).SampleLevel(global_samplers_array[rtr_bindless_sampler_slot], uv, 0);
-
-          return rtr_output_type == RTR_REBLUR
-               ? REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb
-               : RELAX_BackEnd_UnpackRadiance(color).rgb;
+          float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
+          return uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).SampleLevel(global_samplers_array[rtr_bindless_sampler_slot], uv, 0);
         }
+      }
+
+      float3 getRTR(uint2 tci, float roughness, float w, uint nrd_material)
+      {
+        BRANCH
+        if (rtr_output_type == RTR_RR)
+          return texture2DAt(uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot), tci).gba;
+        float4 color = getRTRPacked(tci, roughness, w, nrd_material);
+        return rtr_output_type == RTR_REBLUR
+             ? REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb
+             : RELAX_BackEnd_UnpackRadiance(color).rgb;
+      }
+
+      // The Blur output: rgb is the reflection, a is 1 where its texel had a ray and 0 where the reader keeps its own
+      // reflection. Mip 0 holds the blur up to rtr_blur_radius and in alpha the radius the lobe needs, or a code of the
+      // blur (-1 the trace value, -2 no ray). The mips hold the pyramid for a wider lobe, premultiplied by coverage.
+      bool isRTRWeighted()
+      {
+        return rtr_output_type == RTR_BLUR;
+      }
+
+      float3 getRTRPyramid(float2 uv, float mip)
+      {
+        float4 texel = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot)
+                         .SampleLevel(global_samplers_array[rtr_bindless_sampler_slot], uv, max(mip, 1));
+        return texel.rgb / max(texel.a, 1e-7);
+      }
+
+      float4 getRTRWeighted(uint2 tci, float roughness, float w)
+      {
+        float4 base = getRTRPacked(tci, roughness, w, 0);
+        BRANCH
+        if (base.a < -1.5)
+          return 0;
+        BRANCH
+        if (base.a < 0.25)
+          return float4(base.rgb, 1);
+        float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
+        float mip = log2(base.a);
+        float3 lobe = base.rgb;
+        BRANCH
+        if (base.a > rtr_blur_radius_texels)
+          lobe = lerp(base.rgb, getRTRPyramid(uv, mip), saturate(log2(base.a / rtr_blur_radius_texels)));
+        // the 1/4 of the GGX lobe that lobe_radius of reflection_blur.dshl leaves out, none where it fits in a texel
+        return float4(lerp(lobe, getRTRPyramid(uv, mip + 2), 0.25 * saturate(mip + 2)), 1);
       }
 
       float3 getRTRFiltered(uint2 tci, float roughness, float w, uint nrd_material)
@@ -191,7 +262,7 @@ macro USING_RTR(stage)
         }
         else
         {
-          float2 uv = min(rtr_uv_max, (tci.xy + 0.5) * inv_output_resolution_rt);
+          float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
           float4 red = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherRed(global_samplers_array[rtr_bindless_sampler_slot], uv);
 
           bool4 isColorFinite = isfinite(red);
@@ -229,6 +300,11 @@ macro USING_RTR(stage)
   else
   {
     hlsl (stage) {
+      bool isRTREnabled()
+      {
+        return false;
+      }
+
       float3 getRTR(uint2 tci, float roughness, float w, uint nrd_material)
       {
         return 0;

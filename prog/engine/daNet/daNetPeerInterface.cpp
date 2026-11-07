@@ -102,8 +102,6 @@ extern "C"
 };
 
 static DaNetStatistics g_stat;
-static IDaNetTrafficEncoder *traffic_encoder = nullptr;
-volatile static bool delayed_set_traffic_encoder = false;
 const SystemAddress UNASSIGNED_SYSTEM_ADDRESS(0xFFFFFFFF, 0xFFFF);
 
 struct PacketToSend : public ENetPacket
@@ -501,8 +499,18 @@ DaNetTime DaNetPeerInterface::GetLastReceivedPacketTime(SystemIndex sys_idx) con
   return peer ? interlocked_relaxed_load(peerResponsiveness[sys_idx].lastReceiveTime) : 0;
 }
 
+DaNetTime DaNetPeerInterface::GetReliableTimeoutTime(SystemIndex sys_idx) const
+{
+  const ENetPeer *peer = GET_PEER(sys_idx);
+  return peer ? interlocked_relaxed_load(peerResponsiveness[sys_idx].earliestTimeout) : 0;
+}
+
 void DaNetPeerInterface::updatePeerResponsiveness(DaNetTime currTime)
 {
+  // Not behind the gate below: an ack clears ENet's earliestTimeout at once, and a stale copy would trigger a route switch.
+  for (int i = 0; i < host->peerCount; ++i)
+    interlocked_relaxed_store(peerResponsiveness[i].earliestTimeout,
+      host->peers[i].state == ENET_PEER_STATE_CONNECTED ? host->peers[i].earliestTimeout : 0);
   if (currTime < responsivenessUpdateStamp)
     return;
   responsivenessUpdateStamp = currTime + UPD_RESPONSIVENESS_TIMEOUT_MS;
@@ -677,12 +685,8 @@ void DaNetPeerInterface::updateEnet(DaNetTime cur_time)
     receivePacket(idx, addr, packet, cur_time);
     return ++numPacketsInBatch < 64;
   };
-  if (interlocked_acquire_load(delayed_set_traffic_encoder))
-  {
-    setTrafficEncoderImpl(traffic_encoder);
-    traffic_encoder = nullptr;
-    interlocked_release_store(delayed_set_traffic_encoder, false);
-  }
+  if (interlocked_relaxed_load_ptr(delayedTrafficEncoder))
+    setTrafficEncoderImpl(interlocked_exchange_ptr<IDaNetTrafficEncoder>(delayedTrafficEncoder, nullptr));
   int r = enet_host_service(host, /*event*/ NULL, /*timeout*/ 0); // send/receive
   if (r < 0)
   {
@@ -817,6 +821,20 @@ void DaNetPeerInterface::execute() // thread func
   }
 }
 
+// Re-queues the reliable commands in flight as ENet's timeout check does, but without its backoff: after a route
+// change they go out at once, so their ack clears earliestTimeout one RTT later and not after the next retransmit.
+static void resend_reliable_commands(ENetPeer *peer)
+{
+  ENetListIterator insertPosition = enet_list_begin(&peer->outgoingReliableCommands);
+  while (!enet_list_empty(&peer->sentReliableCommands))
+  {
+    ENetOutgoingCommand *cmd = (ENetOutgoingCommand *)enet_list_front(&peer->sentReliableCommands);
+    if (cmd->packet)
+      peer->reliableDataInTransit -= cmd->fragmentLength;
+    enet_list_insert(insertPosition, enet_list_remove(&cmd->outgoingCommandList));
+  }
+}
+
 void DaNetPeerInterface::ExecuteSingleUpdate(DaNetPeerExecutionContext &context)
 {
   int sendQSize = 0;
@@ -826,18 +844,21 @@ void DaNetPeerInterface::ExecuteSingleUpdate(DaNetPeerExecutionContext &context)
     echoManager.process();
     processDisconnectCommands();
     updateEnet(context.curTime);
+    const bool routeChanged = interlocked_exchange(routeChangePending, 0) != 0; // before reading forcedHostAddr
     if (forcedHostAddr.host) // we have to rewrite it every cycle as it's might get overridden within enet on receives from prev host
     {
       host->peers[0].address.host = forcedHostAddr.host;
       if (forcedHostAddr.port)
         host->peers[0].address.port = forcedHostAddr.port;
     }
+    if (routeChanged)
+      resend_reliable_commands(&host->peers[0]);
     updatePeerResponsiveness(context.curTime);
   }
   context.prevTime = context.curTime, context.curTime = enet_time_get();
   if ((context.curTime - context.prevTime) > DANET_LAG_MS)
     debug("danet_thread lag %d > %d (before/after enet update %d/%d) ms, sendq size=%d", (context.curTime - context.prevTime),
-      host->serviceTime - context.prevTime, context.curTime - host->serviceTime, DANET_LAG_MS, sendQSize);
+      DANET_LAG_MS, host->serviceTime - context.prevTime, context.curTime - host->serviceTime, sendQSize);
   G_UNUSED(sendQSize);
 }
 
@@ -1021,6 +1042,7 @@ bool DaNetPeerInterface::ChangeHostAddress(const char *new_host)
   {
     forcedHostAddr.host = addr.host;
     forcedHostAddr.port = addr.port;
+    interlocked_release_store(routeChangePending, 1);
     return true;
   }
   return false;
@@ -1077,21 +1099,16 @@ static size_t ENET_CALLBACK decompress_proxy(void *context, enet_uint16 peer_id,
 
 void DaNetPeerInterface::SetTrafficEncoder(IDaNetTrafficEncoder *enc)
 {
-  traffic_encoder = enc;
-  interlocked_release_store(delayed_set_traffic_encoder, true);
+  G_ASSERTF(enc, "nullptr means no pending encoder, so encoding can't be turned off");
+  interlocked_release_store_ptr(delayedTrafficEncoder, enc);
 }
 
 void DaNetPeerInterface::setTrafficEncoderImpl(IDaNetTrafficEncoder *enc)
 {
-  if (enc)
-  {
-    ENetCompressor c;
-    memset(&c, 0, sizeof(c));
-    c.context = enc;
-    c.compress = compress_proxy;
-    c.decompress = decompress_proxy;
-    enet_host_compress(host, &c);
-  }
-  else
-    enet_host_compress(host, NULL);
+  ENetCompressor c;
+  memset(&c, 0, sizeof(c));
+  c.context = enc;
+  c.compress = compress_proxy;
+  c.decompress = decompress_proxy;
+  enet_host_compress(host, &c);
 }

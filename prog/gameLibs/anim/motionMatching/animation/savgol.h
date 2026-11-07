@@ -7,7 +7,7 @@
 // https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter
 
 // calculate weights
-// m - window, n - polyorder, (m*2+1) is window size
+// m - window, n - polyorder, (m*2+1) is window size, needs 0 <= m, 0 <= n <= m*2
 dag::Vector<vec4f> savgol_weigths(const int m, const int n);
 
 // apply savgol filter

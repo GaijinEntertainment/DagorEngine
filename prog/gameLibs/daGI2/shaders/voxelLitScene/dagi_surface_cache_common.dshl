@@ -1,0 +1,527 @@
+include "hardware_defines.dshl"
+
+buffer dagi_surface_cache;
+buffer dagi_surface_cache_requests;
+int4 dagi_surface_cache_params;
+int4 dagi_surface_cache_voxels_res;
+float4 dagi_surface_cache_cell;
+float4 dagi_surface_cache_center;
+
+hlsl {
+  #include "dagi_surface_cache_consts.hlsli"
+}
+
+// the request lists in the probe traces' register: the patch of the screen probe texels that missed reads them
+macro DAGI_SURFACE_CACHE_REQUESTS_UAV(code)
+  (code) {
+    dagi_surface_cache_requests@uav = dagi_surface_cache_requests hlsl {
+      RWByteAddressBuffer dagi_surface_cache_requests@uav;
+    }
+  }
+  hlsl(code) {
+    uint dagi_surface_cache_screen_misses()
+    {
+      return min(loadBuffer(dagi_surface_cache_requests, DAGI_SC_SCREEN_MISSES_COUNT), DAGI_SC_SCREEN_MISSES_CAPACITY);
+    }
+    uint dagi_surface_cache_screen_miss(uint i) { return loadBuffer(dagi_surface_cache_requests, DAGI_SC_SCREEN_MISSES_OFFSET + i*4); }
+  }
+endmacro
+
+// probe traces ask for the cells they missed, so the relight lights them first; it goes before DAGI_SURFACE_CACHE_READ
+macro DAGI_SURFACE_CACHE_REQUESTS(code)
+  DAGI_SURFACE_CACHE_REQUESTS_UAV(code)
+  hlsl(code) {
+    #include <octahedral.hlsl>
+    #define DAGI_SURFACE_CACHE_HAS_REQUESTS 1
+    // many probe rays hit one cell in a frame: a bit per cell_hash lets only the first one ask
+    void dagi_surface_cache_request(float3 world_pos, float3 normal, uint cell_hash, bool refresh)
+    {
+      uint bit = cell_hash % DAGI_SC_REQUESTS_BITS, prevBits, at;
+      // keeps the key's axis through quantization
+      float3 an = abs(normal);
+      float3 mainAxis = an.x >= max(an.y, an.z) ? float3(1, 0, 0) : (an.y >= an.z ? float3(0, 1, 0) : float3(0, 0, 1));
+      normal += sign(normal)*mainAxis*2e-4;
+      dagi_surface_cache_requests.InterlockedOr(DAGI_SC_REQUESTS_BITS_OFFSET + (bit >> 5)*4, 1u << (bit & 31), prevBits);
+      if (prevBits & (1u << (bit & 31)))
+        return;
+      dagi_surface_cache_requests.InterlockedAdd(refresh ? 4 : 0, 1u, at);
+      if (at >= (refresh ? DAGI_SC_REFRESH_CAPACITY : DAGI_SC_REQUESTS_CAPACITY))
+        return;
+      at += refresh ? DAGI_SC_REQUESTS_CAPACITY : 0;
+      uint2 q = uint2(saturate(octEncode(normal)*0.5 + 0.5)*65535 + 0.5);
+      storeBuffer4(dagi_surface_cache_requests, DAGI_SC_REQUESTS_HEADER + at*DAGI_SC_REQUESTS_RECORD, uint4(asuint(world_pos), q.x | (q.y << 16)));
+    }
+    // a screen probe texel whose ray no cell knew: the patch traces it again after the relight
+    void dagi_surface_cache_screen_missed(uint texel)
+    {
+      uint at;
+      dagi_surface_cache_requests.InterlockedAdd(DAGI_SC_SCREEN_MISSES_COUNT, 1u, at);
+      if (at < DAGI_SC_SCREEN_MISSES_CAPACITY)
+      {
+        storeBuffer(dagi_surface_cache_requests, DAGI_SC_SCREEN_MISSES_OFFSET + at*4, texel);
+      }
+    }
+  }
+endmacro
+
+// dagi_surface_cache must be bound before it
+macro DAGI_SURFACE_CACHE_LOOKUP(code)
+  (code) {
+    dagi_surface_cache_params@i4 = dagi_surface_cache_params;
+    dagi_surface_cache_cell@f4 = dagi_surface_cache_cell;
+    dagi_surface_cache_center@f4 = dagi_surface_cache_center;
+    dagi_surface_cache_voxels_res@i4 = dagi_surface_cache_voxels_res;
+  }
+  hlsl(code) {
+    #include <pcg_hash.hlsl>
+    #define DAGI_SC_MAX_STEPS 8
+    // flags: screen sample count in bits 0..6, relight count in 7..13 (relit cells only), dead
+    #define DAGI_SC_COUNT_MASK 0x7Fu
+    #define DAGI_SC_RELIT_SHIFT 7
+    #define DAGI_SC_DEAD 0x8000u
+    // a claimed slot holds its key with this bit until the radiance is stored, so no lookup reads the evicted payload
+    #define DAGI_SC_WRITING 0x80000000u
+    uint dagi_surface_cache_relit_count(uint flags) { return (flags >> DAGI_SC_RELIT_SHIFT) & DAGI_SC_COUNT_MASK; }
+    // a sampled cell this old left the screen
+    uint dagi_surface_cache_refresh_age() { uint a = uint(dagi_surface_cache_params.w); return a ? a : ~0u; }
+    // per cell and frame, not per ray
+    bool dagi_surface_cache_refresh_chance(uint cell_hash)
+    {
+      uint a = uint(dagi_surface_cache_params.w);
+      return a != 0 && pcg2d(uint2(cell_hash, dagi_surface_cache_params.y)).x < 0xFFFFFFFFu/a;
+    }
+    uint dagi_surface_cache_levels() { return dagi_surface_cache_params.z; }
+    uint dagi_surface_cache_entries() { return abs(dagi_surface_cache_params.x); }
+    // a float multiply, not a modulo: entries <= 2^24
+    uint dagi_surface_cache_slot(uint hash, uint step)
+    {
+      uint n = dagi_surface_cache_entries();
+      uint s = uint(float(hash >> 8)*(float(n)/16777216.0)) + step;
+      return s < n ? s : s - n;
+    }
+    // the finest SDF clip whose box holds the point, from its distance to the view
+    uint dagi_surface_cache_level(float3 world_pos)
+    {
+      float3 d = abs(world_pos - dagi_surface_cache_center.xyz);
+      float r = max(max(d.x, d.z)*dagi_surface_cache_cell.z, d.y*dagi_surface_cache_cell.w);
+      return r <= 1 ? 0 : uint(ceil(log2(r)));
+    }
+    float dagi_surface_cache_cell_size(uint level) { return max(dagi_surface_cache_cell.x, dagi_surface_cache_cell.y*exp2(level)); }
+    // the normal offset keeps border hits in the fed cell
+    float3 dagi_surface_cache_cell_index(float3 world_pos, float3 normal, float cell) { return floor((world_pos + normal*(0.25*cell))/cell); }
+    // axis: 0 = +x, 1 = -x, 2 = +y, 3 = -y, 4 = +z, 5 = -z
+    uint2 dagi_surface_cache_cell_key(int3 c, uint axis, uint level)
+    {
+      uint4 h = pcg4d_hash_32bit(uint4(asuint(c), axis | (level << 3)));
+      // 0 marks an empty slot
+      return uint2(h.x, max((h.y ^ h.w) & ~DAGI_SC_WRITING, 1u));
+    }
+    uint2 dagi_surface_cache_key(float3 world_pos, float3 normal, uint level)
+    {
+      int3 c = int3(dagi_surface_cache_cell_index(world_pos, normal, dagi_surface_cache_cell_size(level)));
+      float3 an = abs(normal);
+      uint axis = an.x >= max(an.y, an.z) ? (normal.x < 0 ? 1u : 0u) : (an.y >= an.z ? (normal.y < 0 ? 3u : 2u) : (normal.z < 0 ? 5u : 4u));
+      return dagi_surface_cache_cell_key(c, axis, level);
+    }
+    float3 dagi_surface_cache_radiance(uint4 e) { return float3(f16tof32(e.z), f16tof32(e.z >> 16), f16tof32(e.w)); }
+    bool dagi_surface_cache_find(float3 world_pos, float3 normal, uint level, inout float3 radiance, inout uint flags, inout uint age)
+    {
+      uint last = min(level + 3, dagi_surface_cache_levels());
+      LOOP
+      for (; level < last; ++level)
+      {
+        uint2 key = dagi_surface_cache_key(world_pos, normal, level);
+        for (uint i = 0; i < DAGI_SC_MAX_STEPS; ++i)
+        {
+          uint4 e = loadBuffer4(dagi_surface_cache, dagi_surface_cache_slot(key.x, i)*16);
+          if (e.x == 0)
+            break;
+          if (e.x == key.y)
+          {
+            if (e.w & (DAGI_SC_DEAD << 16))
+              break;
+            radiance = dagi_surface_cache_radiance(e);
+            flags = e.w >> 16;
+            age = uint(dagi_surface_cache_params.y) - e.y;
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    bool dagi_surface_cache_get(float3 world_pos, float3 normal, inout float3 radiance)
+    {
+      uint flags = 0, age = 0, level = dagi_surface_cache_level(world_pos);
+      bool hit = dagi_surface_cache_find(world_pos, normal, level, radiance, flags, age);
+      #if DAGI_SURFACE_CACHE_HAS_REQUESTS
+        // a missed cell, or a relit one until 16 relights averaged its gather; below them, a refresh by chance of a relit cell
+        // or of one the screen left, so lighting changes reach it
+        uint relits = dagi_surface_cache_relit_count(flags);
+        bool missed = !hit || (relits != 0 && relits < 16);
+        if (level < dagi_surface_cache_levels() && (missed || relits != 0 || age >= dagi_surface_cache_refresh_age()))
+        {
+          uint cell = dagi_surface_cache_key(world_pos, normal, level).x;
+          if (missed || dagi_surface_cache_refresh_chance(cell))
+            dagi_surface_cache_request(world_pos, normal, cell, !missed);
+        }
+      #endif
+      return hit;
+    }
+
+    // a voxel of a coarse level is a cell of all axes, wrapped like the SDF clips; 0 marks one that no cell fed
+    float3 dagi_surface_cache_voxel_coord(float3 world_pos, uint level) { return world_pos/(dagi_surface_cache_cell.y*exp2(level)); }
+    // the box around a center holds one voxel of each wrapped coordinate, from this corner up
+    int3 dagi_surface_cache_voxel_lt(uint level, float3 center)
+    {
+      return int3(floor(dagi_surface_cache_voxel_coord(center, level))) - dagi_surface_cache_voxels_res.xyx/2;
+    }
+    int3 dagi_surface_cache_voxel_lt(uint level) { return dagi_surface_cache_voxel_lt(level, dagi_surface_cache_center.xyz); }
+    uint3 dagi_surface_cache_voxel_wrap(int3 voxel)
+    {
+      int3 res = dagi_surface_cache_voxels_res.xyx;
+      return uint3(voxel % res + res) % uint3(res);
+    }
+    uint dagi_surface_cache_voxel_slot(uint3 wrapped, uint level)
+    {
+      uint2 res = uint2(dagi_surface_cache_voxels_res.xy);
+      return ((level - uint(dagi_surface_cache_voxels_res.z))*res.y + wrapped.y)*res.x*res.x + wrapped.z*res.x + wrapped.x;
+    }
+    uint dagi_surface_cache_voxel_index(float3 world_pos, uint level)
+    {
+      int3 voxel = int3(floor(dagi_surface_cache_voxel_coord(world_pos, level)));
+      return dagi_surface_cache_voxel_slot(dagi_surface_cache_voxel_wrap(voxel), level);
+    }
+    // after the table: voxels, their marks, the voxels to remean
+    uint dagi_surface_cache_voxel_at(uint index) { return (dagi_surface_cache_entries() + 1)*16 + index*4; }
+    uint dagi_surface_cache_voxels_count()
+    {
+      uint2 res = uint2(dagi_surface_cache_voxels_res.xy);
+      return res.x*res.x*res.y*(dagi_surface_cache_levels() - min(uint(dagi_surface_cache_voxels_res.z), dagi_surface_cache_levels()));
+    }
+    uint dagi_surface_cache_voxels_list_at(uint i)
+    {
+      uint count = dagi_surface_cache_voxels_count();
+      return dagi_surface_cache_voxel_at(count + (count + 31)/32 + i);
+    }
+    // a voxel's light: R, G, B 8-bit mantissas over a shared 7-bit exponent, bit 31 left to flags,
+    // so 8 bits decode in one instruction on GCN; black is known, as its exponent is not 0
+    #define DAGI_SC_VOXEL_EXP_BIAS 64
+    uint dagi_surface_cache_voxel_pack(float3 rgb)
+    {
+      rgb = max(rgb, 0);
+      int e = int((asuint(max(max(max(rgb.x, rgb.y), rgb.z), 1e-4)) >> 23) & 0xFF) - 126;
+      uint3 m = min(uint3(ldexp(rgb, 8 - e) + 0.5), 255u);
+      return m.x | (m.y << 8) | (m.z << 16) | (uint(min(e + DAGI_SC_VOXEL_EXP_BIAS, 127)) << 24);
+    }
+    // a voxel's flag bit: a probe takes its light in full, as with the SDF clear's terrain light,
+    // else 3/4 of the mean of its camera-facing cells, as an unseen face is often darker
+    #define DAGI_SC_VOXEL_TRUSTED (1u << 31)
+    float3 dagi_surface_cache_voxel_unpack(uint v)
+    {
+      float3 rgb = ldexp(float3(v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF), int((v >> 24) & 0x7F) - DAGI_SC_VOXEL_EXP_BIAS - 8);
+      return (v & DAGI_SC_VOXEL_TRUSTED) ? rgb : rgb*0.75;
+    }
+    bool dagi_surface_cache_voxel_get(float3 world_pos, inout float3 radiance)
+    {
+      uint level = max(dagi_surface_cache_level(world_pos), uint(dagi_surface_cache_voxels_res.z));
+      uint last = min(level + 2, dagi_surface_cache_levels());
+      LOOP
+      for (; level < last; ++level)
+      {
+        uint v = loadBuffer(dagi_surface_cache, dagi_surface_cache_voxel_at(dagi_surface_cache_voxel_index(world_pos, level)));
+        if (v != 0)
+        {
+          radiance = dagi_surface_cache_voxel_unpack(v);
+          return true;
+        }
+      }
+      return false;
+    }
+    bool dagi_surface_cache_voxel_sample(float3 world_pos, out float3 radiance)
+    {
+      uint level = max(dagi_surface_cache_level(world_pos), uint(dagi_surface_cache_voxels_res.z));
+      uint last = min(level + 2, dagi_surface_cache_levels());
+      LOOP
+      for (; level < last; ++level)
+      {
+        float3 p = dagi_surface_cache_voxel_coord(world_pos, level) - 0.5;
+        float3 f = frac(p);
+        int3 b = int3(floor(p)), lt = dagi_surface_cache_voxel_lt(level), hi = lt + dagi_surface_cache_voxels_res.xyx - 1;
+        uint3 c0 = dagi_surface_cache_voxel_wrap(clamp(b, lt, hi));
+        uint3 c1 = dagi_surface_cache_voxel_wrap(clamp(b + 1, lt, hi));
+        float4 sum = 0;
+        UNROLL
+        for (uint i = 0; i < 4; ++i)
+        {
+          uint2 o = uint2(i, i >> 1) & 1;
+          float2 w = lerp(1 - f.yz, f.yz, float2(o));
+          uint3 a = uint3(c0.x, o.x ? c1.y : c0.y, o.y ? c1.z : c0.z);
+          uint at = dagi_surface_cache_voxel_at(dagi_surface_cache_voxel_slot(a, level));
+          uint2 v;
+          if (c1.x == c0.x + 1)
+            v = loadBuffer2(dagi_surface_cache, at);
+          else
+            v = uint2(loadBuffer(dagi_surface_cache, at),
+              loadBuffer(dagi_surface_cache, dagi_surface_cache_voxel_at(dagi_surface_cache_voxel_slot(uint3(c1.x, a.yz), level))));
+          sum += v.x != 0 ? float4(dagi_surface_cache_voxel_unpack(v.x), 1)*((1 - f.x)*w.x*w.y) : 0;
+          sum += v.y != 0 ? float4(dagi_surface_cache_voxel_unpack(v.y), 1)*(f.x*w.x*w.y) : 0;
+        }
+        if (sum.w > 0)
+        {
+          radiance = sum.xyz/sum.w;
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+endmacro
+
+// a shader takes DAGI_SURFACE_CACHE_READ or DAGI_SURFACE_CACHE_WRITE, never both: each binds the buffer under one name
+macro DAGI_SURFACE_CACHE_READ(code)
+  (code) {
+    dagi_surface_cache@buf = dagi_surface_cache hlsl {
+      ByteAddressBuffer dagi_surface_cache@buf;
+    }
+  }
+  DAGI_SURFACE_CACHE_LOOKUP(code)
+endmacro
+
+macro DAGI_SURFACE_CACHE_WRITE(code)
+  (code) {
+    dagi_surface_cache@uav = dagi_surface_cache hlsl {
+      RWByteAddressBuffer dagi_surface_cache@uav;
+    }
+  }
+  DAGI_SURFACE_CACHE_LOOKUP(code)
+  hlsl(code) {
+    // the key's slot with e = its entry, or (claim) an empty slot or the oldest probed one of DAGI_SC_EVICT_AGE+ frames with e = 0,
+    // claimed with DAGI_SC_WRITING until one uint4 store of the whole entry publishes it
+    uint dagi_surface_cache_acquire(uint2 key, bool claim, out uint4 e)
+    {
+      uint victim = 0, victimAge = 0, victimKey = 0;
+      e = 0;
+      LOOP // Scarlett dxc miscompiles this loop unrolled
+      for (uint i = 0; i < DAGI_SC_MAX_STEPS; ++i)
+      {
+        uint s = dagi_surface_cache_slot(key.x, i);
+        uint4 c = loadBuffer4(dagi_surface_cache, s*16);
+        if (c.x == key.y)
+        {
+          e = c;
+          return s;
+        }
+        // another thread stores this key now, or the key is not in the table
+        if (c.x == (key.y | DAGI_SC_WRITING) || (!claim && c.x == 0))
+          return ~0u;
+        if (!claim)
+          continue;
+        uint age = c.x == 0 ? ~0u : (c.x & DAGI_SC_WRITING) ? 0 : uint(dagi_surface_cache_params.y) - c.y;
+        if (age >= victimAge)
+        {
+          victimAge = age;
+          victim = s;
+          victimKey = c.x;
+        }
+        if (c.x == 0)
+          break;
+      }
+      if (victimAge < DAGI_SC_EVICT_AGE)
+      {
+        // only the stats window counts these
+        if (claim && dagi_surface_cache_params.x < 0)
+          dagi_surface_cache.InterlockedAdd(dagi_surface_cache_entries()*16, 1u);
+        return ~0u;
+      }
+      uint prev;
+      dagi_surface_cache.InterlockedCompareExchange(victim*16, victimKey, key.y | DAGI_SC_WRITING, prev);
+      return prev == victimKey ? victim : ~0u;
+    }
+    void dagi_surface_cache_store(uint slot, uint key, float3 r, uint flags, uint age = 0)
+    {
+      storeBuffer4(dagi_surface_cache, slot*16,
+        uint4(key, uint(dagi_surface_cache_params.y) - age, f32tof16(r.x) | (f32tof16(r.y) << 16), f32tof16(r.z) | (flags << 16)));
+    }
+    // the next voxel pass takes its mean
+    void dagi_surface_cache_mark_voxel(float3 world_pos, float3 normal, uint level)
+    {
+      if (level < uint(dagi_surface_cache_voxels_res.z))
+        return;
+      float cell = dagi_surface_cache_cell_size(level);
+      float3 cellCenter = (dagi_surface_cache_cell_index(world_pos, normal, cell) + 0.5)*cell;
+      int3 voxel = int3(floor(dagi_surface_cache_voxel_coord(cellCenter, level)));
+      if (any(uint3(voxel - dagi_surface_cache_voxel_lt(level)) >= uint3(dagi_surface_cache_voxels_res.xyx)))
+        return;
+      uint index = dagi_surface_cache_voxel_slot(dagi_surface_cache_voxel_wrap(voxel), level);
+      dagi_surface_cache.InterlockedOr(dagi_surface_cache_voxel_at(dagi_surface_cache_voxels_count() + index/32), 1u << (index%32));
+    }
+
+    // a sample of the pixel's own lighting: it replaces relights and averages with other samples
+    void dagi_surface_cache_add_level(float3 world_pos, float3 normal, uint level, float3 radiance)
+    {
+      uint2 key = dagi_surface_cache_key(world_pos, normal, level);
+      uint4 e;
+      uint slot = dagi_surface_cache_acquire(key, true, e);
+      // one sample a frame: averages over frames
+      if (slot == ~0u || (e.x != 0 && e.y == uint(dagi_surface_cache_params.y)))
+        return;
+      uint flags = e.w >> 16;
+      uint n = (flags & DAGI_SC_DEAD) ? 1 : min((flags & DAGI_SC_COUNT_MASK) + 1, 16);
+      dagi_surface_cache_store(slot, key.y, n > 1 ? lerp(dagi_surface_cache_radiance(e), radiance, 1.0/n) : radiance, n);
+      dagi_surface_cache_mark_voxel(world_pos, normal, level);
+    }
+
+    // an off-screen relight fills a new cell or averages with earlier relights; a cell the screen sampled keeps its samples
+    // while the screen feeds it, as relights pulled them darker over a minute, then it takes a relight as a 1/16 sample
+    void dagi_surface_cache_relight_level(float3 world_pos, float3 normal, uint level, float3 radiance)
+    {
+      uint2 key = dagi_surface_cache_key(world_pos, normal, level);
+      uint4 e;
+      uint slot = dagi_surface_cache_acquire(key, true, e);
+      if (slot == ~0u)
+        return;
+      uint flags = e.w >> 16;
+      bool fresh = e.x == 0 || (flags & DAGI_SC_DEAD) != 0;
+      if (!fresh && (flags & DAGI_SC_COUNT_MASK) != 0)
+      {
+        if (uint(dagi_surface_cache_params.y) - e.y < dagi_surface_cache_refresh_age())
+          return;
+        dagi_surface_cache_store(slot, key.y, lerp(dagi_surface_cache_radiance(e), radiance, 1.0/16), flags);
+      }
+      else
+      {
+        uint relits = fresh ? 1 : min(dagi_surface_cache_relit_count(flags) + 1, 16);
+        dagi_surface_cache_store(slot, key.y, fresh ? radiance : lerp(dagi_surface_cache_radiance(e), radiance, 1.0/relits),
+          relits << DAGI_SC_RELIT_SHIFT);
+      }
+      dagi_surface_cache_mark_voxel(world_pos, normal, level);
+    }
+
+    uint dagi_surface_cache_voxel_level(uint index)
+    {
+      uint2 res = uint2(dagi_surface_cache_voxels_res.xy);
+      return uint(dagi_surface_cache_voxels_res.z) + index/(res.x*res.x*res.y);
+    }
+    // the voxel of a slot, in the box around the center
+    int3 dagi_surface_cache_voxel_of(uint index, uint level)
+    {
+      uint3 res = uint3(dagi_surface_cache_voxels_res.xyx);
+      uint r = index % (res.x*res.y*res.z);
+      int3 lt = dagi_surface_cache_voxel_lt(level), wrapped = int3(r % res.x, r/(res.x*res.z), (r/res.x) % res.z);
+      return lt + (wrapped - lt % int3(res) + int3(res)) % int3(res);
+    }
+    bool dagi_surface_cache_voxels_moved(uint level, float3 prev_center)
+    {
+      return any(dagi_surface_cache_voxel_lt(level) != dagi_surface_cache_voxel_lt(level, prev_center));
+    }
+    // the box moved the voxel in since prev_center: its slot held another voxel
+    bool dagi_surface_cache_voxel_entered(uint index, float3 prev_center)
+    {
+      uint level = dagi_surface_cache_voxel_level(index);
+      int3 prevLt = dagi_surface_cache_voxel_lt(level, prev_center);
+      return any(uint3(dagi_surface_cache_voxel_of(index, level) - prevLt) >= uint3(dagi_surface_cache_voxels_res.xyx));
+    }
+    // the mean of a voxel's camera-facing cells, of its level and size: unlike per-sample writes, it does not flicker in a mirror;
+    // a voxel with no known cell keeps its value, and a trusted heightmap voxel keeps its trust, unless it entered the box
+    void dagi_surface_cache_update_voxel(uint index, bool entered)
+    {
+      uint level = dagi_surface_cache_voxel_level(index);
+      float3 center = (dagi_surface_cache_voxel_of(index, level) + 0.5)*(dagi_surface_cache_cell.y*exp2(level));
+      float4 sum = 0;
+      UNROLL
+      for (uint axis = 0; axis < 3; ++axis)
+      {
+        float3 n = 0;
+        n[axis] = center[axis] < dagi_surface_cache_center[axis] ? 1 : -1;
+        uint4 e;
+        uint slot = dagi_surface_cache_acquire(dagi_surface_cache_key(center, n, level), false, e);
+        if (slot != ~0u && (e.w & (DAGI_SC_DEAD << 16)) == 0)
+          sum += float4(dagi_surface_cache_radiance(e), 1);
+      }
+      if (sum.w == 0 && !entered)
+        return;
+      uint at = dagi_surface_cache_voxel_at(index);
+      uint trusted = entered ? 0u : loadBuffer(dagi_surface_cache, at) & DAGI_SC_VOXEL_TRUSTED;
+      storeBuffer(dagi_surface_cache, at, sum.w > 0 ? dagi_surface_cache_voxel_pack(sum.xyz/sum.w) | trusted : 0u);
+    }
+
+    void dagi_surface_cache_kill(uint2 key)
+    {
+      uint4 e;
+      uint slot = dagi_surface_cache_acquire(key, false, e);
+      if (slot != ~0u && (e.w & (DAGI_SC_DEAD << 16)) == 0)
+        storeBuffer(dagi_surface_cache, slot*16 + 12, e.w | (DAGI_SC_DEAD << 16));
+    }
+
+    // an empty or dead cell takes the SDF rasterization's light as one relight, so probes still ask for relights;
+    // it claims a slot as any store does, but is stored DAGI_SC_EVICT_AGE frames old, so the feed or a relight can evict it at once.
+    // ~0u for a live cell, else dagi_surface_cache_seed() must fill the slot
+    uint dagi_surface_cache_seed_slot(float3 world_pos, float3 normal, uint level, out uint key)
+    {
+      uint2 k = dagi_surface_cache_key(world_pos, normal, level);
+      key = k.y;
+      uint4 e;
+      uint slot = dagi_surface_cache_acquire(k, true, e);
+      if (slot == ~0u || (e.x != 0 && ((e.w >> 16) & DAGI_SC_DEAD) == 0))
+        return ~0u;
+      dagi_surface_cache_mark_voxel(world_pos, normal, level);
+      return slot;
+    }
+    void dagi_surface_cache_seed(uint slot, uint key, float3 radiance)
+    {
+      dagi_surface_cache_store(slot, key, radiance, 1u << DAGI_SC_RELIT_SHIFT, DAGI_SC_EVICT_AGE);
+    }
+
+    // every face of the cells around a cleared or removed SDF voxel, and the voxels there, the clip's one with the clear's light;
+    // levels is 0 while the cache is off
+    void dagi_surface_cache_clear_voxel(int3 sdf_coord, uint sdf_clip, float sdf_voxel_size, float3 radiance, float alpha)
+    {
+      int3 world_voxel = sdf_coord.xzy;
+      float3 voxel_center = (world_voxel + 0.5)*sdf_voxel_size;
+      uint last = min(sdf_clip + 1, dagi_surface_cache_levels());
+      float3 nearest = clamp(dagi_surface_cache_center.xyz, voxel_center - 0.5*sdf_voxel_size, voxel_center + 0.5*sdf_voxel_size);
+      // a finer level's cells reach out of its lagging clip but not past the next; the voxel's point nearest the view keys the finest
+      LOOP
+      for (uint level = max(min(dagi_surface_cache_level(nearest), sdf_clip) + 1, sdf_clip) - 1; level < last; ++level)
+      {
+        int3 cacheVoxel = int3(floor(dagi_surface_cache_voxel_coord(voxel_center, level)));
+        // a voxel out of the box wraps to the slot of one in it
+        if (level >= uint(dagi_surface_cache_voxels_res.z) &&
+            all(uint3(cacheVoxel - dagi_surface_cache_voxel_lt(level)) < uint3(dagi_surface_cache_voxels_res.xyx)))
+        {
+          uint at = dagi_surface_cache_voxel_at(dagi_surface_cache_voxel_slot(dagi_surface_cache_voxel_wrap(cacheVoxel), level));
+          if (level != sdf_clip)
+          {
+            storeBuffer(dagi_surface_cache, at, 0u);
+          }
+          else
+          {
+            int scale = int(dagi_surface_cache_cell.y*exp2(level)/sdf_voxel_size + 0.5);
+            // the SDF voxel at offset scale/2 writes a voxel of the clip; the others only drop a cell mean, never that write
+            if (all(world_voxel == cacheVoxel*scale + scale/2))
+            {
+              storeBuffer(dagi_surface_cache, at,
+                alpha > 0 && dagi_surface_cache_center.w > 0 ? dagi_surface_cache_voxel_pack(radiance) | DAGI_SC_VOXEL_TRUSTED : 0u);
+            }
+            else
+            {
+              uint v = loadBuffer(dagi_surface_cache, at), prev;
+              if (v != 0 && (v & DAGI_SC_VOXEL_TRUSTED) == 0)
+                dagi_surface_cache.InterlockedCompareExchange(at, v, 0u, prev);
+            }
+          }
+        }
+        float cell = dagi_surface_cache_cell_size(level);
+        // a point keys the cell its normal offset reaches, up to a quarter cell along each axis, whatever the normal's main axis
+        int3 lo = int3(floor((voxel_center - 0.5*sdf_voxel_size)/cell - 0.25));
+        int3 hi = int3(floor((voxel_center + 0.5*sdf_voxel_size)/cell + 0.25));
+        for (int z = lo.z; z <= hi.z; ++z)
+          for (int y = lo.y; y <= hi.y; ++y)
+            for (int x = lo.x; x <= hi.x; ++x)
+              UNROLL
+              for (uint axis = 0; axis < 6; ++axis)
+                dagi_surface_cache_kill(dagi_surface_cache_cell_key(int3(x, y, z), axis, level));
+      }
+    }
+  }
+endmacro

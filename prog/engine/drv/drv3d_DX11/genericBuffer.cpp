@@ -731,7 +731,11 @@ void GenericBuffer::removeFromStates()
       TextureFetchState::Resources &res = g_render_state.texFetchState.resources[stage];
       for (int slot = 0; slot < res.resources.size(); ++slot)
         if (res.resources[slot].buffer == this)
+        {
           res.resources[slot].setBuffer(NULL);
+          res.modifiedMask |= 1 << slot;
+          g_render_state.modified = true;
+        }
     }
   }
   if (uav)

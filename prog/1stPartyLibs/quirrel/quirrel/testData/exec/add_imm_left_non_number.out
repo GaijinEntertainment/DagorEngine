@@ -1,0 +1,12 @@
+1s
+1s
+-7s
+s1
+error: arith op + between 'integer' and 'instance'
+error: arith op + between 'integer' and 'instance'
+add 1
+error: arith op + between 'integer' and 'array'
+error: arith op + between 'integer' and 'array'
+error: arith op + between 'integer' and 'null'
+error: arith op + between 'integer' and 'null'
+8 4 2147483654 3.5 1.5

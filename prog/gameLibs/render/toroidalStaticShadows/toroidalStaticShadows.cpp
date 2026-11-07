@@ -11,7 +11,6 @@
 #include <render/toroidalStaticShadows.h>
 #include <EASTL/fixed_vector.h>
 #include <shaders/dag_shaders.h>
-#include <vecmath/dag_vecMath.h>
 
 static int static_shadows_cascades = -1;
 
@@ -184,26 +183,6 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadows::updateO
   return ToroidalStaticShadowCascade::BeforeRenderReturned{0, varsChanged};
 }
 
-void ToroidalStaticShadows::invalidateCascadeIfCameraTooFar(int cascade_no, const Point3 &pos, float max_distance_outside)
-{
-  G_ASSERT_RETURN(cascade_no >= 0 && cascade_no < cascades.size(), );
-  if (max_distance_outside < 0.f)
-    return;
-
-  ToroidalStaticShadowCascade &c = cascades[cascade_no];
-  if (!c.helper.isOriginSet())
-    return;
-
-  Point3 camAtOriginHeight = c.clipPointToWorld(pos);
-  camAtOriginHeight.y = c.originRefHeight; // otherwise the XZ position would be shifted due to sheared texture space
-  const Point3 camTexel = c.toTexelSpace(camAtOriginHeight);
-  const float halfSize = 0.5f * c.helper.texSize;
-  const Point2 outside(max(fabsf(camTexel.x - c.helper.curOrigin.x) - halfSize, 0.f),
-    max(fabsf(camTexel.y - c.helper.curOrigin.y) - halfSize, 0.f));
-  if (lengthSq(outside) * sqr(c.texelSize) > sqr(max_distance_outside))
-    c.invalidate(true);
-}
-
 int ToroidalStaticShadows::getRegionToRenderCount(int cascade) const { return cascades[cascade].getRegionToRenderCount(); }
 
 void ToroidalStaticShadows::clearRegionToRender(int cascade) { cascades[cascade].clearRegionToRender(); }
@@ -239,30 +218,11 @@ bool ToroidalStaticShadows::isValid(const BBox3 &box) const
   return true;
 }
 
-int ToroidalStaticShadows::getBoxViews(const BBox3 &box, ViewTransformData *out_views, int &out_cnt) const
+bool ToroidalStaticShadows::isFullyRendered() const
 {
-  out_cnt = 0;
-  if (cascades.empty())
-    return -1;
-  // we should return best possible cascade in view, the one that fit fully in box and is Valid
-  for (int i = 0, e = cascades.size(); i < e; ++i)
-  {
-    auto &c = cascades[i];
-    if (c.isInside(box) && c.isCompletelyValid(box))
-    {
-      c.getBoxViews(box, out_views, out_cnt);
-      return i;
-    }
-  }
-  return -1;
-}
-
-bool ToroidalStaticShadows::getCascadeWorldBoxViews(int cascade_id, ViewTransformData *out_views, int &out_cnt) const
-{
-  out_cnt = 0;
-  if (cascade_id >= cascades.size())
-    return false;
-  cascades[cascade_id].getBoxViews(cascades[cascade_id].worldBox, out_views, out_cnt);
+  for (auto &c : cascades)
+    if (!c.isFullyRendered())
+      return false;
   return true;
 }
 
@@ -370,63 +330,4 @@ void ToroidalStaticShadows::clearTexture()
   d3d::resource_barrier({staticShadowTex.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
 }
 
-bool ToroidalStaticShadows::isAnyCascadeInTransition() const
-{
-  for (auto &c : cascades)
-  {
-    if (c.inTransition)
-      return true;
-  }
-  return false;
-}
-
 TMatrix ToroidalStaticShadows::getLightViewProj(const int cascadeId) const { return cascades[cascadeId].getLightViewProj(); }
-
-bool ToroidalStaticShadows::isRegionInsideCascade(mat44f_cref cascade_inv_viewproj, const ViewTransformData &region_data)
-{
-  mat44f cascadeToRegion;
-  v_mat44_mul(cascadeToRegion, region_data.globtm, cascade_inv_viewproj);
-  vec4f cascadeLeftTop = v_make_vec4f(-1, 1, 0, 0);
-  vec4f cascadeMin = v_mat44_mul_vec3p(cascadeToRegion, cascadeLeftTop);
-  vec4f cascadeMax = v_mat44_mul_vec3p(cascadeToRegion, v_neg(cascadeLeftTop));
-  // cascadeMin.xy <= -1 and cascadeMax.xy >= 1 means that our region is totally inside shadow cascade.
-  // Otherwise some part of our region won't be rasterized and we can't verify shadows visibility there.
-  vec4f eps = v_splats(0.00001f); // we lose some precision during matrix inversion/multiplication
-  return v_test_all_bits_ones(v_cmp_ge(v_perm_xyab(v_neg(cascadeMin), cascadeMax), v_sub(V_C_ONE, eps)));
-}
-
-void ToroidalStaticShadows::printCascadesStatistics() const
-{
-#if COLLECT_STATIC_SHADOWS_STATISTICS
-  String statMessage("Static shadows render statistics\n");
-  int cascadeId = 0;
-  for (const ToroidalStaticShadowCascade &cascade : cascades)
-  {
-    statMessage.aprintf(0, "Cascade %d:\n", cascadeId);
-    const ToroidalStaticShadowCascade::StaticShadowsStatistics &s = cascade.staticShadowsStatistics;
-    const uint32_t totalFrames = s.renderRegionFirstTimeFrames + s.invalidateRegionFrames + s.completelyValidFrames;
-    statMessage.aprintf(0, "- render region first time frames %d (%.1f%%)\n", s.renderRegionFirstTimeFrames,
-      100.0f * s.renderRegionFirstTimeFrames / totalFrames);
-    statMessage.aprintf(0, "- invalidate region frames %d (%.1f%%)\n", s.invalidateRegionFrames,
-      100.0f * s.invalidateRegionFrames / totalFrames);
-    statMessage.aprintf(0, "- completely valid frames %d (%.1f%%)\n", s.completelyValidFrames,
-      100.0f * s.completelyValidFrames / totalFrames);
-    statMessage.aprintf(0, "- render region first time count %d\n", s.renderRegionFirstTimeCount);
-    statMessage.aprintf(0, "- invalidate region count %d\n", s.invalidateRegionCount);
-    cascadeId++;
-  }
-  debug("%s", statMessage.c_str());
-#endif
-}
-
-uint32_t ToroidalStaticShadows::getMinCompletelyValidFramesAcrossAllCascades() const
-{
-  // Rel build has no statistics, so treat it as if all cascades are always valid.
-  // It doesn't matter, because this is dev-only feature.
-  uint32_t minCompletelyValidFrames = static_cast<uint32_t>(INT_MAX);
-#if COLLECT_STATIC_SHADOWS_STATISTICS
-  for (const ToroidalStaticShadowCascade &cascade : cascades)
-    minCompletelyValidFrames = min(minCompletelyValidFrames, cascade.staticShadowsStatistics.completelyValidFramesSinceLastUpdate);
-#endif
-  return minCompletelyValidFrames;
-}

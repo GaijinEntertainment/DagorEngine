@@ -536,24 +536,32 @@ public:
       return nullptr;
 
     FuncProfile *pFunc = findProfileFuncDecs(closure);
+    if (pFunc && !native)
+    {
+      const char *sourceName = nullptr;
+      int sourceLine = -1;
+      get_closure_source_info((SQFunctionProto *)closure, &sourceName, &sourceLine);
+      if (pFunc->sourceName != sourceName || pFunc->sourceLine != sourceLine) // a freed proto's address is reused
+      {
+        pFunc->funcPtr = nullptr;
+        ptrToIndex.erase(closure);
+        pFunc = nullptr;
+      }
+    }
     if (pFunc)
       return pFunc;
 
     if (!native)
     {
       SQFunctionProto *proto = (SQFunctionProto *)closure; //====
-      if (sq_type(proto->_name) == OT_STRING)
-      {
-        G_STATIC_ASSERT(sizeof(char) == 1);
 
-        const char *sourceName = nullptr;
-        int sourceLine = -1;
-        get_closure_source_info(proto, &sourceName, &sourceLine);
-        addFunction(_stringval(proto->_name), closure, native, sourceName, sourceLine);
-        FuncProfile *pFunc = findProfileFuncDecs(closure);
-        if (pFunc)
-          return pFunc;
-      }
+      const char *sourceName = nullptr;
+      int sourceLine = -1;
+      get_closure_source_info(proto, &sourceName, &sourceLine);
+      addFunction(_stringval(proto->GetName()), closure, native, sourceName, sourceLine);
+      FuncProfile *pFunc = findProfileFuncDecs(closure);
+      if (pFunc)
+        return pFunc;
     }
 
     return &data[0]; // 'unknown'

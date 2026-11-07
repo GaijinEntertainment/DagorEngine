@@ -17,16 +17,12 @@ namespace bvh::gpugrass
 {
 static const auto blas_flags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
 
-using TextureSlot = Context::GPUGrassBillboard::TextureSlot;
-
 struct GPUGrassVertexData
 {
   Point3 postition;
   E3DCOLOR normal;
   Point2 texcoord;
 };
-
-static E3DCOLOR pack_normal(const Point3 &normal) { return e3dcolor(Color3::xyz(normal * 0.5 + 0.5), 0); }
 
 struct BVHConnection : public bvh::BVHConnection
 {
@@ -81,14 +77,9 @@ void teardown()
 
 static bool make_grass_buffer(ContextId context_id, Context::GPUGrassBillboard &grass, bool is_horizontal)
 {
-  uint16_t ibData[] = {0, 1, 2, 0, 2, 3};
-  constexpr int ibDwords = 3;
-  static_assert(ibDwords * sizeof(uint32_t) == sizeof(ibData));
-  static_assert(countof(ibData) == Context::GPUGrassBillboard::INDEX_COUNT);
-  const char *ib_name = is_horizontal ? "gpu_grass_horizontal_ib" : "gpu_grass_ib";
-  grass.indexBuffer = dag::buffers::create_persistent_sr_byte_address(ibDwords, ib_name, d3d::buffers::Init::No, RESTAG_BVH);
-  HANDLE_LOST_DEVICE_STATE(grass.indexBuffer, false);
-  grass.indexBuffer->updateData(0, sizeof(ibData), ibData, VBLOCK_WRITEONLY);
+  static_assert(countof(quad_indices) == Context::GPUGrassBillboard::INDEX_COUNT);
+  if (!create_quad_ib(grass.indexBuffer, is_horizontal ? "gpu_grass_horizontal_ib" : "gpu_grass_ib"))
+    return false;
   context_id->holdBuffer(grass.indexBuffer.getBuf(), grass.indexBufferBindless);
 
   GPUGrassVertexData vbData[Context::GPUGrassBillboard::VERTEX_COUNT];
@@ -121,8 +112,8 @@ static bool make_grass_buffer(ContextId context_id, Context::GPUGrassBillboard &
     uint32_t ahsData[Context::GPUGrassBillboard::INDEX_COUNT];
     for (int i = 0; i < Context::GPUGrassBillboard::INDEX_COUNT; i++)
     {
-      auto x = float_to_half(vbData[ibData[i]].texcoord.x);
-      auto y = float_to_half(vbData[ibData[i]].texcoord.y);
+      auto x = float_to_half(vbData[quad_indices[i]].texcoord.x);
+      auto y = float_to_half(vbData[quad_indices[i]].texcoord.y);
       ahsData[i] = x | y << 16;
     }
 
@@ -158,31 +149,8 @@ static bool create_blas(const Context::GPUGrassBillboard &grass, UniqueBLAS &out
     desc.extraDataAvailableMask.hasOpacityMicroMapLinkage = true;
   }
 
-  auto blas = UniqueBLAS::create(&desc, 1, blas_flags);
-  HANDLE_LOST_DEVICE_STATE(blas, false);
-
-  raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
-  buildInfo.flags = blas_flags;
-  buildInfo.geometryDesc = &desc;
-  buildInfo.geometryDescCount = 1;
-  buildInfo.scratchSpaceBuffer = alloc_scratch_buffer(blas.getBuildScratchSize(), buildInfo.scratchSpaceBufferOffsetInBytes);
-  buildInfo.scratchSpaceBufferSizeInBytes = blas.getBuildScratchSize();
-  HANDLE_LOST_DEVICE_STATE(buildInfo.scratchSpaceBuffer, false);
-
-  d3d::build_bottom_acceleration_structure(blas.get(), buildInfo);
-
-  out_blas = eastl::move(blas);
-
-  return true;
-}
-
-// The write of the address is what puts a grass texture into the BVH.
-static void publish_blas_address(GpuGrassBvhMapping &mapping, const UniqueBLAS &blas)
-{
-  const auto handle = blas.getGPUAddress();
-  mapping.blas.x = handle & GPU_ADDRESS_LOW_MASK;
-  mapping.blas.y = handle >> GPU_ADDRESS_HIGH_SHIFT;
-  bvhConnection.anyBlasPublished = true;
+  out_blas = build_blas(desc, blas_flags);
+  return bool(out_blas);
 }
 
 static void upload_mappings()
@@ -190,20 +158,6 @@ static void upload_mappings()
   if (bvhConnection.metainfoMappings && !bvhConnection.metainfoMappingsCpu.empty())
     bvhConnection.metainfoMappings->updateData(0, data_size(bvhConnection.metainfoMappingsCpu),
       bvhConnection.metainfoMappingsCpu.data(), 0);
-}
-
-static void discard_slot_bake(ContextId context_id, TextureSlot &slot)
-{
-  if (context_id->ommEnabled)
-  {
-    if (slot.ommState == OmmState::Baking)
-      render::omm::discard_bake(context_id->ommContext, slot.ommBakeHandle);
-    render::omm::clear_result(slot.ommBakeResult);
-  }
-  slot.ommBakeHandle = {};
-  slot.ommState = OmmState::None;
-  slot.omm.reset();
-  slot.blas.reset();
 }
 
 // All meta indices are known here; with OMM the BLAS addresses arrive later, from process_omm().
@@ -218,7 +172,7 @@ static void make_mappings(ContextId context_id, int texture_count)
 
   bvhConnection.metainfoMappingsCpu.resize(texture_count * 2);
   memset(bvhConnection.metainfoMappingsCpu.data(), 0, data_size(bvhConnection.metainfoMappingsCpu));
-  bvhConnection.anyBlasPublished = false;
+  bvhConnection.anyBlasPublished = context_id->gpuGrassBillboard.blas || context_id->gpuGrassHorizontal.blas;
 
   auto fillForOne = [texture_count](const Context::GPUGrassBillboard &grass) {
     const int metaIndex = MeshMetaAllocator::decode(grass.metaAllocId);
@@ -227,7 +181,7 @@ static void make_mappings(ContextId context_id, int texture_count)
       auto &mapping = bvhConnection.metainfoMappingsCpu[grass.mappingBase + textureIndex];
       mapping.metaIndex = metaIndex + textureIndex;
       if (grass.blas)
-        publish_blas_address(mapping, grass.blas);
+        split_gpu_address(mapping.blas, grass.blas.getGPUAddress());
     }
   };
   fillForOne(context_id->gpuGrassBillboard);
@@ -274,7 +228,7 @@ void make_meta(ContextId context_id, const GPUGrassBase &grass_base)
       meta.setIndexBit(2);
       meta.materialType |= MeshMeta::bvhMaterialRendinst | MeshMeta::bvhMaterialGrass | MeshMeta::bvhMaterialAlphaInRed;
       meta.texcoordOffset = offsetof(GPUGrassVertexData, texcoord);
-      meta.texcoordFormat = VSDT_FLOAT2;
+      meta.setTexcoordFormat(VSDT_FLOAT2);
       meta.normalOffset = offsetof(GPUGrassVertexData, normal);
       meta.colorOffset = 0xFF;
       meta.vertexOffset = 0;
@@ -320,7 +274,7 @@ static void close_grass_billboards(ContextId context_id)
 {
   auto closeGrass = [context_id](Context::GPUGrassBillboard &grass) {
     for (auto &slot : grass.textureSlots)
-      discard_slot_bake(context_id, slot);
+      discard_grass_omm_bake(context_id, slot);
     context_id->releaseBuffer(grass.indexBuffer.getBuf());
     context_id->releaseBuffer(grass.vertexBuffer.getBuf());
     context_id->releaseBuffer(grass.ahsBuffer.getBuf());
@@ -347,7 +301,7 @@ void on_unload_scene(ContextId context_id)
 
   auto unloadOne = [context_id](Context::GPUGrassBillboard &grass) {
     for (auto &slot : grass.textureSlots)
-      discard_slot_bake(context_id, slot);
+      discard_grass_omm_bake(context_id, slot);
     grass.textureSlots.clear();
     if (grass.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
       context_id->freeMetaRegion(grass.metaAllocId);
@@ -373,44 +327,10 @@ void teardown(ContextId context_id)
   ShaderGlobal::set_float(gpu_grass_bvh_rangeVarId, 0);
 }
 
-static bool begin_slot_omm_bake(ContextId context_id, const Context::GPUGrassBillboard &grass, TextureSlot &slot)
+static void fail_slot(GrassOmmBake &slot, const char *orientation, const char *reason)
 {
-  BaseTexture *texture = acquire_managed_tex(slot.alphaTexId);
-  if (!texture)
-    return false;
-
-  render::omm::BakeInput input{
-    .alphaTexture = texture,
-    .texCoordBuffer = grass.vertexBuffer.getBuf(),
-    .indexBuffer = grass.indexBuffer.getBuf(),
-    .alphaTextureChannel = 0, // grass keeps the alpha in the red channel (bvhMaterialAlphaInRed)
-    .texCoordFormat = render::omm::TexCoordFormat::Float2,
-    .texCoordOffsetInBytes = static_cast<uint32_t>(offsetof(GPUGrassVertexData, texcoord)),
-    .texCoordStrideInBytes = sizeof(GPUGrassVertexData),
-    .indexFormat = render::omm::IndexFormat::UINT16,
-    .indexCount = Context::GPUGrassBillboard::INDEX_COUNT,
-    .indexStrideInBytes = sizeof(uint16_t),
-    .globalFormat = render::omm::Format::OC1_2_State,
-  };
-  // Opacity counts, for the same reason as the mesh path (see start_omm_bake).
-  input.bakeFlags |= render::omm::ENABLE_POST_DISPATCH_INFO_STATS;
-
-  slot.ommDebugBakeSource = render::omm::make_debug_bake_source(input, slot.alphaTexId);
-
-  const bool dispatched = render::omm::begin_bake(context_id->ommContext, input, slot.ommBakeHandle);
-  release_managed_tex(slot.alphaTexId);
-  return dispatched;
-}
-
-// The mapping of the slot keeps its initial zero BLAS address, thus the texture stays out of the BVH.
-static void fail_slot(TextureSlot &slot, const char *orientation, const char *reason)
-{
-  logerr("BVH GPU grass: dropping the %s billboard of grass texture '%s' from the BVH -- %s", orientation,
-    get_managed_texture_name(slot.diffuseTexId), reason);
-  slot.ommState = OmmState::Failed;
-
   const String label(0, "%s GPU grass %s billboard", get_managed_texture_name(slot.diffuseTexId), orientation);
-  publish_failed_grass_omm_debug_result(slot.ommBakeResult, slot.ommDebugBakeSource, label.c_str(), reason);
+  fail_grass_omm_bake(slot, label.c_str(), reason);
 }
 
 // The billboards are permanent, thus this needs no discarded-bake bookkeeping as the mesh pipeline does.
@@ -451,12 +371,15 @@ void process_omm(ContextId context_id)
         if (!render::omm::has_free_bake_slot(context_id->ommContext))
           continue;
 
-        if (!begin_slot_omm_bake(context_id, grass, slot))
-        {
+        const render::omm::BakeInput input{
+          .texCoordBuffer = grass.vertexBuffer.getBuf(),
+          .indexBuffer = grass.indexBuffer.getBuf(),
+          .texCoordOffsetInBytes = static_cast<uint32_t>(offsetof(GPUGrassVertexData, texcoord)),
+          .texCoordStrideInBytes = sizeof(GPUGrassVertexData),
+          .indexCount = Context::GPUGrassBillboard::INDEX_COUNT,
+        };
+        if (!start_grass_omm_bake(context_id, slot, input))
           fail_slot(slot, orientation, grass_omm_failure_text(OmmFailure::BakeStartFailed));
-          continue;
-        }
-        slot.ommState = OmmState::Baking;
         continue;
       }
 
@@ -499,7 +422,8 @@ void process_omm(ContextId context_id)
         }
         slot.ommState = OmmState::Built;
 
-        publish_blas_address(bvhConnection.metainfoMappingsCpu[grass.mappingBase + textureIndex], slot.blas);
+        split_gpu_address(bvhConnection.metainfoMappingsCpu[grass.mappingBase + textureIndex].blas, slot.blas.getGPUAddress());
+        bvhConnection.anyBlasPublished = true;
         mappingsDirty = true;
       }
     }

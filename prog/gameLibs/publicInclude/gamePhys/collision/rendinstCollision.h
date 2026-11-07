@@ -21,7 +21,6 @@ void unregister_collision_cb(void *&handle);
 CollisionInstances *get_collision_instances_by_handle(void *handle);
 void flush_ri_instances();
 void clear_ri_instances();
-void clear_ri_apex_instances();
 void invalidate_ri_instance(const rendinst::RendInstDesc &desc);
 void enable_disable_ri_instance(const rendinst::RendInstDesc &desc, bool flag);
 void move_ri_instance(const rendinst::RendInstDesc &desc, const Point3 &vel, const Point3 &omega);

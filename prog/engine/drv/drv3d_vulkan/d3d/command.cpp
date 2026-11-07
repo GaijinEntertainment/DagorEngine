@@ -208,16 +208,16 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 
     // TriggerMultiFrameCapture causes crashes on some android devices but 1 frame capture works correctly
     // so free command slot it used for that
-    case Drv3dCommand::PIX_GPU_CAPTURE_NEXT_FRAMES:
+    case Drv3dCommand::GPU_CAPTURE_NEXT_FRAMES:
       Globals::Dbg::rdoc.setCapturePathTemplate(reinterpret_cast<const wchar_t *>(par2));
       Globals::Dbg::rdoc.triggerCapture(reinterpret_cast<uintptr_t>(par3));
       break;
 
-    // Must be used in conjuction with Drv3dCommand::PIX_GPU_END_CAPTURE
-    case Drv3dCommand::PIX_GPU_BEGIN_CAPTURE: Globals::Dbg::rdoc.beginCapture(reinterpret_cast<const wchar_t *>(par2)); break;
+    // Must be used in conjuction with Drv3dCommand::GPU_END_CAPTURE
+    case Drv3dCommand::GPU_BEGIN_CAPTURE: Globals::Dbg::rdoc.beginCapture(reinterpret_cast<const wchar_t *>(par2)); break;
 
-    // Must be used in conjuction with Drv3dCommand::PIX_GPU_BEGIN_CAPTURE
-    case Drv3dCommand::PIX_GPU_END_CAPTURE: Globals::Dbg::rdoc.endCapture(); break;
+    // Must be used in conjuction with Drv3dCommand::GPU_BEGIN_CAPTURE
+    case Drv3dCommand::GPU_END_CAPTURE: Globals::Dbg::rdoc.endCapture(); break;
     case Drv3dCommand::TIMESTAMPFREQ:
       if (Globals::cfg.has.gpuTimestamps)
       {

@@ -359,6 +359,7 @@ void EntityObj::onAdd(ObjectEditor *objEd)
   {
     makeSafeEntityComponentsRestoredFromUndo(removedEntData.get());
 
+    const ecs::Scene::SceneId prevTargetSceneId = ecs::g_scenes->getActiveScene().getTargetSceneId();
     if (removedEntData->scene != ecs::Scene::C_INVALID_SCENE_ID)
     {
       ecs::g_scenes->getActiveScene().setTargetSceneId(removedEntData->scene);
@@ -372,6 +373,10 @@ void EntityObj::onAdd(ObjectEditor *objEd)
     if (removedEntData->scene != ecs::Scene::C_INVALID_SCENE_ID)
     {
       ecs::g_scenes->setEntityOrder(removedEntData->eid, removedEntData->orderInScene);
+      ecs::Scene &activeScene = ecs::g_scenes->getActiveScene();
+      // the saved target can name a deleted scene
+      activeScene.setTargetSceneId(
+        activeScene.getSceneRecordById(prevTargetSceneId) ? prevTargetSceneId : ecs::Scene::C_INVALID_SCENE_ID);
     }
   }
   removedEntData.reset();

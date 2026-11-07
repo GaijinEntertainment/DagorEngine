@@ -1,5 +1,6 @@
 include "dagdp_common.dshl"
 include "world_sdf.dshl"
+include "obstacles_inc.dshl"
 
 hlsl {
   #include "dagdp_common_placer.hlsli"
@@ -7,13 +8,31 @@ hlsl {
 
 macro USE_DAGDP_COMMON_PLACER()
   READ_WORLD_SDF(cs)
+  INIT_OBSTACLES(cs)
+  USE_OBSTACLES_GRID(cs)
 
   hlsl(cs) {
+    #include <rendInst/riShaderConstBufferFlags.hlsli>
     #define NO_GRADIENTS_IN_SHADER 1
 
     uint getCounterIndex(uint renderableIndex, uint viewportIndex, uint numRenderables)
     {
       return viewportIndex * numRenderables + renderableIndex;
+    }
+
+    // Instance extra of placers without their own data: .z (the .w of the 4th instance float4) holds RI_INSTANCE_EXTRA__* bits.
+    float3 getInstanceExtra(float3 world_pos)
+    {
+      uint2 obstacleRange = get_obstacles_cell_range(world_pos);
+      return float3(0, 0, asfloat(obstacleRange.y > obstacleRange.x ? 0u : RI_INSTANCE_EXTRA__NO_OBSTACLES));
+    }
+
+    float3 getInstanceExtraIfPlaceable(uint placeableIndex, float3 world_pos)
+    {
+      BRANCH
+      if (placeableIndex == ~0u)
+        return 0;
+      return getInstanceExtra(world_pos);
     }
 
     bool checkSlope(float slopeSinMin, float slopeSinMax, uint flags, float dotProduct, float r)
@@ -44,7 +63,7 @@ macro USE_DAGDP_COMMON_PLACER()
     }
 
     void writeInstance(PlaceableGpuData placeable, float3 instancePos, float3 surfaceNormal, float3 randRot,
-      float randScale, uint instanceElementOffset, float3 extra = float3(0, 0, 0))
+      float randScale, uint instanceElementOffset, float3 extra)
     {
       float3 yawAxis;
       float2 xzVector;

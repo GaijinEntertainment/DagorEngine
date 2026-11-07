@@ -61,7 +61,7 @@ public:
   }
 
   bool mayRename() override { return false; }
-  bool mayDelete() override { return !isLocked(); }
+  bool mayDelete() override;
 
   void setWtm(const TMatrix &wtm) override
   {

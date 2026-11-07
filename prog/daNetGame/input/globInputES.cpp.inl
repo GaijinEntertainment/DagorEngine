@@ -17,7 +17,6 @@
 #include "main/appProfile.h"
 #include <startup/dag_globalSettings.h>
 #include "camera/sceneCam.h"
-#include "ui/userUi.h"
 #include <workCycle/dag_startupModules.h>
 #include <drv/hid/dag_hiKeyboard.h>
 #include <drv/hid/dag_hiKeybIds.h>
@@ -82,19 +81,12 @@ static bool glob_input_process_top_level_key_down(int key_idx, unsigned key_modi
       }
       break;
     case HumanInput::DKEY_F7:
-    {
-      bool hadOverlayScene = overlay_ui::gui_scene() != nullptr;
-      if (ctrl && alt && hadOverlayScene)
-        overlay_ui::shutdown_ui(false);
-
-      // USER VM
-      user_ui::reload_user_ui_script(ctrl);
-
-      if (ctrl && alt && hadOverlayScene)
-        overlay_ui::init_ui();
-
-      return true;
-    }
+      if (ctrl && alt)
+      {
+        overlay_ui::reload_scripts(true);
+        return true;
+      }
+      break;
     case HumanInput::DKEY_F9:
     {
       overlay_ui::reload_scripts(ctrl);
@@ -173,7 +165,7 @@ static bool glob_input_process_top_level_key_up(int key_idx, unsigned key_modif)
           String fname(256, "%s-%04d.%02d.%02d %02d.%02d.%02d.wpix", "GPUCapture", time.year, time.month, time.day, time.hour,
             time.minute, time.second);
           Tab<wchar_t> buf;
-          PIX_GPU_CAPTURE_NEXT_FRAME(D3D12XBOX_PIX_CAPTURE_API, convert_utf8_to_u16_buf(buf, fname.str(), fname.length()));
+          GPU_CAPTURE_NEXT_FRAME(D3D12XBOX_PIX_CAPTURE_API, convert_utf8_to_u16_buf(buf, fname.str(), fname.length()));
         }
         return true;
       }

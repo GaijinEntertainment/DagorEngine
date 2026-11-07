@@ -22,11 +22,10 @@ static void check_param_switch_child(BlendNodeType child_type, CtrlType param_sw
     logerr("paramSwitch <%s> has single blend node <%s>, but tuned for continuous mode. Use paramSwitchS", param_switch_name, name);
 }
 
-static void param_switch_add_child_by_name(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data,
-  dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name, const char *param_switch_name,
-  bool is_optional = false)
+static void param_switch_add_child_by_name(const ChildNameIndex &child_index, AnimCtrlData &data, const char *name,
+  const char *param_switch_name, bool is_optional = false)
 {
-  CtrlChildSearchResult result = find_child_idx_and_icon_by_name(panel, data.handle, controllers, blend_nodes, name);
+  CtrlChildSearchResult result = child_index.find(data.handle, name);
   data.childs.emplace_back(result.id);
   check_param_switch_child(result.blendNodeType, data.type, param_switch_name, name);
   check_ctrl_child_idx(result.id, param_switch_name, name, is_optional);
@@ -135,8 +134,8 @@ static String make_node_name_from_template(const char *name_template, const Data
   return nodeName;
 }
 
-void AnimTreeEditor::paramSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings,
-  bool find_enum_gen_parent)
+void AnimTreeEditor::paramSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index,
+  AnimCtrlData &data, const DataBlock &settings, bool find_enum_gen_parent)
 {
   const DataBlock *nodes = settings.getBlockByNameEx("nodes");
   if (nodes->paramExists("enum_gen"))
@@ -189,7 +188,7 @@ void AnimTreeEditor::paramSwitchFindChilds(PropPanel::ContainerPropertyControl *
           data.childs.emplace_back(AnimCtrlData::NOT_FOUND_CHILD);
           continue;
         }
-        param_switch_add_child_by_name(panel, data, controllersData, blendNodesData, nodeName, settings.getStr("name"));
+        param_switch_add_child_by_name(child_index, data, nodeName, settings.getStr("name"));
       }
     }
   }
@@ -200,8 +199,7 @@ void AnimTreeEditor::paramSwitchFindChilds(PropPanel::ContainerPropertyControl *
       const DataBlock *childBlock = nodes->getBlock(i);
       const char *childName = childBlock->getStr("name", nullptr);
       if (childName)
-        param_switch_add_child_by_name(panel, data, controllersData, blendNodesData, childName, settings.getStr("name"),
-          childBlock->getBool("optional", false));
+        param_switch_add_child_by_name(child_index, data, childName, settings.getStr("name"), childBlock->getBool("optional", false));
     }
   }
 }
@@ -325,22 +323,21 @@ void AnimTreeEditor::changeParamSwitchType(PropPanel::ContainerPropertyControl *
   TLeafHandle parent = tree->getParentLeaf(leaf);
   String fullPath;
   DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
-  if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, props, tree, parent))
-    if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
-    {
-      const DataBlock *nodes = settings->getBlockByNameEx("nodes");
-      if (type == PARAM_SWITCH_TYPE_ENUM_GEN)
-        fillParamSwitchEnumGen(group, nodes);
-      else
-        fill_param_switch_enum_list(group, nodes);
+  if (DataBlock *settings = find_ctrl_settings(controllersData, props, tree, parent, tree->getCaption(leaf)))
+  {
+    const DataBlock *nodes = settings->getBlockByNameEx("nodes");
+    if (type == PARAM_SWITCH_TYPE_ENUM_GEN)
+      fillParamSwitchEnumGen(group, nodes);
+    else
+      fill_param_switch_enum_list(group, nodes);
 
-      paramSwitchFillMorphTimes(group, *settings);
-      if (savedMorphIdx >= 0)
-      {
-        group->setInt(PID_CTRLS_PARAM_SWITCH_MORPH_TIMES_LIST, savedMorphIdx);
-        paramSwitchSetSelectedMorphTimeSettings(panel);
-      }
+    paramSwitchFillMorphTimes(group, *settings);
+    if (savedMorphIdx >= 0)
+    {
+      group->setInt(PID_CTRLS_PARAM_SWITCH_MORPH_TIMES_LIST, savedMorphIdx);
+      paramSwitchSetSelectedMorphTimeSettings(panel);
     }
+  }
   group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
   AnimCtrlData *ctrlData = find_data_by_handle(controllersData, leaf);
   if (ctrlData == controllersData.end())

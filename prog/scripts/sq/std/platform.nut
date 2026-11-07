@@ -1,6 +1,6 @@
 import "platform" as platform
 from "dagor.system" import dgs_get_settings, DBGLEVEL, get_arg_value_by_name
-let {get_platform_string_id, get_console_model, get_console_model_revision, is_gdk_used} = platform
+let {get_platform_string_id, get_console_model, get_console_model_revision, is_gdk_used, is_running_on_handheld} = platform
 let { is_running_on_steam_deck = @() false } = require_optional("steam")
 
 let systemPlatformId = get_platform_string_id()
@@ -34,6 +34,9 @@ let isPC = is_pc
 let is_steam_deck = DBGLEVEL > 0
   ? dgs_get_settings().getBool("is_running_on_steam_deck", is_running_on_steam_deck())
   : is_running_on_steam_deck()
+let is_handheld = is_steam_deck || (DBGLEVEL > 0
+  ? dgs_get_settings().getBool("is_running_on_handheld", is_running_on_handheld())
+  : is_running_on_handheld())
 
 let aliases = {
   pc = is_pc
@@ -71,6 +74,7 @@ return freeze({
   is_pc
   is_gdk
   is_steam_deck
+  is_handheld
   is_windows = oneOf("win32", "win64")
   is_win32 = oneOf("win32")
   is_win64 = oneOf("win64")

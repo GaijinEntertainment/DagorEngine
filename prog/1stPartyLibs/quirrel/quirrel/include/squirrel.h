@@ -65,8 +65,8 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 44
-#define SQUIRREL_VERSION_NUMBER_PATCH 0
+#define SQUIRREL_VERSION_NUMBER_MINOR 49
+#define SQUIRREL_VERSION_NUMBER_PATCH 1
 
 #define SQ_STRINGIFY_HELPER(x) #x
 #define SQ_STRINGIFY(x) SQ_STRINGIFY_HELPER(x)
@@ -516,6 +516,7 @@ SQUIRREL_API void sq_free(SQAllocContext ctx, void *p,SQUnsignedInteger size);
 
 /*debug*/
 SQUIRREL_API SQRESULT sq_stackinfos(HSQUIRRELVM v,SQInteger level,SQStackInfos *si);
+SQUIRREL_API SQRESULT sq_getconstevalpos(HSQUIRRELVM v,SQStackInfos *si);
 SQUIRREL_API void sq_setdebughook(HSQUIRRELVM v);
 SQUIRREL_API void sq_setnativedebughook(HSQUIRRELVM v,SQDEBUGHOOK hook);
 SQUIRREL_API SQGETTHREAD sq_set_thread_id_function(HSQUIRRELVM v, SQGETTHREAD func);

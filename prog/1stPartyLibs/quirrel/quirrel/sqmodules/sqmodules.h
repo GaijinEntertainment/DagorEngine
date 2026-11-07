@@ -80,7 +80,7 @@ public:
     Sqrat::Object exports;
     Sqrat::Object stateStorage;
     Sqrat::Array refHolder;
-    Sqrat::Object scriptClosure;
+    Sqrat::Object sourceName; // memtrace and the profiler keep its chars
     string __name__;
   };
 
@@ -103,9 +103,11 @@ public:
 
   bool addNativeModule(const char *module_name, const Sqrat::Object &exports);
 
-  // called before each reload runs the new modules, and from the dtor with is_closing.
+  // called before each reload runs the new modules, and once on close with is_closing.
   // Kept across reloads, unlike the script handlers of on_module_unload(); dups ignored
   void addModuleUnloadCallback(ModuleUnloadCallback cb);
+  // Runs the is_closing unload handlers now, not in the dtor; call before freeing the state they read (e.g. the frp graph)
+  void callUnloadHandlersOnClose();
   // called by reloadModule() after it required its main, also a failed one, and before the previous modules go,
   // so a main required here keeps its persist state; kept across reloads; dups ignored
   void addModuleReloadCallback(ModuleReloadCallback cb);
@@ -201,6 +203,7 @@ private:
   vector<Sqrat::Object> onModuleUnload;
   vector<ModuleUnloadCallback> onModuleUnloadNative;
   vector<ModuleReloadCallback> onModuleReloadNative;
+  bool closeHandlersCalled = false;
   HSQUIRRELVM sqvm = nullptr;
 
   ISqModulesFileAccess *fileAccess = nullptr;

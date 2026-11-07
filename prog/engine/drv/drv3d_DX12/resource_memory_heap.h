@@ -1459,6 +1459,9 @@ public:
   using BaseType::freeBufferOnFrameCompletion;
   using BaseType::isBufferPlacedInUserHeap;
   using BaseType::newBufferObject;
+#if DX12_SET_HEAP_RESIDENCY_PRIORITY
+  using BaseType::pinBufferResidency;
+#endif
   using BaseType::visitBufferObjects;
   using BaseType::visitBufferObjectsExplicit;
   using BaseType::visitBuffers;
@@ -1468,6 +1471,7 @@ public:
   using BaseType::getDeviceLocalCurrentUsage;
 #if _TARGET_PC_WIN
   using BaseType::getDeviceLocalPhysicalLimit;
+  using BaseType::waitForSystemCommit;
 #endif
   using BaseType::getFeatureSet;
   using BaseType::getHostLocalAvailablePoolBudget;

@@ -400,30 +400,6 @@ struct ModfxDeclShapeStaticVelocityAlignedInit
   float3 orientation_vec;
 };
 
-struct ModfxDeclAdvancedTranslucency
-{
-  uint advanced_translucency_flags;
-  float3 translucency_color_mul;
-
-  float min_radian;
-  float max_radian;
-  float inv_max_radian_diff;
-
-  float alpha_min;
-  float alpha_max;
-  float trans_min;
-  float trans_max;
-  float alpha_diff_inv;
-};
-// General translucency flag(s)
-#define MODFX_TRANSLUCENCY_WEIGH_BY_VOL                      0
-// Normal based translucency flags
-#define MODFX_TRANSLUCENCY_USE_NORMAL_BASED_TRANSLUCENCY     1
-#define MODFX_TRANSLUCENCY_INVERT_ACCEPTED_DEGREES           2
-#define MODFX_TRANSLUCENCY_USE_VIEW_VEC_TRANSLUCENCY         3
-// Alpha based translucency flags
-#define MODFX_TRANSLUCENCY_USE_ALPHA_BASED_TRANSLUCENCY      4
-
 struct ModfxDeclLighting
 {
   dafx_byte type;
@@ -433,9 +409,27 @@ struct ModfxDeclLighting
 
   dafx_byte specular_strength;
   dafx_byte sphere_normal_power;
-  dafx_byte un0, un1;
+  dafx_byte direction_ambient_min, un1;
   float sphere_normal_radius;
 };
+
+struct ModfxDeclScatterLighting
+{
+  uint flags;
+  uint opacity_src_mask;
+  float density;
+  float max_opacity;
+  float ambient_self_shadow;
+  float3 sun_phase;
+  float sun_self_shadow;
+  float2 sun_shadow_fill;
+  float sun_thin_fade;
+  float4 rim_params; // rim_opacity, 1 / rim_width, rim_backlit, rim_intensity * 0.77
+};
+#define MODFX_SCATTER_FLAG_OPACITY_BY_RADIUS 0
+#define MODFX_SCATTER_FLAG_ALPHA_FROM_OPACITY 1
+#define MODFX_SCATTER_FLAG_SRC_IS_THICKNESS 2
+#define MODFX_SCATTER_FLAG_SRC_REMAPPED 3
 
 struct ModfxDeclPartTrimming
 {
@@ -498,6 +492,7 @@ struct ModfxForceFieldNoise
 #define MODFX_LIGHTING_TYPE_DISC 1
 #define MODFX_LIGHTING_TYPE_SPHERE 2
 #define MODFX_LIGHTING_TYPE_NORMALMAP 3
+#define MODFX_LIGHTING_TYPE_SCATTER 4
 
 struct ModfxDeclExternalOmnilight
 {
@@ -595,11 +590,11 @@ static_assert(sizeof(ModfxDeclServiceUniqueId) == MODFX_SERVICE_UNIQUE_ID_SIZE);
 #define MODFX_RMOD_VOLFOG_INJECTION 26
 #define MODFX_RMOD_MOTION_VECTORS 27
 #define MODFX_RMOD_XRAY_PARAMS 28
-#define MODFX_RMOD_ADVANCED_TRANSLUCENCY 29
-#define MODFX_RMOD_WATER_FX_PARAMS 30
-#define MODFX_RMOD_FAKE_BRIGHTNESS 31
-#define MODFX_RMOD_FAKE_BRIGHTNESS_POS 32
-#define MODFX_RMOD_ZFAR_FADEOUT 33
+#define MODFX_RMOD_WATER_FX_PARAMS 29
+#define MODFX_RMOD_FAKE_BRIGHTNESS 30
+#define MODFX_RMOD_FAKE_BRIGHTNESS_POS 31
+#define MODFX_RMOD_ZFAR_FADEOUT 32
+#define MODFX_RMOD_SCATTER_LIGHTING 33
 
 #define MODFX_RMOD_TOTAL_COUNT 34
 
@@ -658,11 +653,11 @@ void dafx_preload_parent_ren_data( BufferData_cref buf, uint parent_rofs, DAFX_O
   _LL( MODFX_RMOD_VOLFOG_INJECTION );
   _LL( MODFX_RMOD_MOTION_VECTORS );
   _LL( MODFX_RMOD_XRAY_PARAMS );
-  _LL( MODFX_RMOD_ADVANCED_TRANSLUCENCY );
   _LL( MODFX_RMOD_WATER_FX_PARAMS );
   _LL( MODFX_RMOD_FAKE_BRIGHTNESS );
   _LL( MODFX_RMOD_FAKE_BRIGHTNESS_POS );
   _LL( MODFX_RMOD_ZFAR_FADEOUT );
+  _LL( MODFX_RMOD_SCATTER_LIGHTING );
 }
 
 #define MODFX_SMOD_LIFE_RND 0

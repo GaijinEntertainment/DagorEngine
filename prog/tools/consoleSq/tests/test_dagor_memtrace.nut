@@ -101,4 +101,34 @@ assert(threw, "dump_cur_vm with non-int must throw")
 println("Section 6 PASSED")
 
 
+// ============================================================
+// Section 7: a shared instance or class is counted once
+// ============================================================
+println("--- Section 7: a shared instance or class is counted once ---")
+
+let Shared = class {
+  x = 1
+}
+let inst = Shared()
+let nulls = get_quirrel_object_size([null, null, null]).size
+let instOnce = get_quirrel_object_size([inst, null, null]).size
+assert(instOnce > nulls, $"an instance adds its size: {instOnce}, nulls only: {nulls}")
+let instThriceInfo = get_quirrel_object_size([inst, inst, inst])
+let instThrice = instThriceInfo.size
+assert(instThrice == instOnce, $"instance in 3 slots: {instThrice}, in 1 slot: {instOnce}")
+assert(instThriceInfo.type_count_histogram.instance == 3, "type_count_histogram counts each reference")
+assert(instThriceInfo.type_count_histogram.integer == 1, "the members of a shared instance are walked once")
+let twoInst = get_quirrel_object_size([inst, Shared(), null]).size
+assert(twoInst > instOnce, $"a second instance of the class adds its size: {twoInst}, one instance: {instOnce}")
+let clsOnce = get_quirrel_object_size([Shared, null, null]).size
+assert(clsOnce > nulls, $"a class adds its size: {clsOnce}, nulls only: {nulls}")
+let clsThriceInfo = get_quirrel_object_size([Shared, Shared, Shared])
+let clsThrice = clsThriceInfo.size
+assert(clsThrice == clsOnce, $"class in 3 slots: {clsThrice}, in 1 slot: {clsOnce}")
+assert(clsThriceInfo.type_count_histogram["class"] == 3, "type_count_histogram counts each class reference")
+assert(clsThriceInfo.type_count_histogram.integer == 1, "the members of a shared class are walked once")
+
+println("Section 7 PASSED")
+
+
 println("ALL TESTS PASSED")

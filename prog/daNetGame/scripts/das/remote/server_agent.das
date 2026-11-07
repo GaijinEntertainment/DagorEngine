@@ -84,7 +84,7 @@ class WebDebugAgent : DapiDebugAgent
         debug(call)
         continue
       unsafe
-        var scoped = reinterpret<ScopedRpcCall?>(call)
+        let scoped = reinterpret<ScopedRpcCall?>(call)
         let currentScope & = *(scoped.ctx)
         if addr(currentScope) == addr(ctx)
           toRemoveCalls |> push(name)
@@ -102,7 +102,7 @@ class WebDebugAgent : DapiDebugAgent
         debug(call)
         continue
       unsafe
-        var scoped = reinterpret<ScopedRpcCall?>(call)
+        let scoped = reinterpret<ScopedRpcCall?>(call)
         let currentScope & = *(scoped.ctx)
         if addr(currentScope) == addr(ctx)
           toRemoveNotifications |> push(name)

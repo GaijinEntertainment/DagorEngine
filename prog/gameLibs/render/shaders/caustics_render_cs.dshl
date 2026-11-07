@@ -22,6 +22,8 @@ shader caustics_render_cs
       {
         float2 pixelCenter = DTid.xy + 0.5;
         float2 texcoord    = pixelCenter * inv_caustics_texture_size.xy;
+        if (any(texcoord >= 1))
+          return;
         float3 viewVect    = lerp_view_vec(texcoord);
 
         texture2DAt(caustics_tex, DTid.xy) = caustics(texcoord, viewVect);

@@ -44,6 +44,7 @@ Sources +=
   static_let.das
   strings_boost.das
   stub.das
+  temp_strings.das
   templates.das
   templates_boost.das
   typemacro_boost.das

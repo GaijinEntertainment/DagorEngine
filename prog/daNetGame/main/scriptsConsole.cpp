@@ -2,7 +2,6 @@
 
 #include <util/dag_console.h>
 #include "game/gameScripts.h"
-#include "ui/userUi.h"
 #include <ui/overlay.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <util/dag_string.h>
@@ -30,7 +29,6 @@ enum SelectedVM
 {
   VM_UNKNOWN,
   VM_OVERLAY_UI,
-  VM_USER_UI,
   VM_GAME
 };
 
@@ -40,8 +38,6 @@ static SelectedVM parse_vm(const char *vm)
 {
   if (dd_stricmp(vm, "overlay_ui") == 0)
     return VM_OVERLAY_UI;
-  if (dd_stricmp(vm, "user_ui") == 0)
-    return VM_USER_UI;
   if (dd_stricmp(vm, "game") == 0)
     return VM_GAME;
   return VM_UNKNOWN;
@@ -51,8 +47,6 @@ static const char *get_vm_name(SelectedVM vm)
 {
   if (vm == VM_OVERLAY_UI)
     return "overlay_ui";
-  if (vm == VM_USER_UI)
-    return "user_ui";
   if (vm == VM_GAME)
     return "game";
   return "unknown";
@@ -77,11 +71,6 @@ static bool sq_console_handler(const char *argv[], int argc) // move it somewher
     {
       exec = "overlay_ui.exec";
       vm = overlay_ui::get_vm();
-    }
-    else if (current_vm == VM_USER_UI)
-    {
-      exec = "user_ui.exec";
-      vm = user_ui::get_vm();
     }
     else if (current_vm == VM_GAME) //-V547
     {
@@ -119,14 +108,10 @@ static bool sq_console_handler(const char *argv[], int argc) // move it somewher
   {
     if (argc > 1)
       current_vm = parse_vm(argv[1]);
-    console::print("Selected <%s> VM. Options are: 'overlay_ui', 'user_ui', 'game'.", get_vm_name(current_vm));
+    console::print("Selected <%s> VM. Options are: 'overlay_ui', 'game'.", get_vm_name(current_vm));
   }
   CONSOLE_CHECK_NAME("sq", "reload_script", 1, 1) { gamescripts::reload_sq_modules(); }
-  CONSOLE_CHECK_NAME("sq", "reload_ui_scripts", 1, 1)
-  {
-    overlay_ui::reload_scripts(false);
-    user_ui::reload_user_ui_script(false);
-  }
+  CONSOLE_CHECK_NAME("sq", "reload_ui_scripts", 1, 1) { overlay_ui::reload_scripts(false); }
   CONSOLE_CHECK_NAME("sq_memtrace", "reset_all", 1, 1) { sqmemtrace::reset_all(); }
   CONSOLE_CHECK_NAME_EX("sq_memtrace", "dump_all", 1, 3, "dumps script memory allocations with callstacks",
     "<out_file_name> <first_n_records>")

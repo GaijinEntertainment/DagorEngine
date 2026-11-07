@@ -63,7 +63,7 @@ public:
   DataBlock(const DataBlock &) = delete;
   DataBlock &operator=(const DataBlock &) = delete;
 
-  /// Delete all sub-blocks.
+  /// Delete all params and sub-blocks; the block name stays.
   void clearData();
 
   /// Reset DataBlock object (clear all data & names).
@@ -71,8 +71,7 @@ public:
 
   /// Load DataBlock tree from specified text.
   /// Filename is for error output only.
-  /// @note This method will modify @b text when including files.
-  bool loadText(std::string &text, const char *filename = NULL);
+  bool loadText(std::string text, const char *filename = NULL);
 
   /// Load DataBlock tree from arbitrary stream
   /// Data may be presented like text, binary or stream data

@@ -1051,7 +1051,8 @@ void DynamicRenderableSceneLodsResource::loadSkins(IGenLoad &crd, int srl_flags,
   unsigned vdataFlags = 0;
   if (srl_flags & SRLOAD_SRC_ONLY)
     vdataFlags |= VDATA_SRC_ONLY;
-  vdataFlags |= VDATA_BIND_SHADER_RES;
+  if (srl_flags & SRLOAD_BIND_SHADER_RES)
+    vdataFlags |= VDATA_BIND_SHADER_RES;
   smvdS->loadMatVdata(String(200, "%s ldSkin", crd.getTargetName()).str(), crd, vdataFlags);
 
   ZlibLoadCB z_crd(crd, 0x7FFFFFFF /*unlimited*/);
@@ -1350,6 +1351,7 @@ int DynamicRenderableSceneInstance::chooseLod(const Point3 &camera_pos, float di
 int DynamicRenderableSceneInstance::chooseLodByDistSq(float dist_sq, float dist_mul)
 {
   distSq = dist_sq;
+  lodDistSq = sqr(lodDistanceScale * dist_mul) * dist_sq;
   if (forceLod >= 0)
   {
     lods->updateReqLod(forceLod);
@@ -1357,7 +1359,7 @@ int DynamicRenderableSceneInstance::chooseLodByDistSq(float dist_sq, float dist_
   }
   else
   {
-    curLodNo = lods->getLodNoForDistSq(sqr(lodDistanceScale * dist_mul) * dist_sq);
+    curLodNo = lods->getLodNoForDistSq(lodDistSq);
     if (curLodNo >= 0)
     {
       curLodNo = max(curLodNo, bestLodLimit);
@@ -1367,6 +1369,14 @@ int DynamicRenderableSceneInstance::chooseLodByDistSq(float dist_sq, float dist_
       sceneResource = NULL;
   }
   return curLodNo;
+}
+
+int DynamicRenderableSceneInstance::getLodNoForDistMul(float lod_dist_mul) const
+{
+  if (!lods || forceLod >= 0 || lod_dist_mul == 1.f)
+    return sceneResource ? curLodNo : -1;
+  int lod = lods->getLodNoForDistSq(sqr(lod_dist_mul) * lodDistSq);
+  return lod < 0 ? lod : max(lod, (int)bestLodLimit);
 }
 
 bool DynamicRenderableSceneInstance::matchBetterBoneIdxAndItmForPoint(const Point3 &pos, int &bone_idx, TMatrix &bone_itm)

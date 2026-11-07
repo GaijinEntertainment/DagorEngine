@@ -213,7 +213,7 @@ static String join_strings(const eastl::vector<String> &strings)
   return result + "]";
 }
 
-static String get_default_user_script()
+static String get_default_user_script(NodeBasedShaderType type)
 {
   String userScript;
   userScript +=
@@ -222,6 +222,8 @@ static String get_default_user_script()
   userScript += "GE_setExternalNames('external int', " + join_strings(nodebasedshaderutils::getAvailableInt()) + ");\n";
   userScript += "GE_setExternalNames('external float', " + join_strings(nodebasedshaderutils::getAvailableFloat()) + ");\n";
   userScript += "GE_setExternalNames('external float4', " + join_strings(nodebasedshaderutils::getAvailableFloat4()) + ");\n";
+  userScript +=
+    "GE_setPropertyDisplayMap('nbs slot texture', 'name', " + nodebasedshaderutils::getBoundNBSTextureNameMap(type) + ");\n";
   return userScript;
 }
 
@@ -231,7 +233,7 @@ void ShaderGraphRecompiler::initialize(NodeBasedShaderType shader, ShaderCompile
   if (subgraphs_dir == nullptr)
     subgraphs_dir = "../develop/assets/loc_shaders/__subgraphs";
   if (user_script.empty())
-    user_script = get_default_user_script();
+    user_script = get_default_user_script(shader);
   if (permutations_blk_filename == nullptr)
     permutations_blk_filename = "../develop/assets/loc_shaders/permutations.blk";
 
@@ -456,6 +458,7 @@ void ShaderGraphRecompiler::init(NodeBasedShaderType shader, const char *subgrap
       addonFName =
         webui::GraphEditor::findFileInParentDir("prog/gameLibs/webui/plugins/shaderEditors/shaderNodes/shaderNodesClouds.js");
       break;
+    default: logerr("Uknown shader type %d, will not use any addon files!", (int)shader); break;
   }
   String inlinedShaderNodes = webui::GraphEditor::readFileToString(addonFName);
   String commonFName =

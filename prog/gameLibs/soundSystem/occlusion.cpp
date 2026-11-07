@@ -175,7 +175,15 @@ void append(FMOD::Studio::EventInstance *instance, const FMOD::Studio::EventDesc
   SNDSYS_OCCLUSION_BLOCK;
 
   FMOD_STUDIO_PARAMETER_DESCRIPTION desc;
-  SOUND_VERIFY(description_->getParameterDescriptionByName(g_occlusion_param_name.c_str(), &desc));
+  const FMOD_RESULT found = description_->getParameterDescriptionByName(g_occlusion_param_name.c_str(), &desc);
+  // an event with only the per-band parameters belongs to the blob layer
+  if (found != FMOD_OK)
+  {
+    if (found != FMOD_ERR_EVENT_NOTFOUND)
+      logerr("[SNDSYS] occlusion param lookup failed in event '%s': '%s'", get_debug_name(*description_).c_str(),
+        FMOD_ErrorString(found));
+    return;
+  }
   const VarId varId = as_var_id(desc.id);
   if (varId)
     insert(Source{instance, g_invalid_group_id, pos, varId});

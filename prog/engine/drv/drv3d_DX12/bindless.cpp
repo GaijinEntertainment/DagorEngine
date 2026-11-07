@@ -443,12 +443,13 @@ void frontend::BindlessManager::updateBindlessTextureRange(DeviceContext &ctx, D
     }
 
     auto texture = textures[i];
-    if (texture->isStub())
-      texture = texture->getStubTex();
+    auto textureRes = texture;
+    if (textureRes->isStub())
+      textureRes = textureRes->getStubTex();
 
     texture->usedInBindless.test_and_set(dag::mo::relaxed);
-    auto view = texture->getViewInfo();
-    auto image = texture->getDeviceImage();
+    auto view = textureRes->getViewInfo();
+    auto image = textureRes->getDeviceImage();
 
     // if this slot already used the given view, then we skip the update, no point in rewriting the same thing
     const auto imageInfo = state.resourceSlotInfo.getIf<TextureSlotUsage>(size_t(index) + i);
@@ -472,7 +473,7 @@ void frontend::BindlessManager::updateBindlessTextureRange(DeviceContext &ctx, D
     else
     {
       ctx.bindlessSetResourceDescriptorNoLock(index + i,
-        nullResourceTable->table[res_type_to_null_resource_table_entry(texture->getType())]);
+        nullResourceTable->table[res_type_to_null_resource_table_entry(textureRes->getType())]);
       logwarn(
         "DX12: frontend::BindlessManager::updateBindlessTextureRange slot %u was updated to null descriptor (texture is not valid)",
         index + i);
@@ -908,6 +909,11 @@ void backend::BindlessSetManager::pushToResourceHeap(D3DDevice *device, ShaderRe
     return;
   }
   target.flushBindlessToHeaps(device, resourceDescriptorStart, resourceDescriptorSize, resourceDescriptorHeapRevision);
+}
+
+bool backend::BindlessSetManager::wouldOverwriteSubmittedResourceHeaps(const ShaderResourceViewDescriptorHeapManager &target) const
+{
+  return resourceDescriptorHeap && resourceDescriptorSize && target.hasStaleSubmittedBindlessSegment(resourceDescriptorHeapRevision);
 }
 
 void backend::BindlessSetManager::setSamplerDescriptor(D3DDevice *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)

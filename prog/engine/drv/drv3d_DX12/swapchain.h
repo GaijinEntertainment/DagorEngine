@@ -7,9 +7,9 @@
 #include "image_view_state.h"
 #include "image_global_subresource_id.h"
 
-#include <atomic>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/fixed_function.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <supp/dag_comPtr.h>
 #include <winapi_helpers.h>
 #include <EASTL/array.h>
@@ -153,7 +153,9 @@ namespace backend
 class Swapchain
 {
 
-  WIN_MEMBER std::atomic<uint32_t> numFramesCompletedByBackend = 0;
+#if _TARGET_PC_WIN
+  dag::AtomicInteger<uint32_t> numFramesCompletedByBackend = 0;
+#endif
 
   XBOX_MEMBER FRAME_PIPELINE_TOKEN frameToken = {};
 #if _TARGET_XBOX
@@ -264,7 +266,7 @@ public:
   IDXGIOutput *getOutput() const { return getCurrentSwapchain().output.Get(); }
   HRESULT getDesc(DXGI_SWAP_CHAIN_DESC *out_desc) const { return getCurrentSwapchain().swapchain->GetDesc(out_desc); }
 
-  auto getPresentedFrameCount() const { return numFramesCompletedByBackend.load(std::memory_order_relaxed); }
+  auto getPresentedFrameCount() const { return numFramesCompletedByBackend.load(dag::memory_order_relaxed); }
 
   DXGISwapChain *getDxgiSwapchain() const { return getCurrentSwapchain().swapchain.Get(); }
 #endif

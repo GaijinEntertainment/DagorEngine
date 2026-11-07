@@ -12,6 +12,9 @@
   float getDistanceAtt ( half sqrDist, half invSqrAttRadius )
   {
     float attenuation = rcp(max(float(sqrDist), 0.0001));
+    #ifdef DISTANCE_ATT_LINEAR_FACTOR
+      attenuation = lerp(attenuation, sqrt(attenuation), DISTANCE_ATT_LINEAR_FACTOR);
+    #endif
     attenuation = saturate(attenuation * smoothDistanceAtt ( sqrDist, invSqrAttRadius ));
     return attenuation;
   }

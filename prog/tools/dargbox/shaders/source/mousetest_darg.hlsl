@@ -26,5 +26,5 @@ float4 darg_ps(float2 uv)
     col += ring * glowColor * 0.5;
   }
 
-  return float4(col, darg_opacity);
+  return float4(col * darg_opacity, darg_opacity);
 }

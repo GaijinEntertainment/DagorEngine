@@ -93,7 +93,8 @@ All possible entities are listed one level lower in the hierarchy.
 Since a random node can have child nodes, this can cause significant confusion –
 these *children* are also displayed one level lower. To address this, all
 `ent{}` entries are shown with an additional icon. The first icon represents an
-empty node, while the second indicates the entity type.
+empty node, while the second indicates the entity type. In a disabled subtree,
+the Outliner shows no icons (see [Disabled Nodes](#disabled-nodes)).
 
 <img src="_images/av_comp_edit_06.jpg" alt="Identifying random nodes" align="center">
 
@@ -112,6 +113,61 @@ node{
 
 To improve readability, it's recommended to add all `ent{}` entries first,
 followed by the child nodes. However, it will work either way.
+
+#### Disabled Nodes
+
+A disabled node stays in the composite, but its assets are not loaded and not
+exported. This lets you switch off a part of a composite without deleting it.
+In the `.composit.blk` file, a disabled node has the `disabled:b=yes`
+parameter.
+
+The disabled state applies to the full subtree: all child nodes and `ent{}`
+entries of a disabled node are disabled too, even if they do not have the
+parameter themselves.
+
+To change the state, select one or more nodes, right-click, and select:
+
+- **Disable selected**: adds `disabled:b=yes` to each selected node. This item
+  is shown if at least one selected node is enabled, and no selected node is
+  disabled or in a disabled subtree.
+- **Enable selected**: removes the parameter from each selected node. This item
+  is shown if at least one selected node has the parameter and has no disabled
+  ancestor node.
+
+  If a selected node has `disabled:b=yes` and a disabled ancestor that you did
+  not select, the node does not change. If you enable the ancestor later, the
+  node stays disabled.
+
+These items change only `node{}` blocks, not the root block, `ent{}` entries or
+other blocks such as `spline{}`. If you select the root and other nodes
+together, the Outliner shows no context menu, so neither item is available.
+You can undo both operations.
+
+You cannot edit a disabled node, or a node in a disabled subtree, because the
+viewport does not show it. For such a node:
+
+- The **Properties** panel shows the values, but you cannot change them. Of the
+  node controls, only **Copy params** and **Delete node** are available.
+- The context menu of the Outliner has only **Delete node** (or **Delete
+  selected nodes**), the items that do not change the composite, such as
+  **Copy name**, and **Enable selected** if the rule above allows it.
+- The gizmo, **Paste asset**, **Duplicate asset**, **Make parent**, **Clear
+  parent**, **Split composit**, **Save as a new composite** and **Edit
+  sub-composite in place** are not available.
+
+To edit a node in a disabled subtree, enable all of its disabled ancestor nodes
+first. If the node also has `disabled:b=yes`, enable it too. You can select
+them together and enable them in one operation.
+
+```{note}
+- The Outliner shows a disabled node and its subtree in gray, without icons.
+  The tooltip of a node tells if the node or one of its ancestors is disabled.
+- If more nodes are selected and one of them is disabled or in a disabled
+  subtree, the same rules apply to the full selection. The exception is
+  **Edit sub-composite in place** in the viewport context menu: it stays
+  available if the node that you selected first is an enabled composite and
+  all other selected nodes are disabled.
+```
 
 ### Editor Properties
 

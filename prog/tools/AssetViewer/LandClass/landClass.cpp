@@ -6,6 +6,8 @@
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <de3_splineGenSrv.h>
+#include <de3_geomTagUiState.h>
+#include <de3_prefabs.h>
 #include <generic/dag_ptrTab.h>
 #include <generic/dag_initOnDemand.h>
 #include <util/dag_hierBitMap2d.h>
@@ -15,8 +17,6 @@
 #include <image/dag_texPixel.h>
 #include <3d/dag_texMgr.h>
 #include <libTools/renderUtil/dynRenderBuf.h>
-#include <libTools/staticGeom/geomObject.h>
-#include <libTools/staticGeom/staticGeometryContainer.h>
 #include <propPanel/control/container.h>
 #include <de3_assetService.h>
 #include <de3_rasterizePoly.h>
@@ -30,9 +30,12 @@
 #include <3d/dag_lockTexture.h>
 #include <drv/3d/dag_sampler.h>
 #include <landMesh/landDetile.h>
-#include <3d/dag_textureIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include "../av_riGenArea.h"
 #include "../av_appwnd.h"
+#include <EditorCore/ec_ViewportWindow.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <math/dag_frustum.h>
 #include <gameRes/dag_gameResources.h>
 // #include <debug/dag_debug.h>
 
@@ -46,9 +49,9 @@ enum
 {
   PID_POLYGON_SIZE = 5,
   PID_POLYGON_TYPE_GROUP,
-  PID_POLYGON_GEOMTAGS_GROUP,
-  PID_POLYGON_GEOMTAGS_0,
-  PID_POLYGON_GEOMTAGS_LAST = PID_POLYGON_GEOMTAGS_0 + 256,
+  PID_POLYGON_HIDE_GROUND,
+  PID_POLYGON_GEOMTAGS_BEGIN,
+  PID_POLYGON_GEOMTAGS_END = PID_POLYGON_GEOMTAGS_BEGIN + GEOM_TAG_MAX * GEOM_TAG_CONTROLS,
   PID_VIEW_CENTER,
   PID_VIEW_CENTER_ON_TILE,
   PID_FINAL_LOOK,
@@ -120,9 +123,8 @@ public:
     if (spEditor)
       spEditor->destroyPanel();
     destroy_it(genObj);
-    del_it(taggedGeom);
     geomTags.clear();
-    showReqTagId = -1;
+    tagDrawParamsDirty = true;
 
     clearRenderBuf();
     clearGrass();
@@ -189,26 +191,33 @@ public:
     switch (stage)
     {
       case STG_RENDER_STATIC_OPAQUE:
-        if (taggedGeom)
-          taggedGeom->render();
-        if ((texId == BAD_TEXTUREID) || (tile == 0.f) || taggedGeom)
+      {
+        if (splSrv && genObj && tagDrawParamsDirty)
+        {
+          gather_shown_geom_tags(tagStates, tagDrawParams, [&](const char *tag) { return geomTags.getNameId(tag) >= 0; });
+          tagDrawParamsDirty = false;
+        }
+        if (splSrv && genObj && !tagDrawParams.empty())
+        {
+          TMatrix4 globtm;
+          if (ViewportWindow *vpw = static_cast<ViewportWindow *>(EDITORCORE->getRenderViewport()))
+            d3d::calcglobtm(vpw->getViewTm(), vpw->getProjTm(), globtm);
+          else
+            d3d::getglobtm(globtm);
+          splSrv->renderLoftMaskTags(Frustum(globtm), tagDrawParams);
+        }
+        if ((texId == BAD_TEXTUREID) || (tile == 0.f) || (hideGround && geomTags.nameCount()))
           return;
 
-        {
-          // a size still being edited would stretch the compose; the plain tiling never does
-          const bool composed = composeFits(groundHalf(tile * 2.f));
-          drawGround(composed);
-          rbuf.addFaces(composed ? finalLookTex.getId() : texId);
-        }
+        // a size still being edited would stretch the compose; the plain tiling never does
+        const bool composed = composeFits(groundHalf(tile * 2.f));
+        drawGround(composed);
+        rbuf.addFaces(composed ? finalLookTex.getTexId() : texId);
 
         rbuf.flush();
         rbuf.clearBuf();
         break;
-
-      case STG_RENDER_STATIC_TRANS:
-        if (taggedGeom)
-          taggedGeom->renderTrans();
-        break;
+      }
 
       default: break;
     }
@@ -245,12 +254,14 @@ public:
     if (genObj)
     {
       propPanel.createSeparator();
+      panelTags.clear();
       if (geomTags.nameCount())
       {
-        rg = propPanel.createRadioGroup(PID_POLYGON_GEOMTAGS_GROUP, "Loft and polygon tags:");
-        iterate_names_in_lexical_order(geomTags, [&](int id, const char *nm) { rg->createRadio(PID_POLYGON_GEOMTAGS_0 + id, nm); });
-        rg->createRadio(PID_POLYGON_GEOMTAGS_LAST, "--- don't show tagged geometry ---");
-        propPanel.setInt(PID_POLYGON_GEOMTAGS_GROUP, PID_POLYGON_GEOMTAGS_LAST);
+        if (texId != BAD_TEXTUREID)
+          propPanel.createCheckBox(PID_POLYGON_HIDE_GROUND, "Hide ground", hideGround);
+        create_geom_tag_controls(propPanel, PID_POLYGON_GEOMTAGS_BEGIN, geomTags, panelTags);
+        for (int i = 0; i < panelTags.size(); ++i)
+          set_geom_tag_controls(propPanel, PID_POLYGON_GEOMTAGS_BEGIN, i, find_geom_tag_ui_state(tagStates, panelTags[i]));
       }
       else
         propPanel.createStatic(-1, "No loft/polygon tags for generated geometry");
@@ -264,6 +275,8 @@ public:
     if (assetName.empty())
       return;
 
+    int tagIdx = 0;
+    int ctrlType = 0;
     if (pcb_id == PID_FINAL_LOOK)
     {
       finalLook = panel->getBool(pcb_id);
@@ -283,14 +296,15 @@ public:
 
       presentationType = type;
     }
-    else if (pcb_id == PID_POLYGON_GEOMTAGS_GROUP && genObj && splSrv)
+    else if (pcb_id == PID_POLYGON_HIDE_GROUND)
     {
-      int tag = panel->getInt(pcb_id) == PID_POLYGON_GEOMTAGS_LAST ? -1 : panel->getInt(pcb_id) - PID_POLYGON_GEOMTAGS_0;
-      if (showReqTagId != tag)
-      {
-        showReqTagId = tag;
-        prepareTaggedGeom();
-      }
+      hideGround = panel->getBool(pcb_id);
+      return;
+    }
+    else if (decode_geom_tag_pid(pcb_id, PID_POLYGON_GEOMTAGS_BEGIN, panelTags.size(), tagIdx, ctrlType))
+    {
+      apply_geom_tag_change(*panel, pcb_id, ctrlType, find_or_add_geom_tag_ui_state(tagStates, panelTags[tagIdx]));
+      tagDrawParamsDirty = true;
       return;
     }
     else
@@ -401,47 +415,14 @@ protected:
         bbox = genObj->getBbox();
       geomTags.clear();
       if (splSrv)
-        splSrv->gatherGeneratedGeomTags(geomTags);
-      if (showReqTagId > geomTags.nameCount())
-        showReqTagId = -1;
-      prepareTaggedGeom();
+        splSrv->gatherGeneratedGeomTags(geomTags, prefabs::LOFT_MASK_EXPORT);
+      tagDrawParamsDirty = true;
     }
     else
       bbox.setempty();
 
     if (landClassData)
       generateGrassByLandClass(landClassData->grass);
-  }
-  void prepareTaggedGeom()
-  {
-    del_it(taggedGeom);
-    if (showReqTagId < 0)
-      return;
-
-    ISplineGenService::LayerIndexList loft_layers(0);
-    splSrv->gatherLoftLayers(loft_layers, false);
-
-    GeomObject all_geom;
-    loft_layers.iterate_layers([&](unsigned ll) {
-      splSrv->gatherStaticGeometry(*all_geom.getGeometryContainer(), StaticGeometryNode::FLG_RENDERABLE, false, ll, 2, -1);
-    });
-
-    taggedGeom = new GeomObject;
-    for (auto *&node : all_geom.getGeometryContainer()->nodes)
-      if (node && showReqTagId == geomTags.getNameId(node->script.getStr("layerTag", "")))
-      {
-        taggedGeom->getGeometryContainer()->nodes.push_back(node);
-        node = nullptr;
-      }
-    if (taggedGeom->getGeometryContainer()->nodes.size())
-    {
-      taggedGeom->setTm(TMatrix::IDENT);
-      taggedGeom->notChangeVertexColors(true);
-      taggedGeom->recompile();
-      taggedGeom->notChangeVertexColors(false);
-    }
-    else
-      del_it(taggedGeom);
   }
   void generateGrassByLandClass(landclass::GrassEntities *grassEnt)
   {
@@ -549,7 +530,7 @@ protected:
   void clearFinalLook()
   {
     // the drawn material keeps its own ref; while held, re-registering the name returns the old texture
-    if (finalLookTex.getId() != BAD_TEXTUREID)
+    if (finalLookTex.getTexId() != BAD_TEXTUREID)
     {
       rbuf.clearBuf();
       rbuf.addFaces(BAD_TEXTUREID);
@@ -651,13 +632,13 @@ protected:
       }
       dst.writeRows(make_span(img));
     }
-    finalLookTex.set(t, ":av_land_final_look");
+    finalLookTex = UniqueTex(resptr_detail::ResPtrFactory(t), ":av_land_final_look");
     composedHalf = ground;
     composedOrigin = origin;
     composedCenter = polyCenter;
     d3d::SamplerInfo smpInfo; // one image over the polygon, not a tile: wrapping it would fold the far edge in
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-    set_texture_separate_sampler(finalLookTex.getId(), smpInfo);
+    set_texture_separate_sampler(finalLookTex.getTexId(), smpInfo);
   }
 
   // wrapped and filtered; v runs against z, the way the land shader maps the tile
@@ -876,9 +857,12 @@ private:
   Tab<Point3> points;
   const landclass::AssetData *landClassData = nullptr;
   IObjEntity *genObj = nullptr;
-  GeomObject *taggedGeom = nullptr;
   OAHashNameMap<true> geomTags;
-  int showReqTagId = -1;
+  Tab<SimpleString> panelTags;   // tag of each tag control row, in panel order
+  Tab<GeomTagUiState> tagStates; // kept for the session, so the states stay when the asset changes
+  Tab<GeomTagDrawParams> tagDrawParams;
+  bool tagDrawParamsDirty = true;
+  bool hideGround = false; // kept for the session, applies only to assets with tags (only they show the check box)
   SmallTab<IObjEntity *, MidmemAlloc> grass;
 
   TEXTUREID texId;
@@ -892,8 +876,8 @@ private:
   String assetName;
   FigType presentationType;
   bool finalLook = false;
-  TextureIDHolder finalLookTex; // the composed de-tiled ground, empty while the plain tiling shows
-  float composedHalf = 0.f;     // the ground half extent it was composed for; the figure moves it, not only the size
+  UniqueTex finalLookTex;   // the composed de-tiled ground, empty while the plain tiling shows
+  float composedHalf = 0.f; // the ground half extent it was composed for; the figure moves it, not only the size
   Point2 composedOrigin, composedCenter;
   ISplineGenService *splSrv = nullptr;
 };

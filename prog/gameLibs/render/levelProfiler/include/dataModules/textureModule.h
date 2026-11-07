@@ -2,20 +2,57 @@
 #pragma once
 
 #include <imgui/imgui.h>
+#include <3d/dag_resMgr.h>
+#include <3d/dag_texPackMgr2.h>
 #include <drv/3d/dag_rwResource.h>
 #include "levelProfilerInterface.h"
 
 namespace levelprofiler
 {
 
+// In the pipeline order: the source with its HQ part, the limit of the quality settings, the part loaded at the collect.
+enum class TextureState
+{
+  FULL,
+  MAX,
+  RES,
+  COUNT
+};
+inline constexpr int operator*(TextureState s) { return static_cast<int>(s); }
+
+// mips == 0: the state has no texture data (a state that is not loaded).
+struct TextureStateSize
+{
+  int w = 0;
+  int h = 0;
+  int mips = 0;
+  uint64_t memBytes = 0;
+};
+
+// The quality id (0 high, 1 medium, 2 low, 3 ultra low) that the graphics settings and the lists of the level select for a
+// streamed texture, and why. A texture loaded before a list change keeps its quality until it is reloaded.
+struct TextureQuality
+{
+  int selectedQuality = 0;
+  int settings = 0; // The quality of the graphics settings (dgs_tex_quality) at the collect
+  // The explicit list of the level that holds the texture: 2 forceTexLQ, 1 forceTexMQ, 0 none.
+  int explicitList = ddsx::EXPLICIT_TEX_LIST_NONE;
+  TexQL maxTql = TQL_stub;
+
+  bool isLoweredByList() const { return explicitList != ddsx::EXPLICIT_TEX_LIST_NONE && selectedQuality > settings; }
+};
+
 struct TextureData
 {
-  TextureInfo info;
-  uint64_t sizeBytes = 0;
+  TextureInfo info; // w, h and mipLevels are the Full state
+  TextureStateSize states[*TextureState::COUNT];
+  // The texture manager keeps the levels of the texture (a texture of a pack or a loose .ddsx, an array texture, a texture
+  // built on demand). For any other texture, as a render target, all states are the resource as it is at the collect.
+  bool isStreamed = false;
+  TextureQuality quality;
   ProfilerString name;
 
-  TextureData() = default;
-  TextureData(const TextureInfo &texInfo, uint64_t size) : info(texInfo), sizeBytes(size) {}
+  const TextureStateSize &getState(TextureState state) const { return states[*state]; }
 };
 
 class TextureModule : public IDataCollector, public IProfilerModule
@@ -30,28 +67,17 @@ public:
   void drawUI() override;
 
   const eastl::hash_map<ProfilerString, TextureData> &getTextures() const;
-  const eastl::vector<ProfilerString> &getFilteredTextures() const;
+  // Changes each time the collected textures change.
+  unsigned getDataGeneration() const { return dataGeneration; }
+  // The Full state memory in MB.
   float getTextureMemorySize(const TextureData &texture_data) const;
-  void selectTexture(const char *texture_name);
-  void drawTextureView(const char *texture_name);
-  void rebuildFilteredList();
+  void resetMipLevel() { selectedMipLevel = 0; }
+  void drawTextureView(const ProfilerString &texture_name);
 
-  int getFilteredTextureCount() const;
-  int getTotalTextureCount() const;
-  float getFilteredTotalMemorySize() const;
-  float getTotalMemorySize() const;
-
-  void sortFilteredTextures(ImGuiTableSortSpecs *sort_specs);
-
-  int getMipMinDefault() const { return mipMinDefault; }
-  int getMipMaxDefault() const { return mipMaxDefault; }
-  float getMemorySizeMinDefault() const { return sizeMinDefault; }
-  float getMemorySizeMaxDefault() const { return sizeMaxDefault; }
 
   static const char *getFormatName(uint32_t format);
-  eastl::vector<ProfilerString> getUniqueFormats();
-  eastl::vector<int> getUniqueWidths();
-  eastl::vector<int> getUniqueHeights();
+  // Width or height as the size filters key it: the size when it is a power of 2 or a multiple of 256, else -1 ("Other").
+  static int getSizeFilterKey(int size);
 
 protected:
   void shutdownImpl();
@@ -59,20 +85,12 @@ protected:
 
 private:
   eastl::hash_map<ProfilerString, TextureData> textures; // All textures data
-  eastl::vector<ProfilerString> filteredTextures;
-  ProfilerString selectedTextureName;
 
   int selectedMipLevel = 0;
   bool channelMask[4] = {true, true, true, true};                      // RGBA channel toggles
   d3d::SamplerHandle pointSamplerHandle = d3d::INVALID_SAMPLER_HANDLE; // For texture preview
-  uint32_t totalCount = 0, filteredCount = 0;                          // Texture counts
-  float totalMemorySize = 0, filteredMemorySize = 0;                   // Texture Memory usage
+  unsigned dataGeneration = 0;
 
-  int mipMinDefault = 0, mipMaxDefault = 0;
-  float sizeMinDefault = 0.f, sizeMaxDefault = 0.f;
-
-  void recalculateStatistics();
-  void calculateFilterRanges();
   void setImagePreviewMode(const ImDrawList *draw_list, const ImDrawCmd *command);
   void resetImagePreviewMode(const ImDrawList *draw_list, const ImDrawCmd *command);
 

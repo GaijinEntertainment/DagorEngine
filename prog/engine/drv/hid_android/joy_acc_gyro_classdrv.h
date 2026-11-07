@@ -7,6 +7,7 @@
 namespace HumanInput
 {
 class IAndroidJoystick;
+class AndroidSensor;
 
 
 class JoyAccelGyroInpClassDriver : public IGenJoystickClassDrv
@@ -69,12 +70,12 @@ public:
 
 protected:
   int vendorId;
+  AndroidSensor *sensor;
   IAndroidJoystick *device;
   IGenJoystickClient *defClient;
   IGenJoystick *defJoy;
   bool enabled;
 
-  int pendingAndroidCleanupOp;
-  int processedAndroidCleanupOp;
+  void destroyGamepad();
 };
 } // namespace HumanInput

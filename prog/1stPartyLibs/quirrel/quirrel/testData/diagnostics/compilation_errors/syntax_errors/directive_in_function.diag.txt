@@ -1,0 +1,9 @@
+ERROR: directives must be at the top of the file, before imports
+testData/diagnostics/compilation_errors/syntax_errors/directive_in_function.nut:3:2
+
+function foo() {
+  #allow-delete-operator
+  ^---------------------
+}
+
+

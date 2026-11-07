@@ -48,6 +48,7 @@
   VAR(skies_froxels_ground_ray, true)                    \
   VAR(skies_froxels_prev_ground_ray, true)               \
   VAR(skies_continue_temporal, false)                    \
+  VAR(skies_scattering_has_history, true)                \
   VAR(skies_min_max_horizon_mu, false)                   \
   VAR(skies_view_lut_tex, false)                         \
   VAR(skies_view_lut_tex_samplerstate, false)            \
@@ -303,6 +304,7 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
     return;
   ScopeReprojection reprojectionScope;
   restart_temporal |= !skies.scatteringVolume[1];
+  ShaderGlobal::set_int(skies_scattering_has_historyVarId, skies.scatteringVolume[1] ? 1 : 0);
   alignas(16) Point4 viewVecLT, viewVecRT, viewVecLB, viewVecRB;
   // TODO: replace with calc_view_vecs() and proper set_viewvecs_to_shader()
   set_viewvecs_to_shader(viewVecLT, viewVecRT, viewVecLB, viewVecRB, view_tm, proj_tm);

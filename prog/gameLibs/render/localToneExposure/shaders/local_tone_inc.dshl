@@ -1,0 +1,39 @@
+include "shader_global.dshl"
+
+int local_tone_enabled = 1 always_referenced;
+float4 local_tone_blur = (0.0444444444, 1, 0.158, 0) always_referenced; // sigma per height, range stops, history seconds
+float4 local_tone_gain = (-1, 1, 1, 1) always_referenced; // min stops, max stops, strength, highlight keep
+float4 local_tone_curve = (-0.0195102431, 0.423560023, 0.666666667, 0.0242103916) always_referenced; // exposure, pivot, slope, sky exposure
+float4 local_tone_zones = (-0.0180504136, 0.129065752, 0.244056538, 0.122579411) always_referenced; // shadows, highlights exposure; shadows, highlights contrast
+float local_tone_sky_exposure_indoor = -0.334973574 always_referenced;
+
+float4 local_tone_kernel = (1, 1, 0, 1);
+int4 local_tone_size = (0, 0, 0, 0);
+int4 local_tone_view_size = (0, 0, 0, 0);
+
+texture local_tone_guide;
+texture local_tone_mean;
+texture local_tone_frame_mean;
+texture local_tone_depth always_referenced; // bound even where no shader reads it
+
+macro LOCAL_TONE_MEAN_BIAS(code)
+  hlsl(code) {
+    // Biased: a 0 texel is no data.
+    #define LOCAL_TONE_BIAS 32.0
+  }
+endmacro
+
+macro LOCAL_TONE_LUMINANCE(code)
+  hlsl(code) {
+    #include <tonemapHelpers/tonemapLUTSpace.hlsl>
+    #define LOCAL_TONE_LUMINANCE_FLOOR 0.000244140625
+
+    // The input the tonemap LUT reads.
+    float local_tone_log_luminance(float3 exposed)
+    {
+      float lutInputMax = lut_log_to_linear(float3(1, 1, 1)).x;
+      float3 lutInput = clamp(exposed, 0, lutInputMax);
+      return log2(max(dot(lutInput, float3(0.2126, 0.7152, 0.0722)), LOCAL_TONE_LUMINANCE_FLOOR));
+    }
+  }
+endmacro

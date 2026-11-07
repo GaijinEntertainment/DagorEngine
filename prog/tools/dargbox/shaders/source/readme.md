@@ -8,7 +8,9 @@ float4 darg_ps(float2 uv)
 ```
 
 `uv` contains normalized coordinates (0..1) within the element bounds.
-Return a `float4(r, g, b, a)` color; alpha is pre-multiplied.
+Return a `float4(r, g, b, a)` color with premultiplied alpha: multiply
+`rgb` by `a`. Both paths blend with `one, 1 - src alpha`, thus `a = 0`
+adds the color as light.
 
 
 ## Built-in Globals
@@ -99,7 +101,7 @@ float4 darg_ps(float2 uv)
 {
   float t = darg_time;
   float3 col = 0.5 + 0.5 * cos(t + uv.xyx * float3(1, 2, 4));
-  return float4(col, darg_opacity);
+  return float4(col * darg_opacity, darg_opacity);
 }
 ```
 
@@ -143,14 +145,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 float4 darg_ps(float2 uv)   // uv is already normalized 0..1
 {
     // ...
-    return float4(col, darg_opacity);
+    return float4(col * darg_opacity, darg_opacity);
 }
 ```
 
 - `fragCoord` is pixel coordinates; in darg, `uv` is already normalized (0..1).
 - To get pixel coordinates when needed: `float2 fragCoord = uv * darg_resolution`.
 - Replace `fragColor = ...` with `return float4(...)`.
-- Use `darg_opacity` for alpha to respect the UI element's opacity.
+- Multiply the color and the alpha by `darg_opacity` to respect the UI element's opacity.
 
 
 ## 2. Type Mapping
@@ -308,5 +310,5 @@ float value2d(float2 p)
 - [ ] Replace `iTime` -> `darg_time`, `iResolution` -> `darg_resolution`
 - [ ] Remove `fragCoord / iResolution` normalization (uv is already 0..1)
 - [ ] Replace texture lookups with procedural noise
-- [ ] Multiply final alpha by `darg_opacity`
+- [ ] Multiply the final color and alpha by `darg_opacity` (premultiplied alpha)
 - [ ] Test with `shaderSource = "my_shader.hlsl"` in a darg component

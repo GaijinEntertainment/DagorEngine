@@ -6,8 +6,6 @@
 #include <osApiWrappers/dag_files.h>
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_zlibIo.h>
-#include <ioSys/dag_dataBlock.h>
-#include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_string.h>
 #include "driver.h"
@@ -37,18 +35,11 @@ uint32_t getPipelineSignificantAppVersion()
   return appVer;
 }
 
-static bool isPipelineCacheFileAllowed()
-{
-  const DataBlock *cfgBlk = Globals::cfg.getPerDriverPropertyBlock("pipelineCompiler");
-  return ::dgs_get_settings()->getBlockByNameEx("vulkan")->getBool("allowPipelineCache", true) &&
-         cfgBlk->getBool("allowPipelineCache", true);
-}
-
 void PipelineCacheFile::load(const char *path)
 {
   TIME_PROFILE(vulkan_load_pipeline_cache);
 
-  if (!isPipelineCacheFileAllowed())
+  if (!Globals::cfg.bits.allowPipelineCacheFile)
   {
     debug("vulkan: pipeline cache file disabled, load skipped");
     return;
@@ -272,7 +263,7 @@ public:
 
 void PipelineCacheFile::store()
 {
-  if (!isPipelineCacheFileAllowed())
+  if (!Globals::cfg.bits.allowPipelineCacheFile)
   {
     debug("vulkan: pipeline cache file disabled, store skipped");
     return;
@@ -346,14 +337,7 @@ void PipelineCacheFile::store()
   debug("vulkan: pipeline cache saved");
 }
 
-const char *drv3d_vulkan::PipelineCacheFile::getDataPath()
-{
-#if _TARGET_C3
-
-#else
-  return ::dgs_get_settings()->getBlockByNameEx("vulkan")->getStr("cachefile", "cache/vulkan.bin");
-#endif
-}
+const char *drv3d_vulkan::PipelineCacheFile::getDataPath() { return Globals::cfg.pipelineCacheFileName.c_str(); }
 
 bool PipelineCacheFile::getCacheFor(const UUID &id, Tab<uint8_t> &target)
 {

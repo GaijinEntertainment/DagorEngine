@@ -50,16 +50,12 @@ void two_bones_ik_init_block_settings(PropPanel::ContainerPropertyControl *panel
 void two_bones_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
   const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  if (listName.empty())
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  if (selectedIdx < 0)
     return;
 
-  DataBlock *selectedBlock = nullptr;
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    DataBlock *child = settings->getBlock(i);
-    if (listName == child->getStr("start", nullptr))
-      selectedBlock = child;
-  }
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "bones");
+  DataBlock *selectedBlock = selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : nullptr;
 
   const SimpleString startValue = panel->getText(PID_CTRLS_TWO_BONES_IK_START);
   const SimpleString middleValue = panel->getText(PID_CTRLS_TWO_BONES_IK_MIDDLE);
@@ -99,14 +95,10 @@ void two_bones_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel
 
 void two_bones_ik_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings)
 {
-  const SimpleString name = panel->getText(PID_CTRLS_NODES_LIST);
-  const DataBlock *selectedBlock = &DataBlock::emptyBlock;
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    const DataBlock *child = settings->getBlock(i);
-    if (name == child->getStr("start", nullptr))
-      selectedBlock = child;
-  }
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "bones");
+  const DataBlock *selectedBlock =
+    selectedIdx >= 0 && selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : &DataBlock::emptyBlock;
 
   panel->setText(PID_CTRLS_TWO_BONES_IK_START, selectedBlock->getStr("start", ""));
   panel->setText(PID_CTRLS_TWO_BONES_IK_MIDDLE, selectedBlock->getStr("middle", ""));
@@ -118,7 +110,7 @@ void two_bones_ik_set_selected_node_list_settings(PropPanel::ContainerPropertyCo
   panel->setText(PID_CTRLS_TWO_BONES_IK_FLEX_LOCAL_TO_NODE, selectedBlock->getStr("flexLocalToNode", ""));
   panel->setText(PID_CTRLS_TWO_BONES_IK_ROTATE_FLEX_DIRECTION_VAR, selectedBlock->getStr("rotateFlexDirectionVar", ""));
 
-  const bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
+  const bool isEditable = selectedIdx >= 0;
   for (int i = PID_CTRLS_TWO_BONES_IK_START; i <= PID_CTRLS_TWO_BONES_IK_ROTATE_FLEX_DIRECTION_VAR; ++i)
     panel->setEnabledById(i, isEditable);
 }

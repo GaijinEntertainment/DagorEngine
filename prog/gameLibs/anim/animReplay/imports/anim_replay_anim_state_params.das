@@ -88,7 +88,7 @@ def copy_anim_state_parameters_to_blk(anim_graph : AnimationGraph; params_obj : 
         add(paramBlk, "value", rawData[pOffset])
       elif paramType == PT_Fifo3
         unsafe
-          var fifoQueuePtr = reinterpret<AnimFifo3Queue?>(addr(rawData[pOffset]))
+          let fifoQueuePtr = reinterpret<AnimFifo3Queue?>(addr(rawData[pOffset]))
           for j in range(3)
             add(paramBlk, "node{j}", anim_graph_getBlendNodeName(anim_graph, fifoQueuePtr.node[j]))
           add(paramBlk, "morphTime0", fifoQueuePtr.morphTime[0])

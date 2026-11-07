@@ -66,11 +66,10 @@ file of its own.
 ## import and from ... import
 
 `import` and `from ... import` do at compile time what `require` does at run
-time. They work only as the first statements in a file: write every one of them
-before any other code. After the compiler has passed that opening run of
-imports, a later `import` line no longer parses as an import. It is read as a
-plain expression that starts with the identifier `import`, and fails to compile
-with `end of statement expected`.
+time. They work only at the top of a file: after the
+[directives](page:language/directives) and before all other code. An `import`
+in a different place, a function body included, fails to compile with
+`import statements must be at the top of the file, after directives`.
 
 `import "mod"` binds the whole exports object under the name `mod`;
 `import "mod" as Name` binds it under `Name`.
@@ -79,6 +78,9 @@ with `end of statement expected`.
 Every bound name is a compile-time constant in the file that imported it, not a
 variable. A plain member access resolves without a lookup at run time, and a
 pure, constant export can fold into the call site.
+So an exported value must not change after its module is loaded, nor a value
+inside it: a field of a table, an item of an array, a member of an instance. A
+file that imports the module keeps the values that the compiler read.
 
 `import *` on the same `weapons.nut` as above binds each export under its own
 name, with no module object:

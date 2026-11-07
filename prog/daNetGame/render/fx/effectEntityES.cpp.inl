@@ -316,21 +316,24 @@ static inline void effect_box_es_event_handler(const ecs::Event &,
 }
 
 
+// moves every frame: write the untracked effect_animation__transform, not the tracked transform
 ECS_TAG(render)
-ECS_BEFORE(effect_es)
+ECS_BEFORE(effect_es, effect_anim_es)
 ECS_AFTER(camera_animator_update_es)
 static inline void bound_camera_effect_es(const ecs::UpdateStageInfoAct &info,
-  Point3 &effect__offset,
+  const Point3 &effect__offset,
   Point3 &camera_prev_pos,
   Point3 &camera_prev_vel,
-  TMatrix &transform,
+  const TMatrix &transform,
+  TMatrix &effect_animation__transform,
   const float effect__smooth_coef,
   const float effect__bias_coef,
   const bool effect__use_deprecated_bound_camera_logic = true)
 {
+  effect_animation__transform = transform;
   if (!effect__use_deprecated_bound_camera_logic)
   {
-    transform.setcol(3, get_cam_itm().getcol(3));
+    effect_animation__transform.setcol(3, get_cam_itm().getcol(3));
     return;
   }
   // TODO: rewrite this whole thing, it is a mess
@@ -342,9 +345,7 @@ static inline void bound_camera_effect_es(const ecs::UpdateStageInfoAct &info,
     velocityVector.y = 0; // for cases when changes of velocity on very big we are do not move effect on y axis
   camera_prev_vel = velocityVector;
   Point3 res_offset = (velocityVector * effect__bias_coef) + effect__offset;
-  TMatrix resTm = transform;
-  resTm.setcol(3, (camTm.getcol(3) + res_offset));
-  transform = resTm;
+  effect_animation__transform.setcol(3, (camTm.getcol(3) + res_offset));
 }
 
 ECS_TAG(render)
@@ -575,13 +576,14 @@ static inline void fx_magnification_es(const ecs::UpdateStageInfoAct &, float ca
 }
 
 ECS_TAG(render)
-ECS_BEFORE(effect_es)
-static inline void alwasy_in_viewport_effects_es(const ecs::UpdateStageInfoAct &,
-  TMatrix &transform ECS_REQUIRE(ecs::Tag alwaysInViewportEffect))
+ECS_BEFORE(effect_es, effect_anim_es)
+static inline void always_in_viewport_effects_es(const ecs::UpdateStageInfoAct &,
+  const TMatrix &transform,
+  TMatrix &effect_animation__transform ECS_REQUIRE(ecs::Tag alwaysInViewportEffect))
 {
   const TMatrix &camItm = get_cam_itm();
-  Point3 dirOffsetedPos = camItm.getcol(3) + camItm.getcol(2);
-  transform.setcol(3, dirOffsetedPos);
+  effect_animation__transform = transform; // untracked, see bound_camera_effect_es
+  effect_animation__transform.setcol(3, camItm.getcol(3) + camItm.getcol(2));
 }
 
 ECS_TAG(render)

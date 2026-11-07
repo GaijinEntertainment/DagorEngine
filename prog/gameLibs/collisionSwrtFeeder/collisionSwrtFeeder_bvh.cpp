@@ -24,7 +24,7 @@ static float scoreDimAsBoxDist(const uint8_t *tree, int tree_bytes, bbox3f_cref 
 }
 
 bool CollisionGeometryFeeder::buildSwrtBLAS(const CollisionResource &coll_res, const PhysMatFilter &node_filter, float dim_as_box_min,
-  float dim_as_box_max, const PhysMatLeafUser &leaf_user, bool box_user, daSWRT::BuiltBLAS &built)
+  float dim_as_box_max, const PhysMatLeafUser &leaf_user, bool box_user, daSWRT::BlasMode mode, daSWRT::BuiltBLAS &built)
 {
   const auto allNodes = coll_res.getAllNodes();
 
@@ -46,7 +46,7 @@ bool CollisionGeometryFeeder::buildSwrtBLAS(const CollisionResource &coll_res, c
       continue;
     if (node->type != COLLISION_NODE_TYPE_MESH && node->type != COLLISION_NODE_TYPE_CONVEX)
       continue;
-    if (coll_res.getNodeVertCount(ni) == 0 || coll_res.getNodeFaceCount(ni) == 0)
+    if (node->indicesCount < 3 || node->verticesCount == 0)
       continue;
     bool anyKept = !node_filter, allKept = true;
     if (node_filter)
@@ -68,15 +68,17 @@ bool CollisionGeometryFeeder::buildSwrtBLAS(const CollisionResource &coll_res, c
   // scored on its carved tree too: at its box distance the shadow of a carved-out window does not matter.
   built.dimAsBoxDist =
     scoreDimAsBoxDist(built.data.data(), (int)built.treeBytes, built.box, dim_as_box_min, dim_as_box_max, info.boxEncoding);
-  return true;
+  built.mode = mode;
+  return mode != daSWRT::BlasMode::BoxesOnly || built.isBox() || built.compactToBoxLeaves();
 }
 
 int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt, const CollisionResource &coll_res,
   const PhysMatFilter &node_filter, float dim_as_box_min, float dim_as_box_max, const PhysMatLeafUser &leaf_user)
 {
-  G_ASSERTF_RETURN(swrt.blasVertsFp16, -1, "swrtFeeder: the chunk splice writes fp16 verts only");
+  G_ASSERTF_RETURN(swrt.blasMode == daSWRT::BlasMode::BoxesOnly || swrt.blasVertsFp16, -1,
+    "swrtFeeder: the chunk splice writes fp16 verts only");
   daSWRT::BuiltBLAS built;
-  if (!buildSwrtBLAS(coll_res, node_filter, dim_as_box_min, dim_as_box_max, leaf_user, swrt.tlasBoxUser, built))
+  if (!buildSwrtBLAS(coll_res, node_filter, dim_as_box_min, dim_as_box_max, leaf_user, swrt.tlasBoxUser, swrt.blasMode, built))
     return -1;
   return swrt.addBuiltModel(eastl::move(built));
 }

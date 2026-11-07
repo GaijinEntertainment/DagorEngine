@@ -6,6 +6,8 @@
 #include <string.h>
 
 #include <algorithm>
+#include <charconv>
+#include <cmath>
 #include <locale>
 #include <string_view>
 #include <unordered_map>
@@ -83,6 +85,12 @@ static void makeFullPathFromRelative(std::string &path, std::string_view base_fi
 
 
 static const char EOF_CHAR = 0;
+
+static void drop_utf8_bom(std::string &text)
+{
+  if (text.starts_with("\xEF\xBB\xBF"))
+    text.erase(0, 3);
+}
 
 
 class DataBlockParser
@@ -264,7 +272,8 @@ void DataBlockParser::getValue(std::string &value)
       if (c == qc)
       {
         ++curp;
-        skipWhite();
+        while (!endOfText() && (*curp == ' ' || *curp == '\t' || *curp == '\x1A'))
+          ++curp;
         if (*curp == ';')
           ++curp;
         break;
@@ -289,12 +298,14 @@ void DataBlockParser::getValue(std::string &value)
     }
     else
     {
-      if (c == ';' || c == '\r' || c == '\n' || c == EOF_CHAR)
+      if (c == ';' || c == '\r' || c == '\n' || c == EOF_CHAR || c == '}')
       {
         if (c == ';')
           ++curp;
         break;
       }
+      if (c == '/' && curp[1] == '/')
+        break;
     }
 
     value += c;
@@ -393,10 +404,21 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
       makeFullPathFromRelative(value, currentFile());
 
       const std::string baseFileName = currentFile();
+      const fs::path path(strToWide(value));
+
+      for (const std::string &outer : includeStack)
+      {
+        std::error_code ec;
+        if (fs::equivalent(path, fs::path(strToWide(outer)), ec))
+        {
+          debug("include file '{}' for '{}' is already being read\n", value.data(), baseFileName.c_str());
+          throw SyntaxErrorException("include cycle");
+        }
+      }
 
       includeStack.emplace_back(value);
 
-      std::ifstream is(fs::path(strToWide(value)), std::ios::binary);
+      std::ifstream is(path, std::ios::binary);
 
       if (!is)
       {
@@ -408,7 +430,9 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
       if (buf.empty())
         throw SyntaxErrorException("error loading include file");
 
+      drop_utf8_bom(buf);
       std::replace(buf.begin(), buf.end(), EOF_CHAR, ' ');
+      buf += "\r\n";
 
       int pos = curp - text;
       buffer.insert(pos, buf);
@@ -569,7 +593,7 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
 int DataBlock::setStr(const char *name, const char *value)
 {
   int id = findParam(name);
-  if (id < 0 || type(params[id]) != ParamType::TYPE_STRING)
+  if (id < 0)
     return addStr(name, value);
 
   params[id] = std::string(value);
@@ -579,7 +603,7 @@ int DataBlock::setStr(const char *name, const char *value)
 int DataBlock::setBool(const char *name, bool value)
 {
   int id = findParam(name);
-  if (id < 0 || type(params[id]) != ParamType::TYPE_BOOL)
+  if (id < 0)
     return addBool(name, value);
 
   params[id] = value;
@@ -589,7 +613,7 @@ int DataBlock::setBool(const char *name, bool value)
 int DataBlock::setInt(const char *name, int value)
 {
   int id = findParam(name);
-  if (id < 0 || type(params[id]) != ParamType::TYPE_INT)
+  if (id < 0)
     return addInt(name, value);
 
   params[id] = value;
@@ -599,7 +623,7 @@ int DataBlock::setInt(const char *name, int value)
 int DataBlock::setReal(const char *name, real value)
 {
   int id = findParam(name);
-  if (id < 0 || type(params[id]) != ParamType::TYPE_REAL)
+  if (id < 0)
     return addReal(name, value);
 
   params[id] = value;
@@ -609,7 +633,7 @@ int DataBlock::setReal(const char *name, real value)
 int DataBlock::setPoint3(const char *name, const Point3 &value)
 {
   int id = findParam(name);
-  if (id < 0 || type(params[id]) != ParamType::TYPE_POINT3)
+  if (id < 0)
     return addPoint3(name, value);
 
   params[id] = value;
@@ -673,9 +697,10 @@ void DataBlock::clearData()
 }
 
 
-bool DataBlock::loadText(std::string &text, const char *filename)
+bool DataBlock::loadText(std::string text, const char *filename)
 {
   reset();
+  drop_utf8_bom(text);
   DataBlockParser parser(text, filename);
 
   try
@@ -719,7 +744,7 @@ bool DataBlock::loadFromStream(std::ifstream &is, const char *fname)
 {
   reset();
   std::string text((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
-  return loadText(text, fname);
+  return loadText(std::move(text), fname);
 }
 
 
@@ -729,6 +754,22 @@ static void writeString(std::ostream &os, const char *s)
 {
   if (s && *s)
     os << s;
+}
+
+static void writeReal(std::ostream &os, real v)
+{
+  const real a = std::fabs(v);
+  const std::chars_format fmt = a == 0 || (a >= 1e-4f && a < 1e6f) ? std::chars_format::fixed : std::chars_format::scientific;
+  char buf[32];
+  const std::to_chars_result res = std::to_chars(buf, buf + sizeof(buf), v, fmt);
+  os.write(buf, res.ptr - buf);
+}
+
+template <typename... Reals>
+static void writeReals(std::ostream &os, real first, Reals... rest)
+{
+  writeReal(os, first);
+  ((os << ", ", writeReal(os, rest)), ...);
 }
 
 static void writeStringValue(std::ostream &os, const char *s)
@@ -783,27 +824,31 @@ void DataBlock::saveText(std::ostream &os, int level) const
         break;
 
       case ParamType::TYPE_REAL:
-        os << ":r=" << std::get<real>(p);
+        os << ":r=";
+        writeReals(os, std::get<real>(p));
         break;
 
       case ParamType::TYPE_POINT2:
       {
         auto &p2 = std::get<Point2>(p);
-        os << ":p2=" << p2.x << ", " << p2.y;
+        os << ":p2=";
+        writeReals(os, p2.x, p2.y);
       }
         break;
 
       case ParamType::TYPE_POINT3:
       {
         auto &p3 = std::get<Point3>(p);
-        os << ":p3=" << p3.x << ", " << p3.y << ", " << p3.z;
+        os << ":p3=";
+        writeReals(os, p3.x, p3.y, p3.z);
       }
         break;
 
       case ParamType::TYPE_POINT4:
       {
         auto &p4 = std::get<Point4>(p);
-        os << ":p4=" << p4.x << ", " << p4.y << ", " << p4.z << ", " << p4.w;
+        os << ":p4=";
+        writeReals(os, p4.x, p4.y, p4.z, p4.w);
       }
         break;
 
@@ -832,10 +877,13 @@ void DataBlock::saveText(std::ostream &os, int level) const
       {
         auto &m = std::get<TMatrix>(p);
         os << ":m=[";
-        os << "[" << m.getcol(0).x << ", " << m.getcol(0).y << ", " << m.getcol(0).z << "]";
-        os << "[" << m.getcol(1).x << ", " << m.getcol(1).y << ", " << m.getcol(1).z << "]";
-        os << "[" << m.getcol(2).x << ", " << m.getcol(2).y << ", " << m.getcol(2).z << "]";
-        os << "[" << m.getcol(3).x << ", " << m.getcol(3).y << ", " << m.getcol(3).z << "]";
+        for (int i = 0; i < 4; ++i)
+        {
+          const Point3 c = m.getcol(i);
+          os << "[";
+          writeReals(os, c.x, c.y, c.z);
+          os << "]";
+        }
         os << "]";
       }
         break;

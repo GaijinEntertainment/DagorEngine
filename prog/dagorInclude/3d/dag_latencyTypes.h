@@ -19,7 +19,9 @@ enum class LatencyMarkerType
   RENDERSUBMIT_END,
   PRESENT_START,
   PRESENT_END,
-  TRIGGER_FLASH
+  TRIGGER_FLASH,
+  // Set where the game reads input; sent only when a PC latency ping came since the previous one
+  PC_LATENCY_PING
 };
 
 struct Statistics

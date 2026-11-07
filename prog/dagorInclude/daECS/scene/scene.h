@@ -80,8 +80,10 @@ public:
     BBox3 wbb;
     SceneId id = C_INVALID_SCENE_ID;
     bool isDirty = false;
+    bool isSystemOwned = false;
 
-    SceneRecord(const char *p, int i, uint32_t l, SceneId par, SceneId id) : path(p), importDepth(i), loadType(l), parent(par), id(id)
+    SceneRecord(const char *p, int i, uint32_t l, SceneId par, SceneId id, bool is_system_owned) :
+      path(p), importDepth(i), loadType(l), parent(par), id(id), isSystemOwned(is_system_owned)
     {}
 
     bool hasParent() const { return parent != NO_PARENT; }
@@ -131,6 +133,9 @@ public:
   }
 
   bool isChildScene(SceneId id);
+
+  bool isSystemScene(SceneId id) const;
+  bool isSystemEntity(EntityId id) const;
 
   SceneId getTargetSceneId() const { return targetId; }
   void setTargetSceneId(SceneId id);
@@ -271,7 +276,7 @@ public:
 
   BBox3 getSceneWbb(Scene::SceneId id) const;
 
-  void setNewParent(Scene::SceneId id, Scene::SceneId new_parent_id);
+  bool setNewParent(Scene::SceneId id, Scene::SceneId new_parent_id);
 
   uint32_t getSceneOrder(Scene::SceneId scene_id) const;
   void setSceneOrder(Scene::SceneId id, uint32_t order);
@@ -283,6 +288,7 @@ public:
   void removeScene(Scene::SceneId id, const OnEntityDeleteCallback &callback = {});
 
   void clearScene() { scene.clear(); }
+  void clearNonSystemScenes();
   void recalculateWbbs();
 
   template <typename T>
@@ -334,10 +340,11 @@ private:
 
   BBox3 calculatetSceneWbb(Scene::SceneId id);
 
-  static Scene::SceneId recordScene(ecs::SceneManager *smgr, uint32_t load_type, const char *path, int import_depth,
-    eastl::vector<Scene::SceneId> &loadRecordIndices, const TMatrix *rootTransform);
+  static Scene::SceneId recordScene(ecs::SceneManager *smgr, uint32_t load_type, bool is_system_owned, const char *path,
+    int import_depth, eastl::vector<Scene::SceneId> &loadRecordIndices, const TMatrix *rootTransform);
   static Scene::SceneId loadSceneInternal(SceneManager *smgr, const DataBlock &scene_blk, const char *scene_path,
-    unsigned *ent_counter_ptr, int import_depth, uint32_t load_type, eastl::vector<Scene::SceneId> &loadRecordIndices);
+    unsigned *ent_counter_ptr, int import_depth, uint32_t load_type, bool is_system_owned,
+    eastl::vector<Scene::SceneId> &loadRecordIndices);
 };
 extern InitOnDemand<SceneManager> g_scenes;
 
@@ -363,20 +370,9 @@ inline void Scene::eraseEntityRecord(ecs::EntityId eid)
   const auto *erec = findEntityRecord(eid);
   if (erec)
   {
-    bool childScene = false;
     if (Scene::SceneRecord *record = getSceneRecordById(erec->sceneId))
     {
       record->entities.erase(eid);
-      childScene = record->hasParent();
-      if (childScene)
-      {
-        SceneId parentId = record->parent;
-        while (Scene::SceneRecord *parentRecord = getSceneRecordById(parentId))
-        {
-          parentId = parentRecord->parent;
-        }
-      }
-
       eastl::erase_if(record->orderedEntries, [eid](auto &&val) { return val.eid == eid && val.isEntity == true; });
       setNewChangesApplied(record->id);
     }
@@ -434,6 +430,22 @@ inline bool Scene::isChildScene(SceneId id)
     return record->hasParent();
   }
   return false;
+}
+
+inline bool Scene::isSystemScene(SceneId sid) const
+{
+  const SceneRecord *record = getSceneRecordById(sid);
+  return record && record->isSystemOwned;
+}
+
+inline bool Scene::isSystemEntity(EntityId eid) const
+{
+  const EntityRecord *erecord = findEntityRecord(eid);
+  if (!erecord)
+    return false;
+
+  const SceneRecord *srecord = getSceneRecordById(erecord->sceneId);
+  return srecord && srecord->isSystemOwned;
 }
 
 inline void Scene::setTargetSceneId(SceneId id)

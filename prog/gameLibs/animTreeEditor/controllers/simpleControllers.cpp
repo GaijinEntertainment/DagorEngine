@@ -269,7 +269,6 @@ void fifo3_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPr
 
 void fifo3_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
 {
-  remove_param_if_default_str(params, panel, "name");
   remove_param_if_default_str(params, panel, "varname", get_default_varname_from_name(params, panel));
 }
 
@@ -697,9 +696,9 @@ void set_param_init_panel(dag::Vector<AnimParamData> &params, PropPanel::Contain
         if (hiddenParam != params.end())
         {
           AnimParamData *nameParam = find_param_by_name(params, "name");
+          logerr("In controller <%s> param with name <%s> can be hidden by another param", panel->getText(nameParam->pid), names[j]);
           panel->removeById(hiddenParam->pid);
           params.erase(hiddenParam);
-          logerr("In controller <%s> param with name <%s> can be hidden by another param", panel->getText(nameParam->pid), names[j]);
         }
       }
       break;

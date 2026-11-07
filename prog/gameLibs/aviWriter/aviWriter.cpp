@@ -21,6 +21,9 @@
 #include <objbase.h>
 #pragma comment(lib, "vfw32.lib")
 
+#include <generic/dag_tab.h>
+#include <memory/dag_framemem.h>
+#include <osApiWrappers/dag_unicode.h>
 #include <workCycle/dag_wcHooks.h>
 #include <workCycle/dag_workCycle.h>
 
@@ -63,18 +66,6 @@ bool avi_start_write(const DataBlock &stg)
   return false;
 }
 
-bool avi_start_write(const char *dest_folder, int act_rate, int acts_per_frame, const char *codec_str, int codec_quality)
-{
-  DataBlock stg;
-  stg.setStr("folder", dest_folder);
-  stg.setStr("codec", codec_str);
-  stg.setInt("quality", codec_quality);
-  stg.setReal("frameRate", float(act_rate) / float(acts_per_frame));
-  stg.setInt("act_rate", act_rate);
-  stg.setInt("acts_per_frame", acts_per_frame);
-  return avi_start_write(stg);
-}
-
 void avi_stop_write()
 {
   if (!aviWriter)
@@ -84,6 +75,7 @@ void avi_stop_write()
   }
 
   delete aviWriter;
+  aviWriter = NULL;
 
   dwc_hook_after_frame = old_dwc_hook_after_frame;
   dagor_set_game_act_rate(old_act_rate);
@@ -93,7 +85,6 @@ void avi_stop_write()
 
 bool avi_is_writing_file() { return false; }
 bool avi_start_write(const DataBlock &) { return false; }
-bool avi_start_write(const char *, int, int, const char *, int) { return false; }
 void avi_stop_write() {}
 #endif
 
@@ -119,11 +110,7 @@ AviWriter::AviWriter(const DataBlock &blk, ErrorCallback _onErrorCb) :
   initializedOk = initialize(blk);
 }
 
-AviWriter::~AviWriter()
-{
-  if (initializedOk)
-    finalize();
-}
+AviWriter::~AviWriter() { finalize(); }
 
 #if _TARGET_PC_WIN
 
@@ -139,11 +126,10 @@ static bool async = true;
   }
 
 #if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
-#define CHECK_AVI_RESULT(fn)                                           \
-  G_ASSERTF(SUCCEEDED(res) || res == AVIERR_FILEWRITE, "res=%x", res); \
-  CHECK_AVI_RESULT_MSG                                                 \
-  result &= SUCCEEDED(res);                                            \
-  if (!SUCCEEDED(res))                                                 \
+#define CHECK_AVI_RESULT(fn) \
+  CHECK_AVI_RESULT_MSG       \
+  result &= SUCCEEDED(res);  \
+  if (!SUCCEEDED(res))       \
     DEBUG_CTX("%s %s return error %X", __FUNCTION__, #fn, res);
 #else
 #define CHECK_AVI_RESULT(fn) \
@@ -178,46 +164,14 @@ bool AviWriter::initialize(const DataBlock &blk)
   HRESULT res = CoInitializeEx(NULL, COINIT_MULTITHREADED);
   coInitialized = (res == S_OK) || (res == S_FALSE);
 
-  res = AVIFileOpen(&aviFile, fileName, OF_WRITE | OF_CREATE, NULL);
-  CHECK_AVI_RESULT(AVIFileOpen);
-
-  switch (res)
+  Tab<wchar_t> fileNameU16(framemem_ptr());
+  res = AVIFileOpenW(&aviFile, convert_path_to_u16(fileNameU16, fileName), OF_WRITE | OF_CREATE, NULL);
+  CHECK_AVI_RESULT(AVIFileOpenW);
+  if (!result)
   {
-    case AVIERR_BADFORMAT:
-      debug("The file <%s> couldn't be read, indicating a corrupt file or an unrecognized format.", fileName.str());
-      if (coInitialized)
-        CoUninitialize();
-      return false;
-    case AVIERR_MEMORY:
-      debug("The file <%s> could not be opened because of insufficient memory.", fileName.str());
-      if (coInitialized)
-        CoUninitialize();
-      return false;
-    case AVIERR_FILEREAD:
-      debug("A disk error occurred while reading the file <%s>.", fileName.str());
-      if (coInitialized)
-        CoUninitialize();
-      return false;
-    case AVIERR_FILEOPEN:
-      debug("A disk error occurred while opening the file <%s>.", fileName.str());
-      if (coInitialized)
-        CoUninitialize();
-      return false;
-    case REGDB_E_CLASSNOTREG:
-      debug("%s%s%s", "According to the registry, the type of file <", fileName.str(),
-        "> specified in AVIFileOpen does not have a handler to process it.");
-      if (coInitialized)
-        CoUninitialize();
-      return false;
-  }
-
-  if (!SUCCEEDED(res))
-  {
-    debug("Some unknown error code <%d> returned by AVIFileOpen", (int)res);
+    debug("AVIFileOpenW of <%s> returned error %X", fileName.str(), (unsigned)res);
     return false;
   }
-
-  // TODO: Process all possible following errors correctly.
 
   AVISTREAMINFO streamInfo;
   ZeroMemory(&streamInfo, sizeof(AVISTREAMINFO));
@@ -233,6 +187,8 @@ bool AviWriter::initialize(const DataBlock &blk)
 
   res = AVIFileCreateStream(aviFile, &aviStream, &streamInfo);
   CHECK_AVI_RESULT(AVIFileCreateStream);
+  if (!result)
+    return false;
 
   const char *codec = blk.getStr("codec", NULL);
   if (codec && codec[0])
@@ -241,12 +197,14 @@ bool AviWriter::initialize(const DataBlock &blk)
     AVICOMPRESSOPTIONS compressionInfo;
     ZeroMemory(&compressionInfo, sizeof(AVICOMPRESSOPTIONS));
     compressionInfo.fccType = 0;
-    compressionInfo.fccHandler = *((unsigned int *)codec);
+    compressionInfo.fccHandler = mmioStringToFOURCC(codec, 0);
     compressionInfo.dwQuality = blk.getInt("quality", 100);
     compressionInfo.dwFlags = AVICOMPRESSF_VALID;
 
     res = AVIMakeCompressedStream(&compressedAVIStream, aviStream, &compressionInfo, NULL);
     CHECK_AVI_RESULT(AVIMakeCompressedStream);
+    if (!result)
+      return false;
   }
   else
   {
@@ -267,21 +225,19 @@ bool AviWriter::initialize(const DataBlock &blk)
 
   res = AVIStreamSetFormat(compressedAVIStream ? compressedAVIStream : aviStream, 0, &streamFormat, sizeof(BITMAPINFOHEADER));
   CHECK_AVI_RESULT(AVIStreamSetFormat);
+  if (!result)
+    return false;
 
 
   // D3D stuff.
 
   frameBuffer = new unsigned char[stride * screenHeight];
-  initializedOk = true;
   for (int i = 0; i < resolvedRenderTargetTexture.size(); ++i)
   {
     resolvedRenderTargetTexture[i] =
       d3d::create_tex(NULL, screenWidth, screenHeight, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, "aviwriter", RESTAG_AVIWRITER);
-    initializedOk &= (resolvedRenderTargetTexture[i] != NULL);
+    result &= (resolvedRenderTargetTexture[i] != NULL);
   }
-
-  if (!initializedOk && onErrorCb && false)
-    onErrorCb(String(256, ::get_localized_text("AviWriter/Start"), fileName.str()));
 
   return result;
 }
@@ -367,13 +323,17 @@ void AviWriter::finalize()
   for (int i = 0; i < resolvedRenderTargetTexture.size(); ++i)
     del_d3dres(resolvedRenderTargetTexture[i]);
 
-  delete frameBuffer;
+  delete[] frameBuffer;
 
-  AVIStreamClose(aviStream);
+  if (aviStream)
+    AVIStreamClose(aviStream);
   if (compressedAVIStream)
     AVIStreamClose(compressedAVIStream);
-  AVIFileClose(aviFile);
-  AVIFileExit();
+  if (aviFile)
+  {
+    AVIFileClose(aviFile);
+    AVIFileExit();
+  }
 
   if (coInitialized)
     CoUninitialize();
@@ -421,6 +381,8 @@ bool AviWriter::captureFrame(int lockId)
 
 bool AviWriter::onEndOfFrame()
 {
+  if (!initializedOk)
+    return false;
   if (async)
     threadpool::wait(&asyncJob);
 

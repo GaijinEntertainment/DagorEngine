@@ -1,5 +1,5 @@
 int antialiasing_type = 1;
 interval antialiasing_type: temporal < 1, tsr < 2, non_temporal;
 
-// resolved depth that TSR writes next to its color; only exists while antialiasing_type == tsr
+// TSR depth history, log2 of linear depth: decode with decode_tsr_depth(); only exists while antialiasing_type == tsr
 texture tsr_depth;

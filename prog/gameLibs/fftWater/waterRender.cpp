@@ -7,6 +7,7 @@
 #include <util/dag_string.h>
 #include <math/dag_frustum.h>
 #include <math/dag_half.h>
+#include <math/dag_check_nan.h>
 #include <shaders/dag_shaders.h>
 #include "shaders/dag_computeShaders.h"
 #include <drv/3d/dag_rwResource.h>
@@ -1111,13 +1112,8 @@ void WaterNVRender::calculateCascadesRoughness()
     if (res && data)
     {
       Point3 norm(half_to_float(data[0]), half_to_float(data[1]), half_to_float(data[2]));
-      float avgNormalLen = 1.0f;
-      if (!isnan(norm.x) && !isnan(norm.y) && !isnan(norm.z))
-      {
-        avgNormalLen = norm.lengthSq();
-        if (!isnan(avgNormalLen))
-          avgNormalLen = safe_sqrt(avgNormalLen);
-      }
+      const float normLenSq = norm.lengthSq();
+      const float avgNormalLen = check_finite(normLenSq) ? sqrtf(normLenSq) : 1.0f;
       float &roughVal = cascadeNo < 4 ? roughVec0123[cascadeNo] : roughVec4567[cascadeNo - 4];
       roughVal = adjust_roughness(cascadeNo == 0 ? cascadesRoughnessBase : 0.0f, avgNormalLen);
       normals.getTex2D()->unlockimg();
@@ -1356,7 +1352,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
                                    : nullptr;
   cull_lod_grid(lodGrid, lodGrid.lodsCount, centerOfHmap.x, centerOfHmap.y, scaledCell, scaledCell, alignSize, alignSize, // alignment
     minWaterHeight, maxWaterHeight, &frustum, renderQuad, defaultCullData, occlusion, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
-    false /*not used*/, heightmapCulling, &lodsRegion, -10000.0F, nullptr, cullCb, drawCullingBoxCb);
+    false /*not used*/, heightmapCulling, &lodsRegion, -10000.0F, nullptr, cullCb, drawCullingBoxCb, cullPatchMarginCells);
   if (!defaultCullData.getCount())
     return;
 

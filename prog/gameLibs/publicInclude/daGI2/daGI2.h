@@ -60,18 +60,19 @@ struct DaGISettings
     float temporalSpeed = 0.25f;
   };
 
-  struct VoxelScene
+  // daSharc, the lit surfaces that trace hits read
+  struct SurfaceCache
   {
-    // speed of convergence (amount of pixels for random sampling from gbuffer).
-    float temporalSpeed = 0.0625f;
-    float sdfResScale = 0.5f; // resolution scale. 0 - means off
-    uint8_t firstSDFClip = 1; // all clips below that would be skipped
-    uint8_t clips = 0;        // autodetect, sdf.clips - firstSDFClip basically
-    bool anisotropy = true;   // 6x more memory, but more accurate in terms of light leaks
-    bool onlyLuma = false;    // 2x times less memory, but stores only luma in radiance lit scene
-    // a hint telling voxel lit scene stores only emission, so it's added on top of sampled GI radiance
-    // instead of replacing it
-    bool onlyEmission = false;
+    uint32_t entries = 384 << 10; // 16 B an entry, 1024 to 2^24; 0 = off
+
+    float cellSize = 0.25f;      // 0.05 to min(4, the first voxel); an SDF clip's cell: max(cellSize, voxelScale * that clip's voxel)
+    float voxelScale = 2.f;      // clamped to 1..4, then snapped in log2: the SDF clear fills each cache voxel from its center
+    uint8_t voxelsFirstClip = 1; // SDF clips from voxelsFirstClip up keep 4 B voxels for unknown cells; none if their sum reaches 2^28
+
+    // GPU budgets a frame, smaller on previous gen
+    uint16_t feedGroups = 1024;       // screen pixel means, 64 or more
+    uint16_t relightThreads = 8192;   // 8192 at most
+    uint16_t voxelRemeanFrames = 256; // catches evictions; a power of 2, 32 to 4096, raised to fit the voxel list
   };
 
   struct AlbedoScene
@@ -81,8 +82,7 @@ struct DaGISettings
     float temporalSpeed = 0.0625; // 0...1
     float yResScale = 0.0f;       // <=0 will make it same as SDF yResScale
 
-    // albedo voxel size. no reason it to be smaller than voxelSceneSize
-    // 0 - means it is SAME size as HALF voxelScene voxel size (which is sdfResScale*sdfVoxelSize[firstSDFClip])
+    // albedo voxel size, clamped to 2 voxels of the coarsest SDF clip over 1..2^clips; 0 - the finest
     float voxel0Size = 0.0f;
 
     float allocation = 0.0f; // <=0 will make it autodetect
@@ -93,8 +93,7 @@ struct DaGISettings
     // 0 - means NO scene. This is perfectly legal!
     uint16_t w = 32, d = 0; // d == 0, means same anisotropy as SDF
     uint8_t clips = 3;
-    // albedo voxel size. no reason it to be smaller than voxelSceneSize
-    // 0 - means it is SAME size as HALF voxelScene voxel size (which is sdfResScale*sdfVoxelSize[firstSDFClip])
+    // media voxel size; 0 - the coarsest clip covers the coarsest SDF clip
     float voxel0Size = 0.0f;
     float temporalSpeed = 0.125; // 0 means off, 1 - maximum temporality
   };
@@ -160,7 +159,7 @@ struct DaGISettings
 
   SDFSettings sdf;
   AlbedoScene albedoScene;
-  VoxelScene voxelScene;
+  SurfaceCache surfaceCache;
   MediaScene mediaScene;
   ScreenProbesSettings screenProbes;
   VolumetricGISettings volumetricGI;
@@ -183,7 +182,7 @@ public:
   virtual void debugRenderScreenDepth() = 0;
   virtual void debugRenderScreen() = 0;
   virtual void debugRenderTrans() = 0;
-  virtual bool sdfClipHasVoxelsLitSceneClip(uint32_t sdf_clip) const = 0;
+  virtual bool sdfClipNeedsLitColor(uint32_t sdf_clip) const = 0;
   virtual void requestUpdatePosition(const request_sdf_radiance_data_cb &sdf_cb, const cancel_sdf_radiance_data_cb &cancel_sdf_cb,
     const request_albedo_data_cb &albedo_cb, const cancel_albedo_data_cb &cancel_albedo_cb) = 0;
   virtual bool requiresUpdate() const = 0;
@@ -228,9 +227,7 @@ public:
   // makes sdf from gbuffer
   // updates GI data from gbuffer. if FrameHasAlbedo (deferred!), albedoScene will be updated
   // updates GI data from (resolved) gbuffer.
-  //  if FrameHasLitScene, voxelLitScene will be updated. You can update using lit data (rendered frame),
-  //    it is cheaper, but will include specular and may be scattering (depends)
-  //  You can also update it using gbuffer (rendered frame)
+  //  SurfaceCache needs FrameHasLitScene (its gbuffer feed also FrameHasDynamic).
   virtual void afterFrameRendered(FrameData frame_featues, const bool allow_update_from_gbuf = true) = 0;
 
   virtual void beforeFrameLit(float quality = 1.0f) = 0; // if quality is 0, we calculate GI with a same algorithm, but as fast as
@@ -239,3 +236,5 @@ public:
 
 DaGI *create_dagi();
 bool is_only_low_gi_supported();
+// the light box of daSharc seeds, feed and relights
+TMatrix4 dagi_lights_globtm(const DaGISettings::SDFSettings &sdf, const Point3 &center);

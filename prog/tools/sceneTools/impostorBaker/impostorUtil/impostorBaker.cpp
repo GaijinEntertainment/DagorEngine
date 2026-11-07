@@ -91,9 +91,12 @@ static struct TreeCrown
          crownCenter2 = Point4(0, 0, 0, 0), invCrownRad2 = Point4(0, 0, 0, 0);
 } treeCrownData;
 
-ImpostorBaker::ImpostorBaker(ILogWriter *log_writer, bool display) noexcept : logWriter(log_writer), displayExportedImages(display)
+ImpostorBaker::ImpostorBaker(ILogWriter *log_writer, const DataBlock &app_blk, bool display) noexcept :
+  logWriter(log_writer), displayExportedImages(display)
 {
   conlog("ImpostorBaker initialized");
+
+  voxelCachePath = voxelcache::get_cache_path(app_blk);
 
   dynamic_impostor_texture_const_no = ShaderGlobal::get_int_fast(::get_shader_glob_var_id("dynamic_impostor_texture_const_no"));
 
@@ -682,7 +685,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
   ret.textures.normal_translucency.getTex2D()->texmiplevel(-1, -1);
   ret.textures.ao_smoothness.getTex2D()->texmiplevel(-1, -1);
   if (impostor_blk)
-    exportAssetBlk(asset, res, exportData, *impostor_blk, aoData);
+    exportAssetBlk(asset, res, last_lod, exportData, *impostor_blk, aoData);
   return ret;
 }
 
@@ -1204,7 +1207,7 @@ void ImpostorBaker::gatherExportedFiles(DagorAsset *asset, eastl::set<String, St
 
   if (type & VOXEL)
   {
-    files.insert(String(0, "%s/%s_%s", baseFolder.c_str(), asset->getName(), voxelcache::VOXEL_CACHE_NAME));
+    files.insert(voxelcache::make_cache_fname(voxelCachePath.c_str(), asset->getName()));
   }
 }
 
@@ -1262,14 +1265,31 @@ void ImpostorBaker::clean(dag::ConstSpan<DagorAsset *> assets, const ImpostorOpt
   }
 }
 
-void ImpostorBaker::exportAssetBlk(DagorAsset *asset, RenderableInstanceLodsResource *res, const ImpostorExportData &export_data,
-  DataBlock &blk, const AOData &ao_data) const
+static bool bakes_facing_leaves(RenderableInstanceLodsResource *res, int baked_lod)
+{
+  if (baked_lod < 0)
+    baked_lod = res->getQlMinAllowedLod();
+  Tab<ShaderMaterial *> mats;
+  res->lods[baked_lod].scene->gatherUsedMat(mats);
+  for (const ShaderMaterial *mat : mats)
+    if (strstr(mat->getShaderClassName(), "facing_leaves"))
+      return true;
+  return false;
+}
+
+void ImpostorBaker::exportAssetBlk(DagorAsset *asset, RenderableInstanceLodsResource *res, int baked_lod,
+  const ImpostorExportData &export_data, DataBlock &blk, const AOData &ao_data) const
 {
   G_ASSERT(asset != nullptr);
   const ImpostorTextureManager::GenerationData genData =
     ImpostorTextureManager::load_data(&asset->props, res, smallestMipSize, preshadowsEnabled, mipOffsets_hq_mq_lq,
       mobileMipOffsets_hq_mq_lq, defaultTextureQualityLevels.size(), defaultTextureQualityLevels.data());
   blk.setBool("preshadowEnabled", genData.preshadowEnabled);
+  // The facing leaves shader bakes its normal in camera space, see rendinst_facing_leaves.dshl.
+  if (bakes_facing_leaves(res, baked_lod))
+    blk.setBool("cameraSpaceFoliageNormals", true);
+  else if (blk.paramExists("cameraSpaceFoliageNormals"))
+    blk.removeParam("cameraSpaceFoliageNormals");
   blk.setReal("bottomGradient", genData.bottomGradient);
   blk.setInt("horizontalSamples", genData.horizontalSamples);
   blk.setInt("verticalSamples", genData.verticalSamples);

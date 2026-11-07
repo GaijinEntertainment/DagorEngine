@@ -19,9 +19,9 @@ struct Capture
 };
 
 #if DAGOR_DBGLEVEL > 0
-// constraint: any thread; 0 while the overlay window does not draw, so a collapsed window ends the session
+// any thread; 0 while the overlay window does not draw, so a collapsed window ends the session
 int active_session();
-// constraint: the capture thread and a communicator's owner thread pass active_session() at least once a second;
+// the capture thread and a communicator's owner thread pass active_session() at least once a second;
 // publish_playback keys a row by the communicator pointer, which stays one communicator's while it publishes
 void publish_capture(int session, const Capture &capture);
 void publish_playback(const void *communicator, int session, dag::ConstSpan<VoiceSourceControl::Metrics> sources);

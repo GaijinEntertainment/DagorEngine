@@ -47,6 +47,7 @@ Point3 getRIGenExtraBsphPos(uint32_t pool);
 Point4 getRIGenExtraBSphereByTM(uint32_t pool, const TMatrix &tm);
 int getRIGenExtraParentForDestroyedRiIdx(uint32_t pool);
 bool isRIGenExtraDestroyedPhysResExist(uint32_t pool);
+bool isRIGenExtraDestroyedPhysNetSynced(uint32_t pool);
 int getRIGenExtraDestroyedRiIdx(uint32_t pool);
 bool isRIGenExtraRendinstClipmapOrLandclass(uint32_t pool);
 vec4f getRIGenExtraBSphere(riex_handle_t id);

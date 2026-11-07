@@ -14,11 +14,12 @@
 #include <render/globTMVars.h>
 #include <math/dag_frustum.h>
 #include <math/dag_mathUtils.h>
+#include <math/dag_adjpow2.h>
 #include <render/noiseTex.h>
 #include "giFrameInfo.h"
 #include "screenSpaceProbes.h"
 #include "volumetricGI.h"
-#include "daGIVoxelScene.h"
+#include "daGISurfaceCache.h"
 #include "daGIAlbedoScene.h"
 #include "radianceGrid.h"
 #include "daGIMediaScene.h"
@@ -41,6 +42,9 @@ CONSOLE_BOOL_VAL("gi", gi_world_sdf_update_from_gbuf, true);
 CONSOLE_BOOL_VAL("gi", gi_remove_sdf_from_depth, true);
 CONSOLE_BOOL_VAL("gi", gi_update_from_gbuf, true);
 CONSOLE_BOOL_VAL("gi", gi_update_from_gbuf_stable, true);
+CONSOLE_INT_VAL("gi", gi_surface_cache_pixels, -1, -1, 65535); // -1: DaGISettings::SurfaceCache
+CONSOLE_INT_VAL("gi", gi_surface_cache_requests, -1, -1, 8192);
+CONSOLE_INT_VAL("gi", gi_surface_cache_refresh, 64, 0, 4096);
 
 CONSOLE_INT_VAL("gi", gi_debug_volumetric_probes_type, 0, 0, 2);
 CONSOLE_INT_VAL("gi", gi_debug_screen_space_probes_type, 0, 0, 8);
@@ -57,9 +61,7 @@ CONSOLE_BOOL_VAL("gi", gi_auto_invalidation, true);
 
 #define GLOBAL_VARS_LIST VAR(world_view_pos)
 
-#define GLOBAL_VARS_OPT_LIST  \
-  VAR(dagi_warp64_irradiance) \
-  VAR(dagi_voxel_lit_scene_only_emission)
+#define GLOBAL_VARS_OPT_LIST VAR(dagi_warp64_irradiance) VAR(dagi_rad_grid_surface_cache_requests)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a);
 GLOBAL_VARS_LIST
@@ -71,11 +73,9 @@ GLOBAL_VARS_OPT_LIST
 
 struct DaGIImpl final : public DaGI
 {
-  bool sdfClipHasVoxelsLitSceneClip(uint32_t sdf_clip) const
+  bool sdfClipNeedsLitColor(uint32_t sdf_clip) const
   {
-    if (!voxelScene || !worldSdf)
-      return false;
-    return uint32_t(sdf_clip - voxelScene->firstSdfClip) < uint32_t(voxelScene->clips);
+    return surfaceCache && allowUpdate == RadianceUpdate::On && sdf_clip < surfaceCache->levels;
   }
   void invalidateAll();
   void afterReset();
@@ -111,12 +111,6 @@ struct DaGIImpl final : public DaGI
   eastl::unique_ptr<WorldSDF> worldSdf;
   DaGIImpl()
   {
-    unoderedTypedLoad = !is_only_low_gi_supported();
-    {
-      int varId = get_shader_variable_id("dagi_voxel_lit_scene_emission_only_supported", true);
-      voxelSceneEmissionOnlySupported = ShaderGlobal::is_var_assumed(varId) && ShaderGlobal::get_interval_assumed_value(varId) > 0;
-    }
-
     debug("waveOps %d, warpSize %d %d", d3d::get_driver_desc().caps.hasWaveOps, d3d::get_driver_desc().minWarpSize,
       d3d::get_driver_desc().maxWarpSize);
     ShaderGlobal::set_int(dagi_warp64_irradianceVarId,
@@ -149,14 +143,12 @@ struct DaGIImpl final : public DaGI
   uint32_t historyFrames = 0;
   uint32_t frame = 0;
   eastl::unique_ptr<DaGIMediaScene> mediaScene;
-  eastl::unique_ptr<DaGIVoxelScene> voxelScene;
+  eastl::unique_ptr<DaGISurfaceCache> surfaceCache;
   eastl::unique_ptr<DaGIAlbedoScene> albedoScene;
   eastl::unique_ptr<SkyVisibility> skyVisibility;
   UniqueBuf commonTempBuffer;
-  bool unoderedTypedLoad = true;
   bool positionUpdated = false;
   bool pendingUpdateAfterDeviceReset = false;
-  bool voxelSceneEmissionOnlySupported = false;
 
   struct RadianceInvalidation
   {
@@ -234,11 +226,18 @@ void DaGIImpl::fix(DaGISettings &s) const
   s.sdf.yResScale = float(yRes) / s.sdf.texWidth;
   s.sdf.voxel0Size = clamp(s.sdf.voxel0Size, 0.0625f, 4.f);
 
-  s.voxelScene.firstSDFClip = clamp<int>(s.voxelScene.firstSDFClip, 0, s.sdf.clips - 1);
-  if (s.voxelScene.clips == 0)
-    s.voxelScene.clips = s.sdf.clips;
-  s.voxelScene.clips = clamp<int>(s.voxelScene.clips, 1, s.sdf.clips - s.voxelScene.firstSDFClip);
-  s.voxelScene.sdfResScale = unoderedTypedLoad ? min(s.voxelScene.sdfResScale, 1.f) : 0.f;
+  if (s.surfaceCache.entries)
+  {
+    s.surfaceCache.entries = clamp<uint32_t>(s.surfaceCache.entries, 1024, 1 << 24);
+    s.surfaceCache.voxelScale = exp2f(roundf(log2f(clamp(s.surfaceCache.voxelScale, 1.f, 4.f))));
+    // a cell must not span several voxels
+    const float firstVoxel =
+      s.surfaceCache.voxelScale * s.sdf.voxel0Size * exp2f(min<int>(s.surfaceCache.voxelsFirstClip, s.sdf.clips));
+    s.surfaceCache.cellSize = clamp(s.surfaceCache.cellSize, 0.05f, min(4.f, firstVoxel));
+    s.surfaceCache.feedGroups = max<uint16_t>(s.surfaceCache.feedGroups, 64);
+    s.surfaceCache.relightThreads = min<uint16_t>(s.surfaceCache.relightThreads, 8192);
+    s.surfaceCache.voxelRemeanFrames = get_bigger_pow2(clamp<uint16_t>(s.surfaceCache.voxelRemeanFrames, 32, 4096));
+  }
 
   if (s.radianceGrid.w)
     RadianceGrid::fixup_settings(s.radianceGrid.w, s.radianceGrid.d, s.radianceGrid.clips, s.radianceGrid.additionalIrradianceClips,
@@ -279,20 +278,18 @@ void DaGIImpl::fix(DaGISettings &s) const
     uint8_t w = 1, d = 1;
     DaGIAlbedoScene::fixup_settings(w, d, s.albedoScene.clips);
     s.albedoScene.voxel0Size = calc_albedo_voxel_size(s.albedoScene.voxel0Size, s.sdf.voxel0Size, s.sdf.clips, s.albedoScene.clips);
-    const float maxAlbedoVoxelSize = DaGIAlbedoScene::clip_voxel_size(s.albedoScene.voxel0Size, s.albedoScene.clips - 1);
-    // never reach 0, DaGIVoxelScene::init clamps clips to 1 anyway and settings must agree with it
-    for (; s.voxelScene.sdfResScale && s.voxelScene.clips > 1; --s.voxelScene.clips)
-    {
-      const int sdfClip = s.voxelScene.clips + s.voxelScene.firstSDFClip - 1;
-      float litVoxelSize = s.voxelScene.sdfResScale * WorldSDF::get_voxel_size(s.sdf.voxel0Size, sdfClip);
-
-      if (litVoxelSize < maxAlbedoVoxelSize * 0.5)
-        break;
-    }
   }
 }
 
 DaGI *create_dagi() { return new DaGIImpl; }
+
+TMatrix4 dagi_lights_globtm(const DaGISettings::SDFSettings &sdf, const Point3 &center)
+{
+  const float xzSize = float((1 << max(sdf.clips - 3, 0)) * sdf.texWidth) * sdf.voxel0Size;
+  const Point3 halfSize = Point3(xzSize, xzSize * sdf.yResScale, xzSize) * 0.5f;
+  const BBox3 box(center - halfSize, center + halfSize);
+  return matrix_ortho_off_center_lh(box[0].x, box[1].x, box[1].y, box[0].y, box[0].z, box[1].z);
+}
 
 void DaGIImpl::debugRenderScreenDepth()
 {
@@ -317,8 +314,8 @@ void DaGIImpl::debugRenderTrans()
   set_view_vars(view);
   if (mediaScene)
     mediaScene->debugRender();
-  if (voxelScene)
-    voxelScene->debugRender();
+  if (surfaceCache)
+    surfaceCache->debugRender();
   if (albedoScene)
     albedoScene->debugRender();
 
@@ -356,7 +353,6 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
   set_view_vars(view);
 
   const Point3 &pos = view.giPos;
-  bool renderedSdf = false;
   DA_PROFILE_GPU;
   if (albedoScene)
     albedoScene->update(pos, false,
@@ -364,6 +360,8 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
   if (mediaScene)
     mediaScene->updatePos(pos, false, prepare_media_cb);
 
+  if (surfaceCache)
+    surfaceCache->beginSdfUpdate(pos, allowUpdate == RadianceUpdate::On);
   worldSdf->update(
     pos,
     [&](const bbox3f *, int, UpdateSDFQualityRequest, int, uint32_t &) -> UpdateSDFQualityStatus {
@@ -371,21 +369,15 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
     },
     [&](const bbox3f, int) { return true; },
     [&](int world_clip, const BBox3 &box, float voxelSize, int /*max_instances*/) {
-      if (voxelScene && renderedSdf)
-        voxelScene->rbNone();
+      if (surfaceCache)
+        surfaceCache->sdfClipCleared();
       uintptr_t handle = 0;
-      renderedSdf = sdf_cb(world_clip, box, voxelSize, handle) == UpdateGiQualityStatus::RENDERED;
-      if (voxelScene && renderedSdf)
-      {
-        G_ASSERTF(allowUpdate == RadianceUpdate::On || !voxelScene || world_clip >= voxelScene->getSdfClips(),
-          "allowUpdate = %d world_clip = %d >= %d", (int)allowUpdate, world_clip, voxelScene ? voxelScene->getSdfClips() : -1);
-        voxelScene->rbFinish();
-      }
-      return renderedSdf;
+      return sdf_cb(world_clip, box, voxelSize, handle) == UpdateGiQualityStatus::RENDERED;
     },
-    voxelScene &&allowUpdate == RadianceUpdate::Off ? ~((1 << voxelScene->getSdfClips()) - 1) : ~0u);
-  if (voxelScene && renderedSdf)
-    voxelScene->rbFinish(); // after copy slice
+    // daSharc clips wait: seeds need valid shadows
+    surfaceCache &&allowUpdate == RadianceUpdate::Off ? ~((1u << surfaceCache->levels) - 1) : ~0u);
+  if (surfaceCache)
+    surfaceCache->endSdfUpdate();
 
   if (gi_radiance_grid_update_position && radianceGrid)
   {
@@ -601,11 +593,12 @@ void DaGIImpl::invalidateAll()
     mediaScene->afterReset();
   if (albedoScene)
     albedoScene->afterReset();
-  if (voxelScene)
-    voxelScene->afterReset();
+  if (surfaceCache)
+    surfaceCache->afterReset();
   if (worldSdf)
     worldSdf->fullReset();
   historyFrames = 0;
+  frame = 0;
 #if RADIANCE_CACHE
   G_ASSERTF(0, "fixme: reset support are not implemented yet");
 #endif
@@ -618,10 +611,14 @@ bool DaGIImpl::requiresUpdate() const { return pendingUpdateAfterDeviceReset; }
 void DaGIImpl::afterFrameRendered(FrameData frame_featues, const bool allow_update_from_gbuf)
 {
   if (!positionUpdated)
+  {
+    // relights still run, so ages go on
+    if (surfaceCache)
+      surfaceCache->update(0, gi_surface_cache_refresh);
     return;
+  }
   DA_PROFILE_GPU;
-  // TODO: We could actually update just emission instead of disabling completely.
-  if (allowUpdate == RadianceUpdate::Off || currentSettings.voxelScene.onlyEmission)
+  if (allowUpdate == RadianceUpdate::Off)
     frame_featues = FrameData(frame_featues & ~FrameHasLitScene);
   if (gi_update_from_gbuf && allow_update_from_gbuf)
   {
@@ -631,8 +628,6 @@ void DaGIImpl::afterFrameRendered(FrameData frame_featues, const bool allow_upda
         worldSdf->removeFromDepth();
       else if (gi_world_sdf_update_from_gbuf)
         worldSdf->markFromGbuffer();
-      if (voxelScene && (frame_featues & FrameHasLitScene))
-        voxelScene->updateFromGbuf();
       if (albedoScene && (frame_featues & FrameHasAlbedo))
         albedoScene->updateFromGbuf();
       if (mediaScene && (frame_featues & FrameHasAlbedo))
@@ -641,6 +636,12 @@ void DaGIImpl::afterFrameRendered(FrameData frame_featues, const bool allow_upda
     else if (frame_featues & FrameHasDepth)
       worldSdf->removeFromDepth();
   }
+  // cell ages go on without the gbuffer feed
+  if (surfaceCache && (frame_featues & FrameHasLitScene))
+    surfaceCache->update(gi_update_from_gbuf && allow_update_from_gbuf && (frame_featues & FrameHasDynamic)
+                           ? (gi_surface_cache_pixels >= 0 ? gi_surface_cache_pixels.get() : currentSettings.surfaceCache.feedGroups)
+                           : 0,
+      gi_surface_cache_refresh);
   if (albedoScene)
     albedoScene->fixBlocks();
   if (radianceGrid)
@@ -689,27 +690,12 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
     mediaScene->setTemporalSpeedFromGbuf(currentSettings.mediaScene.temporalSpeed);
   }
 
-  if (voxelScene && currentSettings.voxelScene.sdfResScale <= 0)
-    voxelScene.reset();
-  else if (!voxelScene && currentSettings.voxelScene.sdfResScale > 0)
-  {
-    voxelScene = eastl::make_unique<DaGIVoxelScene>();
+  if (!currentSettings.surfaceCache.entries)
+    surfaceCache.reset();
+  else if (!surfaceCache)
+    surfaceCache = eastl::make_unique<DaGISurfaceCache>();
+  if (surfaceCache && surfaceCache->init(currentSettings.surfaceCache, *worldSdf, sdfW, sdfH))
     worldSdf->fullReset(false);
-  }
-
-  if (voxelScene)
-  {
-    voxelScene->init(sdfW, sdfH, currentSettings.voxelScene.sdfResScale, currentSettings.voxelScene.firstSDFClip,
-      currentSettings.voxelScene.clips, currentSettings.voxelScene.anisotropy ? DaGIVoxelScene::Aniso::On : DaGIVoxelScene::Aniso::Off,
-      currentSettings.voxelScene.onlyLuma ? DaGIVoxelScene::Radiance::Luma : DaGIVoxelScene::Radiance::Colored);
-    voxelScene->setTemporalSpeedFromGbuf(currentSettings.voxelScene.temporalSpeed);
-    voxelScene->setTemporalFromGbufStable(gi_update_from_gbuf_stable); // fixme:should be setting
-    voxelScene->doPendingClear();
-    if (voxelSceneEmissionOnlySupported)
-      ShaderGlobal::set_int(dagi_voxel_lit_scene_only_emissionVarId, currentSettings.voxelScene.onlyEmission);
-    else
-      G_ASSERT(!currentSettings.voxelScene.onlyEmission);
-  }
   if (currentSettings.skyVisibility.clipW && !skyVisibility)
     skyVisibility = eastl::make_unique<SkyVisibility>();
   else if (!currentSettings.skyVisibility.clipW && skyVisibility)
@@ -863,7 +849,6 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
   }
   G_ASSERT(!screenProbes || radianceGrid);
   G_ASSERT(bool(skyVisibility) != bool(radianceGrid));
-  G_ASSERT(skyVisibility || !currentSettings.voxelScene.onlyLuma);
   if (allowUpdate == RadianceUpdate::Off && ru == RadianceUpdate::On && gi_auto_invalidation)
   {
     if (volumetricGI)
@@ -877,6 +862,10 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
     historyFrames = 0;
   }
   allowUpdate = ru;
+  const bool gridRequests = surfaceCache && ru == RadianceUpdate::On && !(screenProbes && gi_screen_probes.get());
+  if (surfaceCache && !gridRequests && ShaderGlobal::get_int(dagi_rad_grid_surface_cache_requestsVarId))
+    surfaceCache->clearRequests();
+  ShaderGlobal::set_int(dagi_rad_grid_surface_cache_requestsVarId, gridRequests);
 }
 
 void DaGIImpl::beforeFrameLit(float dynamic_quality)
@@ -884,6 +873,8 @@ void DaGIImpl::beforeFrameLit(float dynamic_quality)
   DA_PROFILE_GPU;
 
   set_view_vars(view);
+  if (surfaceCache)
+    surfaceCache->updateVoxels();
 #if RADIANCE_CACHE
   if (radianceCache)
   {
@@ -923,10 +914,20 @@ void DaGIImpl::beforeFrameLit(float dynamic_quality)
       radianceCache->calcAllProbes();
   }
 #endif
+  const uint32_t relightThreads =
+    surfaceCache && radianceGrid && allowUpdate == RadianceUpdate::On
+      ? (gi_surface_cache_requests >= 0 ? gi_surface_cache_requests.get() : currentSettings.surfaceCache.relightThreads)
+      : 0;
+  auto relightHits = [&] { surfaceCache->relight(relightThreads); };
   if (screenProbes && gi_screen_probes.get())
   {
-    screenProbes->relightProbes(dynamic_quality, dynamic_quality > 0.5);
+    screenProbes->relightProbes(dynamic_quality, dynamic_quality > 0.5 && currentSettings.screenProbes.angleFiltering,
+      relightThreads ? dag::FunctionRef<void()>(relightHits) : dag::FunctionRef<void()>());
   }
+  else if (relightThreads)
+    relightHits();
+  if (surfaceCache)
+    surfaceCache->clearRequests();
   if (volumetricGI)
     volumetricGI->calc(view.viewItm, view.projTm, view.znear, view.zfar, dynamic_quality);
   workAroundUAVslots();

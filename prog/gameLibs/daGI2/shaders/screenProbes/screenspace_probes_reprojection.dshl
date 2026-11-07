@@ -146,7 +146,7 @@ macro REPROJECT_SP_WEIGHTS(code)
 
       struct SRVBufferInfo srvInfo;
       srvInfo.posBuffer = prev_screenspace_probe_pos;
-      UpsampleCornerWeights corners = calc_upsample_weights(srvInfo, vInfo, pointInfo, depth_exp);
+      UpsampleCornerWeights corners = calc_upsample_weights(srvInfo, vInfo, pointInfo, depth_exp, true, true);
       cornerW = select(corners.depthWeights < threshold, float4(0,0,0,0), corners.cornerDepthBilWeights);//corners.sampleBilWeights;
       probe_coords = corners.atlasSampleProbeCoord;
       encodedProbes = select(cornerW > 0, corners.encodedProbes, uint4(0,0,0,0));

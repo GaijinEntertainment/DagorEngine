@@ -48,6 +48,25 @@ bool tilecache_ri_is_blocking(rendinst::riex_handle_t handle)
   return setup->overrideTypeValue == 1;
 }
 
+bool tilecache_ri_get_after_destroy_obstacle(rendinst::riex_handle_t handle, BBox3 &out_oobb, bool &out_block)
+{
+  if (handle == rendinst::RIEX_HANDLE_NULL)
+    return false;
+  const int resIdx = rendinst::handle_to_ri_type(handle);
+  const auto setup = riObstacleSettings.findRiEx(resIdx);
+  if (!setup || setup->afterDestroyObstacleType < 0)
+    return false;
+  const CollisionResource *collRes = rendinst::getRIGenExtraCollRes(resIdx);
+  if (!collRes)
+    return false;
+  BBox3 collBox;
+  v_stu_bbox3(collBox, collRes->vFullBBox);
+  const Point3 collSize = collBox.width();
+  out_oobb = BBox3(collBox[0] + mul(collSize, setup->afterDestroyBoxRel[0]), collBox[0] + mul(collSize, setup->afterDestroyBoxRel[1]));
+  out_block = setup->afterDestroyObstacleType == 1;
+  return true;
+}
+
 obstacle_handle_t tilecache_ri_get_obstacle_handle(rendinst::riex_handle_t handle)
 {
   auto it = riHandle2obstacle.find(handle);

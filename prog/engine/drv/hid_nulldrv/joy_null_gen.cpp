@@ -9,7 +9,4 @@ HumanInput::IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bo
   return HumanInput::createNullJoystickClassDriver();
 }
 
-HumanInput::IGenJoystickClassDrv *HumanInput::createSonyPadJoystickClassDriver()
-{
-  return HumanInput::createNullJoystickClassDriver();
-}
+HumanInput::IGenJoystickClassDrv *HumanInput::createDsPadJoystickClassDriver() { return HumanInput::createNullJoystickClassDriver(); }

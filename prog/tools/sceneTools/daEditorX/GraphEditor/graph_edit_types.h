@@ -34,6 +34,14 @@ struct GraphSelection
   bool operator==(const GraphSelection &) const = default;
 };
 
+// One subgraph instance's pins and the edges touching it, each edge with its list index, ascending.
+struct InstancePins
+{
+  eastl::vector<GraphData::Pin> pins;
+  eastl::vector<GraphData::Edge> edges;
+  eastl::vector<int> edgeIndices;
+};
+
 // Substituted for UNSET_HEIGHT rather than stored, so an unset graph and one saved with the default
 // read the same. The values mirror what the standalone graphEditor app reads from landSettings.
 constexpr float DEFAULT_HEIGHT_SCALE = 2000.0f;

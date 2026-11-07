@@ -1,6 +1,7 @@
 include "shader_global.dshl"
 include "dagi_irrad_grid_sample.dshl"
 include "frustum.dshl"
+include "tonemapHelpers/debug_draw_hdr_inc.dshl"
 
 int dagi_irrad_grid_debug_type;
 
@@ -8,6 +9,7 @@ shader dagi_irrad_grid_draw_debug
 {
   supports global_frame;
   supports none;
+  color_write = rgb;
   (vs) {
     globtm@f44 = globtm;
     dagi_irrad_grid_debug_type@i1 = dagi_irrad_grid_debug_type;
@@ -15,8 +17,7 @@ shader dagi_irrad_grid_draw_debug
   DAGI_IRRAD_GRID_CLIPMAP_MATH(vs)
   DAGI_IRRADIANCE_GRID_SAMPLE(ps)
   INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
-  INIT_HDR(ps)
-  USE_HDR(ps)
+  INIT_AND_USE_DEBUG_DRAW_HDR()
   hlsl {
     #include "spheres_vertices.hlsl"
     struct VsOutput
@@ -67,7 +68,7 @@ shader dagi_irrad_grid_draw_debug
       sh1e.s1 = texture3DAt(dagi_irradiance_grid_sph1, t);
       SH1 sh1 = dagi_irrad_decode_sh1(sh1e);
 
-      return pack_hdr(sh1_premul_exp1_irradiance(sh1, dir));
+      return pack_debug_draw_hdr(sh1_premul_exp1_irradiance(sh1, dir));
     }
   }
   compile("target_vs", "test_vs");

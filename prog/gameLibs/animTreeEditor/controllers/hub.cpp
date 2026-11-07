@@ -124,7 +124,7 @@ void hub_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataB
     settings->removeBlock(positions[removeIdx]);
 }
 
-void AnimTreeEditor::hubFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings)
+void AnimTreeEditor::hubFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings)
 {
   int childNid = settings.getNameId("child");
   for (int i = 0; i < settings.blockCount(); ++i)
@@ -134,7 +134,7 @@ void AnimTreeEditor::hubFindChilds(PropPanel::ContainerPropertyControl *panel, A
       const char *childName = childBlock->getStr("name", nullptr);
       if (childName)
       {
-        const int idx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
+        const int idx = add_ctrl_child_idx_by_name(child_index, data, childName);
         check_ctrl_child_idx(idx, settings.getStr("name"), childName, childBlock->getBool("optional", false));
       }
       else

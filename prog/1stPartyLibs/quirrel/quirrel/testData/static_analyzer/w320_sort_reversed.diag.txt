@@ -1,0 +1,44 @@
+WARNING: w320 (callback-should-return-value) Callback passed to 'sort_reversed' must return a value.
+testData/static_analyzer/w320_sort_reversed.nut:8:20
+
+  // should warn: the callback returns nothing
+  arr.sort_reversed(function(a, b) { print(a + b) })
+                    ^------------------------------
+  arr.sortby_reversed(function(v) { print(v) })
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'sortby_reversed' must return a value.
+testData/static_analyzer/w320_sort_reversed.nut:9:22
+
+  arr.sort_reversed(function(a, b) { print(a + b) })
+  arr.sortby_reversed(function(v) { print(v) })
+                      ^-----------------------
+
+
+WARNING: w335 (mutating-shared-default) Parameter 'a' has a mutable default value and is modified.
+testData/static_analyzer/w320_sort_reversed.nut:18:2
+
+function sorts_shared_default(a = []) {
+  a.sort_reversed()
+  ^----------------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 'a' has a mutable default value and is modified.
+testData/static_analyzer/w320_sort_reversed.nut:22:2
+
+function sorts_by_key_shared_default(a = []) {
+  a.sortby_reversed(@(v) v)
+  ^------------------------
+}
+
+
+WARNING: w281 (unwanted-modification) Function 'sort_reversed' modifies the object. You probably didn't want to modify the object here.
+testData/static_analyzer/w320_sort_reversed.nut:26:9
+
+function sorts_temporary_or_param(arr) {
+  return (arr ?? []).sort_reversed()
+         ^--------------------------
+}
+
+

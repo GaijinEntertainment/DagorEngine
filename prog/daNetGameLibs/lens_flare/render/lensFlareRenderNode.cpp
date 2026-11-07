@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "lensFlareNodes.h"
+#include <render/compressedRtOverrideFlag.h>
 
 #include <render/lensFlare/render/lensFlareRenderer.h>
 #include <render/daFrameGraph/daFG.h>
@@ -15,7 +16,7 @@ dafg::NodeHandle create_lens_flare_per_camera_res_node(const LensFlareQualityPar
     uint32_t rtFmt = TEXFMT_R11G11B10F;
     if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET))
       rtFmt = TEXFMT_A16B16G16R16F;
-    const uint32_t texFmt = rtFmt | TEXCF_RTARGET;
+    const uint32_t texFmt = rtFmt | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG;
     registry.createTexture2d("lens_flares", {texFmt, resolution}).clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
     auto hasLensFlaresHndl = registry.createBlob<int>("has_lens_flares").handle();

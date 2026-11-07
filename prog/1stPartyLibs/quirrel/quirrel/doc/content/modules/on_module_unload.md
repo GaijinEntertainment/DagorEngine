@@ -22,11 +22,10 @@ registered callback must accept zero or one argument.
 
 ## Notes
 
-The callback runs later, not immediately: once when the module manager is
-destroyed (typically at process exit), with `is_app_closing` set to `true`,
-and also once before a hot reload of a module or of all modules, with
-`is_app_closing` set to `false`. Callbacks run in the order they were
-registered.
+The callback runs later, not immediately: once when the host closes the VM
+(typically at process exit), with `is_app_closing` set to `true`, and also
+once before a hot reload of a module or of all modules, with `is_app_closing`
+set to `false`. Callbacks run in the order they were registered.
 
 Registering the exact same function object a second time has no extra effect:
 only one call happens per distinct callback, however many times it was

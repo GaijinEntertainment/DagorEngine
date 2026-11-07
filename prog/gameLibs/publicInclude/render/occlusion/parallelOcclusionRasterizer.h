@@ -108,7 +108,7 @@ private:
     void start(uint32_t &qpos)
     {
       trianglesCount = 0;
-      // Note: would be wake-up either by wake_up_all in `animchar_before_render_es` or `bvh_start_before_render_jobs_es`
+      // Note: would be wake-up either by wake_up_all in `animchar_before_render_es` or `bvh_wake_up_before_render_jobs_es`
       threadpool::add(this, prio, qpos, threadpool::AddFlags::None);
     }
     const char *getJobName(bool &) const override { return DAPROFILER_STRING("rasterizer_all_tasks"); }
@@ -185,10 +185,11 @@ private:
     uint32_t initialTile = 0;
     uint32_t endTile = 0;
     uint32_t quant = 256;
+    bool twoLayer = false;
     dag::AtomicInteger<uint32_t> &mergedTiles;
 
     MergingJob(Occlusion &target, MaskedOcclusionCulling **occl, uint32_t occl_count, uint32_t end_tile, uint32_t quant_,
-      dag::AtomicInteger<uint32_t> &t) :
+      bool two_layer, dag::AtomicInteger<uint32_t> &t) :
       mergedTiles(t)
     {
       targetOcclusion = &target;
@@ -196,14 +197,28 @@ private:
       occlusionsCount = occl_count;
       endTile = end_tile;
       quant = quant_;
+      twoLayer = two_layer;
       initialTile = mergedTiles.fetch_add(quant, dag::memory_order_relaxed);
     }
     const char *getJobName(bool &) const override { return DAPROFILER_STRING("merge_occlusion"); }
     virtual void doJob() override
     {
-      for (uint32_t startTile = initialTile; startTile < endTile; startTile = mergedTiles.fetch_add(quant))
-        targetOcclusion->mergeOcclusionsZmin(occlusions, occlusionsCount, startTile,
-          startTile + eastl::min(quant, endTile - startTile));
+      if (twoLayer)
+      {
+        for (uint32_t startTile = initialTile; startTile < endTile; startTile = mergedTiles.fetch_add(quant))
+        {
+          const uint32_t lastTile = startTile + eastl::min(quant, endTile - startTile);
+          targetOcclusion->mergeOcclusions(occlusions, occlusionsCount, startTile, lastTile);
+        }
+      }
+      else
+      {
+        for (uint32_t startTile = initialTile; startTile < endTile; startTile = mergedTiles.fetch_add(quant))
+        {
+          const uint32_t lastTile = startTile + eastl::min(quant, endTile - startTile);
+          targetOcclusion->mergeOcclusionsZmin(occlusions, occlusionsCount, startTile, lastTile);
+        }
+      }
     }
   };
 
@@ -220,8 +235,9 @@ public:
   void rasterizeMeshes(eastl::vector<RasterizationTaskData> &&tasks, float z_near,
     MaskedOcclusionCulling::BackfaceWinding backface_winding = MaskedOcclusionCulling::BACKFACE_CCW,
     eastl::fixed_function<sizeof(void *) * 3, void()> &&done_cb = {});
-  // Merge rasterized geometry
-  uint32_t mergeRasterizationResults(Occlusion &occlusion, bool active_wait = true);
+  // Merge rasterized geometry. merge_two_layers also folds the workers' partial coverage into the
+  // target, so subtiles split between workers promote; false merges the full-coverage depth only.
+  uint32_t mergeRasterizationResults(Occlusion &occlusion, bool merge_two_layers, bool active_wait = true);
 
   void waitRasterizeJobs()
   {

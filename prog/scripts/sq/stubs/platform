@@ -10,6 +10,7 @@ return {
   get_platform_sdk = @() get_arg_value_by_name("sdk") ?? "none"
   get_default_lang = @() "English"
   is_gdk_used = @() ["xboxScarlett", "xboxOne"].contains(get_arg_value_by_name("platform"))
+  is_running_on_handheld = @() false
   XBOXONE = "XBOXONE"
   XBOXONE_S = "XBOXONE_S"
   XBOXONE_X = "XBOXONE_X"

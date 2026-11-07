@@ -269,6 +269,7 @@ public:
     int tri_count);
   void finalizeSWOcclusion();
   void finalizeOcclusion();
+  void mergeOcclusions(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile, uint32_t last_tile);
   void mergeOcclusionsZmin(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile, uint32_t last_tile);
   void finalizeSWOcclusionMerge() { hasMergedOcclusion = true; }
   void getMaskedResolution(uint32_t &width, uint32_t &height) const;

@@ -351,10 +351,12 @@ IndoorProbeManager::Point4LocalVector IndoorProbeManager::packMatricesAndProbesD
   {
     const uint32_t activeSlot =
       eastl::distance(activeProbeIds.begin(), eastl::find(activeProbeIds.begin(), activeProbeIds.end(), probe_indices[i]));
-    if (activeSlot == activeProbeIds.size() || activeProbeIds[activeSlot] == -1 || !activeProbes[activeSlot].isValid())
+    if (activeSlot == activeProbeIds.size() || activeProbeIds[activeSlot] == -1)
       continue;
+    const LightProbe &probe = activeProbes[activeSlot];
+    const uint32_t cubeId = probe.isValid() ? probe.getCubeIndex() : PENDING_CUBE_ID;
     const Point3 probePos = probesPositions[activeProbeIds[activeSlot]];
-    dataToShader[i + 3 * max_count] = Point4(probePos.x, probePos.y, probePos.z, activeProbes[activeSlot].getCubeIndex());
+    dataToShader[i + 3 * max_count] = Point4(probePos.x, probePos.y, probePos.z, cubeId);
     dataToShader[i / 4 + 4 * max_count][i % 4] = shapeTypes[i];
   }
 
@@ -477,7 +479,7 @@ eastl::tuple<CpuMatrices, CpuIndices, CpuIndices, bool> IndoorProbeManager::cpuC
         uint32_t cubeIdx = sceneData->nodeIdxToProbeIdx[idx];
         const uint32_t activeSlot =
           eastl::distance(activeProbeIds.begin(), eastl::find(activeProbeIds.begin(), activeProbeIds.end(), cubeIdx));
-        if (activeSlot == activeProbeIds.size() || activeProbeIds[activeSlot] == -1 || !activeProbes[activeSlot].isValid())
+        if (activeSlot == activeProbeIds.size() || activeProbeIds[activeSlot] == -1)
           return;
         cpuMatrices.push_back(m);
         cpuIndices.push_back(cubeIdx);

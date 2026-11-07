@@ -8,6 +8,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <EASTL/unique_ptr.h>
 #include <3d/dag_texMgrTags.h>
 #include <osApiWrappers/dag_files.h>
@@ -230,6 +231,10 @@ LandMeshManager::LandMeshManager(bool tools_internal, LandMeshCullingState::Cull
 {
   mem_set_0(megaDetailsArrayId); // fill with BAD_TEXTUREID=0
   landTracer = NULL;
+  landCellSize = 0;
+  mapSizeX = mapSizeY = 0;
+  origin = IPoint2(0, 0);
+  offset = Point3(0, 0, 0);
   cullingState.cullMode = cull_mode;
   lmeshVdata = combinedVdata = NULL;
   useVertTexforHMAP = true;
@@ -699,9 +704,9 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
               }
             }
             const_cast<ShaderMesh::RElem &>(re).baseVertex = lmeshBaseVertex[vDataI];
-            unsigned flag = (*vbData > 65536) ? VDATA_I32 : VDATA_I16;
-            flags |= flag;
-            const_cast<ShaderMesh::RElem &>(re).si += lmeshBaseIndex[vDataI] / (flag == VDATA_I32 ? 4 : 2);
+            const int idxStride = re.vertexData->getIbElemSz();
+            flags |= idxStride == 4 ? VDATA_I32 : VDATA_I16;
+            const_cast<ShaderMesh::RElem &>(re).si += lmeshBaseIndex[vDataI] / idxStride;
             const_cast<ShaderMesh::RElem &>(re).vertexData = startVD + newVdataId;
           }
         }
@@ -804,15 +809,16 @@ void LandMeshManager::afterDeviceResetInternal(LandMeshRenderer *lrend, IGenLoad
 
     // The atlas was built without a system copy on the promise that we would do
     // this, so its pages are gone; the records survive but describe nothing.
+    // No atlas means its load failed (e.g. on a lost device), so try again.
     // tools mode never opts in, and its load would hand back an empty editable
     // atlas in place of the painted one
-    if (weightAtlas && dataReset == LandMeshReset::ReloadFromSource && srcFileDetailMapOfs && !toolsInternal)
+    if ((!weightAtlas || dataReset == LandMeshReset::ReloadFromSource) && srcFileDetailMapOfs && !toolsInternal)
     {
       const int t1 = get_time_msec();
       crd.seekto(srcFileDetailMapOfs);
       fatal_context_push("landMesh::weights");
       LandWeightAtlas *fresh = nullptr;
-      detailMap.load(crd, baseDataOffset, toolsInternal, &fresh, 0); // no copy: this reload is the recovery
+      detailMap.load(crd, baseDataOffset, toolsInternal, &fresh, get_weight_tex_cflgs(dataReset));
       fatal_context_pop();
       if (fresh)
       {
@@ -820,7 +826,7 @@ void LandMeshManager::afterDeviceResetInternal(LandMeshRenderer *lrend, IGenLoad
         weightAtlas = fresh;
         debug("reloaded land weight atlas for %d msec (from %s:0x%x)", get_time_msec() - t1, crd.getTargetName(), srcFileDetailMapOfs);
       }
-      else
+      else if (weightAtlas)
         // there is no atlas-less fallback in the shaders, and the stale atlas
         // still has coherent records - only its pages are gone - so keeping it
         // degrades to wrong blends instead of undefined reads
@@ -855,6 +861,13 @@ void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset,
   }
   else
     afterDeviceResetInternal(lrend, nullptr);
+  if (full_reset)
+    renderDataResetCounter = get_d3d_full_reset_counter();
+}
+
+bool LandMeshManager::pendingDeviceReset() const
+{
+  return renderDataResetCounter && renderDataResetCounter != get_d3d_full_reset_counter();
 }
 
 /*static*/
@@ -938,6 +951,8 @@ PhysMap *LandMeshManager::loadPhysMap(IGenLoad &loadCb, bool lmp2)
 bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, bool load_render_data, LandMeshReset reset)
 {
   dataReset = reset;
+  if (load_render_data)
+    renderDataResetCounter = get_d3d_full_reset_counter();
   dagor_set_sm_tex_load_ctx_type('LMAP');
   dagor_set_sm_tex_load_ctx_name(NULL);
   textag_clear_tag(TEXTAG_LAND);
@@ -1406,8 +1421,8 @@ bool LandMeshManager::loadHeightmapDump(IGenLoad &loadCb, bool load_render_data,
     return false;
   }
   else
-    replaceHeightmapHandler(h, !h->isMirror()); // to keep behavior as it was before this commit, we explicitly say we need landTracer.
-                                                // Replace with false if we ok with it being infinite
+    replaceHeightmapHandler(h, !h->isMainHmap()); // to keep behavior as it was before this commit, we explicitly say we need
+                                                  // landTracer. Replace with false if we ok with it being infinite
   return true;
 }
 
@@ -1476,16 +1491,26 @@ bool LandMeshManager::getHeight(const Point2 &p, real &ht, Point3 *normal)
 {
   if (holesMgr && holesMgr->check(p))
     return false;
-  bool res = false;
-  float landHt = MIN_REAL;
-  if (landTracer && landTracer->getHeight(p, landHt, normal))
-    res = true;
+  // the heightmap sample is cheap and gives the land walk its floor: only land above it can win the max
   float hmapHt = MIN_REAL;
-  if (hmapHandler && hmapHandler->getHeight(p, hmapHt, normal))
-    res = true;
-  if (res)
-    ht = max(hmapHt, landHt);
-  return res;
+  Point3 hmapNorm;
+  const bool hmapHit = hmapHandler && hmapHandler->getHeight(p, hmapHt, normal ? &hmapNorm : nullptr);
+  float landHt = MIN_REAL;
+  Point3 landNorm;
+  if (landTracer && landTracer->getHeight(p, landHt, normal ? &landNorm : nullptr, hmapHit ? hmapHt : MIN_REAL))
+  {
+    if (normal)
+      *normal = landNorm;
+    ht = landHt;
+    return true;
+  }
+  if (hmapHit)
+  {
+    if (normal)
+      *normal = hmapNorm;
+    ht = hmapHt;
+  }
+  return hmapHit;
 }
 
 //! Get max height below point and normal (trace ray down)
@@ -1494,22 +1519,25 @@ bool LandMeshManager::getHeightBelow(const Point3 &p, float &ht, Point3 *normal)
 {
   if (holesMgr && holesMgr->check(Point2::xz(p)))
     return false;
-  bool res = false;
-  float landHt = MIN_REAL;
-  Point3 landNorm;
-  if (landTracer && landTracer->getHeightBelow(p, landHt, normal ? &landNorm : NULL))
-    res = true;
   float hmapHt = MIN_REAL;
   Point3 hmapNorm;
-  if (hmapHandler && hmapHandler->getHeightBelow(p, hmapHt, normal ? &hmapNorm : NULL))
-    res = true;
-  if (res)
+  const bool hmapHit = hmapHandler && hmapHandler->getHeightBelow(p, hmapHt, normal ? &hmapNorm : NULL);
+  float landHt = hmapHit ? hmapHt : MIN_REAL; // the window bottom for the tracer: land under the heightmap cannot win
+  Point3 landNorm;
+  if (landTracer && landTracer->getHeightBelow(p, landHt, normal ? &landNorm : NULL))
   {
     if (normal)
-      *normal = hmapHt > landHt ? hmapNorm : landNorm;
-    ht = max(hmapHt, landHt);
+      *normal = landNorm;
+    ht = landHt;
+    return true;
   }
-  return res;
+  if (hmapHit)
+  {
+    if (normal)
+      *normal = hmapNorm;
+    ht = hmapHt;
+  }
+  return hmapHit;
 }
 
 // return 0 if no intersect, 1 if intersect, -1 if error

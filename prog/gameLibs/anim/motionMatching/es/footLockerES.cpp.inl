@@ -1,6 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <anim/dag_animPostBlendCtrl.h>
 #include <anim/footLockerIKCtrl.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/delayedAct/actInThread.h>
@@ -40,7 +39,7 @@ void motion_matching_update_anim_tree_foot_locker(AnimV20::AnimcharBaseComponent
         lockAllowed = !clip.footLockerStates.needLock(legNo, prevFrame, numLegs);
       }
       // And for single frame animations too, because there is no previous frame with needLock=false
-      if (dataBase.clips[curAnim.clip].tickDuration == 1 && needLock)
+      if (clip.tickDuration == 1)
         lockAllowed = controller.lastTransitionTime >= controller.transitionBlendTime;
 
       leg.needLock = needLock && (leg.isLocked || lockAllowed);

@@ -41,6 +41,7 @@ upscale_node {
 
   "upscale_weights_buffer:UniqueBufWithShaderVar"{}
 
+  system_owned_entity:b=yes
 }
 
 water_refraction_stub {
@@ -48,4 +49,6 @@ water_refraction_stub {
   _tags:t="render"
 
   "water_refraction_stub:UniqueTexWithShaderVar"{}
+
+  system_owned_entity:b=yes
 }

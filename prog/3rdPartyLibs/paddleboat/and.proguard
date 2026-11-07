@@ -1,0 +1,2 @@
+# native code finds GameControllerManager methods by name and registers its natives on it
+-keep class com.google.android.games.paddleboat.** { *; }

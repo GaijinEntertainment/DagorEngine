@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <drv/hid/dag_hiJoyMotionFilter.h>
 #include <util/dag_hierBitArray.h>
 #include <util/dag_stdint.h>
 
@@ -134,27 +135,37 @@ protected:
   static ButtonBits btmp[2];
 };
 
-// calibrated motion sensors of the latest device report; frame: X right, Y up, Z to the player
-struct JoystickMotionState
+// calibrated motion sensors of one device report; frame: X right, Y up, Z to the player
+struct JoystickMotionSample
 {
   float angVelDegS[3] = {0, 0, 0}; // right-handed rotation rate around X (pitch), Y (yaw), Z (roll)
   float accelG[3] = {0, 0, 0};     // at rest the up axis reads +1
   uint32_t timestampUs = 0;        // device time since the pad connected, wraps
-  uint32_t sampleCount = 0;        // reports received since connect
 };
 
-// points in pixels of a width x height pad, origin in the top-left corner, x to the right, y down;
-// contactId changes for each new touch
-struct JoystickTouchpadState
+// the sample of the latest device report
+struct JoystickMotionState : JoystickMotionSample
 {
-  struct Point
+  uint32_t sampleCount = 0;    // reports received since connect
+  JoystickMotionFilter filter; // the driver's own bias and gravity filter, run by the dsPad driver; unused on consoles
+};
+
+// the touch pad contacts that are down in one pad report, see IGenJoystick::fetchTouchpadFrames; positions in pad pixels,
+// origin in the top-left corner, x to the right, y down; the touch sender assumes 44.86 pad pixels per millimetre
+struct JoystickTouchpadFrame
+{
+  static constexpr int MAX_CONTACTS = 2;
+  static constexpr float PAD_PIXELS_PER_MM = 44.86f;
+  struct Contact
   {
-    bool down = false;
-    uint8_t contactId = 0;
+    uint8_t id = 0; // the pad gives each new contact a new id
     uint16_t x = 0, y = 0;
   };
-  Point points[2];
-  uint16_t width = 0, height = 0;
+  Contact contacts[MAX_CONTACTS];
+  uint8_t count = 0;
+  uint16_t padHeight = 0;
+  uint32_t timestampUs = 0; // device clock, wraps
+  uint32_t buttonState = 0; // transition count; low bit: button down
 };
 
 enum JoystickMicLed : int

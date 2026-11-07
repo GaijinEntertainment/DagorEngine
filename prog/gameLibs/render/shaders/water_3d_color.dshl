@@ -294,6 +294,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
 
   USE_UNDERWATER_SCATTERING(ps)
   USE_WATER_RAIN_RIPPLES(ps)
+  USE_WATER_HEIGHT_OVERRIDE(ps)
   APPLY_WATER_FOG(ps)
 
   hlsl(ps) {
@@ -429,7 +430,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
 
       ##if water_heightmap_pages != NULL
         BRANCH
-        if (shore_distance_field_tex_exists && vd.shoreData.landHeight > 0)
+        if (shore_distance_field_tex_exists && vd.shoreData.landHeight > 0 && !isWaterHeightOverridden(vd.worldPos))
         {
           // worldPos.y is interpolated across the patch, waterHeight is sampled
           // per pixel, so they disagree across water heightmap page seams and can
@@ -437,7 +438,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
           // patches only: if seams show up, gate it by LOD or camera distance.
           const float EPS = 0.0001;
           BRANCH
-          if (vd.worldPos.y - EPS > vd.waterHeight + water_level_max_wave_height.y)
+          if (vd.worldPos.y - EPS > vd.waterHeight + max(water_level_max_wave_height.z, water_level_max_wave_height.y))
             discard;
         }
       ##endif

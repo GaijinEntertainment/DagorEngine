@@ -6,7 +6,7 @@
 #include <EASTL/vector.h>
 
 #include <osApiWrappers/dag_threads.h>
-#include <osApiWrappers/dag_critsec.h>
+#include <osApiWrappers/dag_critSec.h>
 
 
 namespace HumanInput
@@ -26,17 +26,16 @@ struct Di8Device
 }; // struct Di8Device
 
 
-using VidPidList = eastl::vector<DWORD>;
 using Di8Devices = eastl::vector<Di8Device>;
 
 
 struct DeviceEnumerator : public DaThread
 {
-  DeviceEnumerator(int timeout_ms, bool exclude_xinput, bool remap_as_x360, bool exclude_sony_pads) :
+  DeviceEnumerator(int timeout_ms, bool exclude_xinput, bool remap_as_x360, bool exclude_dspads) :
     DaThread("Di8Enumerator", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK),
     timeoutMs{timeout_ms},
     excludeXinputDevices{exclude_xinput},
-    excludeSonyPads{exclude_sony_pads},
+    excludeDsPads{exclude_dspads},
     remapAsX360{remap_as_x360}
   {}
   ~DeviceEnumerator() { releaseFound(); }
@@ -60,9 +59,8 @@ struct DeviceEnumerator : public DaThread
   int timeoutMs = 0;
   int startedAtMs = 0;
 
-  VidPidList blacklist;
   bool excludeXinputDevices = false;
-  bool excludeSonyPads = false;
+  bool excludeDsPads = false;
   bool remapAsX360 = false;
 
   WinCritSec cs;

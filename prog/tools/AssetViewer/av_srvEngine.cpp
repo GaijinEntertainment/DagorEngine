@@ -78,19 +78,19 @@ static bool de3_gen_fatal_handler(const char *msg, [[maybe_unused]] const char *
   return false;
 }
 
-static debug_log_callback_t orig_debug_log = nullptr;
+static LogHandlerId logerr_to_console_handler_id = LogHandlerId::Invalid;
 static RegExp *logerr_to_console_re_include = nullptr;
 static RegExp *logerr_to_console_re_exclude = nullptr;
-static int logerr_to_console_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void logerr_to_console_callback(void *, LogMessage &log_msg)
 {
   static bool entrance_guard = false;
-  if (is_main_thread() && lev_tag == LOGLEVEL_ERR && !entrance_guard)
+  if (is_main_thread() && log_msg.levTag == LOGLEVEL_ERR && !entrance_guard)
   {
     entrance_guard = true;
     if (logerr_to_console_re_include || logerr_to_console_re_exclude)
     {
       String msg;
-      msg.vprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+      msg.vprintf(0, log_msg.fmt, (const DagorSafeArg *)log_msg.arg, log_msg.anum);
       if ((!logerr_to_console_re_include || logerr_to_console_re_include->test(msg)) &&
           (!logerr_to_console_re_exclude || !logerr_to_console_re_exclude->test(msg)))
       {
@@ -100,13 +100,15 @@ static int logerr_to_console_callback(int lev_tag, const char *fmt, const void *
     }
     else
     {
-      DAEDITOR3.getCon().addMessageFmt(ILogWriter::ERROR, fmt, (const DagorSafeArg *)arg, anum);
+      DAEDITOR3.getCon().addMessageFmt(ILogWriter::ERROR, log_msg.fmt, (const DagorSafeArg *)log_msg.arg, log_msg.anum);
       EDITORCORE->getConsole().showConsole();
     }
     entrance_guard = false;
-    return 1;
+    log_msg.flags |= LOGMSG_SHOWN_TO_USER;
+    return;
   }
-  return entrance_guard ? 0 : (orig_debug_log ? orig_debug_log(lev_tag, fmt, arg, anum, ctx_file, ctx_line) : 1);
+  if (entrance_guard)
+    log_msg.flags |= LOGMSG_SKIP_FILE;
 }
 
 class DaEditor3Engine : public IDaEditor3Engine
@@ -782,14 +784,16 @@ void init_interface_de3()
     }
   }
   if (!excl_re_str || *excl_re_str) // if exclude_re=="" then we filter out all errors, so callback may be not installed
-    orig_debug_log = debug_set_log_callback(&logerr_to_console_callback);
+    logerr_to_console_handler_id =
+      debug_add_log_handler(&logerr_to_console_callback, nullptr, {.levelMask = LOGMASK_ALL, .order = LOGORDER_SHOW_EDITOR});
   DAEDITOR3.conNote("installed logerr->CON reporter, filtering: include=%s  exclude=%s", incl_re_str ? incl_re_str : "<ANY>",
     excl_re_str ? (*excl_re_str ? excl_re_str : "<ALL>") : "<NONE>");
 }
 
 void terminate_interface_de3()
 {
-  debug_set_log_callback(orig_debug_log);
+  debug_remove_log_handler(logerr_to_console_handler_id);
+  logerr_to_console_handler_id = LogHandlerId::Invalid;
   del_it(logerr_to_console_re_include);
   del_it(logerr_to_console_re_exclude);
   debug("reset logerr->CON reporter");

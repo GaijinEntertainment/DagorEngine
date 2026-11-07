@@ -66,11 +66,6 @@ no reversed form. If the left operand is an integer and the right is your
 instance, the integer decides, and the call fails with
 `arith op - between 'integer' and 'instance'`.
 
-The one exception is an integer literal on the left of `+`. The compiler emits
-it as `object + literal`, because addition of numbers is commutative, so `_add`
-runs and sees the object as `this`. Do not rely on this to make a
-non-commutative operator work from either side.
-
 An operator with no metamethod throws; there is no default fallback. An
 instance that defines `_add` but not `_sub` cannot be subtracted.
 

@@ -1307,8 +1307,8 @@ static void test_churn_gc()
         churnB = churnA + 1;
       }
       ecs::ComponentsMap map;
-      String sa(0, "churn_comp_%03d", churnA);
-      String sb(0, "churn_comp_%03d", churnB);
+      String sa(0, "churn_pos_%03d", churnA);
+      String sb(0, "churn_int_%03d", churnB);
       map[ECS_HASH_SLOW(sa.c_str())] = Point3(1, 2, 3);
       map[ECS_HASH_SLOW(sb.c_str())] = c * PER_CYCLE + j;
       ecs::Template::component_set tracked;

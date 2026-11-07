@@ -126,7 +126,8 @@ public:
   void updateActiveCursors();
   bool hasActiveCursors() const;
   void onRemoveCursor(Cursor *cursor);
-  void setCursorState(int hand, bool enabled, Point2 pos = {-100, -100});
+  // returns true if the hover was updated
+  bool setCursorState(int hand, bool enabled, Point2 pos = {-100, -100});
 
   bool needRenderInWorld() const;
   bool getCanvasSize(IPoint2 &size) const;

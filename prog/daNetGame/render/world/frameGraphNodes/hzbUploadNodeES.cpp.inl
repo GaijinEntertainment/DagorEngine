@@ -69,8 +69,7 @@ dafg::NodeHandle makeReprojectedHzbImportNode()
     // todo: here we need nonmultiplexed versions of the camera params
     // auto cameraHndl = read_camera_in_camera(registry).handle();
 
-    // FIXME: DX12 complain on FG generated barriers for non RT/UAV texture
-    const uint32_t texflags = TEXFMT_R32F | (d3d::get_driver_code().is(d3d::dx12) ? TEXCF_RTARGET : TEXCF_UPDATE_DESTINATION);
+    const uint32_t texflags = TEXFMT_R32F | TEXCF_UPDATE_DESTINATION;
     auto hzbHndl =
       registry
         .createTexture2d("reprojected_hzb", {texflags, IPoint2{OcclusionZBuffer::WIDTH, OcclusionZBuffer::HEIGHT}, hzb_mips_count})

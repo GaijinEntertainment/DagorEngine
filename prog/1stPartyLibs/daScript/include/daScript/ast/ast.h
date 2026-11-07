@@ -134,6 +134,7 @@ namespace das
         bool addIEx ( const string & f, const string & fcpp, int64_t value, const LineInfo & at );
         string describe() const { return name; }
         string getMangledName() const;
+        uint64_t getOwnSemanticHash ( HashBuilder & hb ) const;
         int64_t find ( const string & na, int64_t def ) const;
         string find ( int64_t va, const string & def ) const;
         pair<ExpressionPtr,bool> find ( const string & f ) const;
@@ -1131,6 +1132,7 @@ namespace das
         virtual void addPrerequisits ( ModuleLibrary & ) const {}
         virtual ModuleAotType aotRequire ( TextWriter & ) const { return ModuleAotType::no_aot; }
         virtual Type getOptionType ( const string & ) const;
+        virtual uint64_t getOwnSemanticHash () const;
         virtual bool initDependencies() { return true; }
         bool addAlias ( const TypeDeclPtr & at, bool canFail = false );
         bool addVariable ( const VariablePtr & var, bool canFail = false );
@@ -1258,7 +1260,6 @@ namespace das
         vector<string>                              typeFunctions;      // type functions
         das_insert_only_hash_map<string,Type>       options;            // options
         unique_ptr<gc_root>                         module_gc_root = make_unique<gc_root>();  // this module's gc-managed AST nodes; a pointer so it can be swapped O(1) during compile (collect live into a fresh root, swap, drop the old)
-        uint64_t                                    cumulativeHash = 0; // hash of all mangled names in this module (for builtin modules)
         string                                      name;
         string                                      cppClassName;       // C++ class name (e.g. "Module_Math"), set by REGISTER_MODULE
         uint64_t                                    nameHash = 0;

@@ -17,7 +17,7 @@ struct GradientStop
 // or a value that was only opened would compare as changed.
 inline unsigned char gradient_color_byte(float v) { return static_cast<unsigned char>(v * 255.f + 0.5f); }
 
-// fillGradientTexture refuses to fill the texture at all past 200 floats, so never write more.
+// fillGradientTexture reads only the first 200 floats, so never write more.
 inline constexpr int GRADIENT_MAX_STOPS = 40;
 
 // Returns the count of trailing floats that make no whole stop; the consumer ignores them too.

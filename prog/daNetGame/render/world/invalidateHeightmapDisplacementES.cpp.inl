@@ -7,6 +7,7 @@
 #include <ecs/render/resPtr.h>
 #include <ecs/render/updateStageRender.h>
 
+#include <generic/dag_carray.h>
 #include <math/dag_hlsl_floatx.h>
 #include <shaders/invalidate_hmap_displacement.hlsli>
 
@@ -39,10 +40,11 @@ static void hmap_displacement_invalidators_count_under_limit_update_buffer(const
   {
     // We need to fill the rest of the buffer so that extra iterations of loop unrolling are guaranteed to not create any
     // fake heightmap displacement invalidation areas:
-    HmapDisplacementInvalidators dataCopy(data);
-    dataCopy.resize(HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT, {Point3(1e6f, 1e6f, 1e6f), 0, 0});
-    buffer.getBuf()->updateData(0, HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT * sizeof(HmapDisplacementInvalidator), dataCopy.data(),
-      VBLOCK_WRITEONLY);
+    carray<HmapDisplacementInvalidator, HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT> dataCopy;
+    const int count = eastl::min((int)data.size(), HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT);
+    eastl::copy(data.begin(), data.begin() + count, dataCopy.begin());
+    eastl::fill(dataCopy.begin() + count, dataCopy.end(), HmapDisplacementInvalidator{Point3(1e6f, 1e6f, 1e6f), 0, 0});
+    buffer.getBuf()->updateData(0, sizeof(dataCopy), dataCopy.data(), VBLOCK_WRITEONLY);
   }
 }
 
@@ -163,7 +165,9 @@ static void hmap_displacement_invalidators_count_over_limit_update_buffer_es(con
   // When we go above the limit of allowed concurrent objects, we update the objects vector every frame since the decision which
   // objects disable heightmap displacement around them is driven by their closeness to the camera (the effect is applied only to
   // HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT objects closest to camera):
-  HmapDisplacementInvalidators oldData(hmap_displacement_invalidators__data);
+  carray<uint32_t, HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT> oldEids, newEids;
+  for (int i = 0; i < HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT; ++i)
+    oldEids[i] = hmap_displacement_invalidators__data[i].eid;
   const Point3 &camPos = get_cam_itm().getcol(3);
   eastl::sort(hmap_displacement_invalidators__data.data(),
     hmap_displacement_invalidators__data.data() + hmap_displacement_invalidators__data.size(),
@@ -172,9 +176,9 @@ static void hmap_displacement_invalidators_count_over_limit_update_buffer_es(con
     });
   // We only update the buffer when first HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT objects in the data vector are not the
   // same as those before sorting (irrespective of order):
-  if (!eastl::is_permutation(oldData.begin(), oldData.begin() + HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT,
-        hmap_displacement_invalidators__data.begin(),
-        [](const HmapDisplacementInvalidator &first, const HmapDisplacementInvalidator &second) { return first.eid == second.eid; }))
+  for (int i = 0; i < HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT; ++i)
+    newEids[i] = hmap_displacement_invalidators__data[i].eid;
+  if (!eastl::is_permutation(oldEids.begin(), oldEids.end(), newEids.begin()))
     hmap_displacement_invalidators__buffer.getBuf()->updateData(0,
       HMAP_DISPLACEMENT_INVALIDATORS_MAX_COUNT * sizeof(HmapDisplacementInvalidator), hmap_displacement_invalidators__data.data(),
       VBLOCK_WRITEONLY);

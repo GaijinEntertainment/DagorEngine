@@ -11,6 +11,8 @@
 #include <debug/dag_debug3d.h>
 #include <debug/dag_textMarks.h>
 #include <math/dag_mathBase.h>
+#include <math/dag_math3d.h>
+#include <math/dag_mathUtils.h>
 #include <cstdio>
 
 void rendinst::draw_rendinst_info(const Point3 &intersection_pos, const TMatrix &cam_tm, const rendinst::RendInstDesc &desc,
@@ -54,6 +56,22 @@ void rendinst::draw_rendinst_info(const Point3 &intersection_pos, const TMatrix 
       draw_cached_debug_box(canopyBox, E3DCOLOR(0xFF08FF08), tm);
     }
 
+    const bool hasTreeSplit = !desc.isRiExtra() && hasGenData && (uint32_t)riPoolRef < rgl->rtData->riResSplitBb.size() &&
+                              !v_bbox3_is_empty(rgl->rtData->riResSplitBb[riPoolRef][1]);
+    if (hasTreeSplit)
+    {
+      const E3DCOLOR splitBoxColor[2] = {E3DCOLOR(0xFFA0522D), E3DCOLOR(0xFFFFFFFF)};
+      const BBox3 worldFullBb = tm * fullBb;
+      draw_cached_debug_box(worldFullBb, E3DCOLOR(0xFF4040FF));
+      for (int part = 0; part < 2; part++)
+      {
+        BBox3 splitBox, cullBox;
+        v_stu_bbox3(splitBox, rgl->rtData->riResSplitBb[riPoolRef][part]);
+        v_stu_bbox3(cullBox, RendInstGenData::RtData::get_split_cull_box(v_ldu_bbox3(tm * splitBox), v_ldu_bbox3(worldFullBb)));
+        draw_cached_debug_box(cullBox, splitBoxColor[part]);
+      }
+    }
+
     float markOffsetScale = dist * 0.22f;
     Point3 markPos = intersection_pos + cam_tm.getcol(0) * markOffsetScale + cam_tm.getcol(1) * markOffsetScale * 0.75f;
     char block[2048];
@@ -90,6 +108,7 @@ void rendinst::draw_rendinst_info(const Point3 &intersection_pos, const TMatrix 
       const bool paletteRot = posInst && hasGenData && (uint32_t)riPoolRef < rgl->rtData->riPaletteRotation.size() &&
                               rgl->rtData->riPaletteRotation[riPoolRef];
       addLine("    storage type: %s%s", posInst ? "pos" : "tm", paletteRot ? " (palette rot)" : "");
+      addLine("    tree split boxes: %s", hasTreeSplit ? "trunk brown, crown white, world union blue" : "none");
       if (paletteRot)
       {
         RendInstGenData::Cell *cell = nullptr;

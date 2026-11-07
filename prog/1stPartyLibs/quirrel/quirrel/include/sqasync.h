@@ -60,6 +60,11 @@ SQUIRREL_API SQInteger pump(HSQUIRRELVM v, SQInteger maxSteps = 1024);
 SQUIRREL_API SQBool has_pending(HSQUIRRELVM v);
 
 
+// Call during VM teardown, before any later pump(): no task step runs after
+// it, but posted callbacks still do. VM-thread only.
+SQUIRREL_API void stop_tasks(HSQUIRRELVM v);
+
+
 // Schedule fn(user) to run on the VM thread inside the next pump(). VM-thread-only fast path.
 // Returns SQ_ERROR if the runtime is not bound or is shutting down; on failure
 // the caller owns `user` and must free it.

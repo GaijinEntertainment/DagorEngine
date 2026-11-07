@@ -14,6 +14,7 @@
 #include <util/dag_hash.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <3d/dag_dynAtlas.h>
+#include <3d/dag_resPtr.h>
 #include <ioSys/dag_dataBlock.h>
 #include <hb.h>
 #include <drv/3d/dag_renderTarget.h>
@@ -30,8 +31,6 @@ class FullFileLoadCB;
 class String;
 class FastIntList;
 struct DagorFontBinDump;
-struct DagorFreeTypeFontRec;
-DAG_DECLARE_RELOCATABLE(DagorFreeTypeFontRec);
 
 typedef Tab<DagorFontBinDump> FontArray;
 
@@ -211,9 +210,9 @@ public:
     int idx = getFontGlyphIdxForHt(ht);
     if (idx >= 0)
       return &dfont.fontMx[idx];
-    return &dfont.fontMx[appendFontHt(ht, /*ttf*/ nullptr, /*read_locked*/ true)];
+    return &dfont.fontMx[appendFontHt(ht, /*read_locked*/ true)];
   }
-  int appendFontHt(unsigned ht, DagorFreeTypeFontRec *ttf = nullptr, bool read_locked = false);
+  int appendFontHt(unsigned ht, bool read_locked = false);
 
   const GlyphData &getGlyphU(uint16_t unicode_c)
   {
@@ -378,7 +377,7 @@ public:
 
     inline StdGuiRender::GuiContext &ctx() { return *(StdGuiRender::GuiContext *)ctxBuf; }
     bool isCtx(void *p) { return p >= ctxBuf && p < ctxBuf + sizeof(ctxBuf); }
-    inline bool isBlurInited() { return texBlurred.getId() != BAD_TEXTUREID; }
+    inline bool isBlurInited() { return texBlurred.getBaseTex() != nullptr; }
 
     const ItemData *addItem(int bmin_x, int bmin_y, int bmax_x, int bmax_y, unsigned hash, float dx)
     {
@@ -389,7 +388,7 @@ public:
     }
 
   public:
-    TextureIDHolder texBlurred;
+    UniqueTex texBlurred;
     d3d::SamplerHandle texBlurredSampler;
 
   protected:
@@ -530,6 +529,8 @@ private:
   static bool tryOpenFontFile(FullFileLoadCB &reader, const char *fname_prefix, int screen_height, bool &dynamic_font);
   int loadDumpData(IGenLoad &crd);
   DagorFontBinDump *get_next_segment(const wchar_t *str, int len, int &inout_font_ht, int &out_seglen);
+  void initLazyFont();
+  int appendFontHtLocked(unsigned ht);
   BBox2 dynfont_compute_str_width_u_ex1(int font_ht, const wchar_t *str, int len, float scale, int spacing, int mono_w, float max_w,
     bool left_align, const wchar_t *break_sym, float ellipsis_resv_w, int &out_start_idx, int &out_count);
   BBox2 dynfont_compute_str_width_u_ex2(int font_ht, const wchar_t *str, int len, float scale, int spacing, float max_w,

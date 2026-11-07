@@ -105,9 +105,11 @@ public:
 
   bool traceRay(const Point3 &p, const Point3 &dir, float &t, Point3 *out_norm = nullptr) const;
   bool rayHit(const Point3 &p, const Point3 &dir, float t) const;
-  bool getHeight(const Point2 &pos, float &ht, Point3 *out_norm = nullptr) const;
-  // surfaces within [ht, pos.y] like the tracer: pass the lower bound in ht (or below the terrain);
-  // on success the resolved surface height is written back to ht (in/out, the legacy contract)
+  // floor_y: a surface at or below it does not count, and the walk prunes every subtree under it;
+  // the land mesh manager passes the heightmap height, so only land above the heightmap is walked
+  bool getHeight(const Point2 &pos, float &ht, Point3 *out_norm = nullptr, float floor_y = -1e30f) const;
+  // surfaces within (ht, pos.y]: pass the window bottom in ht (or a height below the terrain), the walk
+  // prunes at or below it; on success the surface height is written back to ht (in/out, the legacy contract)
   bool getHeightBelow(const Point3 &pos, float &ht, Point3 *out_norm = nullptr) const;
   // conservative upper bound of the surface height at pos (the gridHt analog)
   bool getHeightBounding(const Point2 &pos, float &ht) const;
@@ -298,7 +300,7 @@ private:
   bool traceCell(const Cell &c, vec3f p, vec3f d, const Point3 &pos, const Point3 &dir, float t_in, float t_out, float &t,
     const Cell **hit_cell, uint32_t *hit_ref, int *hit_sub) const;
   template <bool CULL_DOWN> // compile-time: getHeight is two-sided, getHeightBelow culls down-facing surfaces
-  bool heightQuery(float x, float z, float limit_y, float &ht, Point3 *out_norm) const;
+  bool heightQuery(float x, float z, float limit_y, float floor_y, float &ht, Point3 *out_norm) const;
   template <class Shape, class Visitor>
   bool traverseCellHt(const Cell &c, const Point2 &cell_min, const Shape &shape, Visitor &visitor, bool &result) const
   {

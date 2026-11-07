@@ -14,7 +14,7 @@
 // special and not allowed although that results in two cache miss in a case of hit, it also allows keys to be of a different size than
 // value yet keeping alignment also it is faster on miss then 'tied' Load factor is integral, not a float for performance reasons. By
 // default it is 3/4 (75%). Even 9/10 should be fast enough in most cases, but 1/2 is fastest
-//! erase is slow as can cause rehashing!
+//! erase moves later entries back to close the gap; it does not shrink the table, shrink_to_fit() does
 
 //! beware!
 //! Both HashMap and HashSet are NOT relocatable if 1)empty and EmptyKey == 0 (default)!
@@ -182,6 +182,22 @@ Val *find_val(Key key, const Key *__restrict begin, Val *__restrict vals, uint32
   }
 }
 
+template <class Key, Key EmptyKey, class Hasher, class MoveCB>
+void backward_shift_erase(Key *__restrict keys, uint32_t mask, uint32_t hole, MoveCB move_to_hole)
+{
+  for (uint32_t i = (hole + 1) & mask; keys[i] != EmptyKey; i = (i + 1) & mask)
+  {
+    const uint32_t home = Hasher().hash(keys[i]) & mask;
+    const bool homeAfterHole = ((i - home) & mask) < ((i - hole) & mask);
+    if (homeAfterHole)
+      continue;
+    keys[hole] = keys[i];
+    move_to_hole(hole, i);
+    hole = i;
+  }
+  keys[hole] = EmptyKey;
+}
+
 template <class Val>
 struct DefaultValCB
 {
@@ -245,12 +261,13 @@ struct DAGOR_WARN_IF_UNUSED HashedKeyMap
       oa_hashmap_util::find_key<key_t, EmptyKey, Hasher>(key, keys.first(), mask, [&](uint32_t i) { return cb(vals[i]); });
     if (k != nullptr)
     {
-      const size_t ind = k - keys.first();
-      keys.first()[ind] = EmptyKey;
+      const uint32_t ind = uint32_t(k - keys.first());
       vals[ind].~val_t();
       --used;
-      if (keys.first()[(ind + 1) & mask] != EmptyKey)
-        rehash(get_capacity(used));
+      oa_hashmap_util::backward_shift_erase<key_t, EmptyKey, Hasher>(keys.first(), mask, ind, [this](uint32_t to, uint32_t from) {
+        new (vals + to, _NEW_INPLACE) val_t((val_t &&)vals[from]);
+        vals[from].~val_t();
+      });
     }
   }
   template <class ValCB = oa_hashmap_util::DefaultValCB<val_t>>
@@ -536,11 +553,9 @@ struct DAGOR_WARN_IF_UNUSED HashedKeySet
     const key_t *k = oa_hashmap_util::find_key<key_t, EmptyKey, Hasher>(key, keys.first(), mask, [&](uint32_t) { return true; });
     if (k != nullptr)
     {
-      const size_t ind = k - keys.first();
-      keys.first()[ind] = EmptyKey;
       --used;
-      if (keys.first()[(ind + 1) & mask] != EmptyKey)
-        rehash(get_capacity(used));
+      oa_hashmap_util::backward_shift_erase<key_t, EmptyKey, Hasher>(keys.first(), mask, uint32_t(k - keys.first()),
+        [](uint32_t, uint32_t) {});
     }
   }
   bool has_key(key_t key) const

@@ -10,6 +10,7 @@
 #include <drv/3d/dag_texFlags.h>
 #include <math/dag_color.h>
 #include <memory/dag_mem.h>
+#include <util/dag_bitwise_cast.h>
 #include <util/dag_stdint.h>
 #include <string.h>
 
@@ -101,7 +102,6 @@ bool __forceinline is_bc_texformat(unsigned flags)
 enum
 {
   TEXLOCK_DISCARD = 0x00002000L,
-  TEXLOCK_RAWDATA = 0x00004000L,   // PS4. Do not convert data
   TEXLOCK_NOSYSLOCK = 0x00000800L, // if lock considered blocking one (GPU wait), do early exit instead of blocking
   TEXLOCK_READ = 0x01,
   TEXLOCK_WRITE = 0x02,
@@ -271,29 +271,45 @@ uint32_t get_tex_channel_value(const void *pixel, const TextureChannelFormatDesc
 void set_tex_channel_value(void *pixel, const TextureChannelFormatDesc &channel, uint32_t bits);
 
 /** \brief Converts raw bits of a channel in a certain format into
- * a floating point value that matches the logical value of the channel
+ * the bits of a 32-bit float that matches the logical value of the channel
  * as closely as possible
  * \note Conversion is done as per section 3.9 of Vulkan API specification
+ * \note The float crosses the call as bits: the engine builds with fast math,
+ * which does not permit inf or NaN in a float parameter or return value, and
+ * float formats hold both
  * \warning This is extremely slow!
  * \param bits The bits of the channel
  * \param type The type of the value stored in the channel
  * \param channel The description of the channel's format
- * \return A float that matches the logical value of the channel
+ * \return The bits of a float that matches the logical value of the channel
  */
-float channel_bits_to_float(uint32_t bits, ChannelDType type, const TextureChannelFormatDesc &channel);
+uint32_t channel_bits_to_float_bits(uint32_t bits, ChannelDType type, const TextureChannelFormatDesc &channel);
+
+/// \brief channel_bits_to_float_bits with the result as a float
+__forceinline float channel_bits_to_float(uint32_t bits, ChannelDType type, const TextureChannelFormatDesc &channel)
+{
+  return dag::bit_cast<float>(channel_bits_to_float_bits(bits, type, channel));
+}
 
 
-/** \brief Converts a float into raw bits of a channel in a certain
+/** \brief Converts the bits of a 32-bit float into raw bits of a channel in a certain
  * format that match the provided float as closely as possible
  * \note Conversion is done as per section 3.9 of Vulkan API specification
  * \note Bits unused by the channel are set to 0, even for signed formats
+ * \note See channel_bits_to_float_bits for why the float is passed as bits
  * \warning This is extremely slow!
- * \param value The floating point value to convert
+ * \param value_bits The bits of the floating point value to convert
  * \param type The type of the value stored in the channel
  * \param channel The description of the channel's format
  * \return A uint32_t that contains the bits of the channel
  */
-uint32_t float_to_channel_bits(float value, ChannelDType type, const TextureChannelFormatDesc &channel);
+uint32_t float_bits_to_channel_bits(uint32_t value_bits, ChannelDType type, const TextureChannelFormatDesc &channel);
+
+/// \brief float_bits_to_channel_bits with the value as a float
+__forceinline uint32_t float_to_channel_bits(float value, ChannelDType type, const TextureChannelFormatDesc &channel)
+{
+  return float_bits_to_channel_bits(dag::bit_cast<uint32_t>(value), type, channel);
+}
 
 /// load texture content from DDSx stream using DDSx header for previously allocated texture
 typedef void (*on_tex_slice_loaded_cb_t)();

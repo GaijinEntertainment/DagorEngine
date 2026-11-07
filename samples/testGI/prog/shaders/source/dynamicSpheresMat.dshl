@@ -4,6 +4,8 @@ include "psh_derivate.dshl"
 include "psh_tangent.dshl"
 
 float sphere_time = 1;
+// app.test_spheres: three static metal spheres (center, radius), roughness 0.4, 0.6, 0.8, drawn after the dancing six
+float4 test_spheres[3];
 
 shader draw_debug_dynamic_spheres
 {
@@ -25,6 +27,7 @@ shader draw_debug_dynamic_spheres
     globtm@f44 = globtm;
     world_view_pos@f3 = world_view_pos;
     time@f1= (sphere_time,0,0,0);
+    test_spheres@f4[] = test_spheres;
   }
 
   hlsl(vs) {
@@ -33,21 +36,34 @@ shader draw_debug_dynamic_spheres
     VsOutput test_vs(uint id : SV_InstanceID, uint vertId : SV_VertexID)
     {
       VsOutput output;
-      float3 totalOfs = float3(-4,0,-1.2);
-      totalOfs.xz += float2(id%4, id/4)*2;
-      totalOfs.y += 0.25 + 7*abs(sin(time*2*PI + id*0.7));
       float3 inputPos = get_sphere_vertex_pos(vertId);
-      float3 pos = inputPos*0.5f + totalOfs;
       float3 normal = inputPos;
+      float3 pos;
+      #define DANCING_SPHERES 6
+      #define MATERIALS 6
+      float3 colors[MATERIALS] = {float3(0.8,0.2,0.2), float3(0.2,0.8,0.2), float3(0.2,0.2,0.8), float3(0.2,0.2,0.2), float3(0.1,0.1,0.1), float3(0.8,0.8,0.8)};
+      float2 met_roughness[MATERIALS] = {float2(0, 1), float2(0, 1), float2(0, 0.75), float2(0, 0), float2(0, 1), float2(1,0)};
+      if (id < DANCING_SPHERES)
+      {
+        float3 totalOfs = float3(-4,0,-1.2);
+        totalOfs.xz += float2(id%4, id/4)*2;
+        totalOfs.y += 0.25 + 7*abs(sin(time*2*PI + id*0.7));
+        pos = inputPos*0.5f + totalOfs;
+        output.metallness_roghness = met_roughness[id%MATERIALS];
+        output.color = colors[id%MATERIALS];
+      }
+      else
+      {
+        uint i = id - DANCING_SPHERES;
+        float4 sphere = test_spheres[i];
+        pos = inputPos*sphere.w + sphere.xyz;
+        output.metallness_roghness = float2(1, 0.4 + 0.2*i);
+        output.color = 0.9;
+      }
 
       output.pos = mul(float4(pos, 1), globtm);
       output.worldPos = pos;
       output.norm = normal;
-      #define MATERIALS 6
-      float3 colors[MATERIALS] = {float3(0.8,0.2,0.2), float3(0.2,0.8,0.2), float3(0.2,0.2,0.8), float3(0.2,0.2,0.2), float3(0.1,0.1,0.1), float3(0.8,0.8,0.8)};
-      float2 met_roughness[MATERIALS] = {float2(0, 1), float2(0, 1), float2(0, 0.75), float2(0, 0), float2(0, 1), float2(1,0)};
-      output.metallness_roghness = met_roughness[id%MATERIALS];
-      output.color = colors[id%MATERIALS];
       return output;
     }
   }

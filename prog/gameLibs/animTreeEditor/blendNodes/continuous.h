@@ -9,7 +9,6 @@ class ContainerPropertyControl;
 }
 
 struct AnimParamData;
-class DataBlock;
 class DagorAssetMgr;
 
 void continuous_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx,

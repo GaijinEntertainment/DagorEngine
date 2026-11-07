@@ -175,7 +175,7 @@ void MatFileResourceProxyMat::setDataAndSave(const EntityMatProperties *mat_prop
   replace_mat_textures_in_props_blk(proxyMatBlk, filteredTextures);
 
   proxyMatAsset->props.setFrom(&proxyMatBlk);
-  proxyMatBlk.saveToTextFileCompact(proxyMatAsset->getTargetFilePath());
+  proxyMatBlk.saveToTextFileCompact(proxyMatAsset->getSrcFilePath());
 }
 
 DagMatFileResourcesHandler::DagMatFileResourcesHandler(const char *dag_file_name, const DagorAsset *asset) : asset(asset)

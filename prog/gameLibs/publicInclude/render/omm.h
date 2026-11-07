@@ -343,8 +343,10 @@ struct CpuBakeStats
 
 bool init_cpu(CpuContext &ctx);
 void shutdown_cpu(CpuContext &ctx);
+// out_triangle_states takes index_count/3 entries
 bool cpu_bake_alpha_stats(CpuContext &ctx, const char *tex_key, uint32_t w, uint32_t h, const uint8_t *alpha,
-  const float *texcoords_uv, const uint32_t *indices, uint32_t index_count, CpuBakeStats &stats);
+  const float *texcoords_uv, const uint32_t *indices, uint32_t index_count, CpuBakeStats &stats,
+  dag::Span<OpacityState> out_triangle_states = {});
 
 raytrace::OpacityMicroMapTriangleArrayBuildInfo make_array_build_info(const BakeResult &result, Sbuffer *scratch,
   uint32_t scratch_offset, uint32_t scratch_size, RaytraceBuildFlags flags = RaytraceBuildFlags::NONE);

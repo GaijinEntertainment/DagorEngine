@@ -8,7 +8,6 @@
 #include <EASTL/unordered_map.h>
 #include <EASTL/unordered_set.h>
 #include <propPanel/c_control_event_handler.h>
-#include <propPanel/imguiHelper.h>
 #include <propPanel/control/panelWindow.h>
 #include <propPanel/control/treeInterface.h>
 
@@ -108,10 +107,8 @@ private:
   void deleteSelectedLeafs();
   void deleteLeaf(PropPanel::TLeafHandle handle, bool editor_event = false);
 
-  bool treeNodeStart(const NodeStartData &data) override;
-  void treeNodeRender(PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool show_arrow) override;
-  void treeNodeEnd(PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data) override;
-  void treeItemRenderEx(const ItemRenderData &data) override;
+  bool hasRowWidgets() const override { return true; }
+  void drawTreeNode(PropPanel::TreeNodeDrawContext &ctx) override;
 
   bool filterNode(const PropPanel::TreeNode &node) override;
   bool hasAnyFilter() const override { return Filters{} != filters; }

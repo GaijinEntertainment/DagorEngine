@@ -1,6 +1,3 @@
-int rtsm_render_mode;
-interval rtsm_render_mode : hard < 1, denoised < 2, denoised_translucent < 3, rr;
-
 hlsl(cs) {
   #pragma hlsl2021
   #define NRD_INTERNAL
@@ -8,17 +5,8 @@ hlsl(cs) {
   float4 cbuf0Sentinel: register(c33);
 }
 
-macro HANDLE_TRANSLUCENCY()
-  if (rtsm_render_mode == denoised_translucent) {
-    hlsl(cs) {
-      #define TRANSLUCENCY 1
-    }
-  }
-endmacro
-
 shader nrd_sigma_shadow_classify_tiles
 {
-  HANDLE_TRANSLUCENCY()
   hlsl(cs) {
     #pragma wave32
     #include "SIGMA_ClassifyTiles.cs.hlsl"
@@ -29,7 +17,6 @@ shader nrd_sigma_shadow_classify_tiles
 
 shader nrd_sigma_shadow_smooth_tiles
 {
-  HANDLE_TRANSLUCENCY()
   hlsl(cs) {
     #include "SIGMA_SmoothTiles.cs.hlsl"
   }
@@ -37,19 +24,8 @@ shader nrd_sigma_shadow_smooth_tiles
   compile("cs_6_5", "main");
 }
 
-shader nrd_sigma_shadow_copy
-{
-  HANDLE_TRANSLUCENCY()
-  hlsl(cs) {
-    #include "SIGMA_Copy.cs.hlsl"
-  }
-
-  compile("cs_6_5", "main");
-}
-
 shader nrd_sigma_shadow_blur
 {
-  HANDLE_TRANSLUCENCY()
   hlsl(cs) {
     #define FIRST_PASS 1
     #include "SIGMA_Blur.cs.hlsl"
@@ -60,7 +36,6 @@ shader nrd_sigma_shadow_blur
 
 shader nrd_sigma_shadow_post_blur
 {
-  HANDLE_TRANSLUCENCY()
   hlsl(cs) {
     #define FIRST_PASS 0
     #include "SIGMA_Blur.cs.hlsl"
@@ -71,7 +46,6 @@ shader nrd_sigma_shadow_post_blur
 
 shader nrd_sigma_shadow_stabilize
 {
-  HANDLE_TRANSLUCENCY()
   hlsl(cs) {
     #include "SIGMA_TemporalStabilization.cs.hlsl"
   }

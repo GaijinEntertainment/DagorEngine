@@ -26,6 +26,7 @@ public:
   float defaultFontSize = 0;
   bool gamepadCursorControl = true;
   bool gamepadStickAsDirpad = false;
+  bool gamepadCursorMovesMouse = false; // for hosts that draw only the OS cursor
   bool ignorePointerVisibilityForHovers = false;
   bool kbCursorControl = false;
   float gamepadCursorSpeed = 1.0f;
@@ -34,8 +35,9 @@ public:
   float gamepadCursorHoverMaxTime = 1.0f;
   float gamepadCursorHoverMinMul = 0.15f;
   float gamepadCursorHoverMaxMul = 0.8f;
+  float padTouchpadSensitivity = 0.5f; // the whole pad maps to the whole screen, too fast to point
+  bool padTouchpadTwoFingerTapRmb = false;
   float moveClickThreshold = -1.0f;
-  float touchPadWidthInScreenHeights = 1.0f;
 
   E3DCOLOR defSceneBgColor = E3DCOLOR(10, 10, 10, 160);
   E3DCOLOR defTextColor = E3DCOLOR(160, 160, 160, 160);
@@ -46,6 +48,9 @@ public:
 
   int joystickScrollAxisH = HumanInput::JOY_XINPUT_REAL_AXIS_R_THUMB_H;
   int joystickScrollAxisV = HumanInput::JOY_XINPUT_REAL_AXIS_R_THUMB_V;
+  // After XMB focus is set or the joystick changes, stick scroll waits until a scroll axis moves by more than this
+  // (in parts of the full deflection). Not positive: no wait
+  float joystickScrollMoveThreshold = -1.0f;
 
   bool clickRumbleEnabled = true;
   float clickRumbleLoFreq = 0.6f;

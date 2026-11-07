@@ -7,7 +7,7 @@
 // USB ids of the pads that hid_dspad_pc reads over raw HID
 namespace HumanInput
 {
-namespace sonypad
+namespace dspad
 {
 enum : unsigned
 {
@@ -40,6 +40,6 @@ inline Model model_from_pid(unsigned pid)
   return Model::UNKNOWN;
 }
 
-inline bool is_sony_pad(unsigned vid, unsigned pid) { return vid == VID_SONY && model_from_pid(pid) != Model::UNKNOWN; }
-} // namespace sonypad
+inline bool is_dspad(unsigned vid, unsigned pid) { return vid == VID_SONY && model_from_pid(pid) != Model::UNKNOWN; }
+} // namespace dspad
 } // namespace HumanInput

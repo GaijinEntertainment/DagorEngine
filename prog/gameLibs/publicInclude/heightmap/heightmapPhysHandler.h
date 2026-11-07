@@ -41,7 +41,9 @@ struct HeightmapPhysHandlerInfo // -V730
   float hScaleRaw = 1;
   IPoint2 hmapWidth = {1, 1};
   IBBox2 excludeBounding = {{0, 0}, {0, 0}};
-  bool mirror = false;
+  bool mainHmap = false;
+  bool anyMirror = false;
+  vec4f mirrorXZPosNeg = v_zero();
 };
 
 class HeightmapPhysHandler : public HeightmapPhysHandlerInfo
@@ -99,6 +101,24 @@ public:
     htF = v_madd(htF, v_splats(1.f / 255), V_C_HALF);
     return v_cvt_vec4f(v_addi(v_cvt_vec4i(htF), v_splatsi(block.mn)));
   }
+  // the four corners of a cell on a block border: the neighbour BlockInfos once and direct variance indices, no
+  // per-corner block math; the right and the lower neighbour block must exist
+  __forceinline vec4f decodeAcrossBlocks4HeightsRaw(uint32_t blockId, uint32_t bi, uint32_t bj) const
+  {
+    const uint8_t block_mask = compressed.block_width_mask, block_shift = compressed.block_width_shift;
+    const uint32_t br = (bi == block_mask) ? 1 : 0, bd = (bj == block_mask) ? compressed.bw : 0;
+    const auto block0 = compressed.getBlockInfo(blockId);
+    const auto block1 = compressed.getBlockInfo(blockId + br);
+    const auto block2 = compressed.getBlockInfo(blockId + bd);
+    const auto block3 = compressed.getBlockInfo(blockId + br + bd);
+    auto vi0 = compressed.getBlockVariance(blockId), vi1 = compressed.getBlockVariance(blockId + br),
+         vi2 = compressed.getBlockVariance(blockId + bd), vi3 = compressed.getBlockVariance(blockId + br + bd);
+    const uint32_t bi1 = ((bi + 1) & block_mask), bj1 = ((bj + 1) & block_mask);
+    const uint32_t block0Index = bi + (bj << block_shift), block1Index = bi1 + (bj << block_shift),
+                   block2Index = bi + (bj1 << block_shift), block3Index = bi1 + (bj1 << block_shift);
+    return v_make_vec4f(block0.decodeVariance(vi0[block0Index]), block1.decodeVariance(vi1[block1Index]),
+      block2.decodeVariance(vi2[block2Index]), block3.decodeVariance(vi3[block3Index]));
+  }
   inline vec4f getHeightmapCell5PtUnsafe(const IPoint2 &cell) const
   {
     G_ASSERT(uint32_t(cell.x) < hmapWidth.x && uint32_t(cell.y) < hmapWidth.y);
@@ -112,6 +132,10 @@ public:
     {
       // fast path
       htF = decodeInsideBlock4HeightsRaw(compressed.getBlockInfo(blockId), block_shift, blockId, bi, bj);
+    }
+    else if (DAGOR_LIKELY(cell.x + 1 < hmapWidth.x && cell.y + 1 < hmapWidth.y)) // the neighbour blocks exist
+    {
+      htF = decodeAcrossBlocks4HeightsRaw(blockId, bi, bj);
     }
     else
     {
@@ -150,19 +174,7 @@ public:
       if (min(min(block0.getMin(), block1.getMin()), min(block2.getMin(), block3.getMin())) > mxY ||
           max(max(block0.getMax(), block1.getMax()), max(block2.getMax(), block3.getMax())) < mnY)
         return false;
-      auto vi0 = compressed.getBlockVariance(blockId), vi1 = compressed.getBlockVariance(blockId + br),
-           vi2 = compressed.getBlockVariance(blockId + bd), vi3 = compressed.getBlockVariance(blockId + br + bd);
-      uint32_t bi1 = ((bi + 1) & block_mask), bj1 = ((bj + 1) & block_mask);
-
-      const uint32_t block0Index = bi + (bj << block_shift), block1Index = bi1 + (bj << block_shift),
-                     block2Index = bi + (bj1 << block_shift), block3Index = bi1 + (bj1 << block_shift);
-
-      const uint16_t h0 = block0.mn + uint32_t(uint32_t(vi0[block0Index]) * block0.delta + 127) / 255,
-                     h1 = block1.mn + uint32_t(uint32_t(vi1[block1Index]) * block1.delta + 127) / 255,
-                     h2 = block2.mn + uint32_t(uint32_t(vi2[block2Index]) * block2.delta + 127) / 255,
-                     h3 = block3.mn + uint32_t(uint32_t(vi3[block3Index]) * block3.delta + 127) / 255;
-
-      htF = v_make_vec4f(h0, h1, h2, h3);
+      htF = decodeAcrossBlocks4HeightsRaw(blockId, bi, bj);
     }
     else
     {
@@ -219,9 +231,9 @@ public:
     const IPoint2 cell1Lim(clamp(cell1.x, 0, hmapWidth.x - 1), clamp(cell1.y, 0, hmapWidth.y - 1));
 
     uint16_t maxHtRaw = 0;
-    for (int j = cell0Lim.y >> compressed.block_width, je = cell1Lim.y >> compressed.block_width; j <= je; ++j)
-      for (int i = cell0Lim.x >> compressed.block_width, ie = cell1Lim.x >> compressed.block_width; i <= ie; ++i)
-        maxHtRaw = max(compressed.getBlockInfo(i, j).getMin(), maxHtRaw);
+    for (int j = cell0Lim.y >> compressed.block_width_shift, je = cell1Lim.y >> compressed.block_width_shift; j <= je; ++j)
+      for (int i = cell0Lim.x >> compressed.block_width_shift, ie = cell1Lim.x >> compressed.block_width_shift; i <= ie; ++i)
+        maxHtRaw = max(compressed.getBlockInfo(i, j).getMax(), maxHtRaw);
 
     if (maxHtRaw * hScaleRaw + hMin <= hmin)
       return false;
@@ -318,6 +330,23 @@ public:
   IPoint2 posToHmapXZ(const Point2 &pos) const { return IPoint2::xy((pos - worldPosOfs) / getHeightmapCellSize()); }
   // incremented when terrain changes
 
+  // the finest height range grid for the ray walks (dag_hmlTraceRay.h): nodes of the returned size in cells, node_count
+  // per axis, 0 when the dump carries no grid. A node's range covers its cells and the shared edge row and column.
+  int getHeightmapRangeGrid(int &node_count) const
+  {
+    if (!compressed.htRangeBlocksLevels)
+      return 0;
+    node_count = compressed.getBestHtRangeBlocksResolution();
+    return compressed.getW() >> compressed.htRangeBlocksLevels;
+  }
+  void getHeightmapRangeNode(int nx, int ny, float &min_y, float &max_y) const
+  {
+    const unsigned hrbStride = compressed.getBestHtRangeBlocksResolution() / 2;
+    const auto &hrb = compressed.getHtRangeBlocksLevData(compressed.htRangeBlocksLevels - 1)[(ny / 2) * hrbStride + nx / 2];
+    const unsigned idx = (ny & 1) * 2 + (nx & 1);
+    min_y = hrb.hMin[idx] * hScaleRaw + hMin;
+    max_y = hrb.hMax[idx] * hScaleRaw + hMin;
+  }
   int getMinMaxHtGridSize() const { return compressed.getBestHtRangeBlocksResolution(); }
   bool getMinMaxHtInGrid(const IPoint2 &grid_cell, float &min_ht, float &max_ht) const
   {

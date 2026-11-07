@@ -1158,6 +1158,13 @@ struct RenderPassBuilder
       if (c == sp.depthTargetIdx)
         reportErrf(at, "render_pass '%s': subpass '%s' uses '%s' as both color and depth", obj.nameStr(), obj.str(sp.name),
           obj.targetName(c));
+    if (sp.depthSampled && sp.readPos(sp.depthTargetIdx) >= 0)
+      reportErrf(at, "render_pass '%s': subpass '%s' both samples and reads its depth '%s'; use sampled_depth(...) to sample it, %s",
+        obj.nameStr(), obj.str(sp.name), obj.targetName(sp.depthTargetIdx),
+        render_pass_target_is_metal()
+          ? "or write the depth VALUE into its own single-channel color target (an r32f declared under `if (hardware.metal)`) "
+            "and read that, since Metal fetches color attachments only"
+          : "or depth(...) with read(...) to read it in the subpass");
     for (int r : sp.reads)
     {
       if (sp.colorPos(r) >= 0)

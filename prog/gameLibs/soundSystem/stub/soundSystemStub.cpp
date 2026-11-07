@@ -224,6 +224,7 @@ OcclusionBlobHandle create_blob(const Point3 &, float, float) { return {}; }
 void delete_blob(OcclusionBlobHandle &) {}
 void set_pos(OcclusionBlobHandle, const Point3 &) {}
 void set_blob_active_range(OcclusionBlobHandle, float) {}
+void set_blob_detour_hint(OcclusionBlobHandle, float, bool, uint64_t, float) {}
 void attach_to_blob(EventHandle, OcclusionBlobHandle) {}
 void create_blob_template(float, float, const char *) {}
 void set_preferred_blob_template(EventHandle, const char *) {}
@@ -231,6 +232,7 @@ void drop_instance(EventHandle) {}
 bool is_inside_active_range(const Point3 &) { return {}; }
 void suspend_backend(bool) {}
 void set_backend(const Backend &) {}
+void set_detour_hint_gain(detour_hint_gain_t) {}
 void level_loaded() {}
 void level_unloaded() {}
 void debug_render_imgui() {}

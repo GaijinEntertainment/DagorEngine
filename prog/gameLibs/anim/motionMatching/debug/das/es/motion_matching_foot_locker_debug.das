@@ -31,6 +31,8 @@ def motion_matching_clear_foot_locker_es(evt : ParallelUpdateFrameDelayed;
     query() <| $ [es] (var animchar : AnimcharBaseComponent;
                        motion_matching__controller : MotionMatchingController)
       assume db = motion_matching__controller.dataBase
+      if db == null
+        return
       anim_state_holder_get_foot_locker_legs(animchar.animState, *db) <| $(var legs : array<FootLockerIKCtrlLegData>)
         for leg in legs
           leg.isLocked = false

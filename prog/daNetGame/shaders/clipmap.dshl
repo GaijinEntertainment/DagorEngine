@@ -51,6 +51,7 @@ macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params, _force_no_normal)
   USE_MICRODETAIL_DESC_BASE(code)
   USE_GATHER_MICRODETAIL_ID(code, cache_tex0, cache_tex0_samplerstate, GatherAlpha, cache_tex_size)
   USE_CLIPMAP_INDIRECTION_SAMPLING(code)
+  USE_CLIPMAP_WORLD_TEXEL_DENSITY(code)
   READ_PACKED_VTEX_BASE(code)
   hlsl(code) {
     #define cache_tex1_samplerstate cache_tex0_samplerstate
@@ -156,7 +157,7 @@ macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params, _force_no_normal)
       if (blend > 0.95)
         detailNo = lastDetail;
 
-      get_clipmap_debug_color(color, tile_mip, intile_uv, is_fb, smooth_mip, blend);
+      get_clipmap_debug_color(color, tile_mip, intile_uv, is_fb, smooth_mip, blend, ind.tileTag);
     }
 
     void sample_clipmaps(float2 worldPosXZ, float4 world_pos_xz_gradients,
@@ -203,7 +204,7 @@ macro INIT_RAW_RENDERING_FEEDBACK()
 
       uav_feedback@uav : register(uav_feedback_const_no) hlsl {
         #define GLOBAL_UAV_FEEDBACK RWByteAddressBuffer uav_feedback@uav;
-        #define FORCE_EARLY_DEPTH_STENCIL [earlydepthstencil]
+        #define USE_EARLY_DEPTH_STENCIL [earlydepthstencil]
       }
     }
   }
@@ -238,7 +239,7 @@ endmacro
 macro NO_UAV_RENDERING_FEEDBACK()
   hlsl(ps) {
     #define GLOBAL_UAV_FEEDBACK
-    #define FORCE_EARLY_DEPTH_STENCIL
+    #define USE_EARLY_DEPTH_STENCIL
     #define WRITE_UAV_FEEDBACK(worldPosXZ, vertFactor, worldPosGradients) half smooth_mip = 0.h;
   }
 endmacro
@@ -286,7 +287,7 @@ macro USE_UAV_RENDERING_FEEDBACK()
     USE_RAW_RENDERING_FEEDBACK()
     hlsl(ps) {
       #define GLOBAL_UAV_FEEDBACK
-      #define FORCE_EARLY_DEPTH_STENCIL
+      #define USE_EARLY_DEPTH_STENCIL
       #define FEEDBACK_STORE(target, coord, value)
 
       #define WRITE_UAV_FEEDBACK(worldPosXZ, vertFactor, worldPosGradients) \

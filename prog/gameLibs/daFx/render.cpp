@@ -230,12 +230,12 @@ void before_render(ContextId cid, uint32_t tags_mask)
   set_global_value(ctx, ctx.cfg.quality_global_id, &ctx.cfg.qualityMask, sizeof(uint32_t));
 }
 
-void before_render(ContextId cid, const eastl::vector<eastl::string> &tags_name)
+void before_render(ContextId cid, dag::ConstSpan<eastl::string_view> tags_name)
 {
   GET_CTX();
 
   uint32_t tags_mask = 0;
-  for (const eastl::string &tagName : tags_name)
+  for (eastl::string_view tagName : tags_name)
   {
     uint32_t tag = get_render_tag(ctx.shaders, tagName, Config::max_render_tags);
     G_ASSERT(tag < Config::max_render_tags);
@@ -699,7 +699,7 @@ static uint32_t calc_reduced_render_mask(float v)
   return ~mask; // 1 in mask is a discard
 }
 
-bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, float mip_bias, TextureCallback tc, float reduced_render)
+bool render(ContextId cid, CullingId cull_id, eastl::string_view tag_name, float mip_bias, TextureCallback tc, float reduced_render)
 {
   TIME_D3D_PROFILE(dafx_render);
   GET_CTX_RET(false);

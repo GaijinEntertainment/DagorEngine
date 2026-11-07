@@ -16,7 +16,17 @@ inline void *os_dll_load_deep_bind(const char *filename) { return os_dll_load(fi
 KRNLIMP const char *os_dll_get_last_error_str();
 KRNLIMP void *os_dll_get_symbol(void *handle, const char *function);
 KRNLIMP void *os_dll_get_handle(const char *name);
+// On PS4/PS5 first destroys the calling thread's thread_local objects of the module (see os_dll_release_thread_tls),
+// also when the unload then fails.
 KRNLIMP bool os_dll_close(void *handle);
+
+// Destroys the calling thread's thread_local objects of the module. A PS4/PS5 module cannot be unloaded
+// while any thread still holds them, so each thread that called into it must do this first. No-op elsewhere.
+#if _TARGET_C1 | _TARGET_C2
+
+#else
+inline void os_dll_release_thread_tls(void *) {}
+#endif
 
 // Gets the path to the loaded dll that contains a given address and puts it into the buffer, and returns it's start addr.
 // Otherwise, returns nullptr, and the buffer is not touched.

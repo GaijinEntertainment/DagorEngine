@@ -23,5 +23,5 @@ float4 darg_ps(float2 uv)
   if (dot(tint, tint) > 0.001)
     col = lerp(col, col * tint, 0.5);
 
-  return float4(col, darg_opacity);
+  return float4(col * darg_opacity, darg_opacity);
 }

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15...4.2)
 project(squirrel VERSION 4.0 LANGUAGES C CXX)
 
 option(ENABLE_VAR_TRACE "Enable variable change tracing feature.")
@@ -38,11 +38,18 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 elseif(MSVC)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-  add_compile_options(/wd4244 /wd4018 /wd4267) # disable type conversion warnings
+  add_compile_options(/W3 /wd4244 /wd4018 /wd4267) # disable type conversion warnings
 endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   add_compile_definitions(_SQ64)
+endif()
+
+# Set for all libraries: it changes the signatures of SQTable and VM functions they call
+if (ENABLE_VAR_TRACE)
+  add_compile_definitions(SQ_VAR_TRACE_ENABLED=1)
+else ()
+  add_compile_definitions(SQ_VAR_TRACE_ENABLED=0)
 endif()
 
 add_subdirectory(squirrel)
@@ -50,18 +57,3 @@ add_subdirectory(squirrel/compiler)
 add_subdirectory(sqstdlib)
 add_subdirectory(sqmodules)
 add_subdirectory(sq)
-
-
-include(CMakePackageConfigHelpers)
-
-write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/squirrel/squirrel-config-version.cmake"
-  VERSION "${squirrel_VERSION}"
-  COMPATIBILITY AnyNewerVersion
-  )
-
-configure_package_config_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/squirrel-config.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/squirrel/squirrel-config.cmake"
-  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/squirrel"
-  )

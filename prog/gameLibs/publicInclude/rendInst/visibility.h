@@ -59,6 +59,7 @@ struct PrepareRiGenVisibilityParams
   VisibilityExternalFilter externalFilter;
   bool forShadow = false;
   bool forVisualCollision = false;
+  bool hideTrees = false;
 };
 // prepares visibility for specified frustum/position.
 // if forShadow is true, only opaque part will be created, and only partially transparent cells are added to opaque

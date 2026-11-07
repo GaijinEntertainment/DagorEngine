@@ -15,6 +15,7 @@
   file:t = "clustered/cull_out_of_frustum.dshl"
   file:t = "clustered/lights_grid.dshl"
   file:t = "clustered/lights_partition.dshl"
+  file:t = "clustered/dynamic_light_shadows.dshl"
   file:t = "../deferred_lights.dshl"
   file:t = "ui_blur.dshl"
   file:t = "ui_blend.dshl"

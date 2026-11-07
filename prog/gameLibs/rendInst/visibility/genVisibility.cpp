@@ -75,11 +75,12 @@ void rendinst::setRIGenVisibilityAtestSkip(RiGenVisibility *visibility, bool ski
 {
   if (skip_noatest && skip_atest)
   {
-    visibility[0].atest_skip_mask = visibility->RENDER_ALL;
+    visibility[0].atest_skip_mask = visibility[1].atest_skip_mask = visibility->RENDER_ALL;
     G_ASSERTF(0, "it doesn't make sense to render empty rigen list (there is no atest and no non-atest)");
     return;
   }
-  visibility[0].atest_skip_mask =
+  // RiGenRenderer reads the mask of its own layer element
+  visibility[0].atest_skip_mask = visibility[1].atest_skip_mask =
     skip_atest ? visibility->SKIP_ATEST : (skip_noatest ? visibility->SKIP_NO_ATEST : visibility->RENDER_ALL);
 }
 
@@ -144,6 +145,19 @@ struct SortByY
   bool operator()(const IPoint2 &a, const IPoint2 &b) const { return a.y < b.y; }
 };
 
+static bool is_trunk_or_crown_visible(const carray<bbox3f, 2> &local_split_bb, mat44f_cref inst_tm, bbox3f_cref world_tree_bb,
+  const Frustum &frustum, Occlusion *occlusion)
+{
+  for (int part = local_split_bb.size() - 1; part >= 0; --part) // the crown first: a tree seen by its crown skips the trunk box
+  {
+    bbox3f box;
+    v_bbox3_init(box, inst_tm, local_split_bb[part]);
+    box = RendInstGenData::RtData::get_split_cull_box(box, world_tree_bb);
+    if (frustum.testBoxB(box.bmin, box.bmax) && (!occlusion || !occlusion->isOccludedBoxInFrustum(box.bmin, box.bmax)))
+      return true;
+  }
+  return false;
+}
 
 void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibility, RiGenVisibility &filteredVis,
   const rendinst::VisibilityExternalIdFilter &id_filter)
@@ -172,14 +186,14 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
       continue;
 
     const int lodCnt = rtData->riResLodCount(ri_idx);
-    const int alphaFarLodNo = lodCnt + 1;
+    const int alphaFarLodNo = lodCnt; // same lod layout as prepareVisibility
     const int stride = RIGEN_STRIDE_B(rtData->riPosInst[ri_idx], rtData->riZeroInstSeeds[ri_idx], perInstDataDwords);
     RenderRanges &rr = filteredVis.renderRanges[ri_idx];
     rr.vismask = 0;
 
     filteredVis.stride = stride;
     filteredVis.startRenderRange(ri_idx);
-    for (int lodI = 0; lodI < alphaFarLodNo; ++lodI)
+    for (int lodI = 0; lodI <= alphaFarLodNo; ++lodI)
     {
       if (!visibility.renderRanges[ri_idx].hasCells(lodI))
         continue;
@@ -222,8 +236,22 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
 
         if (!passedInstanceIndices.empty())
         {
-          filteredVis.addCell(lodI, cellRange.x, cellRange.z, cellRange.startVbOfs);
           stlsort::sort(passedInstanceIndices.begin(), passedInstanceIndices.end());
+
+          // addCell reserves a fixed number of ranges, start another cell entry when it is full
+          constexpr int maxRangesPerCell = RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV / 2 + 1;
+          filteredVis.addCell(lodI, cellRange.x, cellRange.z, cellRange.startVbOfs, maxRangesPerCell);
+          int rangesInCell = 0;
+          auto emitRange = [&](uint32_t start, uint32_t len) {
+            if (rangesInCell == maxRangesPerCell)
+            {
+              filteredVis.closeRanges(lodI);
+              filteredVis.addCell(lodI, cellRange.x, cellRange.z, cellRange.startVbOfs, maxRangesPerCell);
+              rangesInCell = 0;
+            }
+            filteredVis.addRange(lodI, cellRange.startVbOfs + start * stride, len * stride);
+            rangesInCell++;
+          };
 
           uint32_t range_start = passedInstanceIndices[0];
           uint32_t range_len = 1;
@@ -233,20 +261,25 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
               range_len++;
             else
             {
-              filteredVis.addRange(lodI, cellRange.startVbOfs + range_start * stride, range_len * stride);
+              emitRange(range_start, range_len);
               range_start = passedInstanceIndices[i];
               range_len = 1;
             }
           }
-          filteredVis.addRange(lodI, cellRange.startVbOfs + range_start * stride, range_len * stride);
+          emitRange(range_start, range_len);
           filteredVis.closeRanges(lodI);
         }
       }
-      rr.vismask |= VIS_HAS_OPAQUE;
     }
     filteredVis.endRenderRange(ri_idx);
 
-    // update vismask
+    // update vismask, same rules as prepareVisibility
+    for (int lodI = 0; lodI < alphaFarLodNo; ++lodI)
+      if (rr.hasCells(lodI))
+      {
+        rr.vismask |= VIS_HAS_OPAQUE;
+        break;
+      }
     if (rr.hasCells(alphaFarLodNo))
       rr.vismask |= VIS_HAS_TRANSP;
     if (rtData->rtPoolData[ri_idx] && rtData->rtPoolData[ri_idx]->hasImpostor())
@@ -258,8 +291,6 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
     if (filteredVis.renderRanges[ri_idx].vismask & (VIS_HAS_OPAQUE | VIS_HAS_TRANSP))
       filteredVis.visiblePools.push_back(ri_idx);
 
-  carray<int, RiGenVisibility::PER_INSTANCE_LODS> perInstanceData;
-  mem_set_ff(perInstanceData);
   filteredVis.startTreeInstances();
   for (int lod = 0; lod < RiGenVisibility::PER_INSTANCE_LODS; ++lod)
   {
@@ -274,6 +305,7 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
       if (!rtData->rtPoolData[ri_idx] || rtData->isHiddenId(ri_idx))
         continue;
 
+      int poolCursor = -1; // one run per source entry, i.e. per pool, as in prepareVisibility
       for (int inst = visCell.y; inst < visibility.perInstanceVisibilityCells[lod][cell + 1].y; ++inst)
       {
         const vec4f &v_pos = visibility.instanceData[lod][inst];
@@ -283,7 +315,7 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
         auto result = rendinst::get_rendinst_matrix_by_ri_idx(rtData->layerIdx, ri_idx, pos, tm);
         int pregenId = rendinst::get_pregen_id_from_layer_idx_and_ri_idx(rtData->layerIdx, ri_idx);
         if (result == rendinst::GetRendInstMatrixByRiIdxResult::Success && id_filter(pregenId, tm))
-          filteredVis.addTreeInstance(ri_idx, perInstanceData[lod], v_pos, visibility.instanceIds[lod][inst], lod);
+          filteredVis.addTreeInstance(ri_idx, poolCursor, v_pos, visibility.instanceIds[lod][inst], lod);
       }
     }
   }
@@ -478,6 +510,9 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
 
     rendinst::render::RtPoolData &pool = *rtData->rtPoolData[ri_idx];
 
+    if (params.hideTrees && pool.hasImpostor())
+      continue;
+
     if (for_visual_collision &&
         (pool.hasImpostor() || rtData->riPosInst[ri_idx] || rtData->riResElemMask[ri_idx * rendinst::MAX_LOD_COUNT].atest))
       continue;
@@ -529,6 +564,10 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
       if (lodTranslation > 0)
         lodTranslation--;
     }
+    const carray<bbox3f, 2> &poolSplitBb = rtData->riResSplitBb[ri_idx];
+    const bool poolHasSplitBox = !forShadow && !v_bbox3_is_empty(poolSplitBb[1]);
+    const int firstNonMeshInstanceLod = pool.hasTransitionLod() ? visibility.PI_LAST_MESH_LOD : visibility.PI_IMPOSTOR_LOD;
+    const int bestDrawnInstanceLod = rtData->riRes[ri_idx]->getQlBestLod() + lodTranslation;
     for (int lodI = 1; lodI < lodCnt; ++lodI)
     {
       const auto instanceLod = lodI + lodTranslation;
@@ -699,19 +738,20 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
                   if (!rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add[vi], v_cell_mul[vi], palette_rotation,
                         &v_palette_id))
                     continue;
+                  mat44f instTm;
                   bbox3f treeBBox;
                   if (palette_rotation)
                   {
                     quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(v_palette_id));
-                    mat44f tm;
-                    v_mat44_compose(tm, v_pos, v_rot, v_scale);
+                    v_mat44_compose(instTm, v_pos, v_rot, v_scale);
                     bbox3f bbox;
                     bbox.bmin = v_tree_min;
                     bbox.bmax = v_tree_max;
-                    v_bbox3_init(treeBBox, tm, bbox);
+                    v_bbox3_init(treeBBox, instTm, bbox);
                   }
                   else
                   {
+                    v_mat44_compose(instTm, v_pos, v_scale);
                     treeBBox.bmin = v_add(v_pos, v_mul(v_scale, v_tree_min));
                     treeBBox.bmax = v_add(v_pos, v_mul(v_scale, v_tree_max));
                   }
@@ -726,7 +766,14 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
                       if (instance_dist2 > lodDistancesSq_perInst[instanceLod])
                         break;
 
-                    if (use_occlusion)
+                    // the split boxes hold mesh LOD geometry only, so a non-mesh LOD keeps the union box
+                    const bool meshLodDrawn = max(instanceLod, bestDrawnInstanceLod) < firstNonMeshInstanceLod;
+                    if (poolHasSplitBox && meshLodDrawn)
+                    {
+                      if (!is_trunk_or_crown_visible(poolSplitBb, instTm, treeBBox, frustum, use_occlusion))
+                        continue;
+                    }
+                    else if (use_occlusion)
                     {
                       vec3f occBmin = treeBBox.bmin, occBmax = treeBBox.bmax;
                       if (forShadow)

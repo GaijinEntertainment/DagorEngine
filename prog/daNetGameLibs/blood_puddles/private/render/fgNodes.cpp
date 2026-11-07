@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "fgNodes.h"
+#include <render/compressedRtOverrideFlag.h>
 
 #include <blood_puddles/public/render/bloodPuddles.h>
 
@@ -15,9 +16,13 @@ eastl::array<dafg::NodeHandle, 2> make_blood_accumulation_prepass_node()
   auto ns = dafg::root() / "opaque" / "dynamic_rendinst";
 
   auto perCameraResNode = ns.registerNode("blood_per_camera_res", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.createTexture2d("blood_acc_buf0", {TEXCF_RTARGET | TEXFMT_R8G8B8A8, registry.getResolution<2>("main_view", 1.0)})
+    registry
+      .createTexture2d("blood_acc_buf0",
+        {TEXCF_RTARGET | TEXFMT_R8G8B8A8 | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view", 1.0)})
       .clear(make_clear_value(1.0f, 1.0f, 1.0f, 1.0f));
-    registry.createTexture2d("blood_acc_normals", {TEXCF_RTARGET | TEXFMT_R8G8, registry.getResolution<2>("main_view", 1.0)})
+    registry
+      .createTexture2d("blood_acc_normals",
+        {TEXCF_RTARGET | TEXFMT_R8G8 | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view", 1.0)})
       .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
   });
 

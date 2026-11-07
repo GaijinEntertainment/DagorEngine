@@ -14,6 +14,11 @@ class DagorAssetMgr;
 class DataBlock;
 class SimpleString;
 
+namespace AlphaTestValidation
+{
+struct Context;
+}
+
 
 BEGIN_DABUILD_PLUGIN_NAMESPACE(modelExp)
 extern IDagorAssetExporter *create_rendinst_exporter();
@@ -25,6 +30,7 @@ extern IDagorAssetRefProvider *create_dynmodel_ref_provider();
 extern IDagorAssetRefProvider *create_rndgrass_ref_provider();
 
 extern DataBlock appBlkCopy;
+extern AlphaTestValidation::Context *atest_validation_ctx;
 
 extern DagorAsset *cur_asset;
 extern ILogWriter *cur_log;

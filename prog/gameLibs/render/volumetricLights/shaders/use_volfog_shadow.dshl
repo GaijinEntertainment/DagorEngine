@@ -9,8 +9,12 @@ macro INIT_VOLFOG_SHADOW(code)
   {
     (code)
     {
-      volfog_shadow@smp3d = volfog_shadow;
+      volfog_shadow@tex3d = volfog_shadow;
       volfog_froxel_range_inv@f1 = volfog_froxel_range_params.y;
+    }
+    INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(code)
+    hlsl(code) {
+      #define volfog_shadow_samplerstate global_linear_clamp_sampler
     }
   }
 endmacro
@@ -18,9 +22,13 @@ endmacro
 macro INIT_VOLFOG_SHADOW_BRANCH(code)
   (code)
   {
-    volfog_shadow@smp3d = volfog_shadow;
+    volfog_shadow@tex3d = volfog_shadow;
     volfog_shadow_exists@i1 = exists_tex(volfog_shadow);
     volfog_froxel_range_inv@f1 = volfog_froxel_range_params.y;
+  }
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(code)
+  hlsl(code) {
+    #define volfog_shadow_samplerstate global_linear_clamp_sampler
   }
 endmacro
 

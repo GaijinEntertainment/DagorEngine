@@ -10,10 +10,12 @@
 #include <de3_writeObjsToPlaceDump.h>
 #include <de3_entityUserData.h>
 #include <de3_randomSeed.h>
+#include <de3_dynModel.h>
 #include <de3_dynRenderService.h>
 #include <oldEditor/de_common_interface.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
+#include <dag/dag_vector.h>
 #include <EditorCore/ec_interface.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/iLogWriter.h>
@@ -29,6 +31,9 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_debug3d.h>
 #include <math/dag_capsule.h>
+
+#include <EASTL/algorithm.h>
+#include <EASTL/unique_ptr.h>
 
 static int collisionSubtypeMask = -1;
 static int physobjEntityClassId = -1;
@@ -385,7 +390,8 @@ class PhysObjEntityManagementService : public IEditorService,
                                        public IBinaryDataBuilder,
                                        public ILevelResListBuilder,
                                        public IDagorAssetChangeNotify,
-                                       public IRenderingService
+                                       public IRenderingService,
+                                       public IDynModelIsolatedRender
 {
 public:
   PhysObjEntityManagementService()
@@ -428,6 +434,7 @@ public:
     RETURN_INTERFACE(huid, ILightingChangeClient);
     RETURN_INTERFACE(huid, IBinaryDataBuilder);
     RETURN_INTERFACE(huid, ILevelResListBuilder);
+    RETURN_INTERFACE(huid, IDynModelIsolatedRender);
     return NULL;
   }
 
@@ -465,6 +472,49 @@ public:
     }
   }
 
+  // IDynModelIsolatedRender interface
+  bool getIsolatedRenderData(const DagorAsset &asset, BBox3 &local_box, TextureIdSet &tex_ids) override
+  {
+    PhysObjEntity *ent = findOrAddIsolatedEntity(asset);
+    if (!ent)
+      return false;
+
+    bool hasGeometry = false;
+    for (const DynamicRenderableSceneInstance *scene : ent->scenes)
+    {
+      const DynamicRenderableSceneResource *res = scene->getCurSceneResource();
+      if (!res || (res->getRigidsConst().empty() && res->getSkinsCount() == 0))
+        continue;
+
+      res->gatherUsedTex(tex_ids);
+      hasGeometry = true;
+    }
+    if (!hasGeometry)
+      return false;
+
+    local_box = ent->getBbox();
+    return true;
+  }
+
+  void renderIsolatedOpaque(const DagorAsset &asset, const TMatrix &tm, int per_instance_seed) override
+  {
+    IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+    if (!rs)
+      return;
+
+    PhysObjEntity *ent = findOrAddIsolatedEntity(asset);
+    if (!ent)
+      return;
+
+    ent->setTm(tm);
+    ent->setPerInstanceSeed(per_instance_seed);
+    ent->render(rs, STG_RENDER_DYNAMIC_OPAQUE);
+  }
+
+  void releaseIsolatedEntity(int asset_name_id) override { eraseIsolatedEntity(asset_name_id); }
+
+  void releaseIsolatedRenderData() override { isolatedEntities.clear(); }
+
   // IObjEntityMgr interface
   bool canSupportEntityClass(int entity_class) const override
   {
@@ -473,11 +523,7 @@ public:
 
   IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
-    if (!registeredNotifier)
-    {
-      registeredNotifier = true;
-      asset.getMgr().subscribeUpdateNotify(this, -1, physobjEntityClassId);
-    }
+    subscribeAssetChanges(asset);
 
     if (virtual_ent)
     {
@@ -516,6 +562,7 @@ public:
     for (int i = 0; i < ent.size(); i++)
       if (ent[i] && ent[i]->getAssetNameId() == asset_name_id)
         ent[i]->clear();
+    eraseIsolatedEntity(asset_name_id);
     EDITORCORE->invalidateViewportCache();
   }
   void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
@@ -527,6 +574,7 @@ public:
         ent[i]->clear();
         ent[i]->setup(asset);
       }
+    eraseIsolatedEntity(asset_name_id);
     EDITORCORE->invalidateViewportCache();
   }
 
@@ -609,8 +657,62 @@ public:
   }
 
 protected:
+  void subscribeAssetChanges(const DagorAsset &asset)
+  {
+    if (!registeredNotifier)
+    {
+      registeredNotifier = true;
+      asset.getMgr().subscribeUpdateNotify(this, -1, physobjEntityClassId);
+    }
+  }
+
+  // Returns null when the asset is not a physObj or cannot be loaded.
+  PhysObjEntity *findOrAddIsolatedEntity(const DagorAsset &asset)
+  {
+    if (asset.getType() != physobjEntityClassId)
+      return nullptr;
+
+    auto it = eastl::find_if(isolatedEntities.begin(), isolatedEntities.end(),
+      [&asset](const eastl::unique_ptr<PhysObjEntity> &e) { return e->getAssetNameId() == asset.getNameId(); });
+    PhysObjEntity *ent = it == isolatedEntities.end() ? nullptr : it->get();
+    if (!ent)
+    {
+      subscribeAssetChanges(asset);
+      // Not in objPool, so the viewport, the export and the level resource list skip it.
+      ent = isolatedEntities.emplace_back(eastl::make_unique<PhysObjEntity>(physobjEntityClassId)).get();
+
+      // The Asset Browser loads every physObj that it shows, so a broken asset must not stop the tool.
+      DAEDITOR3.setFatalHandler(false);
+      try
+      {
+        ent->setup(asset);
+      }
+      catch (...)
+      {
+        logerr("exception while building asset: %s", asset.getName());
+      }
+      DAEDITOR3.popFatalHandler();
+
+      ent->setCurLod(0);
+    }
+
+    return ent->pd ? ent : nullptr;
+  }
+
+  void eraseIsolatedEntity(int asset_name_id)
+  {
+    isolatedEntities.erase(
+      eastl::remove_if(isolatedEntities.begin(), isolatedEntities.end(),
+        [asset_name_id](const eastl::unique_ptr<PhysObjEntity> &e) { return e->getAssetNameId() == asset_name_id; }),
+      isolatedEntities.end());
+  }
+
   PhysObjEntityPool objPool;
   bool visible;
+
+  // A physObj's models are dynModels, which reference their textures only while they have an instance. These entities
+  // keep an instance of each model, so the textures load while a thumbnail is being generated.
+  dag::Vector<eastl::unique_ptr<PhysObjEntity>> isolatedEntities;
 };
 
 

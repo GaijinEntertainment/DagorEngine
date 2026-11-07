@@ -351,6 +351,9 @@
          <word name="GlobalCPPopt"/>
          <word name="GlobalLinkPrereqs"/>
          <word name="GoogleInfoPlist"/>
+         <word name="GradleLibAllowDownload"/>
+         <word name="GradleLibExport"/>
+         <word name="GradleLibExportDir"/>
          <word name="HDRFS"/>
          <word name="HOME"/>
          <word name="HaveAssetManager"/>

@@ -4,4 +4,4 @@
 //
 #pragma once
 
-void init_nv_cache_tracker();
+void init_nv_cache_tracker(const char *shader_dump_dir);

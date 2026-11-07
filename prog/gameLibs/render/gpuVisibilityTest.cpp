@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/gpuVisibilityTest.h>
+#include <shaders/dag_computeShaders.h>
 #include <util/dag_string.h>
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_viewScissor.h>
@@ -108,7 +109,7 @@ void GpuVisibilityTestManager::getVisibilityTestResults(
   cleanTestedData(curObjectToRead);
 }
 
-void GpuVisibilityTestManager::doTestsOnGpu(BaseTexture *depth_tex)
+void GpuVisibilityTestManager::issueTests(dag::FunctionRef<bool(Sbuffer *result_buffer, int end_object_id)> test)
 {
   if (d3d::device_lost(nullptr))
     return;
@@ -122,15 +123,40 @@ void GpuVisibilityTestManager::doTestsOnGpu(BaseTexture *depth_tex)
   // We can have some already tested bboxes on the input. It occurs when they wasn't read.
   // So here is curObjectToTestId var to handle it.
   int bboxesToTestCnt = min(int(objectsToTest.size() - curObjectToTestId), int(MAX_OBJECTS_PER_FRAME));
+  d3d::zero_rwbufi(resultBuffer);
   if (bboxesToTestCnt)
   {
     TIME_D3D_PROFILE(bboxes_visibility_test);
-
     updateBboxesSbuf(curObjectToTestId, bboxesToTestCnt);
+    d3d::resource_barrier({resultBuffer, RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+    if (test(resultBuffer, curObjectToTestId + bboxesToTestCnt)) // a failed test keeps its boxes queued
+      curTestsIssued.push_back(TestInfo{bboxesToTestCnt, testFrame});
+  }
 
+  TIME_PROFILE(visibility_tests_copy);
+  visResultRingBuffer.startCPUCopy();
+}
+
+void GpuVisibilityTestManager::doTestsOnGpu(const ComputeShaderElement &test_cs)
+{
+  issueTests([&](Sbuffer *resultBuffer, int endObjectId) {
+    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, BBOX_VIS_RESULT_REG_ID, VALUE), resultBuffer);
+    const uint32_t count = endObjectId - curObjectToTestId;
+    d3d::set_immediate_const(STAGE_CS, &count, 1);
+    const bool dispatched = test_cs.dispatchThreads(count, 1, 1);
+    d3d::set_immediate_const(STAGE_CS, nullptr, 0);
+    if (!dispatched) // the zeroed result would read as hidden
+      return false;
+    curGroupId = findGroupByObjId(endObjectId);
+    curObjectToTestId = endObjectId;
+    return true;
+  });
+}
+
+void GpuVisibilityTestManager::doTestsOnGpu(BaseTexture *depth_tex)
+{
+  issueTests([&](Sbuffer *resultBuffer, int endObjectId) {
     int startObjectId = curObjectToTestId;
-    int endObjectId = curObjectToTestId + bboxesToTestCnt;
-
     int levels = 0;
     if (depth_tex->getType() == D3DResourceType::ARRTEX)
     {
@@ -140,19 +166,15 @@ void GpuVisibilityTestManager::doTestsOnGpu(BaseTexture *depth_tex)
     }
     d3d::set_render_target({depth_tex, 0, 0}, DepthAccess::SampledRO, {});
     d3d::resource_barrier({depth_tex, RB_RO_CONSTANT_DEPTH_STENCIL_TARGET | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
-    d3d::zero_rwbufi(resultBuffer);
     STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, BBOX_VIS_RESULT_REG_ID, VALUE), resultBuffer);
     shaders::overrides::set(visTestOverrideId);
-
-    d3d::resource_barrier({resultBuffer, RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
 
     index_buffer::use_box();
     d3d::setvsrc(0, 0, 0);
     int currentLevel = 0;
     while (curObjectToTestId < endObjectId)
     {
-      int nextStartObjectId =
-        curGroupId + 1 >= objectGroups.size() ? objectsToTest.size() : objectGroups[curGroupId + 1].startObjectId;
+      int nextStartObjectId = groupEnd(curGroupId);
       int groupEndObjectId = min(nextStartObjectId, endObjectId);
 
       GroupInfo &info = objectGroups[curGroupId];
@@ -178,14 +200,9 @@ void GpuVisibilityTestManager::doTestsOnGpu(BaseTexture *depth_tex)
 
     d3d::set_immediate_const(STAGE_VS, nullptr, 0);
     shaders::overrides::reset();
-    curTestsIssued.push_back(TestInfo{bboxesToTestCnt, testFrame});
     d3d::resource_barrier({depth_tex, RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
-  }
-  else
-    d3d::zero_rwbufi(resultBuffer);
-
-  TIME_PROFILE(visibility_tests_copy);
-  visResultRingBuffer.startCPUCopy();
+    return true;
+  });
 }
 
 void GpuVisibilityTestManager::removeOutdatedObjectGroups(

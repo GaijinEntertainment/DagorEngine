@@ -64,6 +64,7 @@ macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
   #endif
     {
       #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(input);
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
       #endif
       ##if deferred && compatibility_mode == compatibility_mode_on && normal == NULL
@@ -150,6 +151,7 @@ macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
   ##endif
     {
       #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(input);
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
       #endif
       ##if deferred

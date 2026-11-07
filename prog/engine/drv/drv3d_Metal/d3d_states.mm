@@ -255,7 +255,7 @@ const DriverDesc &d3d::get_driver_desc()
 
     g_device_desc.shaderModel = 5.0_sm;
 #else //_TARGET_IOS | _TARGET_TVOS
-    metal_use_queries = false;
+    metal_use_queries = true;
 
     g_device_desc.maxSimRT = 4;
 
@@ -1045,7 +1045,7 @@ void destroy_resource_heap(ResourceHeap *heap)
 
   TEXQL_ON_PERSISTENT_RELEASE_SZ(heap->size);
 
-  // constraint: placed resources and recorded commands point at the heap until the current submit completes
+  // placed resources and recorded commands point at the heap until the current submit completes
   render.queueHeapForDeletion(heap);
 }
 
@@ -1096,9 +1096,13 @@ BaseTexture *place_texture_in_resource_heap(ResourceHeap *heap, const ResourceDe
   id<MTLTexture> tex = [heap->heap newTextureWithDescriptor : tex_desc
                                                      offset : offset];
   if (tex == nullptr)
+  {
+    [tex_desc release];
     return nullptr;
+  }
 
   drv3d_metal::Texture *texture = new drv3d_metal::Texture(tex, tex_desc, desc.asBasicRes.cFlags, name);
+  [tex_desc release];
   texture->apiTex->heap_offset = uint32_t(offset);
   texture->apiTex->heap_size = alloc_info.sizeInBytes;
   texture->apiTex->heap = heap;

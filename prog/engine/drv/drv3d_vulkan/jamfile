@@ -209,7 +209,7 @@ if $(Platform) in nswitch {
 }
 
 CPPopt = -DINSIDE_DRIVER ;
-if $(UseStreamline) = yes { CPPopt += -DHAS_STREAMLINE ; }
+if $(UseStreamline) = yes { CPPopt += -DHAS_STREAMLINE ; Target = $(Target:S=~sl$(StreamlineVer).lib) ; }
 
 if $(Platform) in android windows linux && $(Config) != rel {
   Sources += renderDoc_capture_module.cpp ;

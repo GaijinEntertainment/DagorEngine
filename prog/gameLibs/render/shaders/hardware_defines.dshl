@@ -1390,7 +1390,7 @@ hlsl
 
     uint2 decode_vrs_rate(uint rate)
     {
-      return uint2(1 + ((rate >> 2) & 0x3), 1 + ((rate >> 0) & 0x3));
+      return uint2(1u << ((rate >> 2) & 0x3), 1u << ((rate >> 0) & 0x3));
     }
 
     #define HW_USE_READ_SHADING_RATE , uint shading_rate : SV_ShadingRate

@@ -24,44 +24,49 @@ texture water_planar_reflection_terrain;
 texture water_planar_reflection_terrain_depth;
 texture water_normal_dir;
 texture downsampled_depth;
+texture water_reflection_tex_uav;
+texture water_reflection_strength_tex_uav;
 
 sampler water_ssr_point_clamp_samplerstate;
 float4 water_ssr_stretch_params = (8, 0.7, 0.7, 0);
+float water_ssr_history_clamp_k = 3;
 
-macro WATER_SSR()
-  INIT_SAMPLE_DEPTH_TEX(ps)
-  USE_SAMPLE_DEPTH_TEX(ps)
-  GET_ALTERNATE_REFLECTIONS_WATER(ps)
-  USE_BRUNETON_FOG()
-  FFX_RAYMARCH(ps)
+macro WATER_SSR(code)
+  INIT_SAMPLE_DEPTH_TEX(code)
+  USE_SAMPLE_DEPTH_TEX(code)
+  GET_ALTERNATE_REFLECTIONS_WATER(code)
+  BASE_USE_BRUNETON_FOG(code)
+  SSR_BEHIND_DEPTH_HOOK(code)
+  FFX_RAYMARCH(code)
 
   local float4 water_reflection_tex_dimensions = get_dimensions(water_reflection_tex, 0);
-  (ps) {
+  (code) {
     water_reflection_tex_res_inv@f2 = (1.0 / water_reflection_tex_dimensions.xy);
     water_ssr_point_clamp_samplerstate@sampler = water_ssr_point_clamp_samplerstate;
     water_ssr_stretch_params@f4 = water_ssr_stretch_params;
   }
   if (water_planar_reflection_terrain != NULL)
   {
-    (ps)
+    (code)
     {
       water_planar_reflection_terrain@tex2d = water_planar_reflection_terrain;
       water_planar_reflection_terrain_depth@tex2d = water_planar_reflection_terrain_depth;
     }
-    hlsl (ps) {
+    hlsl (code) {
       #define water_planar_reflection_terrain_depth_samplerstate water_ssr_point_clamp_samplerstate
       #define water_planar_reflection_terrain_samplerstate water_ssr_point_clamp_samplerstate
     }
-    INIT_WORLD_HEIGHTMAP_PS()
-    USE_HEIGHTMAP_COMMON_PS()
-    WATER_PLANAR_PS()
+    INIT_WORLD_HEIGHTMAP_BASE(code)
+    USE_HEIGHTMAP_COMMON_BASE(code)
+    WATER_PLANAR_INIT(code)
+    WATER_PLANAR_USE(code)
   }
-  (ps)
+  (code)
   {
     globtm_psf@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
     prev_frame_tex@tex2d = prev_frame_tex;
   }
-  hlsl(ps) {
+  hlsl(code) {
     #define NUM_STEPS 16
     #define NUM_STEPS_EXP 4
     #define NUM_STEPS_LIN 64
@@ -155,7 +160,7 @@ macro WATER_SSR()
       float4 result = lerp(nearCoord, farCoord, resultStep);
       result /= result.w;
       result.xy = result.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
-      result.w = saturate(sqrt(resultStep) * 0.5); //objects zfar away will have a 0.5 fade
+      result.w = 0;
       return result;
     }
 
@@ -167,7 +172,6 @@ macro WATER_SSR()
       if (nearCoord.w >= farCoord.w) //Do not raymarch towards camera
         return float4(0, 0, 0, HIT_INVALID);
 
-      float4 resultFade = nearCoord.zwzw - float4(0, 0, farCoord.zw);
       nearCoord /= nearCoord.w;
       farCoord /= farCoord.w;
 
@@ -242,8 +246,7 @@ macro WATER_SSR()
       float resultStep = lerp(stepSize, prevStepSize, sampleStep);
       float4 result = lerp(nearCoord, farCoord, resultStep);
       result.xy = result.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
-      resultStep = (sampleZ * resultFade.y - resultFade.x) / (sampleZ * resultFade.w - resultFade.z);
-      result.w = saturate(sqrt(resultStep) * 0.5); //objects zfar away will have a 0.5 fade
+      result.w = 0;
       return result;
     }
 
@@ -375,7 +378,8 @@ macro WATER_SSR()
         #endif
       }
 
-      color = float4(backSurfaceColor.rgb / weight, backSurfaceColor.a / MaxIteration);
+      float confidence = smoothstep(1, MaxIteration - 1, backSurfaceColor.a);
+      color = float4(backSurfaceColor.rgb / weight, confidence);
     }
 
     float4 water_ssr(float4 screenPos, float2 screenTc, float3 worldPos, float3 worldNormal, float3 pointToEye, float3 reflectSampleDir, bool isOceanPlane)
@@ -465,49 +469,57 @@ macro WATER_SSR()
   }
 endmacro
 
-shader water_ssr
+shader water_ssr_cs
 {
-  supports water3d_block;
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
 
-  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+  GLOBAL_CONSTS(cs)
+  DECL_POSTFX_TC_VS_SCR()
+  INIT_ZNZFAR_STAGE(cs)
+  VIEW_VEC_OPTIMIZED(cs)
+  USE_PREV_TC(cs)
+  USE_SCREENPOS_TO_LOWRES_TC_BASE(cs)
 
-  cull_mode = none;
-  z_test = false;
-  z_write = false;
-
-  POSTFX_VS(1)
-  VIEW_VEC_OPTIMIZED(ps)
-  USE_PREV_TC(ps)
-  USE_SCREENPOS_TO_LOWRES_TC()
+  local float4 water_ssr_out_res = get_dimensions(water_reflection_tex_uav, 0);
+  (cs) {
+    world_view_pos@f3 = world_view_pos;
+    water_ssr_out_res@f2 = water_ssr_out_res.xy;
+    water_reflection_tex_uav@uav = water_reflection_tex_uav hlsl { RWTexture2D<float3> water_reflection_tex_uav@uav; };
+    water_reflection_strength_tex_uav@uav = water_reflection_strength_tex_uav hlsl { RWTexture2D<float2> water_reflection_strength_tex_uav@uav; };
+  }
 
   // force_ignore_history = force_ignore_history || !water_ssr_enabled_prev_frame
-  (ps) {
+  (cs) {
     force_ignore_history@f1 = (force_ignore_history + 1.0 - water_ssr_enabled_prev_frame, 0, 0, 0);
     current_jittered_pos_to_prev_jittered_pos_ofs@f2 = (uv_temporal_jitter.z - uv_temporal_jitter.x, uv_temporal_jitter.w - uv_temporal_jitter.y);
     water_normal_dir@tex2d = water_normal_dir;
     downsampled_depth@tex2d = downsampled_depth;
     water_reflection_tex@tex2d = water_reflection_tex;
     water_reflection_strength_tex@tex2d = water_reflection_strength_tex;
+    water_ssr_history_clamp_k@f1 = water_ssr_history_clamp_k;
     water_ssr_linear_clamp_samplerstate@sampler = water_ssr_linear_clamp_sampler;
   }
-  hlsl(ps) {
+  hlsl(cs) {
     // getPrevTc yields unclamped uv; history must resolve to transparent black
     // outside the screen (border sampler), not wrap to the opposite edge
     #define water_reflection_tex_samplerstate water_ssr_linear_clamp_samplerstate
     #define water_reflection_strength_tex_samplerstate water_ssr_linear_clamp_samplerstate
   }
 
-  INIT_HDR(ps)
-  USE_HDR(ps)
+  INIT_HDR(cs)
+  USE_HDR(cs)
 
   // Bruneton fog is not initialized upstream in this pass; WATER_SSR's fog fallback needs it.
-  INIT_BRUNETON_FOG(ps)
+  INIT_BRUNETON_FOG(cs)
+  INIT_CLOUDS_SHADOW_BASE(to_sun_direction.y, cs)
 
-  WATER_SSR()
+  hlsl(cs) { #define NO_GRADIENTS_IN_SHADER 1 }
+  WATER_SSR(cs)
 
-  hlsl(ps) {
+  hlsl(cs) {
     #include <NRD.hlsli>
     #include <envi_brdf.hlsl>
+    #include <pixelPacking/yCoCgSpace.hlsl>
 
     // Empirical edge stretch: near the left/right frame edges reflections point
     // at offscreen data, so shrink the view ray's screen x toward the center.
@@ -544,30 +556,58 @@ shader water_ssr
       return half4(reflectSampleDir, 1);
     }
 
-    struct WaterOutput
-    {
-      float3 color : SV_Target0;
-      float2 alpha__strength : SV_Target1;
-    };
+    #define WATER_SSR_TILE_X 16
+    #define WATER_SSR_TILE_Y 8
 
-    WaterOutput water_ssr_ps(VsOutput input HW_USE_SCREEN_POS)
+    groupshared half4 gs_traced[WATER_SSR_TILE_X * WATER_SSR_TILE_Y];
+
+    // shortcut: the 3x3 taps clamp to the group tile (no apron) - if tile seams show, add a 1 px apron
+    half4 clip_history_to_neighbourhood(uint2 gtid, half4 history)
     {
-      float4 pos = GET_SCREEN_POS(input.pos);
-      int2 pixel = int2(pos.xy);
-      float2 tc = screen_pos_to_lowres_tc(pos.xy * 2.0);
+      float4 m1 = 0, m2 = 0;
+      float sumW = 0;
+      UNROLL
+      for (int y = -1; y <= 1; ++y)
+        UNROLL
+        for (int x = -1; x <= 1; ++x)
+        {
+          int2 tap = clamp(int2(gtid) + int2(x, y), 0, int2(WATER_SSR_TILE_X - 1, WATER_SSR_TILE_Y - 1));
+          float4 v = gs_traced[tap.y * WATER_SSR_TILE_X + tap.x];
+          float w = v.a >= 0 ? 1 : 0;
+          m1 += w * v;
+          m2 += w * v * v;
+          sumW += w;
+        }
+      float4 mean = m1 / sumW;
+      float4 extents = water_ssr_history_clamp_k * sqrt(max(m2 / sumW - mean * mean, 0));
+
+      float3 delta = PackToYCoCg(history.rgb) - mean.rgb;
+      float3 unitDist = abs(delta) / max(extents.rgb, 1e-4);
+      float maxUnit = max(unitDist.x, max(unitDist.y, unitDist.z));
+      float3 clipped = mean.rgb + delta / max(maxUnit, 1);
+      return half4(UnpackFromYCoCg(clipped), clamp(history.a, mean.a - extents.a, mean.a + extents.a));
+    }
+
+    [numthreads(WATER_SSR_TILE_X, WATER_SSR_TILE_Y, 1)]
+    void water_ssr_cs(uint2 pixel : SV_DispatchThreadID, uint2 gtid : SV_GroupThreadID, uint gi : SV_GroupIndex)
+    {
+      bool isWater = all(pixel < uint2(water_ssr_out_res));
+      // constraint: threads past the target edge also reach the barrier, so their fetches stay inside the texture
+      uint2 fetchPixel = min(pixel, uint2(water_ssr_out_res) - 1);
+      float2 tc = screen_pos_to_lowres_tc((pixel + 0.5) * 2.0);
 
       // the color/strength targets are shared by camcam sub-views; without a
       // stencil each multiplex iteration must reject the other view's pixels
-      DISCARD_IF_INVALID_VIEW_AREA_PS(tc);
+      if (camera_has_sub_view() && is_wrong_camera_view_area_postfx(tc))
+        isWater = false;
 
       float materialID = 0;
-      float4 normalRoughness = NRD_FrontEnd_UnpackNormalAndRoughness(texelFetch(water_normal_dir, pixel, 0), materialID);
+      float4 normalRoughness = NRD_FrontEnd_UnpackNormalAndRoughness(texelFetch(water_normal_dir, fetchPixel, 0), materialID);
       materialID = round(materialID);
-      BRANCH
       if (materialID == WATER_MATERIAL_ID_NONE)
-        discard;
+        isWater = false;
 
-      float rawDepth = texelFetch(downsampled_depth, pixel, 0).r;
+      float rawDepth = texelFetch(downsampled_depth, fetchPixel, 0).r;
       float w = linearize_z(rawDepth, zn_zfar.zw);
       float3 viewVec = getViewVecOptimized(tc);
       float3 pointToEye = -viewVec * w;
@@ -576,7 +616,7 @@ shader water_ssr
       float3 worldNormal = normalRoughness.xyz;
       // xy = target pixel coords, z = raw depth, w = linear depth: the layout
       // water_ssr()/applyBackSurfaceColorFix expect
-      float4 screenPos = float4(pos.xy, rawDepth, w);
+      float4 screenPos = float4(pixel + 0.5, rawDepth, w);
 
       float3 prevScreen;
       float2 oldUv = getPrevTc(worldPos, prevScreen);
@@ -596,20 +636,26 @@ shader water_ssr
 
       float4 newTarget = 0;
       half4 reflectSampleDir = water_reflect_dir(worldNormal, tc, pointToEyeNormalized);
-      if (reflectSampleDir.w > 0)
+      BRANCH
+      if (isWater && reflectSampleDir.w > 0)
         newTarget = water_ssr(screenPos, tc, worldPos, worldNormal, pointToEye, reflectSampleDir.xyz, WATER_IS_OCEAN_PLANE_MATERIAL(materialID));
+
+      // constraint: non-water threads must reach the barrier, so they return only after it
+      gs_traced[gi] = isWater ? half4(PackToYCoCg(h3nanofilter(newTarget.rgb)), newTarget.a) : half4(0, 0, 0, -1);
+      GroupMemoryBarrierWithGroupSync();
+      if (!isWater)
+        return;
+
       half3 oldColor = tex2Dlod(water_reflection_tex, float4(oldUv, 0,0)).rgb;
-      half4 oldTarget = half4(oldColor.rgb, oldAlphaStrength.r);
+      half4 oldTarget = clip_history_to_neighbourhood(gtid, half4(oldColor.rgb, oldAlphaStrength.r));
       half4 result = lerp(oldTarget, newTarget, weight);
       // Increase alpha slightly to counteract R8 texture rounding down, causing ghosting
       result.a = result.a*256.0/255.0;
 
-      WaterOutput output;
-      output.color = h3nanofilter(result.rgb);
-      output.alpha__strength = half2(result.a, newStrength + oldStrength);
-      return output;
+      texture2DAt(water_reflection_tex_uav, pixel) = h3nanofilter(result.rgb);
+      texture2DAt(water_reflection_strength_tex_uav, pixel) = half2(result.a, newStrength + oldStrength);
     }
   }
 
-  compile("target_ps", "water_ssr_ps");
+  compile("target_cs", "water_ssr_cs");
 }

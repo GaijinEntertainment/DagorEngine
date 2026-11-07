@@ -51,7 +51,6 @@ enum : int
   INST_RID,
   INST_SYS_ID,
   INST_FLAGS,
-  INST_REF_FLAGS,
   INST_SYNCED_FLAGS,
   INST_DEPTH,
   INST_LOD,
@@ -78,8 +77,6 @@ enum : int
   INST_SERVICE_DATA_SIZE,
 
   INST_PRIM_PER_PART,
-
-  INST_SERVICE_REF_DATA_ID,
 
   INST_RENDER_REF_DATA_SIZE,
   INST_SIMULATION_REF_DATA_SIZE,
@@ -141,7 +138,6 @@ enum : int
 using InstanceStream = eastl::tuple_vector<InstanceId, // INST_RID
   SystemId,                                            // INST_SYS_ID
   uint32_t,                                            // INST_FLAGS
-  uint32_t,                                            // INST_REF_FLAGS
   uint32_t,                                            // INST_SYNCED_FLAGS
   int,                                                 // INST_DEPTH
   uint8_t,                                             // INST_LOD
@@ -168,8 +164,6 @@ using InstanceStream = eastl::tuple_vector<InstanceId, // INST_RID
   int, // INST_SERVICE_DATA_SIZE
 
   int, // INST_PRIM_PER_PART
-
-  RefDataId, // INST_SERVICE_REF_DATA_ID
 
   int, // INST_RENDER_REF_DATA_SIZE,
   int, // INST_SIMULATION_REF_DATA_SIZE,
@@ -323,7 +317,6 @@ void reset_instances_after_reset(Context &ctx);
 
 void create_instances_from_queue(Context &ctx);
 void destroy_instance_from_queue(Context &ctx);
-void reset_instance_from_queue(Context &ctx);
 void set_instance_pos_from_queue(Context &ctx);
 void set_instance_status_from_queue(Context &ctx);
 void set_instance_visibility_from_queue(Context &ctx);

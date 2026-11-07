@@ -3,6 +3,7 @@ include "gbuffer.dshl"
 include "viewVecVS.dshl"
 include "indoor_light_probes.dshl"
 include "fake_static_shadow.dshl"
+include "tonemapHelpers/debug_draw_hdr_inc.dshl"
 
 shader debug_mirror_sphere
 {
@@ -25,6 +26,10 @@ shader debug_mirror_sphere
     };
   }
   USE_AND_INIT_VIEW_VEC_VS()
+  if (debug_draw_after_postfx == yes)
+  {
+    INIT_AND_USE_DEBUG_DRAW_HDR()
+  }
   USE_INDOOR_LIGHT_PROBES(ps, false)
   INIT_LOCAL_SPECULAR()
   INIT_SKY_POLARIZATION_FILTER_TERM(ps)
@@ -60,7 +65,11 @@ shader debug_mirror_sphere
       float3 reflectionVec = reflect(normalize(input.worldPos.xyz - world_view_pos.xyz), normal);
       float4 indoorRefl__localWeight = use_indoor_probes(input.worldPos.xyz, normal, reflectionVec, 0 /* roughMip */, 0 /* viewDist */);
       float3 enviRefl = sample_envi_probe(float4(reflectionVec, 0 /* roughMip */)).rgb;
-      return float4(enviRefl * indoorRefl__localWeight.w + indoorRefl__localWeight.rgb, 1);
+      float3 color = enviRefl * indoorRefl__localWeight.w + indoorRefl__localWeight.rgb;
+      ##if debug_draw_after_postfx == yes
+        color = pack_debug_draw_hdr(color);
+      ##endif
+      return float4(color, 1);
     }
   }
   compile("target_ps", "debug_light_probe_spheres_ps");

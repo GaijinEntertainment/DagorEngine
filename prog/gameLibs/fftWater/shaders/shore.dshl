@@ -17,6 +17,7 @@ float4 shore_damp = (0.0, 6.0, 0.0, 0.0);
 
 float foam_time = 0.0;
 float max_wave_height = 1.0;
+float water_render_max_wave_height = 0;
 float wind_dir_x = 0.6;
 float wind_dir_y = 0.8;
 float wind_speed = 1.0;
@@ -88,7 +89,7 @@ macro INIT_SHORE(stage)
   if (shore_artistic_mode == yes)
   {
     (stage) {
-      water_level_max_wave_height@f2 = (water_level, shore_artistic_max_wave_height);
+      water_level_max_wave_height@f3 = (water_level, shore_artistic_max_wave_height, water_render_max_wave_height);
       shore__waves_depth@f2 = (
         1.0 / shore__waves_depth_fade_interval,
         shore__waves_depth_min * shore_artistic_max_wave_height * shore_wave_height_to_amplitude * shore_amplitude_to_length / (world_to_heightmap.x * 16384.0 * shore__waves_depth_fade_interval));
@@ -97,7 +98,7 @@ macro INIT_SHORE(stage)
   else
   {
     (stage) {
-      water_level_max_wave_height@f2 = (water_level, max_wave_height);
+      water_level_max_wave_height@f3 = (water_level, max_wave_height, water_render_max_wave_height);
       shore__waves_depth@f2 = (
         1.0 / shore__waves_depth_fade_interval,
         shore__waves_depth_min * max_wave_height * shore_wave_height_to_amplitude * shore_amplitude_to_length / (world_to_heightmap.x * 16384.0 * shore__waves_depth_fade_interval));

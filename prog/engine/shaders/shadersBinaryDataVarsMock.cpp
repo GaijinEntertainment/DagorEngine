@@ -97,6 +97,10 @@ static void normalize_value(eastl::any &value)
     value = to_tmatrix(*v);
 }
 
+static uint32_t generation = 0;
+
+void bump_generation() { ++generation; }
+
 void reset()
 {
   shader_vars.clear();
@@ -405,11 +409,7 @@ int ShaderGlobal::get_interval_current_value(int)
   G_ASSERTF(false, "Not implemented");
   return -1;
 }
-bool ShaderGlobal::is_var_assumed(int)
-{
-  G_ASSERTF(false, "Not implemented");
-  return false;
-}
+bool ShaderGlobal::is_var_assumed(int) { return false; }
 int ShaderGlobal::get_interval_assumed_value(int)
 {
   G_ASSERTF(false, "Not implemented");
@@ -492,7 +492,7 @@ int VariableMap::getVariablesCount(bool)
   return 0;
 }
 const char *VariableMap::getVariableName(int variable_id, bool) { return shader_vars_mock::get_name(variable_id); }
-uint32_t VariableMap::generation() { return 0; }
+uint32_t VariableMap::generation() { return shader_vars_mock::generation; }
 void ShaderVariableInfo::nanError() const {}
 int VariableMap::getGlobalVariablesCount() { return shader_vars_mock::shader_vars.size(); }
 const char *VariableMap::getGlobalVariableName(int globvar_idx) { return shader_vars_mock::get_present_name(globvar_idx); }

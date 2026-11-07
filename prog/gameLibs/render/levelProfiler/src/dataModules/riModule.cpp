@@ -6,6 +6,7 @@
 #include <gameRes/dag_collisionResource.h>
 #include <math/dag_Point3.h>
 #include <EASTL/algorithm.h>
+#include <EASTL/sort.h>
 #include <EASTL/hash_set.h>
 #include <EASTL/array.h>
 #include <EASTL/vector.h>
@@ -14,6 +15,7 @@
 #include <riGen/riGenExtra.h>
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstGenRtTools.h>
+#include <rendInst/ccExtra.h>
 #include <generic/dag_enumerate.h>
 #include "riModule.h"
 
@@ -35,8 +37,6 @@ RIModule::RIModule() {}
 
 RIModule::~RIModule() { shutdownImpl(); }
 
-void RIModule::init() {}
-
 void RIModule::shutdown() { shutdownImpl(); }
 
 void RIModule::shutdownImpl() { clearImpl(); }
@@ -57,9 +57,13 @@ void RIModule::clearImpl()
   maxAssetInstanceCount = 0;
   riDataProvisional = false;
   collectCancelled = false;
+  riDataGeneration++;
 }
 
 void RIModule::drawUI() {}
+
+// A riGen load fills the layer tables with no lock, so a collect or walk then would read them half-built.
+bool RIModule::canCollect() const { return !RendInstGenData::isLoading; }
 
 void RIModule::collect()
 {
@@ -69,7 +73,11 @@ void RIModule::collect()
   clear();
   collectRenderableInstances();
   assets = getUniqueAssets();
-  collectInstanceCounts();
+  CollisionByRes collisionByRes;
+  scanRiExtraPools(collisionByRes);
+  addRiGenCollision(collisionByRes);
+  collectRiDataForProfiling(collisionByRes);
+  collectRiGenInstanceCounts();
   buildTextureToAssetMap();
   computeTextureUsageStatistics();
 }
@@ -153,40 +161,35 @@ void RIModule::computeTextureUsageStatistics()
   }
 }
 
-const RiData *RIModule::getRiDataByName(const ProfilerString &name) const
+void RIModule::addRiGenCollision(CollisionByRes &collision_by_res)
 {
-  auto it = riDataLookup.find(name);
-  return it != riDataLookup.end() ? it->second : nullptr;
+  for (const RendInstGenData *rgl : rendinst::rgLayer)
+  {
+    if (!rgl || !rgl->rtData)
+      continue;
+    const RendInstGenData::RtData &rtData = *rgl->rtData;
+    for (int i = 0; i < rtData.riRes.size(); ++i)
+      if (rtData.riCollRes[i].collRes)
+        collision_by_res.emplace(rtData.riRes[i], rtData.riCollRes[i].collRes);
+  }
 }
 
-void RIModule::collectInstanceCounts()
+void RIModule::scanRiExtraPools(CollisionByRes &collision_by_res)
 {
-  resetCollectionState();
-
-  riInstanceCounts.clear();
-  maxAssetInstanceCount = 0;
-
   for (const auto &asset : assets)
     riInstanceCounts[asset.name] = 0;
 
-  collectRiDataForProfiling();
-
+  rendinst::ScopedRIExtraReadLock riExtraLock; // another thread can add pools, and an add can reallocate the pool vector
   rendinst::iterateRIExtra([&](int poolIndex, const rendinst::RiExtraPool &pool) {
-    if (!pool.res)
-      return;
-    const char *riName = rendinst::riExtraMap.getName(poolIndex);
+    if (pool.collRes)
+      collision_by_res.emplace(pool.res, pool.collRes);
+    const char *riName = pool.res ? rendinst::riExtraMap.getName(poolIndex) : nullptr;
     if (!riName)
       return;
-    int instanceCount = pool.getEntitiesCount();
-    ProfilerString assetName(riName);
-    int &storedCount = riInstanceCounts[assetName];
-    storedCount += instanceCount;
-    if (storedCount > maxAssetInstanceCount)
-      maxAssetInstanceCount = storedCount;
-    updateRiDataCount(assetName, storedCount);
+    int &storedCount = riInstanceCounts[ProfilerString(riName)];
+    storedCount += pool.getEntitiesCount();
+    maxAssetInstanceCount = eastl::max(maxAssetInstanceCount, storedCount);
   });
-
-  collectRiGenInstanceCounts();
 }
 
 int RIModule::countRiGenCell(LayerCollectState &state, RendInstGenData *layer, int cell_x, int cell_y)
@@ -232,7 +235,10 @@ int RIModule::countRiGenCell(LayerCollectState &state, RendInstGenData *layer, i
     if (*slot.count > maxAssetInstanceCount)
       maxAssetInstanceCount = *slot.count;
     if (slot.data)
+    {
       slot.data->countOnMap = *slot.count;
+      riCountsGeneration++;
+    }
   }
 
   delete crt;
@@ -373,6 +379,12 @@ static constexpr int CELL_BUDGET_PER_FRAME = 8;
 
 void RIModule::continueCollect()
 {
+  if ((collectPhase == CollectPhase::Collecting || collectPhase == CollectPhase::Paused) && !canCollect())
+  {
+    cancelCollection();
+    return;
+  }
+
   if (collectPhase == CollectPhase::Paused)
   {
     // Nothing advances while paused, but a level unload still has to be noticed here: the UI
@@ -465,18 +477,7 @@ void RIModule::resumeCollection()
   collectPhase = CollectPhase::Collecting;
 }
 
-void RIModule::updateRiDataCount(const ProfilerString &asset_name, int new_count)
-{
-  auto it = riDataLookup.find(asset_name);
-  if (it == riDataLookup.end())
-    return;
-  RiData *dataPtr = it->second;
-  if (!dataPtr)
-    return;
-  dataPtr->countOnMap = new_count;
-}
-
-void RIModule::collectRiDataForProfiling()
+void RIModule::collectRiDataForProfiling(const CollisionByRes &collision_by_res)
 {
   riData.clear();
   riDataLookup.clear();
@@ -501,22 +502,17 @@ void RIModule::collectRiDataForProfiling()
     riDataItem.bBoxRadius = maxBoxEdge;
 
     const auto &lods = resource->lods;
-    riDataItem.lods.reserve(lods.size());
-    for (size_t lodIndex = 0; lodIndex < lods.size() && lodIndex < 4; ++lodIndex)
+    riDataItem.lodCount = static_cast<int>(lods.size());
+    const int collectedLodCount = eastl::min<int>(lods.size(), rendinst::RiExtraPool::MAX_LODS);
+    riDataItem.lods.reserve(collectedLodCount);
+    for (int lodIndex = 0; lodIndex < collectedLodCount; ++lodIndex)
     {
       LodInfo lodInfo = analyzeLodData(lods[lodIndex], riDataItem.bSphereRadius, riDataItem.bBoxRadius);
       riDataItem.lods.push_back(lodInfo);
     }
 
-    riDataItem.collision = CollisionInfo{};
-    rendinst::iterateRIExtra([&](int, const rendinst::RiExtraPool &pool) {
-      if (pool.res == resource)
-      {
-        riDataItem.collision = analyzeCollision(pool.collRes);
-        return false;
-      }
-      return true;
-    });
+    auto collisionIter = collision_by_res.find(resource);
+    riDataItem.collision = collisionIter != collision_by_res.end() ? analyzeCollision(collisionIter->second) : CollisionInfo{};
 
     riData.push_back(eastl::move(riDataItem));
     RiData *storedPtr = &riData.back();
@@ -545,13 +541,7 @@ LodInfo RIModule::analyzeLodData(const LodType &lod, float /* bsphere_radius */,
   }
 
   if (lodInfo.lodDistance > 0.0f)
-  {
-    constexpr float FOV_DEG = 90.0f;
-    const float tg = tanf(FOV_DEG / 180.0f * PI * 0.5f);
-    float sizeScale = 2.0f / (tg * lodInfo.lodDistance);
-    float boxPartOfScreen = bbox_radius * sizeScale;
-    lodInfo.screenPercent = boxPartOfScreen * 100.0f;
-  }
+    lodInfo.maxEdgePerDistance = 2.0f * bbox_radius / lodInfo.lodDistance;
 
   {
     eastl::vector<LodInfo::HeavyShaderEntry> heavyShadersList;
@@ -571,6 +561,8 @@ LodInfo RIModule::analyzeLodData(const LodType &lod, float /* bsphere_radius */,
       for (size_t shaderIndex = 0; shaderIndex < HEAVY_SHADERS_COUNT; ++shaderIndex)
         if (counts[shaderIndex] > 0)
           heavyShadersList.push_back({ProfilerString(HEAVY_SHADERS[shaderIndex]), counts[shaderIndex]});
+      eastl::sort(heavyShadersList.begin(), heavyShadersList.end(),
+        [](const LodInfo::HeavyShaderEntry &a, const LodInfo::HeavyShaderEntry &b) { return a.name < b.name; });
     }
     lodInfo.heavyShaders = eastl::move(heavyShadersList);
   }

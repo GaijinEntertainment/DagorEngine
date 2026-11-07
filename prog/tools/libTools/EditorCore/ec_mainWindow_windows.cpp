@@ -281,9 +281,21 @@ public:
     if (!global_cls_drv_pnt)
       return;
 
+    const bool busy = ec_get_busy();
+
+    // The ImGui platform backend sets the OS cursor too, and it does not know about the busy cursor.
+    if (ImGui::GetCurrentContext())
+    {
+      ImGuiIO &io = ImGui::GetIO();
+      if (busy)
+        io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+      else
+        io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+    }
+
     const ImGuiMouseCursor newCursor = ImGui::GetCurrentContext() ? ImGui::GetMouseCursor() : ImGuiMouseCursor_Arrow;
     const bool cursorHidden = !ec_is_cursor_visible();
-    const CursorParams newCursorParams(newCursor, cursorHidden, ec_get_busy());
+    const CursorParams newCursorParams(newCursor, cursorHidden, busy);
     if (newCursorParams == cursorParams && global_cls_drv_pnt->isMouseCursorHidden() == cursorParamsMakeHiddenCursor)
       return;
 

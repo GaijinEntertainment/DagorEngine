@@ -2,8 +2,11 @@
 
 #include "riDestrProps.h"
 #include "namedPropsTable.h"
+#include "gamePhys/phys/destructableProps.h"
 
 #include <rendInst/rendInstProps.h>
+#include <rendInst/rendInstExtra.h>
+#include <anim/dag_animChannels.h>
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <ioSys/dag_dataBlock.h>
@@ -25,20 +28,41 @@ void FrxDestrProps::loadFromBlk(const DataBlock &blk)
     interiorMat = get_or_load_ri_destr_material(matName);
 }
 
-void DestrObjProps::loadFromBlk(const DataBlock &blk)
-{
-  timeToLive = blk.getReal("timeToLive", timeToLive);
-  inactiveTimeBeforeSink = blk.getReal("inactiveTimeBeforeSink", inactiveTimeBeforeSink);
-  timeToKinematic = blk.getReal("timeToKinematic", timeToKinematic);
-  timeToSinkUnderground = blk.getReal("timeToSinkUnderground", timeToSinkUnderground);
-  timeToStartDisintegration = blk.getReal("timeToStartDisintegration", timeToStartDisintegration);
-  disintegrationDuration = blk.getReal("disintegrationDuration", disintegrationDuration);
-  disintegrationScale = blk.getReal("disintegrationScale", disintegrationScale);
-  keepAlive = blk.getBool("keepAlive", keepAlive);
-  interactiveDebris = blk.getBool("interactiveDebris", interactiveDebris);
-}
-
 void RiDestrParams::loadFromBlk(const DataBlock &) {}
+
+void RiNearbyGroupsProps::loadFromBlk(const char *ri_name, const DataBlock &ri_blk)
+{
+  dblk::iterate_child_blocks_by_name(ri_blk, "nearbyRiGroup", [&](const DataBlock &blk) {
+    Group group;
+    dblk::iterate_params_by_name_and_type(blk, "action", DataBlock::TYPE_STRING, [&](int param_idx) {
+      const char *action = blk.getStr(param_idx);
+      if (strcmp(action, "reveal") == 0)
+        group.actions.reveal = true;
+      else if (strcmp(action, "frxInclude") == 0)
+        group.actions.frxInclude = true;
+      else if (strcmp(action, "frxInvert") == 0)
+        group.actions.frxInvert = true;
+      else if (strcmp(action, "innerSurface") == 0)
+        group.actions.reveal = group.actions.frxInclude = group.actions.frxInvert = true;
+      else
+        logerr("rendinst <%s>: unknown nearbyRiGroup action <%s>", ri_name, action);
+    });
+    if (group.actions.frxInvert && !group.actions.frxInclude)
+      logerr("rendinst <%s>: nearbyRiGroup action frxInvert requires frxInclude", ri_name);
+    group.extent = blk.getPoint3("extent", group.extent);
+    group.poolsBegin = pools.size();
+    dblk::iterate_params_by_name_and_type(blk, "name", DataBlock::TYPE_STRING, [&](int param_idx) {
+      const char *poolName = blk.getStr(param_idx);
+      if (const int pool = rendinst::getRIGenExtraResIdx(poolName); pool >= 0)
+        pools.push_back(pool);
+      else
+        logerr("rendinst <%s>: unknown nearbyRiGroup ri pool <%s>", ri_name, poolName);
+    });
+    group.poolsEnd = pools.size();
+    if (group.poolsEnd > group.poolsBegin)
+      groups.push_back(group);
+  });
+}
 
 struct RiDestrRegistry
 {
@@ -47,7 +71,9 @@ struct RiDestrRegistry
   eastl::deque<RiDestrProps> riTypes; // indexed by rendinst custom props id
   NamedPropsTable<RiDestrProps> presets;
   NamedPropsTable<FrxDestrProps> frxDestrProps;
-  NamedPropsTable<DestrObjProps> destrObjProps;
+  NamedPropsTable<destructables::DestrObjProps> destrObjProps;
+  NamedPropsTable<destructables::DestrAnimData> destrAnimData;
+  NamedPropsTable<RiNearbyGroupsProps> nearbyGroupsProps;
   NamedPropsTable<RiDestrMaterial> materials;
   FastNameMap resolvingPresets;
   const RiDestrProps *defaultPreset = nullptr;
@@ -72,6 +98,15 @@ struct RiDestrRegistry
     eastl::fixed_string<char, 128> inlineName("@"); // rendinst names share the tables with preset names
     inlineName += ri_name;
     loadFeatures(props, inlineName.c_str(), ri_blk, cfg_blk);
+    if (ri_blk.blockExists("nearbyRiGroup"))
+      props.nearbyGroups = nearbyGroupsProps.getOrAdd(inlineName.c_str(), [&](RiNearbyGroupsProps &p) {
+        p.loadFromBlk(ri_name, ri_blk);
+        return !p.groups.empty();
+      });
+    const int riExPoolId = rendinst::getRIGenExtraResIdx(ri_name);
+    if (props.nearbyGroups && riExPoolId >= 0)
+      for (const int nearbyPoolId : props.nearbyGroups->pools)
+        rendinst::addRIGenExtraDestrLodPool(riExPoolId, nearbyPoolId);
   }
 
   const RiDestrProps &getOrLoadPreset(const char *name, const DataBlock &cfg_blk)
@@ -102,6 +137,8 @@ struct RiDestrRegistry
   void loadPreset(RiDestrProps &preset, const char *name, const DataBlock &blk, const DataBlock &cfg_blk)
   {
     const int resolvingId = resolvingPresets.addNameId(name);
+    if (blk.blockExists("nearbyRiGroup"))
+      logerr("destrPreset <%s>: nearbyRiGroup is allowed only in rendinst blocks", name);
     if (const char *base = blk.getStr("_use", nullptr))
       preset = *base ? getOrLoadPreset(base, cfg_blk) : RiDestrProps{};
     loadParams(preset, blk, cfg_blk);
@@ -126,6 +163,7 @@ struct RiDestrRegistry
   {
     loadFeature(dst, &RiDestrProps::frxDestr, "frxDestr", frxDestrProps, inline_name, blk, cfg_blk);
     loadFeature(dst, &RiDestrProps::destrObj, "destrObj", destrObjProps, inline_name, blk, cfg_blk);
+    loadFeature(dst, &RiDestrProps::destrAnim, "destrAnim", destrAnimData, inline_name, blk, cfg_blk);
   }
 
   template <typename T>
@@ -170,6 +208,8 @@ struct RiDestrRegistry
     presets.clear();
     frxDestrProps.clear();
     destrObjProps.clear();
+    destrAnimData.clear();
+    nearbyGroupsProps.clear();
     materials.clear();
     defaultPreset = nullptr;
   }

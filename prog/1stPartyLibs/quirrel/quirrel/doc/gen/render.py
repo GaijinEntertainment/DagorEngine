@@ -483,7 +483,6 @@ _DIRECTIVE_LINE = re.compile(
     r"|\{\{(?P<subtopics_here>subtopics)\}\}"
     r"|\{\{(?P<keywords>keywords)\}\}"
     r"|\{\{(?P<benchmarks>benchmarks)\}\}"
-    r"|\{\{(?P<vm_benchmarks>vm_benchmarks)\}\}"
     r"|\{\{(?P<metamethods>metamethods)\}\}"
     r"|\{\{(?P<operators>operators)\}\})\s*$", re.M)
 
@@ -693,42 +692,6 @@ def _bench_bars(site):
     return "\n".join(out) + _bench_info(site.bench.get("info"), note)
 
 
-def _vm_bench_table(site):
-    """Quirrel against the other interpreters on the paired workloads.
-
-    The ratio is quirrel over the other VM, so above 1.0 means Quirrel is slower -
-    the same convention the harness prints.
-    """
-    if not site.vm_bench:
-        return _missing_bench("Lua and Luau comparison numbers", "python bench/run_vm_bench.py")
-    results = site.vm_bench["results"]
-    vms = []
-    for rows in results.values():
-        for vm in rows:
-            if vm not in vms:
-                vms.append(vm)
-    head = "".join(f"<th>{html.escape(vm)}</th>" for vm in vms)
-    body = []
-    for workload, rows in results.items():
-        cells = []
-        base = rows.get("quirrel")
-        for vm in vms:
-            ms = rows.get(vm)
-            if not isinstance(ms, (int, float)):
-                cells.append('<td class="num">-</td>')
-            elif vm == "quirrel" or not base:
-                cells.append(f'<td class="num">{ms:.0f}</td>')
-            else:
-                cells.append(f'<td class="num">{ms:.0f} '
-                             f'<span class="ratio">({base / ms:.2f}x)</span></td>')
-        body.append(f'<tr><th>{html.escape(workload)}</th>' + "".join(cells) + "</tr>")
-    runs = site.vm_bench.get("runs")
-    note = f"Median of the best rep over {runs} process runs." if runs else ""
-    return ('<table class="vmbench"><thead><tr><th>workload</th>' + head
-            + "</tr></thead><tbody>" + "".join(body) + "</tbody></table>"
-            + _bench_info(site.vm_bench.get("info"), note))
-
-
 def _page_body(site, where, text, md, depth, group=None):
     """Renders a narrative section, expanding the {{...}} directives in it.
 
@@ -750,9 +713,6 @@ def _page_body(site, where, text, md, depth, group=None):
             continue
         if m.group("benchmarks"):
             out.append(_bench_bars(site))
-            continue
-        if m.group("vm_benchmarks"):
-            out.append(_vm_bench_table(site))
             continue
         if m.group("metamethods"):
             out.append(_metamethod_table(site, depth, md))

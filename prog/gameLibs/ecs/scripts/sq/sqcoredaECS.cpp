@@ -48,7 +48,6 @@ EA_DISABLE_VC_WARNING(4505) // unreferenced local function has been removed
 
 ECS_REGISTER_EVENT(EventScriptBeforeReload);
 ECS_REGISTER_EVENT(EventScriptReloaded);
-ECS_REGISTER_EVENT(CmdRequireUIScripts);
 
 static eastl::vector_map<ecs::component_type_t, SqPushCB> native_component_bindings;
 void sq_register_native_component(ecs::component_type_t type, SqPushCB cb)

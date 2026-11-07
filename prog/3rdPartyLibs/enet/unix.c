@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #if _TARGET_C1 | _TARGET_C2
 
+
 #else
 #include <sys/ioctl.h>
 #include <netdb.h>
@@ -92,36 +93,37 @@ enet_host_random_seed (void)
     return (enet_uint32) time (NULL);
 }
 
-enet_uint32
-enet_time_get (void)
+// dagor - gettimeofday can step back; get and set must read the same clock
+static size_t
+enet_time_now_ms (void)
 {
 #if _TARGET_PC_LINUX | _TARGET_ANDROID
     struct timespec tm;
     clock_gettime(CLOCK_MONOTONIC, &tm); // To consider: use CLOCK_MONOTONIC_COARSE (resolution 1ms) instead?
-    return tm.tv_sec * 1000 + tm.tv_nsec / 1000000 - timeBase;
+    return tm.tv_sec * 1000 + tm.tv_nsec / 1000000;
+#elif _TARGET_APPLE
+    // Darwin CLOCK_MONOTONIC is gettimeofday - boottime and can step back too
+    return clock_gettime_nsec_np(CLOCK_UPTIME_RAW) / 1000000;
+#elif _TARGET_C1 | _TARGET_C2
+
+
 #else
     struct timeval timeVal;
-
     gettimeofday (& timeVal, NULL);
-
-    return timeVal.tv_sec * 1000 + timeVal.tv_usec / 1000 - timeBase;
+    return timeVal.tv_sec * 1000 + timeVal.tv_usec / 1000;
 #endif
+}
+
+enet_uint32
+enet_time_get (void)
+{
+    return enet_time_now_ms () - timeBase;
 }
 
 void
 enet_time_set (enet_uint32 newTimeBase)
 {
-#if _TARGET_PC_LINUX
-    struct timespec tm;
-    clock_gettime(CLOCK_MONOTONIC, &tm);
-    timeBase = tm.tv_sec * 1000 + tm.tv_nsec / 1000000 - newTimeBase;
-#else
-    struct timeval timeVal;
-
-    gettimeofday (& timeVal, NULL);
-    
-    timeBase = timeVal.tv_sec * 1000 + timeVal.tv_usec / 1000 - newTimeBase;
-#endif
+    timeBase = enet_time_now_ms () - newTimeBase;
 }
 
 int

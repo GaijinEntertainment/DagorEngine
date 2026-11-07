@@ -6,6 +6,7 @@
 
 #include <datacache/datacache.h>
 #include <osApiWrappers/dag_vromfs.h>
+#include <osApiWrappers/dag_mutex.h>
 #include <util/dag_string.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_oaHashNameMap.h>
@@ -22,7 +23,8 @@ class WebVromfsDataCache
   Tab<SimpleString> substFilePath;
   Tab<int> substFileSize;
   bool allowCacheVromFallback = true;
-  static Tab<SimpleString> bannedUrlPrefix;
+  static dag::mutex bannedUrlPrefixMutex;
+  static Tab<SimpleString> bannedUrlPrefix DAG_TS_GUARDED_BY(bannedUrlPrefixMutex);
   static int banUnresponsiveUrlForTimeoutInSec; //< 9 sec (default)
   static bool silentMode;
 

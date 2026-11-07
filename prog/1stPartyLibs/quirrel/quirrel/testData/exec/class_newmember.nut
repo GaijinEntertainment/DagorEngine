@@ -12,11 +12,12 @@ function fails(call) {
 
 assert(Sample.newmember("field", "value") == Sample)
 assert(Sample.rawin("field"))
-assert(Sample().field == "value")
-assert(fails(@() Sample.newmember("lateField", 1)))
-
 Sample.newmember("staticField", "static value", true)
 assert(Sample.rawget("staticField") == "static value")
+assert(Sample().field == "value")
+assert(fails(@() Sample.newmember("lateField", 1)))
+assert(fails(@() Sample.newmember("lateStatic", 1, true)))
+assert(!Sample.rawin("lateStatic"))
 assert(fails(@() Sample.newmember.call({}, "field", "value")))
 
 println("ok")

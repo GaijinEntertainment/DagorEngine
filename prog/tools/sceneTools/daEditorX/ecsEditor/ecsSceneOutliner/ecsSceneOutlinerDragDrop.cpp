@@ -253,7 +253,7 @@ bool ECSSceneOutlinerPanel::DropHandler::canSceneBeReparented(ecs::Scene::SceneI
   const ecs::Scene::SceneRecord *sourceRecord = ecs::g_scenes->getActiveScene().getSceneRecordById(source_id);
   const ecs::Scene::SceneRecord *destRecord = ecs::g_scenes->getActiveScene().getSceneRecordById(dest_id);
   if (!sourceRecord || !destRecord || source_id == dest_id || sourceRecord->loadType != ecs::Scene::LoadType::IMPORT ||
-      destRecord->loadType != ecs::Scene::LoadType::IMPORT)
+      destRecord->loadType != ecs::Scene::LoadType::IMPORT || sourceRecord->isSystemOwned != destRecord->isSystemOwned)
   {
     return false;
   }

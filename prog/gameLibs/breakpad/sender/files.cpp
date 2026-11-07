@@ -47,12 +47,7 @@ std::string normalize(const std::string &path)
 }
 
 
-std::string directory(const std::string &path)
-{
-  std::string dir = path;
-  dir.erase(dir.rfind(separator));
-  return dir;
-}
+std::string directory(const std::string &path) { return path.substr(0, path.rfind(separator)); }
 
 
 void rename_with_guid(const std::string &origin_, const std::string &guid, const char *ext)
@@ -102,7 +97,7 @@ void prepare(Configuration &cfg)
   }
 
   std::string oldPath = path::normalize(cfg.files[id::dump]);
-  std::string dir = oldPath.substr(0, oldPath.rfind(path::separator));
+  std::string dir = path::directory(oldPath);
   std::string newPath = dir + path::separator + "crashDump-";
 
   char timeStr[12];

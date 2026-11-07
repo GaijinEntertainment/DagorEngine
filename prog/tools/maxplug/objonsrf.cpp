@@ -90,13 +90,13 @@ static int find_face(float t, Tab<float> &faceS, Tab<int> &face_count, int &foun
     }
   return fface;
 }
-static TriObject *GetTriObjectFromNode(INode *node, int &deleteIt)
+static TriObject *GetTriObjectFromNode(INode *node, TimeValue time, int &deleteIt)
 {
   deleteIt = FALSE;
-  Object *obj = node->EvalWorldState(0).obj;
+  Object *obj = node->EvalWorldState(time).obj;
   if (obj->CanConvertToType(Class_ID(TRIOBJ_CLASS_ID, 0)))
   {
-    TriObject *tri = (TriObject *)obj->ConvertToType(0, Class_ID(TRIOBJ_CLASS_ID, 0));
+    TriObject *tri = (TriObject *)obj->ConvertToType(time, Class_ID(TRIOBJ_CLASS_ID, 0));
     if (obj != tri)
       deleteIt = TRUE;
     return tri;
@@ -130,13 +130,19 @@ void put_meshes_on_mesh(Interface *ip, const wchar_t *selsname, Tab<INode *> &sn
   Tab<int> face_count;
   if (!snode.Count())
     return;
+  const TimeValue time = ip->GetTime();
   face_count.SetCount(snode.Count());
   triObjects.SetCount(snode.Count());
   deleteIt.SetCount(snode.Count());
+  const auto deleteTriObjects = [&] {
+    for (int i = 0; i < snode.Count(); ++i)
+      if (deleteIt[i])
+        triObjects[i]->DeleteMe();
+  };
   {
     for (int i = 0; i < snode.Count(); ++i)
     {
-      triObjects[i] = GetTriObjectFromNode(snode[i], deleteIt[i]);
+      triObjects[i] = GetTriObjectFromNode(snode[i], time, deleteIt[i]);
       if (triObjects[i] && deleteIt[i])
         mesh_face_sel(triObjects[i]->mesh).SetAll();
     }
@@ -147,24 +153,12 @@ void put_meshes_on_mesh(Interface *ip, const wchar_t *selsname, Tab<INode *> &sn
     TSTR s;
     s.printf(GetString(IDS_NO_SUCHSELSET), selsname);
     ip->DisplayTempPrompt(s);
-    {
-      for (int i = 0; i < snode.Count(); ++i)
-      {
-        if (deleteIt[i])
-          triObjects[i]->DeleteMe();
-      }
-    }
+    deleteTriObjects();
     return;
   }
   if (!IPNSS->GetNamedSelSetItemCount(sels))
   {
-    {
-      for (int i = 0; i < snode.Count(); ++i)
-      {
-        if (deleteIt[i])
-          triObjects[i]->DeleteMe();
-      }
-    }
+    deleteTriObjects();
     return;
   }
   Mesh surf;
@@ -174,7 +168,7 @@ void put_meshes_on_mesh(Interface *ip, const wchar_t *selsname, Tab<INode *> &sn
       {
         fc += triObjects[i]->mesh.numFaces;
         face_count[i] = fc;
-        Matrix3 tm = snode[i]->GetObjectTM(ip->GetTime());
+        Matrix3 tm = snode[i]->GetObjTMAfterWSM(time);
         Mesh surf1(surf);
         CombineMeshes(surf, surf1, triObjects[i]->mesh, NULL, &tm, -1);
         {
@@ -195,25 +189,27 @@ void put_meshes_on_mesh(Interface *ip, const wchar_t *selsname, Tab<INode *> &sn
   }
   if (!surf.numVerts || !surf.numFaces)
   {
-    {
-      for (int i = 0; i < snode.Count(); ++i)
-      {
-        if (deleteIt[i])
-          triObjects[i]->DeleteMe();
-      }
-    }
+    deleteTriObjects();
     return;
   }
 
   Tab<float> faceS;
   calc_mesh_info(surf, faceS, selfaces);
+  const float sumS = faceS[faceS.Count() - 1];
+  if (sumS <= 0)
+  {
+    const bool nothingSelected = selfaces && mesh_face_sel(surf).NumberSet() == 0;
+    ip->DisplayTempPrompt(
+      nothingSelected ? GetString(IDS_EMPTYSELECTION) : L"The surface has no faces with an area to put objects on");
+    deleteTriObjects();
+    return;
+  }
 
   Random r;
   if (!seed)
     seed = 1;
   r.srand(seed);
   int selnodecnt = IPNSS->GetNamedSelSetItemCount(sels);
-  float sumS = faceS[faceS.Count() - 1];
 
   if (set_to_norm && use_smgr)
     surf.buildNormals();
@@ -328,12 +324,6 @@ void put_meshes_on_mesh(Interface *ip, const wchar_t *selsname, Tab<INode *> &sn
   TSTR holdopname;
   holdopname.printf(_T("Generating %d objects"), objnum);
   theHold.Accept(holdopname);
-  {
-    for (int i = 0; i < snode.Count(); ++i)
-    {
-      if (deleteIt[i])
-        triObjects[i]->DeleteMe();
-    }
-  }
+  deleteTriObjects();
   ip->RedrawViews(ip->GetTime());
 }

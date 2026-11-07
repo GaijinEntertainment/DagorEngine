@@ -24,7 +24,8 @@ struct PhysActorSendRecord
   eastl::underlying_type_t<PhysActorStateFlags> flags;
   uint8_t connControlledBy;
   int8_t team; //< Rarely used, could be removed if really need to
-  // one byte padding
+  // 2 bits for each serialize type up to MIN: n sends 1/2^n of the frames, staggered by netPhysId, if below the zone rate
+  uint8_t lodRateShifts;
   const BasePhysActor &actor;
   //! Note: intentionally by value in order to avoid pointer chasing. Also manually aligned to be in offset 16 (on 64 bit platforms)
   Point3 pos;
@@ -34,6 +35,14 @@ struct PhysActorSendRecord
   PhysTickRateType getTickrateType() const
   {
     return (flags & LOW_FREQ_TICKRATE) ? PhysTickRateType::LowFreq : PhysTickRateType::Normal;
+  }
+  unsigned getLodRateMask(PhysSnapSerializeType pst) const { return (1u << ((lodRateShifts >> (2 * (int)pst)) & 3)) - 1; }
+  static uint8_t makeLodRateShifts(const Point4 &lod_hz, float frame_hz)
+  {
+    uint8_t shifts = 0;
+    for (int pst = 0; pst <= (int)PhysSnapSerializeType::MIN; ++pst)
+      shifts |= uint8_t(((lod_hz[pst] * 2 <= frame_hz) + (lod_hz[pst] * 4 <= frame_hz) + (lod_hz[pst] * 8 <= frame_hz)) << (2 * pst));
+    return shifts;
   }
 };
 

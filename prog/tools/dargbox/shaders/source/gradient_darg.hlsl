@@ -19,5 +19,5 @@ float4 darg_ps(float2 uv)
   float3 col = bg + ring * 0.4;
   float alpha = saturate(1.0 - dist * 0.8) * darg_opacity;
 
-  return float4(col, alpha);
+  return float4(col * alpha, alpha);
 }

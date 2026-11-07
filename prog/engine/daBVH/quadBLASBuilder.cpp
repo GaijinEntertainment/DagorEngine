@@ -78,6 +78,17 @@ static bool findSharedEdgeImpl(const IdxT *triA, const IdxT *triB, int &v0, int 
 
 static uint64_t edgeKey(unsigned a, unsigned b) { return a < b ? ((uint64_t)a << 32) | b : ((uint64_t)b << 32) | a; }
 
+static bbox3f primBox(const QuadPrim &p, const vec4f *verts)
+{
+  bbox3f bx;
+  v_bbox3_init(bx, verts[p.v0()]);
+  v_bbox3_add_pt(bx, verts[p.v1()]);
+  v_bbox3_add_pt(bx, verts[p.v2()]);
+  if (!p.isSingle())
+    v_bbox3_add_pt(bx, verts[p.v3()]);
+  return bx;
+}
+
 template <typename IdxT>
 void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, const IdxT *optIdx, int faceCount, const vec4f *verts4,
   const uint8_t *face_user)
@@ -153,12 +164,7 @@ void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, cons
     qp.v[3] = v3;
     qp.bFwd = bFwd;
     qp.user = userOf(et.t0);
-    bbox3f cb;
-    v_bbox3_init(cb, verts4[v0]);
-    v_bbox3_add_pt(cb, verts4[v1]);
-    v_bbox3_add_pt(cb, verts4[v2]);
-    v_bbox3_add_pt(cb, verts4[v3]);
-    float area = build_bvh::calculateSurfaceArea(cb);
+    float area = build_bvh::calculateSurfaceArea(primBox(qp, verts4));
 
     vec3f e0A = v_sub(verts4[v1], verts4[v0]), e1A = v_sub(verts4[v2], verts4[v0]);
     vec3f nA = v_cross3(e0A, e1A);
@@ -213,18 +219,12 @@ void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, cons
 template void buildQuadPrims<uint16_t>(Tab<QuadPrim> &, int &, int &, const uint16_t *, int, const vec4f *, const uint8_t *);
 template void buildQuadPrims<uint32_t>(Tab<QuadPrim> &, int &, int &, const uint32_t *, int, const vec4f *, const uint8_t *);
 
-void writeQuadBox(uint8_t *blasData, int dataOffset, vec4f bmin, vec4f bmax, vec4f scale, vec4f ofs, uint32_t skip, bool useHalves)
+void writeQuadBox(uint8_t *blasData, int dataOffset, vec4f bmin, vec4f bmax, vec4f scale, vec4f ofs, uint32_t skip)
 {
   bmin = v_madd(bmin, scale, ofs);
   bmax = v_madd(bmax, scale, ofs);
   vec4i bminI, bmaxI;
-  if (useHalves)
-  {
-    bminI = v_float_to_half_down(bmin);
-    bmaxI = v_float_to_half_up(bmax);
-  }
-  else
-    swblas_quantize_box_u16(bmin, bmax, bminI, bmaxI);
+  swblas_quantize_box_u16(bmin, bmax, bminI, bmaxI);
   build_bvh::write_pair_halves((uint32_t *)(blasData + dataOffset), bminI, bmaxI);
   *(uint32_t *)(blasData + dataOffset + 12) = skip;
 }
@@ -233,12 +233,7 @@ void addQuadPrimitivesAABBList(bbox3f *boxes, const QuadPrim *prims, int primCou
 {
   for (int i = 0; i < primCount; ++i)
   {
-    auto &p = prims[i];
-    v_bbox3_init(boxes[i], verts[p.v0()]);
-    v_bbox3_add_pt(boxes[i], verts[p.v1()]);
-    v_bbox3_add_pt(boxes[i], verts[p.v2()]);
-    if (!p.isSingle())
-      v_bbox3_add_pt(boxes[i], verts[p.v3()]);
+    boxes[i] = primBox(prims[i], verts);
     boxes[i].bmin = v_perm_xyzd(boxes[i].bmin, v_cast_vec4f(v_splatsi(i)));
     boxes[i].bmax = v_perm_xyzd(boxes[i].bmax, v_zero());
   }
@@ -250,17 +245,6 @@ void addQuadPrimitivesAABBList(bbox3f *boxes, const QuadPrim *prims, int primCou
 
 namespace
 {
-static bbox3f primBox(const QuadPrim &p, const vec4f *verts)
-{
-  bbox3f bx;
-  v_bbox3_init(bx, verts[p.v0()]);
-  v_bbox3_add_pt(bx, verts[p.v1()]);
-  v_bbox3_add_pt(bx, verts[p.v2()]);
-  if (!p.isSingle())
-    v_bbox3_add_pt(bx, verts[p.v3()]);
-  return bx;
-}
-
 static uint32_t primGroup(const QuadPrim &p, const uint32_t *vert_group) { return vert_group ? vert_group[p.v0()] : 0u; }
 
 // Pair the direct leaf children of each internal node (spatially adjacent by SAH construction).
@@ -338,7 +322,7 @@ static void collectLeafPairs(const bbox3f *nodes, const QuadPrim *prims, const u
 }
 
 static void writeDoubleQuadLeaf(uint8_t *blasData, const bbox3f *nodes, const DoubleQuadPrim *dq, vec4f scale, vec4f ofs,
-  int vertDataOfs, int node, int &dataOffset, int vertStride, bool useHalves)
+  int vertDataOfs, int node, int &dataOffset, int vertStride)
 {
   int idx = build_bvh::sahFaceIndex(nodes, node);
   const DoubleQuadPrim &d = dq[idx];
@@ -386,7 +370,7 @@ static void writeDoubleQuadLeaf(uint8_t *blasData, const bbox3f *nodes, const Do
       w2flip |= QUAD_LEAF_TRANSPARENT_FLAG;
   }
 
-  writeQuadBox(blasData, dataOffset, nodes[node].bmin, nodes[node].bmax, scale, ofs, w0, useHalves);
+  writeQuadBox(blasData, dataOffset, nodes[node].bmin, nodes[node].bmax, scale, ofs, w0);
   *(uint32_t *)(blasData + leafOfs) = w1;
   *(uint32_t *)(blasData + leafOfs + 4) = w2hi | w2flip; // flipA and the transparent flag share W2 with quad B fields
   *(uint32_t *)(blasData + leafOfs + 8) = w3;
@@ -394,13 +378,13 @@ static void writeDoubleQuadLeaf(uint8_t *blasData, const bbox3f *nodes, const Do
 }
 
 static int writeDoubleQuadBVH2Impl(uint8_t *blasData, const bbox3f *nodes, const DoubleQuadPrim *dq, vec4f scale, vec4f ofs,
-  int vertDataOfs, int node, int root, int &dataOffset, int vertStride, int depth, bool useHalves)
+  int vertDataOfs, int node, int root, int &dataOffset, int vertStride, int depth)
 {
   G_ASSERTF(depth <= BVH_MAX_BLAS_DEPTH, "writeDoubleQuadBVH2: depth %d exceeds limit %d", depth, BVH_MAX_BLAS_DEPTH);
   int childrenCount = build_bvh::sahChildrenCount(nodes, node);
   if (build_bvh::sahIsLeaf(nodes, node))
   {
-    writeDoubleQuadLeaf(blasData, nodes, dq, scale, ofs, vertDataOfs, node, dataOffset, vertStride, useHalves);
+    writeDoubleQuadLeaf(blasData, nodes, dq, scale, ofs, vertDataOfs, node, dataOffset, vertStride);
     return 1;
   }
   int tempdataOffset = 0;
@@ -411,12 +395,12 @@ static int writeDoubleQuadBVH2Impl(uint8_t *blasData, const bbox3f *nodes, const
   }
   int startNode = node + 1;
   for (int i = 0; i < childrenCount; ++i)
-    startNode += writeDoubleQuadBVH2Impl(blasData, nodes, dq, scale, ofs, vertDataOfs, startNode, root, dataOffset, vertStride,
-      depth + 1, useHalves);
+    startNode +=
+      writeDoubleQuadBVH2Impl(blasData, nodes, dq, scale, ofs, vertDataOfs, startNode, root, dataOffset, vertStride, depth + 1);
   if (node != root)
   {
     int offset = dataOffset - tempdataOffset;
-    writeQuadBox(blasData, tempdataOffset - BVH_BLAS_NODE_SIZE, nodes[node].bmin, nodes[node].bmax, scale, ofs, offset, useHalves);
+    writeQuadBox(blasData, tempdataOffset - BVH_BLAS_NODE_SIZE, nodes[node].bmin, nodes[node].bmax, scale, ofs, offset);
   }
   return (int)build_bvh::sahSpan(nodes, node);
 }
@@ -452,9 +436,9 @@ void addDoubleQuadPrimitivesAABBList(bbox3f *boxes, const DoubleQuadPrim *dq, in
 }
 
 int writeDoubleQuadBVH2(uint8_t *blasData, const bbox3f *nodes, const DoubleQuadPrim *dq, vec4f scale, vec4f ofs, int vertDataOfs,
-  int node, int root, int &dataOffset, int vertStride, bool useHalves)
+  int node, int root, int &dataOffset, int vertStride)
 {
-  return writeDoubleQuadBVH2Impl(blasData, nodes, dq, scale, ofs, vertDataOfs, node, root, dataOffset, vertStride, 0, useHalves);
+  return writeDoubleQuadBVH2Impl(blasData, nodes, dq, scale, ofs, vertDataOfs, node, root, dataOffset, vertStride, 0);
 }
 
 bool writeDoubleQuadBLAS(dag::Vector<uint8_t> &out_data, bbox3f box, const bbox3f *nodes, int root, const DoubleQuadPrim *dq,
@@ -485,7 +469,7 @@ bool writeDoubleQuadBLAS(dag::Vector<uint8_t> &out_data, bbox3f box, const bbox3
   out_data.resize(totalBytes);
   uint8_t *dst = out_data.data();
   int dataOffset = 0;
-  writeDoubleQuadBVH2(dst, nodes, dq, scale, ofs, /*vertDataOfs*/ treeBytes, root, root, dataOffset, 12, false);
+  writeDoubleQuadBVH2(dst, nodes, dq, scale, ofs, /*vertDataOfs*/ treeBytes, root, root, dataOffset, 12);
   G_ASSERTF(dataOffset == treeBytes, "writeDoubleQuadBLAS: tree write produced %d bytes, expected %d", dataOffset, treeBytes);
 
   uint8_t *vertDst = dst + treeBytes;

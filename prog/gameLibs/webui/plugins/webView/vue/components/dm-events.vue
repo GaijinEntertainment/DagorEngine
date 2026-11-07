@@ -1,5 +1,5 @@
 <script setup>
-const { ref, watch, defineComponent } = Vue;
+const { defineComponent } = Vue;
 const { formatValue } = Vue.helpers;
 const { dmService } = Vue.services;
 
@@ -35,24 +35,19 @@ const EventsTree = defineComponent({
   `,
 });
 
-const selectedShowEvents = ref(false);
 const showEventsOptions = [
-  { text: 'Last Event', value: true },
-  { text: 'All Events', value: false },
+  { text: 'Last Event', value: 'last' },
+  { text: 'All Events', value: 'all' },
 ];
-
-watch(selectedShowEvents, (val) => {
-  console.log('selectedShowEvents', val);
-  dmService.shouldShowAllEvents = val;
-});
 </script>
 
 <template>
   <div class="d-flex d-flex-row">
     <div>
       <b-form-group>
-        <b-form-radio-group v-model="selectedShowEvents" :options="showEventsOptions" button-variant="outline-primary"
-          size="sm" name="radio-btn-outline" buttons></b-form-radio-group>
+        <b-form-radio-group v-model="dmService.shownHitEvents.value" :options="showEventsOptions"
+          button-variant="outline-primary" size="sm" name="radio-btn-outline"
+          @change="dmService.onShownHitEventsSelect($event)" buttons></b-form-radio-group>
       </b-form-group>
       <div v-if="dmService.eventRendererElementsNames.length == dmService.eventRendererElementsMask.length">
         <div class="form-check" v-for="(item, i) in dmService.eventRendererElementsNames">

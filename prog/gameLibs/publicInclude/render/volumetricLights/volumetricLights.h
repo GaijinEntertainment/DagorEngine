@@ -207,10 +207,7 @@ protected:
     ShaderVariableInfo globtm_psf_2 = ShaderVariableInfo("globtm_psf_2");
     ShaderVariableInfo globtm_psf_3 = ShaderVariableInfo("globtm_psf_3");
     ShaderVariableInfo prev_initial_inscatter = ShaderVariableInfo("prev_initial_inscatter");
-    ShaderVariableInfo prev_initial_inscatter_samplerstate = ShaderVariableInfo("prev_initial_inscatter_samplerstate");
     ShaderVariableInfo prev_initial_extinction = ShaderVariableInfo("prev_initial_extinction");
-    ShaderVariableInfo prev_initial_extinction_samplerstate = ShaderVariableInfo("prev_initial_extinction_samplerstate");
-    ShaderVariableInfo initial_media_samplerstate = ShaderVariableInfo("initial_media_samplerstate");
     ShaderVariableInfo volfog_prev_range_ratio = ShaderVariableInfo("volfog_prev_range_ratio");
     ShaderVariableInfo volfog_froxel_volume_res = ShaderVariableInfo("volfog_froxel_volume_res");
     ShaderVariableInfo inv_volfog_froxel_volume_res = ShaderVariableInfo("inv_volfog_froxel_volume_res");
@@ -259,7 +256,6 @@ protected:
     ShaderVariableInfo volfog_hardcoded_input_type = ShaderVariableInfo("volfog_hardcoded_input_type");
     ShaderVariableInfo distant_fog_use_static_shadows = ShaderVariableInfo("distant_fog_use_static_shadows");
     ShaderVariableInfo prev_volfog_weight = ShaderVariableInfo("prev_volfog_weight");
-    ShaderVariableInfo prev_volfog_weight_samplerstate = ShaderVariableInfo("prev_volfog_weight_samplerstate");
     ShaderVariableInfo static_shadows_cascades = ShaderVariableInfo("static_shadows_cascades");
     ShaderVariableInfo force_rtss_shadows = ShaderVariableInfo("force_rtss_shadows");
     ShaderVariableInfo nbs_rtss_static_shadow = ShaderVariableInfo("nbs_rtss_static_shadow", true);
@@ -274,10 +270,8 @@ protected:
 
     ShaderVariableInfo volfog_shadow_res = ShaderVariableInfo("volfog_shadow_res", true);
     ShaderVariableInfo prev_volfog_shadow = ShaderVariableInfo("prev_volfog_shadow", true);
-    ShaderVariableInfo prev_volfog_shadow_samplerstate = ShaderVariableInfo("prev_volfog_shadow_samplerstate", true);
     ShaderVariableInfo volfog_shadow_accumulation_factor = ShaderVariableInfo("volfog_shadow_accumulation_factor", true);
     ShaderVariableInfo volfog_shadow = ShaderVariableInfo("volfog_shadow", true);
-    ShaderVariableInfo volfog_shadow_samplerstate = ShaderVariableInfo("volfog_shadow_samplerstate", true);
   } vars;
 
   bool hasDistantFogStaticShadows() const;

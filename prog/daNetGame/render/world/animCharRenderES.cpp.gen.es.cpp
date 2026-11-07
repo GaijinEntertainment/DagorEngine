@@ -957,42 +957,105 @@ inline ecs::QueryCbResult animchar_render_find_any_visible_distortion_ecs_query(
     })
   );
 }
-static constexpr ecs::ComponentDesc animchar_render_trans_second_ecs_query_comps[] =
+static constexpr ecs::ComponentDesc animchar_collect_late_trans_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
-//start of 4 ro components at [1]
+//start of 3 ro components at [1]
   {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
   {ECS_HASH("animchar_render__nodeVisibleStgFilters"), ecs::ComponentTypeInfo<ecs::UInt8List>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("watchedPlayerItem"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [5]
+//start of 1 rq components at [4]
   {ECS_HASH("late_transparent_render"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
-static ecs::CompileTimeQueryDesc animchar_render_trans_second_ecs_query_desc
+static ecs::CompileTimeQueryDesc animchar_collect_late_trans_ecs_query_desc
 (
-  "animchar_render_trans_second_ecs_query",
-  make_span(animchar_render_trans_second_ecs_query_comps+0, 1)/*rw*/,
-  make_span(animchar_render_trans_second_ecs_query_comps+1, 4)/*ro*/,
-  make_span(animchar_render_trans_second_ecs_query_comps+5, 1)/*rq*/,
+  "animchar_collect_late_trans_ecs_query",
+  make_span(animchar_collect_late_trans_ecs_query_comps+0, 1)/*rw*/,
+  make_span(animchar_collect_late_trans_ecs_query_comps+1, 3)/*ro*/,
+  make_span(animchar_collect_late_trans_ecs_query_comps+4, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void animchar_render_trans_second_ecs_query(ecs::EntityManager &manager, Callable function)
+inline void animchar_collect_late_trans_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(&manager, animchar_render_trans_second_ecs_query_desc.getHandle(),
+  perform_query(&manager, animchar_collect_late_trans_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
-              ECS_RW_COMP(animchar_render_trans_second_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
-            , ECS_RO_COMP_PTR(animchar_render_trans_second_ecs_query_comps, "additional_data", ecs::Point4List)
-            , ECS_RO_COMP(animchar_render_trans_second_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
-            , ECS_RO_COMP_PTR(animchar_render_trans_second_ecs_query_comps, "animchar_render__nodeVisibleStgFilters", ecs::UInt8List)
-            , ECS_RO_COMP_PTR(animchar_render_trans_second_ecs_query_comps, "watchedPlayerItem", ecs::Tag)
+              ECS_RW_COMP(animchar_collect_late_trans_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+            , ECS_RO_COMP_PTR(animchar_collect_late_trans_ecs_query_comps, "additional_data", ecs::Point4List)
+            , ECS_RO_COMP(animchar_collect_late_trans_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
+            , ECS_RO_COMP_PTR(animchar_collect_late_trans_ecs_query_comps, "animchar_render__nodeVisibleStgFilters", ecs::UInt8List)
             );
 
         }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc late_trans_hero_cockpit_entities_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("hero_cockpit_entities"), ecs::ComponentTypeInfo<ecs::EidList>()}
+};
+static ecs::CompileTimeQueryDesc late_trans_hero_cockpit_entities_ecs_query_desc
+(
+  "late_trans_hero_cockpit_entities_ecs_query",
+  empty_span(),
+  make_span(late_trans_hero_cockpit_entities_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void late_trans_hero_cockpit_entities_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, late_trans_hero_cockpit_entities_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(late_trans_hero_cockpit_entities_ecs_query_comps, "hero_cockpit_entities", ecs::EidList)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc animchar_collect_late_trans_cockpit_ecs_query_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
+//start of 3 ro components at [1]
+  {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
+  {ECS_HASH("animchar_render__nodeVisibleStgFilters"), ecs::ComponentTypeInfo<ecs::UInt8List>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [4]
+  {ECS_HASH("late_transparent_render"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc animchar_collect_late_trans_cockpit_ecs_query_desc
+(
+  "animchar_collect_late_trans_cockpit_ecs_query",
+  make_span(animchar_collect_late_trans_cockpit_ecs_query_comps+0, 1)/*rw*/,
+  make_span(animchar_collect_late_trans_cockpit_ecs_query_comps+1, 3)/*ro*/,
+  make_span(animchar_collect_late_trans_cockpit_ecs_query_comps+4, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void animchar_collect_late_trans_cockpit_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
+{
+  perform_query(&manager, eid, animchar_collect_late_trans_cockpit_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RW_COMP(animchar_collect_late_trans_cockpit_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+            , ECS_RO_COMP_PTR(animchar_collect_late_trans_cockpit_ecs_query_comps, "additional_data", ecs::Point4List)
+            , ECS_RO_COMP(animchar_collect_late_trans_cockpit_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
+            , ECS_RO_COMP_PTR(animchar_collect_late_trans_cockpit_ecs_query_comps, "animchar_render__nodeVisibleStgFilters", ecs::UInt8List)
+            );
+
+        }
     }
   );
 }

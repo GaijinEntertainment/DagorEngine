@@ -17,7 +17,7 @@ class ContextInspectorFn
       ctx = addr(context)
     fn <- f
 
-  def call(eid : array < EntityId > const implicit; flags : uint; name : string; refs : array < ComponentRenderInfo# >#; level : int; var changed : bool?; sub_menu : block < (var changed : bool?) : bool >) : void
+  def call(eid : EntityId; flags : uint; name : string; refs : array < ComponentRenderInfo# >#; level : int; var changed : bool?; sub_menu : block < (var changed : bool?) : bool >) : void
     unsafe
       lock_debug_agent() <| $()
         ctx |> invoke_in_context(fn, eid, flags, name, refs, level, changed, sub_menu)
@@ -31,7 +31,7 @@ class ContextEditorFn
       ctx = addr(context)
     fn <- f
 
-  def call(eid : array < EntityId > const#) : void
+  def call(eid : EntityId) : void
     unsafe
       lock_debug_agent() <| $()
         ctx |> invoke_in_context(fn, eid)
@@ -100,10 +100,11 @@ struct ComponentRenderInfo
   componentId : uint16
   // Are idx and componentId are of a valid component
   isValidComponent : bool
+  compRef : EntityComponentRef // Copied from real ref or null for binded C++ structs
 
 typedef
-  InspectorFn = function<(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void>
-  EditorFn = function<(eid : array<EntityId>#) : void>
+  InspectorFn = function<(eid : EntityId; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void>
+  EditorFn = function<(eid : EntityId) : void>
   EntityNameDescFn = function<(eid : EntityId; var out_string : string?) : void>
   UnselectedInspectorFn = function<() : void>
 
@@ -229,10 +230,10 @@ def get_inspector_index_from_list(var list : array<ecs_inspectors_common::Inspec
 
 
 [apply_in_context(ecs_inspectors)]
-def inspector_get_flags(type_name : string implicit; eid : array<EntityId> implicit; field_name : string implicit) : InspectorDescFlags
+def inspector_get_flags(type_name : string implicit; eid : EntityId; field_name : string implicit) : InspectorDescFlags
   var flags : InspectorDescFlags
   inspectors |> get(type_name) <| $(list)
-    let inspectorIndex = get_inspector_index_from_list(list, field_name, eid[0])
+    let inspectorIndex = get_inspector_index_from_list(list, field_name, eid)
     if inspectorIndex >= 0
       flags = list[inspectorIndex].flags
 
@@ -240,12 +241,12 @@ def inspector_get_flags(type_name : string implicit; eid : array<EntityId> impli
 
 
 [apply_in_context(ecs_inspectors)]
-def call_inspector(type_name : string implicit; eid : array<EntityId> implicit; flags : uint; field_name : string implicit; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool> implicit) : bool
+def call_inspector(type_name : string implicit; eid : EntityId; flags : uint; field_name : string implicit; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool> implicit) : bool
   var res = false
   inspectors |> get(type_name) <| $(list)
     res = true
 
-    let inspectorIndex = get_inspector_index_from_list(list, field_name, eid[0])
+    let inspectorIndex = get_inspector_index_from_list(list, field_name, eid)
     if inspectorIndex >= 0
       list[inspectorIndex].fn->call(eid, flags, field_name, refs, level, changed, sub_menu)
       return
@@ -263,14 +264,14 @@ def add_editor(prefix : bool; tags : array<string> implicit; var fn : EditorFn; 
 
 
 [apply_in_context(ecs_inspectors)]
-def call_editor(prefix : bool; eid : array<EntityId>#) : bool
+def call_editor(prefix : bool; eid : EntityId) : bool
   var res = false
   for it in editors
     if it.prefix != prefix
       continue
     var valid = true
     for tag in it.tags
-      if !eid[0] |> has("", tag)
+      if !eid |> has("", tag)
         valid = false
         break
     if valid

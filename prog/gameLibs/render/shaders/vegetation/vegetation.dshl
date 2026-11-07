@@ -1,6 +1,7 @@
 include "snoise.dshl"
 include "global_consts.dshl"
 include "tree_ellipsoid_normal.dshl"
+include "voxel_baking.dshl"
 
 int impostor_normal_mip = 0;
 int treeCrown_buf_slot = 21;
@@ -8,6 +9,10 @@ int treeCrown_buf_slot = 21;
 int use_simplified_vegetation = 0;
 interval use_simplified_vegetation: no<1, yes;
 assume_if_not_assumed use_simplified_vegetation = no;
+
+int use_vegetation_depth_isotropic_alpha = 0;
+interval use_vegetation_depth_isotropic_alpha: no<1, yes;
+assume_if_not_assumed use_vegetation_depth_isotropic_alpha = no;
 
 macro INIT_WEIGHT_FOR_AO()
   static float ao_weight = 1.0;
@@ -41,6 +46,7 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker, is_rendinst)
   }
   if (is_impostorbaker) {
     RESERVE_TREE_CROWN_SLOT()
+    USE_VOXEL_BAKING()
   }
   if (in_editor_assume == no && is_rendinst)
   {
@@ -62,10 +68,18 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker, is_rendinst)
       }
     #endif
 
-    UnpackedGbuffer get_current_gbuffer(VsOutput input, half3 diffuseColor)
+    #ifndef UNPACKED_GBUFFER
+      #define UNPACKED_GBUFFER UnpackedGbuffer
+    #endif
+
+    UNPACKED_GBUFFER get_current_gbuffer(VsOutput input, half3 diffuseColor)
     {
       UnpackedGbuffer gbuffer;
       init_gbuffer(gbuffer);
+
+      #if RENDINST_IMPOSTOR_VOXEL
+        half3 coloringMul = 0;
+      #endif
 
       /*##if shader == rendinst_tree_colored
       input.normal = normalize(cross(ddx(input.pointToEye), ddy(input.pointToEye)));
@@ -91,7 +105,14 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker, is_rendinst)
         #if COLOR_NEEDED
           //encode threshold instead of using pow4 on translucency
           //0.01 ^ (1/4) = 0.316
-          diffuseColor = translucency < (get_back_view_dep() > 0.4 ? 0.316 : 0.01) ? diffuseColor : diffuseColor * input.colorMul;
+          bool noMul = translucency < (get_back_view_dep() > 0.4 ? 0.316 : 0.01);
+          #if RENDINST_IMPOSTOR_VOXEL
+            noMul = true; // TODO: trees likely need different rendinst_voxel shader for coloring, leaving this off until then
+            coloringMul = noMul ? 0 : diffuseColor;
+            diffuseColor = noMul ? diffuseColor : 0;
+          #else
+            diffuseColor = noMul ? diffuseColor : diffuseColor * input.colorMul;
+          #endif
         #endif
         ##if in_editor_assume == no
           ##if (is_rendinst && use_simplified_vegetation == no)
@@ -147,6 +168,8 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker, is_rendinst)
               ao1 = lerp(1, ao1, vignette);
               apply_additional_gbuffer_ao(gbuffer, ao1*input.normal.a);
             }
+            else
+              apply_additional_gbuffer_ao(gbuffer, input.normal.a);
           ##else
             apply_additional_gbuffer_ao(gbuffer, input.normal.a);
           ##endif
@@ -165,7 +188,11 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker, is_rendinst)
       init_smoothness(gbuffer, smoothness);
       init_normal(gbuffer, worldNormal);
       init_albedo(gbuffer, diffuseColor.rgb);
-      return gbuffer;
+      #if RENDINST_IMPOSTOR_VOXEL
+        return baker_output_from_gbuffer(gbuffer, 0, 1.0, coloringMul, 0, 0).data;
+      #else
+        return gbuffer;
+      #endif
     }
   }
 endmacro
@@ -226,7 +253,13 @@ macro VEGETATION_PS(is_render_depth_pass, atest_is_on, alpha_clip_is_separate, a
       ##if alpha_clip_is_separate
         float alpha = tex2DBindless(get_alpha_tex(), input.diffuseTexcoord.xy).x;
       ##else
-        float alpha = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy).a;
+        ##if use_vegetation_depth_isotropic_alpha == yes
+          // The depth pass only needs the cutout: an isotropic fetch is far cheaper than the anisotropic one of the material sampler.
+          float isoLen = max(length(ddx(input.diffuseTexcoord.xy)), length(ddy(input.diffuseTexcoord.xy)));
+          float alpha = tex2DgradBindless(get_diffuse_tex(), input.diffuseTexcoord.xy, float2(isoLen, 0), float2(0, isoLen)).a;
+        ##else
+          float alpha = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy).a;
+        ##endif
       ##endif
       #if BURNT_GRASS_ENABLED
         float burntProgress = get_burnt_grass_progress(input.instance_pos__burnt_progress.w, input.instance_pos__burnt_progress.xyz, input.burnt_tc, input.burnt_tc.y);

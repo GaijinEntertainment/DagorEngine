@@ -150,12 +150,7 @@ static ImpostorGenerator::GenerateResponse impostor_export_callback(DagorAsset *
   return ImpostorGenerator::GenerateResponse::PROCESS;
 }
 
-static int log_cb_with_stack(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
-{
-  if ((lev_tag & 0x0F) <= LOGLEVEL_ERR)
-    debug_dump_stack("logerr callstack");
-  return 1; // continue normal logging
-}
+static void log_cb_with_stack(void *, LogMessage &) { debug_dump_stack("logerr callstack"); }
 
 int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 {
@@ -175,7 +170,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     start_debug_system(__argv[0]);
   char stamp_buf[256];
   debug(dagor_get_build_stamp_str(stamp_buf, sizeof(stamp_buf), "\n"));
-  debug_set_log_callback(log_cb_with_stack);
+  debug_add_log_handler(&log_cb_with_stack, nullptr, {.levelMask = LOGMASK_ERRORS});
 
   if (!options.valid)
   {

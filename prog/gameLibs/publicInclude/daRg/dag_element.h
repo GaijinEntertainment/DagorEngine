@@ -271,7 +271,8 @@ private:
   void setupTransitions(const Sqrat::Table &desc);
   void addOrUpdateTransition(const Sqrat::Object &item, AnimProp prop_override = AP_INVALID);
   void readTransform(const Sqrat::Table &desc);
-  void readHotkeys(const Sqrat::Table &desc, const Sqrat::Array &hotkeys_data, const Hotkeys &hotkeys);
+  // Returns true when the new combos differ from the old ones
+  bool readHotkeys(const Sqrat::Table &desc, const Sqrat::Array &hotkeys_data, const Hotkeys &hotkeys);
 
   void setupElemGroup(const Sqrat::Table &desc_tbl);
   void releaseElemGroup();
@@ -304,6 +305,18 @@ private:
   void renderXmbOverlayDebug(StdGuiRender::GuiContext &ctx) const;
 
   int16_t getZOrder(int parent_z_order) const;
+
+  struct StackInputs
+  {
+    int flags;
+    int behaviorsFlags;
+    int16_t zOrder;
+    bool inputEntry;
+    bool inputEntryPassive;
+
+    bool operator==(const StackInputs &) const = default;
+  };
+  StackInputs getStackInputs() const;
 
 public:
   ElementTree *etree;

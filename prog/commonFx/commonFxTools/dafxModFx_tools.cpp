@@ -313,6 +313,8 @@ ScriptHelpers::TunedElement *FxColorCurveOpt::createTunedElement(const char *nam
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("mask", E3DCOLOR(0, 0, 0)));
+  ScriptHelpers::set_tuned_element_desc(*elems.back(), "Channels that follow the curve: R, G, B and A (opacity).\nWith premult_alpha, "
+                                                       "A alone can leave the particle visible; include RGB.");
   elems.push_back(ScriptHelpers::create_tuned_bool_param("use_part_idx_as_key", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("use_threshold", false));
   elems.push_back(ScriptHelpers::create_tuned_cubic_curve("curve", E3DCOLOR(255, 255, 0)));
@@ -328,6 +330,8 @@ ScriptHelpers::TunedElement *FxMaskedCurveOpt::createTunedElement(const char *na
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("mask", E3DCOLOR(255, 255, 255)));
+  ScriptHelpers::set_tuned_element_desc(*elems.back(), "Channels that follow the curve: R, G, B and A (opacity).\nWith premult_alpha, "
+                                                       "A alone can leave the particle visible; include RGB.");
   elems.push_back(ScriptHelpers::create_tuned_cubic_curve("curve", E3DCOLOR(255, 255, 0)));
 
   return ScriptHelpers::create_tuned_struct(name, 2, elems);
@@ -373,7 +377,11 @@ ScriptHelpers::TunedElement *FxColor::createTunedElement(const char *name)
   elems.push_back(ScriptHelpers::create_tuned_bool_param("allow_game_override", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("gamma_correction", false));
   elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("col_min", E3DCOLOR(128, 128, 128)));
+  ScriptHelpers::set_tuned_element_desc(*elems.back(), "Base particle color; its alpha scales the particle opacity.\nWith color_remap "
+                                                       "it changes the remapped color only when apply_base_color is on.");
   elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("col_max", E3DCOLOR(128, 128, 128)));
+  ScriptHelpers::set_tuned_element_desc(*elems.back(), "Base particle color; its alpha scales the particle opacity.\nWith color_remap "
+                                                       "it changes the remapped color only when apply_base_color is on.");
   elems.push_back(FxValueGradOpt::createTunedElement("grad_over_part_life"));
   elems.push_back(FxColorCurveOpt::createTunedElement("curve_over_part_life"));
   elems.push_back(FxMaskedCurveOpt::createTunedElement("curve_over_part_idx"));
@@ -694,13 +702,26 @@ ScriptHelpers::TunedElement *FxPlacement::createTunedElement(const char *name)
 ScriptHelpers::TunedElement *FxTextureAnim::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(8);
+  elems.reserve(9);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("animated_flipbook", false));
   elems.push_back(ScriptHelpers::create_tuned_real_param("speed_min", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("speed_max", 1));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("motion_vectors", false));
+  {
+    Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
+    enumEntries.resize(2);
+
+    enumEntries[0].name = "rg";
+    enumEntries[0].value = 0;
+    enumEntries[1].name = "ba";
+    enumEntries[1].value = 1;
+
+    elems.push_back(ScriptHelpers::create_tuned_enum_param("motion_vectors_channels", enumEntries));
+    ScriptHelpers::set_tuned_element_desc(*elems.back(),
+      "tex_1 channels of the motion vectors. ba allows a normal map in rg of the same texture.");
+  }
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
     enumEntries.resize(3);
@@ -717,7 +738,7 @@ ScriptHelpers::TunedElement *FxTextureAnim::createTunedElement(const char *name)
   elems.push_back(ScriptHelpers::create_tuned_real_param("motion_vectors_strength", 0.01));
   elems.push_back(FxValueCurveOpt::createTunedElement("over_part_life"));
 
-  return ScriptHelpers::create_tuned_struct(name, 3, elems);
+  return ScriptHelpers::create_tuned_struct(name, 4, elems);
 }
 
 
@@ -755,10 +776,14 @@ ScriptHelpers::TunedElement *FxColorRemap::createTunedElement(const char *name)
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("apply_base_color", true));
+  ScriptHelpers::set_tuned_element_desc(*elems.back(),
+    "Multiplies the remapped color by the particle color\n(col_min/col_max, color curves, gradient, fades).\nWhen off, color curves "
+    "and fades change only alpha,\nso with premult_alpha a fade can leave the particle visible.");
   elems.push_back(ScriptHelpers::create_tuned_gradient_box("grad"));
   elems.push_back(FxColorRemapDyanmic::createTunedElement("dynamic"));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("second_mask_enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("second_mask_apply_base_color", false));
+  ScriptHelpers::set_tuned_element_desc(*elems.back(), "Same as apply_base_color, for the second mask layer (texture green channel).");
 
   return ScriptHelpers::create_tuned_struct(name, 3, elems);
 }
@@ -798,7 +823,13 @@ ScriptHelpers::TunedElement *FxEmission::createTunedElement(const char *name)
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_real_param("value", 0));
+  ScriptHelpers::set_tuned_element_desc(*elems.back(),
+    "Emission strength, multiplied by the mask and the curve. With color_remap,\n0 to 1 blends from lit to self-lit, above 1 is "
+    "self-lit and brighter.\nThe glow is multiplied by alpha, so with color_remap from 1 up, alpha 0 hides the particle.");
   elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("mask", E3DCOLOR(255, 255, 255)));
+  ScriptHelpers::set_tuned_element_desc(*elems.back(),
+    "With color_remap: R is the strength for the remapped layer,\nG for the second mask layer, B is not used.\nWithout color_remap: "
+    "glow per color channel.\nA is not used.");
   elems.push_back(FxValueCurveOpt::createTunedElement("over_part_life"));
 
   return ScriptHelpers::create_tuned_struct(name, 1, elems);
@@ -818,36 +849,37 @@ ScriptHelpers::TunedElement *FxThermalEmission::createTunedElement(const char *n
 }
 
 
-ScriptHelpers::TunedElement *FxAdvancedTranslucency::createTunedElement(const char *name)
-{
-  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(13);
-
-  elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
-  elems.push_back(ScriptHelpers::create_tuned_Point3_param("tranclucency_color_mul", Point3(2.5, 2, 1)));
-  elems.push_back(ScriptHelpers::create_tuned_bool_param("weigh_translucency_by_view_light_degree", false));
-  elems.push_back(ScriptHelpers::create_tuned_bool_param("use_alpha_as_translucency", false));
-  elems.push_back(ScriptHelpers::create_tuned_real_param("alpha_for_translucent_min", 0));
-  elems.push_back(ScriptHelpers::create_tuned_real_param("alpha_for_translucent_max", 1));
-  elems.push_back(ScriptHelpers::create_tuned_real_param("min_translucency_value", 0));
-  elems.push_back(ScriptHelpers::create_tuned_real_param("max_translucency_value", 1));
-  elems.push_back(ScriptHelpers::create_tuned_bool_param("use_normal_as_translucency", false));
-  elems.push_back(ScriptHelpers::create_tuned_bool_param("use_viewvector_for_normal_based_translucency", false));
-  elems.push_back(ScriptHelpers::create_tuned_bool_param("invert_accepted_degrees", false));
-  elems.push_back(ScriptHelpers::create_tuned_real_param("from_degree", 0));
-  elems.push_back(ScriptHelpers::create_tuned_real_param("to_degree", 90));
-
-  return ScriptHelpers::create_tuned_struct(name, 1, elems);
-}
-
-
 ScriptHelpers::TunedElement *FxTranslucency::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(2);
+  elems.reserve(1);
 
   elems.push_back(ScriptHelpers::create_tuned_real_param("translucency_val", 0));
-  elems.push_back(FxAdvancedTranslucency::createTunedElement("advanced_translucency"));
+
+  return ScriptHelpers::create_tuned_struct(name, 2, elems);
+}
+
+
+ScriptHelpers::TunedElement *FxScatterLighting::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(15);
+
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("opacity_src_remapped", false));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("opacity_src_is_thickness", false));
+  elems.push_back(ScriptHelpers::create_tuned_E3DCOLOR_param("opacity_src_mask", E3DCOLOR(0, 0, 0)));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("max_opacity", 0.95));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("rim_intensity", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("rim_opacity", 0.42));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("rim_width", 0.35));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("rim_backlit", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("sun_backlit_boost", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("sun_self_shadow", 0.5));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("sun_shadow_fill", 0.5));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("sun_thin_fade", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("ambient_self_shadow", 0.5));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("scale_opacity_with_radius", false));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("alpha_from_opacity", false));
 
   return ScriptHelpers::create_tuned_struct(name, 1, elems);
 }
@@ -856,11 +888,11 @@ ScriptHelpers::TunedElement *FxTranslucency::createTunedElement(const char *name
 ScriptHelpers::TunedElement *FxLighting::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(9);
+  elems.reserve(12);
 
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
-    enumEntries.resize(5);
+    enumEntries.resize(6);
 
     enumEntries[0].name = "none";
     enumEntries[0].value = 0;
@@ -872,19 +904,24 @@ ScriptHelpers::TunedElement *FxLighting::createTunedElement(const char *name)
     enumEntries[3].value = 3;
     enumEntries[4].name = "normal_map";
     enumEntries[4].value = 4;
+    enumEntries[5].name = "scatter";
+    enumEntries[5].value = 5;
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("type", enumEntries));
   }
   elems.push_back(ScriptHelpers::create_tuned_real_param("sphere_normal_radius", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("sphere_normal_power", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("normal_softness", 0));
-  elems.push_back(ScriptHelpers::create_tuned_bool_param("specular_enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_real_param("specular_power", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("specular_strength", 1));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("direction_ambient_min", 0.5));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("specular_enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("external_lights_enabled", false));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("use_direction_ambient", false));
+  elems.push_back(FxScatterLighting::createTunedElement("scatter_lighting"));
   elems.push_back(FxTranslucency::createTunedElement("translucency"));
 
-  return ScriptHelpers::create_tuned_struct(name, 6, elems);
+  return ScriptHelpers::create_tuned_struct(name, 9, elems);
 }
 
 
@@ -1011,6 +1048,11 @@ ScriptHelpers::TunedElement *FxBlending::createTunedElement(const char *name)
     enumEntries[2].value = 2;
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("type", enumEntries));
+    ScriptHelpers::set_tuned_element_desc(*elems.back(),
+      "alpha_blend: alpha is opacity, alpha 0 hides the particle.\nadditive: adds light, never darkens, black is "
+      "invisible.\npremult_alpha: alpha 1 covers like alpha_blend, alpha 0 adds like additive;\n               to hide the particle, "
+      "bring both its color and alpha to 0.\n\nNote: some shaders cut pixels by alpha alone, which hides the particle at low alpha in "
+      "any blend mode.");
   }
 
   return ScriptHelpers::create_tuned_struct(name, 1, elems);

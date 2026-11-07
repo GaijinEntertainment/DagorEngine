@@ -95,12 +95,6 @@ namespace sqfrp
 {
 
 
-#if DAGOR_DBGLEVEL > 0
-static bool use_deprecated_methods_warning = true;
-#else
-static bool use_deprecated_methods_warning = false;
-#endif
-
 static const int computed_initial_update_dummy = _MAKE4C('INIT');
 static const SQUserPointer computed_initial_update = (SQUserPointer)&computed_initial_update_dummy;
 
@@ -1999,13 +1993,6 @@ Sqrat::Object WatchedHandle::getValue()
   return graph->getValue(id);
 }
 
-Sqrat::Object WatchedHandle::getValueDeprecated()
-{
-  if (use_deprecated_methods_warning && graph)
-    logerr_graph_error(graph->vm, ".value is deprecated, use get() instead");
-  return getValue();
-}
-
 bool WatchedHandle::getImmediate() const
 {
   if (!graph)
@@ -2627,7 +2614,6 @@ void bind_frp_classes(SqModules *module_mgr)
     .SquirrelFuncDeclString(&ObservablesGraph::dbgGetListeners, "instance.dbgGetListeners(): table")
     .Prop("immediate", &WatchedHandle::getImmediate, &WatchedHandle::setImmediate)
     .Func("setImmediate", &WatchedHandle::setImmediate)
-    .Prop("value", &WatchedHandle::getValueDeprecated)
     .Func("get", &WatchedHandle::getValue)
     .Prop("timeChangeReq", &WatchedHandle::getTimeChangeReq)
     .Prop("timeChanged", &WatchedHandle::getTimeChanged)
@@ -2683,7 +2669,6 @@ void bind_frp_classes(SqModules *module_mgr)
     .SquirrelFuncDeclString(gather_graph_stats, "gather_graph_stats(): table")
     .SquirrelFuncDeclString(update_deferred, "update_deferred(): null")
     .SquirrelFuncDeclString(ObservablesGraph::register_stub_observable_class, "register_stub_observable_class(cls: class): null")
-    .Func("warn_on_deprecated_methods", [](bool on) { use_deprecated_methods_warning = on; })
     /**/;
 
   sq_pushobject(vm, exports);

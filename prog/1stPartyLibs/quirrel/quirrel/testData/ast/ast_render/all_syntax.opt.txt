@@ -1,4 +1,5 @@
 Block isRoot = 1, isBody = 0
+|-DirectiveStmt
 |-ImportStmt module 'math'
 | |-'sin'
 | `-'cos' as 'cosine'
@@ -29,7 +30,7 @@ Block isRoot = 1, isBody = 0
 | |   |-Left
 | |   |   LiteralExpr LK_STRING "testData/ast/ast_render/all_syntax.nut"
 | |   `-Right
-| |       LiteralExpr LK_INT 14
+| |       LiteralExpr LK_INT 15
 | `-ThenBranch
 |     Block isRoot = 0, isBody = 0
 |       ExprStatement
@@ -81,7 +82,6 @@ Block isRoot = 1, isBody = 0
 |-EnumDecl name = 'Enum10', isGlobal = 1
 |   Member 'CC'
 |     LiteralExpr LK_NULL
-|-DirectiveStmt
 |-ConstDecl name = 'cn0', isGlobal = 0
 |   LiteralExpr LK_INT 201
 |-ConstDecl name = 'cn1', isGlobal = 0
@@ -287,7 +287,7 @@ local_str3"
 |           CallExpr
 |             Callee
 |               UnExpr '('
-|                 FunctionExpr 'lambda' name = '(all_syntax.nut:87)', pure = 0, nodiscard = 0, resultType = 'any'
+|                 FunctionExpr 'lambda' name = '(all_syntax.nut:86)', pure = 0, nodiscard = 0, resultType = 'any'
 |                 |-Parameters count = 0
 |                 `-Body
 |                     Block isRoot = 0, isBody = 1
@@ -425,7 +425,7 @@ local_str3"
 |         CallExpr
 |           Callee
 |             UnExpr '('
-|               FunctionExpr 'lambda' name = '(all_syntax.nut:102)', pure = 0, nodiscard = 0, resultType = 'any'
+|               FunctionExpr 'lambda' name = '(all_syntax.nut:101)', pure = 0, nodiscard = 0, resultType = 'any'
 |               |-Parameters count = 0
 |               `-Body
 |                   Block isRoot = 0, isBody = 1
@@ -696,7 +696,7 @@ local_str3"
 |       | |-Parameters count = 0
 |       | `-Body
 |       |     Block isRoot = 0, isBody = 1
-|       |-FunctionExpr name = '(all_syntax.nut:181)', pure = 0, nodiscard = 0, resultType = 'any'
+|       |-FunctionExpr name = '(all_syntax.nut:180)', pure = 0, nodiscard = 0, resultType = 'any'
 |       | |-Parameters count = 0
 |       | `-Body
 |       |     Block isRoot = 0, isBody = 1
@@ -716,7 +716,7 @@ local_str3"
 |       |             GetFieldExpr '.' fieldName = 'fn1'
 |       |               Receiver
 |       |                 Id 'this'
-|       |-FunctionExpr 'lambda' name = '(all_syntax.nut:183)', pure = 0, nodiscard = 0, resultType = 'any'
+|       |-FunctionExpr 'lambda' name = '(all_syntax.nut:182)', pure = 0, nodiscard = 0, resultType = 'any'
 |       | |-Parameters count = 0
 |       | `-Body
 |       |     Block isRoot = 0, isBody = 1
@@ -728,7 +728,7 @@ local_str3"
 |       |     Block isRoot = 0, isBody = 1
 |       |       ReturnStatement
 |       |         LiteralExpr LK_STRING "class_str2"
-|       `-FunctionExpr name = '(all_syntax.nut:185)', pure = 0, nodiscard = 0, resultType = 'any'
+|       `-FunctionExpr name = '(all_syntax.nut:184)', pure = 0, nodiscard = 0, resultType = 'any'
 |         |-Parameters count = 1
 |         |   Parameter #1 name = 'name', type = 'any'
 |         `-Body
@@ -812,7 +812,7 @@ local_str3"
 |         Block isRoot = 0, isBody = 1
 |-VarDecl 'local', name = 'gfn2', type = 'any'
 |   Initializer
-|     FunctionExpr name = '(all_syntax.nut:203)', pure = 0, nodiscard = 0, resultType = 'any'
+|     FunctionExpr name = '(all_syntax.nut:202)', pure = 0, nodiscard = 0, resultType = 'any'
 |     |-Parameters count = 0
 |     `-Body
 |         Block isRoot = 0, isBody = 1
@@ -836,7 +836,7 @@ local_str3"
 |                     Id 'this'
 |-VarDecl 'local', name = 'gfn4', type = 'any'
 |   Initializer
-|     FunctionExpr 'lambda' name = '(all_syntax.nut:205)', pure = 0, nodiscard = 0, resultType = 'any'
+|     FunctionExpr 'lambda' name = '(all_syntax.nut:204)', pure = 0, nodiscard = 0, resultType = 'any'
 |     |-Parameters count = 0
 |     `-Body
 |         Block isRoot = 0, isBody = 1
@@ -852,7 +852,7 @@ local_str3"
 |             LiteralExpr LK_STRING "lambda_str2"
 |-VarDecl 'local', name = '_call', type = 'any'
 |   Initializer
-|     FunctionExpr name = '(all_syntax.nut:207)', pure = 0, nodiscard = 0, resultType = 'any'
+|     FunctionExpr name = '(all_syntax.nut:206)', pure = 0, nodiscard = 0, resultType = 'any'
 |     |-Parameters count = 1
 |     |   Parameter #1 name = 'name', type = 'any'
 |     `-Body
@@ -1208,7 +1208,7 @@ local_str3"
 |                 Id 'z'
 |-VarDecl 'let', name = '$ch0', type = 'any'
 |   Initializer
-|     FunctionExpr 'lambda' name = '(all_syntax.nut:237)', pure = 0, nodiscard = 0, resultType = 'any'
+|     FunctionExpr 'lambda' name = '(all_syntax.nut:236)', pure = 0, nodiscard = 0, resultType = 'any'
 |     |-Parameters count = 0
 |     `-Body
 |         Block isRoot = 0, isBody = 1
@@ -1216,7 +1216,7 @@ local_str3"
 |             LiteralExpr LK_NULL
 |-VarDecl 'let', name = '$ch1', type = 'any'
 |   Initializer
-|     FunctionExpr 'lambda' name = '(all_syntax.nut:237)', pure = 0, nodiscard = 0, resultType = 'any'
+|     FunctionExpr 'lambda' name = '(all_syntax.nut:236)', pure = 0, nodiscard = 0, resultType = 'any'
 |     |-Parameters count = 0
 |     `-Body
 |         Block isRoot = 0, isBody = 1
@@ -1224,7 +1224,7 @@ local_str3"
 |             Id '$ch0'
 |-VarDecl 'let', name = '$ch2', type = 'any'
 |   Initializer
-|     FunctionExpr 'lambda' name = '(all_syntax.nut:237)', pure = 0, nodiscard = 0, resultType = 'any'
+|     FunctionExpr 'lambda' name = '(all_syntax.nut:236)', pure = 0, nodiscard = 0, resultType = 'any'
 |     |-Parameters count = 0
 |     `-Body
 |         Block isRoot = 0, isBody = 1
@@ -2061,7 +2061,6 @@ local_str3"
 |         `-Arguments
 |             Argument #1
 |               LiteralExpr LK_STRING "other"
-|-DirectiveStmt
 |-VarDecl 'local', name = 'w', type = 'any'
 |   Initializer
 |     CallExpr
@@ -2172,7 +2171,7 @@ local_str3"
 |         Id 'A'
 |-VarDecl 'let', name = '$ch3', type = 'any'
 |   Initializer
-|     FunctionExpr name = '(all_syntax.nut:435)', pure = 0, nodiscard = 0, resultType = 'any'
+|     FunctionExpr name = '(all_syntax.nut:432)', pure = 0, nodiscard = 0, resultType = 'any'
 |     |-Parameters count = 0
 |     `-Body
 |         Block isRoot = 0, isBody = 1

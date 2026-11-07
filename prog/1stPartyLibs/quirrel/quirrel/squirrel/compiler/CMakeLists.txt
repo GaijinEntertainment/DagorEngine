@@ -35,7 +35,6 @@ target_compile_options(quirrel-compiler PRIVATE
 
 target_include_directories(quirrel-compiler PUBLIC
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
   PRIVATE
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/internal>"
   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/helpers>"

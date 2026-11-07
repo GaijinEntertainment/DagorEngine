@@ -26,9 +26,8 @@ Throws `empty separators string` when `separators` is `""`.
 ## Notes
 
 Takes 1 or 2 arguments: `skip_empty` is optional and defaults to false. Same
-implementation as [string.split_by_chars](sym:string.split_by_chars); see the
-Notes on [types.String.strip](sym:types.String.strip) for how the two forms
-differ only in their reported attributes, not their behavior.
+implementation and attributes as
+[string.split_by_chars](sym:string.split_by_chars).
 
 Contrast [types.String.split](sym:types.String.split), whose separator is a
 literal substring matched as a whole rather than a set of individual bytes.

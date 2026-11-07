@@ -522,28 +522,28 @@ void dump_registry_to_json(const InternalRegistry &registry)
           w.Key("renderingRequirements");
           {
             OBJECT_SCOPED
-            if (nodeData.renderingRequirements)
+            if (const auto *virtualPass = eastl::get_if<VirtualPassRequirements>(&nodeData.renderingRequirements))
             {
               w.Key("colorAttachments");
               {
                 ARRAY_SCOPED
-                for (const auto colorAtt : nodeData.renderingRequirements->colorAttachments)
+                for (const auto colorAtt : virtualPass->colorAttachments)
                   print_virt_subres_ref(colorAtt, registry);
               }
 
               w.Key("depthAttachment");
-              print_virt_subres_ref(nodeData.renderingRequirements->depthAttachment, registry);
+              print_virt_subres_ref(virtualPass->depthAttachment, registry);
 
               w.Key("depthReadOnly");
-              w.Bool(nodeData.renderingRequirements->depthReadOnly);
+              w.Bool(virtualPass->depthReadOnly);
 
               w.Key("depthReadTestOnly");
-              w.Bool(nodeData.renderingRequirements->depthReadTestOnly);
+              w.Bool(virtualPass->depthReadTestOnly);
 
               w.Key("resolves");
               {
                 OBJECT_SCOPED
-                for (const auto [fromResNameId, toResNameId] : nodeData.renderingRequirements->resolves)
+                for (const auto [fromResNameId, toResNameId] : virtualPass->resolves)
                 {
                   w.Key(get_name(registry, fromResNameId));
                   w.String(get_name(registry, toResNameId));
@@ -551,7 +551,7 @@ void dump_registry_to_json(const InternalRegistry &registry)
               }
 
               w.Key("vrsRateAttachment");
-              print_virt_subres_ref(nodeData.renderingRequirements->vrsRateAttachment, registry);
+              print_virt_subres_ref(virtualPass->vrsRateAttachment, registry);
             }
           }
 

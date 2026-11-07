@@ -23,7 +23,7 @@ void add_sw_rasterization_tasks(rendinst::RIOcclusionData &od,
 {
   mat44f globtm = occlusion.getCurViewProj();
   const int maxRiCount = 2; // we can't just rasterize one. It can be the one behind us.
-  rendinst::prepareOcclusionData(cullgtm, occlusion.getCurViewPos(), od, maxRiCount, true);
+  rendinst::prepareOcclusionData(cullgtm, occlusion.getCurViewPos(), od, maxRiCount);
   const mat44f *mat = nullptr;
   const IPoint2 *indices = nullptr;
   uint32_t cnt = 0;

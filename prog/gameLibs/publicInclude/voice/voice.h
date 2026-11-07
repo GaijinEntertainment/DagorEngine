@@ -8,6 +8,7 @@
 #include <daECS/core/entityId.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/string.h>
+#include <generic/dag_span.h>
 
 class DataBlock;
 class VoiceSession;
@@ -57,8 +58,8 @@ protected:
 class VoiceManager
 {
 public:
-  using SessionsUpdater = eastl::function<void(VoiceManager &, const eastl::string &, const eastl::string &, const eastl::string &,
-    eastl::unique_ptr<IVoiceSessionCb>)>;
+  using SessionsUpdater = eastl::function<void(const eastl::string &uri, const eastl::string &login, const eastl::string &token,
+    eastl::unique_ptr<IVoiceSessionCb> cb)>;
 
   virtual ~VoiceManager() {}
 
@@ -88,6 +89,14 @@ public:
   virtual bool isPlayerMuted(const char *name) = 0;
 
   virtual void setRecordDevice(int id) = 0;
+  enum class DirectPeers
+  {
+    Nobody,
+    Listed,
+    Everyone
+  };
+  // peers allowed a direct connection; blocked wins
+  virtual void setAllowedDirectPeers(DirectPeers, dag::ConstSpan<uint64_t> /*allowed*/, dag::ConstSpan<uint64_t> /*blocked*/) {}
 
   virtual bool isOffline() const = 0;
 

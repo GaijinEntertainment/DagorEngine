@@ -182,8 +182,15 @@ static int get_mouse_pan_button(const darg::Element *elem, const BhvMenuCameraCo
 }
 
 
-int BhvMenuCameraControl::pointingEvent(
-  ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id, Point2 pos, int accum_res)
+int BhvMenuCameraControl::pointingEvent(ElementTree *,
+  Element *elem,
+  InputDevice device,
+  TouchSource /*touch_src*/,
+  InputEvent event,
+  int pointer_id,
+  int button_id,
+  Point2 pos,
+  int accum_res)
 {
   auto strings = cstr.resolveVm(elem->getVM());
   G_ASSERT_RETURN(strings, 0);

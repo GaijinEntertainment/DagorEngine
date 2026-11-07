@@ -59,16 +59,12 @@ static ecs::EntitySystemDesc grid3d_view_finalize_es_es_desc
 ,nullptr,nullptr,"*");
 static constexpr ecs::ComponentDesc dagdp_placer_grid3d_changed_es_comps[] =
 {
-//start of 12 rq components at [0]
-  {ECS_HASH("dagdp__volume_axis_abs"), ecs::ComponentTypeInfo<bool>()},
+//start of 8 rq components at [0]
   {ECS_HASH("dagdp__volume_axis_local"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("dagdp__distance_based_scale"), ecs::ComponentTypeInfo<Point2>()},
-  {ECS_HASH("dagdp__distance_based_center"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("dagdp__volume_axis"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("dagdp__name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("dagdp_placer_grid3d"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("dagdp__density"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("dagdp__distance_based_range"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__jitter"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__csm_cascade_count"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__seed"), ecs::ComponentTypeInfo<int>()}
@@ -86,14 +82,14 @@ static ecs::EntitySystemDesc dagdp_placer_grid3d_changed_es_es_desc
   ecs::EntitySystemOps(nullptr, dagdp_placer_grid3d_changed_es_all_events),
   empty_span(),
   empty_span(),
-  make_span(dagdp_placer_grid3d_changed_es_comps+0, 12)/*rq*/,
+  make_span(dagdp_placer_grid3d_changed_es_comps+0, 8)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear,
                        ecs::EventEntityDestroyed,
                        ecs::EventComponentsDisappear>::build(),
   0
-,"render","dagdp__csm_cascade_count,dagdp__density,dagdp__distance_based_center,dagdp__distance_based_range,dagdp__distance_based_scale,dagdp__jitter,dagdp__name,dagdp__seed,dagdp__volume_axis,dagdp__volume_axis_abs,dagdp__volume_axis_local");
+,"render","dagdp__csm_cascade_count,dagdp__density,dagdp__jitter,dagdp__name,dagdp__seed,dagdp__volume_axis,dagdp__volume_axis_local");
 static constexpr ecs::ComponentDesc dagdp_grid3d_volume_link_es_comps[] =
 {
 //start of 2 ro components at [0]
@@ -188,28 +184,24 @@ static ecs::EntitySystemDesc dagdp_grid3d_volume_changed_es_es_desc
 ,"render","dagdp__volume_placer_name");
 static constexpr ecs::ComponentDesc grid3d_placers_ecs_query_comps[] =
 {
-//start of 12 ro components at [0]
+//start of 8 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("dagdp__density"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("dagdp__volume_axis"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("dagdp__volume_axis_local"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("dagdp__volume_axis_abs"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("dagdp__distance_based_scale"), ecs::ComponentTypeInfo<Point2>()},
-  {ECS_HASH("dagdp__distance_based_range"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("dagdp__distance_based_center"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("dagdp__jitter"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__seed"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__csm_cascade_count"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [12]
+//start of 1 rq components at [8]
   {ECS_HASH("dagdp_placer_grid3d"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc grid3d_placers_ecs_query_desc
 (
   "dagdp::grid3d_placers_ecs_query",
   empty_span(),
-  make_span(grid3d_placers_ecs_query_comps+0, 12)/*ro*/,
-  make_span(grid3d_placers_ecs_query_comps+12, 1)/*rq*/,
+  make_span(grid3d_placers_ecs_query_comps+0, 8)/*ro*/,
+  make_span(grid3d_placers_ecs_query_comps+8, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::grid3d_placers_ecs_query(ecs::EntityManager &manager, Callable function)
@@ -225,10 +217,6 @@ inline void dagdp::grid3d_placers_ecs_query(ecs::EntityManager &manager, Callabl
             , ECS_RO_COMP(grid3d_placers_ecs_query_comps, "dagdp__name", ecs::string)
             , ECS_RO_COMP(grid3d_placers_ecs_query_comps, "dagdp__volume_axis", Point3)
             , ECS_RO_COMP(grid3d_placers_ecs_query_comps, "dagdp__volume_axis_local", bool)
-            , ECS_RO_COMP(grid3d_placers_ecs_query_comps, "dagdp__volume_axis_abs", bool)
-            , ECS_RO_COMP(grid3d_placers_ecs_query_comps, "dagdp__distance_based_scale", Point2)
-            , ECS_RO_COMP(grid3d_placers_ecs_query_comps, "dagdp__distance_based_range", float)
-            , ECS_RO_COMP(grid3d_placers_ecs_query_comps, "dagdp__distance_based_center", Point3)
             , ECS_RO_COMP(grid3d_placers_ecs_query_comps, "dagdp__jitter", float)
             , ECS_RO_COMP(grid3d_placers_ecs_query_comps, "dagdp__seed", int)
             , ECS_RO_COMP_OR(grid3d_placers_ecs_query_comps, "dagdp__csm_cascade_count", int(-1))

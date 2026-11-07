@@ -68,7 +68,6 @@
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_resetDevice.h>
 #include <render/tdrGpu.h>
-#include "ui/userUi.h"
 #include "ui/uiShared.h"
 #include "ui/uiRender.h"
 #include "ui/loadingUi.h"
@@ -115,7 +114,8 @@ float last_gametime_elapsed_sec = 0.f;
 
 static void (*start_next_frame_in_additional_game_job_cb)() = nullptr;
 
-extern void free_reserved_tp_worker();
+bool should_delay_pufd_until_bvh_jobs_done();
+void bvh_wait_ri_jobs();
 
 static class AdditionalGameJob final : public cpujobs::IJob
 {
@@ -144,7 +144,8 @@ public:
     int64_t ownedThread = g_entity_mgr->getOwnerThreadId();
     g_entity_mgr->setOwnerThreadId(get_current_thread_id());
 
-    uirender::start_ui_before_render_job();
+    if (should_delay_pufd_until_bvh_jobs_done()) // otherwise it is started from the csm cascade render
+      uirender::start_ui_before_render_job();
 
     {
       TIME_PROFILE(begin_frame);
@@ -173,7 +174,6 @@ public:
     dacoll::phys_world_set_invalid_fetch_sim_res_thread(-1); // set to invalid
 
     g_entity_mgr->setOwnerThreadId(ownedThread);
-    free_reserved_tp_worker(); // Allow Jolt to use all threadpool workers
   }
 } additional_game_job;
 
@@ -185,7 +185,8 @@ enum : uint32_t
   AGT_ADDITIONAL = 1 << 0,
   AGT_UI = 1 << 1,
   AGT_DAFX = 1 << 2,
-  AGT_ALL = AGT_ADDITIONAL | AGT_UI | AGT_DAFX
+  AGT_UI_BEFORE_RENDER = 1 << 3,
+  AGT_ALL = AGT_ADDITIONAL | AGT_UI | AGT_DAFX | AGT_UI_BEFORE_RENDER
 };
 static uint8_t async_game_tasks_started = AGT_NONE;
 
@@ -196,7 +197,6 @@ enum class AdditionalJobState : int
   AJS_LAUNCHED
 };
 static int additional_game_job_state = eastl::to_underlying(AdditionalJobState::AJS_IDLE);
-bool should_delay_pufd_until_bvh_jobs_done();
 void set_bvh_on_parallel_jobs_finished_cb(void (*cb)());
 
 static void launch_prepared_additional_game_job()
@@ -275,7 +275,7 @@ void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec, fl
 
   if (imgui_get_state() != ImGuiState::OFF)
     imgui_perform_registered();
-  console::update(); // constraint: runs TTY commands, needs PUFD idle
+  console::update(); // runs TTY commands, needs PUFD idle
 
   G_ASSERT(!g_entity_mgr->isConstrainedMTMode());
   g_entity_mgr->setConstrainedMTMode(true);
@@ -326,8 +326,6 @@ void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec, fl
     const float gameTimeForRender = fixed_render_time.get() >= 0.f ? fixed_render_time.get() : get_sync_time();
     wr->beforeRender(scaledDt, rtDt, realtime_elapsed_usec * 1e-6, gameTimeForRender, camTransform, camPosition, curPersp, projTm);
   }
-
-  user_ui::before_render();
 
   const TMatrix4 &projTm = matrix_perspective(curPersp.wk, curPersp.hk, curPersp.zn, curPersp.zf);
   uirender::before_render(realtime_elapsed_usec * 1e-6, camTransform, viewTransform, projTm);
@@ -406,18 +404,20 @@ void start_async_game_tasks(uint32_t frame_id, int agt = AGT_ALL, bool wake = tr
           registered = true;
         }
         interlocked_release_store(additional_game_job_state, eastl::to_underlying(AdditionalJobState::AJS_PREPARED));
+        async_game_tasks_started |= AGT_UI_BEFORE_RENDER; // PUFD will start it
       }
       else
       {
         threadpool::add(&additional_game_job, threadpool::PRIO_LOW, wake);
       }
     }
-    else // we must start before render ui job when level loading in progress
-      uirender::start_ui_before_render_job();
   }
 
+  if ((agt & AGT_UI_BEFORE_RENDER) && !(async_game_tasks_started & AGT_UI_BEFORE_RENDER))
+    uirender::start_ui_before_render_job(wake);
+
   if ((agt & AGT_DAFX) && !(async_game_tasks_started & AGT_DAFX))
-    acesfx::start_dafx_update();
+    acesfx::start_dafx_update(-1.f, wake);
 
   if ((agt & AGT_UI) && !(async_game_tasks_started & AGT_UI))
   {
@@ -505,7 +505,8 @@ void finish_rendering_ui()
 
         mat44f ssGlobTm;
         v_mat44_make_from_44cu(ssGlobTm, &globTm._11);
-        g_entity_mgr->broadcastEventImmediate(RenderEventUI(viewTm, cameraSetup.transform, ssGlobTm, persp));
+        g_entity_mgr->broadcastEventImmediate(
+          RenderEventUI(viewTm, cameraSetup.transform, ssGlobTm, persp, StdGuiRender::get_stdgui_context()));
       }
 
       auto renderXray = [&]() {
@@ -593,6 +594,7 @@ void draw_scene(uint32_t frame_id)
   if (DAGOR_UNLIKELY(sceneload::is_scene_switch_in_progress() || d3d::device_lost(nullptr)))
   {
     uirender::skip_ui_render_job();
+    bvh_wait_ri_jobs(); // before render started them, and they must not run into the next act
     g_entity_mgr->setConstrainedMTMode(false);
     return;
   }
@@ -684,10 +686,10 @@ void draw_scene(uint32_t frame_id)
     }
   }
 
+  start_async_game_tasks(frame_id); // Start the rest of tasks in case it wasnt started before
+
   // Preset is soon, this makes driver thread sleep less
   d3d::driver_command(Drv3dCommand::ENABLE_WORKER_LOW_LATENCY_MODE, (void *)(uintptr_t)1); //-V566
-
-  start_async_game_tasks(frame_id); // Start the rest of tasks in case it wasnt started before
 
   // On Xbox this sets the SDR render target for GUI render
   Texture *guiPrimaryRt;

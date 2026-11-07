@@ -9,6 +9,7 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <generic/dag_staticTab.h>
+#include <osApiWrappers/dag_wndProcComponent.h>
 #include <perfMon/dag_statDrv.h>
 
 
@@ -66,7 +67,7 @@ static bool is_report_valid(const Reflex::Stats &report)
   return true;
 }
 
-class StreamlineGpuLatency : public GpuLatency
+class StreamlineGpuLatency : public GpuLatency, public IWndProcComponent
 {
 public:
   StreamlineGpuLatency()
@@ -78,13 +79,21 @@ public:
         reflex = sl->createReflexFeature();
 
       if (reflex)
+      {
         if (auto state = reflex->getState(); state.has_value() && state->lowLatencyAvailable)
           modes = {Mode::Off, Mode::On, Mode::OnPlusBoost};
+
+        // the pump also calls the components with message 0, so 0 must never match
+        pingMessage = reflex->getPingMessage();
+        if (pingMessage)
+          add_wnd_proc_component(this);
+      }
     }
   }
 
   ~StreamlineGpuLatency()
   {
+    del_wnd_proc_component(this);
     if (reflex)
     {
       setOptions(Mode::Off, 0);
@@ -112,6 +121,9 @@ public:
       return;
 
     if (is_device_lost_suppressed())
+      return;
+
+    if (marker_type == lowlatency::LatencyMarkerType::PC_LATENCY_PING && !pingPending.exchange(false, dag::mo::relaxed))
       return;
 
     CheckOnce<__LINE__>(reflex->setMarker(frame_id, marker_type), "Reflex: setMarker has failed with frame_id: %d, and marker: %d",
@@ -222,9 +234,18 @@ public:
 
   bool isVsyncAllowed() const override { return !reflex || reflex->getMode() == Mode::Off; }
 
+  RetCode process(void *, unsigned msg, uintptr_t, intptr_t, intptr_t &) override
+  {
+    if (msg == pingMessage)
+      pingPending.store(true, dag::mo::relaxed);
+    return PROCEED_OTHER_COMPONENTS;
+  }
+
 private:
   Reflex *reflex = nullptr;
   StaticTab<Mode, 3> modes = {Mode::Off};
+  uint32_t pingMessage = 0;
+  dag::AtomicInteger<bool> pingPending{false};
 };
 
 GpuLatency *create_gpu_latency_nvidia() { return new StreamlineGpuLatency(); }

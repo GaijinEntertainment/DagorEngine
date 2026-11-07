@@ -25,6 +25,7 @@
 #include <libTools/util/appDirRelativePath.h>
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_critSec.h>
 #include <gui/dag_visualLog.h>
 #include <EASTL/hash_map.h>
 #include "assetManager.h"
@@ -106,7 +107,7 @@ public:
     for (auto asset : removed_assets)
     {
       visuallog::logmsg(String(0, " %s asset <%d> removed", asset->getName(), asset->getTypeStr()));
-      g_entity_mgr->broadcastEvent(AssetRemovedEvent(asset));
+      g_entity_mgr->broadcastEventImmediate(AssetRemovedEvent(asset)); // manager deletes removed assets after return
     }
   }
 };
@@ -116,10 +117,15 @@ static AssetManagerWatcher assetWatcher;
 // else we will break ecs manager state, because every ecs query should be finished before manager.tick
 static const DagorAssetMgr *cachedAssetManager = nullptr; // it's boxed type, so can be saved in pointer
 static dag::Vector<int> cachedExportableTypes;
+static WinCritSec cachedAssetManagerMutex;
 
 const DagorAssetMgr *get_asset_manager() { return cachedAssetManager; }
 
-dag::ConstSpan<int> get_exportable_types() { return make_span_const(cachedExportableTypes); }
+bool find_exportable_asset(const char *name)
+{
+  WinAutoLock lock(cachedAssetManagerMutex);
+  return cachedAssetManager && cachedAssetManager->findAsset(name, make_span_const(cachedExportableTypes));
+}
 
 extern "C" IDaBuildInterface *__stdcall get_dabuild_interface();
 
@@ -219,6 +225,7 @@ static void init_asset_manager_es(const ecs::Event &, DagorAssetMgr &asset__mana
         asset__rendInstType = i;
     }
   }
+  WinAutoLock lock(cachedAssetManagerMutex);
   cachedAssetManager = &asset__manager;
 }
 
@@ -231,7 +238,15 @@ static void asset_manager_track_changes_es(const ecs::UpdateStageInfoAct &, Dago
 
 ECS_REQUIRE(DagorAssetMgr asset__manager)
 ECS_ON_EVENT(on_disappear)
-static void destoy_asset_manager_es(const ecs::Event &) { dabuildcache::term(); }
+static void destoy_asset_manager_es(const ecs::Event &)
+{
+  {
+    WinAutoLock lock(cachedAssetManagerMutex);
+    cachedAssetManager = nullptr;
+    cachedExportableTypes.clear();
+  }
+  dabuildcache::term();
+}
 
 
 void get_asset_dependencies(DagorAsset &asset, Tab<IDagorAssetRefProvider::Ref> &refs)
@@ -351,7 +366,7 @@ static bool is_asset_depends_on(const DagorAsset &dependent_asset, DagorAsset &m
   for (const auto &ref : refs)
   {
     if (auto asset = ref.getAsset())
-      if (asset->getNameId() == dependent_asset.getNameId())
+      if (asset->getNameId() == dependent_asset.getNameId() && asset->getType() == dependent_asset.getType())
       {
         return true;
       }
@@ -404,6 +419,14 @@ void reload_animchar_resources(ecs::EntityId eid, bool update_base_component, bo
       if (animchar_node_wtm && animchar_node_wtm->nwtm.size() != animCharSource->getNodeTree().nodeCount())
         animchar_node_wtm->onLoaded(*g_entity_mgr, eid);
 
+      // TODO?: We leave it to the programmer to subscribe to this event in an ES where any animchar
+      // value is cached. Ideally we should not. Maybe we could call all on_appear ESes on reload of
+      // affected entities? This would probably fix a lot of stale cached node indicies and anim
+      // state params.
+      g_entity_mgr->sendEventImmediate(eid, EventAnimcharReloaded());
+
+      // FIXME: These are quite game specific and this system should not know anything about these.
+      // Move them to separate ESes on EventAnimcharReloaded near related code.
       if (animchar__animStateDirty)
         *animchar__animStateDirty = true;
       g_entity_mgr->sendEventImmediate(eid, InvalidateEffectorData());

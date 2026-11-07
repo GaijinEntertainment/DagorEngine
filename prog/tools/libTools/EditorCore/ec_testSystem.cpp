@@ -19,17 +19,16 @@
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <bindQuirrelEx/sqModulesDagor.h>
 #include <squirrel/sqvm.h>
+#include <sqasync.h>
 
 #include <memory/dag_framemem.h>
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_localConv.h>
-#include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_clipboard.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <workCycle/dag_workCycle.h>
 #include <util/dag_strUtil.h>
-#include <util/dag_delayedAction.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
 
@@ -63,12 +62,14 @@ TestCallback::TestCallback(TestFunc test_func) : testFunc(test_func) {}
 
 TestCallback::~TestCallback() {}
 
-void TestCallback::run(TestRuntime &rt) { testFunc(rt); }
+void TestCallback::start(TestRuntime &) {}
+
+bool TestCallback::update(TestRuntime &rt) { return testFunc(rt); }
 
 //==================================================================================================
 
 TestCase::TestCase(const char *name, eastl::shared_ptr<TestCallback> tc, const char *filepath, int line_number) :
-  testName(name), testCallback(tc), state((int)TestState::IDLE), filePath(filepath ? filepath : ""), line(line_number)
+  testName(name), testCallback(tc), state(TestState::IDLE), filePath(filepath ? filepath : ""), line(line_number)
 {
   if (filePath.empty() || line < 1)
   {
@@ -79,46 +80,33 @@ TestCase::TestCase(const char *name, eastl::shared_ptr<TestCallback> tc, const c
 
 void TestCase::resetState()
 {
-  {
-    WinAutoLock lock(reasonMutex);
-    reasonText.clear();
-  }
-
-  interlocked_release_store(state, (int)TestState::IDLE);
+  reasonText.clear();
+  state = TestState::IDLE;
 }
 
 void TestCase::markFailed(const char *reason)
 {
-  if (reason && *reason)
-  {
-    WinAutoLock lock(reasonMutex);
-    if (reasonText.empty())
-      reasonText = reason;
-  }
+  if (reason && *reason && reasonText.empty())
+    reasonText = reason;
 
   markFailed();
 }
 
-String TestCase::getFailReason() const
+void TestCase::start(TestRuntime &rt)
 {
-  WinAutoLock lock(reasonMutex);
-  return reasonText;
+  reasonText.clear();
+  state = TestState::RUNNING;
+  testCallback->start(rt);
 }
 
-void TestCase::run(TestRuntime &rt)
+bool TestCase::update(TestRuntime &rt)
 {
-  {
-    WinAutoLock lock(reasonMutex);
-    reasonText.clear();
-  }
+  if (!testCallback->update(rt))
+    return false;
 
-  interlocked_release_store(state, (int)TestState::RUNNING);
-
-  testCallback->run(rt);
-
-  // One atomic step, because frameEnd() can fail a test that did not yield in time between a read and a store here,
-  // and PASSED would then replace FAILED.
-  interlocked_compare_exchange(state, (int)TestState::PASSED, (int)TestState::RUNNING);
+  if (state == TestState::RUNNING)
+    state = TestState::PASSED;
+  return true;
 }
 
 /*static*/
@@ -155,6 +143,11 @@ static void addMousePosEvent(real x, real y)
   ImGuiIO &io = ImGui::GetIO();
   io.SetAppAcceptingEvents(true);
   io.AddMousePosEvent(x, y);
+
+  // ImGui drops the OS backend's mouse viewport while a test runs, so set the test mouse viewport with this event.
+  const ImGuiViewportP *viewport = ImGui::FindHoveredViewportFromPlatformWindowStack(ImVec2(x, y));
+  io.AddMouseViewportEvent(viewport ? viewport->ID : 0);
+
   io.SetAppAcceptingEvents(false);
 }
 
@@ -186,138 +179,213 @@ static void addInputCharacter(unsigned int character)
 
 TestInput::TestInput(TestRuntime &runtime) : runtime(runtime) {}
 
-void TestInput::mouseButtonDown(int button)
+void TestInput::queueMouseButton(int button, bool down)
 {
-  addMouseButtonEvent(button, true);
-  runtime.yieldFrame();
+  runtime.queueInputStep([button, down]() {
+    addMouseButtonEvent(button, down);
+    return true;
+  });
+  runtime.queueWaitFrame();
 }
 
-void TestInput::mouseButtonUp(int button)
+void TestInput::queueMousePosition(Point2 at)
 {
-  addMouseButtonEvent(button, false);
-  runtime.yieldFrame();
+  runtime.queueInputStep([at]() {
+    addMousePosEvent(at);
+    return true;
+  });
+  runtime.queueWaitFrame();
 }
 
-void TestInput::mouseClick(int button)
+void TestInput::queueMouseLerp(Point2 from, Point2 to, float over_seconds)
 {
-  mouseButtonDown(button);
-  mouseButtonUp(button);
-}
-
-void TestInput::mouseClickModifier(int button, int modifier)
-{
-  keyDown(modifier);
-  mouseClick(button);
-  keyUp(modifier);
-}
-
-void TestInput::mousePosition(Point2 at)
-{
-  addMousePosEvent(at);
-  runtime.yieldFrame();
-}
-
-void TestInput::mouseMove(Point2 from, Point2 to, float over_seconds)
-{
-  mousePosition(from);
-  float elapsed = 0.0f;
-  while (elapsed < over_seconds)
-  {
-    const float t = elapsed / over_seconds;
-    addMousePosEvent(::lerp(from, to, t));
+  runtime.queueInputStep([this, from, to, over_seconds, elapsed = 0.0f]() mutable {
+    if (elapsed >= over_seconds)
+      return true;
+    addMousePosEvent(::lerp(from, to, elapsed / over_seconds));
     elapsed += runtime.lastFrameDelta();
-    runtime.yieldFrame();
-  }
-  // guarantee exact final position
-  mousePosition(to);
+    return false;
+  });
 }
 
-void TestInput::keyDown(int key)
+void TestInput::queueKey(int key, bool down)
 {
-  addKeyEvent(key, true);
-  runtime.yieldFrame();
+  runtime.queueInputStep([key, down]() {
+    addKeyEvent(key, down);
+    return true;
+  });
+  runtime.queueWaitFrame();
 }
 
-void TestInput::keyUp(int key)
+void TestInput::queueKeyWithModifier(int key, int modifier, bool down)
 {
-  addKeyEvent(key, false);
-  runtime.yieldFrame();
+  runtime.queueInputStep([key, modifier, down]() {
+    addKeyWithModifierEvent(key, modifier, down);
+    return true;
+  });
 }
 
-void TestInput::keyPress(int key)
+Sqrat::Object TestInput::mouseButtonDown(int button)
 {
-  keyDown(key);
-  keyUp(key);
+  return runtime.inputAction([&] {
+    queueMouseButton(button, true);
+    return true;
+  });
 }
 
-void TestInput::keyPressModifier(int key, int modifier)
+Sqrat::Object TestInput::mouseButtonUp(int button)
 {
-  addKeyWithModifierEvent(key, modifier, true);
-  runtime.yieldFrame();
-  addKeyWithModifierEvent(key, modifier, false);
-  runtime.yieldFrame();
+  return runtime.inputAction([&] {
+    queueMouseButton(button, false);
+    return true;
+  });
 }
 
-void TestInput::keyHeld(int key, float over_seconds)
+Sqrat::Object TestInput::mouseClick(int button)
 {
-  addKeyEvent(key, true);
-  runtime.yieldTime(over_seconds);
-  addKeyEvent(key, false);
-  runtime.yieldFrame();
+  return runtime.inputAction([&] {
+    queueMouseButton(button, true);
+    queueMouseButton(button, false);
+    return true;
+  });
 }
 
-void TestInput::keyHeldModifier(int key, int modifier, float over_seconds)
+Sqrat::Object TestInput::mouseClickModifier(int button, int modifier)
 {
-  addKeyWithModifierEvent(key, modifier, true);
-  runtime.yieldTime(over_seconds);
-  addKeyWithModifierEvent(key, modifier, false);
-  runtime.yieldFrame();
+  return runtime.inputAction([&] {
+    queueKey(modifier, true);
+    queueMouseButton(button, true);
+    queueMouseButton(button, false);
+    queueKey(modifier, false);
+    return true;
+  });
 }
 
-void TestInput::characterInput(const char *text, float between_seconds)
+Sqrat::Object TestInput::mousePosition(Point2 at)
 {
-  const char *textEnd = text + strlen(text);
-  while (*text != 0)
-  {
-    unsigned int c = 0;
-    text += ImTextCharFromUtf8(&c, text, textEnd);
-    addInputCharacter(c);
-    if (between_seconds > 0.0f)
-      runtime.yieldTime(between_seconds);
-    else
-      runtime.yieldFrame();
-  }
+  return runtime.inputAction([&] {
+    queueMousePosition(at);
+    return true;
+  });
 }
 
-void TestInput::mouseDrag(int button, Point2 from, Point2 to, float over_seconds)
+Sqrat::Object TestInput::mouseMove(Point2 from, Point2 to, float over_seconds)
 {
-  mousePosition(from);
-  mouseButtonDown(button);
+  return runtime.inputAction([&] {
+    queueMousePosition(from);
+    queueMouseLerp(from, to, over_seconds);
+    // guarantee exact final position
+    queueMousePosition(to);
+    return true;
+  });
+}
 
-  float elapsed = 0.0f;
-  while (elapsed < over_seconds)
-  {
-    const float t = elapsed / over_seconds;
-    addMousePosEvent(::lerp(from, to, t));
-    elapsed += runtime.lastFrameDelta();
-    runtime.yieldFrame();
-  }
+Sqrat::Object TestInput::keyDown(int key)
+{
+  return runtime.inputAction([&] {
+    queueKey(key, true);
+    return true;
+  });
+}
 
-  mousePosition(to);
-  mouseButtonUp(button);
+Sqrat::Object TestInput::keyUp(int key)
+{
+  return runtime.inputAction([&] {
+    queueKey(key, false);
+    return true;
+  });
+}
+
+Sqrat::Object TestInput::keyPress(int key)
+{
+  return runtime.inputAction([&] {
+    queueKey(key, true);
+    queueKey(key, false);
+    return true;
+  });
+}
+
+Sqrat::Object TestInput::keyPressModifier(int key, int modifier)
+{
+  return runtime.inputAction([&] {
+    queueKeyWithModifier(key, modifier, true);
+    runtime.queueWaitFrame();
+    queueKeyWithModifier(key, modifier, false);
+    runtime.queueWaitFrame();
+    return true;
+  });
+}
+
+Sqrat::Object TestInput::keyHeld(int key, float over_seconds)
+{
+  return runtime.inputAction([&] {
+    runtime.queueInputStep([key]() {
+      addKeyEvent(key, true);
+      return true;
+    });
+    runtime.queueWaitTime(over_seconds);
+    queueKey(key, false);
+    return true;
+  });
+}
+
+Sqrat::Object TestInput::keyHeldModifier(int key, int modifier, float over_seconds)
+{
+  return runtime.inputAction([&] {
+    queueKeyWithModifier(key, modifier, true);
+    runtime.queueWaitTime(over_seconds);
+    queueKeyWithModifier(key, modifier, false);
+    runtime.queueWaitFrame();
+    return true;
+  });
+}
+
+Sqrat::Object TestInput::characterInput(const char *text, float between_seconds)
+{
+  return runtime.inputAction([&] {
+    const char *textEnd = text + strlen(text);
+    while (*text != 0)
+    {
+      unsigned int c = 0;
+      text += ImTextCharFromUtf8(&c, text, textEnd);
+      runtime.queueInputStep([c]() {
+        addInputCharacter(c);
+        return true;
+      });
+      if (between_seconds > 0.0f)
+        runtime.queueWaitTime(between_seconds);
+      else
+        runtime.queueWaitFrame();
+    }
+    return true;
+  });
+}
+
+Sqrat::Object TestInput::mouseDrag(int button, Point2 from, Point2 to, float over_seconds)
+{
+  return runtime.inputAction([&] {
+    queueMousePosition(from);
+    queueMouseButton(button, true);
+    queueMouseLerp(from, to, over_seconds);
+    queueMousePosition(to);
+    queueMouseButton(button, false);
+    return true;
+  });
 }
 
 //==================================================================================================
 
-bool TestInput::mouseMoveItem(const char *path, float over_seconds, const char *filepath, int line)
+bool TestInput::queueMouseMoveItem(const char *path, float over_seconds, const char *filepath, int line)
 {
   ImGuiID id, parentId;
   ImRect bb;
   if (imgui_test_runtime_query_item(path, id, bb, parentId))
   {
-    ImVec2 p = ImGui::GetIO().MousePos;
-    ImVec2 c = bb.GetCenter();
-    mouseMove(p, c, over_seconds);
+    const Point2 from(ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
+    const Point2 to(bb.GetCenter().x, bb.GetCenter().y);
+    queueMousePosition(from);
+    queueMouseLerp(from, to, over_seconds);
+    queueMousePosition(to);
     return true;
   }
   else if (runtime.failOnInvalidInputQuery)
@@ -328,14 +396,22 @@ bool TestInput::mouseMoveItem(const char *path, float over_seconds, const char *
   return false;
 }
 
-bool TestInput::mouseClickItem(const char *path, int button, const char *filepath, int line)
+Sqrat::Object TestInput::mouseMoveItem(const char *path, float over_seconds, const char *filepath, int line)
 {
-  if (mouseMoveItem(path, 1.0f, filepath, line))
-  {
-    mouseClick(button);
-    return true;
-  }
-  return false;
+  return runtime.inputAction([&] { return queueMouseMoveItem(path, over_seconds, filepath, line); });
+}
+
+Sqrat::Object TestInput::mouseClickItem(const char *path, int button, const char *filepath, int line)
+{
+  return runtime.inputAction([&] {
+    const bool found = queueMouseMoveItem(path, 1.0f, filepath, line);
+    if (found)
+    {
+      queueMouseButton(button, true);
+      queueMouseButton(button, false);
+    }
+    return found;
+  });
 }
 
 //==================================================================================================
@@ -353,8 +429,8 @@ static SQInteger test_input_mouse_move_item(HSQUIRRELVM vm)
   int line;
   get_sq_native_call_site(vm, filepath, line);
 
-  bool result = self.value->mouseMoveItem(path.value, overSeconds, filepath, line);
-  Sqrat::Var<bool>::push(vm, result);
+  Sqrat::Object result = self.value->mouseMoveItem(path.value, overSeconds, filepath, line);
+  sq_pushobject(vm, result.GetObject());
   return 1;
 }
 
@@ -371,8 +447,8 @@ static SQInteger test_input_mouse_click_item(HSQUIRRELVM vm)
   int line;
   get_sq_native_call_site(vm, filepath, line);
 
-  bool result = self.value->mouseClickItem(path.value, button, filepath, line);
-  Sqrat::Var<bool>::push(vm, result);
+  Sqrat::Object result = self.value->mouseClickItem(path.value, button, filepath, line);
+  sq_pushobject(vm, result.GetObject());
   return 1;
 }
 
@@ -749,6 +825,7 @@ void TestScriptModule::init()
   HSQUIRRELVM vm = sq_open(1280);
   sqstd_seterrorhandlers(vm);
   sq_setprintfunc(vm, script_print_func, script_err_print_func);
+  G_VERIFY(SQ_SUCCEEDED(sqasync::bind(vm)));
 
   moduleMgr = new SqModules(vm, &sq_modules_dagor_file_access);
   moduleMgr->registerMathLib();
@@ -757,6 +834,7 @@ void TestScriptModule::init()
   moduleMgr->registerIoLib();
   moduleMgr->registerSystemLib();
   moduleMgr->registerDateTimeLib();
+  moduleMgr->registerAsyncLib();
 
   bindquirrel::register_reg_exp(moduleMgr);
   bindquirrel::register_utf8(moduleMgr);
@@ -805,6 +883,8 @@ void TestScriptModule::init()
   moduleMgr->addNativeModule("test_runtime", exports);
 }
 
+HSQUIRRELVM TestScriptModule::getVM() const { return moduleMgr->getVM(); }
+
 TestScriptModule::~TestScriptModule()
 {
   HSQUIRRELVM vm = moduleMgr->getVM();
@@ -849,44 +929,62 @@ bool TestScriptModule::reloadScript()
 
 //==================================================================================================
 
-TestRuntime::TestRuntime()
+static eastl::function<void(bool)> g_completion_cb;
+
+static void report_run_completed(bool any_failed)
 {
-  os_event_create(&testThreadCanRun);
-  os_event_create(&mainThreadCanRun);
+  if (auto cb = eastl::move(g_completion_cb))
+    cb(any_failed);
 }
 
-TestRuntime::~TestRuntime()
-{
-  stop();
-  os_event_destroy(&testThreadCanRun);
-  os_event_destroy(&mainThreadCanRun);
-}
+TestRuntime::~TestRuntime() { stop(); }
 
 void TestRuntime::start()
 {
-  if (interlocked_exchange(running, true))
+  if (running)
     return;
 
-  testThreadState = TestThreadState::Idle;
-  thread.start();
+  G_ASSERT(runState == RunState::Idle);
+  running = true;
 }
 
 void TestRuntime::stop()
 {
-  if (!interlocked_exchange(running, false))
+  if (!running)
     return;
 
-  os_event_set(&testThreadCanRun);
-  thread.terminate(true);
+  running = false;
 
+  if (runningTest && runState == RunState::Running)
+    markFailed(nullptr, 0, "the test runtime stopped");
+
+  // tick() reports only a run that ends, thus report a stopped run here, as failed if not all of its tests ran. When the
+  // last test is finishing, all of them ran, but tick() has not reported the run yet.
+  const bool reportRun = g_completion_cb && testsRunning();
+  const bool anyFailed = runState != RunState::Finishing || !testQueue.empty() || anyTestFailed();
+
+  // A stopped test must not continue, thus drop the steps. The steps hold the Futures that the script awaits, thus the
+  // script task of the test never resumes. Each stop during a test leaks that task until the tool exits. Replace this if
+  // a test task holds more than script memory, such as a file or a level, that must be released before the tool exits.
+  inputSteps.clear();
   debugOptions.drawFakeMousePointer = false;
+  if (runState == RunState::Running || runState == RunState::Finishing)
+    inputClearPending = true;
 
-  WinAutoLock lock(queueMutex);
+  runState = RunState::Idle;
   testQueue.clear();
+  totalEnqueued = 0;
+  runningTest = nullptr;
 
-  interlocked_release_store(anyTestRunning, false);
-  interlocked_release_store(totalEnqueued, 0);
-  interlocked_release_store_ptr(runningTest, (TestCase *)nullptr);
+  if (hidingWindow)
+  {
+    editor_core_test_runtime_set_window(true);
+    hidingWindow = false;
+  }
+
+  // The callback could start a new test run, thus call it only after the cleanup.
+  if (reportRun)
+    report_run_completed(anyFailed);
 }
 
 //==================================================================================================
@@ -931,10 +1029,8 @@ bool TestRuntime::enqueue(const char *name)
     eastl::find_if(registry.begin(), registry.end(), [&](const eastl::unique_ptr<TestCase> &tc) { return tc->name() == name; });
   if (it != registry.end())
   {
-    WinAutoLock lock(queueMutex);
     testQueue.push_back(it->get());
-    interlocked_release_store(anyTestRunning, true);
-    interlocked_increment(totalEnqueued);
+    ++totalEnqueued;
     return true;
   }
   G_ASSERT_FAIL("TestRuntime::enqueue: name not found in registry!");
@@ -943,7 +1039,6 @@ bool TestRuntime::enqueue(const char *name)
 
 int TestRuntime::enqueueAll(TestFilter state, const char *name)
 {
-  WinAutoLock lock(queueMutex);
   int count = 0;
   eastl::string_view nameFilter(name);
   for (const auto &tc : registry)
@@ -962,32 +1057,24 @@ int TestRuntime::enqueueAll(TestFilter state, const char *name)
 
     count++;
   }
-  if (count > 0)
-  {
-    interlocked_release_store(anyTestRunning, true);
-    interlocked_add(totalEnqueued, count);
-  }
+  totalEnqueued += count;
   return count;
 }
 
 void TestRuntime::clearQueue()
 {
-  WinAutoLock lock(queueMutex);
   testQueue.clear();
-  // No test will start after this; if nothing is running right now, mark done immediately.
-  if (!currentlyRunningTest())
-  {
-    interlocked_release_store(anyTestRunning, false);
-    interlocked_release_store(totalEnqueued, 0);
-  }
-  else
-    interlocked_release_store(totalEnqueued, 1); // only the currently running test remains
+  totalEnqueued = runningTest ? 1 : 0;
 }
 
-int TestRuntime::getRemainingCount()
+int TestRuntime::getRemainingCount() const { return (int)testQueue.size() + (runningTest ? 1 : 0); }
+
+bool TestRuntime::anyTestFailed() const
 {
-  WinAutoLock lock(queueMutex);
-  return (int)testQueue.size() + (currentlyRunningTest() ? 1 : 0);
+  for (const auto &tc : registry)
+    if (tc->lastState() == TestState::FAILED)
+      return true;
+  return false;
 }
 
 Tab<TestRuntime::TestInfo> TestRuntime::testInfos() const
@@ -1003,10 +1090,8 @@ Tab<TestRuntime::TestInfo> TestRuntime::testInfos() const
 
 void TestRuntime::frameBegin(float dt)
 {
-  WinAutoLock lock(frameMutex);
-
   // ImGui::NewFrame() read the event queue and no UI is submitted yet, thus this frame's widgets see the released keys.
-  if (interlocked_acquire_load(inputClearPending))
+  if (inputClearPending)
   {
     ImGuiIO &io = ImGui::GetIO();
     ImGuiContext &g = *ImGui::GetCurrentContext();
@@ -1046,8 +1131,7 @@ void TestRuntime::frameBegin(float dt)
     // Prevent the user input reaching a widget that the test focused.
     ImGui::ClearActiveID();
 
-    // Drop what the test thread pushed after the last ImGui::NewFrame() read the queue. Those events could press the keys
-    // again.
+    // Drop what the test pushed after the last ImGui::NewFrame() read the queue. Those events could press the keys again.
     io.ClearEventsQueue();
 
     // Test input has been cleared, so accept user input again from here, the earliest point.
@@ -1058,112 +1142,127 @@ void TestRuntime::frameBegin(float dt)
     g.NavHighlightItemUnderNav = false;
 
     inputClearFrame = frameCount;
-    interlocked_release_store(inputClearPending, false);
+    inputClearPending = false;
   }
 
   frameDeltaSeconds = dt;
-  frameInProgress = true;
 }
 
 void TestRuntime::frameEnd()
 {
-  static constexpr int TIMEOUT_MSEC = 5000;
-
-  WinAutoLock lock(frameMutex);
-  frameInProgress = false;
   ++frameCount;
 
-  if (testThreadState != TestThreadState::WaitingToRun || !running)
+  // A test step can run a nested work cycle, a C++ test can start a level export for example. The nested frames must
+  // not run the test again, and sqasync::pump() is not reentrant.
+  if (!running || ticking)
     return;
 
-  testThreadState = TestThreadState::Running;
-  os_event_set(&testThreadCanRun);
+  ticking = true;
+  tick();
+  ticking = false;
+}
 
-  const int deadline = get_time_msec() + TIMEOUT_MSEC;
-  while (testThreadState == TestThreadState::Running)
-  {
-    const int remaining = deadline - get_time_msec();
-    if (remaining <= 0)
+void TestRuntime::queueInputStep(eastl::function<bool()> step) { inputSteps.push_back(eastl::move(step)); }
+
+void TestRuntime::queueWaitFrame()
+{
+  queueInputStep([waited = false]() mutable {
+    if (waited)
+      return true;
+    waited = true;
+    return false;
+  });
+}
+
+void TestRuntime::queueWaitTime(float seconds)
+{
+  queueInputStep([seconds, endTime = 0, started = false]() mutable {
+    if (!started)
     {
-      mainThreadWaitTimedOut = true;
-      const String reason(0, "did not yield in %d ms", TIMEOUT_MSEC);
-      markFailed(nullptr, 0, reason.c_str());
+      endTime = get_time_msec() + (int)(seconds * 1000.0f);
+      started = true;
+    }
+    return get_time_msec() >= endTime;
+  });
+}
+
+Sqrat::Object TestRuntime::inputAction(dag::FunctionRef<bool() const> queue_steps)
+{
+  // Only a script runs inside the pump. A C++ test can queue more calls in one update().
+  if (pumping && !inputSteps.empty())
+  {
+    const char *filepath;
+    int line;
+    get_sq_native_call_site(scriptModule.getVM(), filepath, line);
+    markFailed(filepath, line, "an input call started before the previous one finished, an await is missing");
+  }
+
+  const bool result = queue_steps();
+
+  HSQUIRRELVM vm = scriptModule.getVM();
+  HSQOBJECT handle;
+  if (SQ_FAILED(sqasync::future_create(vm, &handle)))
+    return Sqrat::Object();
+
+  Sqrat::Object future(handle, vm);
+  sq_release(vm, &handle);
+
+  queueInputStep([future, result]() {
+    HSQUIRRELVM vm = future.GetVM();
+    sq_pushbool(vm, result);
+    HSQOBJECT value;
+    sq_getstackobj(vm, -1, &value);
+    sqasync::future_resolve(vm, future.GetObject(), value);
+    sq_pop(vm, 1);
+    return true;
+  });
+  return future;
+}
+
+Sqrat::Object TestRuntime::yieldFrame()
+{
+  return inputAction([&] {
+    queueWaitFrame();
+    return true;
+  });
+}
+
+Sqrat::Object TestRuntime::yieldTime(float seconds)
+{
+  return inputAction([&] {
+    queueWaitTime(seconds);
+    return true;
+  });
+}
+
+// Returns true if a step finished.
+bool TestRuntime::runInputSteps()
+{
+  // frameEnd() can call this more than once. A step that waits runs once per frame.
+  if (inputStepWaitFrame == frameCount)
+    return false;
+
+  bool anyFinished = false;
+  while (!inputSteps.empty())
+  {
+    if (!inputSteps[0]())
+    {
+      inputStepWaitFrame = frameCount;
       break;
     }
-
-    lock.unlock();
-    os_event_wait(&mainThreadCanRun, remaining);
-    lock.lock();
+    inputSteps.erase(inputSteps.begin());
+    anyFinished = true;
   }
+  return anyFinished;
 }
 
-//==================================================================================================
-
-static void threadWait(WinAutoLock &lock, int time_msec)
+// Returns true if a script task or a callback ran.
+bool TestRuntime::pumpScripts()
 {
-  lock.unlock();
-  sleep_msec(time_msec);
-  lock.lock();
-}
-
-void TestRuntime::waitNextFrame(WinAutoLock &frame_lock)
-{
-  if (mainThreadWaitTimedOut)
-  {
-    threadWait(frame_lock, 1);
-    return;
-  }
-
-  testThreadState = TestThreadState::WaitingToRun;
-  os_event_set(&mainThreadCanRun);
-  while (testThreadState == TestThreadState::WaitingToRun && running)
-  {
-    frame_lock.unlock();
-    os_event_wait(&testThreadCanRun, OS_WAIT_INFINITE);
-    frame_lock.lock();
-  }
-}
-
-void TestRuntime::yieldFrame()
-{
-  G_ASSERT(!is_main_thread());
-
-  WinAutoLock lock(frameMutex);
-  const int target = frameCount + 1;
-  while ((frameInProgress || frameCount < target) && running)
-    waitNextFrame(lock);
-}
-
-void TestRuntime::yieldTime(float seconds)
-{
-  G_ASSERT(!is_main_thread());
-
-  int targetTime = get_time_msec() + (seconds * 1000.0f);
-
-  WinAutoLock lock(frameMutex);
-  while ((get_time_msec() < targetTime) && running)
-    waitNextFrame(lock);
-
-  while (frameInProgress && running)
-    waitNextFrame(lock);
-}
-
-void TestRuntime::waitInputClear()
-{
-  G_ASSERT(!is_main_thread());
-
-  WinAutoLock lock(frameMutex);
-
-  // The request can arrive after this frame's frameBegin(), thus wait until a frameBegin() releases the input.
-  while (interlocked_acquire_load(inputClearPending) && running)
-    waitNextFrame(lock);
-
-  // Then wait for the clear frame and the one after it. ImGui gives key ownership back only on the frame after the key
-  // is not down, otherwise a test that started earlier would lose its first click. Wait for one frame at least, because
-  // a test that starts can run only after frameEnd() wakes it.
-  const int target = max(inputClearFrame + 2, frameCount + 1);
-  while ((frameInProgress || frameCount < target) && running)
-    waitNextFrame(lock);
+  pumping = true;
+  const SQInteger count = sqasync::pump(scriptModule.getVM());
+  pumping = false;
+  return count > 0;
 }
 
 void TestRuntime::markFailed(const char *filepath, int line, const char *reason)
@@ -1199,21 +1298,92 @@ void TestRuntime::markFailed(const char *filepath, int line, const char *reason)
 
 //==================================================================================================
 
+static bool is_future(const Sqrat::Object &obj)
+{
+  if (obj.GetType() != OT_INSTANCE)
+    return false;
+
+  HSQUIRRELVM vm = obj.GetVM();
+  const SQInteger top = sq_gettop(vm);
+  bool result = false;
+  if (SQ_SUCCEEDED(sqasync::future_push_class(vm)))
+  {
+    sq_pushobject(vm, obj.GetObject());
+    result = sq_instanceof(vm) == SQTrue;
+  }
+  sq_settop(vm, top);
+  return result;
+}
+
 // Keeps a Sqrat::Function alive (referenced in HSQUIRRELVM) while the owning TestCase is alive
 class SQTestCallback : public TestCallback
 {
 public:
-  SQTestCallback(Sqrat::Function &fn) : TestCallback([](TestRuntime &rt) {}), function(fn) {}
+  SQTestCallback(Sqrat::Function &fn) : TestCallback(nullptr), function(fn) {}
 
-  void run(TestRuntime &rt) override
+  void start(TestRuntime &rt) override
   {
-    // Execute only logs a script error and returns false.
-    if (!function.Execute(&rt))
+    // Eval only logs a script error.
+    Sqrat::optional<Sqrat::Object> value = function.Eval<Sqrat::Object>(&rt);
+    if (!value)
+    {
+      result.Release();
       rt.markFailed(nullptr, 0, "script error, see the debug log");
+      return;
+    }
+    result = eastl::move(*value);
+
+    // The queued input runs only after the body returned, so the body's checks do not see it.
+    if (!is_future(result))
+    {
+      if (rt.hasQueuedInput())
+        rt.markFailed(nullptr, 0, "The test queued input but is not async, so it cannot await the input.");
+    }
+    else if (getTaskState() != "pending")
+    {
+      // A plain function (not async) can return a settled Future. Finish it here, before its queued input runs.
+      finishTask(rt);
+    }
   }
 
+  bool update(TestRuntime &rt) override
+  {
+    // A test function that is not async is done when it returns.
+    if (!is_future(result))
+      return true;
+
+    if (getTaskState() == "pending")
+      return false;
+
+    finishTask(rt);
+    return true;
+  }
+
+  bool canUpdateWithQueuedInput() const override { return true; }
+
 private:
+  Sqrat::string getTaskState() { return Sqrat::Function(result, "getState").Eval<Sqrat::string>().value_or(""); }
+
+  void finishTask(TestRuntime &rt)
+  {
+    if (getTaskState() == "faulted")
+    {
+      Sqrat::Function(result, "markHandled").Execute();
+      const Sqrat::string fault = Sqrat::Function(result, "getValue").Eval<Sqrat::string>().value_or("");
+      const String reason(0, "script error: %s", fault.c_str());
+      rt.markFailed(nullptr, 0, reason.c_str());
+    }
+    // If input is still queued, an input call has no await, and the checks after it read the UI state too early.
+    else if (rt.hasQueuedInput())
+    {
+      rt.markFailed(nullptr, 0, "The test ended before its queued input ran, an await is missing.");
+    }
+
+    result.Release();
+  }
+
   Sqrat::Function function;
+  Sqrat::Object result;
 };
 
 static SQInteger test_runtime_register_test(HSQUIRRELVM vm)
@@ -1350,111 +1520,121 @@ void TestRuntime::register_script_class(HSQUIRRELVM vm)
 
 //==================================================================================================
 
-// Safe without its own lock only while the write stays before enqueueAll().
-static eastl::function<void(bool)> g_completion_cb;
-
-void TestRuntime::threadLoop()
+// Returns true if the test is done.
+bool TestRuntime::callTest(TestCase &test, bool start)
 {
-  bool hidingWindow = false;
-  while (running)
+  try
   {
-    { // Let the main thread run freely while no test runs.
-      WinAutoLock frameLock(frameMutex);
-      testThreadState = TestThreadState::Idle;
-      mainThreadWaitTimedOut = false;
-      os_event_set(&mainThreadCanRun);
-    }
+    if (!start)
+      return test.update(*this);
+    test.start(*this);
+    return false;
+  }
+  catch (const DagorException &e)
+  {
+    const String reason(0, "C++ exception: %s", e.excDesc ? e.excDesc : "DagorException without description");
+    markFailed(nullptr, 0, reason.c_str());
+  }
+  catch (...)
+  {
+    markFailed(nullptr, 0, "C++ exception");
+  }
+  return true;
+}
 
-    WinAutoLock lock(queueMutex);
-    while (testQueue.empty() && running)
-      threadWait(lock, 100);
+void TestRuntime::finishRunningTest()
+{
+  // If a test step stopped the runtime, stop() has already ended the test.
+  if (!runningTest)
+    return;
 
-    if (!running)
-      break;
+  // A failed test drops its input on purpose. A C++ test that passed must not end before its queued input ran.
+  if (!inputSteps.empty() && runningTest->lastState() == TestState::PASSED)
+    markFailed(nullptr, 0, "The test ended before its queued input ran.");
+  inputSteps.clear();
 
-    TestCase *test = testQueue.front();
-    testQueue.erase(testQueue.begin());
-    interlocked_release_store_ptr(runningTest, test);
+  // Must be before clearing the pending input, because ImGui::ClearInputMouse() resets the mouse position.
+  debugOptions.drawFakeMousePointer = false;
 
-    lock.unlock();
+  // A test can end, or fail, while it holds a key or a mouse button, thus request a clear from frameBegin(). User
+  // input will be re-enabled there.
+  inputClearPending = true;
+  runState = RunState::Finishing;
+}
 
-    // Wait until the input a stopped test left held is released, so that this test does not lose its first input.
-    waitInputClear();
+void TestRuntime::tick()
+{
+  // A test whose steps never wait would otherwise run forever inside one frame. At the cap, the test continues on the
+  // next frame, so a test that needs more passes only takes longer.
+  static constexpr int MAX_PASSES_PER_FRAME = 100;
 
-    // waitInputClear() returns at once when the runtime stops, thus check again before the test starts.
-    if (!running)
-      break;
+  switch (runState)
+  {
+    case RunState::Idle:
+      if (testQueue.empty())
+        return;
+      // Wait until the input a stopped test left held is released, so that this test does not lose its first input.
+      if (inputReleasePending())
+        return;
+      runningTest = testQueue.front();
+      testQueue.erase(testQueue.begin());
 
-    if (debugWindow.hideDuringRun)
-    {
-      if (editor_core_test_runtime_window_is_visible())
+      if (debugWindow.hideDuringRun && editor_core_test_runtime_window_is_visible())
       {
         editor_core_test_runtime_set_window(false);
         hidingWindow = true;
       }
-    }
 
-    ImGui::GetIO().SetAppAcceptingEvents(false);
-    debugOptions.drawFakeMousePointer = debugWindow.drawFakeMousePointerDuringRun;
+      ImGui::GetIO().SetAppAcceptingEvents(false);
+      debugOptions.drawFakeMousePointer = debugWindow.drawFakeMousePointerDuringRun;
 
-    try
-    {
-      test->run(*this);
-    }
-    catch (const DagorException &e)
-    {
-      const String reason(0, "C++ exception: %s", e.excDesc ? e.excDesc : "DagorException without description");
-      markFailed(nullptr, 0, reason.c_str());
-    }
-    catch (...)
-    {
-      markFailed(nullptr, 0, "C++ exception");
-    }
-
-    // Must be before clearing the pending input, because ImGui::ClearInputMouse() resets the mouse position.
-    debugOptions.drawFakeMousePointer = false;
-
-    // A test can end, or fail, while it holds a key or a mouse button, thus request a clear from frameBegin(). User
-    // input will be re-enabled there.
-    interlocked_release_store(inputClearPending, true);
-    waitInputClear();
-
-    interlocked_release_store_ptr(runningTest, (TestCase *)nullptr);
-
-    {
-      WinAutoLock doneCheck(queueMutex);
-      if (testQueue.empty())
+      runState = RunState::Running;
+      if (callTest(*runningTest, true)) //-V595 Not null here, but the test step can stop the runtime.
       {
-        interlocked_release_store(anyTestRunning, false);
-        interlocked_release_store(totalEnqueued, 0);
-        if (g_completion_cb)
-          run_action_on_main_thread([this]() {
-            auto cb = eastl::move(g_completion_cb);
-            if (!cb)
-              return;
-            bool anyFailed = false;
-            for (const auto &info : testInfos())
-              if (info.state == TestState::FAILED)
-              {
-                anyFailed = true;
-                break;
-              }
-            cb(anyFailed);
-          });
+        finishRunningTest();
+        return;
       }
-    }
-    yieldFrame();
+      // If a test step stopped the runtime, stop() has already ended the test.
+      if (!runningTest)
+        return;
+      [[fallthrough]];
 
-    if (!testsRunning() && hidingWindow)
-    {
-      editor_core_test_runtime_set_window(true);
-      hidingWindow = false;
-    }
+    case RunState::Running:
+      for (int pass = 0; pass < MAX_PASSES_PER_FRAME; ++pass)
+      {
+        bool progress = runInputSteps();
+        progress = pumpScripts() || progress;
+        if (!runningTest)
+          return;
+        if ((inputSteps.empty() || runningTest->canUpdateWithQueuedInput()) && callTest(*runningTest, false))
+        {
+          finishRunningTest();
+          return;
+        }
+        if (!progress)
+          return;
+      }
+      return;
+
+    case RunState::Finishing:
+      if (inputReleasePending())
+        return;
+
+      runningTest = nullptr;
+      runState = RunState::Idle;
+      if (!testQueue.empty())
+        return;
+
+      totalEnqueued = 0;
+      if (hidingWindow)
+      {
+        editor_core_test_runtime_set_window(true);
+        hidingWindow = false;
+      }
+      if (g_completion_cb)
+        report_run_completed(anyTestFailed());
+      return;
   }
-
-  // The loop above only reshows the window after the last test, and a stop can end the loop before that.
-  if (hidingWindow)
-    editor_core_test_runtime_set_window(true);
 }
 
 static TestRuntime ec_tr;
@@ -1512,6 +1692,9 @@ void editor_core_initialize_test_runtime()
 
 void editor_core_shutdown_test_runtime()
 {
+  // The tool is closing, so nothing waits for the report of a stopped run.
+  g_completion_cb = nullptr;
+
   ec_tr.stop();
   del_con_proc(&ec_tr_con);
 }
@@ -1541,10 +1724,7 @@ bool editor_core_test_runtime_run_script(const char *script_path, eastl::functio
   if (enqueued <= 0)
   {
     // No tests queued, we must report completion.
-    run_action_on_main_thread([]() {
-      auto cb = eastl::move(g_completion_cb);
-      cb(false);
-    });
+    report_run_completed(false);
   }
   return true;
 }

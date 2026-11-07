@@ -34,27 +34,9 @@ void parametric_init_panel(dag::Vector<AnimParamData> &params, PropPanel::Contai
   add_edit_float_if_not_exists(params, panel, field_idx, "addk");
 }
 
-void parametric_set_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
-{
-  const SimpleString nameValue = get_str_param_by_name_optional(params, panel, "name");
-  set_str_param_by_name_if_default(params, panel, "key", nameValue.c_str());
-  const SimpleString keyValue = get_str_param_by_name_optional(params, panel, "key");
-  const String defaultKeyStart(0, "%s_start", keyValue.c_str());
-  const String defaultKeyEnd(0, "%s_end", keyValue.c_str());
-  set_str_param_by_name_if_default(params, panel, "key_start", defaultKeyStart.c_str());
-  set_str_param_by_name_if_default(params, panel, "key_end", defaultKeyEnd.c_str());
-}
-
 void parametric_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, bool default_foreign)
 {
-  const SimpleString nameValue = get_str_param_by_name_optional(params, panel, "name");
-  const SimpleString keyValue = get_str_param_by_name_optional(params, panel, "key");
-  const String defaultKeyStart(0, "%s_start", keyValue.c_str());
-  const String defaultKeyEnd(0, "%s_end", keyValue.c_str());
-
-  remove_param_if_default_str(params, panel, "key", nameValue.c_str());
-  remove_param_if_default_str(params, panel, "key_start", defaultKeyStart.c_str());
-  remove_param_if_default_str(params, panel, "key_end", defaultKeyEnd.c_str());
+  remove_key_params_if_default(params, panel);
   remove_param_if_default_float(params, panel, "p_start");
   remove_param_if_default_float(params, panel, "p_end", DEFAULT_P_END);
   remove_param_if_default_bool(params, panel, "looping");
@@ -74,18 +56,14 @@ void parametric_init_block_settings(PropPanel::ContainerPropertyControl *prop_pa
 {
   PropPanel::ContainerPropertyControl *panel = prop_panel->getById(PID_ANIM_BLEND_NODES_SETTINGS_GROUP)->getContainer();
   Tab<String> names;
-  const DataBlock *resetBlock = settings->getBlockByName("resetRandomSwitchersOnAnimationEnd");
-  if (resetBlock)
+  if (const DataBlock *resetBlock = settings->getBlockByName("resetRandomSwitchersOnAnimationEnd"))
     for (int i = 0; i < resetBlock->blockCount(); ++i)
-    {
-      const DataBlock *block = resetBlock->getBlock(i);
-      if (!CHECK_COMMENT_PREFIX(block->getBlockName()))
-        names.emplace_back(String(resetBlock->getBlock(i)->getBlockName()));
-    }
+      if (!CHECK_COMMENT_PREFIX(resetBlock->getBlock(i)->getBlockName()))
+        names.emplace_back(resetBlock->getBlock(i)->getBlockName());
 
   bool isEditable = !names.empty();
   const char *defaultComboValue = names.empty() ? "" : names[0].c_str();
-  Tab<String> randomSwitchNames = collect_random_switch_names(prop_panel, controllers, settings, defaultComboValue);
+  Tab<String> randomSwitchNames = collect_random_switch_names(prop_panel, controllers, names, defaultComboValue);
   panel->createList(PID_NODES_RESET_RANDOM_SWITCH_LIST, "resetRandomSwitchersOnAnimationEnd", names, 0);
   panel->createButton(PID_NODES_RESET_RANDOM_SWITCH_LIST_ADD, "Add");
   panel->createButton(PID_NODES_RESET_RANDOM_SWITCH_LIST_REMOVE, "Remove", isEditable, /*new_line*/ false);
@@ -100,7 +78,8 @@ void parametric_set_selected_reset_random_switch_list_settings(PropPanel::Contai
   const DataBlock *resetBlock = settings.getBlockByNameEx("resetRandomSwitchersOnAnimationEnd");
   int blockIdx = get_block_name_idx_by_list_name(*resetBlock, listName, selectedIdx);
   const char *selectedName = blockIdx != -1 ? resetBlock->getBlock(blockIdx)->getBlockName() : "";
-  Tab<String> randomSwitchNames = collect_random_switch_names(panel, controllers, &settings, selectedName);
+  Tab<String> randomSwitchNames =
+    collect_random_switch_names(panel, controllers, panel->getStrings(PID_NODES_RESET_RANDOM_SWITCH_LIST), selectedName);
   panel->setStrings(PID_NODES_RESET_RANDOM_SWITCH_COMBO, randomSwitchNames);
   panel->setText(PID_NODES_RESET_RANDOM_SWITCH_COMBO, selectedName);
 }
@@ -109,7 +88,7 @@ void parametric_save_block_settings(PropPanel::ContainerPropertyControl *panel, 
 {
   const SimpleString listName = panel->getText(PID_NODES_RESET_RANDOM_SWITCH_LIST);
   const int selectedIdx = panel->getInt(PID_NODES_RESET_RANDOM_SWITCH_LIST);
-  const SimpleString comboValue = panel->getText(PID_NODES_RESET_RANDOM_SWITCH_COMBO);
+  const SimpleString comboValue = get_text_from_combo(panel, PID_NODES_RESET_RANDOM_SWITCH_COMBO);
   if (listName.empty() || selectedIdx < 0 || comboValue.empty())
     return;
 
@@ -143,24 +122,17 @@ void parametric_add_reset_random_switch_to_list(PropPanel::ContainerPropertyCont
 void parametric_remove_reset_random_switch_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock &settings)
 {
   const int idx = panel->getInt(PID_NODES_RESET_RANDOM_SWITCH_LIST);
-  if (idx < 0)
+  dag::ConstSpan<String> names = panel->getStrings(PID_NODES_RESET_RANDOM_SWITCH_LIST);
+  if (idx < 0 || idx >= names.size())
     return;
 
   DataBlock *resetBlock = settings.getBlockByName("resetRandomSwitchersOnAnimationEnd");
-  if (!resetBlock)
-    return;
-
-  dag::ConstSpan<String> names = panel->getStrings(PID_NODES_RESET_RANDOM_SWITCH_LIST);
-  if (idx >= names.size())
-    return;
-
-  const bool isRemovedBlock = resetBlock->removeBlock(names[idx].c_str());
-  if (isRemovedBlock)
+  if (!resetBlock || !resetBlock->removeBlock(names[idx].c_str()))
     panel->setEnabledById(PID_NODES_RESET_RANDOM_SWITCH_LIST_ADD, /*enabled*/ true);
   panel->removeString(PID_NODES_RESET_RANDOM_SWITCH_LIST, idx);
   const bool isLastRemoved = names.size() == 1;
   panel->setEnabledById(PID_NODES_RESET_RANDOM_SWITCH_COMBO, !isLastRemoved);
   panel->setEnabledById(PID_NODES_RESET_RANDOM_SWITCH_LIST_REMOVE, !isLastRemoved);
-  if (isLastRemoved)
+  if (isLastRemoved && resetBlock && resetBlock->isEmpty())
     settings.removeBlock("resetRandomSwitchersOnAnimationEnd");
 }

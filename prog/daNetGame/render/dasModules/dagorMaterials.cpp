@@ -23,6 +23,9 @@ public:
     das::addExtern<DAS_BIND_FUN(bind_dascript::recreate_material_with_new_params_2)>(*this, lib, "recreate_material",
       das::SideEffects::modifyArgument, "bind_dascript::recreate_material_with_new_params_2");
 
+    das::addExtern<DAS_BIND_FUN(bind_dascript::recreate_node_materials)>(*this, lib, "recreate_node_materials",
+      das::SideEffects::modifyArgument, "bind_dascript::recreate_node_materials");
+
     das::addExtern<DAS_BIND_FUN(bind_dascript::scene_lods_gather_mats)>(*this, lib, "scene_lods_gather_mats",
       das::SideEffects::accessExternal, "::bind_dascript::scene_lods_gather_mats");
 

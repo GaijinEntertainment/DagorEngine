@@ -3,13 +3,19 @@
 #include "av_consoleCommandProcessor.h"
 
 #include "av_appwnd.h"
+#include "Entity/entityLodControl.h"
 
+#include <3d/dag_resMgr.h>
+#include <assets/asset.h>
+#include <assets/assetRefs.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_tex3d.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <EditorCore/ec_wndGlobal.h>
 #include <EditorCore/ec_shaders.h>
 #include <math/dag_mathUtils.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_files.h>
 #include <render/debugTexOverlay.h>
 #include <de3_dynRenderService.h>
 #include <de3_interface.h>
@@ -316,14 +322,93 @@ void AssetViewerConsoleCommandProcessor::runSelectAsset(dag::ConstSpan<const cha
 {
   const char *name = params[0];
   CoolConsole *console = &get_app().getConsole();
-  DagorAsset *asset = get_app().getAssetMgr().findAsset(name);
+  DagorAsset *asset;
+  if (const char *colon = strchr(name, ':'))
+    asset =
+      get_app().getAssetMgr().findAsset(String(0, "%.*s", int(colon - name), name), get_app().getAssetMgr().getAssetTypeId(colon + 1));
+  else
+    asset = get_app().getAssetMgr().findAsset(name);
   if (asset)
   {
     get_app().selectAsset(*asset);
     console->addMessage(ILogWriter::NOTE, "Selected asset: \"%s\"", name);
+    PropPanel::process_message_queue();
   }
   else
     console->addMessage(ILogWriter::ERROR, "Asset with name \"%s\" not found!", name);
+}
+
+void AssetViewerConsoleCommandProcessor::runSetLod(dag::ConstSpan<const char *> params)
+{
+  CoolConsole &console = get_app().getConsole();
+  int lod = -1;
+  if (!entity_view_set_lod(console::to_int(params[0]), lod))
+    console.addMessage(ILogWriter::ERROR, "app.set_lod: the selected asset is not shown by the Entity plugin");
+  else if (lod < 0)
+    console.addMessage(ILogWriter::NOTE, "LOD: auto");
+  else
+    console.addMessage(ILogWriter::NOTE, "LOD: %d", lod);
+}
+
+void AssetViewerConsoleCommandProcessor::runLodInfo()
+{
+  CoolConsole &console = get_app().getConsole();
+  EntityRiLodsInfo info;
+  if (!entity_view_get_ri_lods_info(info))
+  {
+    console.addMessage(ILogWriter::ERROR, "app.lod_info: the selected asset is not a rendInst");
+    return;
+  }
+
+  console.addMessage(ILogWriter::NOTE, "asset \"%s\" center=%g,%g,%g radius=%g lods=%d", info.assetName.c_str(), P3D(info.center),
+    info.radius, info.lods.size());
+  for (int i = 0; i < info.lods.size(); ++i)
+  {
+    const EntityRiLodInfo &lod = info.lods[i];
+    const char *kind = lod.kind == EntityRiLodInfo::Kind::Voxel       ? "voxel"
+                       : lod.kind == EntityRiLodInfo::Kind::Billboard ? "billboard"
+                                                                      : "mesh";
+    console.addMessage(ILogWriter::NOTE, "lod %d: kind=%s range=%g tris=%d mem=%.1fKB", i, kind, lod.range, lod.triangleCount,
+      lod.gpuMemorySize / 1024.f);
+    // Textures load in the background, so wait for full quality to get the size with all mips.
+    prefetch_and_wait_managed_textures_loaded(lod.textures, true);
+    for (TEXTUREID texId : lod.textures)
+    {
+      BaseTexture *tex = acquire_managed_tex(texId);
+      console.addMessage(ILogWriter::NOTE, "  tex \"%s\" mem=%.1fKB", get_managed_texture_name(texId),
+        tex ? tex->getSize() / 1024.f : 0.f);
+      release_managed_tex(texId);
+    }
+  }
+}
+
+void AssetViewerConsoleCommandProcessor::runDumpAssetRefs(dag::ConstSpan<const char *> params)
+{
+  CoolConsole &console = get_app().getConsole();
+  file_ptr_t fp = df_open(params[0], DF_WRITE | DF_CREATE);
+  if (!fp)
+  {
+    console.addMessage(ILogWriter::ERROR, "app.dump_asset_refs: cannot write \"%s\"", params[0]);
+    return;
+  }
+
+  const DagorAssetMgr &mgr = get_app().getAssetMgr();
+  Tab<IDagorAssetRefProvider::Ref> refs;
+  int refCount = 0;
+  for (DagorAsset *asset : mgr.getAssets())
+    if (IDagorAssetRefProvider *refProvider = mgr.getAssetRefProvider(asset->getType()))
+    {
+      refs.clear();
+      refProvider->getAssetRefs(*asset, refs);
+      for (const IDagorAssetRefProvider::Ref &ref : refs)
+        if (const DagorAsset *refAsset = ref.getAsset())
+        {
+          df_printf(fp, "%s\t%s\n", asset->getNameTypified().c_str(), refAsset->getNameTypified().c_str());
+          refCount++;
+        }
+    }
+  df_close(fp);
+  console.addMessage(ILogWriter::NOTE, "app.dump_asset_refs: %d refs written to \"%s\"", refCount, params[0]);
 }
 
 bool AssetViewerConsoleCommandProcessor::processCommand(const char *argv[], int argc)
@@ -357,6 +442,13 @@ bool AssetViewerConsoleCommandProcessor::processCommand(const char *argv[], int 
   CONSOLE_CHECK_NAME("tex", "show", 1, DebugTexOverlay::MAX_CONSOLE_ARGS_CNT) { runTexShow(argv, argc); }
 
   CONSOLE_CHECK_NAME_EX("app", "select_asset", 2, 2, "", "[asset-name]") { runSelectAsset(params); }
+  CONSOLE_CHECK_NAME_EX("app", "set_lod", 2, 2, "", "<lod-index, -1 for auto>") { runSetLod(params); }
+  CONSOLE_CHECK_NAME_EX("app", "lod_info", 1, 1, "", "") { runLodInfo(); }
+  CONSOLE_CHECK_NAME_EX("app", "dump_asset_refs", 2, 2, "",
+    "<file> - writes \"asset:type<TAB>referenced_asset:type\" lines for all assets")
+  {
+    runDumpAssetRefs(params);
+  }
 
   return found != 0;
 }

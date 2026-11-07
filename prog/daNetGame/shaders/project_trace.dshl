@@ -86,7 +86,7 @@ macro PROJECT_TRACE(code, supports_raygen)
           float translucent_t;
           if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupGI, hitInfo, ray_color, translucent_t, flags))
           {
-            SurfaceParams hitSurface = calc_surface_params(hitInfo, -worldDir, -TRACING_LOD);
+            SurfaceParams hitSurface = calc_surface_params(hitInfo, -worldDir, -TRACING_LOD, 0);
             hit.hitAt = hitInfo.t;
             hit.hitCamPos = cam_from + worldDir*hit.hitAt;
             hit.hitNormal = hitSurface.normal;
@@ -112,7 +112,7 @@ macro PROJECT_TRACE(code, supports_raygen)
                                              WorldToObject3x4(),
                                              HitKind() == HIT_KIND_TRIANGLE_FRONT_FACE,
                                              InstanceIndex());
-        SurfaceParams hitSurface = calc_surface_params(hitInfo, -WorldRayDirection(), -TRACING_LOD); // Use fix texture LOD
+        SurfaceParams hitSurface = calc_surface_params(hitInfo, -WorldRayDirection(), -TRACING_LOD, 0); // Use fix texture LOD
         pl_set_albedo(payload, hitSurface.albedo);
         pl_set_normal(payload, hitSurface.normal);
         pl_set_distance(payload, RayTCurrent());

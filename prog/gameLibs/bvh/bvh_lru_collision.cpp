@@ -15,6 +15,7 @@
 #include <memory/dag_framemem.h>
 #include <perfMon/dag_statDrv.h>
 #include <vecmath/dag_vecMath.h>
+#include <generic/dag_align.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/string.h>
 #include <debug/dag_debug.h>
@@ -113,7 +114,6 @@ namespace bvh::lru_collision
 using ModelState = LruCollisionData::ModelState;
 
 static constexpr uint64_t CACHE_SIZE_ALIGNMENT = 64 << 10;
-static inline uint64_t align_up_cache_size(uint64_t v) { return (v + CACHE_SIZE_ALIGNMENT - 1) & ~(CACHE_SIZE_ALIGNMENT - 1); }
 
 static const auto blas_flags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
 
@@ -153,7 +153,7 @@ static void account_cache_and_evict(LruCollisionData &d)
 
   if (requiredSize > d.cacheLimit)
   {
-    d.cacheLimit = align_up_cache_size(requiredSize + requiredSize / 4);
+    d.cacheLimit = dag::align_up(requiredSize + requiredSize / 4, CACHE_SIZE_ALIGNMENT);
     debug("[BVH] lru collision cache limit grown to %dK", int(d.cacheLimit >> 10));
   }
 
@@ -732,7 +732,7 @@ bool connect_lru_collision(ContextId context_id, LRURendinstCollision *lru_coll,
   d->lru = lru_coll;
   d->gather = eastl::move(gather);
   d->settings = settings;
-  d->cacheLimit = lru_collision::align_up_cache_size(settings.initialCacheSize);
+  d->cacheLimit = dag::align_up(settings.initialCacheSize, lru_collision::CACHE_SIZE_ALIGNMENT);
   d->revision = lru_collision::last_revision + 1;
   d->gatherJob.self = d;
   context_id->lruCollision = d;

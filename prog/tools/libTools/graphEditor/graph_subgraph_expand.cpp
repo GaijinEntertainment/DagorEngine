@@ -5,6 +5,7 @@
 #include <debug/dag_debug.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_files.h>
 #include <util/dag_string.h>
 
 #include <EASTL/algorithm.h>
@@ -15,6 +16,7 @@
 
 #include <cstring>
 #include <math.h>
+#include <time.h>
 
 namespace
 {
@@ -33,11 +35,11 @@ struct ExpandContext
 {
   const DataBlock &baseNodesBlk;
   eastl::string rootDir; // ends with '/'
-  eastl::hash_map<eastl::string, GraphData> cache;
+  eastl::hash_map<eastl::string, eastl::shared_ptr<const GraphData>> cache;
   eastl::vector<eastl::string> stack;
   // Top-level graph only; nulled while a child expands, whose ids are not in this id space yet.
   eastl::hash_map<uint64_t, uint64_t> *instanceOutputSource = nullptr;
-  // constraint: never goes backwards. A splice that leaves nothing behind lets the graph max drop,
+  // never goes backwards. A splice that leaves nothing behind lets the graph max drop,
   // and a reused instance id breaks instanceOutputSource.
   int idFloor = 0;
   bool recurse = true; // the editor's explode keeps nested instances as they are
@@ -46,11 +48,14 @@ struct ExpandContext
   eastl::vector<eastl::string> stackStems;
   SubgraphExpandError *error = nullptr;
   bool failed = false;
+  SubgraphCache *subgraphCache = nullptr;
+  eastl::hash_map<int, int> *nodeInstance = nullptr;
+  int topInstanceId = -1; // a failure in a nested child is reported on this one
+  // In the id space of the graph being expanded: a child expands into a map of its own.
+  eastl::hash_map<int, SubgraphNodeSource> *nodeSource = nullptr;
 };
 
-// Looks up `<root>/<stem>.subgraph.blk` and returns its absolute path, or empty on miss.
-// Files outside `root_dir` are not searched.
-eastl::string resolve_child_path(const eastl::string &root_dir, const char *stem)
+eastl::string child_path(const eastl::string &root_dir, const char *stem)
 {
   eastl::string path(root_dir);
   if (!path.empty() && path.back() != '/' && path.back() != '\\')
@@ -59,11 +64,22 @@ eastl::string resolve_child_path(const eastl::string &root_dir, const char *stem
   }
   path.append(stem);
   path.append(".subgraph.blk");
-  if (dd_file_exist(path.c_str()))
+  return path;
+}
+
+// Formatted; empty when the body can be inlined.
+eastl::vector<eastl::string> subgraph_schema_errors(const GraphData &child)
+{
+  eastl::vector<SubgraphSchemaError> errors;
+  eastl::vector<eastl::string> formatted;
+  if (!validate_subgraph_schema(child, errors))
   {
-    return path;
+    for (const SubgraphSchemaError &err : errors)
+    {
+      formatted.push_back(format_subgraph_schema_error(err));
+    }
   }
-  return {};
+  return formatted;
 }
 
 void expand_recursive(GraphData &gd, ExpandContext &ctx);
@@ -93,6 +109,10 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   // any references we hold across the splice.
   const GraphData::Node instance = gd.nodes[instanceIdx];
   const eastl::string descName = instance.descName;
+  if (ctx.stack.empty())
+  {
+    ctx.topInstanceId = instance_id;
+  }
 
   auto bail = [&](const String &msg) {
     debug("graphEditor: %s", msg.str());
@@ -103,15 +123,20 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
       ctx.error->chain = ctx.stackStems;
       ctx.error->chain.push_back(descName);
     }
+    if (ctx.error && (ctx.error->instances.empty() || ctx.error->instances.back().first != ctx.topInstanceId))
+    {
+      ctx.error->instances.emplace_back(ctx.topInstanceId, msg.str());
+    }
   };
 
-  eastl::string childPath = resolve_child_path(ctx.rootDir, descName.c_str());
-  if (childPath.empty())
-  {
-    bail(String(0, "subgraph instance id=%d references missing file '%s.subgraph.blk' (under '%s')", instance_id, descName.c_str(),
-      ctx.rootDir.c_str()));
-    return;
-  }
+  auto bailSchema = [&](const char *kind, const char *name, const eastl::vector<eastl::string> &errors) {
+    for (const eastl::string &err : errors)
+    {
+      bail(String(0, "%s '%s' schema error: %s", kind, name, err.c_str()));
+    }
+  };
+
+  const eastl::string childPath = child_path(ctx.rootDir, descName.c_str());
 
   // Cycle guard: bail before touching the cache so a recursive child isn't even parsed.
   for (const eastl::string &p : ctx.stack)
@@ -134,56 +159,87 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
     }
   }
 
-  // Cache lookup. Cache holds the unexpanded child -- each instance gets a fresh deep copy
+  // Cache lookup. Cache points at the unexpanded child -- each instance gets a fresh deep copy
   // before being spliced/recursed so id remap and edge surgery don't bleed across siblings.
   auto cacheIt = ctx.cache.find(childPath);
+  SubgraphCache::OpenBody open;
+  if (cacheIt == ctx.cache.end() && ctx.subgraphCache && ctx.subgraphCache->findOpen(childPath, open))
+  {
+    if (!open.schemaErrors.empty())
+    {
+      bailSchema("open subgraph", descName.c_str(), open.schemaErrors);
+      return;
+    }
+    cacheIt = ctx.cache.emplace(childPath, eastl::move(open.graph)).first;
+  }
   if (cacheIt == ctx.cache.end())
   {
-    GraphData child;
-    if (!load_graph_data_blk(child, childPath.c_str(), "", &ctx.baseNodesBlk))
+    if (!dd_file_exist(childPath.c_str()))
     {
-      bail(String(0, "subgraph '%s' failed to load", childPath.c_str()));
+      bail(String(0, "subgraph instance id=%d references missing file '%s.subgraph.blk' (under '%s')", instance_id, descName.c_str(),
+        ctx.rootDir.c_str()));
       return;
     }
-
-    // Schema check at load time -- a file that fails validation MUST NOT be inlined.
-    // Without this guard, a file with zero boundary nodes would have an empty boundary
-    // map, the surgery passes would no-op, and `working`'s entire interior would be
-    // pasted into the parent on splice -- which is the catastrophic "I dropped a level
-    // graph into my graph and now my graph contains the whole level" failure mode.
-    // Failing the load on schema errors keeps the cache out of a poisoned state.
-    eastl::vector<SubgraphSchemaError> schemaErrors;
-    if (!validate_subgraph_schema(child, schemaErrors))
+    DagorStat fileStat;
+    const bool fileKeepable = ctx.subgraphCache && df_stat(childPath.c_str(), &fileStat) == 0 && fileStat.mtime >= 0;
+    eastl::shared_ptr<const GraphData> child;
+    if (fileKeepable)
     {
-      for (const SubgraphSchemaError &err : schemaErrors)
+      child = ctx.subgraphCache->findFile(childPath, fileStat.size, fileStat.mtime);
+    }
+    if (!child)
+    {
+      eastl::shared_ptr<GraphData> loaded = eastl::make_shared<GraphData>();
+      if (!load_graph_data_blk(*loaded, childPath.c_str(), "", &ctx.baseNodesBlk))
       {
-        bail(String(0, "subgraph '%s' schema error: %s", childPath.c_str(), format_subgraph_schema_error(err).c_str()));
+        bail(String(0, "subgraph '%s' failed to load", childPath.c_str()));
+        return;
       }
-      return;
-    }
 
+      // Never inlined or kept: with no boundaries, the whole body of a file that fails the schema would land in the parent.
+      const eastl::vector<eastl::string> schemaErrors = subgraph_schema_errors(*loaded);
+      if (!schemaErrors.empty())
+      {
+        bailSchema("subgraph", childPath.c_str(), schemaErrors);
+        return;
+      }
+
+      child = eastl::move(loaded);
+      // Same-second writes keep size and mtime.
+      if (fileKeepable && fileStat.mtime + 2 <= time(nullptr))
+      {
+        ctx.subgraphCache->storeFile(childPath, child, fileStat.size, fileStat.mtime);
+      }
+    }
     cacheIt = ctx.cache.emplace(childPath, eastl::move(child)).first;
   }
 
-  // Working copy: cache holds the original unexpanded child; we splice into the parent
+  // Working copy: cache points at the original unexpanded child; we splice into the parent
   // from a freshly-cloned working copy so two instances of the same child don't fight
   // over id remap or boundary deletion state.
-  GraphData working = cacheIt->second;
+  GraphData working = *cacheIt->second;
 
   // Recurse FIRST so the spliced child is already flat -- otherwise nested subgraph
   // instances inside the child would survive into the parent post-splice and break
   // single-pass invariants downstream.
+  eastl::hash_map<int, SubgraphNodeSource> childSources;
   if (ctx.recurse)
   {
     ctx.stack.push_back(childPath);
     ctx.stackStems.push_back(descName);
     eastl::hash_map<uint64_t, uint64_t> *const parentOutputSource = ctx.instanceOutputSource;
     SpliceReport *const parentReport = ctx.report;
+    eastl::hash_map<int, int> *const parentNodeInstance = ctx.nodeInstance;
+    eastl::hash_map<int, SubgraphNodeSource> *const parentNodeSource = ctx.nodeSource;
     ctx.instanceOutputSource = nullptr;
     ctx.report = nullptr;
+    ctx.nodeInstance = nullptr;
+    ctx.nodeSource = parentNodeSource ? &childSources : nullptr;
     expand_recursive(working, ctx);
     ctx.instanceOutputSource = parentOutputSource;
     ctx.report = parentReport;
+    ctx.nodeInstance = parentNodeInstance;
+    ctx.nodeSource = parentNodeSource;
     ctx.stackStems.pop_back();
     ctx.stack.pop_back();
   }
@@ -191,8 +247,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   // ----- Boundary index -----
   // For each `subgraph in: TYPE` we capture its single out-pin (the side that drives interior
   // edges); for each `subgraph out` we capture its single in-pin (the side fed by an interior
-  // producer). Boundaries are keyed by the user-authored `name` property -- duplicate names
-  // within one role are rejected to avoid ambiguous splice.
+  // producer). Boundaries are keyed by effective_subgraph_boundary_name.
   struct InBoundary
   {
     int nodeId = -1;
@@ -285,7 +340,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   }
 
   // ----- ID remap -----
-  // constraint: deterministic, because `%graph_hash%` substitution downstream depends on the ids.
+  // deterministic, because `%graph_hash%` substitution downstream depends on the ids.
   int maxId = 0;
   for (const GraphData::Node &n : gd.nodes)
   {
@@ -530,7 +585,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   // editor as a non-connectable divider pin) -- never splice it into the parent.
   for (const GraphData::Node &n : working.nodes)
   {
-    if (n.descName == "subgraph separator")
+    if (is_separator_boundary(n))
     {
       boundaryNodeIds.insert(n.id);
     }
@@ -552,6 +607,25 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
     if (ctx.report)
     {
       ctx.report->addedNodeIds.push_back(n.id);
+    }
+    if (ctx.nodeInstance)
+    {
+      (*ctx.nodeInstance)[n.id] = instance_id;
+    }
+    if (ctx.nodeSource)
+    {
+      SubgraphNodeSource &source = (*ctx.nodeSource)[n.id];
+      const int childId = n.id - idOffset;
+      auto nested = childSources.find(childId);
+      if (nested != childSources.end())
+      {
+        source = eastl::move(nested->second);
+      }
+      else
+      {
+        source.nodeId = childId;
+      }
+      source.stems.insert(source.stems.begin(), descName);
     }
     gd.nodes.push_back(eastl::move(n));
   }
@@ -592,21 +666,109 @@ void expand_recursive(GraphData &gd, ExpandContext &ctx)
 
 } // namespace
 
+void SubgraphCache::publishOpen(const char *path, eastl::shared_ptr<const GraphData> body)
+{
+  eastl::vector<eastl::string> errors = subgraph_schema_errors(*body);
+  dag::lock_guard<dag::mutex> guard(lock);
+  OpenBody &open = entries[path].open;
+  open.graph = eastl::move(body);
+  open.schemaErrors = eastl::move(errors);
+}
+
+void SubgraphCache::removeOpen(const char *path)
+{
+  dag::lock_guard<dag::mutex> guard(lock);
+  auto it = entries.find(path);
+  if (it == entries.end())
+  {
+    return;
+  }
+  if (it->second.file)
+  {
+    it->second.open = OpenBody();
+  }
+  else
+  {
+    entries.erase(it);
+  }
+}
+
+void SubgraphCache::clearFiles()
+{
+  dag::lock_guard<dag::mutex> guard(lock);
+  for (auto it = entries.begin(); it != entries.end();)
+  {
+    if (it->second.open.graph)
+    {
+      it->second.file.reset();
+      ++it;
+    }
+    else
+    {
+      it = entries.erase(it);
+    }
+  }
+}
+
+bool SubgraphCache::findOpen(const eastl::string &path, OpenBody &out) const
+{
+  dag::lock_guard<dag::mutex> guard(lock);
+  auto it = entries.find(path);
+  if (it == entries.end() || !it->second.open.graph)
+  {
+    return false;
+  }
+  out = it->second.open;
+  return true;
+}
+
+eastl::shared_ptr<const GraphData> SubgraphCache::findFile(const eastl::string &path, int64_t size, int64_t mtime) const
+{
+  dag::lock_guard<dag::mutex> guard(lock);
+  auto it = entries.find(path);
+  if (it == entries.end() || it->second.size != size || it->second.mtime != mtime)
+  {
+    return nullptr;
+  }
+  return it->second.file;
+}
+
+void SubgraphCache::storeFile(const eastl::string &path, eastl::shared_ptr<const GraphData> graph, int64_t size, int64_t mtime)
+{
+  dag::lock_guard<dag::mutex> guard(lock);
+  Entry &entry = entries[path];
+  entry.file = eastl::move(graph);
+  entry.size = size;
+  entry.mtime = mtime;
+}
+
 bool expand_subgraphs(GraphData &gd, const DataBlock &base_nodes_blk, const char *graphs_root_dir,
-  eastl::hash_map<uint64_t, uint64_t> *out_instance_output_source, SubgraphExpandError *out_error)
+  eastl::hash_map<uint64_t, uint64_t> *out_instance_output_source, SubgraphExpandError *out_error, SubgraphCache *cache,
+  eastl::hash_map<int, int> *out_node_instance, eastl::hash_map<int, SubgraphNodeSource> *out_node_source)
 {
   ExpandContext ctx{base_nodes_blk, eastl::string(graphs_root_dir ? graphs_root_dir : ""), {}, {}, out_instance_output_source};
   if (out_error)
   {
     *out_error = SubgraphExpandError();
   }
+  if (out_node_instance)
+  {
+    out_node_instance->clear();
+  }
+  if (out_node_source)
+  {
+    out_node_source->clear();
+  }
   ctx.error = out_error;
+  ctx.subgraphCache = cache;
+  ctx.nodeInstance = out_node_instance;
+  ctx.nodeSource = out_node_source;
   expand_recursive(gd, ctx);
   return !ctx.failed;
 }
 
 bool explode_subgraph_instance(const GraphData &gd, int instance_id, const DataBlock &base_nodes_blk, const char *graphs_root_dir,
-  float snap, ExplodeResult &out)
+  float snap, ExplodeResult &out, SubgraphCache *cache)
 {
   out = ExplodeResult();
   const GraphData::Node *const instance = find_node_by_id(gd, instance_id);
@@ -626,6 +788,7 @@ bool explode_subgraph_instance(const GraphData &gd, int instance_id, const DataB
   ctx.recurse = false;
   ctx.report = &report;
   ctx.error = &failure;
+  ctx.subgraphCache = cache;
   splice_one(working, instance_id, ctx);
   if (find_node_by_id(working, instance_id))
   {

@@ -23,7 +23,7 @@ namespace threadpool
 
   parallel_for(uint32_t begin, uint32_t end, uint32_t quant,
                dag::FunctionRef<void(uint32_t tbegin, uint32_t tend, uint32_t thread_id)> cb,
-               uint32_t add_jobs_count = 0, JobPriority prio = PRIO_HIGH, bool wake = true);
+               uint32_t add_jobs_count = 0, JobPriority prio = NUM_PRIO, bool wake = true);
 
   cb:
     call back function.
@@ -36,7 +36,7 @@ namespace threadpool
 
   add_jobs_count: if 0, same as get_num_workers().
     if you are calling from threads or you know some of threads are busy - can specify less threads
-  prio: by default, uses highest priority, as it suppose to end asap
+  prio: NUM_PRIO (default) is PRIO_HIGH on the main thread and PRIO_NORMAL elsewhere, as in daECS
   wake: wakeup all threads. Better specify true, unless you know what are you doing
 */
 
@@ -65,6 +65,8 @@ inline void parallel_for_inline_impl(uint32_t begin, uint32_t end, uint32_t quan
       cb(begin, end, 0);
     return;
   }
+  if (prio == NUM_PRIO)
+    prio = is_main_thread() ? PRIO_HIGH : PRIO_NORMAL;
   TIME_PROFILE(parallel_for);
   struct ParallelForJob final : cpujobs::IJob
   {
@@ -158,8 +160,7 @@ inline void parallel_for_inline_impl(uint32_t begin, uint32_t end, uint32_t quan
 
 template <typename Cb>
 inline void parallel_for_inline(uint32_t begin, uint32_t end, uint32_t quant, Cb cb, uint32_t add_jobs_count = 0,
-  JobPriority prio = PRIO_HIGH, bool wake = true,
-  uint32_t dapDescId = 0) // wide load expects high priority
+  JobPriority prio = NUM_PRIO, bool wake = true, uint32_t dapDescId = 0)
 {
   internal::parallel_for_inline_impl<internal::CallerRole::ProcessUniformly>(begin, end, quant, eastl::move(cb), add_jobs_count, prio,
     wake, dapDescId);
@@ -168,7 +169,7 @@ inline void parallel_for_inline(uint32_t begin, uint32_t end, uint32_t quant, Cb
 // first chunk takes [begin, begin + quant) and runs it on the caller thread, the rest works as in parallel_for_inline
 template <typename Cb>
 inline void parallel_for_inline_caller_first(uint32_t begin, uint32_t end, uint32_t quant, Cb cb, uint32_t add_jobs_count = 0,
-  JobPriority prio = PRIO_HIGH, bool wake = true, uint32_t dapDescId = 0)
+  JobPriority prio = NUM_PRIO, bool wake = true, uint32_t dapDescId = 0)
 {
   internal::parallel_for_inline_impl<internal::CallerRole::ProcessFirstChunkOnCaller>(begin, end, quant, eastl::move(cb),
     add_jobs_count, prio, wake, dapDescId);

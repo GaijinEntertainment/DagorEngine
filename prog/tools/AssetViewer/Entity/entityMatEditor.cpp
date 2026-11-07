@@ -16,11 +16,13 @@
 #include <de3_entityGetSceneLodsRes.h>
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <memory/dag_framemem.h>
+#include <startup/dag_globalSettings.h>
 #include <de3_interface.h>
 #include <de3_lodController.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/commonWindow/listDialog.h>
 #include <propPanel/commonWindow/multiListDialog.h>
+#include <propPanel/colors.h>
 #include <propPanel/imguiHelper.h>
 #include <libTools/util/strUtil.h>
 #include <math/dag_mesh.h>
@@ -67,6 +69,9 @@ enum
 enum
 {
   PID_MATERIALS_SHOW_TRIANGLE_COUNT,
+  PID_MATERIALS_HIGHLIGHT_MODE,
+  PID_MATERIALS_HIGHLIGHT_COLOR,
+  PID_MATERIALS_HIGHLIGHT_COLOR_RESET,
   PID_LODS_MATERIAL_EDITORS_BASE
 };
 
@@ -120,12 +125,30 @@ static const char *materialSearchVarsToSkip[] = {"num_bones"};
 static const char *missingResName = "--";
 EntityMatProperties EntityMaterialEditor::propertiesCopyBuffer;
 String EntityMaterialEditor::propertiesCopyBufferProxyMatName;
+const E3DCOLOR EntityMaterialEditor::DEFAULT_HIGHLIGHT_COLOR = E3DCOLOR_MAKE(137, 243, 54, 127);
 
 static String make_shader_button_name(const char *shclass_name) { return String(0, "Shader: %s", shclass_name); }
 
 static String make_proxymat_button_name(const char *proxymat_name)
 {
   return String(0, "ProxyMat: %s", *proxymat_name ? proxymat_name : missingResName);
+}
+
+static bool is_simple_emissive(const EntityMatProperties &mat) { return strcmp(mat.shClassName, "rendinst_simple_emissive") == 0; }
+
+static const MatVarDesc *find_emission_color_var(const EntityMatProperties &mat)
+{
+  const char *colorVarName = is_simple_emissive(mat) ? "emission_color" : "emissive_color";
+  auto colorVar = eastl::find_if(mat.vars.begin(), mat.vars.end(), [colorVarName](auto &var) { return var.name == colorVarName; });
+  return colorVar != mat.vars.end() ? colorVar : nullptr;
+}
+
+static bool confirm_save_with_bad_emission_color()
+{
+  get_app().getConsole().showConsole();
+  return wingw::message_box(wingw::MBS_HAND | wingw::MBS_YESNO, "Emissive color out of range",
+           "Color RGB channels must be between 0 and 1. Use Alpha channel or Emissive strength for brightness!\n"
+           "See the console for the list of wrong materials.\n\nSave anyway?") == wingw::MB_ID_YES;
 }
 
 static bool is_var_within_limits(const MatVarDesc &var, const ShaderVariableLimits *limits)
@@ -407,8 +430,11 @@ static bool get_panel_property_address(int pcb_id, int &out_lod, int &out_mat_id
 }
 
 
-static String get_asset_dag_file_path(const DagorAsset &asset, int lod)
+String get_asset_dag_file_path(const DagorAsset &asset, int lod, const DataBlock **out_lod_props)
 {
+  if (out_lod_props)
+    *out_lod_props = nullptr;
+
   // LOD list may sit in a per-target sub-block; resolve it the way the dabuild exporters do.
   const DataBlock &props = asset.getProfileTargetProps(_MAKE4C('PC'), nullptr);
   const int lodNameId = props.getNameId("lod");
@@ -421,6 +447,8 @@ static String get_asset_dag_file_path(const DagorAsset &asset, int lod)
 
     if (lodBlockIndex == lod)
     {
+      if (out_lod_props)
+        *out_lod_props = blk;
       const char *dagName = blk->getStr("fname", nullptr);
       if (dagName && *dagName)
         return String(0, "%s/%s", asset.getFolderPath(), dagName);
@@ -770,9 +798,22 @@ void EntityMaterialEditor::countMaterialUsage(const char *dag_name, const Node &
 void EntityMaterialEditor::loadSettings(const DataBlock &settings)
 {
   showTriangleCount = settings.getBool("showTriangleCount", showTriangleCount);
+  const int highlightMode = settings.getInt("materialHighlightMode", eastl::to_underlying(materialHighlightMode));
+  if (highlightMode >= eastl::to_underlying(MaterialHighlightRenderer::Mode::None) &&
+      highlightMode < eastl::to_underlying(MaterialHighlightRenderer::Mode::Count))
+    materialHighlightMode = static_cast<MaterialHighlightRenderer::Mode>(highlightMode);
+  hasCustomHighlightColor = settings.paramExists("materialHighlightColor");
+  if (hasCustomHighlightColor)
+    customHighlightColor = settings.getE3dcolor("materialHighlightColor", customHighlightColor);
 }
 
-void EntityMaterialEditor::saveSettings(DataBlock &settings) const { settings.addBool("showTriangleCount", showTriangleCount); }
+void EntityMaterialEditor::saveSettings(DataBlock &settings) const
+{
+  settings.addBool("showTriangleCount", showTriangleCount);
+  settings.addInt("materialHighlightMode", eastl::to_underlying(materialHighlightMode));
+  if (hasCustomHighlightColor)
+    settings.addE3dcolor("materialHighlightColor", customHighlightColor);
+}
 
 void EntityMaterialEditor::begin(DagorAsset *asset, IObjEntity *asset_entity)
 {
@@ -782,10 +823,15 @@ void EntityMaterialEditor::begin(DagorAsset *asset, IObjEntity *asset_entity)
   {
     isReloading = false;
     onReloaded();
+    materialHighlightRenderer.begin(entity);
     return;
   }
 
   end();
+  materialHighlightRenderer.begin(entity);
+  hoveredMatId = -1;
+  hoveredMatLod = -1;
+
   if (!asset || !entity)
     return;
 
@@ -869,7 +915,10 @@ void EntityMaterialEditor::begin(DagorAsset *asset, IObjEntity *asset_entity)
 bool EntityMaterialEditor::end()
 {
   if (!active || isReloading)
+  {
+    materialHighlightRenderer.end();
     return true;
+  }
 
   if (hasChanges())
   {
@@ -883,7 +932,10 @@ bool EntityMaterialEditor::end()
           clearMaterialOverrides(lod);
         notifyCurrentAssetNeedsReload();
         break;
-      case wingw::MB_ID_YES: saveAllChanges(); break;
+      case wingw::MB_ID_YES:
+        if (!saveAllChanges())
+          return false;
+        break;
     }
   }
 
@@ -891,17 +943,56 @@ bool EntityMaterialEditor::end()
   G_ASSERT(undoSystem);
   undoSystem->clear();
 
+  materialHighlightRenderer.end();
   active = false;
   return true;
 }
 
-void EntityMaterialEditor::saveAllChanges()
+bool EntityMaterialEditor::saveAllChanges()
 {
+  if (!active)
+    return true;
+
+  dag::Vector<dag::Vector<int>> changedMatIdsPerLod;
+  bool hasBadEmissionColor = false;
   for (int lod = 0; lod < matDataPerLod.size(); ++lod)
   {
-    clearMaterialOverrides(lod);
-    matDataPerLod[lod].save(matDataPerLod[lod].getChangedMatIds());
+    changedMatIdsPerLod.push_back(matDataPerLod[lod].getChangedMatIds());
+    if (changedMatIdsPerLod.back().empty())
+      continue;
+    // a DAG save writes all materials of the LOD
+    for (int matId = 0; matId < matDataPerLod[lod].matProperties.size(); ++matId)
+      hasBadEmissionColor |= reportBadEmissionColor(lod, matId);
   }
+
+  const bool canSave = !hasBadEmissionColor || confirm_save_with_bad_emission_color();
+  for (int lod = 0; lod < matDataPerLod.size(); ++lod)
+  {
+    // also on refusal: the asset save that follows would write the overrides into the asset file
+    clearMaterialOverrides(lod);
+    if (canSave)
+      matDataPerLod[lod].save(changedMatIdsPerLod[lod]);
+  }
+  if (!canSave)
+    get_app().getConsole().addMessage(ILogWriter::WARNING, "Material changes of asset '%s' are not saved.", assetName.c_str());
+  return canSave;
+}
+
+bool EntityMaterialEditor::reportBadEmissionColor(int lod, int mat_id) const
+{
+  const EntityMatProperties &matProps = matDataPerLod[lod].matProperties[mat_id];
+  const MatVarDesc *colorVar = find_emission_color_var(matProps);
+  if (!colorVar || !colorVar->usedInMaterial)
+    return false;
+  const Color4 &color = colorVar->value.c4();
+  if (min(min(color.r, color.g), color.b) >= 0.f && max(max(color.r, color.g), color.b) <= 1.f)
+    return false;
+  get_app().getConsole().addMessage(ILogWriter::WARNING,
+    "Asset '%s', material '%s' (LOD %d, shader %s): %s=(%g, %g, %g, %g) is out of the 0..1 range. Keep the color in 0..1 and "
+    "set the brightness with %s.",
+    assetName.c_str(), matProps.matName.str(), lod, matProps.shClassName.str(), colorVar->name.str(), color.r, color.g, color.b,
+    color.a, is_simple_emissive(matProps) ? "emission_strength" : "the alpha of emissive_color");
+  return true;
 }
 
 void EntityMaterialEditor::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
@@ -913,6 +1004,17 @@ void EntityMaterialEditor::fillPropPanel(PropPanel::ContainerPropertyControl &pa
   panel.clear();
 
   panel.createCheckBox(PID_MATERIALS_SHOW_TRIANGLE_COUNT, "Show triangle count", showTriangleCount);
+  static constexpr const char *MODE_DISPLAY_NAMES[] = {"None", "Simple", "Depth-aware"};
+  G_STATIC_ASSERT(countof(MODE_DISPLAY_NAMES) == eastl::to_underlying(MaterialHighlightRenderer::Mode::Count));
+
+  PropPanel::ContainerPropertyControl *highlightModes = panel.createRadioGroup(PID_MATERIALS_HIGHLIGHT_MODE, "Viewport overlay");
+  for (int i = 0; i < countof(MODE_DISPLAY_NAMES); ++i)
+    highlightModes->createRadio(i, MODE_DISPLAY_NAMES[i], true, i == 0);
+  panel.setInt(PID_MATERIALS_HIGHLIGHT_MODE, eastl::to_underlying(materialHighlightMode));
+  PropPanel::ContainerPropertyControl *highlightColor =
+    panel.createExtensible(PID_MATERIALS_HIGHLIGHT_COLOR_RESET, true, "reset", "Reset to the default color");
+  highlightColor->setIntValue(hasCustomHighlightColor ? 1 << PropPanel::EXT_BUTTON_SINGLE_ACTION : 0);
+  highlightColor->createColorBox(PID_MATERIALS_HIGHLIGHT_COLOR, "Overlay color", getMaterialHighlightColor(), true, true, false);
 
   for (int lod = 0; lod < matDataPerLod.size(); ++lod)
   {
@@ -1760,6 +1862,14 @@ void EntityMaterialEditor::onChange(int pcb_id, PropPanel::ContainerPropertyCont
       reloadCurrentAsset();
       isReloading = false; // Do a full reload.
     }
+    else if (pcb_id == PID_MATERIALS_HIGHLIGHT_MODE)
+      materialHighlightMode = static_cast<MaterialHighlightRenderer::Mode>(panel->getInt(pcb_id));
+    else if (pcb_id == PID_MATERIALS_HIGHLIGHT_COLOR)
+    {
+      customHighlightColor = panel->getColor(pcb_id);
+      hasCustomHighlightColor = true;
+      panel->setInt(PID_MATERIALS_HIGHLIGHT_COLOR_RESET, 1 << PropPanel::EXT_BUTTON_SINGLE_ACTION);
+    }
 
     return;
   }
@@ -1852,7 +1962,15 @@ void EntityMaterialEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
 {
   int lod, matId, matLocalPropId;
   if (!get_panel_property_address(pcb_id, lod, matId, matLocalPropId))
+  {
+    if (pcb_id == PID_MATERIALS_HIGHLIGHT_COLOR_RESET)
+    {
+      hasCustomHighlightColor = false;
+      panel->setColor(PID_MATERIALS_HIGHLIGHT_COLOR, getMaterialHighlightColor());
+      panel->setInt(PID_MATERIALS_HIGHLIGHT_COLOR_RESET, 0);
+    }
     return;
+  }
 
   if (matLocalPropId >= LPID_TEXTURE_LIST_BASE)
   {
@@ -1940,6 +2058,8 @@ void EntityMaterialEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
                 : "This will overwrite proxymat used by the material. All assets using this proxymat will be affected.") ==
               wingw::MB_ID_OK)
         {
+          if (reportBadEmissionColor(lod, matId) && !confirm_save_with_bad_emission_color())
+            break;
           clearMaterialOverrides(lod);
           lodMatData.save({matId});
 
@@ -1972,6 +2092,49 @@ void EntityMaterialEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
       case LPID_TRANSFER_CHANGES_TO_LODS: transferChangesToLods(lod, matId, panel); break;
     }
   }
+}
+
+void EntityMaterialEditor::onHover(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+{
+  G_UNUSED(panel);
+  int lod, matId, matLocalPropId;
+  if (!get_panel_property_address(pcb_id, lod, matId, matLocalPropId) || matLocalPropId != LPID_MATERIAL_GROUP)
+    return;
+
+  hoveredMatLod = lod;
+  hoveredMatId = matId;
+  hoveredFrameNo = dagor_frame_no();
+}
+
+ShaderMaterial *EntityMaterialEditor::getHoveredShaderMaterial(int *out_lod) const
+{
+  if (!active || dagor_frame_no() - hoveredFrameNo > 1)
+    return nullptr;
+  if (hoveredMatLod < 0 || hoveredMatLod >= matDataPerLod.size() || hoveredMatId < 0 ||
+      hoveredMatId >= matDataPerLod[hoveredMatLod].matShaders.size())
+    return nullptr;
+  if (out_lod)
+    *out_lod = hoveredMatLod;
+  return matDataPerLod[hoveredMatLod].matShaders[hoveredMatId];
+}
+
+void EntityMaterialEditor::renderMaterialHighlight(rendinst::riex_handle_t riex_override)
+{
+  if (materialHighlightMode == MaterialHighlightRenderer::Mode::None)
+    return;
+  int lod = 0;
+  const ShaderMaterial *material = getHoveredShaderMaterial(&lod);
+  if (!material)
+    return;
+
+  materialHighlightRenderer.render(materialHighlightMode, color4(getMaterialHighlightColor()), *material, lod, riex_override);
+}
+
+E3DCOLOR EntityMaterialEditor::getMaterialHighlightColor() const
+{
+  if (hasCustomHighlightColor)
+    return customHighlightColor;
+  return DEFAULT_HIGHLIGHT_COLOR;
 }
 
 void EntityMaterialEditor::applyToCommonVars(dag::Vector<MatVarDesc> &dst_vars, const dag::Vector<MatVarDesc> &src_vars,

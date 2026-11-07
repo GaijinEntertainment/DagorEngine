@@ -6,8 +6,8 @@ group_index: true
 ---
 
 Reference material that is not a language rule and not a single symbol: function
-attributes, implementation limits, the cheat sheet, benchmarks and the RFC
-process.
+attributes, implementation limits, the cheat sheet, benchmarks and the
+proposals for the language (RFCs).
 
 ## Pages
 

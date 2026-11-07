@@ -475,20 +475,35 @@ struct TextureFetchState
   };
   carray<Resources, STAGE_MAX_EXT> resources;
 
+  static constexpr uint32_t NO_UAV_TEX_FORMAT = ~0u;
+
   struct UAV
   {
     carray<ID3D11UnorderedAccessView *, MAX_UAV> uavs;
     uint32_t uavModifiedMask;
     uint32_t uavsSet;
     bool uavsUsed;
-    UAV() : uavModifiedMask(0), uavsSet(0), uavsUsed(false) { mem_set_0(uavs); }
+#if DAGOR_DBGLEVEL > 0
+    carray<uint32_t, MAX_UAV> texFormats; // TEXFMT of the view, NO_UAV_TEX_FORMAT for a buffer or an empty slot
+    uint32_t formatCheckPendingMask = 0;
+    uint8_t lastCheckedReadMask = 0;
+    uint8_t lastCheckedWriteMask = 0;
+#endif
+    UAV() : uavModifiedMask(0), uavsSet(0), uavsUsed(false)
+    {
+      mem_set_0(uavs);
+#if DAGOR_DBGLEVEL > 0
+      for (uint32_t &fmt : texFormats)
+        fmt = NO_UAV_TEX_FORMAT;
+#endif
+    }
   };
   carray<UAV, STAGE_MAX_EXT> uavState;
   uint8_t lastHDGBitsApplied;
 
   TextureFetchState() { lastHDGBitsApplied = 0; }
 
-  bool setUav(int stage, unsigned slot, ID3D11UnorderedAccessView *uav)
+  bool setUav(int stage, unsigned slot, ID3D11UnorderedAccessView *uav, [[maybe_unused]] uint32_t tex_format = NO_UAV_TEX_FORMAT)
   {
     G_ASSERT(slot < MAX_UAV);
     if (uav)
@@ -505,6 +520,10 @@ struct TextureFetchState
       uavState[stage].uavsSet |= slot_mask;
     else
       uavState[stage].uavsSet &= ~slot_mask;
+#if DAGOR_DBGLEVEL > 0
+    uavState[stage].texFormats[slot] = tex_format;
+    uavState[stage].formatCheckPendingMask |= slot_mask;
+#endif
 
     if (stage == STAGE_CS && d3d::get_driver_desc().caps.hasAsyncCompute)
     {
@@ -513,10 +532,20 @@ struct TextureFetchState
         asyncCsState.uavsUsed = true;
       asyncCsState.uavModifiedMask |= slot_mask;
       asyncCsState.uavs[slot] = uav;
+#if DAGOR_DBGLEVEL > 0
+      asyncCsState.texFormats[slot] = tex_format;
+      asyncCsState.formatCheckPendingMask |= slot_mask;
+#endif
     }
 
     return true;
   }
+
+#if DAGOR_DBGLEVEL > 0
+  // asserts again only when a binding in the stage or one of the masks changes
+  void checkUavFormats(int stage, uint8_t read_mask, uint8_t write_mask, const char *shader_name,
+    const char *other_shader_name = nullptr);
+#endif
 
   void flush(bool force, uint32_t hdg_bits);
   void flush_cs(bool force, bool async = false);

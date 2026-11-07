@@ -251,6 +251,36 @@ inline void render_depth_prepass_hero_cockpit_ecs_query(ecs::EntityManager &mana
     }
   );
 }
+static constexpr ecs::ComponentDesc get_hero_cockpit_decorations_entities_ecs_query_comps[] =
+{
+//start of 2 ro components at [0]
+  {ECS_HASH("hero_cockpit_entities"), ecs::ComponentTypeInfo<ecs::EidList>()},
+  {ECS_HASH("render_hero_cockpit_into_early_prepass"), ecs::ComponentTypeInfo<bool>()}
+};
+static ecs::CompileTimeQueryDesc get_hero_cockpit_decorations_entities_ecs_query_desc
+(
+  "get_hero_cockpit_decorations_entities_ecs_query",
+  empty_span(),
+  make_span(get_hero_cockpit_decorations_entities_ecs_query_comps+0, 2)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void get_hero_cockpit_decorations_entities_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, get_hero_cockpit_decorations_entities_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(get_hero_cockpit_decorations_entities_ecs_query_comps, "hero_cockpit_entities", ecs::EidList)
+            , ECS_RO_COMP(get_hero_cockpit_decorations_entities_ecs_query_comps, "render_hero_cockpit_into_early_prepass", bool)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
 static constexpr ecs::ComponentDesc fill_hero_cockpit_textures_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]

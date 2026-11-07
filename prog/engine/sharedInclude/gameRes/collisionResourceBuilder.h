@@ -155,7 +155,7 @@ struct CollisionResourceBuilder
   CollisionResource *build(const char *res_name, void *inplace_mem = nullptr);
 
   // debug dump: raw block, no rebuild
-  static void writeRaw(const CollisionResource &res, IGenSave &cwr);
+  static void writeRaw(const CollisionResource &res, IGenSave &cwr, uint32_t extra_flags = 0);
   static bool readRaw(CollisionResource &res, IGenLoad &crd);
 
 private:

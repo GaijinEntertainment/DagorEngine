@@ -292,7 +292,18 @@ const GraphData::Node *PropertiesPanel::findNodeById(int id) const
 
 void PropertiesPanel::commitPendingEdit()
 {
-  IEditorCoreEngine::get()->sendImmediateFocusLossNotification();
+  // An undo is hiding or showing a graph: a record now would drop its redo, so a half-typed value is let go.
+  if (plugin.getGraphPanel().isApplyingSurfaceMove())
+  {
+    // The controls go next frame, before one can report its edit to the document then shown.
+    letGoPendingEdit = true;
+    forceRebuild = true;
+    return;
+  }
+  if (!letGoPendingEdit)
+  {
+    IEditorCoreEngine::get()->sendImmediateFocusLossNotification();
+  }
   editGesture.end();
 }
 
@@ -307,6 +318,7 @@ void PropertiesPanel::dropControls()
     texturesCollapsed = panelWindow->getBool(PID_SUBGRAPH_TEXTURES);
   }
   panelWindow->clear();
+  letGoPendingEdit = false;
   pidToPropertyName.clear();
   curvePreviews.clear();
 }
@@ -338,24 +350,27 @@ void PropertiesPanel::updateImgui()
   doc = &plugin.getActiveDocument();
   const int selId = graphPanel.getSelectedNodeId();
   const bool tabChanged = graphPanel.activeTabId() != lastRenderedTabId;
-  // A node selected anew, or found selected on the graph or window switched to, shows its properties.
-  if (selId >= 0 && (selId != lastSeenSelectedId || tabChanged))
+  // A node selected anew, or found selected on the graph or window switched to, shows its properties;
+  // no selection shows the graph's.
+  if ((selId != lastSeenSelectedId || tabChanged) && !viewPicked)
   {
-    graphView = false;
+    graphView = selId < 0;
   }
+  viewPicked = false;
   lastSeenSelectedId = selId;
 
   // Resolve target mode. A selected id that no longer maps to a live node (deleted while
   // selected) collapses to the graph-level view -- safer than rendering stale fields.
   Mode targetMode = graphPanel.activeSurface().getHostWindow() != nullptr ? Mode::Subgraph : Mode::Graph;
   int targetNodeId = -1;
-  if (selId >= 0 && !graphView)
+  if (!graphView && selId < 0)
   {
-    if (findNodeById(selId))
-    {
-      targetMode = Mode::Node;
-      targetNodeId = selId;
-    }
+    targetMode = Mode::NoSelection;
+  }
+  else if (!graphView && findNodeById(selId))
+  {
+    targetMode = Mode::Node;
+    targetNodeId = selId;
   }
 
   // Cheap path: nothing relevant has changed -> just pump the panel and return.
@@ -385,6 +400,12 @@ void PropertiesPanel::updateImgui()
     if (targetMode == Mode::Node)
     {
       rebuildForNode(targetNodeId);
+    }
+    else if (targetMode == Mode::NoSelection)
+    {
+      // The design's empty node view: the header row, greyed out.
+      panelWindow->createStatic(PID_NODE_HEADER, "No nodes are selected");
+      panelWindow->setEnabledById(PID_NODE_HEADER, false);
     }
     else if (targetMode == Mode::Subgraph)
     {
@@ -728,7 +749,6 @@ void PropertiesPanel::rebuildForNode(int node_id)
       }
       else
       {
-        // Editing would drop keys and the generator refuses the value anyway, so show it as it is.
         container->createStatic(pid, String(0, "%s: %s", caption, valStr.c_str()));
         container->createStatic(pid + PROP_SLOT_AUX, String(0, "  (%d stops, too many to edit here)", storedStops));
       }

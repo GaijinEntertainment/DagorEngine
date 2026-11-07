@@ -17,7 +17,7 @@ class UDevJoystick;
 class HidJoystickClassDriver : public IGenJoystickClassDrv
 {
 public:
-  HidJoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads);
+  HidJoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_dspads);
   ~HidJoystickClassDriver();
 
   bool init();
@@ -74,9 +74,13 @@ protected:
   bool enableAutoDef;
   bool remapAsX360;
   bool excludeXInput;
-  bool excludeSonyPads;
+  bool excludeDsPads;
+  dag::Vector<uint32_t> ignoredIds; // sorted (vid << 16) | pid
 
 private:
+  void loadIgnoredIds();
+  bool isIgnored(unsigned vid, unsigned pid) const;
+
   static UDev udev;
   static Tab<HidJoystickClassDriver *> udev_users;
 

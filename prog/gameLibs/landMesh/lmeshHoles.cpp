@@ -27,7 +27,11 @@ void LandMeshHolesCell::addHole(const HoleData &hole, const BBox2 &hole_bbox)
   accumulatedHoleBbox += hole_bbox;
 }
 
-void LandMeshHolesCell::clear() { holes.clear(); }
+void LandMeshHolesCell::clear()
+{
+  holes.clear();
+  accumulatedHoleBbox.setempty();
+}
 
 static bool checkHoleProjection(const Matrix3 &inverse_proj_tm, bool is_round, const Point2 &pos)
 {
@@ -139,4 +143,5 @@ void LandMeshHolesManager::clearCells()
     c.clear();
   cellsNeedValidHeight.clear();
   emptyHolesRegion = true;
+  ++rewriteCount;
 }

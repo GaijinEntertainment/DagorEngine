@@ -108,6 +108,7 @@ private:
     return puddles.size();
   }
 
+  float initRandomSize(const int group) const;
   float addRandomToSize(int group, float size) const;
 
   bool texturesAreReady() const { return (bool)(puddleTex && flowmapTex); }

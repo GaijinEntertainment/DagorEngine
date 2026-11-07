@@ -9,7 +9,7 @@
 // Report layouts follow the Linux hid-playstation driver and SDL3 SDL_hidapi_ps5.c / SDL_hidapi_ps4.c.
 namespace HumanInput
 {
-namespace sonypad
+namespace dspad
 {
 
 const char *model_name(Model model);
@@ -20,7 +20,6 @@ static constexpr int ACCEL_RES_PER_G = 8192;
 enum
 {
   MAX_REPORT_SIZE = 78,
-  TOUCHPAD_WIDTH = 1920,
   DS_TOUCHPAD_HEIGHT = 1080,
   DS4_TOUCHPAD_HEIGHT = 942,
 
@@ -86,6 +85,15 @@ enum ButtonBit : uint32_t
   BTN_PADDLE_RIGHT = 1u << 18,
 };
 
+// pixels of a 1920 x *_TOUCHPAD_HEIGHT pad, origin in the top-left corner, x to the right, y down;
+// contactId changes for each new touch
+struct TouchPoint
+{
+  bool down = false;
+  uint8_t contactId = 0;
+  uint16_t x = 0, y = 0;
+};
+
 enum ChargeState : uint8_t
 {
   CHARGE_DISCHARGING,
@@ -102,7 +110,7 @@ struct InputSample
   float sensorTickUs = 1.f / 3.f;
   int16_t gyroRaw[3] = {0, 0, 0};  // pitch (X), yaw (Y), roll (Z)
   int16_t accelRaw[3] = {0, 0, 0}; // X, Y, Z
-  JoystickTouchpadState::Point touch[2];
+  TouchPoint touch[2];
 
   uint8_t lx = 0x80, ly = 0x80, rx = 0x80, ry = 0x80;
   uint8_t l2 = 0, r2 = 0;
@@ -113,7 +121,8 @@ struct InputSample
   uint8_t batteryLevel = 0; // 0..10 in 10% steps
   ChargeState charge = CHARGE_UNKNOWN;
   bool cablePowered = false;
-  bool dongleEmpty = false; // DualShock 4 USB adapter with no pad paired
+  bool dongleEmpty = false;             // DualShock 4 USB adapter with no pad paired
+  TriggerEffectStateInfo triggerEffect; // DualSense, with hasStatus
 };
 
 // false when the bytes are not an input report of this model and transport, or the CRC fails; out is reset either way.
@@ -165,11 +174,10 @@ struct OutputState
 };
 
 // returns the report length written to out, 0 when the model has no output report or cap is short; bt_seq is advanced
-// per DualSense Bluetooth report, the DualShock 4 leaves that byte zero. rumble_v2 selects the DualSense's own classic
-// rumble (the Edge, and a feature version of 2.21 and up, which the driver reads from FirmwareInfo::updateVersion);
-// false selects the compatible mode, which halves the motor values. The DualShock 4 ignores the flag and takes the
-// rumble and the lightbar only
-int build_output_report(Model model, bool bluetooth, bool rumble_v2, const OutputState &st, uint8_t &bt_seq, uint8_t *out, int cap);
+// per DualSense Bluetooth report, the DualShock 4 leaves that byte zero. The DualSense rumble uses the compatible mode
+// that the PS5 driver sets (scePadSetVibrationMode SCE_PAD_VIBRATION_MODE_COMPATIBLE) with the motor values as they
+// are, so a game feels the same rumble on both. The DualShock 4 takes the rumble and the lightbar only
+int build_output_report(Model model, bool bluetooth, const OutputState &st, uint8_t &bt_seq, uint8_t *out, int cap);
 
-} // namespace sonypad
+} // namespace dspad
 } // namespace HumanInput

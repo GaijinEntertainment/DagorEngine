@@ -94,7 +94,6 @@ folder {{
   output:t="{vromfsName}"
   path:t="{relPathFromVromCfgToLibs}/"
   dest_path:t="{mountPoint}/{libPath}/"
-  scan_folder:b=true
   scan_subfolders:b=true
 {wildcards}
 }}

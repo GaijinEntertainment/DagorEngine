@@ -39,6 +39,19 @@ buffer nbs_spheres_channel14 always_referenced;
 int nbs_spheres_channel15_counter always_referenced;
 buffer nbs_spheres_channel15 always_referenced;
 
+texture nbs_slot_tex_0 always_referenced;
+texture nbs_slot_tex_1 always_referenced;
+texture nbs_slot_tex_2 always_referenced;
+texture nbs_slot_tex_3 always_referenced;
+texture nbs_slot_tex_4 always_referenced;
+texture nbs_slot_tex_5 always_referenced;
+
+sampler nbs_slot_tex_0_samplerstate always_referenced;
+sampler nbs_slot_tex_1_samplerstate always_referenced;
+sampler nbs_slot_tex_2_samplerstate always_referenced;
+sampler nbs_slot_tex_3_samplerstate always_referenced;
+sampler nbs_slot_tex_4_samplerstate always_referenced;
+sampler nbs_slot_tex_5_samplerstate always_referenced;
 
 // TODO: external variable references should be removed from node based shaders (.json files), until then:
 float4 zone_pos_radius always_referenced;

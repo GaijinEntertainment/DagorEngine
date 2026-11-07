@@ -8,6 +8,10 @@ void set_window_title(const char *net_role);
 const char *get_dir(const char *location);
 extern bool has_in_game_editor();
 bool is_initial_loading_complete();
+// Called right before the game scripts load, on the initial loading thread (the main thread in a
+// dedicated build): the mounts, vroms, game resources, world renderer, collision world and das init
+// (gamescripts::init) are done by then.
+extern void (*on_app_before_game_scripts)();
 
 void set_fps_limit(int max_fps);
 int get_fps_limit();

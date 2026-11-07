@@ -17,6 +17,7 @@ macro RENDER_DEFORM_HMAP_PS()
     float render_deform_hmap_ps(VsOutput input) : SV_Target
     {
       #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(input);
         SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
       #endif
       // Since heightmap deformation is written into a texture, we need to limit the values to the range [0, 1]:

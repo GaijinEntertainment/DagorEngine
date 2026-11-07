@@ -4,6 +4,7 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <util/dag_string.h>
+#include <EASTL/string.h>
 #if _TARGET_PC_WIN
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
@@ -51,19 +52,19 @@ unsigned dump_proc_memory()
   GlobalMemoryStatusEx(&ms);
   PROCESS_MEMORY_COUNTERS_EX pmc = {sizeof(PROCESS_MEMORY_COUNTERS_EX)};
   GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS *)&pmc, sizeof(pmc));
-  String gpuUsed("n/a");
+  eastl::string gpuUsed("n/a");
   int presentedFrames = 1;
   if (d3d::is_inited())
   {
     uint32_t gpuUsedKb = 0;
     if (d3d::driver_command(Drv3dCommand::GET_VIDEO_MEMORY_BUDGET, nullptr, nullptr, &gpuUsedKb))
-      gpuUsed.printf(0, "%u", gpuUsedKb >> 10);
+      gpuUsed.sprintf("%u", gpuUsedKb >> 10);
     presentedFrames = d3d::driver_command(Drv3dCommand::GET_PRESENTED_FRAME_COUNT);
   }
   debug("Sys (MB): avail/total %u/%u (load %u%%); Commit avail/limit: %u/%u; "
         "Proc (MB): working set/peak/commit %u/%u/%u; GPU used (MB): %s; Presented frames: %d",
     TO_MB(ms.ullAvailPhys), TO_MB(ms.ullTotalPhys), ms.dwMemoryLoad, TO_MB(ms.ullAvailPageFile), TO_MB(ms.ullTotalPageFile),
-    TO_MB(pmc.WorkingSetSize), TO_MB(pmc.PeakWorkingSetSize), TO_MB(pmc.PrivateUsage), gpuUsed.str(), presentedFrames);
+    TO_MB(pmc.WorkingSetSize), TO_MB(pmc.PeakWorkingSetSize), TO_MB(pmc.PrivateUsage), gpuUsed.c_str(), presentedFrames);
   return TO_MB(ms.ullAvailPageFile);
 #undef TO_MB
 }

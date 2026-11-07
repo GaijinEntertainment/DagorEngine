@@ -3,6 +3,7 @@
 #include "include_dinput.h"
 #include "joy_device.h"
 #include "joy_ff_effects.h"
+#include "../hid_commonCode/joystickAxisUtils.h"
 #include <drv/hid/dag_hiDInput.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -10,8 +11,9 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
 #include <drv/hid/dag_hiXInputMappings.h>
-#include <perfMon/dag_autofuncprof.h>
+#include <perfMon/dag_autoFuncProf.h>
 #include <perfMon/dag_statDrv.h>
+#include <ioSys/dag_dataBlock.h>
 #include <stdio.h>
 
 using namespace HumanInput;
@@ -107,6 +109,19 @@ void Di8JoystickDevice::setDeviceName(const char *nm)
       break;
   name.resize(strlen(name) + 1);
   debug("[HID][DI8][%s] name set to '%s'", this->devID, (char *)name);
+}
+
+void Di8JoystickDevice::setInstanceGuid(const unsigned *guid)
+{
+  SNPRINTF(instanceGuid, sizeof(instanceGuid), "%08X%08X%08X%08X", guid[0], guid[1], guid[2], guid[3]);
+  debug("[HID][DI8][%s] instance guid %s", this->devID, instanceGuid);
+}
+
+bool Di8JoystickDevice::getDeviceDesc(DataBlock &out_desc) const
+{
+  out_desc.clearData();
+  out_desc.setStr("instanceId", instanceGuid);
+  return true;
 }
 
 
@@ -389,21 +404,6 @@ void Di8JoystickDevice::poll()
 }
 
 
-static void apply_stick_dead_zone(int &x, int &y, float dead_zone)
-{
-  float fx = float(x) / JOY_XINPUT_MAX_AXIS_VAL, fy = float(y) / JOY_XINPUT_MAX_AXIS_VAL;
-  float d = sqrtf(fx * fx + fy * fy);
-  if (d <= dead_zone || dead_zone >= 1.f)
-  {
-    x = y = 0;
-    return;
-  }
-  float s = min((d - dead_zone) / (1.f - dead_zone), 1.f) / d * JOY_XINPUT_MAX_AXIS_VAL;
-  x = (int)roundf(fx * s);
-  y = (int)roundf(fy * s);
-}
-
-
 bool Di8JoystickDevice::updateState(int dt_msec, bool def)
 {
   TIME_PROFILE(HID_DI8_updateState);
@@ -534,7 +534,7 @@ bool Di8JoystickDevice::updateState(int dt_msec, bool def)
 
     for (int s = 0; s < 2; s++)
       if (isActualGamepad && stickDeadZoneScale[s] > 0 && (int)axes.size() > s * 2 + 1)
-        apply_stick_dead_zone(*axes[s * 2].valStorage, *axes[s * 2 + 1].valStorage, getStickDeadZoneAbs(s));
+        apply_stick_deadzone(*axes[s * 2].valStorage, *axes[s * 2 + 1].valStorage, getStickDeadZoneAbs(s), JOY_XINPUT_MAX_AXIS_VAL);
 
     if (state.getKeysPressed().hasAny()) // Little trick to avoid new static bool isFirstTimePressed
       lastKeyPressedTime = ctime + (stg_joy.keyFirstRepeatDelay - stg_joy.keyRepeatDelay);

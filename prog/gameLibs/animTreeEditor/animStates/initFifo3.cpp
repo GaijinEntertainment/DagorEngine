@@ -114,7 +114,7 @@ void AnimTreeEditor::initFifo3SaveBlockSettings(PropPanel::ContainerPropertyCont
   if (paramIdx != -1)
   {
     settings.changeParamName(paramIdx, fifo3Name);
-    settings.setStr(fifo3Name, fifo3Value);
+    settings.setStr(paramIdx, fifo3Value);
   }
   else
     settings.addStr(fifo3Name, fifo3Value);

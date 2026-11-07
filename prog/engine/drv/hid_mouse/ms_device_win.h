@@ -30,6 +30,7 @@ public:
   virtual RetCode process(void *hwnd, unsigned msg, uintptr_t wParam, intptr_t lParam, intptr_t &result);
 
   void update();
+  void updatePadTouchpad();
 
   virtual void fetchLastState();
 

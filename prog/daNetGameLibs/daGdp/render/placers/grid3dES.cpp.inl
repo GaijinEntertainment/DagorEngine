@@ -55,62 +55,55 @@ static inline void grid3d_view_process_es(
   // const auto &viewInfo = evt.get<1>();
   auto &builder = dagdp__grid3d_manager.currentBuilder;
 
-  grid3d_placers_ecs_query(manager,
-    [&](ECS_REQUIRE(ecs::Tag dagdp_placer_grid3d) ecs::EntityId eid, float dagdp__density, const ecs::string &dagdp__name,
-      const Point3 &dagdp__volume_axis, bool dagdp__volume_axis_local, bool dagdp__volume_axis_abs,
-      const Point2 &dagdp__distance_based_scale, float dagdp__distance_based_range, const Point3 &dagdp__distance_based_center,
-      float dagdp__jitter, int dagdp__seed, int dagdp__csm_cascade_count = -1) {
-      auto iter = rulesBuilder.placers.find(eid);
-      if (iter == rulesBuilder.placers.end())
-        return;
+  grid3d_placers_ecs_query(manager, [&](ECS_REQUIRE(ecs::Tag dagdp_placer_grid3d) ecs::EntityId eid, float dagdp__density,
+                                      const ecs::string &dagdp__name, const Point3 &dagdp__volume_axis, bool dagdp__volume_axis_local,
+                                      float dagdp__jitter, int dagdp__seed, int dagdp__csm_cascade_count = -1) {
+    auto iter = rulesBuilder.placers.find(eid);
+    if (iter == rulesBuilder.placers.end())
+      return;
 
-      auto &placer = iter->second;
+    auto &placer = iter->second;
 
-      if (rulesBuilder.maxObjects == 0)
-      {
-        logerr("daGdp: %s is disabled, as the max. objects setting is 0", dagdp__name);
-        return;
-      }
+    if (rulesBuilder.maxObjects == 0)
+    {
+      logerr("daGdp: %s is disabled, as the max. objects setting is 0", dagdp__name);
+      return;
+    }
 
-      if (dagdp__density <= 0.0f)
-      {
-        logerr("daGdp: %s has invalid density", dagdp__name);
-        return;
-      }
+    if (dagdp__density <= 0.0f)
+    {
+      logerr("daGdp: %s has invalid density", dagdp__name);
+      return;
+    }
 
-      const float density = dagdp__density * GlobalManager::clampedGlobalDensityMul();
+    const float density = dagdp__density * GlobalManager::clampedGlobalDensityMul();
 
-      const uint32_t placerIndex = builder.placers.size();
-      auto &placer3d = builder.placers.push_back();
-      placer3d.density = density;
-      placer3d.worldStep = powf(density, -1.0f / 3);
-      placer3d.csmCascadeCount = dagdp__csm_cascade_count;
-      placer3d.axis = dagdp__volume_axis;
-      placer3d.axisLocal = dagdp__volume_axis_local;
-      placer3d.axisAbs = dagdp__volume_axis_abs;
-      placer3d.distBasedScale = dagdp__distance_based_scale;
-      placer3d.distBasedRange = dagdp__distance_based_range;
-      placer3d.distBasedCenter = dagdp__distance_based_center;
-      placer3d.gridJitter = dagdp__jitter;
-      placer3d.prngSeed = dagdp__seed;
+    const uint32_t placerIndex = builder.placers.size();
+    auto &placer3d = builder.placers.push_back();
+    placer3d.worldStep = powf(density, -1.0f / 3);
+    placer3d.csmCascadeCount = dagdp__csm_cascade_count;
+    placer3d.axis = dagdp__volume_axis;
+    placer3d.axisLocal = dagdp__volume_axis_local;
+    placer3d.gridJitter = dagdp__jitter;
+    placer3d.prngSeed = dagdp__seed;
 
-      for (const auto objectGroupEid : placer.objectGroupEids)
-      {
-        auto iter = rulesBuilder.objectGroups.find(objectGroupEid);
-        if (iter == rulesBuilder.objectGroups.end())
-          continue;
-        auto &group = placer3d.objectGroups.push_back();
-        group.info = &iter->second;
-        group.effectiveDensity = 1;
-      }
+    for (const auto objectGroupEid : placer.objectGroupEids)
+    {
+      auto iter = rulesBuilder.objectGroups.find(objectGroupEid);
+      if (iter == rulesBuilder.objectGroups.end())
+        continue;
+      auto &group = placer3d.objectGroups.push_back();
+      group.info = &iter->second;
+      group.effectiveDensity = 1;
+    }
 
-      float maxDrawDistance = 0;
-      for (const auto &objectGroup : placer3d.objectGroups)
-        maxDrawDistance = eastl::max(maxDrawDistance, objectGroup.info->maxDrawDistance);
-      placer3d.maxDrawDistance = maxDrawDistance;
+    float maxDrawDistance = 0;
+    for (const auto &objectGroup : placer3d.objectGroups)
+      maxDrawDistance = eastl::max(maxDrawDistance, objectGroup.info->maxDrawDistance);
+    placer3d.maxDrawDistance = maxDrawDistance;
 
-      builder.mapping.insert({eid, placerIndex});
-    });
+    builder.mapping.insert({eid, placerIndex});
+  });
 }
 
 static bbox3f calc_frustum_box(const Frustum &frustum, const Point3 &worldPos, vec4f range)
@@ -199,6 +192,7 @@ void gather(dag::ConstSpan<Grid3dPlacer> placers,
     volume.axis = normalize(axis);
     volume.volumeType = volume_type;
     volume.variantIndex = placerIndex;
+    volume.discardBelowY = -FLT_MAX;
     out_boxes.emplace_back(volBox);
   };
 
@@ -239,26 +233,13 @@ ECS_NO_ORDER static inline void grid3d_view_finalize_es(const dagdp::EventViewFi
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_ON_EVENT(on_disappear)
-ECS_TRACK(dagdp__name,
-  dagdp__density,
-  dagdp__volume_axis,
-  dagdp__volume_axis_local,
-  dagdp__volume_axis_abs,
-  dagdp__distance_based_scale,
-  dagdp__distance_based_range,
-  dagdp__distance_based_center,
-  dagdp__jitter,
-  dagdp__seed,
-  dagdp__csm_cascade_count)
+ECS_TRACK(
+  dagdp__name, dagdp__density, dagdp__volume_axis, dagdp__volume_axis_local, dagdp__jitter, dagdp__seed, dagdp__csm_cascade_count)
 ECS_REQUIRE(ecs::Tag dagdp_placer_grid3d,
   const ecs::string &dagdp__name,
   float dagdp__density,
   const Point3 &dagdp__volume_axis,
   bool dagdp__volume_axis_local,
-  bool dagdp__volume_axis_abs,
-  const Point2 &dagdp__distance_based_scale,
-  float dagdp__distance_based_range,
-  const Point3 &dagdp__distance_based_center,
   float dagdp__jitter,
   int dagdp__seed,
   int dagdp__csm_cascade_count)

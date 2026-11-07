@@ -1,0 +1,2 @@
+parameter 1 of 'slice' has an invalid type 'string' ; expected: 'integer|float'
+type 'integer' differs from the declared type 'class'

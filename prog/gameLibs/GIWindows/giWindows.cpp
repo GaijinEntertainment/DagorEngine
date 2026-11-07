@@ -30,6 +30,14 @@
 GLOBAL_VARS_OPTIONAL_LIST
 #undef VAR
 
+static void recreate_sr_buffer(UniqueBufWithShaderVar &buf, int &capacity, size_t need, uint32_t elem_size, const char *name,
+  const char *var_name, d3d::buffers::Init init)
+{
+  capacity = max(256, max((int)need, capacity * 2));
+  buf.close();
+  buf = UniqueBufWithShaderVar(dag::buffers::create_persistent_sr_structured(elem_size, capacity, name, init, RESTAG_DAGI), var_name);
+}
+
 void GIWindows::updatePos(const Point3 &pos_)
 {
   if (!windows)
@@ -63,15 +71,8 @@ void GIWindows::updatePos(const Point3 &pos_)
     return;
   currentCount = -1;
   if (activeList.size() && bufferCount < activeList.size())
-  {
-    bufferCount = max((int)256, max((int)activeList.size(), (int)bufferCount * 2));
-
-    currentWindowsSB.close();
-    currentWindowsSB = UniqueBufWithShaderVar(dag::buffers::create_persistent_sr_structured(sizeof(Window), bufferCount,
-                                                "currentWindowsList", d3d::buffers::Init::No, RESTAG_DAGI),
-      "windows");
-    currentWindowsSB.setVar();
-  }
+    recreate_sr_buffer(currentWindowsSB, bufferCount, activeList.size(), sizeof(Window), "currentWindowsList", "windows",
+      d3d::buffers::Init::Zero);
   return validate();
 }
 
@@ -127,14 +128,8 @@ bool GIWindows::calc()
     }
 
   if (currentIndSize < cBox.size() || !currentWindowsSBInd.getBuf())
-  {
-    currentIndSize = max((int)256, max((int)cBox.size(), (int)currentIndSize * 2));
-    currentWindowsSBInd.close();
-    currentWindowsSBInd = UniqueBufWithShaderVar(dag::buffers::create_persistent_sr_structured(sizeof(uint32_t), currentIndSize,
-                                                   "currentWindowsListInd", d3d::buffers::Init::No, RESTAG_DAGI),
-      "windows_grid_ind");
-    currentWindowsSBInd.setVar();
-  }
+    recreate_sr_buffer(currentWindowsSBInd, currentIndSize, cBox.size(), sizeof(uint32_t), "currentWindowsListInd", "windows_grid_ind",
+      d3d::buffers::Init::No);
 
   if (cBox.empty() || !currentWindowsSBInd.getBuf()->updateData(0, cBox.size() * sizeof(uint32_t), cBox.data(), VBLOCK_WRITEONLY))
   {
@@ -224,10 +219,10 @@ void GIWindows::init(eastl::unique_ptr<class scene::TiledScene> &&s)
   windows->rearrange(128.f); // todo: may be better tile heuresitcs
   if (!gridCntSB)
     gridCntSB = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), 1, "gridCntSB", d3d::buffers::Init::No, RESTAG_DAGI);
-  currentGridSize = WINDOW_GRID_XZ * WINDOW_GRID_Y * WINDOW_GRID_XZ * 2;
   if (!currentWindowsGridSB.getBuf())
-    currentWindowsGridSB = UniqueBufWithShaderVar(dag::buffers::create_ua_sr_structured(sizeof(uint32_t), currentGridSize,
-                                                    "currentWindowsGrid", d3d::buffers::Init::No, RESTAG_DAGI),
+    currentWindowsGridSB = UniqueBufWithShaderVar(
+      dag::buffers::create_ua_sr_structured(sizeof(uint32_t), WINDOW_GRID_XZ * WINDOW_GRID_Y * WINDOW_GRID_XZ * 2,
+        "currentWindowsGrid", d3d::buffers::Init::Zero, RESTAG_DAGI),
       "windowsGrid");
   currentWindowsGridSB.setVar();
   fill_windows_grid_range.reset(new_compute_shader("fill_windows_grid_range_cs"));

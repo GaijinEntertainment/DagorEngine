@@ -1,6 +1,6 @@
 include "node_based_common.dshl"
 include "clouds2/clouds_bsm_macros.dshl"
-// node based dumps link to its globals; constraint: the asset tools can lack the root of prog/gameLibs
+// node based dumps link to its globals; the asset tools can lack the root of prog/gameLibs
 include "../raytracedToroidalStaticShadow/shaders/rtss_static_shadow.dshl"
 
 float clouds_start_altitude2;

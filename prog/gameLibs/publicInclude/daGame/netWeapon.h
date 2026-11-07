@@ -6,11 +6,12 @@
 
 #include <gamePhys/phys/weaponState.h>
 #include <gamePhys/common/loc.h>
+#include "netPayload.h"
 
 #include "math/dag_Point3.h"
 #include "math/dag_TMatrix.h"
 
-class NetWeapon
+class NetWeapon : public NetPayload
 {
 public:
   struct Turret
@@ -27,8 +28,6 @@ public:
   virtual void restoreWeaponState(const WeaponState &saved_state) = 0;
   virtual bool correctInternalState(const WeaponState &incoming_state, const WeaponState &matching_state) = 0;
   virtual void onGunStateChanged(const WeaponState &previous_state) = 0;
-  virtual float getWeaponMass(Point3 &cm) const = 0;
-  virtual float getWeaponDragX() const = 0;
   virtual void updateFm(bool is_for_real) = 0;
   virtual bool getTurret(Turret &out_turret) const = 0;
 };

@@ -1,3 +1,5 @@
+#include <viewport_ellipse.hlsl>
+
 #if NBS_SHADER
   #define camera_in_camera_prev_minus_vp_ellipse_center (-(camera_in_camera_prev_vp_ellipse_center.xy))
   #define camera_in_camera_prev_vp_ellipse_x_axis       (camera_in_camera_prev_vp_ellipse_xy_axes.xy)
@@ -49,16 +51,7 @@ bool camera_has_sub_view()
 
 CameraView get_camera_view_internal(float2 uv, float2 minus_vp_ellipse_center, float2 vp_ellipse_x_axis, float2 vp_ellipse_y_axis)
 {
-  float2 dr = float2(
-    uv.x + minus_vp_ellipse_center.x,
-    uv.y * camera_in_camera_vp_y_scale + minus_vp_ellipse_center.y
-  );
-
-  float2 xy = float2(
-    dot(dr, vp_ellipse_x_axis),
-    dot(dr, vp_ellipse_y_axis));
-
-  float r2 = lengthSq(xy);
+  float r2 = viewport_ellipse_r2(uv, minus_vp_ellipse_center, camera_in_camera_vp_y_scale, vp_ellipse_x_axis, vp_ellipse_y_axis);
 
   CameraView view;
   view.isMain = r2 > 1.0;
@@ -189,6 +182,18 @@ bool is_wrong_camera_view_area_postfx(float2 uv)
   return is_wrong_camera_view_area_postfx(uv, stub);
 }
 
+#define DISCARD_IF_TILE_INVALID_VIEW_AREA_PS(tile_uv_lt, tile_uv_size)                      \
+BRANCH                                                                                      \
+if (camera_in_camera_active != 0.0)                                                         \
+{                                                                                           \
+  CameraView stub;                                                                          \
+  if (is_wrong_camera_view_area_postfx(tile_uv_lt, stub) &&                                 \
+      is_wrong_camera_view_area_postfx((tile_uv_lt) + float2((tile_uv_size).x, 0), stub) && \
+      is_wrong_camera_view_area_postfx((tile_uv_lt) + float2(0, (tile_uv_size).y), stub) && \
+      is_wrong_camera_view_area_postfx((tile_uv_lt) + (tile_uv_size), stub))                \
+    discard;                                                                                \
+}
+
 bool invalidate_mvec_to_invalid_view_area(float2 uv, inout float2 motion_vec)
 {
   BRANCH
@@ -221,6 +226,7 @@ void move_uv_to_offscreen_if_not_eq_views(inout float2 uv, CameraView v1, Camera
 #else
 
 #define DISCARD_IF_INVALID_VIEW_AREA_PS(uv) {}
+#define DISCARD_IF_TILE_INVALID_VIEW_AREA_PS(tile_uv_lt, tile_uv_size) {}
 #define DISCARD_IF_INVALID_VIEW_AREA_CS(uv) {}
 #define DISCARD_GROUP_IN_INVALID_VIEW_AREA(lds_var, uv, out_view_type) \
 {                                                                      \

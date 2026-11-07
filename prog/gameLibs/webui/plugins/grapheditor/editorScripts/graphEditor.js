@@ -800,9 +800,11 @@ function Element()
       {
         for (var j = 0; j < this.propValues.length; j++)
         {
-          var replaceFrom = "%" + this.desc.properties[j].name + "%";
-          var replaceTo = this.propValues[j];
-          caption = caption.split(replaceFrom).join(replaceTo);
+          var prop = this.desc.properties[j];
+          var value = this.propValues[j];
+          caption = caption.split("%" + prop.name + "%").join(value);
+          if (prop.displayMap)
+            caption = caption.split("%" + prop.name + ":display%").join(prop.displayMap[value] || "unset");
         }
 
         for (var j = 0; j < texts.length; j++)
@@ -4596,7 +4598,7 @@ function GraphEditor()
       for (var i = 0; i < externals.length; i++)
         delete externals[i].sortOrder;
 
-      // constraint: keys on equal uids, so it runs before the pass below renames a repeat
+      // keys on equal uids, so it runs before the pass below renames a repeat
       for (var i = 0; i < externals.length; i++)
       {
         var markerOf = externals[i].markerElem;

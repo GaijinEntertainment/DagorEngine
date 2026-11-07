@@ -91,8 +91,6 @@ public:
     AnimcharAdditionalDataView(static_cast<const dag::ConstSpan<Point4>>(data))
   {}
 
-  bool is_null() const { return this == &NULL_METADATA; }
-
   // null is when only metadata exists, no real additional data
   static AnimcharAdditionalDataView get_null() { return NULL_METADATA; }
 

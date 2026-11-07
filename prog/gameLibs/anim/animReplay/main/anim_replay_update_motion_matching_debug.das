@@ -49,6 +49,8 @@ def update_play_speed_mult_from_current_speed(next_time_idx : int;
                                               timestamps : FloatList;
                                               animchar_data : Object;
                                               var controller : MotionMatchingController)
+  if next_time_idx < 1
+    return
   let mmTrajectoryLinearVelocity = get_ecs_Point3List(animchar_data, "mmTrajectoryLinearVelocity")
   let mmTrajectoryAngularVelocity = get_ecs_Point3List(animchar_data, "mmTrajectoryAngularVelocity")
   let dt = timestamps[next_time_idx] - timestamps[next_time_idx - 1]
@@ -170,7 +172,7 @@ def anim_replay_update_motion_matching(evt : UpdateStageInfoAct;
         anim_replay__prevMMTransitionFrame = -1
       var nextTransitionIdx = lower_bound(mmTransitionTime, t)
       var enabledRangeIdx = lower_bound(mmEnabledRanges, float2(0, t)) <| $(left, right)
-        return left.y < right.y
+        return left.y <= right.y
       var mmEnabledRange = mmEnabledRanges?[enabledRangeIdx] ?? float2(FLT_MAX, FLT_MAX)
       while t < anim_replay__currentTime
         let nextTransitionTime = mmTransitionTime?[nextTransitionIdx] ?? FLT_MAX

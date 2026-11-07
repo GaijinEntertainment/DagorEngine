@@ -10,7 +10,6 @@ include "wetness_inc.dshl"
 include "optional_puddle_access.dshl"
 include "toroidal_heightmap.dshl"
 include "heightmap_ofs.dshl"
-include "deform_hmap_common.dshl"
 include "pn_triangulation.dshl"
 include "heightmap_tessellation_inc.dshl"
 include "tessellation_intervals_inc.dshl"
@@ -102,19 +101,10 @@ shader rendinst_clipmap, rendinst_landclass
     }
     INIT_PN_TRIANGULATION(false)
   }
-  else if (grassify_enabled)
-  {
-    INIT_PUDDLE(vs)
-    USE_PUDDLE(vs)
-  }
   else
   {
     INIT_PUDDLE(vs)
     USE_PUDDLE(vs)
-    INIT_DEFORM_HMAP(vs)
-    USE_DEFORM_HMAP(vs)
-    INIT_HEIGHTMAP_OFS(vs)
-    USE_HEIGHTMAP_OFS(vs)
   }
 
   assume instancing_type = tm_vb;
@@ -512,10 +502,6 @@ shader rendinst_clipmap, rendinst_landclass
   {
     INIT_PUDDLE(vs)
     USE_PUDDLE(ds)
-    INIT_HEIGHTMAP_OFS(vs)
-    USE_HEIGHTMAP_OFS(ds)
-    INIT_DEFORM_HMAP(vs)
-    USE_DEFORM_HMAP(ds)
 
     if (in_editor_assume == yes)
     {
@@ -532,6 +518,7 @@ shader rendinst_clipmap, rendinst_landclass
       max_dispacement_distance@f1 = (max_dispacement_distance);
       tessellation_transition_distance@f1 = (tessellation_transition_distance);
       displacement_diff_inv@f1 = (1.0 / (max_dispacement_distance - min_dispacement_distance));
+      world_to_hmap_tex_ofs@f4 = (world_to_hmap_tex_ofs.x, world_to_hmap_tex_ofs.y, hmap_displacement_up-hmap_displacement_down, hmap_displacement_down);
     }
 
     hlsl

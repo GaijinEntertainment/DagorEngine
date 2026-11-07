@@ -2,31 +2,16 @@
 #pragma once
 
 #include "animCtrlData.h"
-#include "../blendNodes/blendNodeData.h"
-#include <propPanel/control/listBoxInterface.h>
-#include <propPanel/control/menu.h>
+#include "../nodeListEventHandler.h"
 
-namespace PropPanel
-{
-class ContainerPropertyControl;
-} // namespace PropPanel
-
-class DagorAsset;
-class AnimTreeEditor;
-
-class CtrlListSettingsEventHandler : public PropPanel::IListBoxControlEventHandler, public PropPanel::IMenuEventHandler
+class CtrlListSettingsEventHandler : public NodeListEventHandler
 {
 public:
-  CtrlListSettingsEventHandler(dag::Vector<AnimCtrlData> &controllers, dag::Vector<BlendNodeData> &nodes);
+  CtrlListSettingsEventHandler(dag::Vector<AnimCtrlData> &controllers);
   bool onListBoxContextMenu(int pcb_id, PropPanel::IListBoxInterface &list_box_interface) override;
-  int onMenuItemClick(unsigned id) override;
-  void setEventHandler(PropPanel::ContainerPropertyControl *panel, AnimTreeEditor *event_handler);
-  void editSelectedNode();
 
 private:
-  dag::Vector<AnimCtrlData> &controllers;
-  dag::Vector<BlendNodeData> &nodes;
+  void editSelectedNode() override;
 
-  PropPanel::ContainerPropertyControl *pluginPanel = nullptr;
-  AnimTreeEditor *eventHandler = nullptr;
+  dag::Vector<AnimCtrlData> &controllers;
 };

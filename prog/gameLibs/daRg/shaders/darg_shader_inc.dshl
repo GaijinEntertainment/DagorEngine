@@ -20,7 +20,7 @@ macro DARG_PIXEL_SHADER_SETUP()
   z_test = false;
   z_write = false;
   cull_mode = none;
-  blend_src = sa; blend_dst = isa;
+  blend_src = one; blend_dst = isa; // darg_ps output is premultiplied
 
   POSTFX_VS_TEXCOORD(0, texcoord)
 

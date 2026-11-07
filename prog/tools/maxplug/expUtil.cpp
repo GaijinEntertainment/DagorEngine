@@ -14,9 +14,14 @@
 #include <cs/phyexp.h>
 #include <meshnormalspec.h>
 #include <impexp.h>
+#include <notify.h>
+#include <cstdint>
 #include <format>
 #include <functional>
+#include <new>
+#include <optional>
 #include <string_view>
+#include <type_traits>
 #include "comboBoxHelper.h"
 #include "dagor.h"
 #include "dagorLogWindow.h"
@@ -76,6 +81,8 @@ void scale_matrix(Matrix3 &tm)
   float masterScale = static_cast<float>(GetSystemUnitScale(UNITS_METERS));
   tm.SetTrans(tm.GetTrans() * masterScale);
 }
+
+class DagFileNames;
 
 class ExpUtil : public UtilityObj
 {
@@ -147,10 +154,10 @@ public:
   void warningMessage(const TCHAR *msg, const TCHAR *title = NULL);
 
 private:
-  void exportObjectsAsDagsInternal(const fs::path &folder, INode &node);
+  void exportObjectsAsDagsInternal(DagFileNames &files, INode &node);
   void exportObjectsAsDags();
-  void exportLayerAsDag(const fs::path &folder, ILayer &layer);
-  void exportLayersAsDagsInternal(const fs::path &folder, ILayer &layer);
+  void exportLayerAsDag(DagFileNames &files, ILayer &layer);
+  void exportLayersAsDagsInternal(DagFileNames &files, ILayer &layer);
   void exportLayersAsDags();
 
   ToolTipExtender tooltipExtender;
@@ -321,6 +328,34 @@ IOResult ExpUtilDesc::Save(ISave *io)
   io->EndChunk();
 
   return IO_OK;
+}
+
+static bool exportPathResetRegistered = false;
+
+static void reset_export_paths(void *, NotifyInfo *)
+{
+  util.exp_fname.clear();
+  util.exp_anim2_fname.clear();
+  util.exp_phys_fname.clear();
+  util.exp_instances_fname.clear();
+}
+
+void register_export_path_reset()
+{
+  if (exportPathResetRegistered)
+    return;
+  exportPathResetRegistered = true;
+  RegisterNotification(reset_export_paths, nullptr, NOTIFY_FILE_PRE_OPEN);
+  RegisterNotification(reset_export_paths, nullptr, NOTIFY_SYSTEM_PRE_NEW);
+  RegisterNotification(reset_export_paths, nullptr, NOTIFY_SYSTEM_PRE_RESET);
+}
+
+void unregister_export_path_reset()
+{
+  if (!exportPathResetRegistered)
+    return;
+  exportPathResetRegistered = false;
+  UnRegisterNotification(reset_export_paths, nullptr);
 }
 
 IOResult ExpUtilDesc::Load(ILoad *io)
@@ -686,7 +721,7 @@ void ExpUtil::update_tooltips()
   }
 
   tooltipExtender.SetToolTip(expmode, _T("Export one file."));
-  tooltipExtender.SetToolTip(exphidden, _T("Export hidden objects"));
+  tooltipExtender.SetToolTip(exphidden, L"Export hidden objects\n(a layered export also writes the files of hidden layers)");
   tooltipExtender.SetToolTip(expsel, _T("Export only selected objects"));
 }
 
@@ -831,55 +866,92 @@ int ExpUtil::input_exp_instances_fname()
   return get_save_filename(hExpOther, _T("Save instances placement..."), fl, _T("blk"), exp_instances_fname);
 }
 
-// isolate struct Block to avoid linker confusion with struct Block in dagimp.cpp
 namespace
 {
-struct Block
+class DagWriter
 {
-  int ofs;
+public:
+  DagWriter() = default;
+  DagWriter(const DagWriter &) = delete;
+  DagWriter &operator=(const DagWriter &) = delete;
+
+  void write(const void *data, size_t size)
+  {
+    const uint8_t *bytes = static_cast<const uint8_t *>(data);
+    buf.insert(buf.end(), bytes, bytes + size);
+  }
+
+  template <class T>
+  void writeValue(const T &value)
+  {
+    writeArray(&value, 1);
+  }
+
+  template <class T>
+  void writeArray(const T *data, size_t count)
+  {
+    static_assert(std::is_trivially_copyable_v<T>);
+    write(data, count * sizeof(T));
+  }
+
+  template <class T, class V>
+  void writeAs(const V &value)
+  {
+    static_assert(std::is_unsigned_v<T>);
+    static_assert(!std::is_floating_point_v<V>);
+    writeValue(static_cast<T>(value));
+  }
+
+  void writeString(std::string_view str)
+  {
+    const size_t len = std::min<size_t>(str.size(), 255);
+    writeAs<uint8_t>(len);
+    write(str.data(), len);
+  }
+
+  bool writeTo(FILE *file) const { return buf.empty() || fwrite(buf.data(), buf.size(), 1, file) == 1; }
+
+  class [[nodiscard]] Block
+  {
+  public:
+    Block(DagWriter &writer, uint32_t id) : writer(writer)
+    {
+      writer.writeAs<uint32_t>(0u);
+      writer.writeAs<uint32_t>(id);
+      bodyOfs = writer.buf.size();
+    }
+
+    ~Block()
+    {
+      const uint32_t size = static_cast<uint32_t>(writer.buf.size() - bodyOfs + 4);
+      memcpy(writer.buf.data() + bodyOfs - 8, &size, sizeof(size));
+    }
+
+    Block(const Block &) = delete;
+    Block &operator=(const Block &) = delete;
+
+  private:
+    DagWriter &writer;
+    size_t bodyOfs;
+  };
+
+private:
+  std::vector<uint8_t> buf;
+};
+
+template <class F>
+class [[nodiscard]] OnExit
+{
+public:
+  explicit OnExit(F f) : f(std::move(f)) {}
+  ~OnExit() { f(); }
+  OnExit(const OnExit &) = delete;
+  OnExit &operator=(const OnExit &) = delete;
+
+private:
+  F f;
 };
 } // namespace
-
-static Tab<Block> blk;
-static FILE *fileh = NULL;
-
-static void init_blk(FILE *h)
-{
-  blk.SetCount(0);
-  fileh = h;
-}
-
-static int begin_blk(int t)
-{
-  int n = 4;
-  if (fwrite(&n, 4, 1, fileh) != 1)
-    return 0;
-  if (fwrite(&t, 4, 1, fileh) != 1)
-    return 0;
-  Block b;
-  b.ofs = ftell(fileh);
-  n = blk.Count();
-  blk.Append(1, &b);
-  if (blk.Count() != n + 1)
-    return 0;
-  return 1;
-}
-
-static int end_blk()
-{
-  int i = blk.Count() - 1;
-  if (i < 0)
-    return 0;
-  int o = ftell(fileh);
-  fseek(fileh, blk[i].ofs - 8, SEEK_SET);
-  int n = o - blk[i].ofs + 4;
-  if (fwrite(&n, 4, 1, fileh) != 1)
-    return 0;
-  blk.Delete(i, 1);
-  fseek(fileh, o, SEEK_SET);
-  return 1;
-}
-
 
 static inline void adjwtm(Matrix3 &tm)
 {
@@ -950,26 +1022,14 @@ public:
 
 struct ExpNode
 {
-  Tab<ExpNode *> child;
-  ExpNode *parent;
+  std::vector<ExpNode *> child;
+  ExpNode *parent = nullptr;
   ushort id;
 
-  ExpNode(int i)
-  {
-    id = i;
-    parent = NULL;
-  }
-  ~ExpNode()
-  {
-    for (int i = 0; i < child.Count(); ++i)
-      if (child[i])
-        delete (child[i]);
-  }
+  explicit ExpNode(int i) : id(static_cast<ushort>(i)) {}
   void add_child(ExpNode *n)
   {
-    if (!n)
-      return;
-    child.Append(1, &n);
+    child.push_back(n);
     n->parent = this;
   }
 };
@@ -990,6 +1050,8 @@ static bool any_explicit_normals_set(const MeshNormalSpec *normalSpec)
   return false;
 #endif
 }
+
+static bool exported_map_channel(Mesh &m, int ch) { return m.mapSupport(ch) && m.mapFaces(ch) && m.getNumMapVerts(ch) > 0; }
 
 static bool is_blank(wchar_t c) { return c == L' ' || c == L'\t'; }
 
@@ -1536,24 +1598,6 @@ public:
     return single_mtl_idx >= 0 ? (MtlID)single_mtl_idx : face_mtl_id;
   }
 
-#define wr(p, l)                   \
-  {                                \
-    if (l > 0)                     \
-      if (fwrite(p, l, 1, h) != 1) \
-        return 0;                  \
-  }
-
-#define bblk(id)        \
-  {                     \
-    if (!begin_blk(id)) \
-      return 0;         \
-  }
-#define eblk        \
-  {                 \
-    if (!end_blk()) \
-      return 0;     \
-  }
-
   bool checkDegenerateTriangle(INode *node, Matrix3 &applied_transform, unsigned int index1, unsigned int index2, unsigned int index3,
     Point3 &vertex1, Point3 &vertex2, Point3 &vertex3);
 
@@ -1589,7 +1633,7 @@ public:
       script.replace(named.data() - script.data(), named.size(), blk_escape(survivor));
   }
 
-  int save_node(ExpNode *enod, FILE *h)
+  bool save_node(ExpNode *enod, DagWriter &w)
   {
 
     float masterScale = static_cast<float>(GetSystemUnitScale(UNITS_METERS));
@@ -1603,17 +1647,17 @@ public:
     else
       originTm.IdentityMatrix();
 
-    bblk(DAG_NODE);
+    DagWriter::Block nodeBlk(w, DAG_NODE);
     INode *n = node[enod->id];
     INode *pnode = NULL;
     {
-      bblk(DAG_NODE_DATA);
+      DagWriter::Block nodeDataBlk(w, DAG_NODE_DATA);
       DagNodeData d;
       uint pid = enod->parent->id;
       if (pid < node.Count())
         pnode = node[pid];
       d.id = enod->id;
-      d.cnum = enod->child.Count();
+      d.cnum = static_cast<unsigned short>(enod->child.size());
       d.flg = 0;
       if (n->Renderable())
         d.flg |= DAG_NF_RENDERABLE;
@@ -1630,18 +1674,18 @@ public:
         else
           d.flg &= ~DAG_NF_CASTSHADOW;
       }
-      wr(&d, sizeof(d));
+      w.writeValue(d);
       const TCHAR *nm = n->GetName();
       if (nm)
       {
         std::string nameCopy = wideToStr(nm);
-        wr(nameCopy.data(), nameCopy.size());
+        w.write(nameCopy.data(), nameCopy.size());
       }
-      eblk;
     }
 
     {
-      RollupPanel::correctUserProp(n);
+      if (!RollupPanel::correctUserProp(n))
+        explogWarning(L"'%s' has object properties that cannot be read as .blk, so they are exported unchanged\r\n", n->GetName());
 
       TSTR s;
       n->GetUserPropBuffer(s);
@@ -1653,9 +1697,8 @@ public:
         rewriteApexInteriorMaterial(trimmed);
 
       std::string scr = wideToStr(trimmed);
-      bblk(DAG_NODE_SCRIPT);
-      wr(scr.c_str(), scr.length());
-      eblk;
+      DagWriter::Block nodeScriptBlk(w, DAG_NODE_SCRIPT);
+      w.write(scr.c_str(), scr.length());
     }
     Tab<int> subMatIdLUT;
     if (util.expflg & EXP_MAT)
@@ -1695,10 +1738,9 @@ public:
 
         if (uniqueMatIdx.Count())
         {
-          bblk(DAG_NODE_MATER);
+          DagWriter::Block nodeMaterBlk(w, DAG_NODE_MATER);
           for (int x = 0; x < uniqueMatIdx.Count(); ++x)
-            wr(&uniqueMatIdx[x], 2);
-          eblk;
+            w.writeAs<uint16_t>(uniqueMatIdx[x]);
         }
         else
           subMatIdLUT.SetCount(0);
@@ -1710,16 +1752,15 @@ public:
           num = matIDtoMatIdx[num];
         if (num >= 0)
         {
-          bblk(DAG_NODE_MATER);
-          wr(&num, 2);
-          eblk;
+          DagWriter::Block nodeMaterBlk(w, DAG_NODE_MATER);
+          w.writeAs<uint16_t>(num);
         }
       }
     }
     {
       Matrix3 ntm = get_scaled_stretch_node_tm(n, time);
       adjwtm(ntm);
-      bblk(DAG_NODE_TM);
+      DagWriter::Block nodeTmBlk(w, DAG_NODE_TM);
       Matrix3 ptm;
       if (n == useIdentityTransformForNode)
       {
@@ -1741,8 +1782,7 @@ public:
       else
         ptm.IdentityMatrix();
       ptm = ntm * Inverse(ptm);
-      wr(ptm.GetAddr(), 4 * 3 * 4);
-      eblk;
+      w.writeArray(ptm.GetAddr(), 4);
     }
     const ObjectState &os = n->EvalWorldState(time);
     if (os.obj)
@@ -1750,734 +1790,674 @@ public:
       if (os.obj->ClassID() == Dummy_CID)
         ; // no-op
       else if ((util.expflg & EXP_LT) && os.obj->SuperClassID() == LIGHT_CLASS_ID)
-      {
-        GenLight *o = dynamic_cast<GenLight *>(os.obj);
-        if (o)
-        {
-          DagLight d;
-          DagLight2 d2;
-          Color col = o->GetRGBColor(time) * o->GetIntensity(time);
-          d.r = col.r;
-          d.g = col.g;
-          d.b = col.b;
-          d.drad = o->GetDecayRadius(time);
-          d.range = o->GetAtten(time, ATTEN_END);
-          d.decay = o->GetDecayType();
-          d2.mult = o->GetIntensity(time);
-          d2.falloff = o->GetFallsize(time);
-          d2.hotspot = o->GetHotspot(time);
-          switch (o->Type())
-          {
-            case TSPOT_LIGHT:
-            case FSPOT_LIGHT: d2.type = DAG_LIGHT_SPOT; break;
-            case DIR_LIGHT:
-            case TDIR_LIGHT: d2.type = DAG_LIGHT_DIR; break;
-            default: d2.type = DAG_LIGHT_OMNI; break;
-          }
-          bblk(DAG_NODE_OBJ);
-          bblk(DAG_OBJ_LIGHT);
-          wr(&d, sizeof(d));
-          wr(&d2, sizeof(d2));
-          eblk;
-          eblk;
-        }
-        else
-        {
-          hasNonDagorLights = true;
-          DagorLogWindow::show();
-          DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning, _T("The light source '%s' is ignored.\r\n"), n->GetName());
-        }
-      }
+        save_light(w, n, os);
       else if ((util.expflg & EXP_SPLINE) && os.obj->SuperClassID() == SHAPE_CLASS_ID)
-      {
-        ShapeObject *shobj = (ShapeObject *)os.obj;
-        if (shobj->CanMakeBezier())
-        {
-          Matrix3 otm;
-          otm = get_scaled_object_tm(n, time);
-          otm = otm * Inverse(get_scaled_stretch_node_tm(n, time));
-          BezierShape shp;
-          shobj->MakeBezier(time, shp);
-          bblk(DAG_NODE_OBJ);
-          bblk(DAG_OBJ_SPLINES);
-          int ns = shp.SplineCount();
-          wr(&ns, 4);
-          for (int si = 0; si < ns; ++si)
-          {
-            Spline3D &s = *shp.GetSpline(si);
-            assert(&s);
-            char flg = s.Closed() ? DAG_SPLINE_CLOSED : 0;
-            wr(&flg, 1);
-            int nk = s.KnotCount();
-            wr(&nk, 4);
-            for (int ki = 0; ki < nk; ++ki)
-            {
-              char kt;
-              switch (s.GetKnotType(ki))
-              {
-                case KTYPE_AUTO: kt = 0; break;
-                case KTYPE_BEZIER: kt = DAG_SKNOT_BEZIER; break;
-                case KTYPE_CORNER: kt = DAG_SKNOT_CORNER; break;
-                case KTYPE_BEZIER_CORNER: kt = DAG_SKNOT_BEZIER | DAG_SKNOT_CORNER; break;
-                default: kt = DAG_SKNOT_BEZIER | DAG_SKNOT_CORNER; break;
-              }
-              wr(&kt, 1);
-              Point3 p;
-              p = (s.GetVert(ki * 3) * masterScale) * otm;
-              wr(&p, 3 * 4);
-              p = (s.GetVert(ki * 3 + 1) * masterScale) * otm;
-              wr(&p, 3 * 4);
-              p = (s.GetVert(ki * 3 + 2) * masterScale) * otm;
-              wr(&p, 3 * 4);
-            }
-          }
-          eblk;
-          eblk;
-        }
-      }
+        save_splines(w, n, os, masterScale);
       else if ((util.expflg & EXP_MESH) && os.obj->SuperClassID() == GEOMOBJECT_CLASS_ID &&
                os.obj->CanConvertToType(Class_ID(TRIOBJ_CLASS_ID, 0)))
       {
-        int modon = 0, numvert = 0;
-        bool skinmod = false;
-        bool physiqueMod = false;
-        bool morpherMod = false;
-        struct RestoreModOnExit
-        {
-          INode *n;
-          bool restore_prop_WSM, restore_obj_ref;
-
-          RestoreModOnExit(INode *n_) : n(n_), restore_prop_WSM(false), restore_obj_ref(false) {}
-          ~RestoreModOnExit()
-          {
-            if (restore_prop_WSM)
-            {
-              IDerivedObject &der = *(IDerivedObject *)n->GetProperty(PROPID_HAS_WSM);
-              der.GetModifier(der.NumModifiers() - 1)->EnableMod();
-            }
-            else if (restore_obj_ref)
-            {
-              IDerivedObject &der = *(IDerivedObject *)n->GetObjectRef();
-              der.GetModifier(der.NumModifiers() - 1)->EnableMod();
-            }
-          }
-        } restore_mod(n);
-
-        if (n->GetProperty(PROPID_HAS_WSM))
-        {
-          IDerivedObject &der = *(IDerivedObject *)n->GetProperty(PROPID_HAS_WSM);
-          if (der.NumModifiers() >= 1)
-          {
-            Modifier *mod = der.GetModifier(der.NumModifiers() - 1);
-            if (mod->ClassID() == BONESMOD_CID)
-            {
-              modon = mod->IsEnabled();
-              mod->DisableMod();
-              restore_mod.restore_prop_WSM = modon;
-            }
-          }
-        }
-
-        if (!modon)
-        {
-          Object *obj = n->GetObjectRef();
-          if (obj)
-            if (obj->SuperClassID() == GEN_DERIVOB_CLASS_ID)
-            {
-              IDerivedObject &der = *(IDerivedObject *)obj;
-              if (der.NumModifiers() >= 1)
-              {
-                Modifier *mod = der.GetModifier(der.NumModifiers() - 1);
-                assert(mod);
-
-                if (mod->ClassID() == Class_ID(0x17bb6854, 0xa5cba2a3))
-                {
-                  explog(_T( "%s: Morpher mod!\r\n"), n->GetName());
-                  morpherMod = true;
-                  modon = mod->IsEnabled();
-                  mod->DisableMod();
-                  restore_mod.restore_obj_ref = modon;
-                }
-                else if (mod->GetInterface(I_SKIN))
-                {
-                  explog(_T( "%s: skin mod!\r\n"), n->GetName());
-                  skinmod = true;
-                  modon = mod->IsEnabled();
-                  mod->DisableMod();
-                  restore_mod.restore_obj_ref = modon;
-                }
-                else if (mod->ClassID() == Class_ID(PHYSIQUE_CLASS_ID_A, PHYSIQUE_CLASS_ID_B))
-                {
-                  explog(_T( "%s: Physique mod!\r\n"), n->GetName());
-                  physiqueMod = true;
-                  modon = mod->IsEnabled();
-                  mod->DisableMod();
-                  restore_mod.restore_obj_ref = modon;
-                }
-              }
-            }
-        }
-
-        TriObject *tri = (TriObject *)n->EvalWorldState(time).obj->ConvertToType(time, Class_ID(TRIOBJ_CLASS_ID, 0));
-        if (tri)
-        {
-          bblk(DAG_NODE_OBJ);
-          Mesh m = tri->mesh;
-
-          if (tri != os.obj)
-            tri->DeleteMe();
-          Matrix3 otm;
-          int notSmoothed = 0;
-          ;
-          mesh_face_sel(m).ClearAll();
-
-          for (int i = 0; i < m.numFaces; ++i)
-          {
-            if (!m.faces[i].smGroup)
-            {
-              mesh_face_sel(m).Set(i);
-              notSmoothed++;
-            }
-          }
-
-          if (notSmoothed > 0)
-          {
-            explogWarning(_T( "Object '%s' has no smoothing on %d faces!\r\n" ), n->GetName(), notSmoothed);
-            m.AutoSmooth(25.0f * 3.1415926f / 180.0f, TRUE);
-            hasNoSmoothing |= true;
-            mesh_face_sel(m).ClearAll();
-          }
-          int v1 = 2, v2 = 1;
-          otm = get_scaled_object_tm(n, time);
-          if (otm.Parity())
-          {
-            int a = v1;
-            v1 = v2;
-            v2 = a;
-          }
-          otm = otm * Inverse(get_scaled_stretch_node_tm(n, time));
-          numvert = m.numVerts;
-          for (int i = 0; i < m.numVerts; ++i)
-            m.verts[i] = (m.verts[i] * masterScale) * otm;
-
-          if (m.numFaces == 0 && n->Renderable())
-          {
-            explogWarning(_T( "Renderable object '%s' has 0 faces!\r\n"), n->GetName());
-            nofaces = 1;
-          }
-
-          int maxntv = 0;
-          for (int i = 0; i < MAX_MESHMAPS; ++i)
-            if (m.mapSupport(i))
-              if (m.mapFaces(i))
-              {
-                int ntv = m.getNumMapVerts(i);
-                if (ntv > maxntv)
-                  maxntv = ntv;
-              }
-          Mtl *mtl = n->GetMtl();
-          const int subMtlNum = mtl ? mtl->NumSubMtls() : 0;
-          int singleMatIdx = -1;
-          if (mtl && !subMtlNum)
-            if (int id = getmatid(mtl); id >= 0)
-              singleMatIdx = (MtlID)matIDtoMatIdx[id];
-
-          if (m.numVerts >= 0x10000 || m.numFaces >= 0x10000 || maxntv >= 0x10000)
-          {
-            hasBigMeshes = true;
-
-            bblk(DAG_OBJ_BIGMESH);
-            wr(&m.numVerts, 4);
-            for (int i = 0; i < m.numVerts; ++i)
-              wr(&m.verts[i], 12);
-            wr(&m.numFaces, 4);
-            for (int i = 0; i < m.numFaces; ++i)
-            {
-              DagBigFace f;
-              f.v[0] = m.faces[i].v[0];
-              f.v[v1] = m.faces[i].v[1];
-              f.v[v2] = m.faces[i].v[2];
-              f.smgr = m.faces[i].smGroup;
-              f.mat = resolve_face_mtl(m.faces[i].getMatID(), subMatIdLUT, singleMatIdx);
-              wr(&f, sizeof(f));
-
-              hasDegenerateTriangles |= checkDegenerateTriangle(n, otm, m.faces[i].v[0], m.faces[i].v[1], m.faces[i].v[2],
-                m.verts[m.faces[i].v[0]], m.verts[m.faces[i].v[1]], m.verts[m.faces[i].v[2]]);
-            }
-            unsigned char numch = 0;
-            int ch;
-            for (ch = 0; ch < MAX_MESHMAPS; ++ch)
-              if (m.mapSupport(ch))
-                if (m.mapFaces(ch))
-                  if (m.getNumMapVerts(ch) > 0)
-                    ++numch;
-            wr(&numch, 1);
-            for (ch = 0; ch < MAX_MESHMAPS; ++ch)
-            {
-              if (!m.mapSupport(ch))
-                continue;
-              TVFace *tf = m.mapFaces(ch);
-              if (!tf)
-                continue;
-              int ntv = m.getNumMapVerts(ch);
-              if (ntv <= 0)
-                continue;
-              wr(&ntv, 4);
-              wr(ch == 0 ? "\3" : "\2", 1);
-              wr(&ch, 1);
-              Point3 *tv = m.mapVerts(ch);
-              for (int i = 0; i < ntv; ++i)
-                wr(&tv[i], ch == 0 ? 12 : 8);
-              for (int i = 0; i < m.numFaces; ++i)
-              {
-                DagBigTFace f;
-                f.t[0] = tf[i].t[0];
-                f.t[v1] = tf[i].t[1];
-                f.t[v2] = tf[i].t[2];
-                wr(&f, sizeof(f));
-              }
-            }
-            eblk;
-          }
-          else
-          {
-            bblk(DAG_OBJ_MESH);
-            wr(&m.numVerts, 2);
-            int i;
-            for (i = 0; i < m.numVerts; ++i)
-              wr(&m.verts[i], 12);
-            wr(&m.numFaces, 2);
-            for (i = 0; i < m.numFaces; ++i)
-            {
-              DagFace f;
-              f.v[0] = (unsigned short)m.faces[i].v[0];
-              f.v[v1] = (unsigned short)m.faces[i].v[1];
-              f.v[v2] = (unsigned short)m.faces[i].v[2];
-              f.smgr = m.faces[i].smGroup;
-              f.mat = resolve_face_mtl(m.faces[i].getMatID(), subMatIdLUT, singleMatIdx);
-              wr(&f, sizeof(f));
-
-              hasDegenerateTriangles |= checkDegenerateTriangle(n, otm, m.faces[i].v[0], m.faces[i].v[1], m.faces[i].v[2],
-                m.verts[m.faces[i].v[0]], m.verts[m.faces[i].v[1]], m.verts[m.faces[i].v[2]]);
-            }
-            unsigned char numch = 0;
-            int ch;
-            for (ch = 0; ch < MAX_MESHMAPS; ++ch)
-              if (m.mapSupport(ch))
-                if (m.mapFaces(ch))
-                  if (m.getNumMapVerts(ch) > 0)
-                    ++numch;
-            wr(&numch, 1);
-            for (ch = 0; ch < MAX_MESHMAPS; ++ch)
-            {
-              if (!m.mapSupport(ch))
-                continue;
-              TVFace *tf = m.mapFaces(ch);
-              if (!tf)
-                continue;
-              int ntv = m.getNumMapVerts(ch);
-              if (ntv <= 0)
-                continue;
-              wr(&ntv, 2);
-              wr(ch == 0 ? "\3" : "\2", 1);
-              wr(&ch, 1);
-              Point3 *tv = m.mapVerts(ch);
-              for (i = 0; i < ntv; ++i)
-                wr(&tv[i], ch == 0 ? 12 : 8);
-              for (i = 0; i < m.numFaces; ++i)
-              {
-                DagTFace f;
-                f.t[0] = (unsigned short)tf[i].t[0];
-                f.t[v1] = (unsigned short)tf[i].t[1];
-                f.t[v2] = (unsigned short)tf[i].t[2];
-                wr(&f, sizeof(f));
-              }
-            }
-            eblk;
-          }
-
-          bblk(DAG_OBJ_FACEFLG);
-          for (int i = 0; i < m.numFaces; ++i)
-          {
-            Face &f = m.faces[i];
-            char ef = 0;
-            if (f.flags & EDGE_B)
-              ef |= DAG_FACEFLG_EDGE1;
-            if (v1 == 1)
-            {
-              if (f.flags & EDGE_A)
-                ef |= DAG_FACEFLG_EDGE0;
-              if (f.flags & EDGE_C)
-                ef |= DAG_FACEFLG_EDGE2;
-            }
-            else
-            {
-              if (f.flags & EDGE_A)
-                ef |= DAG_FACEFLG_EDGE2;
-              if (f.flags & EDGE_C)
-                ef |= DAG_FACEFLG_EDGE0;
-            }
-            if (f.flags & FACE_HIDDEN)
-              ef |= DAG_FACEFLG_HIDDEN;
-            wr(&ef, 1);
-          }
-          eblk;
-
-
-          if (m.numFaces > 0)
-          {
-
-            MeshNormalSpec *normalSpec = m.GetSpecifiedNormals();
-            if (normalSpec && any_explicit_normals_set(normalSpec) && !(util.expflg & EXP_NO_VNORM) &&
-                normalSpec->GetNumFaces() == m.numFaces && normalSpec->GetNumNormals())
-            {
-              Tab<FaceNGr> fngr;
-              normalSpec->CheckNormals();
-              int numNormals = normalSpec->GetNumNormals();
-              fngr.Resize(m.numFaces);
-              fngr.SetCount(m.numFaces);
-              int vid[3] = {0, v1, v2};
-              for (int face = 0; face < m.numFaces; face++)
-                for (int vertex = 0; vertex < 3; vertex++)
-                  fngr[face][vid[vertex]] = normalSpec->Face(face).GetNormalID(vertex);
-
-              const Matrix3 normal_tm = AffineTranspose(Inverse(otm));
-              Point3 *normals = normalSpec->GetNormalArray();
-              for (int i = 0; i < numNormals; ++i)
-              {
-                const Point3 src = normals[i];
-                const Point3 n = VectorTransform(normal_tm, src);
-                const float len = Length(n);
-                normals[i] = (len > 0 && std::isfinite(len)) ? n / len : src;
-              }
-
-              bblk(DAG_OBJ_NORMALS);
-              wr(&numNormals, 4);
-              wr(normals, numNormals * 12);
-              wr(fngr.Addr(0), m.numFaces * 3 * 4);
-              eblk;
-            }
-          }
-        }
-
-        if (modon)
-        {
-          if (morpherMod)
-          {
-            IDerivedObject &der = *(IDerivedObject *)n->GetObjectRef();
-            Modifier *mod = der.GetModifier(der.NumModifiers() - 1);
-
-            bblk(DAG_OBJ_MORPH);
-
-            unsigned char num = 0;
-
-            for (int i = 0; i < 100; ++i)
-            {
-              RefTargetHandle ref = mod->GetReference(101 + i);
-              if (!ref)
-                continue;
-              ++num;
-            }
-
-            wr(&num, 1);
-
-            for (int i = 0; i < 100; ++i)
-            {
-              RefTargetHandle ref = mod->GetReference(101 + i);
-              if (!ref)
-                continue;
-
-#if defined(MAX_RELEASE_R27) && MAX_RELEASE >= MAX_RELEASE_R27
-              TSTR name_wide = mod->SubAnimName(1 + i, false).data();
-#else
-              TSTR name_wide = mod->SubAnimName(1 + i);
-#endif
-              std::string name = wideToStr(name_wide);
-
-              unsigned char len;
-              if (name.size() > 255)
-                len = 255;
-              else
-                len = static_cast<unsigned char>(name.size());
-
-              wr(&len, 1);
-              wr(name.data(), len);
-
-              unsigned short nodeId = getnodeid((INode *)ref);
-              wr(&nodeId, sizeof(nodeId));
-            }
-
-            eblk;
-          }
-          else if (physiqueMod)
-          {
-            IDerivedObject &der = *(IDerivedObject *)n->GetObjectRef();
-            Modifier *mod = der.GetModifier(der.NumModifiers() - 1);
-
-            IPhysiqueExport *phyExport = (IPhysiqueExport *)mod->GetInterface(I_PHYINTERFACE);
-            IPhyContextExport *contextExport = (IPhyContextExport *)phyExport->GetContextInterface(n);
-
-            contextExport->ConvertToRigid();
-            contextExport->AllowBlending();
-
-            int numv = contextExport->GetNumberVertices();
-
-            // get bone nodes and weights
-            Tab<INode *> bones;
-            Tab<float> wt;
-
-            for (int i = 0; i < numv; ++i)
-            {
-              IPhyVertexExport *vtx = (IPhyVertexExport *)contextExport->GetVertexInterface(i);
-              if (!vtx)
-                continue;
-
-              if (vtx->GetVertexType() == RIGID_TYPE)
-              {
-                // rigid case
-                IPhyRigidVertex *v = (IPhyRigidVertex *)vtx;
-
-                INode *bnode = v->GetNode();
-
-                int j;
-                for (j = 0; j < bones.Count(); ++j)
-                  if (bones[j] == bnode)
-                    break;
-
-                if (j >= bones.Count())
-                {
-                  wt.SetCount((bones.Count() + 1) * numv);
-                  memset(&wt[bones.Count() * numv], 0, sizeof(float) * numv);
-                  bones.Append(1, &bnode);
-                }
-
-                wt[j * numv + i] = 1;
-              }
-              else if (vtx->GetVertexType() == RIGID_BLENDED_TYPE)
-              {
-                // blended case
-                IPhyBlendedRigidVertex *v = (IPhyBlendedRigidVertex *)vtx;
-
-                int num = v->GetNumberNodes();
-
-                for (int wi = 0; wi < num; ++wi)
-                {
-                  INode *bnode = v->GetNode(wi);
-
-                  int j;
-                  for (j = 0; j < bones.Count(); ++j)
-                    if (bones[j] == bnode)
-                      break;
-
-                  if (j >= bones.Count())
-                  {
-                    wt.SetCount((bones.Count() + 1) * numv);
-                    memset(&wt[bones.Count() * numv], 0, sizeof(float) * numv);
-                    bones.Append(1, &bnode);
-                  }
-
-                  wt[j * numv + i] = v->GetWeight(wi);
-                }
-              }
-
-              contextExport->ReleaseVertexInterface(vtx);
-            }
-
-            // write skinning data
-            if (bones.Count() > 0 && numv == numvert)
-            {
-              bblk(DAG_OBJ_BONES);
-
-              unsigned short numb = bones.Count();
-              wr(&numb, 2);
-
-              for (int i = 0; i < numb; ++i)
-              {
-                DagBone b;
-                INode *bn = bones[i];
-                b.id = getnodeid(bn);
-                if (b.id == 0xFFFF)
-                {
-                  explogError(_T( "%s: skin refers to missing bone <%s> b.id=%04X\r\n"), n->GetName(), bn ? bn->GetName() : _T(""),
-                    b.id);
-                  return 0;
-                }
-                Matrix3 tm;
-                if (phyExport->GetInitNodeTM(bn, tm) != MATRIX_RETURNED)
-                {
-                  explogWarning(_T( "%s: no Physique init tm for %s\r\n"), n->GetName(), bn->GetName());
-                  tm.IdentityMatrix();
-                }
-
-                tm = bn->GetStretchTM(time) * tm;
-                scale_matrix(tm);
-
-                adjwtm(tm);
-                tm = tm * Inverse(originTm);
-
-                memcpy(&b.tm, tm.GetAddr(), 4 * 3 * 4);
-                wr(&b, sizeof(b));
-              }
-
-              wr(&numvert, 4);
-              wr(&wt[0], numvert * numb * sizeof(float));
-
-              eblk;
-
-              explog(_T( "%s: exported Physique skinning\r\n"), n->GetName());
-            }
-            else
-            {
-              explogWarning(_T( "%s: invalid bones data\r\n"), n->GetName());
-            }
-
-            // clean-up
-            phyExport->ReleaseContextInterface(contextExport);
-            mod->ReleaseInterface(I_PHYINTERFACE, phyExport);
-          }
-          else if (!skinmod)
-          {
-            IDerivedObject &der = *(IDerivedObject *)n->GetProperty(PROPID_HAS_WSM);
-            Modifier *mod = der.GetModifier(der.NumModifiers() - 1);
-            WSMObject *wsm = (WSMObject *)mod->GetInterface(I_BONES_WARP);
-            if (wsm)
-            {
-              Tab<Bone> *bon = (Tab<Bone> *)wsm->GetInterface(I_BONES);
-              if (bon)
-              {
-                ModContext *mc = der.GetModContext(0);
-                if (mc)
-                  if (mc->localData)
-                  {
-                    BonesModData &md = *(BonesModData *)mc->localData;
-                    int numbones = 0;
-                    for (int i = 0; i < bon->Count(); ++i)
-                      if ((*bon)[i].node)
-                        ++numbones;
-                    if (md.VN == numvert && numbones == md.BN)
-                    {
-                      bblk(DAG_OBJ_BONES);
-                      wr(&md.BN, 2);
-                      for (int i = 0; i < md.BN; ++i)
-                      {
-                        DagBone b;
-                        INode *bn = (*bon)[md.bone[i].node].node;
-                        b.id = getnodeid(bn);
-                        if (b.id == 0xFFFF)
-                        {
-                          explogError(_T( "%s: skin refers to missing bone <%s> b.id=%04X\r\n"), n->GetName(),
-                            bn ? bn->GetName() : _T(""), b.id);
-                          return 0;
-                        }
-                        Matrix3 tm = md.bone[i].nodetm;
-                        adjwtm(tm);
-                        tm = tm * Inverse(originTm);
-                        memcpy(&b.tm, tm.GetAddr(), 4 * 3 * 4);
-                        wr(&b, sizeof(b));
-                      }
-                      wr(&md.VN, 4);
-                      wr(&md.pt[0], md.VN * md.BN * sizeof(float));
-                      eblk;
-                    }
-                    else
-                      explogWarning(_T( "%s: invalid bones data\r\n"), n->GetName());
-                  }
-                wsm->ReleaseInterface(I_BONES, bon);
-              }
-              mod->ReleaseInterface(I_BONES_WARP, wsm);
-            }
-          }
-          else
-          {
-            IDerivedObject &der = *(IDerivedObject *)n->GetObjectRef();
-            Modifier *mod = der.GetModifier(der.NumModifiers() - 1);
-            ISkin *skin = (ISkin *)mod->GetInterface(I_SKIN);
-            if (skin)
-            {
-              ISkinContextData *ctx = skin->GetContextInterface(n);
-              int numb = skin->GetNumBones();
-              if (numb > 0 && ctx && ctx->GetNumPoints() == numvert)
-              {
-                bblk(DAG_OBJ_BONES);
-                wr(&numb, 2);
-                for (int i = 0; i < numb; ++i)
-                {
-                  DagBone b;
-                  INode *bn = skin->GetBone(i);
-                  b.id = getnodeid(bn);
-                  if (b.id == 0xFFFF)
-                  {
-                    explogError(_T( "%s: skin refers to missing bone <%s> b.id=%04X\r\n"), n->GetName(), bn ? bn->GetName() : _T(""),
-                      b.id);
-                    return 0;
-                  }
-                  Matrix3 tm;
-                  if (skin->GetBoneInitTM(bn, tm, FALSE) != SKIN_OK)
-                  {
-                    explogWarning(_T( "%s: no skin init tm for %s\r\n"), n->GetName(), bn->GetName());
-                    tm.IdentityMatrix();
-                  }
-
-                  tm = bn->GetStretchTM(time) * tm;
-                  scale_matrix(tm);
-
-                  adjwtm(tm);
-                  tm = tm * Inverse(originTm);
-                  memcpy(&b.tm, tm.GetAddr(), 4 * 3 * 4);
-                  wr(&b, sizeof(b));
-                }
-                wr(&numvert, 4);
-                Tab<float> wt;
-                wt.SetCount(numvert * numb);
-                memset(&wt[0], 0, wt.Count() * sizeof(float));
-                for (int i = 0; i < numvert; ++i)
-                {
-                  int nb = ctx->GetNumAssignedBones(i);
-                  float sum = 0;
-                  for (int j = 0; j < nb; ++j)
-                  {
-                    int b = ctx->GetAssignedBone(i, j);
-                    assert(b >= 0 && b < numb);
-                    wt[i + b * numvert] = ctx->GetBoneWeight(i, j);
-                    sum += wt[i + b * numvert];
-                  }
-
-                  if (sum != 0 && fabsf(sum - 1) > 1e-5)
-                    for (int j = 0; j < nb; ++j)
-                    {
-                      int b = ctx->GetAssignedBone(i, j);
-                      wt[i + b * numvert] /= sum;
-                    }
-                }
-                wr(&wt[0], numvert * numb * sizeof(float));
-                eblk;
-              }
-              else
-                explogWarning(_T( "%s: invalid skin bones data\r\n"), n->GetName());
-            }
-          }
-        }
-
-        if (tri)
-          eblk;
+        if (!save_geom(w, n, os, masterScale, originTm, subMatIdLUT))
+          return false;
       }
     }
 
-    if (enod->child.Count())
+    if (!enod->child.empty())
     {
-      bblk(DAG_NODE_CHILDREN);
-      for (int i = 0; i < enod->child.Count(); ++i)
-        if (!save_node(enod->child[i], h))
-          return 0;
-      eblk;
+      DagWriter::Block nodeChildrenBlk(w, DAG_NODE_CHILDREN);
+      for (ExpNode *child : enod->child)
+        if (!save_node(child, w))
+          return false;
     }
-    eblk;
-    return 1;
+    return true;
   }
 
-  //===============================================================================//
+  void save_light(DagWriter &w, INode *n, const ObjectState &os)
+  {
+    GenLight *o = dynamic_cast<GenLight *>(os.obj);
+    if (!o)
+    {
+      hasNonDagorLights = true;
+      DagorLogWindow::show();
+      DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning, _T("The light source '%s' is ignored.\r\n"), n->GetName());
+      return;
+    }
 
-  int save(FILE *h, Interface *ip)
+    DagLight d;
+    DagLight2 d2;
+    Color col = o->GetRGBColor(time) * o->GetIntensity(time);
+    d.r = col.r;
+    d.g = col.g;
+    d.b = col.b;
+    d.drad = o->GetDecayRadius(time);
+    d.range = o->GetAtten(time, ATTEN_END);
+    d.decay = o->GetDecayType();
+    d2.mult = o->GetIntensity(time);
+    d2.falloff = o->GetFallsize(time);
+    d2.hotspot = o->GetHotspot(time);
+    switch (o->Type())
+    {
+      case TSPOT_LIGHT:
+      case FSPOT_LIGHT: d2.type = DAG_LIGHT_SPOT; break;
+      case DIR_LIGHT:
+      case TDIR_LIGHT: d2.type = DAG_LIGHT_DIR; break;
+      default: d2.type = DAG_LIGHT_OMNI; break;
+    }
+    DagWriter::Block nodeObjBlk(w, DAG_NODE_OBJ);
+    DagWriter::Block objLightBlk(w, DAG_OBJ_LIGHT);
+    w.writeValue(d);
+    w.writeValue(d2);
+  }
+
+  void save_splines(DagWriter &w, INode *n, const ObjectState &os, float masterScale)
+  {
+    ShapeObject *shobj = (ShapeObject *)os.obj;
+    if (!shobj->CanMakeBezier())
+      return;
+
+    Matrix3 otm;
+    otm = get_scaled_object_tm(n, time);
+    otm = otm * Inverse(get_scaled_stretch_node_tm(n, time));
+    BezierShape shp;
+    shobj->MakeBezier(time, shp);
+    DagWriter::Block nodeObjBlk(w, DAG_NODE_OBJ);
+    DagWriter::Block objSplinesBlk(w, DAG_OBJ_SPLINES);
+    int ns = shp.SplineCount();
+    w.writeAs<uint32_t>(ns);
+    for (int si = 0; si < ns; ++si)
+    {
+      Spline3D *s = shp.GetSpline(si);
+      assert(s);
+      w.writeAs<uint8_t>(s->Closed() ? DAG_SPLINE_CLOSED : 0);
+      int nk = s->KnotCount();
+      w.writeAs<uint32_t>(nk);
+      for (int ki = 0; ki < nk; ++ki)
+      {
+        uint8_t kt;
+        switch (s->GetKnotType(ki))
+        {
+          case KTYPE_AUTO: kt = 0; break;
+          case KTYPE_BEZIER: kt = DAG_SKNOT_BEZIER; break;
+          case KTYPE_CORNER: kt = DAG_SKNOT_CORNER; break;
+          case KTYPE_BEZIER_CORNER:
+          default: kt = DAG_SKNOT_BEZIER | DAG_SKNOT_CORNER; break;
+        }
+        w.writeValue(kt);
+        for (int k = 0; k < 3; ++k)
+          w.writeValue((s->GetVert(ki * 3 + k) * masterScale) * otm);
+      }
+    }
+  }
+
+  static Modifier *last_modifier(IDerivedObject &der) { return der.GetModifier(der.NumModifiers() - 1); }
+
+  bool save_geom(DagWriter &w, INode *n, const ObjectState &os, float masterScale, const Matrix3 &originTm,
+    const Tab<int> &subMatIdLUT)
+  {
+    int numvert = 0;
+    enum class ModKind
+    {
+      BonesWsm,
+      Morpher,
+      Skin,
+      Physique,
+    } modKind = ModKind::BonesWsm;
+    struct RestoreModOnExit
+    {
+      Modifier *disabled = nullptr;
+
+      ~RestoreModOnExit()
+      {
+        if (disabled)
+          disabled->EnableMod();
+      }
+    } restore_mod;
+    const auto disable = [&](Modifier *mod, ModKind kind) {
+      if (mod->IsEnabled())
+      {
+        restore_mod.disabled = mod;
+        modKind = kind;
+      }
+      mod->DisableMod();
+    };
+
+    if (n->GetProperty(PROPID_HAS_WSM))
+    {
+      IDerivedObject &der = *(IDerivedObject *)n->GetProperty(PROPID_HAS_WSM);
+      if (der.NumModifiers() >= 1)
+      {
+        Modifier *mod = last_modifier(der);
+        if (mod->ClassID() == BONESMOD_CID)
+          disable(mod, ModKind::BonesWsm);
+      }
+    }
+
+    if (!restore_mod.disabled)
+    {
+      Object *obj = n->GetObjectRef();
+      if (obj)
+        if (obj->SuperClassID() == GEN_DERIVOB_CLASS_ID)
+        {
+          IDerivedObject &der = *(IDerivedObject *)obj;
+          if (der.NumModifiers() >= 1)
+          {
+            Modifier *mod = last_modifier(der);
+            assert(mod);
+
+            if (mod->ClassID() == Class_ID(0x17bb6854, 0xa5cba2a3))
+            {
+              explog(_T( "%s: Morpher mod!\r\n"), n->GetName());
+              disable(mod, ModKind::Morpher);
+            }
+            else if (mod->GetInterface(I_SKIN))
+            {
+              explog(_T( "%s: skin mod!\r\n"), n->GetName());
+              disable(mod, ModKind::Skin);
+            }
+            else if (mod->ClassID() == Class_ID(PHYSIQUE_CLASS_ID_A, PHYSIQUE_CLASS_ID_B))
+            {
+              explog(_T( "%s: Physique mod!\r\n"), n->GetName());
+              disable(mod, ModKind::Physique);
+            }
+          }
+        }
+    }
+
+    std::optional<DagWriter::Block> nodeObjBlk;
+    TriObject *tri = (TriObject *)n->EvalWorldState(time).obj->ConvertToType(time, Class_ID(TRIOBJ_CLASS_ID, 0));
+    if (tri)
+    {
+      nodeObjBlk.emplace(w, DAG_NODE_OBJ);
+      Mesh m = tri->mesh;
+
+      if (tri != os.obj)
+        tri->DeleteMe();
+      Matrix3 otm;
+      int notSmoothed = 0;
+      mesh_face_sel(m).ClearAll();
+
+      for (int i = 0; i < m.numFaces; ++i)
+      {
+        if (!m.faces[i].smGroup)
+        {
+          mesh_face_sel(m).Set(i);
+          notSmoothed++;
+        }
+      }
+
+      if (notSmoothed > 0)
+      {
+        explogWarning(_T( "Object '%s' has no smoothing on %d faces!\r\n" ), n->GetName(), notSmoothed);
+        m.AutoSmooth(25.0f * 3.1415926f / 180.0f, TRUE);
+        hasNoSmoothing = true;
+        mesh_face_sel(m).ClearAll();
+      }
+      int v1 = 2, v2 = 1;
+      otm = get_scaled_object_tm(n, time);
+      if (otm.Parity())
+        std::swap(v1, v2);
+      otm = otm * Inverse(get_scaled_stretch_node_tm(n, time));
+      numvert = m.numVerts;
+      for (int i = 0; i < m.numVerts; ++i)
+        m.verts[i] = (m.verts[i] * masterScale) * otm;
+
+      if (m.numFaces == 0 && n->Renderable())
+      {
+        explogWarning(_T( "Renderable object '%s' has 0 faces!\r\n"), n->GetName());
+        nofaces = 1;
+      }
+
+      int maxntv = 0;
+      for (int i = 0; i < MAX_MESHMAPS; ++i)
+        if (exported_map_channel(m, i))
+          maxntv = std::max(maxntv, m.getNumMapVerts(i));
+      Mtl *mtl = n->GetMtl();
+      const int subMtlNum = mtl ? mtl->NumSubMtls() : 0;
+      int singleMatIdx = -1;
+      if (mtl && !subMtlNum)
+        if (int id = getmatid(mtl); id >= 0)
+          singleMatIdx = (MtlID)matIDtoMatIdx[id];
+
+      if (m.numVerts >= 0x10000 || m.numFaces >= 0x10000 || maxntv >= 0x10000)
+      {
+        hasBigMeshes = true;
+        save_mesh<DagBigFace, DagBigTFace>(w, n, m, otm, v1, v2, subMatIdLUT, singleMatIdx);
+      }
+      else
+        save_mesh<DagFace, DagTFace>(w, n, m, otm, v1, v2, subMatIdLUT, singleMatIdx);
+
+      {
+        DagWriter::Block objFaceflgBlk(w, DAG_OBJ_FACEFLG);
+        for (int i = 0; i < m.numFaces; ++i)
+        {
+          Face &f = m.faces[i];
+          uint8_t ef = 0;
+          if (f.flags & EDGE_B)
+            ef |= DAG_FACEFLG_EDGE1;
+          if (v1 == 1)
+          {
+            if (f.flags & EDGE_A)
+              ef |= DAG_FACEFLG_EDGE0;
+            if (f.flags & EDGE_C)
+              ef |= DAG_FACEFLG_EDGE2;
+          }
+          else
+          {
+            if (f.flags & EDGE_A)
+              ef |= DAG_FACEFLG_EDGE2;
+            if (f.flags & EDGE_C)
+              ef |= DAG_FACEFLG_EDGE0;
+          }
+          if (f.flags & FACE_HIDDEN)
+            ef |= DAG_FACEFLG_HIDDEN;
+          w.writeValue(ef);
+        }
+      }
+
+      if (m.numFaces > 0)
+      {
+        MeshNormalSpec *normalSpec = m.GetSpecifiedNormals();
+        if (normalSpec && any_explicit_normals_set(normalSpec) && !(util.expflg & EXP_NO_VNORM) &&
+            normalSpec->GetNumFaces() == m.numFaces && normalSpec->GetNumNormals())
+        {
+          Tab<FaceNGr> fngr;
+          normalSpec->CheckNormals();
+          int numNormals = normalSpec->GetNumNormals();
+          fngr.SetCount(m.numFaces);
+          int vid[3] = {0, v1, v2};
+          for (int face = 0; face < m.numFaces; face++)
+            for (int vertex = 0; vertex < 3; vertex++)
+              fngr[face][vid[vertex]] = normalSpec->Face(face).GetNormalID(vertex);
+
+          const Matrix3 normal_tm = AffineTranspose(Inverse(otm));
+          Point3 *normals = normalSpec->GetNormalArray();
+          for (int i = 0; i < numNormals; ++i)
+          {
+            const Point3 src = normals[i];
+            const Point3 n = VectorTransform(normal_tm, src);
+            const float len = Length(n);
+            normals[i] = (len > 0 && std::isfinite(len)) ? n / len : src;
+          }
+
+          DagWriter::Block objNormalsBlk(w, DAG_OBJ_NORMALS);
+          w.writeAs<uint32_t>(numNormals);
+          w.writeArray(normals, numNormals);
+          w.writeArray(fngr.data(), fngr.Count());
+        }
+      }
+    }
+
+    if (!restore_mod.disabled)
+      return true;
+    if (modKind == ModKind::Morpher)
+    {
+      save_morph(w, restore_mod.disabled);
+      return true;
+    }
+    if (modKind == ModKind::Physique)
+      return save_physique(w, n, restore_mod.disabled, numvert, originTm);
+    if (modKind == ModKind::Skin)
+      return save_skin(w, n, restore_mod.disabled, numvert, originTm);
+    return save_bones_wsm(w, n, *(IDerivedObject *)n->GetProperty(PROPID_HAS_WSM), numvert, originTm);
+  }
+
+  template <class FaceT, class TFaceT>
+  void save_mesh(DagWriter &w, INode *n, Mesh &m, Matrix3 &otm, int v1, int v2, const Tab<int> &subMatIdLUT, int singleMatIdx)
+  {
+    using Index = std::remove_all_extents_t<decltype(FaceT::v)>;
+    using TIndex = std::remove_all_extents_t<decltype(TFaceT::t)>;
+
+    DagWriter::Block meshBlk(w, std::is_same_v<FaceT, DagBigFace> ? DAG_OBJ_BIGMESH : DAG_OBJ_MESH);
+    w.writeAs<Index>(m.numVerts);
+    w.writeArray<Point3>(m.verts, m.numVerts);
+    w.writeAs<Index>(m.numFaces);
+    for (int i = 0; i < m.numFaces; ++i)
+    {
+      Face &mf = m.faces[i];
+      FaceT f;
+      f.v[0] = static_cast<Index>(mf.v[0]);
+      f.v[v1] = static_cast<Index>(mf.v[1]);
+      f.v[v2] = static_cast<Index>(mf.v[2]);
+      f.smgr = mf.smGroup;
+      f.mat = resolve_face_mtl(mf.getMatID(), subMatIdLUT, singleMatIdx);
+      w.writeValue(f);
+
+      hasDegenerateTriangles |=
+        checkDegenerateTriangle(n, otm, mf.v[0], mf.v[1], mf.v[2], m.verts[mf.v[0]], m.verts[mf.v[1]], m.verts[mf.v[2]]);
+    }
+
+    uint8_t numch = 0;
+    for (int ch = 0; ch < MAX_MESHMAPS; ++ch)
+      if (exported_map_channel(m, ch))
+        ++numch;
+    w.writeValue(numch);
+    for (int ch = 0; ch < MAX_MESHMAPS; ++ch)
+    {
+      if (!exported_map_channel(m, ch))
+        continue;
+      const TVFace *tf = m.mapFaces(ch);
+      const int ntv = m.getNumMapVerts(ch);
+      w.writeAs<Index>(ntv);
+      w.writeAs<uint8_t>(ch == 0 ? 3 : 2);
+      w.writeAs<uint8_t>(ch);
+      const Point3 *tv = m.mapVerts(ch);
+      for (int i = 0; i < ntv; ++i)
+        w.write(&tv[i], ch == 0 ? 12 : 8);
+      for (int i = 0; i < m.numFaces; ++i)
+      {
+        TFaceT f;
+        f.t[0] = static_cast<TIndex>(tf[i].t[0]);
+        f.t[v1] = static_cast<TIndex>(tf[i].t[1]);
+        f.t[v2] = static_cast<TIndex>(tf[i].t[2]);
+        w.writeValue(f);
+      }
+    }
+  }
+
+  void save_morph(DagWriter &w, Modifier *mod)
+  {
+    std::vector<std::pair<int, INode *>> targets;
+    for (int i = 0; i < 100; ++i)
+      if (RefTargetHandle ref = mod->GetReference(101 + i))
+        targets.emplace_back(i, (INode *)ref);
+
+    DagWriter::Block objMorphBlk(w, DAG_OBJ_MORPH);
+    w.writeAs<uint8_t>(targets.size());
+    for (const auto &[i, target] : targets)
+    {
+#if defined(MAX_RELEASE_R27) && MAX_RELEASE >= MAX_RELEASE_R27
+      TSTR name_wide = mod->SubAnimName(1 + i, false).data();
+#else
+      TSTR name_wide = mod->SubAnimName(1 + i);
+#endif
+      w.writeString(wideToStr(name_wide));
+      w.writeAs<uint16_t>(getnodeid(target));
+    }
+  }
+
+  // Writes a DAG_OBJ_BONES block; wt holds numb rows of numvert weights, one row per bone.
+  template <class BoneNode, class BoneTm>
+  bool save_bones(DagWriter &w, INode *n, int numb, int numvert, const float *wt, const Matrix3 &originTm, BoneNode bone_node,
+    BoneTm bone_tm)
+  {
+    DagWriter::Block objBonesBlk(w, DAG_OBJ_BONES);
+    w.writeAs<uint16_t>(numb);
+    for (int i = 0; i < numb; ++i)
+    {
+      INode *bn = bone_node(i);
+      DagBone b;
+      b.id = getnodeid(bn);
+      if (b.id == 0xFFFF)
+      {
+        explogError(_T( "%s: skin refers to missing bone <%s> b.id=%04X\r\n"), n->GetName(), bn ? bn->GetName() : _T(""), b.id);
+        return false;
+      }
+      Matrix3 tm = bone_tm(i, bn);
+      adjwtm(tm);
+      tm = tm * Inverse(originTm);
+      memcpy(&b.tm, tm.GetAddr(), sizeof(b.tm));
+      w.writeValue(b);
+    }
+    w.writeAs<uint32_t>(numvert);
+    w.writeArray(wt, size_t(numvert) * numb);
+    return true;
+  }
+
+  Matrix3 stretched_bone_tm(INode *bn, const Matrix3 &init_tm) const
+  {
+    Matrix3 tm = bn->GetStretchTM(time) * init_tm;
+    scale_matrix(tm);
+    return tm;
+  }
+
+  bool save_physique(DagWriter &w, INode *n, Modifier *mod, int numvert, const Matrix3 &originTm)
+  {
+    IPhysiqueExport *phyExport = (IPhysiqueExport *)mod->GetInterface(I_PHYINTERFACE);
+    if (!phyExport)
+    {
+      explogWarning(L"%s: no Physique export interface\r\n", n->GetName());
+      return true;
+    }
+    OnExit releasePhyExport([&] { mod->ReleaseInterface(I_PHYINTERFACE, phyExport); });
+
+    IPhyContextExport *contextExport = (IPhyContextExport *)phyExport->GetContextInterface(n);
+    if (!contextExport)
+    {
+      explogWarning(L"%s: no Physique context interface\r\n", n->GetName());
+      return true;
+    }
+    OnExit releaseContextExport([&] { phyExport->ReleaseContextInterface(contextExport); });
+
+    contextExport->ConvertToRigid();
+    contextExport->AllowBlending();
+
+    int numv = contextExport->GetNumberVertices();
+
+    // get bone nodes and weights
+    std::vector<INode *> bones;
+    std::vector<float> wt;
+    auto boneIndex = [&](INode *bnode) {
+      auto it = std::find(bones.begin(), bones.end(), bnode);
+      if (it != bones.end())
+        return int(it - bones.begin());
+      wt.resize(wt.size() + numv);
+      bones.push_back(bnode);
+      return int(bones.size()) - 1;
+    };
+
+    for (int i = 0; i < numv; ++i)
+    {
+      IPhyVertexExport *vtx = (IPhyVertexExport *)contextExport->GetVertexInterface(i);
+      if (!vtx)
+        continue;
+
+      if (vtx->GetVertexType() == RIGID_TYPE)
+      {
+        IPhyRigidVertex *v = (IPhyRigidVertex *)vtx;
+        wt[boneIndex(v->GetNode()) * numv + i] = 1;
+      }
+      else if (vtx->GetVertexType() == RIGID_BLENDED_TYPE)
+      {
+        IPhyBlendedRigidVertex *v = (IPhyBlendedRigidVertex *)vtx;
+        const int num = v->GetNumberNodes();
+        for (int wi = 0; wi < num; ++wi)
+          wt[boneIndex(v->GetNode(wi)) * numv + i] = v->GetWeight(wi);
+      }
+
+      contextExport->ReleaseVertexInterface(vtx);
+    }
+
+    if (bones.empty() || numv != numvert)
+    {
+      explogWarning(_T( "%s: invalid bones data\r\n"), n->GetName());
+      return true;
+    }
+
+    unsigned short numb = static_cast<unsigned short>(bones.size());
+    if (!save_bones(
+          w, n, numb, numvert, wt.data(), originTm, [&](int i) { return bones[i]; },
+          [&](int, INode *bn) {
+            Matrix3 tm;
+            if (phyExport->GetInitNodeTM(bn, tm) != MATRIX_RETURNED)
+            {
+              explogWarning(_T( "%s: no Physique init tm for %s\r\n"), n->GetName(), bn->GetName());
+              tm.IdentityMatrix();
+            }
+            return stretched_bone_tm(bn, tm);
+          }))
+      return false;
+
+    explog(_T( "%s: exported Physique skinning\r\n"), n->GetName());
+    return true;
+  }
+
+  bool save_bones_wsm(DagWriter &w, INode *n, IDerivedObject &der, int numvert, const Matrix3 &originTm)
+  {
+    Modifier *mod = last_modifier(der);
+    WSMObject *wsm = (WSMObject *)mod->GetInterface(I_BONES_WARP);
+    if (!wsm)
+      return true;
+    OnExit releaseWsm([&] { mod->ReleaseInterface(I_BONES_WARP, wsm); });
+
+    Tab<Bone> *bon = (Tab<Bone> *)wsm->GetInterface(I_BONES);
+    if (!bon)
+      return true;
+    OnExit releaseBon([&] { wsm->ReleaseInterface(I_BONES, bon); });
+
+    ModContext *mc = der.GetModContext(0);
+    if (!mc || !mc->localData)
+      return true;
+
+    BonesModData &md = *(BonesModData *)mc->localData;
+    int numbones = 0;
+    for (int i = 0; i < bon->Count(); ++i)
+      if ((*bon)[i].node)
+        ++numbones;
+    if (md.VN != numvert || numbones != md.BN)
+    {
+      explogWarning(_T( "%s: invalid bones data\r\n"), n->GetName());
+      return true;
+    }
+
+    return save_bones(
+      w, n, md.BN, md.VN, md.pt.data(), originTm, [&](int i) { return (*bon)[md.bone[i].node].node; },
+      [&](int i, INode *) { return md.bone[i].nodetm; });
+  }
+
+  bool save_skin(DagWriter &w, INode *n, Modifier *mod, int numvert, const Matrix3 &originTm)
+  {
+    ISkin *skin = (ISkin *)mod->GetInterface(I_SKIN);
+    if (!skin)
+      return true;
+
+    ISkinContextData *ctx = skin->GetContextInterface(n);
+    int numb = skin->GetNumBones();
+    if (numb <= 0 || !ctx || ctx->GetNumPoints() != numvert)
+    {
+      explogWarning(_T( "%s: invalid skin bones data\r\n"), n->GetName());
+      return true;
+    }
+
+    std::vector<float> wt(numvert * numb);
+    for (int i = 0; i < numvert; ++i)
+    {
+      int nb = ctx->GetNumAssignedBones(i);
+      float sum = 0;
+      for (int j = 0; j < nb; ++j)
+      {
+        int b = ctx->GetAssignedBone(i, j);
+        assert(b >= 0 && b < numb);
+        wt[i + b * numvert] = ctx->GetBoneWeight(i, j);
+        sum += wt[i + b * numvert];
+      }
+
+      if (sum != 0 && fabsf(sum - 1) > 1e-5)
+        for (int j = 0; j < nb; ++j)
+        {
+          int b = ctx->GetAssignedBone(i, j);
+          wt[i + b * numvert] /= sum;
+        }
+    }
+
+    return save_bones(
+      w, n, numb, numvert, wt.data(), originTm, [&](int i) { return skin->GetBone(i); },
+      [&](int, INode *bn) {
+        Matrix3 tm;
+        if (skin->GetBoneInitTM(bn, tm, FALSE) != SKIN_OK)
+        {
+          explogWarning(_T( "%s: no skin init tm for %s\r\n"), n->GetName(), bn->GetName());
+          tm.IdentityMatrix();
+        }
+        return stretched_bone_tm(bn, tm);
+      });
+  }
+
+  void save_textures(DagWriter &w)
+  {
+    if (tex.empty())
+      return;
+    DagWriter::Block texturesBlk(w, DAG_TEXTURES);
+
+    int num = static_cast<int>(tex.size());
+    if (num > 0xFFFF)
+      num = 0xFFFF;
+
+    w.writeAs<uint16_t>(num);
+    for (int i = 0; i < num; ++i)
+    {
+      std::string name = wideToStr(tex[i]);
+
+      std::replace(name.begin(), name.end(), '\\', '/');
+      if (name.find('/') == std::string::npos)
+        name = "./" + name;
+
+      // if the name is too long
+      if (name.size() > 255) // counter must fit in 1 byte
+      {
+        // sacrifice the directory part
+        size_t pos = name.find_last_of('/');
+        if (pos != std::string::npos)
+          name = name.substr(pos + 1);
+      }
+
+      w.writeString(name);
+    }
+  }
+
+  void save_materials(DagWriter &w)
+  {
+    for (int i = 0; i < (int)mat.size(); ++i)
+    {
+      if (matIDtoMatIdx[i] < 0)
+        continue;
+      DagWriter::Block materBlk(w, DAG_MATER);
+      w.writeString(wideToStr(mat[i].name));
+      w.writeValue(mat[i].m);
+      w.writeString(wideToStr(mat[i].classname));
+
+      // don't export parameters of proxymats
+      if (!mat[i].script.empty() && !isProxymatName(mat[i].classname))
+      {
+        std::string s = wideToStr(fix_empty_param_values(mat[i].script, mat[i].classname));
+        w.write(s.data(), s.size());
+      }
+    }
+  }
+
+  bool save_nodes(DagWriter &w)
+  {
+    // children point into en, so it must not reallocate
+    std::vector<ExpNode> en;
+    en.reserve(node.Count());
+    for (int i = 0; i < node.Count(); ++i)
+      en.emplace_back(i);
+    ExpNode root(-1);
+    for (int i = 0; i < node.Count(); ++i)
+    {
+      uint pid = getnodeid(node[i]->GetParentNode());
+      if (pid < node.Count())
+        en[pid].add_child(&en[i]);
+      else
+        root.add_child(&en[i]);
+    }
+    DagWriter::Block nodeBlk(w, DAG_NODE);
+    {
+      DagWriter::Block nodeDataBlk(w, DAG_NODE_DATA);
+      DagNodeData d;
+      d.id = 0xFFFF;
+      d.cnum = static_cast<unsigned short>(root.child.size());
+      w.writeValue(d);
+    }
+    if (!root.child.empty())
+    {
+      DagWriter::Block nodeChildrenBlk(w, DAG_NODE_CHILDREN);
+      for (ExpNode *child : root.child)
+        if (!save_node(child, w))
+          return false;
+    }
+    return true;
+  }
+
+  bool save(FILE *h, Interface *ip)
   {
     prepare_expmat();
 
@@ -2604,142 +2584,17 @@ public:
         explog(_T("these textures are UNUSED:%s\r\n"), unused_tex.data());
     }
 
+    DagWriter w;
+    w.writeAs<uint32_t>(DAG_ID);
     {
-      int n = DAG_ID;
-      wr(&n, 4);
+      DagWriter::Block idBlk(w, DAG_ID);
+      save_textures(w);
+      save_materials(w);
+      if (!save_nodes(w))
+        return false;
+      DagWriter::Block endBlk(w, DAG_END);
     }
-    init_blk(h);
-    bblk(DAG_ID);
-
-    // save textures
-    if (!tex.empty())
-    {
-      bblk(DAG_TEXTURES);
-
-      int num = static_cast<int>(tex.size());
-      if (num > 0xFFFF)
-        num = 0xFFFF;
-
-      wr(&num, 2);
-      for (int i = 0; i < num; ++i)
-      {
-        std::string name = wideToStr(tex[i]);
-
-        std::replace(name.begin(), name.end(), '\\', '/');
-        if (name.find('/') == std::string::npos)
-          name = "./" + name;
-
-        // if the name is too long
-        if (name.size() > 255) // counter must fit in 1 byte
-        {
-          // sacrifice the directory part
-          size_t pos = name.find_last_of('/');
-          if (pos != std::string::npos)
-            name = name.substr(pos + 1);
-
-          // last resort to keep the size within the limits
-          name = name.substr(0, 255);
-        }
-
-        size_t l = name.size();
-        wr(&l, 1);
-        if (l)
-          wr(name.data(), l);
-      }
-      eblk;
-    }
-
-    // save materials
-    for (int i = 0; i < (int)mat.size(); ++i)
-    {
-      if (matIDtoMatIdx[i] < 0)
-        continue;
-      bblk(DAG_MATER);
-      if (!mat[i].name.empty())
-      {
-        std::string s = wideToStr(mat[i].name);
-        size_t l = s.length();
-        if (l > 255)
-          l = 255;
-        wr(&l, 1);
-        if (l)
-          wr(s.c_str(), l);
-      }
-      else
-        wr("\0", 1);
-
-      wr(&mat[i].m, sizeof(DagMater));
-      if (!mat[i].classname.empty())
-      {
-        std::string s = wideToStr(mat[i].classname);
-        size_t l = s.length();
-        if (l > 255)
-          l = 255;
-        wr(&l, 1);
-        if (l)
-          wr(s.c_str(), l);
-      }
-      else
-        wr("\0", 1);
-
-      // don't export parameters of proxymats
-      if (!mat[i].script.empty() && !isProxymatName(mat[i].classname))
-      {
-        std::string s = wideToStr(fix_empty_param_values(mat[i].script, mat[i].classname));
-        size_t l = s.length();
-        if (l)
-          wr(s.c_str(), l);
-      }
-
-      eblk;
-    }
-
-    // save nodes
-    {
-      Tab<ExpNode *> en;
-      en.SetCount(node.Count());
-      for (int i = 0; i < en.Count(); ++i)
-      {
-        en[i] = new ExpNode(i);
-        assert(en[i]);
-      }
-      std::unique_ptr<ExpNode> root(new ExpNode(-1));
-      assert(root);
-      for (int i = 0; i < node.Count(); ++i)
-      {
-        uint pid = getnodeid(node[i]->GetParentNode());
-        if (pid < node.Count())
-        {
-          en[pid]->add_child(en[i]);
-        }
-        else
-        {
-          root->add_child(en[i]);
-        }
-      }
-      bblk(DAG_NODE);
-      bblk(DAG_NODE_DATA);
-      DagNodeData d;
-      d.id = 0xFFFF;
-      d.cnum = root->child.Count();
-      wr(&d, sizeof(d));
-      eblk;
-      if (root->child.Count())
-      {
-        bblk(DAG_NODE_CHILDREN);
-        for (int i = 0; i < root->child.Count(); ++i)
-          if (!save_node(root->child[i], h))
-            return 0;
-        eblk;
-      }
-      eblk;
-    }
-
-    bblk(DAG_END);
-    eblk;
-
-    eblk;
-    return 1;
+    return w.writeTo(h);
   }
 
   //
@@ -2895,7 +2750,7 @@ public:
     }
   }
 
-  int save_anim2(FILE *fp)
+  bool save_anim2(FILE *fp)
   {
     // pools data
     std::vector<char> namesPool;
@@ -3045,39 +2900,34 @@ public:
     //
     // write file
     //
-    fwrite(&hdr, sizeof(hdr), 1, fp);
+    DagWriter w;
+    w.writeValue(hdr);
 
     // write names pool
-    fwrite(namesPool.data(), hdr.namePoolSize, 1, fp);
+    w.write(namesPool.data(), hdr.namePoolSize);
 
     // write times pool
-    if (originLinVelT.Count())
-      fwrite(originLinVelT.Addr(0), sizeof(int), originLinVelT.Count(), fp);
-
-    if (originAngVelT.Count())
-      fwrite(originAngVelT.Addr(0), sizeof(int), originAngVelT.Count(), fp);
+    w.writeArray(originLinVelT.data(), originLinVelT.Count());
+    w.writeArray(originAngVelT.data(), originAngVelT.Count());
 
     for (int i = 0; i < exportNodes.Count(); ++i)
       for (int j = 0; j < pos[i]->key.Count(); ++j)
-        fwrite(&pos[i]->key[j].t, sizeof(int), 1, fp);
+        w.writeValue(pos[i]->key[j].t);
 
     for (int i = 0; i < exportNodes.Count(); ++i)
       for (int j = 0; j < scl[i]->key.Count(); ++j)
-        fwrite(&scl[i]->key[j].t, sizeof(int), 1, fp);
+        w.writeValue(scl[i]->key[j].t);
 
     for (int i = 0; i < exportNodes.Count(); ++i)
       for (int j = 0; j < rot[i]->key.Count(); ++j)
-        fwrite(&rot[i]->key[j].t, sizeof(int), 1, fp);
+        w.writeValue(rot[i]->key[j].t);
 
     // write keys pool
     //  write pos keys
     std::vector<AnimKeyPoint3> point3AnimKey;
     //   write origin velocitiy keys
-    if (originLinVel.Count())
-      fwrite(originLinVel.Addr(0), sizeof(AnimKeyPoint3), originLinVel.Count(), fp);
-
-    if (originAngVel.Count())
-      fwrite(originAngVel.Addr(0), sizeof(AnimKeyPoint3), originAngVel.Count(), fp);
+    w.writeArray(originLinVel.data(), originLinVel.Count());
+    w.writeArray(originAngVel.data(), originAngVel.Count());
 
     //   write per-node pos keys
     for (int i = 0; i < exportNodes.Count(); ++i)
@@ -3086,8 +2936,8 @@ public:
         continue;
       point3AnimKey.resize(pos[i]->key.Count());
       memset(point3AnimKey.data(), 0, sizeof(AnimKeyPoint3) * point3AnimKey.size());
-      make_postrack(point3AnimKey.data(), pos[i]->key.Addr(0), pos[i]->key.Count());
-      fwrite(point3AnimKey.data(), sizeof(AnimKeyPoint3), pos[i]->key.Count(), fp);
+      make_postrack(point3AnimKey.data(), pos[i]->key.data(), pos[i]->key.Count());
+      w.writeArray(point3AnimKey.data(), point3AnimKey.size());
     }
 
     //  write scl keys
@@ -3097,8 +2947,8 @@ public:
         continue;
       point3AnimKey.resize(scl[i]->key.Count());
       memset(point3AnimKey.data(), 0, sizeof(AnimKeyPoint3) * point3AnimKey.size());
-      make_postrack(point3AnimKey.data(), scl[i]->key.Addr(0), scl[i]->key.Count());
-      fwrite(point3AnimKey.data(), sizeof(AnimKeyPoint3), scl[i]->key.Count(), fp);
+      make_postrack(point3AnimKey.data(), scl[i]->key.data(), scl[i]->key.Count());
+      w.writeArray(point3AnimKey.data(), point3AnimKey.size());
     }
 
     //  write rot keys
@@ -3109,8 +2959,8 @@ public:
         continue;
       quatAnimKey.resize(rot[i]->key.Count());
       memset(quatAnimKey.data(), 0, sizeof(AnimKeyQuat) * quatAnimKey.size());
-      make_rottrack(quatAnimKey.data(), rot[i]->key.Addr(0), rot[i]->key.Count());
-      fwrite(quatAnimKey.data(), sizeof(AnimKeyQuat), rot[i]->key.Count(), fp);
+      make_rottrack(quatAnimKey.data(), rot[i]->key.data(), rot[i]->key.Count());
+      w.writeArray(quatAnimKey.data(), quatAnimKey.size());
     }
 
     // write note track pool
@@ -3118,8 +2968,8 @@ public:
     {
       for (int i = 0; i < noteTrackKeys.Count(); i++)
       {
-        fwrite(&noteTrackKeys[i].idx, sizeof(int), 1, fp);
-        fwrite(&noteTrackKeys[i].time, sizeof(int), 1, fp);
+        w.writeValue(noteTrackKeys[i].idx);
+        w.writeValue(noteTrackKeys[i].time);
       }
     }
     else
@@ -3127,15 +2977,15 @@ public:
 
     // write data of animation
     //  write point3 data type
-    fwrite(&point3DataTypeHeader, sizeof(point3DataTypeHeader), 1, fp);
-    writeChannel(originLinVelCannelParams, fp);
-    writeChannel(originAngVelCannelParams, fp);
-    writeChannel(posCannelParams, fp);
-    writeChannel(sclCannelParams, fp);
+    w.writeValue(point3DataTypeHeader);
+    writeChannel(originLinVelCannelParams, w);
+    writeChannel(originAngVelCannelParams, w);
+    writeChannel(posCannelParams, w);
+    writeChannel(sclCannelParams, w);
 
     //  write quat data type
-    fwrite(&quatDataTypeHeader, sizeof(quatDataTypeHeader), 1, fp);
-    writeChannel(rotCannelParams, fp);
+    w.writeValue(quatDataTypeHeader);
+    writeChannel(rotCannelParams, w);
 
     explog(_T(" originLinVelKeyNum=%d\r\n originAngVelKeyNum=%d\r\n"),
       originLinVelCannelParams.keyNums.Count() ? originLinVelCannelParams.keyNums[0] : 0,
@@ -3158,12 +3008,8 @@ public:
     for (int i = rot.Count(); --i >= 0;)
       delete rot[i];
 
-    return ferror(fp) ? 0 : 1;
+    return w.writeTo(fp);
   }
-
-#undef wr
-#undef bblk
-#undef eblk
 
 private:
   void getNoteTrackKeys(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys);
@@ -3176,7 +3022,7 @@ private:
   void getOriginVelocities(Tab<AnimKeyPoint3> &originLinVel, Tab<AnimKeyPoint3> &originAngVel, Tab<int> &originLinVelT,
     Tab<int> &originAngVelT);
 
-  void writeChannel(const ChannelParams &params, FILE *fp);
+  void writeChannel(const ChannelParams &params, DagWriter &w);
 
   int getKeyNumInChannel(const ChannelParams &params);
 };
@@ -3330,16 +3176,16 @@ void ExportENCB::getOriginVelocities(Tab<AnimKeyPoint3> &originLinVel, Tab<AnimK
   }
 }
 
-void ExportENCB::writeChannel(const ChannelParams &params, FILE *fp)
+void ExportENCB::writeChannel(const ChannelParams &params, DagWriter &w)
 {
   unsigned nodeNum = params.keyNums.Count();
   if (nodeNum)
   {
-    fwrite(&params.channelType, sizeof(unsigned), 1, fp);
-    fwrite(&nodeNum, sizeof(unsigned), 1, fp);
-    fwrite(params.keyNums.Addr(0), sizeof(unsigned), params.keyNums.Count(), fp);
-    fwrite(params.nodeNameIds.Addr(0), sizeof(int), params.nodeNameIds.Count(), fp);
-    fwrite(params.nodeWeights.Addr(0), sizeof(float), params.nodeWeights.Count(), fp);
+    w.writeValue(params.channelType);
+    w.writeValue(nodeNum);
+    w.writeArray(params.keyNums.data(), params.keyNums.Count());
+    w.writeArray(params.nodeNameIds.data(), params.nodeNameIds.Count());
+    w.writeArray(params.nodeWeights.data(), params.nodeWeights.Count());
   }
 }
 
@@ -3540,7 +3386,6 @@ BOOL ExpUtil::export_dag()
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
 
   std::vector<LayerFile> layers;
-  Tab<bool> isHidden;
 
   if (!find_co_layers(exp_fname, layers))
     return export_one_dag(exp_fname);
@@ -3555,42 +3400,37 @@ BOOL ExpUtil::export_dag()
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
   const int layerCount = (int)layers.size();
-  isHidden.SetCount(layerCount);
   std::vector<INodeTab> layerNodes(layerCount);
   for (int i = 0; i < layerCount; ++i)
   {
     ILayer *l = manager->GetLayer(layers[i].layerName.c_str());
-    isHidden[i] = l->IsHidden();
-    l->Hide(true);
     if (ILayerProperties *props = (ILayerProperties *)l->GetInterface(LAYERPROPERTIES_INTERFACE))
       props->Nodes(layerNodes[i]);
     else
       explogError(L"Cannot get the layer properties for layer '%s'.\r\n", l->GetName().data());
   }
+  BOOL result = TRUE;
   for (int i = 0; i < layerCount; ++i)
   {
-    TSTR lnm(layers[i].layerName.c_str());
-    ILayer *l = manager->GetLayer(lnm);
-    manager->SetCurrentLayer(lnm);
-    l->Hide(false);
+    ILayer *l = manager->GetLayer(layers[i].layerName.c_str());
+    if (!(expflg & EXP_HID) && l->IsHidden())
+    {
+      explogWarning(L"layer '%s' is hidden, '%s' is not exported\r\n", l->GetName().data(), layers[i].path.c_str());
+      continue;
+    }
 
+    explog(L"exporting layer '%s' to '%s'\r\n", l->GetName().data(), layers[i].path.c_str());
     std::unordered_set<INode *> otherLayerNodes;
     for (int j = 0; j < layerCount; ++j)
       if (j != i)
         for (int k = 0; k < layerNodes[j].Count(); ++k)
           otherLayerNodes.insert(layerNodes[j][k]);
 
-    export_one_dag(layers[i].path, std::move(otherLayerNodes));
-    l->Hide(true);
+    if (!export_one_dag(layers[i].path, std::move(otherLayerNodes)))
+      result = FALSE;
   }
-  for (int i = 0; i < layerCount; ++i)
-  {
-    if (!isHidden[i])
-      manager->GetLayer(layers[i].layerName.c_str())->Hide(false);
-  }
-  manager->SetCurrentLayer();
 
-  return true;
+  return result;
 }
 
 BOOL ExpUtil::export_one_dag(const fs::path &exp_fn, std::unordered_set<INode *> skip_nodes)
@@ -3625,7 +3465,15 @@ bool ExpUtil::write_via_temp_file(const fs::path &target, const std::function<bo
     fs::remove(path, ec);
     return false;
   }
-  const bool written = write(h) && !ferror(h);
+  bool written = false;
+  try
+  {
+    written = write(h) && !ferror(h);
+  }
+  catch (const std::bad_alloc &)
+  {
+    explogError(L"Out of memory while writing '%s'\r\n", target.c_str());
+  }
   const bool closed = fclose(h) == 0;
   if (!written || !closed)
   {
@@ -3648,7 +3496,7 @@ BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const fs::path &exp_fn)
 {
   checkDupesAndSpaces(cb.node);
 
-  if (!write_via_temp_file(exp_fn, [&](FILE *h) { return cb.save(h, ip) != 0; }))
+  if (!write_via_temp_file(exp_fn, [&](FILE *h) { return cb.save(h, ip); }))
     return false;
   explog(_T ("%d nodes\r\n"), cb.node.Count());
   explog(_T ("%d materials\r\n"), (int)cb.mat.size());
@@ -3707,13 +3555,13 @@ void ExpUtil::export_anim_v2()
 
   checkDupesAndSpaces(cb.node);
 
-  // save_anim2 function is not fast but writes the file directly as it goes.
+  // save_anim2 function is not fast, and even its single write reaches the disk in parts.
   // If we are saving an a2d opened in AssetViewer we are highly likely to crash because AV will
   // trigger on first file flush, try to read not yet fully written file and fail. To avoid this we
   // export to a temp file and then copy it to the final destination. The copy still writes the
   // target as it goes, but it is short, and AV waits up to 500 ms for a file open for writing.
   t0 = timeGetTime();
-  if (!write_via_temp_file(exp_anim2_fname, [&](FILE *h) { return cb.save_anim2(h) != 0; }))
+  if (!write_via_temp_file(exp_anim2_fname, [&](FILE *h) { return cb.save_anim2(h); }))
     return;
 
   t0 = timeGetTime() - t0;
@@ -3772,7 +3620,61 @@ static bool FolderOpenDialog(fs::path &path, HWND)
   return !path.empty();
 }
 
-void ExpUtil::exportObjectsAsDagsInternal(const fs::path &folder, INode &node)
+static bool is_windows_device_name(std::wstring_view stem)
+{
+  while (!stem.empty() && stem.back() == L' ')
+    stem.remove_suffix(1);
+  for (const wchar_t *device : {L"CON", L"PRN", L"AUX", L"NUL", L"CONIN$", L"CONOUT$", L"CLOCK$"})
+    if (iequal(stem, device))
+      return true;
+  if (stem.size() != 4 || !(istarts_with(stem, L"COM") || istarts_with(stem, L"LPT")))
+    return false;
+  constexpr std::wstring_view superscriptDigits = L"\xB9\xB2\xB3";
+  const wchar_t number = stem[3];
+  return (number >= L'1' && number <= L'9') || superscriptDigits.find(number) != std::wstring_view::npos;
+}
+
+class DagFileNames
+{
+public:
+  explicit DagFileNames(fs::path folder_) : folder(std::move(folder_)) {}
+
+  fs::path take(const wchar_t *what, const wchar_t *name)
+  {
+    std::wstring file = name;
+    for (wchar_t &c : file)
+      if (c < L' ' || std::wstring_view(L"<>:\"/\\|?*").find(c) != std::wstring_view::npos)
+        c = L'_';
+    const bool renamed = file != name;
+    const size_t stemEnd = std::min(file.find(L'.'), file.size());
+    const bool device = is_windows_device_name(std::wstring_view(file).substr(0, stemEnd));
+    if (device)
+      file.insert(stemEnd, L"_");
+    file += L".dag";
+
+    std::wstring key(file.size(), L'\0');
+    LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_UPPERCASE, file.c_str(), int(file.size()), key.data(), int(key.size()), nullptr,
+      nullptr, 0);
+    const auto [taken, isNew] = written.try_emplace(std::move(key), name);
+    if (!isNew)
+    {
+      explogError(L"%s '%s' is not exported: the file name '%s' is already taken by '%s' in this export\r\n", what, name, file.c_str(),
+        taken->second.c_str());
+      return {};
+    }
+    if (renamed)
+      explogWarning(L"%s '%s' has characters a file name cannot hold, its file is named '%s'\r\n", what, name, file.c_str());
+    else if (device)
+      explogWarning(L"%s '%s' is a Windows device name, its file is named '%s'\r\n", what, name, file.c_str());
+    return folder / file;
+  }
+
+private:
+  fs::path folder;
+  std::unordered_map<std::wstring, std::wstring> written;
+};
+
+void ExpUtil::exportObjectsAsDagsInternal(DagFileNames &files, INode &node)
 {
   const int childrenCount = node.NumberOfChildren();
   for (int i = 0; i < childrenCount; ++i)
@@ -3781,7 +3683,7 @@ void ExpUtil::exportObjectsAsDagsInternal(const fs::path &folder, INode &node)
 
     if (((util.expflg & EXP_SEL) != 0 && childNode->Selected() == 0) || ((util.expflg & EXP_HID) == 0 && childNode->IsHidden()))
     {
-      exportObjectsAsDagsInternal(folder, *childNode);
+      exportObjectsAsDagsInternal(files, *childNode);
       continue;
     }
 
@@ -3797,12 +3699,13 @@ void ExpUtil::exportObjectsAsDagsInternal(const fs::path &folder, INode &node)
       // Use the node as origin instead of the scene.
       cb.useIdentityTransformForNode = childNode;
 
-      fs::path path = folder / childNode->GetName();
-      path += L".dag";
-
-      explog(_T("Exporting node \"%s\" to file \"%s\"\r\n"), childNode->GetName(), path.c_str());
-      export_one_dag_cb(cb, path);
-      explog(_T("\r\n"));
+      const fs::path path = files.take(L"Node", childNode->GetName());
+      if (!path.empty())
+      {
+        explog(L"Exporting node \"%s\" to file \"%s\"\r\n", childNode->GetName(), path.c_str());
+        export_one_dag_cb(cb, path);
+        explog(L"\r\n");
+      }
     }
     else
     {
@@ -3812,7 +3715,7 @@ void ExpUtil::exportObjectsAsDagsInternal(const fs::path &folder, INode &node)
 
     // If this is a group then there is no need to descend further because groups are exported as a single dag.
     if (!childNode->IsGroupHead())
-      exportObjectsAsDagsInternal(folder, *childNode);
+      exportObjectsAsDagsInternal(files, *childNode);
   }
 }
 
@@ -3832,10 +3735,11 @@ void ExpUtil::exportObjectsAsDags()
     return;
   }
 
-  exportObjectsAsDagsInternal(folder, *rootNode);
+  DagFileNames files(folder);
+  exportObjectsAsDagsInternal(files, *rootNode);
 }
 
-void ExpUtil::exportLayerAsDag(const fs::path &folder, ILayer &layer)
+void ExpUtil::exportLayerAsDag(DagFileNames &files, ILayer &layer)
 {
   // "sel" only affects the layers we work with, so do not use it when processing the nodes.
   const int oldExpSel = util.expflg & EXP_SEL;
@@ -3855,12 +3759,13 @@ void ExpUtil::exportLayerAsDag(const fs::path &folder, ILayer &layer)
 
     if (cb.node.Count() > 0)
     {
-      fs::path path = folder / layer.GetName().data();
-      path += L".dag";
-
-      explog(_T("Exporting layer \"%s\" to file \"%s\"\r\n"), layer.GetName().data(), path.c_str());
-      export_one_dag_cb(cb, path);
-      explog(_T("\r\n"));
+      const fs::path path = files.take(L"Layer", layer.GetName().data());
+      if (!path.empty())
+      {
+        explog(L"Exporting layer \"%s\" to file \"%s\"\r\n", layer.GetName().data(), path.c_str());
+        export_one_dag_cb(cb, path);
+        explog(L"\r\n");
+      }
     }
     else
     {
@@ -3876,22 +3781,23 @@ void ExpUtil::exportLayerAsDag(const fs::path &folder, ILayer &layer)
   util.expflg |= oldExpSel;
 }
 
-void ExpUtil::exportLayersAsDagsInternal(const fs::path &folder, ILayer &layer)
+void ExpUtil::exportLayersAsDagsInternal(DagFileNames &files, ILayer &layer)
 {
-  const bool matchesVisibilityFilter = (util.expflg & EXP_HID) != 0 || !layer.IsHidden(false);
+  const bool matchesVisibilityFilter = (util.expflg & EXP_HID) != 0 || !layer.IsHidden(true);
 
   const int childLayerCount = layer.GetNumOfChildLayers();
 
   if (childLayerCount > 0)
   {
-    if (matchesVisibilityFilter)
-      explog(_T("Layer '%s' has child layer(s), it will not be exported.\r\n"), layer.GetName().data());
+    explog(L"Layer '%s' has child layer(s), it will not be exported.\r\n", layer.GetName().data());
 
     for (int i = 0; i < childLayerCount; ++i)
-      exportLayersAsDagsInternal(folder, *layer.GetChildLayer(i));
+      exportLayersAsDagsInternal(files, *layer.GetChildLayer(i));
   }
   else if (matchesVisibilityFilter)
-    exportLayerAsDag(folder, layer);
+    exportLayerAsDag(files, layer);
+  else
+    explog(L"Layer '%s' is hidden, it will not be exported.\r\n", layer.GetName().data());
 }
 
 void ExpUtil::exportLayersAsDags()
@@ -3902,6 +3808,7 @@ void ExpUtil::exportLayersAsDags()
   if (!FolderOpenDialog(folder, hExpDag))
     return;
 
+  DagFileNames files(folder);
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
   if (!manager)
   {
@@ -3926,10 +3833,10 @@ void ExpUtil::exportLayersAsDags()
       {
         const int childLayerCount = layer->GetNumOfChildLayers();
         for (int childLayerIndex = 0; childLayerIndex < childLayerCount; ++childLayerIndex)
-          exportLayersAsDagsInternal(folder, *layer->GetChildLayer(childLayerIndex));
+          exportLayersAsDagsInternal(files, *layer->GetChildLayer(childLayerIndex));
       }
       else
-        exportLayersAsDagsInternal(folder, *layer);
+        exportLayersAsDagsInternal(files, *layer);
     }
   }
   else
@@ -3942,7 +3849,7 @@ void ExpUtil::exportLayersAsDags()
       return;
     }
 
-    exportLayersAsDagsInternal(folder, *currentLayer);
+    exportLayersAsDagsInternal(files, *currentLayer);
   }
 }
 

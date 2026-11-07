@@ -314,7 +314,7 @@ struct Rebuilder
         w1out = (uint32_t(relBase >> QUAD_BASE_ALIGN_SHIFT) & QUAD_BASE_MASK) | (body[1] & ~QUAD_BASE_MASK);
       }
 
-      writeQuadBox(dst, dstO, box.bmin, box.bmax, v_splats(1.f), v_zero(), w0, /*useHalves*/ false);
+      writeQuadBox(dst, dstO, box.bmin, box.bmax, v_splats(1.f), v_zero(), w0);
       memcpy(dst + leafOfs + 0, &w1out, 4);
       memcpy(dst + leafOfs + 4, &w2, 4);
       memcpy(dst + leafOfs + 8, &w3, 4);
@@ -339,7 +339,7 @@ struct Rebuilder
     // After the loop subtreeIsRawChain holds the last child's value; a 1-child node inherits it (a RAW
     // chain stays a RAW chain), a >=2-child node breaks it (its box unions real geometry).
     subtreeIsRawChain = (cc == 1) && subtreeIsRawChain;
-    writeQuadBox(dst, hdr, box.bmin, box.bmax, v_splats(1.f), v_zero(), uint32_t(dstO - childrenStart), false);
+    writeQuadBox(dst, hdr, box.bmin, box.bmax, v_splats(1.f), v_zero(), uint32_t(dstO - childrenStart));
     return box;
   }
 };
@@ -580,7 +580,7 @@ struct Soa4Deserializer
   static void writeSoaBoxLane(uint8_t *p, int n, int i, bbox3f box)
   {
     alignas(16) uint8_t hdr[BVH_BLAS_NODE_SIZE]; // [min.x|max.x][min.y|max.y][min.z|max.z][skip]
-    writeQuadBox(hdr, 0, box.bmin, box.bmax, v_splats(1.f), v_zero(), 0u, /*useHalves*/ false);
+    writeQuadBox(hdr, 0, box.bmin, box.bmax, v_splats(1.f), v_zero(), 0u);
     const uint16_t mn[3] = {*(const uint16_t *)(hdr + 0), *(const uint16_t *)(hdr + 4), *(const uint16_t *)(hdr + 8)};
     const uint16_t mx[3] = {*(const uint16_t *)(hdr + 2), *(const uint16_t *)(hdr + 6), *(const uint16_t *)(hdr + 10)};
     soa4::storeLaneBoxU16(p, n, i, mn, mx);

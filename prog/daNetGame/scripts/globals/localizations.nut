@@ -1,10 +1,11 @@
 from "dagor.debug" import logerr, console_print
 from "dagor.system" import DBGLEVEL
-from "debug" import getstackinfos
+from "debug" import getstackinfos, get_const_eval_pos
 import "dagor.localize" as dagorLocalize
 from "%sqstd/functools.nut" import memoize
 import "console" as console
 from "nestdb" import ndbTryRead, ndbWrite
+from "app" import reload_overlay_ui_scripts
 from "types" import String
 
 let nativeLoc = dagorLocalize.loc
@@ -28,7 +29,7 @@ function locWithCheck(locId, ...) {
   }
 
   if (!doesLocTextExist(locId)){
-    let {src=null, line=null} = getstackinfos(4)
+    let {src=null, line=null} = get_const_eval_pos() ?? getstackinfos(4)
     if (defaultLoc!=null && locId not in defLocalizedStrings)
       defLocalizedStrings[locId] <- {stack = src ? $"{src}:{line}" : "no stack", defaultLoc}
     else if (locId not in unlocalizedStrings)
@@ -54,8 +55,7 @@ function hashLocFunc(locId, defLoc, params) {
   return $"{locId}{hashLocArg(defLoc)}{hashLocArg(params)}"
 }
 
-let persistLocCache = persist("persistLocCache", @(){})
-let memoizedLoc = memoize(locWithCheck, hashLocFunc, persistLocCache)
+let memoizedLoc = memoize(locWithCheck, hashLocFunc)
 let checkedLoc = @[pure](locId, defLoc=null, params=null) memoizedLoc(locId, defLoc, params)
 
 function dumpLocalizationErrors(){
@@ -78,6 +78,8 @@ console.register_command(dumpLocalizationErrors, "localization.checkErrors", "du
 console.register_command(function() {
   ndbWrite(__useLocalizations__, !readUseLocalizations())
   console_print($"localizations: {readUseLocalizations()}")
+  if (debugLocalizations)
+    reload_overlay_ui_scripts()
 }, "localization.toggle", "toggle localizations on/off")
 
 return freeze({

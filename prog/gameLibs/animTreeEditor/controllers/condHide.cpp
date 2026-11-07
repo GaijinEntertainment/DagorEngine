@@ -13,6 +13,7 @@
 static const char *COMP_OPS[] = {"=", "!=", ">", ">=", "<", "<=", "inside", "outside", "dist"};
 static const char *TWO_CHAR_OPS[] = {"!=", ">=", "<="};
 static const char *ONE_CHAR_OPS[] = {"=", ">", "<"};
+static constexpr int MAX_CONDITION_DEPTH = 32;
 
 static bool is_comp_op(const char *op) { return lup(op, COMP_OPS, countof(COMP_OPS), -1) >= 0; }
 
@@ -26,7 +27,7 @@ static String condition_error(const char *node_name, const String &msg, String &
 
 static String condition_blk_to_string(const DataBlock &blk, const char *node_name, String &out_error, bool nested = false)
 {
-  if (blk.isEmpty())
+  if (blk.isEmpty() || (!nested && blk.getBool("always", false) && !blk.paramExists("op")))
     return String();
 
   const char *opStr = blk.getStr("op", nullptr);
@@ -55,7 +56,7 @@ static String condition_blk_to_string(const DataBlock &blk, const char *node_nam
     const DataBlock *p0 = blk.getBlockByName("p0");
     if (!p0)
       return condition_error(node_name, String("op \"!\" requires a \"p0\" sub-block containing the condition to negate"), out_error);
-    return String(0, "!(%s)", condition_blk_to_string(*p0, node_name, out_error).c_str());
+    return String(0, "!(%s)", condition_blk_to_string(*p0, node_name, out_error, /*nested*/ true).c_str());
   }
 
   if (strcmp(opStr, "|") == 0 || strcmp(opStr, "&") == 0)
@@ -83,16 +84,6 @@ static String condition_blk_to_string(const DataBlock &blk, const char *node_nam
   return condition_error(node_name,
     String(0, "unknown op \"%s\" - expected a comparison (=, !=, >, >=, <, <=, inside, outside, dist) or boolean (|, &, !)", opStr),
     out_error);
-}
-
-static bool is_blank(const char *s)
-{
-  if (!s)
-    return true;
-  while (*s)
-    if (!isspace((unsigned char)*s++))
-      return false;
-  return true;
 }
 
 static void copy_condition_blk(const DataBlock &src, DataBlock &dst)
@@ -125,6 +116,7 @@ struct CondParser
 {
   const char *pos;
   String error;
+  int depth = 0;
 
   void skipWs()
   {
@@ -217,12 +209,15 @@ struct CondParser
 
   bool parseExpr(DataBlock &out)
   {
+    if (depth++ > MAX_CONDITION_DEPTH)
+    {
+      error = String(0, "condition is nested deeper than %d levels", MAX_CONDITION_DEPTH);
+      return false;
+    }
     skipWs();
-    if (*pos == '(')
-      return parseCompound(out);
-    if (*pos == '!')
-      return parseNot(out);
-    return parseLeaf(out);
+    const bool ok = *pos == '(' ? parseCompound(out) : *pos == '!' ? parseNot(out) : parseLeaf(out);
+    --depth;
+    return ok;
   }
 
   bool parseLeaf(DataBlock &out)
@@ -415,10 +410,8 @@ void cond_hide_init_panel(dag::Vector<AnimParamData> &params, PropPanel::Contain
 void cond_hide_init_block_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings)
 {
   Tab<String> names;
-  const int targetNodeNid = settings->getNameId("targetNode");
-  for (int i = 0; i < settings->blockCount(); ++i)
-    if (settings->getBlock(i)->getBlockNameId() == targetNodeNid)
-      names.emplace_back(settings->getBlock(i)->getStr("node", ""));
+  for (int position : collect_block_positions_by_name(*settings, "targetNode"))
+    names.emplace_back(settings->getBlock(position)->getStr("node", ""));
 
   bool isEditable = !names.empty();
   const DataBlock *defaultBlock = settings->getBlockByNameEx("targetNode");
@@ -444,39 +437,34 @@ void cond_hide_always_changed(PropPanel::ContainerPropertyControl *panel)
 
 void cond_hide_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  if (listName.empty())
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  if (selectedIdx < 0)
     return;
 
-  const int targetNodeNid = settings->getNameId("targetNode");
-  DataBlock *selectedBlock = nullptr;
-  for (int i = 0; i < settings->blockCount(); ++i)
+  // By index: node names can repeat
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "targetNode");
+  if (selectedIdx > positions.size())
   {
-    DataBlock *child = settings->getBlock(i);
-    if (child->getBlockNameId() == targetNodeNid && listName == child->getStr("node", nullptr))
-      selectedBlock = child;
+    logerr("condHide <%s>: can't save new target node, save the new target node above it first", settings->getStr("name", ""));
+    return;
   }
+  const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
+  DataBlock *selectedBlock =
+    selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : settings->addNewBlock("targetNode");
 
   const SimpleString nodeValue = panel->getText(PID_CTRLS_COND_HIDE_NODE);
   const bool alwaysValue = panel->getBool(PID_CTRLS_COND_HIDE_ALWAYS);
   const bool hideOnlyValue = panel->getBool(PID_CTRLS_COND_HIDE_HIDE_ONLY);
   const SimpleString condStr = panel->getText(PID_CTRLS_COND_HIDE_CONDITION);
-  if (!selectedBlock)
-    selectedBlock = settings->addNewBlock("targetNode");
 
   // Parse condition before modifying selectedBlock so savedCondStr is still valid on error
   DataBlock condBlock;
   String parseError;
-  const bool condEmpty = is_blank(condStr.c_str());
-  const bool condOk = condEmpty || condition_string_to_blk(condStr.c_str(), condBlock, parseError);
+  const bool condParsed = condition_string_to_blk(condStr.c_str(), condBlock, parseError);
+  const bool condOk = alwaysValue || condParsed;
 
   if (condOk)
-  {
-    for (int i = selectedBlock->paramCount() - 1; i >= 0; --i)
-      selectedBlock->removeParam(i);
-    for (int i = selectedBlock->blockCount() - 1; i >= 0; --i)
-      selectedBlock->removeBlock(i);
-  }
+    selectedBlock->clearData();
   else
   {
     String condError;
@@ -486,7 +474,11 @@ void cond_hide_save_block_settings(PropPanel::ContainerPropertyControl *panel, D
     panel->setTooltipId(PID_CTRLS_COND_HIDE_CONDITION, tooltipMsg.c_str());
     logerr("condHide targetNode '%s': condition parse error - %s", nodeValue.c_str(), parseError.c_str());
     panel->setShowTooltipAlwaysById(PID_CTRLS_COND_HIDE_CONDITION, true);
-    selectedBlock->removeParam("always");
+    if (selectedIdx == positions.size())
+    {
+      settings->removeBlock(settings->blockCount() - 1);
+      return;
+    }
     selectedBlock->removeParam("hideOnly");
   }
 
@@ -498,7 +490,7 @@ void cond_hide_save_block_settings(PropPanel::ContainerPropertyControl *panel, D
 
   if (condOk)
   {
-    if (!condEmpty)
+    if (condParsed)
       copy_condition_blk(condBlock, *selectedBlock);
     panel->setValueHighlightById(PID_CTRLS_COND_HIDE_CONDITION, PropPanel::ColorOverride::NONE);
     panel->setTooltipId(PID_CTRLS_COND_HIDE_CONDITION, "");
@@ -511,14 +503,10 @@ void cond_hide_save_block_settings(PropPanel::ContainerPropertyControl *panel, D
 void cond_hide_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings)
 {
   const SimpleString name = panel->getText(PID_CTRLS_NODES_LIST);
-  const DataBlock *selectedBlock = &DataBlock::emptyBlock;
-  const int targetNodeNid = settings->getNameId("targetNode");
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    const DataBlock *child = settings->getBlock(i);
-    if (child->getBlockNameId() == targetNodeNid && name == child->getStr("node", nullptr))
-      selectedBlock = child;
-  }
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "targetNode");
+  const DataBlock *selectedBlock =
+    selectedIdx >= 0 && selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : &DataBlock::emptyBlock;
   panel->setText(PID_CTRLS_COND_HIDE_NODE, name);
   const bool isAlways = selectedBlock->getBool("always", false);
   panel->setBool(PID_CTRLS_COND_HIDE_ALWAYS, isAlways);
@@ -532,7 +520,7 @@ void cond_hide_set_selected_node_list_settings(PropPanel::ContainerPropertyContr
     condError.empty() ? PropPanel::ColorOverride::NONE : PropPanel::ColorOverride::EDIT_BOX_WRONG_VALUE_BACKGROUND;
   panel->setValueHighlightById(PID_CTRLS_COND_HIDE_CONDITION, editBoxColor);
 
-  const bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
+  const bool isEditable = selectedIdx >= 0;
   for (int i = PID_CTRLS_COND_HIDE_NODE; i <= PID_CTRLS_COND_HIDE_HIDE_ONLY; ++i)
     panel->setEnabledById(i, isEditable);
   panel->setEnabledById(PID_CTRLS_COND_HIDE_CONDITION, isEditable && !isAlways);

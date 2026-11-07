@@ -77,7 +77,7 @@ struct ClassWaste
   uint64_t free = 0;
   uint64_t locked = 0;
   uint64_t preservedBytes = 0;
-  dag::Vector<HeapWaste, framemem_allocator> heaps;
+  dag::Vector<HeapWaste, framemem_allocator> heaps{};
 
   uint64_t recoverable(bool relocate) const { return free + (relocate ? locked : 0); }
 };

@@ -8,10 +8,10 @@ include "gbuffer_mixing_tex.dshl"
 interval packed_gbuf_normals : no < 1, yes;
 
 
-macro DYNAMIC_FILTER_FOR_MIXING(is_dynamic, allow_dynstcode)
+macro DYNAMIC_FILTER_FOR_MIXING(is_dynamic, declare_mixing_uav)
   if (packed_gbuf_normals == yes && !is_dynamic)
   {
-    if (allow_dynstcode)
+    if (declare_mixing_uav)
     {
       INIT_GBUFFER_MIXING_UAV()
     }
@@ -34,7 +34,7 @@ macro DYNAMIC_FILTER_FOR_MIXING(is_dynamic, allow_dynstcode)
 endmacro
 
 //Always include this macro after blend is set to avoid accidental errors
-macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
+macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, declare_mixing_uav)
   USE_PARTIAL_PACK_UNPACK_GBUFF(ps)
   if (compatibility_mode == compatibility_mode_on)
   {
@@ -43,6 +43,8 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
     {
       #define isGbufferEmissive(screen_pos) false
       #define encode_gbuffer_alpha_cover_emission encode_gbuffer_alpha
+      #define MATERIAL_UAV_VRS_PS_INPUT
+      #define MATERIAL_UAV_VRS_ARGS 0, 0
     }
   }
   else
@@ -53,19 +55,33 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
       color_write[1] = rgba;
     }
 
-    if (packed_gbuf_normals == yes && allow_dynstcode)
+    if (packed_gbuf_normals == yes && declare_mixing_uav)
     {
       INIT_GBUFFER_MIXING_UAV()
     }
     if (!blending && packed_gbuf_normals == yes)
     {
-      hlsl(ps) { #define UAV_5th_TARGET 1 }
+      if (hardware.dx12 && !hardware.scarlett) // VRS_SUPPORT
+      {
+        (ps) { mixing_depth_gbuf@tex2d = depth_gbuf; }
+      }
+      hlsl(ps) {
+        #define UAV_5th_TARGET 1
+        #if SUPPORTS_VRS
+          #define MATERIAL_UAV_VRS_PS_INPUT HW_USE_READ_SHADING_RATE , uint coverage : SV_Coverage
+          #define MATERIAL_UAV_VRS_ARGS shading_rate, coverage
+        #endif
+      }
     }
     else
     {
       hlsl(ps) { #define UAV_5th_TARGET 0 }
     }
     hlsl(ps){
+      #ifndef MATERIAL_UAV_VRS_PS_INPUT
+        #define MATERIAL_UAV_VRS_PS_INPUT
+        #define MATERIAL_UAV_VRS_ARGS 0, 0
+      #endif
       struct GBUFFER_OUTPUT
       {
         float4 albedo_ao : SV_Target0;
@@ -75,7 +91,36 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
           float4 motion_reactive : SV_Target3;
         #endif
       };
-      GBUFFER_OUTPUT encode_gbuffer_raw(UnpackedGbuffer gbuf, float2 tc)
+      #if UAV_5th_TARGET
+        #ifndef MIXING_UAV_DEPTH_TEST
+          #define MIXING_UAV_DEPTH_TEST(z, scene_z) ((z) >= (scene_z))
+        #endif
+        // Under VRS we need manual depth testing for the UAV, to write the appropiate pixel in the 2x2 / 4x4 coarse grid
+        void store_mixing_material(float4 pos, uint shading_rate, uint coverage, float4 normal_material)
+        {
+          #if SUPPORTS_VRS
+            uint2 rate = GET_SHADING_RATE;
+            BRANCH
+            if (any(rate > 1))
+            {
+              uint2 base = uint2(pos.xy) & ~(rate - 1u);
+              float2 dz = float2(ddx_fine(pos.z), ddy_fine(pos.z)) / float2(rate);
+              uint bit = rate.x * rate.y - 1;
+              for (uint y = 0; y < rate.y; ++y)
+                for (uint x = 0; x < rate.x; ++x, --bit)
+                {
+                  uint2 fine = base + uint2(x, y);
+                  float fineZ = pos.z + dot(dz, float2(fine) + 0.5 - pos.xy);
+                  if ((coverage & (1u << bit)) && MIXING_UAV_DEPTH_TEST(fineZ, texelFetch(mixing_depth_gbuf, int2(fine), 0).r))
+                    packed_gbuf_1[fine] = normal_material;
+                }
+              return;
+            }
+          #endif
+          packed_gbuf_1[uint2(pos.xy)] = normal_material;
+        }
+      #endif
+      GBUFFER_OUTPUT encode_gbuffer_raw(UnpackedGbuffer gbuf, float4 pos, uint shading_rate, uint coverage)
       {
         GBUFFER_OUTPUT ret;
         PackedGbuffer packedGbuf = pack_gbuffer(gbuf);
@@ -90,7 +135,7 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
           ret.normal = packedGbuf.normal_material;
         ##endif
         #if UAV_5th_TARGET
-          packed_gbuf_1[tc] = packedGbuf.normal_material;
+          store_mixing_material(pos, shading_rate, coverage, packedGbuf.normal_material);
         #endif
         return ret;
       }
@@ -125,10 +170,12 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
         return ret;
       }
 
-      GBUFFER_OUTPUT encode_gbuffer_alpha_cover_emission_raw(UnpackedGbuffer gbuf, half alpha, bool is_on_emissive_surface)
+      GBUFFER_OUTPUT encode_gbuffer_alpha_cover_emission_raw(UnpackedGbuffer gbuf, half alpha, uint surface_material)
       {
-        if (!is_on_emissive_surface)
+        if (!isEmissiveShader(surface_material))
           return encode_gbuffer_alpha_raw(gbuf, alpha, alpha);
+        if (isNoLightEmissiveShader(surface_material))
+          discard;
         const half SOLID_DECAL_MIN_ALPHA = 0.8;
         bool isSolid = alpha >= SOLID_DECAL_MIN_ALPHA;
         if (isSolid)
@@ -139,20 +186,21 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
       }
 
       ##if packed_gbuf_normals == yes
-        bool isEmissiveMaterial(half4 normal_material)
+        uint unpackGbufferMaterial(half4 normal_material)
         {
           uint extra, material;
           unpackMaterialExtra(normal_material, extra, material);
-          return isEmissiveShader(material);
+          return material;
         }
-        #define isGbufferEmissive(screen_pos) isEmissiveMaterial(packed_gbuf_1[uint2((screen_pos).xy)])
+        #define gbufferMaterial(screen_pos) unpackGbufferMaterial(packed_gbuf_1[uint2((screen_pos).xy)])
       ##else
-        #define isGbufferEmissive(screen_pos) false
+        #define gbufferMaterial(screen_pos) SHADING_NORMAL
       ##endif
+      #define isGbufferEmissive(screen_pos) isEmissiveShader(gbufferMaterial(screen_pos))
       #define encode_gbuffer_alpha(a,b,c,d) encode_gbuffer_alpha_raw(a, b, isGbufferEmissive(d) ? 0 : (b))
       #define encode_gbuffer_alpha3(a,b,c,d) encode_gbuffer_alpha3_raw(a, half3((b).xy, isGbufferEmissive(d) ? 0 : (b).z))
-      #define encode_gbuffer_alpha_cover_emission(a,b,c,d) encode_gbuffer_alpha_cover_emission_raw(a, b, isGbufferEmissive(d))
-      #define encode_gbuffer(a,b,c) encode_gbuffer_raw(a, c.xy)
+      #define encode_gbuffer_alpha_cover_emission(a,b,c,d) encode_gbuffer_alpha_cover_emission_raw(a, b, gbufferMaterial(d))
+      #define encode_gbuffer(a,b,c) encode_gbuffer_raw(a, c, MATERIAL_UAV_VRS_ARGS)
     }
   }
 endmacro

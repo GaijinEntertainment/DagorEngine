@@ -26,6 +26,13 @@ struct LandclassQueryData
   dag::Vector<Point3> landclass_gravs;
   dag::Vector<int> indices;
   dag::Vector<Point4> pos_radiusSqr;
+
+  void clear()
+  {
+    landclass_gravs.clear();
+    indices.clear();
+    pos_radiusSqr.clear();
+  }
 };
 
 namespace heightmap_query
@@ -34,6 +41,7 @@ void init();
 void close();
 void update();
 
+// Swaps with the stored data: data gets the old buffers back, so the caller can reuse them
 void update_landclass_data(LandclassQueryData &data);
 
 int query(const Point3 &world_pos, const Point3 &grav_dir);

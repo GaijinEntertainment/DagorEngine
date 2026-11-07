@@ -2012,7 +2012,6 @@ template <typename T>
 class BasicGraphicsCommandListParameterValidation : public BasicGraphicsCommandListImplementation<T>
 {
   using BaseType = BasicGraphicsCommandListImplementation<T>;
-  using CommandListLogger = debug::CommandListLogger;
 
 protected:
   using BaseType::getBufferSize;
@@ -2066,8 +2065,7 @@ public:
     DX12_VALIDATE_CONDITION(src_resource != nullptr, "src resource can not be 0");
     DX12_FINALIZE_VALIDATION();
 #undef DX12_VALIDATION_CONTEXT
-    this->list->ResolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
-    CommandListLogger::resolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
+    BaseType::resolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
   }
 
   // It validates the following properties of the inputs:
@@ -2081,8 +2079,6 @@ public:
     DX12_VALIDATE_CONDITION(src_resource != nullptr, "src resource can not be 0");
     DX12_FINALIZE_VALIDATION();
 #undef DX12_VALIDATION_CONTEXT
-    this->list->ResolveSubresourceRegion(dst_resource, dst_subresource, dst_x, dst_y, src_resource, src_subresource, src_rect, format,
-      resolve_mode);
     BaseType::resolveSubresourceRegion(dst_resource, dst_subresource, dst_x, dst_y, src_resource, src_subresource, src_rect, format,
       resolve_mode);
   }

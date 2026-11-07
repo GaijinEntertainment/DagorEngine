@@ -6,6 +6,8 @@
 
 #include <generic/dag_span.h>
 
+#include <EASTL/shared_ptr.h>
+#include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector.h>
 
@@ -14,8 +16,14 @@
 class GraphDocument;
 class GraphEditorPlg;
 class GraphTab;
+class OpenSubgraphs;
 class SubgraphWindow;
+struct GraphData;
+struct HeldSurfaces;
 struct IGraphTexGenService;
+struct OpenSubgraphDoc;
+struct SubgraphNodeSource;
+struct SubgraphWindowLayout;
 
 // The "Graph" dock window and the strip of open graphs inside it. Owns every tab; one of them is
 // the active one, the only one drawn. Its active surface, the tab or the subgraph window over it
@@ -50,8 +58,28 @@ public:
   void openSubgraph(GraphTab &from, const char *stem);
   // On a tab, or in a window over any tab.
   bool isSubgraphOpen(const char *stem) const;
+  // A surface other than `except` shows that file, so a Save as there would make a second copy.
+  bool isFileShownElsewhere(const char *path, const GraphTab &except) const;
+  // A graph in the UI or held for undo has an instance of that subgraph.
+  bool isSubgraphInstanced(const char *stem) const;
+  // Before a Save as of a window takes them away: the close prompt of each window opened from it.
+  bool confirmCloseWindowsOpenedFrom(GraphTab &surface);
+  // After a Save as of a window to path: one entry closes the window, with the windows opened from it, and opens the
+  // file in its place, as the window's graph that was just written.
+  void reopenSubgraphWindowAs(GraphTab &surface, const char *path);
+  // After a Save as of a graph tab to path: one entry moves the tab to that file, so no undo brings back a closed tab
+  // of the file while this one shows it.
+  void moveTabToFile(GraphTab &tab, const char *path);
   // The window `from` was opened from, else the root canvas, on the next tick.
   void focusParentSurface(const GraphTab &from);
+  void saveActiveGraph();
+  // Does nothing when no subgraph window has the focus.
+  void saveFocusedSubgraph();
+  // The windows over every tab whose file is the one instances resolve to; the first window of a file wins.
+  void collectOpenSubgraphs(eastl::vector<OpenSubgraphDoc> &out) const;
+  // Brings every instance in the UI to its open subgraph's interface, recorded into the open operation, round after
+  // round while that changes a window's own interface. Right before the accept of an edit or a surface entry.
+  void recordLivePinSync();
 
   // Points the texgen service at the active tab, for graph swaps only; edits go through markGraphDirtyAndRegen.
   void rebindTexGen();
@@ -69,6 +97,11 @@ public:
   bool ownsUndoToken(const void *token) const;
 
   void updateImgui();
+  // The tabs and windows that undo and redo closed or opened move here, first in the plugin's tick, and ones no entry
+  // can bring back any more are destroyed. Waits while an operation is open.
+  void applyQueuedSurfaceMoves();
+  // True while such a move runs: nothing it reaches may record.
+  bool isApplyingSurfaceMove() const { return applyingSurfaceMove; }
   void actObjects(float dt);
   // Only the active tab and its windows tick, so only their queues can raise anything.
   bool hasPendingActions() const;
@@ -94,11 +127,22 @@ public:
   void requestDeselectAll();
   void requestInvertSelection();
   void requestFrameSelected();
+  // The floating toolbar's Add node: the picker with no pin, on the active surface, its ghost beside the toolbar.
+  void requestAddNode();
+
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
+  friend struct HeldSurfaces;
+  friend class UndoSurfaceLifetime;
+
   // The root the strip shows. Not for the plugin, which works on the active surface.
   GraphTab &activeTab();
   void stampUndoOwner(GraphTab &owner);
+  void createToolbar();
+  void drawToolbar();
+  void drawFloatingToolbar(const ImVec2 &canvas_min, const ImVec2 &canvas_max);
+  void runToolbarCommand(int id);
   void drawTabStrip();
   // imgui_tab_ids holds the ImGui id each tab was drawn with this frame, parallel to tabs.
   void syncTabOrderFromBar(dag::ConstSpan<ImGuiID> imgui_tab_ids);
@@ -120,17 +164,50 @@ private:
   // The window and the windows opened from it, which close with it.
   bool confirmCloseSubgraphWindow(GraphTab &root, SubgraphWindow &window);
   void closeSubgraphWindowNow(GraphTab &root, SubgraphWindow &window);
+  void holdWindows(HeldSurfaces &surfaces);
+  void restoreWindows(HeldSurfaces &surfaces);
+  // One entry owned by the closed or opened surface; then_opened is a surface opened in the same entry. entry_name
+  // replaces the default undo name.
+  void recordSurfaceLifetime(eastl::shared_ptr<HeldSurfaces> surfaces, bool closing, eastl::shared_ptr<HeldSurfaces> then_opened = {},
+    const char *entry_name = nullptr);
+  void detachForHold(GraphTab &surface);
+  // Return the strip index the tab was at, -1 when it was not there.
+  int holdRootTab(HeldSurfaces &surfaces);
+  void restoreRootTab(HeldSurfaces &surfaces);
+  // After moves: the surface brought back last comes to the front, else the neighbour of the active tab taken away.
+  void settleSurfaces(HeldSurfaces *shown, int held_active_index);
+  void buryTab(eastl::unique_ptr<GraphTab> tab);
+  // The subgraphs whose windows a hold took out of the UI, and no other window still shows.
+  eastl::vector<eastl::string> stemsLeavingUi(const HeldSurfaces &surfaces) const;
+  void recordTabOpened(GraphTab &tab);
+  void queueSurfaceMove(eastl::shared_ptr<HeldSurfaces> surfaces, bool hold);
+  void registerHeld(HeldSurfaces &surfaces);
+  void unregisterHeld(HeldSurfaces &surfaces);
+  void bury(eastl::unique_ptr<SubgraphWindow> window);
+  void flushGraveyard();
+  // Its held windows point at the root, so they go before it, entries first.
+  void dropHeldWindowsOf(GraphTab &root);
   int indexOfTab(const GraphTab &tab) const;
   int indexOfTabId(int tab_id) const;
   // The tab or window showing that file. One file is one document: of two copies, the one saved last
   // would drop the other's edits.
   GraphTab *findSurfaceByPath(const char *path) const;
+  // Not yet in root's list.
+  eastl::unique_ptr<SubgraphWindow> makeSubgraphWindow(GraphTab &root, SubgraphWindow *opened_from, const char *stem,
+    const SubgraphWindowLayout &layout, GraphData graph);
+  SubgraphWindow &showSubgraphWindow(GraphTab &root, eastl::unique_ptr<SubgraphWindow> window);
   // Root or window tab; null once closed.
   GraphTab *findSurface(int tab_id) const;
   // Its root becomes the active tab, and it the focused surface, back from the stack if it was minimized.
   void activateSurface(GraphTab &surface);
+  // Opens the windows down to the subgraph that holds the node and focuses the node there. False when one does not open.
+  bool focusSubgraphNode(GraphTab &root, const SubgraphNodeSource &source);
 
   PropPanel::PanelWindowPropertyControl *panelWindow = nullptr;
+  PropPanel::ContainerPropertyControl *toolbar = nullptr; // owned by panelWindow
+  // Node controls, then graph controls, a divider between them; owned by panelWindow, filled by the plugin.
+  PropPanel::ContainerPropertyControl *floatingControls[2] = {};
+  ImVec2 floatingToolbarTopRight = ImVec2(0.0f, 0.0f); // screen, from the last draw
   GraphEditorPlg &plugin;
   eastl::vector<eastl::unique_ptr<GraphTab>> tabs;
   int activeIndex = -1;
@@ -162,4 +239,16 @@ private:
   // ImGui's focus follows the root canvas on the next frame.
   bool rootFocusRequested = false;
   bool subgraphCardsShown = false;
+
+  struct QueuedSurfaceMove
+  {
+    eastl::shared_ptr<HeldSurfaces> surfaces;
+    bool hold = false;
+  };
+  eastl::vector<QueuedSurfaceMove> queuedSurfaceMoves;
+  eastl::vector<HeldSurfaces *> heldSurfaces; // every live one, holding or not
+  eastl::vector<eastl::unique_ptr<SubgraphWindow>> graveyard;
+  eastl::vector<eastl::unique_ptr<GraphTab>> graveyardTabs;
+  bool applyingSurfaceMove = false;
+  bool stripOrderResync = false;
 };

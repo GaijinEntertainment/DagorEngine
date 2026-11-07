@@ -83,6 +83,8 @@ public:
     void    OptionalSemicolon();
 
     RootBlock*  parse();
+    void        parseModuleHeader(RootBlock *root);
+    bool        isImportOutsideHeader(const Expr *e) const;
     Block*      parseStatements(SourceLoc start);
     Statement*  parseStatement(bool closeframe = true);
     Expr*       parseCommaExpr(SQExpressionContext expression_context);
@@ -149,7 +151,6 @@ private:
     SQExpressionContext _expression_context;
     SQUnsignedInteger _lang_features;
     SQVM *_vm;
-    bool _are_imports_still_allowed = true;
     uint32_t _foreachDestrCounter = 0;
 };
 

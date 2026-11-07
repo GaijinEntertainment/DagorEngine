@@ -1,0 +1,19 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/daCSG ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+include $(Root)/prog/gameLibs/daCSG/daCSG-options.jam ;
+
+# exec pulls every layer; a client adds one kernel set, gameLibs/daCSG/kernels/<set>
+TargetType  = lib ;
+Target      = gameLibs/daCSG.lib ;
+
+# the probe of the options every layer compiles with
+Sources =
+  fpProbe.cpp
+;
+
+UseProgLibs += gameLibs/daCSG/exec ;
+
+include $(Root)/prog/_jBuild/build.jam ;

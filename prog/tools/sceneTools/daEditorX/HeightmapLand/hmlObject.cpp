@@ -532,11 +532,7 @@ void HmapLandObjectEditor::updateSplinesGeom()
     splinesChanged = false;
   }
 
-  if (crossRoadsChanged)
-  {
-    updateCrossRoadGeom();
-    crossRoadsChanged = false;
-  }
+  crossRoadsChanged = false;
 
   // last spline update stage: generate entities
   for (int j = SplineObject::STAGE_START + 1; j <= SplineObject::STAGE_FINISH; j++)
@@ -563,6 +559,12 @@ void HmapLandObjectEditor::updateSplinesGeom()
     changedRegion += chSpl[i]->getGeomBoxChanges();
 
   chSpl.clear();
+
+  if (assetPropsChanged)
+  {
+    assetPropsChanged = false;
+    invalidateObjectProps();
+  }
 
   if (supportsRealtimeUpdate())
   {
@@ -894,6 +896,34 @@ void HmapLandObjectEditor::renderGrassMask()
     prefabMgr->renderGeometry(IRenderingService::STG_RENDER_GRASS_MASK);
     // prefabs rendering can modify TM_WORLD, so we restore default
     d3d::settm(TM_WORLD, TMatrix::IDENT);
+  }
+}
+
+void HmapLandObjectEditor::renderLoftTaggedGeometry()
+{
+  d3d::settm(TM_WORLD, TMatrix::IDENT);
+  TMatrix4 globtm;
+  d3d::getglobtm(globtm);
+  Frustum frustum;
+  frustum.construct(globtm);
+
+  ISplineGenService *srv = HmapLandPlugin::splSrv;
+  Tab<GeomTagDrawParams> params(tmpmem);
+  Tab<const ISplineGenObj *> splineGens(tmpmem);
+  for (SplineObject *s : splines)
+  {
+    if (!s || s->isHidden() || EditLayerProps::layerProps[s->getEditLayerIdx()].isLayerOrTypeHidden())
+      continue;
+    gather_shown_geom_tags(s->debugViewTags, params);
+    if (params.empty())
+      continue;
+
+    splineGens.clear();
+    int pointsSize = s->points.size() - (s->isClosed() ? 1 : 0);
+    for (SplinePointObject *p : make_span_const(s->points.data(), pointsSize))
+      splineGens.push_back(p->getSplineGen());
+    const IPolygonGenObj *polyGen = s->getPolyGen();
+    srv->renderLoftMaskTags(make_span_const(splineGens), make_span_const(&polyGen, 1), frustum, params);
   }
 }
 

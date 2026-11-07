@@ -7,6 +7,7 @@
 #include <assets/asset.h>
 #include <shaders/dag_shMaterialUtils.h>
 #include <3d/dag_materialData.h>
+#include <util/dag_string.h>
 #include <EASTL/string.h>
 #include <EASTL/array.h>
 #include <EASTL/unique_ptr.h>
@@ -15,11 +16,14 @@
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <dag/dag_vector.h>
 #include "entityMatFileResource.h"
+#include "materialHighlightRenderer.h"
 
 class Node;
 
 class ProxymatAssetDragAndDropHandler;
 class TextureAssetDragAndDropHandler;
+
+String get_asset_dag_file_path(const DagorAsset &asset, int lod, const DataBlock **out_lod_props = nullptr);
 
 class EntityMaterialEditor : public PropPanel::ControlEventHandler
 {
@@ -30,13 +34,19 @@ public:
   void begin(DagorAsset *asset, IObjEntity *asset_entity);
   bool end();
 
-  void saveAllChanges();
+  // Returns false when the user refuses to save. The material overrides are cleared in both cases.
+  bool saveAllChanges();
   void fillPropPanel(PropPanel::ContainerPropertyControl &panel);
 
   int swapTexture(int for_lod, const char *old_tex_name, const DagorAsset *new_tex, PropPanel::ContainerPropertyControl &panel);
 
   void saveForUndo(int lod, int material_index, EntityMatProperties &undo_material_properties);
   void loadFromUndo(int lod, int material_index, const EntityMatProperties &undo_material_properties);
+
+  // The material is valid during the frame of the hover event and the frame after it
+  ShaderMaterial *getHoveredShaderMaterial(int *out_lod = nullptr) const;
+  // riex_override replaces the entity TM and seed when set (rendinst entities only)
+  void renderMaterialHighlight(rendinst::riex_handle_t riex_override = rendinst::RIEX_HANDLE_NULL);
 
   friend class ProxymatAssetDragAndDropHandler;
   friend class TextureAssetDragAndDropHandler;
@@ -78,13 +88,16 @@ private:
   void reloadCurrentAsset();
   bool notifyCurrentAssetNeedsReload();
   void onReloaded();
+  E3DCOLOR getMaterialHighlightColor() const;
 
   bool hasChanges() const;
+  bool reportBadEmissionColor(int lod, int mat_id) const;
   Tab<String> getAvailableShaderClasses() const;
   DataBlock makeCurMatPropertiesBlk(int lod, int mat_id) const;
 
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onHover(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   void handleDragAndDrop(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
@@ -103,10 +116,20 @@ private:
   static void countMaterialUsage(const char *dag_name, const Node &node, const DagMatFileResourcesHandler &file_res,
     dag::Span<int> materials);
 
+  static const E3DCOLOR DEFAULT_HIGHLIGHT_COLOR;
+
   bool active = false;
   bool isReloading = false;
   bool showTriangleCount = false;
+  MaterialHighlightRenderer::Mode materialHighlightMode = MaterialHighlightRenderer::Mode::None;
+  bool hasCustomHighlightColor = false;
+  E3DCOLOR customHighlightColor = DEFAULT_HIGHLIGHT_COLOR;
+  MaterialHighlightRenderer materialHighlightRenderer;
   bool reportedShaderMaterialMatchError = false;
+
+  int hoveredMatLod = -1;
+  int hoveredMatId = -1;
+  unsigned hoveredFrameNo = 0;
 
   dag::Vector<EntityLodMatData> matDataPerLod;
   String assetSrcFolderPath;

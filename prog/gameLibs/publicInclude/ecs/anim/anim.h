@@ -69,6 +69,7 @@ ECS_DECLARE_RELOCATABLE_TYPE(AnimcharNodesMat44);
 
 
 ECS_UNICAST_EVENT_TYPE(EventAnimIrq, int /* irqType */)
+ECS_UNICAST_EVENT_TYPE(EventAnimcharReloaded)
 
 // Irq handler that unregisters itself on destruction
 namespace ecs

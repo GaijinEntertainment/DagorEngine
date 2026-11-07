@@ -122,8 +122,7 @@ static inline float get_max_hp(const dm::DamageModelData &dm_data, int part_id)
 
 static inline bool is_part_inner(const dm::DamageModelData &dm_data, int part_id)
 {
-  const dm::DamagePartProps *props = get_part_props(dm_data.props.parts, dm::PartId(part_id, -1));
-  return props && props->testFlag(dm::DamagePartProps::Flag::INNER);
+  return dm_data.props.parts.hitTestType.get(dm::PartId(part_id, -1)) == dm::HitTestType::INNER;
 }
 
 static inline int get_part_physmat_id(const dm::DamageModelData &dm_data, int part_id)
@@ -206,11 +205,6 @@ static inline bool damage_effect_preset_has_effect(const dm::effect::Preset &pre
   return false;
 }
 
-static inline float get_part_hp_prop_value(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return dm::get_part_hp_total(dm_data.props.parts, part_id);
-}
-
 static inline float calc_kinetic_penetration_shift(const InterpolateTabMemPtrFloat &table, float residual_penetration, float distance,
   float scale, float shift)
 {
@@ -221,17 +215,7 @@ inline int get_splash_damage_type_id(const dm::splash::Properties &props) { retu
 
 inline int get_damage_part_props_count(const dm::DamageModelData &dm_data) { return dm_data.parts.size(); }
 
-inline const dm::DamagePart &get_damage_part_props(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return dm_data.parts[part_id.id];
-}
-
 inline const dm::DamagePart &get_damage_part_props(const dm::DamageModelData &dm_data, int part_id) { return dm_data.parts[part_id]; }
-
-inline dm::DamagePart &get_damage_part_props_for_modification(dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return dm_data.parts[part_id.id];
-}
 
 inline dm::DamagePart &get_damage_part_props_for_modification(dm::DamageModelData &dm_data, int part_id)
 {
@@ -240,59 +224,14 @@ inline dm::DamagePart &get_damage_part_props_for_modification(dm::DamageModelDat
 
 inline void damage_part_set_enabled(dm::DamagePart &dp, bool e) { dp.enabled = e ? 1 : 0; }
 
-inline bool is_valid_part_id(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return is_valid_part_id(dm_data.props.parts, part_id);
-}
-
-inline bool is_part_enabled(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return is_part_enabled(dm_data.parts, part_id);
-}
-
 inline bool is_part_enabled(const dm::DamageModelData &dm_data, int part_id)
 {
   return is_part_enabled(dm_data.parts, dm::PartId(part_id, -1));
 }
 
-inline dm::DamagePartState get_part_state(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return get_part_state(dm_data.parts, part_id);
-}
-
-inline uint16_t get_part_hp_fixed(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return get_part_hp_fixed(dm_data.parts, part_id);
-}
-
-inline float get_part_hp_rel(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return get_part_hp_rel(dm_data.parts, part_id);
-}
-
-inline float get_part_hp(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return get_part_hp(dm_data.props.parts, dm_data.parts, part_id);
-}
-
 inline float get_part_hp(const dm::DamageModelData &dm_data, int part_id)
 {
   return get_part_hp(dm_data.props.parts, dm_data.parts, dm::PartId(part_id, -1));
-}
-
-inline bool is_part_alive(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return is_part_alive(dm_data.parts, part_id);
-}
-
-inline bool is_part_damaged(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return is_part_damaged(dm_data.parts, part_id);
-}
-
-inline bool is_part_dead(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
-{
-  return is_part_dead(dm_data.parts, part_id);
 }
 
 inline bool has_damaged_part(const dm::DamageModelData &dm_data) { return has_damaged_part(dm_data.parts); }

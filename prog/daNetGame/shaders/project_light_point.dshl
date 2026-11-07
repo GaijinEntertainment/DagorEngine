@@ -185,6 +185,7 @@ macro PROJECT_LIGHT_POINT_SCREEN_VOXEL(code) // when updating radiance from gbuf
       half3 albedo = gbuf.diffuseColor + gbuf.specularColor;
       float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light(worldPos, tc, gbuf.normal))*albedo;
       #if GI_HAS_DYNAMIC_LIGHTS
+        gbuf.diffuseColor = gbuf.albedo;
         litColor += getGiDynamicLighting(gbuf, worldPos, screenpos, tc, linearDepth);
       #endif
       return litColor;
@@ -203,11 +204,9 @@ macro PROJECT_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes
   //INIT_CSM_SHADOW(code)
   //BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(code)
   hlsl(code) {
-    float3 project_get_lit_color_at_trace_hit(float3 worldPos, float3 worldNormal, float3 albedo, float4 toCameraBiasDirAndLimit = 0)
+    float3 project_get_direct_lit_color_at_trace_hit(float3 worldPos, float3 worldNormal, float3 albedo, float shadow_offset)
     {
-      float3 ambientWorldPos = worldPos;//fixme!
-      float shadowBiasMeters = 0;//fixme: we should add bias based on distance
-      float3 litColor = get_sun_sky_lit_color(ambientWorldPos, worldPos, worldNormal, albedo, shadowBiasMeters, 1, 0, toCameraBiasDirAndLimit);
+      float3 litColor = dagi_get_sun_color(worldPos, worldNormal, shadow_offset)*albedo;
       #if GI_HAS_DYNAMIC_LIGHTS
         ProcessedGbuffer gbuf;
         gbuf.diffuseColor = albedo;
@@ -216,7 +215,22 @@ macro PROJECT_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes
       #endif
       return litColor;
     }
+    float3 project_get_lit_color_at_trace_hit(float3 worldPos, float3 worldNormal, float3 albedo, float4 toCameraBiasDirAndLimit = 0)
+    {
+      float shadowBiasMeters = 0;//fixme: we should add bias based on distance
+      float3 ambient = dagi_get_common_offscreen_ambient(worldPos, worldNormal, 0, toCameraBiasDirAndLimit);
+      return ambient*albedo + project_get_direct_lit_color_at_trace_hit(worldPos, worldNormal, albedo, shadowBiasMeters);
+    }
   }
+endmacro
+
+macro PROJECT_LIGHT_POINT_RELIGHT(code) // daSharc relights take the GI lights, also where the probe trace does not
+  if (gi_enable_lights_at_radiance_trace == no)
+  {
+    GI_DYNLIGHTS_MIN_PROCESSED_GBUFFER(code)
+    GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(code)
+  }
+  PROJECT_LIGHT_POINT_TRACE_HIT(code)
 endmacro
 
 macro PROJECT_LIGHT_POINT_VOXELIZE_NO_STEP_OUT(code) // when voxelizing radiance of radiance voxel scene
@@ -269,9 +283,9 @@ macro PROJECT_LIGHT_POINT_VOXELIZE_OFF_SCREEN_VOXEL_LIT_SCENE(code)
 endmacro
 
 
-macro PROJECT_LIGHT_POINT_SCREEN_VOXEL_LIT_SCENE(code)
+macro PROJECT_LIGHT_POINT_SCREEN_VOXEL_LIT_SCENE(code) // the lights that seeds and relights take
   PACK_UNPACK_GBUFFER_BASE(code)
-  GI_COMMON_SCREEN_DYNAMIC_LIGHTS(code)
+  GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(code)
   PROJECT_LIGHT_POINT_SCREEN_VOXEL(code)
 endmacro
 

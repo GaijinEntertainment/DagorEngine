@@ -19,21 +19,7 @@ struct BVHInstanceMapper : ::BVHInstanceMapper
   void mapRendinst(const RenderableInstanceLodsResource *ri, int lod, int elem, IPoint2 &out_blas, uint32_t &out_meta) const override
   {
     Context::BvhObjectReadLock objectsGuard(contextId->objectsLock);
-    auto meshId = make_relem_mesh_id(ri->getBvhId(), lod, elem);
-    Object *object = get_object(contextId, meshId);
-
-    if (object && object->blas && MeshMetaAllocator::is_valid(object->metaAllocId))
-    {
-      out_blas.x = object->blas.getGPUAddress() & GPU_ADDRESS_LOW_MASK;
-      out_blas.y = object->blas.getGPUAddress() >> GPU_ADDRESS_HIGH_SHIFT;
-      out_meta = MeshMetaAllocator::decode(object->metaAllocId);
-    }
-    else
-    {
-      out_blas.x = 0;
-      out_blas.y = 0;
-      out_meta = 0;
-    }
+    get_blas_mapping(contextId, make_relem_mesh_id(ri->getBvhId(), lod, elem), out_blas, out_meta);
   }
 
   void submitBuffers(Sbuffer *instance_counter, Sbuffer *instances_) override

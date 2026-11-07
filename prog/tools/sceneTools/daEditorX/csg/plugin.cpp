@@ -32,7 +32,7 @@
 #include "box_csg.h"
 
 #include <EditorCore/ec_IEditorCore.h>
-#include "csg.h"
+#include <libTools/meshCSG/meshCSG.h>
 #include "de3_box_vs_tri.h"
 
 using editorcore_extapi::dagGeom;
@@ -95,140 +95,46 @@ void CSGPlugin::renderTransObjects()
 }
 
 
-struct CSGNode
-{
-  StaticGeometryNode *node;
-  void *poly;
-  int id;
-  BBox3 box;
-  CSGNode(StaticGeometryNode *n, void *p, int i, BBox3 &b) : node(n), poly(p), id(i), box(b) {}
-};
-
-static bool cancelCSG = false;
-
-// could be even parallalized
-static void *recursive_union(BaseCSG *csg, CSGNode *at, int cnt)
-{
-  if (!cnt)
-    return 0;
-  if (cnt == 1)
-    return at->poly;
-  int lcnt = cnt / 2;
-  bool del_left, del_right;
-  void *left = recursive_union(csg, at, lcnt);
-  void *right = recursive_union(csg, at + lcnt, cnt - lcnt);
-  void *opres = NULL;
-  DAGOR_TRY
-  {
-    if (left && right && !cancelCSG)
-      opres = csg->op(left, right);
-  }
-  DAGOR_CATCH(...)
-  {
-    cancelCSG = true;
-    DAEDITOR3.conWarning("Error: An unknown error has occurred. Skip CSG.");
-  }
-
-  csg->delete_poly(left);  // no memory clearing is faster
-  csg->delete_poly(right); // no memory clearing is faster
-  return opres;
-}
-
-
 void CSGPlugin::processGeometry(StaticGeometryContainer &cont)
 {
-  BaseCSG *csg = make_new_csg();
-  Tab<CSGNode> polys(tmpmem);
-  polys.reserve(cont.nodes.size());
-  cancelCSG = false;
-
   DAEDITOR3.conNote("Start CSG");
 
-  BBox3 bbox;
+  Tab<mesh_csg::Input> inputs(tmpmem);
+  Tab<BBox3> boxes(tmpmem);
   for (int i = 0; i < cont.nodes.size(); ++i)
   {
     StaticGeometryNode &node = *cont.nodes[i];
-    void *poly = NULL;
     if (node.mesh->getRefCount() > 1)
     {
       // clone mesh when it is used by more than one node
-      if (node.mesh->user_data != (void *)1) // 1 is invalid mesh, 0 - hasn't tried yet, 2 - valid
-      {
-        DAGOR_TRY { poly = csg->create_poly(&node.wtm, node.mesh->mesh, i, false, bbox); }
-        DAGOR_CATCH(...)
-        {
-          poly = NULL;
-          DAEDITOR3.conWarning("Error: An unknown error has occurred. Skip node:%s.", (const char *)node.name);
-        }
-        if (poly)
-        {
-          node.mesh->user_data = (void *)2; // valid mesh
-          StaticGeometryMesh *m = new StaticGeometryMesh;
-          m->mats = node.mesh->mats;
-          m->mesh = node.mesh->mesh;
-          node.mesh = m;
-        }
-        else
-        {
-          node.mesh->user_data = (void *)1; // invalid
-        }
-      }
+      StaticGeometryMesh *m = new StaticGeometryMesh;
+      m->mats = node.mesh->mats;
+      m->mesh = node.mesh->mesh;
+      node.mesh = m;
     }
-    else
-    {
-      poly = csg->create_poly(&node.wtm, node.mesh->mesh, i, false, bbox);
-    }
-    if (poly)
-      polys.push_back(CSGNode(&node, poly, i, bbox));
+    inputs.push_back(mesh_csg::Input{&node.mesh->mesh, node.wtm, node.name.str()});
+    BBox3 box;
+    for (const Point3 &v : node.mesh->mesh.vert)
+      box += node.wtm * v;
+    boxes.push_back(box);
   }
 
-  // void* result = recursive_union(csg, polys.data(), polys.size());
-  for (int i = 0; i < polys.size(); ++i)
-  {
-    if (cancelCSG)
-      break;
-
-    for (int j = 0; j < polys.size(); ++j)
-    {
-      if (csg->hasOpenManifolds(polys[i].poly))
-        continue;
-
-      if (i != j && (polys[i].box & polys[j].box))
-      {
-        DAGOR_TRY
-        {
-          void *prevPoly = polys[i].poly;
-          void *poly = csg->op(polys[i].poly, polys[j].poly);
-          if (poly && !csg->hasOpenManifolds(poly))
-          {
-            polys[i].poly = poly;
-            csg->delete_poly(prevPoly);
-          }
-          else
-          {
-            csg->delete_poly(poly);
-          }
-        }
-        DAGOR_CATCH(...)
-        {
-          polys[i].poly = NULL;
-          DAEDITOR3.conWarning("CSG Error: %s <-> %s", (const char *)polys[i].node->name, (const char *)polys[j].node->name);
-          cancelCSG = true;
-          break;
-        }
-      }
-    }
-  }
+  // refused nodes, open ones too, keep faces
+  mesh_csg::Result r;
+  const bool ok = mesh_csg::evaluate(inputs, mesh_csg::Op::Union, {}, r);
+  for (const eastl::string &w : r.warnings)
+    DAEDITOR3.conNote("CSG: %s", w.c_str());
+  for (int i = 0; i < r.refused.size(); ++i)
+    if (!r.refused[i].empty())
+      DAEDITOR3.conWarning("CSG: node %s keeps all its faces: %s", cont.nodes[i]->name.str(), r.refused[i].c_str());
+  if (ok)
+    for (int i = 0; i < cont.nodes.size(); ++i)
+      mesh_csg::keep_surface_faces(r, i, cont.nodes[i]->mesh->mesh);
+  else
+    DAEDITOR3.conWarning("CSG Error: %s", r.error.c_str());
 
 
-  if (!cancelCSG)
-  {
-    for (int i = 0; i < polys.size(); ++i)
-      if (polys[i].poly)
-        csg->removeUnusedFaces(polys[i].node->mesh->mesh, polys[i].poly, polys[i].id);
-  }
-
-
+  BBox3 bbox;
   for (int b = 0; b < objEd.objectCount(); b++)
   {
     BoxCSG *p = RTTI_cast<BoxCSG>(objEd.getObject(b));
@@ -238,13 +144,13 @@ void CSGPlugin::processGeometry(StaticGeometryContainer &cont)
       Plane3 box[6];
       generateBox(boxWtm, box, bbox);
 
-      for (int i = 0; i < polys.size(); ++i)
+      for (int i = 0; i < cont.nodes.size(); ++i)
       {
-        if (!(bbox & polys[i].box))
+        if (!(bbox & boxes[i]))
           continue;
 
-        TMatrix tm = polys[i].node->wtm;
-        MeshData &mesh = polys[i].node->mesh->mesh;
+        TMatrix tm = cont.nodes[i]->wtm;
+        MeshData &mesh = cont.nodes[i]->mesh->mesh;
 
         std::vector<bool> inside;
         inside.resize(mesh.vert.size());
@@ -266,11 +172,8 @@ void CSGPlugin::processGeometry(StaticGeometryContainer &cont)
     }
   }
 
-  // csg->delete_poly(result);
-
   for (int i = cont.nodes.size() - 1; i >= 0; --i)
   {
-    cont.nodes[i]->mesh->user_data = NULL;
     Mesh *mesh = &cont.nodes[i]->mesh->mesh;
     if (cont.nodes[i]->mesh->mats[0]->className == "csg")
     {
@@ -282,7 +185,6 @@ void CSGPlugin::processGeometry(StaticGeometryContainer &cont)
       erase_items(cont.nodes, i, 1);
     }
   }
-  delete_csg(csg);
 
   DAEDITOR3.conNote("End CSG");
 }

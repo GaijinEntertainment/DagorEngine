@@ -76,6 +76,40 @@ int FpdExporter::getPointIndex(FpdObject *po)
 }
 
 
+FpdBone *FpdExporter::getLinkBoneOfEnd(FpdPoint *end_point)
+{
+  if (!end_point || end_point->groupId != 0 || !end_point->node)
+    return NULL;
+
+  FpdBone *link = NULL;
+  FpdPoint *linkP1 = NULL, *linkP2 = NULL;
+  for (int i = 0; i < objects.size(); ++i)
+  {
+    FpdBone *bone = rtti_cast<FpdBone>(objects[i]);
+    if (!bone || bone->ctrlAction->node != end_point->node)
+      continue;
+
+    FpdPoint *p1, *p2;
+    if (bone->getPoints(p1, p2, *this) != 2 || p1 == end_point || p1->groupId != 0 || p2->groupId == 0)
+      continue;
+    if (!link)
+    {
+      link = bone;
+      linkP1 = p1;
+      linkP2 = p2;
+    }
+    else if (p1 != linkP1 || p2 != linkP2)
+    {
+      logerr("FastPhys clip point '%s': bones '%s' and '%s' drive its node from different points, its link is ambiguous",
+        end_point->getName(), link->getName(), bone->getName());
+      return NULL;
+    }
+  }
+
+  return link;
+}
+
+
 static int comparePoints(const Ptr<FpdPoint> *a, const Ptr<FpdPoint> *b) { return (*a)->groupId - (*b)->groupId; }
 
 

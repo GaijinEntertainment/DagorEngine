@@ -18,7 +18,20 @@ extern bool context_is_owned;
 extern float dt_mul;
 extern float accum_dt;
 extern int particles_resolution_preview;
-inline eastl::vector<eastl::string> cull_tags;
+enum CullTag
+{
+  CULL_TAG_HIGHRES,
+  CULL_TAG_LOWRES,
+  CULL_TAG_UNDERWATER,
+  CULL_TAG_DISTORTION,
+  CULL_TAG_XRAY,
+  CULL_TAG_WATER_PROJ,
+  CULL_TAG_THERMAL,
+  CULL_TAG_COUNT
+};
+inline constexpr eastl::string_view cull_tags[] = {"highres", "lowres", "underwater", "distortion", "xray", "water_proj", "thermal"};
+static_assert(countof(cull_tags) == CULL_TAG_COUNT);
+inline constexpr eastl::string_view fom_tags[] = {"fom"};
 } // namespace dafx_helper_globals
 
 extern void dafx_sparksfx_set_context(dafx::ContextId ctx);
@@ -46,23 +59,20 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
   {
     dafx::set_debug_flags(dafx_ctx, dafx::DEBUG_DISABLE_CULLING);
 
-    eastl::vector<dafx::CullingDesc> descs;
-    descs.push_back(dafx::CullingDesc("highres", dafx::SortingType::BACK_TO_FRONT));
-    descs.push_back(dafx::CullingDesc("lowres", dafx::SortingType::BACK_TO_FRONT));
-    descs.push_back(dafx::CullingDesc("underwater", dafx::SortingType::BACK_TO_FRONT));
-    descs.push_back(dafx::CullingDesc("distortion", dafx::SortingType::BY_SHADER));
-    descs.push_back(dafx::CullingDesc("xray", dafx::SortingType::NONE, 0, 0, true));
-    descs.push_back(dafx::CullingDesc("water_proj", dafx::SortingType::BACK_TO_FRONT));
-    descs.push_back(dafx::CullingDesc("thermal", dafx::SortingType::BACK_TO_FRONT));
-    dafx_cull = dafx::create_culling_state(dafx_ctx, descs);
+    using namespace dafx_helper_globals;
+    const dafx::CullingDesc descs[] = {
+      dafx::CullingDesc(cull_tags[CULL_TAG_HIGHRES], dafx::SortingType::BACK_TO_FRONT),
+      dafx::CullingDesc(cull_tags[CULL_TAG_LOWRES], dafx::SortingType::BACK_TO_FRONT),
+      dafx::CullingDesc(cull_tags[CULL_TAG_UNDERWATER], dafx::SortingType::BACK_TO_FRONT),
+      dafx::CullingDesc(cull_tags[CULL_TAG_DISTORTION], dafx::SortingType::BY_SHADER),
+      dafx::CullingDesc(cull_tags[CULL_TAG_XRAY], dafx::SortingType::NONE, 0, 0, true),
+      dafx::CullingDesc(cull_tags[CULL_TAG_WATER_PROJ], dafx::SortingType::BACK_TO_FRONT),
+      dafx::CullingDesc(cull_tags[CULL_TAG_THERMAL], dafx::SortingType::BACK_TO_FRONT),
+    };
+    dafx_cull = dafx::create_culling_state(dafx_ctx, make_span_const(descs));
 
-    dafx_helper_globals::cull_tags.clear();
-    for (const dafx::CullingDesc &desc : descs)
-      dafx_helper_globals::cull_tags.push_back(desc.tag);
-
-    descs.clear();
-    descs.push_back(dafx::CullingDesc("fom", dafx::SortingType::NONE));
-    dafx_fom_cull = dafx::create_culling_state(dafx_ctx, descs);
+    const dafx::CullingDesc fomDescs[] = {dafx::CullingDesc(fom_tags[0], dafx::SortingType::NONE)};
+    dafx_fom_cull = dafx::create_culling_state(dafx_ctx, make_span_const(fomDescs));
     dafx_sparksfx_set_context(dafx_ctx);
     dafx_modfx_set_context(dafx_ctx);
     dafx_compound_set_context(dafx_ctx);
@@ -70,22 +80,19 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
   }
 }
 
-inline void set_up_dafx_effect(dafx::ContextId dafx_ctx, BaseEffectObject *fx, bool force_recreate, bool enabled, const TMatrix *tm,
+inline void set_up_dafx_effect(dafx::ContextId dafx_ctx, BaseEffectObject *fx, bool force_recreate, bool enabled, const TMatrix &tm,
   bool is_emitter_tm)
 {
   TMatrix ident = TMatrix::IDENT;
   dafx::flush_command_queue(dafx_ctx);
   fx->setParam(_MAKE4C('PFXR'), &force_recreate);
-  BaseEffectEnabled dafxe = {enabled, length(::grs_cur_view.pos)};
+  BaseEffectEnabled dafxe = {.enabled = enabled, .distanceToCam = length(::grs_cur_view.pos - tm.getcol(3))};
   fx->setParam(_MAKE4C('PFXE'), &dafxe);
   fx->setParam(HUID_EMITTER_TM, &ident);
 
-  if (tm)
-  {
-    fx->setParam(is_emitter_tm ? HUID_EMITTER_TM : HUID_TM, const_cast<TMatrix *>(tm));
-    Point4 p4 = Point4::xyz0(tm->getcol(3));
-    fx->setParam(_MAKE4C('PFXP'), &p4);
-  }
+  fx->setParam(is_emitter_tm ? HUID_EMITTER_TM : HUID_TM, const_cast<TMatrix *>(&tm));
+  Point4 p4 = Point4::xyz0(tm.getcol(3));
+  fx->setParam(_MAKE4C('PFXP'), &p4);
 
   dafx::flush_command_queue(dafx_ctx);
 }
@@ -198,7 +205,7 @@ inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cu
 
   dafx::update_culling_state(dafx_ctx, dafx_cull, Frustum(globtm), Point3::xyz(itm.getcol(3)));
   dafx::sync_instance_flags(dafx_ctx);
-  dafx::before_render(dafx_ctx, dafx_helper_globals::cull_tags);
+  dafx::before_render(dafx_ctx, make_span_const(dafx_helper_globals::cull_tags));
 
   prevGlobTm = globtm;
 }
@@ -218,7 +225,7 @@ inline void render_dafx_fom(dafx::ContextId dafx_ctx, dafx::CullingId dafx_fom_c
 
   // Prepare
   dafx::update_culling_state(dafx_ctx, dafx_fom_cull, Frustum(fomGlobtm), viewPos);
-  dafx::before_render(dafx_ctx, {"fom"});
+  dafx::before_render(dafx_ctx, make_span_const(dafx_helper_globals::fom_tags));
 
   // Render
   TMatrix4 prevGtm;

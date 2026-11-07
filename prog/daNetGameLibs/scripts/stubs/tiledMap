@@ -1,18 +1,51 @@
 let { Point2, Point3 } = require("dagor.math")
+let { clamp } = require("math")
+
+// frozen exports freeze this: keep state outside
+let ctxState = {}
+
+function stateOf(ctx) {
+  if (ctx not in ctxState)
+    ctxState[ctx] <- { range = Point2(0, 1000), radius = 0.0, viewCentered = false }
+  return ctxState[ctx]
+}
 
 local class TiledMapContext {
   function setup(config) {
     assert(type(config)=="table")
+    let st = stateOf(this)
+    st.range = config?.visibleRange ?? Point2(0, 1000)
+    st.radius = clamp((st.range.y - st.range.x) / 2.0, st.range.x, st.range.y)
+    st.viewCentered = config?.isViewCentered ?? false
   }
-  getVisibleRadiusRange = @() Point2()
-  getVisibleRadius = @() 0.0
-  setVisibleRadius = @(_radius) 0.0
+  getVisibleRadiusRange = @() stateOf(this).range
+  function setVisibleRadiusRange(range) {
+    let st = stateOf(this)
+    st.range = range
+    st.radius = clamp(st.radius, range.x, range.y)
+  }
+  getVisibleRadiusWidth = @() stateOf(this).radius
+  getVisibleRadiusHeight = @() stateOf(this).radius
+  getVisibleRadius = @() stateOf(this).radius
+  function setVisibleRadius(radius) {
+    let st = stateOf(this)
+    st.radius = clamp(radius.tofloat(), st.range.x, st.range.y)
+    return st.radius
+  }
   mapToWorld = @(_point) Point3()
   worldToMap = @(_point) Point2()
   getWorldPos = @() Point3()
   setWorldPos = @(_point) null
+  setViewportSize = @(_width, _height) null
+  setWorldBorder = @(_left_top, _right_bottom, _clamp_to_world) null
+  resetWorldBorder = @() null
+  getViewCentered = @() stateOf(this).viewCentered
+  function setViewCentered(value) {
+    stateOf(this).viewCentered = value
+  }
   getFogOfWarBase64 = @() ""
   getFogOfWarBase64Compressed = @() ""
+  requestFogOfWarBase64Compressed = @(_save_path) null
   toggleFogOfWar = @() null
 }
 

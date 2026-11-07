@@ -28,13 +28,13 @@ int ReconnectDelayConfig::getDelayMs(int connect_retry_number, uint8_t random_nu
     return failoverDelayMs;
   }
 
-  int64_t minMs = std::min(initialDelayMinMs, maxDelayMs);
-  int64_t maxMs = std::min(initialDelayMaxMs, maxDelayMs);
+  int64_t minMs = eastl::min(initialDelayMinMs, maxDelayMs);
+  int64_t maxMs = eastl::min(initialDelayMaxMs, maxDelayMs);
 
   for (int i = 1; i <= connect_retry_number; ++i)
   {
-    minMs = std::min(minMs * 2, static_cast<int64_t>(maxDelayMs));
-    maxMs = std::min(maxMs * 2, static_cast<int64_t>(maxDelayMs));
+    minMs = eastl::min(minMs * 2, static_cast<int64_t>(maxDelayMs));
+    maxMs = eastl::min(maxMs * 2, static_cast<int64_t>(maxDelayMs));
     if (minMs >= maxDelayMs) //-V1051 // Consider checking for misprints. It's possible that the 'maxMs' should be checked here.
       break;
   }

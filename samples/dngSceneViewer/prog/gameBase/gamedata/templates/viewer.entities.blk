@@ -386,6 +386,7 @@ falling_weather_effect_template{
   // in this point there may be an overflow
   _group{
     _tags:t="render"
+    effect_animation__transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 20, 0]]
     camera_prev_pos:p3= 0, 0, 0
     camera_prev_vel:p3= 0, 0, 0
     effect__offset:p3=0, 1, 0

@@ -7,7 +7,7 @@ if $(Platform) in windows && $(PlatformArch) in x86_64 arm64 arm64ec && ( $(UseD
 
   if ! [ GLOB $(AgilitySdkDir) : * ] { exit "FATAL: \"$(AgilitySdkDir)\" not found!  Please, update DEVTOOLS" ; }
 
-  if $(PlatformArch) in x86_64 arm64ec { # constraint: the arm64 Agility dlls are not ARM64X, ARM64EC loads only x64 ones
+  if $(PlatformArch) in x86_64 arm64ec { # the arm64 Agility dlls are not ARM64X, ARM64EC loads only x64 ones
     BundleCopy +=
       @$(AgilitySdkDir)/bin/x64/D3D12Core.dll       $(AgilitySdkDest)/D3D12Core.dll
       @$(AgilitySdkDir)/bin/x64/d3d12SDKLayers.dll  $(AgilitySdkDest)/d3d12SDKLayers.dll

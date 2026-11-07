@@ -164,6 +164,8 @@ public:
 
   // Should be called after setCollision() to set layer mask for all collision elements.
   void setGroupAndLayerMask(unsigned int group, unsigned int mask);
+  void setPassableLayer() {} // Bullet has no PASSABLE broadphase layer
+  bool isPassableLayer() const { return false; }
   unsigned int getInteractionLayer() const { return layerMask; }
   unsigned int getGroupMask() const { return groupMask; }
 
@@ -441,7 +443,7 @@ public:
   btDiscreteDynamicsWorld *getScene() { return &scene; }
   const btDiscreteDynamicsWorld *getScene() const { return &scene; }
 
-  static float getLastSimDt() { return lastSimDt; }
+  float getLastSimDt() const { return lastSimDt; }
 
   Point3 getGravity() const { return to_point3(scene.getGravity()); }
   void setGravity(const Point3 &gravity) { scene.setGravity(to_btVector3(gravity)); }
@@ -582,6 +584,83 @@ public:
     getScene()->contactPairTest(shape->getActor(), shapeB->getActor(), cb);
   }
 
+  // Contact tests over a free shape at tm: a caller that probes with a changing size needs no body and no shape rebuild.
+  // The probe has no body and no user data: addSingleResult and visualDebugForSingleResult get a null side A.
+  template <typename C>
+  void contactTest(const PhysCollision &shape, const TMatrix &tm, C &contact_cb, int filter_grp = btBroadphaseProxy::DefaultFilter,
+    int filter_mask = btBroadphaseProxy::AllFilter)
+  {
+    with_stack_shape(shape, [&](btCollisionShape *s) {
+      btCollisionObject obj;
+      obj.setCollisionShape(s);
+      obj.setWorldTransform(to_btTransform(tm));
+      ContactResultCB<C> cb(contact_cb, &obj);
+      cb.m_collisionFilterGroup = filter_grp;
+      cb.m_collisionFilterMask = filter_mask;
+      getScene()->contactTest(&obj, cb);
+    });
+  }
+  template <typename C>
+  void contactTestPair(const PhysCollision &shape, const TMatrix &tm, const PhysBody *shapeB, C &contact_cb,
+    int filter_grp = btBroadphaseProxy::DefaultFilter, int filter_mask = btBroadphaseProxy::AllFilter)
+  {
+    with_stack_shape(shape, [&](btCollisionShape *s) {
+      btCollisionObject obj;
+      obj.setCollisionShape(s);
+      obj.setWorldTransform(to_btTransform(tm));
+      ContactResultCB<C> cb(contact_cb, &obj);
+      cb.m_collisionFilterGroup = filter_grp;
+      cb.m_collisionFilterMask = filter_mask;
+      getScene()->contactPairTest(&obj, shapeB->getActor(), cb);
+    });
+  }
+
+protected:
+  // Runs f(btCollisionShape *) over a stack shape built from a PhysCollision, so a one-off query makes no heap shape
+  template <typename F>
+  static void with_stack_shape(const PhysCollision &shape, F &&f)
+  {
+    switch (shape.collType)
+    {
+      case PhysCollision::TYPE_SPHERE:
+      {
+        btSphereShape s(static_cast<const PhysSphereCollision &>(shape).getRadius());
+        return f(&s);
+      }
+      case PhysCollision::TYPE_BOX:
+      {
+        btBoxShape s(to_btVector3(static_cast<const PhysBoxCollision &>(shape).getSize() / 2));
+        return f(&s);
+      }
+      case PhysCollision::TYPE_CAPSULE:
+      {
+        auto &c = static_cast<const PhysCapsuleCollision &>(shape);
+        switch (c.getDirIdx())
+        {
+          case 0:
+          {
+            btCapsuleShapeX s(c.getRadius(), c.getCylinderHeight());
+            return f(&s);
+          }
+          case 1:
+          {
+            btCapsuleShape s(c.getRadius(), c.getCylinderHeight());
+            return f(&s);
+          }
+          case 2:
+          {
+            btCapsuleShapeZ s(c.getRadius(), c.getCylinderHeight());
+            return f(&s);
+          }
+          default: G_ASSERTF(0, "capsule dirIdx=%d, must be [0..2]", c.getDirIdx());
+        }
+        return;
+      }
+      default: G_ASSERTF(0, "unsupported collType=%d in %s", shape.collType, __FUNCTION__);
+    }
+  }
+
+public:
   template <typename C, typename UDT = typename C::obj_user_data_t>
   bool needsCollision(const PhysBody *bodyB, C &c, int filter_grp = btBroadphaseProxy::DefaultFilter,
     int filter_mask = btBroadphaseProxy::AllFilter)
@@ -593,7 +672,9 @@ public:
 
 protected:
   btDiscreteDynamicsWorld scene;
-  static float lastSimDt;
+  float simRequestDt = 0.f;
+  float simDt = 0.f;
+  float lastSimDt = 0.f;
 
   float fixedTimeStep = 1.f / 60.f;
   bool multithreadedUpdate = true;

@@ -17,7 +17,9 @@
 #include <EASTL/vector.h>
 
 #include <graphEditor/graph_data.h>
+#include <graphEditor/graph_subgraph_expand.h>
 
+#include "graph_open_subgraphs.h"
 #include "node_drag_overlay.h"
 #include "resource_paths.hpp"
 
@@ -109,7 +111,8 @@ public:
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   // Base-node registry (base_nodes.blk). Single source of truth for descriptor data
-  // (pin shape, property constraints, hidden flags). Loaded lazily on first access.
+  // (pin shape, property constraints, hidden flags). loadObjects loads it on the main thread;
+  // reloadBaseNodes loads it again.
   const DataBlock &getBaseNodesBlk();
 
   // Primary descriptor lookup: O(1) hash-map by stable per-template uid (`templateUid:t`
@@ -132,10 +135,10 @@ public:
   bool buildSpawnedNode(const char *template_uid, float x, float y, GraphData::Node &out);
 
   // Builds a fresh node via makeNodeFromBaseBlk, allocates its id via graphPanel and hands it to
-  // the document. Reached from the canvas drop handler and from the node library's double click.
+  // the document. Reached from the canvas and from the node library.
   // No-op while the Graph window is closed or with an unknown uid, and notes the descriptor as
-  // recently used.
-  void spawnBaseNode(const char *template_uid, float x, float y);
+  // recently used. Returns the new node id, or -1.
+  int spawnBaseNode(const char *template_uid, float x, float y);
   void spawnBaseNodeAtCanvasCenter(const char *template_uid);
   // Same, wired to (anchor_node, anchor_pin) as one undo entry: alongside what that pin feeds, or
   // spliced into it when splice is set. Returns the new node id for the canvas, or -1.
@@ -175,6 +178,9 @@ public:
   const char *getMainGraphsDir() const { return resourcePaths.mainGraphsDir; }
   const char *getSubgraphsDir() const { return resourcePaths.subgraphsDir; }
   String getSubgraphPath(const char *stem) const { return String(0, "%s%s.subgraph.blk", resourcePaths.subgraphsDir.str(), stem); }
+  // Shared with the compile thread; it locks itself.
+  SubgraphCache &getSubgraphCache() { return subgraphCache; }
+  OpenSubgraphs &getOpenSubgraphs() { return openSubgraphs; }
 
   // Drops the cached base-nodes blk + uid index and re-runs the lazy load + synthesis pipeline,
   // then marks the NodeLibraryPanel tabs stale so newly added shader / subgraph files appear
@@ -184,10 +190,6 @@ public:
 
   // The only directories an instance resolves in.
   dag::ConstSpan<SubgraphRoot> getSubgraphRoots() const { return make_span_const(subgraphRoots); }
-  // Bumped by each registration.
-  uint32_t getSubgraphDescriptorGeneration() const { return subgraphDescriptorGeneration; }
-  // The generation of the uid's last registration, 0 if none.
-  uint32_t getSubgraphRegistrationGeneration(const char *template_uid) const;
   // Adds one *.subgraph.blk to the palette, or updates its entry in place when replace_existing. False (logged)
   // for a path outside the roots, a file that does not synthesize, or a name another file holds without replace_existing.
   bool registerSubgraphFile(const char *path, bool replace_existing);
@@ -211,17 +213,24 @@ public:
   bool saveSubgraph(GraphTab &tab);
   // Asks for a *.subgraph.blk path, once the subgraph schema holds.
   bool saveAsSubgraphBlk(GraphTab &tab);
+  // Always asks for a path, which is what the Save command does and what a graph with no file needs.
+  bool saveGraphAs(GraphTab &tab);
+  void promptAndLoadGraphBlk();
+  // The Graph panel lays the floating toolbar out; its buttons and their commands are this plugin's.
+  void fillFloatingToolbar(PropPanel::ContainerPropertyControl &node_controls, PropPanel::ContainerPropertyControl &graph_controls);
 
 private:
   void initResourcePaths();
   void toggleNodeLibraryPanel();
   void toggleShortcutsPanel();
-  void promptAndLoadGraphBlk();
+  // Opens Properties in the graph or the node view; closes it when it already shows that view.
+  void togglePropertiesView(bool graph_view);
+  void updatePropertiesViewButtons();
   void promptAndSaveGraphBlk();
-  // The shared tail of every save: write, take the path, and the graph is what is on disk again.
+  // A save that keeps the document's undo owner: write, take the path, and the graph is what is on disk again.
   bool writeGraphTo(GraphTab &tab, const char *path);
-  // Always asks for a path, which is what the Save command does and what a graph with no file needs.
-  bool saveGraphAs(GraphTab &tab);
+  // The file alone; the document keeps its path and save point. A subgraph file wants a CompilerDrainScope around it.
+  bool writeGraphFile(const GraphData &gd, const char *path);
   // Message boxes titled `title` list what refuses the save, or ask about inputs that reach no output.
   bool confirmSubgraphSchema(GraphTab &tab, const char *title);
   bool loadBaseNodesBlkIfNeeded();
@@ -252,8 +261,6 @@ private:
 
   ResourcePaths resourcePaths;
   eastl::vector<SubgraphRoot> subgraphRoots;
-  uint32_t subgraphDescriptorGeneration = 0;
-  eastl::hash_map<eastl::string, uint32_t> subgraphRegistrationGenerations;
 
   DataBlock baseNodesBlk;
   // uid -> node{} block pointer into baseNodesBlk. Built once in
@@ -261,6 +268,8 @@ private:
   // baseNodesBlk (do NOT reload baseNodesBlk without rebuilding this map).
   eastl::hash_map<eastl::string, DataBlock *> baseNodesByUid;
   bool baseNodesBlkLoaded = false;
+  SubgraphCache subgraphCache;
+  OpenSubgraphs openSubgraphs;
 
   // Newest first. On the plugin, not the panel: loadSettings runs before the panel can exist.
   eastl::vector<eastl::string> recentNodeUids;

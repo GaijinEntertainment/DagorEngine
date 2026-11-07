@@ -1,0 +1,57 @@
+include "shader_global.dshl"
+
+float4 depth_fade_tint_color;
+texture depth_fade_tint_mask_depth;
+texture depth_fade_tint_scene_depth;
+int depth_fade_tint_is_ortho = 0;
+// perspective: fraction of the view distance, ortho: band in raw depth units
+float depth_fade_tint_fade_depth_distance;
+
+shader depth_fade_tint
+{
+  supports none;
+  supports global_frame;
+
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+  blend_src = sa; blend_dst = isa;
+
+  POSTFX_VS(1)
+
+  (ps) {
+    tint_color@f4 = depth_fade_tint_color;
+    mask_depth@tex2d = depth_fade_tint_mask_depth;
+    scene_depth@tex2d = depth_fade_tint_scene_depth;
+    is_ortho@i1 = depth_fade_tint_is_ortho;
+    fade_depth_distance@f1 = depth_fade_tint_fade_depth_distance;
+  }
+  INIT_ZNZFAR_STAGE(ps)
+
+  hlsl(ps) {
+    float4 depth_fade_tint_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      int2 ipos = int2(GET_SCREEN_POS(input.pos).xy);
+      float maskRaw = texelFetch(mask_depth, ipos, 0).r;
+      BRANCH
+      if (maskRaw == 0)
+        discard;
+      float sceneRaw = texelFetch(scene_depth, ipos, 0).r;
+      float occlusion;
+      BRANCH
+      if (is_ortho)
+        occlusion = (sceneRaw - maskRaw) / fade_depth_distance;
+      else
+      {
+        float maskZ = linearize_z(maskRaw, zn_zfar.zw);
+        float sceneZ = linearize_z(sceneRaw, zn_zfar.zw);
+        occlusion = (maskZ - sceneZ) / (maskZ * fade_depth_distance);
+      }
+      float4 color = tint_color;
+      color.a *= saturate(1 - occlusion);
+      return color;
+    }
+  }
+
+  compile("target_ps", "depth_fade_tint_ps");
+}

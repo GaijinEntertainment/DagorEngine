@@ -19,6 +19,7 @@ shader screenspace_probes_create_dispatch_indirect_cs
     }
   }
   INIT_SCREENSPACE_PROBES_RES(cs)
+  SP_RADIANCE_OCT_RES(cs)
   hlsl(cs) {
     #pragma wave32
     #include "screenprobes_indirect.hlsli"

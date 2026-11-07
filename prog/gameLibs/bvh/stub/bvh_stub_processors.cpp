@@ -35,10 +35,8 @@ bool BakeTextureToVerticesProcessor::process(ContextId, Sbuffer *, int, uint32_t
 {
   return false;
 }
-void TreeVertexProcessor::begin() const {}
 void TreeVertexProcessor::end(bool is_prototype_buidling) const { G_UNUSED(is_prototype_buidling); }
 TreeVertexProcessor::DispatchData::~DispatchData() = default;
-void SkinnedVertexProcessorBatched::begin() const {}
 void SkinnedVertexProcessorBatched::end(bool is_prototype_buidling) const { G_UNUSED(is_prototype_buidling); }
 SkinnedVertexProcessorBatched::DispatchData::~DispatchData() = default;
 

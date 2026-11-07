@@ -84,11 +84,16 @@ bool read_layout(const char *filename, const int cache_sign, const CallbackT &ca
   return callback(layout);
 }
 
+static bool is_local_rb_layout_valid(const ShadersBindumpHeader &header)
+{
+  return header.refined_block_layout.cache_sign == LOCAL_RB_LAYOUT_SIGN &&
+         header.refined_block_layout.cache_version == SHADER_CACHE_VER;
+}
+
 bool load_local_rb_layout(const char *filename, shc::CompilationContext &context)
 {
   const bool result = read_layout<ShadersBindumpHeader>(filename, SHADER_CACHE_SIGN, [&](const auto &header) {
-    if (
-      header.refined_block_layout.cache_sign != LOCAL_RB_LAYOUT_SIGN || header.refined_block_layout.cache_version != SHADER_CACHE_VER)
+    if (!is_local_rb_layout_valid(header))
       return false;
 
     for (const auto &e : header.refined_block_layout.vars)
@@ -100,7 +105,11 @@ bool load_local_rb_layout(const char *filename, shc::CompilationContext &context
   });
 
   if (DAGOR_UNLIKELY(!result))
-    sh_debug(SHLOG_INFO, "Failed to load local refined block layout from '%s'", filename);
+  {
+    // Erase the obj, so every later should_recompile_sh() (also the multiproc job dispatch) rebuilds it.
+    sh_debug(SHLOG_NORMAL, "Failed to load local refined block layout from '%s', erasing it to force a rebuild", filename);
+    dd_erase(filename);
+  }
 
   return result;
 }
@@ -154,13 +163,13 @@ bool load_global_rb_layout(const char *filename, shc::CompilationContext &contex
 }
 
 CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps, const shc::CompilationContext &ctx,
-  bool check_cppstcode)
+  const char *obj_source_file)
 {
   const auto &comp = ctx.compInfo();
 
   bindump::FileReader reader(filename);
   if (!reader)
-    return CompilerAction::COMPILE_AND_LINK;
+    return CompilerAction::LINK_ONLY;
 
   ShadersBindumpHeader header;
   try
@@ -169,46 +178,64 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
     if (header.cache_sign != SHADER_CACHE_SIGN)
     {
       sh_debug(SHLOG_NORMAL, "Invalid file format");
-      return CompilerAction::COMPILE_AND_LINK;
+      return CompilerAction::LINK_ONLY;
     }
 
     if (header.cache_version != SHADER_CACHE_VER)
     {
-      sh_debug(SHLOG_NORMAL, "[INFO] Outdated shader cache version (loaded %c%c%c%c, but required %c%c%c%c), rebuilding",
+      sh_debug(SHLOG_NORMAL, "[INFO] Outdated shader cache version (loaded %c%c%c%c, but required %c%c%c%c)",
         _DUMP4C(header.cache_version), _DUMP4C(SHADER_CACHE_VER));
-      return CompilerAction::COMPILE_AND_LINK;
+      return CompilerAction::LINK_ONLY;
     }
 
     if (!header.hash.isLayoutValid())
     {
       sh_debug(SHLOG_NORMAL, "Invalid shader layout hash");
-      return CompilerAction::COMPILE_AND_LINK;
+      return CompilerAction::LINK_ONLY;
     }
   }
   catch (IGenLoad::LoadException &e)
   {
     // The file could not be read, or the file is missing or the file is too large, etc.
-    // It's not a fatal error to interrupt the entire compilation, just let this shader recompile completely
+    // It's not a fatal error to interrupt the entire compilation, the caller rebuilds this file
     sh_debug(SHLOG_NORMAL, "Invalid shader file %s: %s, code %i", filename, e.excDesc, e.excCode);
     bindump::close();
-    return CompilerAction::COMPILE_AND_LINK;
+    return CompilerAction::LINK_ONLY;
   }
 
   int64_t srcFt;
   if (!get_file_time64(filename, srcFt))
   {
     sh_debug(SHLOG_WARNING, "Cannot detect cache file time");
-    return CompilerAction::COMPILE_AND_LINK;
+    return CompilerAction::LINK_ONLY;
   }
 
   if (header.last_blk_hash != comp.targetBlkHash())
   {
     sh_debug(SHLOG_NORMAL, "[INFO] Outdated blk hash '%s' in header of obj file '%s'", hash_string(header.last_blk_hash).c_str(),
       dd_get_fname(filename));
-    return CompilerAction::COMPILE_AND_LINK;
+    return CompilerAction::LINK_ONLY;
   }
 
-  if (check_cppstcode)
+  if (obj_source_file)
+  {
+    bool isFromSource = false;
+    for (const auto &dep : header.dependency_files)
+      isFromSource |= strcmp(dep.c_str(), obj_source_file) == 0;
+    if (!isFromSource)
+    {
+      sh_debug(SHLOG_NORMAL, "[INFO] Obj file '%s' was not compiled from '%s'", dd_get_fname(filename), obj_source_file);
+      return CompilerAction::COMPILE_AND_LINK;
+    }
+
+    if (shc::config().compileRefinedBlock && !is_local_rb_layout_valid(header))
+    {
+      sh_debug(SHLOG_NORMAL, "[INFO] Obj file '%s' has no valid local refined block layout", dd_get_fname(filename));
+      return CompilerAction::COMPILE_AND_LINK;
+    }
+  }
+
+  if (obj_source_file && shc::config().compileCppStcode())
   {
     auto cppstcodeStatMaybe = get_gencpp_files_stat(filename, comp);
     if (!cppstcodeStatMaybe || cppstcodeStatMaybe->savedBlkHash != comp.targetBlkHash())
@@ -219,6 +246,8 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
 
     srcFt = min(srcFt, cppstcodeStatMaybe->mtime);
   }
+
+  CompilerAction minimumRequiredAction = CompilerAction::NOTHING;
 
   NameMap previousDepSet;
   for (int i = 0; i < header.dependency_files.size(); i++)
@@ -234,15 +263,20 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
       {
         sh_debug(SHLOG_NORMAL, "Source shader file '%s' is not in the list of current dependencies",
           header.dependency_files[i].c_str());
-        return CompilerAction::LINK_ONLY;
+        minimumRequiredAction = CompilerAction::LINK_ONLY;
+        break;
       }
     }
-    for (int i = 0; i < current_deps.size(); i++)
+    if (minimumRequiredAction == CompilerAction::NOTHING)
     {
-      if (previousDepSet.getNameId(current_deps[i].c_str()) == -1)
+      for (int i = 0; i < current_deps.size(); i++)
       {
-        sh_debug(SHLOG_NORMAL, "Source shader file '%s' is not in the list of previous dependencies", current_deps[i].c_str());
-        return CompilerAction::LINK_ONLY;
+        if (previousDepSet.getNameId(current_deps[i].c_str()) == -1)
+        {
+          sh_debug(SHLOG_NORMAL, "Source shader file '%s' is not in the list of previous dependencies", current_deps[i].c_str());
+          minimumRequiredAction = CompilerAction::LINK_ONLY;
+          break;
+        }
       }
     }
   }
@@ -281,14 +315,14 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
   }
 
   // If the file is reused from cache, we need to add it's saved dependencies to the dump
-  if (shc::config().dependencyDumpMode)
+  if (shc::config().dependencyDumpMode && minimumRequiredAction == CompilerAction::NOTHING)
     iterate_names_in_id_order(previousDepSet, [&ctx](int, char const *name) { ctx.reportDepFile(name); });
 
   // Make sure dump is written
   if (shc::config().clearBlkHashInDump)
     return CompilerAction::LINK_ONLY;
 
-  return CompilerAction::NOTHING;
+  return minimumRequiredAction;
 }
 
 bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetContext &out_ctx)
@@ -297,7 +331,7 @@ bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetCont
   ShadersBindumpHeader header;
   bindump::FileReader reader(filename);
   if (!load_shaders_bindump(shaders, header, reader, out_ctx))
-    sh_debug(SHLOG_FATAL, "corrupted OBJ file: %s", filename);
+    sh_debug(SHLOG_FATAL, "Corrupted or truncated shader cache file '%s', delete it or rebuild with -r", filename);
 
   ShaderTargetStorage &stor = out_ctx.storage();
 

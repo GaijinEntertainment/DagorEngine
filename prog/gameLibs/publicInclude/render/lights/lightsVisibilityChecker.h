@@ -59,6 +59,12 @@ public:
   bool testVisibility(LightType light_type, uint32_t light_id) const;
   const TestParameters &getTestParams() const;
 
+  static consteval bool isLightsCountThreadSafe(size_t lights_count)
+  {
+    constexpr auto cacheLightsPerWord = sizeof(CacheType::word_type) * 8 / BITS_PER_LIGHT;
+    return (lights_count % cacheLightsPerWord) == 0;
+  }
+
 private:
   static constexpr size_t BITS_PER_LIGHT = 2;
   static constexpr size_t CACHE_BIT_SIZE = (OmniLightsManager::MAX_LIGHTS + SpotLightsManager::MAX_LIGHTS) * BITS_PER_LIGHT;

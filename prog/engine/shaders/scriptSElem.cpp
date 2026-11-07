@@ -735,8 +735,10 @@ void ScriptedShaderElement::resetShaderPrograms(bool delete_programs)
       passes[i].id.pr = -2;
     }
 }
-void ScriptedShaderElement::preCreateStateBlocks()
+void ScriptedShaderElement::preCreateStateBlocks(const eastl::bitvector<> *used_dyn_variants)
 {
+  // warmup creates shaders only for the variants it also compiles, so a variant it
+  // excludes must not be prepared here, or its shader creation can still fail the device
   auto const &dumpOwner = get_shaders_dump_owner(dumpHandle);
 #if DAGOR_DBGLEVEL > 0
   // If we need debug names, we need to grab a correct variant code
@@ -745,6 +747,9 @@ void ScriptedShaderElement::preCreateStateBlocks()
   shClass.stVariants.enumerateCodesForVariant(codeIndex, [this](unsigned variant_code) { selectedStaticVariantCode = variant_code; });
   for (int i = 0; i < passes.size(); i++)
   {
+    if (used_dyn_variants && !used_dyn_variants->test(i, false))
+      continue;
+
     auto variantCode = unsigned(-1);
     code.dynVariants.enumerateCodesForVariant(i, [&variantCode](unsigned variant_code) { variantCode = variant_code; });
     preparePassId(passes[i].id, i, variantCode, dumpOwner);
@@ -752,7 +757,12 @@ void ScriptedShaderElement::preCreateStateBlocks()
 #else
   // If we do not need debug names, don't spend time walking tables
   for (int i = 0; i < passes.size(); i++)
+  {
+    if (used_dyn_variants && !used_dyn_variants->test(i, false))
+      continue;
+
     preparePassId(passes[i].id, i, invalid_variant, dumpOwner);
+  }
 #endif
 }
 template <typename Cb>
@@ -1181,6 +1191,18 @@ shaders::CombinedDynVariantState get_dynamic_variant_states(const ScriptedShader
 #endif
   return state;
 }
+
+#if DAGOR_DBGLEVEL > 0
+eastl::string describe_dynamic_variant_diff(const ScriptedShaderElement &s, uint32_t from_variant_code, uint32_t to_variant_code)
+{
+  auto const &dumpOwner = get_shaders_dump_owner(s.dumpHandle);
+  const auto [_, intervalDump] = choose_dump_for_variant_name(dumpOwner);
+  eastl::string out;
+  shader_name_format::decode_variant_diff_str(out, *intervalDump, s.code.dynVariants.codePieces, from_variant_code, to_variant_code,
+    dumpOwner.shaderNameFormatSettings);
+  return out;
+}
+#endif
 
 shaders::CombinedDynVariantState get_cached_dynamic_variant_states(const ScriptedShaderElement &s, dag::ConstSpan<int> cache)
 {

@@ -190,7 +190,7 @@ namespace texmgr_internal
 {
 eastl::vector<MipBiasRule> mip_bias_rules;
 float default_mip_bias = 0.0f;
-TextureIdSet anisotropy_exceptions;
+eastl::vector_map<int, AnisotropyOverride> anisotropy_overrides;
 TextureFactory *default_tex_mgr_factory = NULL;
 FastStrMapT<int, -1> managed_tex_map_by_name(strmem, false);
 Tab<const char *> managed_tex_map_by_idx(strmem);
@@ -314,7 +314,7 @@ TexLoadRes (*texmgr_internal::d3d_load_genmip_sysmemcopy)(TEXTUREID, TEXTUREID, 
 
 bool texmgr_internal::is_gpu_mem_enough_to_load_hq_tex()
 {
-  int actual_quota_kb = tql::mem_quota_kb - interlocked_relaxed_load(tql::mem_used_persistent_kb) -
+  int actual_quota_kb = interlocked_relaxed_load(tql::mem_quota_kb) - interlocked_relaxed_load(tql::mem_used_persistent_kb) -
                         interlocked_relaxed_load(tql::gpu_mem_backend_overhead_kb) - tql::mem_quota_reserve_kb;
   int overuse = tql::mem_quota_reserve_kb / 4;
   return actual_quota_kb + overuse > RMGR.getTotalUsedTexSzKB() + min(RMGR.getTotalAddMemNeededSzKB(), overuse) ||
@@ -394,7 +394,7 @@ void texmgr_internal::remove_from_managed_tex_map(int idx)
   const char *name = texmgr_internal::managed_tex_map_by_idx[idx];
   G_ASSERT_RETURN(name, );
 
-  anisotropy_exceptions.del((TEXTUREID)idx);
+  anisotropy_overrides.erase(idx);
   int map_idx = texmgr_internal::managed_tex_map_by_name.getStrIndex(name);
   G_ASSERTF_RETURN(map_idx >= 0, , "idx=%d name=%s", idx, name);
 

@@ -2,6 +2,8 @@
 
 #include "actionData.h"
 #include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiJoyTriggerEffect.h>
+#include <drv/hid/dag_hiXInputMappings.h>
 #include <drv/hid/dag_hiKeyboard.h>
 #include <drv/hid/dag_hiPointing.h>
 #include <drv/hid/dag_hiComposite.h>
@@ -26,16 +28,14 @@ enum
   BS_OFS_kbd = 0,
   BS_OFS_pointing = 256,
   BS_OFS_gamepad = 288,
-  BS_OFS_joy = 384,
-  BS_OFS_end = 640
+  BS_OFS_end = 384
 };
 enum
 {
   AS_OFS_kbd = 0,
   AS_OFS_pointing = 0,
   AS_OFS_gamepad = 4,
-  AS_OFS_joy = 28,
-  AS_OFS_end = 92
+  AS_OFS_end = 28
 };
 
 namespace
@@ -96,6 +96,7 @@ static inline unsigned get_rel_time_msec(int64_t t)
 static ConstSizeBitArrayBase<BS_OFS_end> btState, btStatePrev;
 static carray<PressTimeAndClickCount, BS_OFS_end> clState;
 static carray<float, AS_OFS_end> axState, axStatePrev;
+static bool sample_is_gamepad_poll = false;
 static UsedControlsMask start_umask;
 static constexpr int START_UM_LAYERS = 8;
 static Tab<dainput::SingleButtonId> start_ubtn_layered[START_UM_LAYERS];
@@ -105,7 +106,6 @@ static float sysMouseVx = 0, sysMouseVy = 0, sysMouseResDx = 0, sysMouseResDy = 
 static unsigned dev_kbd_lastInputOnFrameNo = 0;
 static unsigned dev_mouse_lastInputOnFrameNo = 0;
 static unsigned dev_gamepad_lastInputOnFrameNo = 0;
-static unsigned dev_joy_lastInputOnFrameNo = 0;
 static unsigned dev_touch_lastInputOnFrameNo = 0;
 static unsigned dev_clicks_count[get_const_log2(dainput::DEV_USED_gamepad) + 1] = {0};
 static unsigned dev_clicks_count_last[get_const_log2(dainput::DEV_USED_gamepad) + 1] = {0};
@@ -121,7 +121,6 @@ static void report_digital_action_progress(dag::Span<dainput::DigitalActionProgr
     case dainput::DEV_kbd: BTN += BS_OFS_kbd; break;           \
     case dainput::DEV_pointing: BTN += BS_OFS_pointing; break; \
     case dainput::DEV_gamepad: BTN += BS_OFS_gamepad; break;   \
-    case dainput::DEV_joy: BTN += BS_OFS_joy; break;           \
     default: return DEF_RET;                                   \
   }
 
@@ -133,7 +132,6 @@ static void report_digital_action_progress(dag::Span<dainput::DigitalActionProgr
     case dainput::DEV_kbd: AX += AS_OFS_kbd; break;           \
     case dainput::DEV_pointing: AX += AS_OFS_pointing; break; \
     case dainput::DEV_gamepad: AX += AS_OFS_gamepad; break;   \
-    case dainput::DEV_joy: AX += AS_OFS_joy; break;           \
     default: return DEF_RET;                                  \
   }
 
@@ -149,8 +147,7 @@ static inline dainput::SingleButtonId get_btn_from_bs_idx(uint16_t idx)
     return dainput::SingleButtonId{dainput::DEV_##ST, uint16_t(idx - BS_OFS_##ST)};
   CHECK_IDX_RANGE(kbd, pointing);
   CHECK_IDX_RANGE(pointing, gamepad);
-  CHECK_IDX_RANGE(gamepad, joy);
-  CHECK_IDX_RANGE(joy, end);
+  CHECK_IDX_RANGE(gamepad, end);
 #undef CHECK_IDX_RANGE
   return dainput::SingleButtonId{dainput::DEV_none, 0};
 }
@@ -187,8 +184,7 @@ static inline dainput::SingleButtonId get_axis_from_as_idx(uint16_t idx)
     return dainput::SingleButtonId{dainput::DEV_##ST, uint16_t(idx - AS_OFS_##ST)};
   G_STATIC_ASSERT(AS_OFS_kbd == AS_OFS_pointing); // CHECK_IDX_RANGE(kbd, pointing);
   CHECK_IDX_RANGE(pointing, gamepad);
-  CHECK_IDX_RANGE(gamepad, joy);
-  CHECK_IDX_RANGE(joy, end);
+  CHECK_IDX_RANGE(gamepad, end);
 #undef CHECK_IDX_RANGE
   return dainput::SingleButtonId{dainput::DEV_none, 0};
 }
@@ -775,8 +771,10 @@ static void process_actions(uint32_t t)
             float x = 0, y = 0;
             float raw_x = 0, raw_y = 0;
             bool x_max_btn_p = false, x_min_btn_p = false, y_max_btn_p = false, y_min_btn_p = false;
+            // a pad axis holds its last poll
+            const bool polled_earlier = type == TYPE_STICK_DELTA && b.devId == DEV_gamepad && !sample_is_gamepad_poll;
 
-            if (!is_binding_axis_masked(umask, b))
+            if (!is_binding_axis_masked(umask, b) && !polled_earlier)
             {
               x = get_axis_state(b.devId, b.axisXId);
               y = get_axis_state(b.devId, b.axisYId);
@@ -1054,13 +1052,13 @@ void dainput::mouse_btn_event_occurs(int64_t t_usec, int btn_id, bool pressed)
   cwr->endBlock();
   input_queue.endWrite();
 }
-void dainput::touch_event_occurs(int64_t)
+void dainput::touch_event_occurs(int64_t, bool gamepad_touch_pad)
 {
   // we need touch event only for activate change control type
   // and don't use it for sending actions
   // Touch UI does not bind actions like mouse, keyboard or gamepad
   // Touch sends actions in another place
-  dev_touch_lastInputOnFrameNo = dagor_frame_no();
+  (gamepad_touch_pad ? dev_gamepad_lastInputOnFrameNo : dev_touch_lastInputOnFrameNo) = dagor_frame_no();
 }
 void dainput::mouse_wheel_event_occurs(int64_t t_usec, int wheel_inc)
 {
@@ -1099,37 +1097,46 @@ void dainput::mouse_move_event_occurs(int64_t t_usec, float dx, float dy, int sc
   cwr->endBlock();
   input_queue.endWrite();
 }
-static bool check_joy_used(int bs_ofs, int bs_cnt, int as_ofs, int as_cnt)
+static bool check_gamepad_used()
 {
-  for (int i = bs_ofs; i < bs_ofs + bs_cnt; i++)
+  for (int i = BS_OFS_gamepad; i < BS_OFS_end; i++)
     if (btState.get(i) != btStatePrev.get(i))
       return true;
-  for (int i = as_ofs; i < as_ofs + as_cnt; i++)
+  for (int i = AS_OFS_gamepad; i < AS_OFS_end; i++)
     if (fabsf(axState[i] - axStatePrev[i]) > 0.25)
       return true;
   return false;
 }
-static unsigned write_joy_input_event(HumanInput::IGenJoystick *j, int bs_ofs, int as_ofs, IGenSave &cwr, int bs_max, int as_max)
+static bool weapon_effect_holds_press(const HumanInput::IGenJoystick &j, int btn)
+{
+  using namespace HumanInput;
+  TriggerEffectStateInfo effect;
+  if ((btn != JOY_XINPUT_REAL_BTN_L_TRIGGER && btn != JOY_XINPUT_REAL_BTN_R_TRIGGER) || !j.getTriggerEffectState(effect))
+    return false;
+  const TriggerEffectState s = effect.state[btn == JOY_XINPUT_REAL_BTN_L_TRIGGER ? TRIGGER_EFFECT_INDEX_L2 : TRIGGER_EFFECT_INDEX_R2];
+  return s == TRIGGER_EFFECT_STATE_WEAPON_STANDBY || s == TRIGGER_EFFECT_STATE_WEAPON_PULLING;
+}
+
+static unsigned write_gamepad_input_event(HumanInput::IGenJoystick *j, IGenSave &cwr)
 {
   unsigned clicks = 0;
-  if (as_max > j->getAxisCount())
-    as_max = j->getAxisCount();
+  int as_max = min<int>(AS_OFS_end - AS_OFS_gamepad, j->getAxisCount());
   for (int i = 0; i < as_max; i++)
   {
-    int id = as_ofs + i;
+    int id = AS_OFS_gamepad + i;
     if (input_queue_ax_state[id] != j->getAxisPosRaw(i))
     {
       cwr.writeIntP<2>(id | 0x4000);
       cwr.writeIntP<2>(input_queue_ax_state[id] = j->getAxisPosRaw(i));
     }
   }
-  if (bs_max > j->getButtonCount())
-    bs_max = j->getButtonCount();
+  int bs_max = min<int>(BS_OFS_end - BS_OFS_gamepad, j->getButtonCount());
   for (int i = 0; i < bs_max; i++)
   {
-    int id = bs_ofs + i;
+    int id = BS_OFS_gamepad + i;
     bool old_state = input_queue_bt_state.get(id);
-    bool new_state = j->getButtonState(i);
+    // a weapon effect delays only the press
+    bool new_state = j->getButtonState(i) && (old_state || !weapon_effect_holds_press(*j, i));
     if (old_state != new_state)
     {
       new_state ? input_queue_bt_state.set(id) : input_queue_bt_state.clr(id);
@@ -1147,19 +1154,7 @@ void dainput::gpad_change_event_occurs(int64_t t_usec, HumanInput::IGenJoystick 
   IGenSave *cwr = input_queue.startWrite();
   cwr->writeInt64(INPMSG_ax_btn | (t_usec << INPMSG_time_shift));
   cwr->beginBlock();
-  dev_clicks_count[get_const_log2(dainput::DEV_USED_gamepad)] +=
-    write_joy_input_event(gamepad, BS_OFS_gamepad, AS_OFS_gamepad, *cwr, BS_OFS_joy - BS_OFS_gamepad, AS_OFS_joy - AS_OFS_gamepad);
-  cwr->endBlock();
-  input_queue.endWrite();
-}
-void dainput::joy_change_event_occurs(int64_t t_usec, HumanInput::IGenJoystick *joy)
-{
-  last_queued_t_us.store(t_usec);
-  emergency_events_dispatch();
-  IGenSave *cwr = input_queue.startWrite();
-  cwr->writeInt64(INPMSG_ax_btn | (t_usec << INPMSG_time_shift));
-  cwr->beginBlock();
-  write_joy_input_event(joy, BS_OFS_joy, AS_OFS_joy, *cwr, BS_OFS_end - BS_OFS_joy, AS_OFS_end - AS_OFS_joy);
+  dev_clicks_count[get_const_log2(dainput::DEV_USED_gamepad)] += write_gamepad_input_event(gamepad, *cwr);
   cwr->endBlock();
   input_queue.endWrite();
 }
@@ -1212,6 +1207,7 @@ static int64_t dispatch_input_message(IGenLoad &crd)
   int64_t tag = crd.readInt64();
   unsigned t_msec = get_rel_time_msec(tag >> INPMSG_time_shift);
 
+  sample_is_gamepad_poll = false;
   crd.beginBlock();
   switch (tag & INPMSG_type_mask)
   {
@@ -1231,24 +1227,18 @@ static int64_t dispatch_input_message(IGenLoad &crd)
 
     case INPMSG_ax_btn:
     {
-      unsigned code = 0;
       for (int wcnt = crd.getBlockRest() / 2; wcnt; wcnt--)
       {
-        code = crd.readIntP<2>();
+        unsigned code = crd.readIntP<2>();
         if (code & 0x4000)
           axState[code & ~0x4000] = short(crd.readIntP<2>()) / 32000.0f, wcnt--;
         else
           update_btn_state(code & ~0x8000, (code & 0x8000) != 0, t_msec);
       }
 
-      if (dev_gamepad_lastInputOnFrameNo != dagor_frame_no())
-      {
-        bool joy = (code & ~0xC000) >= ((code & 0x4000) ? (int)AS_OFS_joy : (int)BS_OFS_joy);
-        if (joy && check_joy_used(BS_OFS_joy, BS_OFS_end - BS_OFS_joy, AS_OFS_joy, AS_OFS_end - AS_OFS_joy))
-          dev_joy_lastInputOnFrameNo = dagor_frame_no();
-        else if (!joy && check_joy_used(BS_OFS_gamepad, BS_OFS_joy - BS_OFS_gamepad, AS_OFS_gamepad, AS_OFS_joy - AS_OFS_gamepad))
-          dev_gamepad_lastInputOnFrameNo = dagor_frame_no();
-      }
+      sample_is_gamepad_poll = true;
+      if (dev_gamepad_lastInputOnFrameNo != dagor_frame_no() && check_gamepad_used())
+        dev_gamepad_lastInputOnFrameNo = dagor_frame_no();
       break;
     }
 
@@ -1865,6 +1855,7 @@ static float stickDz[4] = {0.10f, 0.12f, 0.f, 0.f};
 #else
 static float stickDz[4] = {0.15f, 0.20f, 0.f, 0.f};
 #endif
+static bool stickDzSuspended = false;
 static inline HumanInput::IGenJoystickClassDrv *joy_cls()
 {
   return global_cls_composite_drv_joy ? global_cls_composite_drv_joy : global_cls_drv_joy;
@@ -1876,7 +1867,7 @@ void dainput::set_stick_dead_zone(int stick_idx, bool main_dev, float dzone)
   {
     drv->setStickDeadZoneScale(stick_idx, main_dev, 1.0f);
     float dz0 = drv->getStickDeadZoneAbs(stick_idx, main_dev);
-    drv->setStickDeadZoneScale(stick_idx, main_dev, dz0 > 0 ? dzone / dz0 : 0);
+    drv->setStickDeadZoneScale(stick_idx, main_dev, dz0 > 0 && !stickDzSuspended ? dzone / dz0 : 0);
     if (stick_idx >= 0 && stick_idx < 2)
       stickDz[(main_dev ? 0 : 2) + stick_idx] = dzone;
   }
@@ -1908,6 +1899,13 @@ void dainput::reapply_stick_dead_zones()
     if (get_stick_dead_zone_abs(s, false) != get_stick_dead_zone(s, false))
       set_stick_dead_zone(s, false, get_stick_dead_zone(s, false));
   }
+}
+void dainput::suspend_stick_dead_zones(bool suspend)
+{
+  stickDzSuspended = suspend;
+  for (int s = 0; s < 2; s++)
+    for (bool mainDev : {true, false})
+      set_stick_dead_zone(s, mainDev, get_stick_dead_zone(s, mainDev));
 }
 
 void dainput::enable_gyroscope(bool enable, bool main_dev)

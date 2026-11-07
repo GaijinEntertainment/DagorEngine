@@ -702,6 +702,12 @@ int ShaderRenderPass::get_subpass_count(Id id)
   return rp ? int(rp->subpasses.size()) : 0;
 }
 
+const char *ShaderRenderPass::get_subpass_name(Id id, int subpass)
+{
+  const RenderPass *rp = find_pass(id).rp;
+  return rp && subpass >= 0 && subpass < int(rp->subpasses.size()) ? rp->subpasses[subpass].name.c_str() : nullptr;
+}
+
 SubpassInfo ShaderRenderPass::get_subpass_info(Id id, int subpass)
 {
   SubpassInfo info;
@@ -1786,3 +1792,19 @@ void ShaderRenderPass::verify_active_pass_group(ShaderBindumpHandle dump, int gr
     shader_name, grp.name.c_str(), memberList.c_str(), g_active.passName, g_active.subpass);
 }
 #endif
+
+void dafg_set_active_shader_render_pass(ShaderRenderPass::Id id, int subpass)
+{
+  G_ASSERTF_RETURN(!g_active.pass, , "dafg_set_active_shader_render_pass: render_pass '%s' is active", g_active.passName);
+  g_active = {};
+  const FoundPass f = find_pass(id);
+  if (!f.rp)
+    return;
+  G_ASSERTF_RETURN(subpass >= 0 && subpass < int(f.rp->subpasses.size()), ,
+    "dafg_set_active_shader_render_pass: render_pass '%s' has no subpass %d (it has %d)", f.rp->name.c_str(), subpass,
+    int(f.rp->subpasses.size()));
+  g_active.passNameHash = f.rp->nameHash;
+  g_active.shapeHash = shape_hash(*f.rp);
+  g_active.subpass = subpass;
+  g_active.passName = f.rp->name.c_str();
+}

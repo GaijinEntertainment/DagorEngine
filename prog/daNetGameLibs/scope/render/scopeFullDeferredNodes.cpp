@@ -2,6 +2,7 @@
 
 #include <render/scopeAimRender/scopeAimRender.h>
 #include "scopeFullDeferredNodes.h"
+#include <render/compressedRtOverrideFlag.h>
 
 #include <render/daFrameGraph/daFG.h>
 #include <render/deferredRenderer.h>
@@ -13,6 +14,8 @@
 #include <daECS/core/componentTypes.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <shaders/dag_dynSceneRes.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <math/dag_occlusionZBuffer.h>
@@ -37,11 +40,14 @@ SCOPE_LENS_VARS
 class DynamicPrevViewProjScope
 {
 public:
-  DynamicPrevViewProjScope(const CameraParams &camera, const CameraParams &prev_camera)
+  DynamicPrevViewProjScope(const TMatrix4_vec4 &prev_view_tm, const TMatrix4_vec4 &prev_proj_tm)
   {
     dynrend::get_prev_view_proj(prevViewTm, prevProjTm);
-    dynrend::set_prev_view_proj(prev_camera.viewRotTm, get_prev_proj_tm_with_cur_jitter(prev_camera, camera));
+    dynrend::set_prev_view_proj(prev_view_tm, prev_proj_tm);
   }
+  DynamicPrevViewProjScope(const CameraParams &camera, const CameraParams &prev_camera) :
+    DynamicPrevViewProjScope(prev_camera.viewRotTm, get_prev_proj_tm_with_cur_jitter(prev_camera, camera))
+  {}
   DynamicPrevViewProjScope(const DynamicPrevViewProjScope &) = delete;
   DynamicPrevViewProjScope &operator=(const DynamicPrevViewProjScope &) = delete;
   ~DynamicPrevViewProjScope() { dynrend::set_prev_view_proj(prevViewTm, prevProjTm); }
@@ -146,7 +152,7 @@ dafg::NodeHandle makeScopeLensMaskNode()
     registry.orderMeAfter("scope_opaque_node");
 
     registry.create("scope_lens_mask")
-      .texture({TEXFMT_R8 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+      .texture({TEXFMT_R8 | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view")})
       .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
     shaders::OverrideState overrideState;
@@ -330,10 +336,11 @@ dafg::NodeHandle makeRenderLensFrameNode()
 {
   return dafg::register_node("render_lens_frame_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
-    registry.requestRenderPass().color({registry
-                                          .createTexture2d("lens_frame_target",
-                                            {get_frame_render_target_format() | TEXCF_RTARGET, registry.getResolution<2>("post_fx")})
-                                          .clear(make_clear_value(0.f, 0.f, 0.f, 0.f))});
+    registry.requestRenderPass().color(
+      {registry
+          .createTexture2d("lens_frame_target",
+            {get_frame_render_target_format() | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("post_fx")})
+          .clear(make_clear_value(0.f, 0.f, 0.f, 0.f))});
 
     auto frameHndl =
       registry.readTexture("final_target_with_motion_blur").atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
@@ -403,6 +410,151 @@ dafg::NodeHandle makeRenderOpticsPrepassNode()
       hasOpticsPrepass.ref() = true;
     };
   });
+}
+
+static TMatrix4 calc_lens_centered_view(
+  const TMatrix4 &view_rot_tm, const TMatrix &lens_wtm, const float magnification, const float scope_length)
+{
+  // here we fake the gun inside the lens area
+  // For this:
+  // 1. Turn the gun about the lens center until its optical axis points at the eye.
+  // 2. Sway puts the lens off the screen center, and the magnification pushes the magnified lens center
+  //    further out, so turn the camera until it lands on the cockpit lens center.
+
+  const Point3 lensPos = lens_wtm.getcol(3);
+  const Point3 lensAxis = lens_wtm.getcol(1);
+  const Point3 opticalAxis = lensAxis * lensPos > 0.f ? lensAxis : -lensAxis;
+  TMatrix4 alignOpticalAxisToEyeTm = makeTM4(quat_rotation_arc(opticalAxis, lensPos));
+  alignOpticalAxisToEyeTm.setrow(3, Point4::xyz1(lensPos - lensPos % alignOpticalAxisToEyeTm - normalize(lensPos) * scope_length));
+
+  const Point3 lensVs = lensPos % view_rot_tm;
+  const Point3 targetVs(lensVs.x / magnification, lensVs.y / magnification, lensVs.z);
+  const TMatrix4 recenterMagnifiedLensCenterTm = makeTM4(quat_rotation_arc(lensVs, targetVs));
+
+  return alignOpticalAxisToEyeTm * view_rot_tm * recenterMagnifiedLensCenterTm;
+}
+
+static TMatrix4 calc_lens_gun_proj(const TMatrix4 &lens_proj_tm, const CameraParams &cockpit_view, float magnification)
+{
+  TMatrix4 projTm = lens_proj_tm;
+  projTm(0, 0) = cockpit_view.noJitterPersp.wk * magnification;
+  projTm(1, 1) = cockpit_view.noJitterPersp.hk * magnification;
+  return projTm;
+}
+
+dafg::NodeHandle makeScopeLensViewProjNode(const bool align_gun)
+{
+  return dafg::register_node("scope_lens_view_proj_node", DAFG_PP_NODE_SRC, [align_gun](dafg::Registry registry) {
+    auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
+    auto lensCamera = registry.readBlob<CameraParams>("lens_area_camera").optional().handle();
+    auto cockpitCamera = registry.readBlob<CameraParams>("current_cockpit_camera").handle();
+    auto mainCamera = registry.readBlob<CameraParams>("current_camera").handle();
+
+    auto gunViewHndl = registry.createBlob<TMatrix4>("scope_gun_view").withHistory().handle();
+    auto gunProjHndl = registry.createBlob<TMatrix4>("scope_gun_proj").handle();
+    auto gunNoJitterProjHndl = registry.createBlob<TMatrix4>("scope_gun_no_jitter_proj").withHistory().handle();
+    auto crosshairViewHndl = registry.createBlob<TMatrix4>("scope_crosshair_view").withHistory().handle();
+
+    auto tuple = eastl::make_tuple(aimRenderDataHndl, lensCamera, cockpitCamera, mainCamera, gunViewHndl, gunProjHndl,
+      gunNoJitterProjHndl, crosshairViewHndl);
+    auto viewProjHndls = eastl::make_unique<decltype(tuple)>(tuple);
+
+    return [align_gun, state = eastl::move(viewProjHndls)]() {
+      const auto &[aimRenderDataHndl, lensCamera, cockpitCamera, mainCamera, gunViewHndl, gunProjHndl, gunNoJitterProjHndl,
+        crosshairViewHndl] = *state;
+      const AimRenderingData &aimRenderData = aimRenderDataHndl.ref();
+
+      if (!aimRenderData.lensRenderEnabled)
+        return;
+
+      const DynamicRenderableSceneInstance *lensScene = get_scope_lens(aimRenderData);
+      if (!lensScene)
+        return;
+
+      const CameraParams *lensView = lensCamera.get() ? lensCamera.get() : mainCamera.get();
+
+      if (!align_gun)
+      {
+        gunViewHndl.ref() = lensView->viewRotTm;
+        gunProjHndl.ref() = lensView->jitterProjTm;
+        gunNoJitterProjHndl.ref() = lensView->noJitterProjTm;
+        crosshairViewHndl.ref() = cockpitCamera.ref().viewRotTm;
+        return;
+      }
+
+      const TMatrix &lensWtm = lensScene->getNodeWtm(aimRenderData.lensNodeId);
+      const float magnification = lensView->noJitterPersp.wk / mainCamera.ref().noJitterPersp.wk;
+
+      const float scopeFakeLengthMul = 0.85f;
+      const float scopeLength = aimRenderData.scopeLength * scopeFakeLengthMul;
+
+      gunViewHndl.ref() = calc_lens_centered_view(lensView->viewRotTm, lensWtm, magnification, scopeLength);
+      gunProjHndl.ref() = calc_lens_gun_proj(lensView->jitterProjTm, cockpitCamera.ref(), magnification);
+      gunNoJitterProjHndl.ref() = calc_lens_gun_proj(lensView->noJitterProjTm, cockpitCamera.ref(), magnification);
+      crosshairViewHndl.ref() = calc_lens_centered_view(cockpitCamera.ref().viewRotTm, lensWtm, 1.f, 0.f);
+    };
+  });
+}
+
+static dafg::NodeHandle makeScopeGunOpaqueNode(const bool prepass)
+{
+  auto ns = dafg::root() / "opaque" / "decorations";
+  const char *nodeName = prepass ? "scope_opaque_gun_prepass_node" : "scope_opaque_gun_node";
+  return ns.registerNode(nodeName, DAFG_PP_NODE_SRC, [prepass](dafg::Registry registry) {
+    registry.requestState().allowWireframe().setFrameBlock("global_frame");
+
+    registry.read("shadow_visibility_token").blob<OrderingToken>();
+    registry.read("hidden_animchar_nodes_token").blob<OrderingToken>().optional();
+
+    if (prepass)
+      render_to_gbuffer_prepass(registry);
+    else
+      render_to_gbuffer(registry);
+
+    registry.readBlob<TMatrix4>("scope_gun_view").bindAsView();
+    auto gunProjHndl = registry.readBlob<TMatrix4>("scope_gun_proj").bindAsProj().handle();
+    auto gunNoJitterProjHndl = registry.readBlob<TMatrix4>("scope_gun_no_jitter_proj").handle();
+    auto prevGunViewHndl = registry.readBlobHistory<TMatrix4>("scope_gun_view").handle();
+    auto prevGunNoJitterProjHndl = registry.readBlobHistory<TMatrix4>("scope_gun_no_jitter_proj").handle();
+
+    auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
+    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
+
+    registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
+
+    return [prepass, aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, gunProjHndl, gunNoJitterProjHndl, prevGunViewHndl,
+             prevGunNoJitterProjHndl](const dafg::multiplexing::Index &multiplexing_index) {
+      if (camera_in_camera::is_main_view(multiplexing_index))
+        return;
+
+      camera_in_camera::ApplyMasterState camcam(multiplexing_index);
+
+      const AimRenderingData &aimRenderData = aimRenderDataHndl.ref();
+
+      if (!aimRenderData.lensRenderEnabled)
+        return;
+
+      const DynamicRenderableSceneInstance *lensScene = get_scope_lens(aimRenderData);
+      if (!lensScene)
+        return;
+
+      DynamicPrevViewProjScope prevViewProjScope(prevGunViewHndl.ref(),
+        get_prev_proj_tm_with_cur_jitter(prevGunNoJitterProjHndl.ref(), gunProjHndl.ref(), gunNoJitterProjHndl.ref()));
+
+      const bool gunOnly = true;
+      if (prepass)
+        render_scope_prepass(scopeAimRenderDataHndl.ref(), strmCtxHndl.ref(), gunOnly);
+      else
+        render_scope(scopeAimRenderDataHndl.ref(), strmCtxHndl.ref(), gunOnly);
+    };
+  });
+}
+
+void makeScopeGunOpaqueNodes(dag::Vector<dafg::NodeHandle> &nodes)
+{
+  nodes.push_back(makeScopeGunOpaqueNode(true));
+  nodes.push_back(makeScopeGunOpaqueNode(false));
 }
 
 template <typename T>
@@ -476,14 +628,25 @@ dafg::NodeHandle makeRenderCrosshairNode()
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
     registry.requestRenderPass().color({registry.renameTexture("lens_frame_target", "lens_crosshair_target")});
 
-    const bool noJitter = false;
-    auto scopeDataHndls = request_common_scope_state<noJitter>(registry);
+    registry.readBlob<TMatrix4>("scope_crosshair_view").bindAsView();
+    auto prevCrosshairViewHndl = registry.readBlobHistory<TMatrix4>("scope_crosshair_view").handle();
+    auto camera = registry.readBlob<CameraParams>("current_cockpit_camera").bindAsProj<&CameraParams::noJitterProjTm>().handle();
+    auto prevCamera = registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle();
 
-    return [state = eastl::move(scopeDataHndls)]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
-      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
+    auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
+    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-      if (!aimRenderDataHndl.ref().lensRenderEnabled)
+    return [aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera, prevCrosshairViewHndl]() {
+      DynamicPrevViewProjScope prevViewProjScope(prevCrosshairViewHndl.ref(),
+        get_prev_proj_tm_with_cur_jitter(prevCamera.ref(), camera.ref()));
+
+      const AimRenderingData &aimRenderData = aimRenderDataHndl.ref();
+      if (!aimRenderData.lensRenderEnabled)
+        return;
+
+      const DynamicRenderableSceneInstance *lensScene = get_scope_lens(aimRenderData);
+      if (!lensScene)
         return;
 
       render_scope_trans_forward(scopeAimRenderDataHndl.ref(), strmCtxHndl.ref());
@@ -498,14 +661,23 @@ dafg::NodeHandle makeRenderCrosshairGUINode()
     registry.requestRenderPass().color({registry.renameTexture("lens_crosshair_target", "lens_crosshair_gui_target")});
 
     auto camera = registry.readBlob<CameraParams>("current_cockpit_camera").handle();
+    auto crosshairViewHndl = registry.readBlob<TMatrix4>("scope_crosshair_view").handle();
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
     auto viewportResHndl = registry.getResolution<2>("main_view");
 
-    return [aimRenderDataHndl, camera, viewportResHndl]() {
-      if (!aimRenderDataHndl.ref().lensRenderEnabled)
+    return [aimRenderDataHndl, camera, crosshairViewHndl, viewportResHndl]() {
+      const AimRenderingData &aimRenderData = aimRenderDataHndl.ref();
+      if (!aimRenderData.lensRenderEnabled)
         return;
 
-      render_scope_crosshair_gui(aimRenderDataHndl.ref(), camera.ref(), viewportResHndl.get());
+      const DynamicRenderableSceneInstance *lensScene = get_scope_lens(aimRenderData);
+      if (!lensScene)
+        return;
+
+      CameraParams crosshairCamera = camera.ref();
+      crosshairCamera.viewRotProjTm = crosshairViewHndl.ref() * camera.ref().noJitterProjTm;
+
+      render_scope_crosshair_gui(aimRenderData, crosshairCamera, viewportResHndl.get());
     };
   });
 }

@@ -195,7 +195,7 @@ shader render_ambient
           #define HACK_SPECULAR_BRIGHTNESS 1
         ##elif (gi_quality == screen_probes)
         {
-          sample_bilinear_specular_irradiance_with_normal_campos(specularDir, enviLightingNormal, w, -pointToEye, normal, screenpos.xy, giSpecular, ambient);
+          sample_bilinear_specular_irradiance_with_normal_campos(specularDir, enviLightingNormal, w, -pointToEye, normal, linearRoughness, screenpos.xy, giSpecular, ambient);
           #define HAS_SPECULAR 1
           #define HACK_SPECULAR_BRIGHTNESS 0
         }

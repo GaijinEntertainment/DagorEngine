@@ -24,8 +24,10 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
+#include <3d/dag_texIdSet.h>
 #include <3d/dag_texMgrTags.h>
 #include <render/dag_cur_view.h>
+#include <shaders/dag_shaderMesh.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_rayIntersectSphere.h>
@@ -451,6 +453,8 @@ public:
   bool needsRenderToClipmap(bool late) const { return (late == renderForClipmapLate) && hasGeomForClipmap; }
   bool needsRenderAsHeightmapPatch() const { return isPatchingHeightmap; }
   bool needsRenderToWater() const { return hasWaterProjGeom; }
+  bool hasRenderableGeom() const { return geom && (sumNodeFlags & StaticGeometryNode::FLG_RENDERABLE); }
+
   const char *assetName() const { return aMgr ? aMgr->getAssetName(assetNameId) : NULL; }
 
   const char *getObjAssetName() const
@@ -472,6 +476,33 @@ public:
   }
 
   GeomObject *getGeomObject() { return geom; }
+
+  void gatherIsolatedRenderData(BBox3 &local_box, TextureIdSet &tex_ids) const
+  {
+    const StaticGeometryContainer *cont = geom->getGeometryContainer();
+    for (int i = 0; i < cont->nodes.size(); ++i)
+    {
+      // renderIsolatedOpaque() draws at distance 0, so only the top LOD.
+      StaticGeometryNode *node = cont->nodes[i];
+      if (!(node->flags & StaticGeometryNode::FLG_RENDERABLE) || node->isNonTopLod())
+        continue;
+
+      local_box += node->wtm * node->boundBox;
+      if (const ShaderMesh *mesh = geom->getShaderMesh(i))
+        mesh->gatherUsedTex(tex_ids);
+    }
+  }
+
+  void renderIsolatedOpaque(const TMatrix &tm)
+  {
+    // GeomObject picks the LOD by the distance to grs_cur_view, which is the viewport camera here.
+    const Point3 prevViewPos = ::grs_cur_view.pos;
+    ::grs_cur_view.pos = tm.getcol(3);
+    geom->setTm(tm);
+    geom->render();
+    geomTmIdent = false;
+    ::grs_cur_view.pos = prevViewPos;
+  }
 
 protected:
   DagorAssetMgr *aMgr;
@@ -675,7 +706,8 @@ class PrefabEntityManagementService : public IEditorService,
                                       public IDagorEdCustomCollider,
                                       public IOccluderGeomProvider,
                                       public IRenderingService,
-                                      public IStaticGeometryMaterialEditor
+                                      public IStaticGeometryMaterialEditor,
+                                      public IPrefabIsolatedRender
 {
 public:
   PrefabEntityManagementService()
@@ -738,7 +770,34 @@ public:
     RETURN_INTERFACE(huid, IGatherStaticGeometry);
     RETURN_INTERFACE(huid, IOccluderGeomProvider);
     RETURN_INTERFACE(huid, IStaticGeometryMaterialEditor);
+    RETURN_INTERFACE(huid, IPrefabIsolatedRender);
     return NULL;
+  }
+
+  // IPrefabIsolatedRender interface
+  bool getIsolatedRenderData(const DagorAsset &asset, BBox3 &local_box, TextureIdSet &tex_ids) override
+  {
+    const PrefabEntityPool *pool = findOrAddPool(asset);
+    if (!pool || !pool->hasRenderableGeom())
+      return false;
+    local_box.setempty();
+    pool->gatherIsolatedRenderData(local_box, tex_ids);
+    return !local_box.isempty();
+  }
+
+  bool isLoftMaskPrefab(const DagorAsset &asset) override
+  {
+    const PrefabEntityPool *pool = findOrAddPool(asset);
+    return pool && pool->checkStageIdx(prefabs::PrefabStage::LOFT_MASK_EXPORT);
+  }
+
+  void renderIsolatedOpaque(const DagorAsset &asset, const TMatrix &tm) override
+  {
+    PrefabEntityPool *pool = findOrAddPool(asset);
+    if (!pool || !pool->hasRenderableGeom())
+      return;
+    RenderShaderVarsScope shaderVars(true);
+    pool->renderIsolatedOpaque(tm);
   }
 
   // IRenderingService interface
@@ -757,20 +816,7 @@ public:
     if (!p.size())
       return;
     TIME_D3D_PROFILE_NAME(render_prefab, "prefab");
-    static int landCellShortDecodeXZ = ::get_shader_variable_id("landCellShortDecodeXZ", true);
-    static int landCellShortDecodeY = ::get_shader_variable_id("landCellShortDecodeY", true);
-    static int prefabs_render_modeVarId = ::get_shader_variable_id("prefabs_render_mode", true);
-    static Color4 dec_xz_0(0, 0, 0, 0), dec_y_0(0, 0, 0, 0);
-    if (landCellShortDecodeXZ != -1)
-    {
-      dec_xz_0 = ShaderGlobal::get_float4(landCellShortDecodeXZ);
-      ShaderGlobal::set_float4(landCellShortDecodeXZ, 1.0f / 32767.f, 0, 0, 0);
-    }
-    if (landCellShortDecodeY != -1)
-    {
-      dec_y_0 = ShaderGlobal::get_float4(landCellShortDecodeY);
-      ShaderGlobal::set_float4(landCellShortDecodeY, 1.0f / 32767.f, 0, 0, 0);
-    }
+    RenderShaderVarsScope shaderVars(stage == STG_RENDER_STATIC_OPAQUE);
 
     TMatrix4 projtm, viewtm;
     d3d::gettm(TM_PROJ, &projtm);
@@ -779,10 +825,8 @@ public:
     switch (stage)
     {
       case STG_RENDER_STATIC_OPAQUE:
-        ShaderGlobal::set_int(prefabs_render_modeVarId, 1); // render to gbuffer
         for (int i = 0; i < p.size(); i++)
           p[i]->render(frustum);
-        ShaderGlobal::set_int(prefabs_render_modeVarId, 0); // restore render to loft mask
         break;
 
       case STG_RENDER_TO_CLIPMAP:
@@ -826,10 +870,6 @@ public:
 
       default: break;
     }
-    if (landCellShortDecodeXZ != -1)
-      ShaderGlobal::set_float4(landCellShortDecodeXZ, dec_xz_0);
-    if (landCellShortDecodeY != -1)
-      ShaderGlobal::set_float4(landCellShortDecodeY, dec_y_0);
   }
 
   // IObjEntityMgr interface
@@ -877,12 +917,14 @@ public:
   }
 
   // IGatherStaticGeometry interface
-  void gatherStaticVisualGeometry(StaticGeometryContainer &cont) override { gatherStaticVisualGeometryForStage(cont, 0); }
-  void gatherStaticVisualGeometryForStage(StaticGeometryContainer &cont, int stage_idx) override
+  void gatherStaticVisualGeometry(StaticGeometryContainer &cont) override
+  {
+    gatherStaticVisualGeometryForStage(cont, 0, IObjEntityFilter::getLayerHiddenMask());
+  }
+  void gatherStaticVisualGeometryForStage(StaticGeometryContainer &cont, int stage_idx, LayerHiddenMask lh_mask) override
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
-    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int i = 0; i < p.size(); i++)
       if (p[i]->checkStageIdx(stage_idx))
         p[i]->addGeometry(cont, StaticGeometryNode::FLG_RENDERABLE, 0, st_mask, lh_mask);
@@ -1105,6 +1147,64 @@ public:
   }
 
 protected:
+  class RenderShaderVarsScope
+  {
+  public:
+    explicit RenderShaderVarsScope(bool to_gbuffer) : toGbuffer(to_gbuffer)
+    {
+      if (ids.landCellShortDecodeXZ != -1)
+      {
+        decXZ = ShaderGlobal::get_float4(ids.landCellShortDecodeXZ);
+        ShaderGlobal::set_float4(ids.landCellShortDecodeXZ, 1.0f / 32767.f, 0, 0, 0);
+      }
+      if (ids.landCellShortDecodeY != -1)
+      {
+        decY = ShaderGlobal::get_float4(ids.landCellShortDecodeY);
+        ShaderGlobal::set_float4(ids.landCellShortDecodeY, 1.0f / 32767.f, 0, 0, 0);
+      }
+      if (toGbuffer)
+        ShaderGlobal::set_int(ids.prefabsRenderMode, 1); // render to gbuffer
+    }
+
+    ~RenderShaderVarsScope()
+    {
+      if (toGbuffer)
+        ShaderGlobal::set_int(ids.prefabsRenderMode, 0); // restore render to loft mask
+      if (ids.landCellShortDecodeXZ != -1)
+        ShaderGlobal::set_float4(ids.landCellShortDecodeXZ, decXZ);
+      if (ids.landCellShortDecodeY != -1)
+        ShaderGlobal::set_float4(ids.landCellShortDecodeY, decY);
+    }
+
+  private:
+    struct VarIds
+    {
+      int landCellShortDecodeXZ = ::get_shader_variable_id("landCellShortDecodeXZ", true);
+      int landCellShortDecodeY = ::get_shader_variable_id("landCellShortDecodeY", true);
+      int prefabsRenderMode = ::get_shader_variable_id("prefabs_render_mode", true);
+    };
+
+    static const VarIds &getVarIds()
+    {
+      static const VarIds varIds;
+      return varIds;
+    }
+
+    const VarIds &ids = getVarIds();
+    const bool toGbuffer;
+    Color4 decXZ, decY;
+  };
+
+  PrefabEntityPool *findOrAddPool(const DagorAsset &asset)
+  {
+    if (asset.getType() != prefabEntityClassId)
+      return nullptr;
+    int poolIdx = prefabPool.findPool(asset);
+    if (poolIdx < 0)
+      poolIdx = prefabPool.addPool(new PrefabEntityPool(asset));
+    return prefabPool.getPools()[poolIdx];
+  }
+
   MultiPrefabEntityPool prefabPool;
   bool visible;
 };

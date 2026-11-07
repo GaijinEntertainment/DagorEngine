@@ -219,7 +219,7 @@ void BhvTouchScreenButton::handleRelease(TouchButtonState *buttonState)
 }
 
 int BhvTouchScreenButton::pointingEvent(
-  ElementTree *, Element *elem, InputDevice, InputEvent event, int touch_idx, int /*btn_id*/, Point2 pos, int accum_res)
+  ElementTree *, Element *elem, InputDevice, TouchSource, InputEvent event, int touch_idx, int /*btn_id*/, Point2 pos, int accum_res)
 {
   if (event != INP_EV_PRESS && event != INP_EV_RELEASE)
     return 0;

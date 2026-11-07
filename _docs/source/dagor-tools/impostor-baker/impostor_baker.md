@@ -390,8 +390,9 @@ Any of the parameters inside the `voxel_impostor{}` block can be left out to use
 values from `application.blk`, or the default ones. The block can also be empty.
 
 The tool will generate voxel slices of the model and save them to
-`(asset_name)_voxCache.bin` file in `impostors` folder. This data will then
-be used when building the asset to generate voxel mips and LODs.
+`(asset_name).voxcache.bin` file in `voxels~baked` folder of the cache (`develop/.cache`
+by default, set by `assets.export.cache` of `application.blk`).
+This data will then be used when building the asset to generate voxel mips and LODs.
 
 - `enabled:b`: usually omitted because default value is `yes`, set to `no` to
   disable voxel LODs, usually for testing.
@@ -412,6 +413,16 @@ be used when building the asset to generate voxel mips and LODs.
 - `adjustMeshLodRanges:b`: adjust ranges of mesh LODs, so that they switch
   to next one, and eventually to voxels when many triangles become too small.
   Default is `yes`.
+- `range:r`: maximum range of the voxel LODs. The range of each voxel LOD is
+  computed from its voxel size, then limited to this value. If zero or
+  negative (the default value is `0`) and the asset has a billboard impostor,
+  the limit is the geometric mean of the impostor range and the range of the
+  last mesh LOD. Without a billboard impostor there is no limit then.
+- `maxVoxelLods:i`: maximum number of voxel LODs. Default is no limit (`999`).
+- `maxTotalLods:i`: maximum number of all LODs together (mesh, voxel and
+  billboard impostor). It is also limited by `rendinst::RI_MAX_LODS`.
+  Default is `6`. If the other LODs already use all of them, the build fails
+  with an error.
 
 ## How to Enable Voxel Impostors in a New Game
 
@@ -452,6 +463,28 @@ Currently these shaders can be baked:
 - `rendinst_layered`
 - `rendinst_blend_diffuse_decal`
 - `rendinst_modulate2x_diffuse_decal`
+
+Known shaders can be specified per-project in application.blk,
+block `assets{voxel_impostor{known_shaders{}}}`. Each bool parameter
+in this block provides shader name and whether voxel baking is
+supported by that shader.
+
+This is necessary for supported decals in particular, since they produce
+no voxels in the automatic test for voxel baking support.
+
+**Example**
+
+```blk
+voxel_impostor{
+  // ...
+  known_shaders{
+    rendinst_clipmap:b = no
+    rendinst_blend_diffuse_decal:b = yes
+    rendinst_modulate2x_diffuse_decal:b = yes
+    rendinst_super_custom_decal:b = yes
+  }
+}
+```
 
 Currently baked voxels store:
 

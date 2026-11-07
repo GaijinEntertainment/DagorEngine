@@ -21,35 +21,60 @@ struct Wayland
 {};
 #endif
 
+#include "stub.inc.h"
+
 using namespace linux_GUI;
 
 namespace
 {
 X11 x11;
 Wayland wayland;
+Stub stub;
 bool usingWayland;
 bool inited = false;
+bool isStub = false;
 }; // namespace
 
 #if USE_WAYLAND && USE_X11
-#define ROUTE(expr)      \
-  G_ASSERT(inited);      \
-  if (usingWayland)      \
-  {                      \
-    return wayland.expr; \
-  }                      \
-  else                   \
-  {                      \
-    return x11.expr;     \
+#define ROUTE(expr)           \
+  if (DAGOR_UNLIKELY(isStub)) \
+  {                           \
+    return stub.expr;         \
+  }                           \
+  else                        \
+  {                           \
+    G_ASSERT(inited);         \
+    if (usingWayland)         \
+    {                         \
+      return wayland.expr;    \
+    }                         \
+    else                      \
+    {                         \
+      return x11.expr;        \
+    }                         \
   }
 #elif USE_X11
-#define ROUTE(expr) \
-  G_ASSERT(inited); \
-  return x11.expr;
+#define ROUTE(expr)           \
+  if (DAGOR_UNLIKELY(isStub)) \
+  {                           \
+    return stub.expr;         \
+  }                           \
+  else                        \
+  {                           \
+    G_ASSERT(inited);         \
+    return x11.expr;          \
+  }
 #elif USE_WAYLAND
-#define ROUTE(expr) \
-  G_ASSERT(inited); \
-  return wayland.expr;
+#define ROUTE(expr)           \
+  if (DAGOR_UNLIKELY(isStub)) \
+  {                           \
+    return stub.expr;         \
+  }                           \
+  else                        \
+  {                           \
+    G_ASSERT(inited);         \
+    return wayland.expr;      \
+  }
 #endif
 
 namespace workcycle_internal
@@ -60,6 +85,33 @@ void idle_loop() { process_messages(); }
 namespace linux_GUI
 {
 
+bool should_use_wayland()
+{
+#if USE_WAYLAND
+  // prefer Wayland when it can present the selected window mode correctly
+  const DataBlock *linuxBlk = ::dgs_get_settings()->getBlockByNameEx("linux");
+  if (::dgs_get_argv("wayland"))
+    return true;
+  else if (::dgs_get_argv("x11"))
+    return false;
+  else if (linuxBlk->paramExists("wayland"))
+    return linuxBlk->getBool("wayland", false);
+  else if (linuxBlk->paramExists("x11"))
+    return !linuxBlk->getBool("x11", false);
+
+  // dgs_get_window_mode() is not populated yet use direct read from config
+  const char *modeStr = ::dgs_get_settings()->getBlockByNameEx("video")->getStr("mode", "");
+  const bool decorationsNeeded = !strcmp(modeStr, "windowed") || !strcmp(modeStr, "resizablewindowed");
+  bool ret = !decorationsNeeded || wayland.hasServerSideDecorations();
+  debug("wayland: default backend selection: video/mode='%s' decorationsNeeded=%d -> %s", modeStr, (int)decorationsNeeded,
+    ret ? "wayland" : "x11");
+  return ret;
+#else
+  return false;
+#endif
+}
+
+
 void init_wayland()
 {
 #if USE_WAYLAND
@@ -69,29 +121,14 @@ void init_wayland()
 
   debug("wayland: present because XDG_SESSION_TYPE value = %s", xdg_session_type);
 
-  bool useWayland = true;
 #if USE_X11
-  // prefer Wayland when it can present the selected window mode correctly
-  const DataBlock *linuxBlk = ::dgs_get_settings()->getBlockByNameEx("linux");
-  if (::dgs_get_argv("wayland"))
-    useWayland = true;
-  else if (linuxBlk->paramExists("wayland"))
-    useWayland = linuxBlk->getBool("wayland", false);
-  else
-  {
-    // dgs_get_window_mode() is not populated yet use direct read from config
-    const char *modeStr = ::dgs_get_settings()->getBlockByNameEx("video")->getStr("mode", "");
-    const bool decorationsNeeded = !strcmp(modeStr, "windowed") || !strcmp(modeStr, "resizablewindowed");
-    useWayland = !decorationsNeeded || wayland.hasServerSideDecorations();
-    debug("wayland: default backend selection: video/mode='%s' decorationsNeeded=%d -> %s", modeStr, (int)decorationsNeeded,
-      useWayland ? "wayland" : "x11");
-  }
-#endif
-
-  if (useWayland)
+  if (should_use_wayland())
     inited = wayland.init();
   else
     debug("wayland: fallback to x11");
+#else
+  inited = wayland.init();
+#endif
 #endif
 }
 
@@ -105,6 +142,11 @@ void init_x11()
 
 bool init()
 {
+  G_ASSERT(!isStub);
+
+  if (DAGOR_UNLIKELY(isStub))
+    return false;
+
   if (inited)
     return true;
 
@@ -119,6 +161,7 @@ bool init()
 
 bool is_wayland() { return inited && usingWayland; }
 bool is_x11() { return inited && !usingWayland; }
+void init_stub() { isStub = true; }
 
 void shutdown()
 {

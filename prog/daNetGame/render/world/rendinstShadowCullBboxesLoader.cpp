@@ -6,32 +6,15 @@
 #include <util/dag_threadPool.h>
 #include <perfMon/dag_statDrv.h>
 
-void RiShadowCullBboxesLoaderJob::addTest(mat44f_cref cull_matrix, const ViewTransformData &transform)
+void RiShadowCullBboxesLoaderJob::addTest(mat44f_cref cull_matrix, float texel_size)
 {
   WinAutoLock lock(testsQueueMutex);
-  waitingTestsToPerform.push_back({cull_matrix, transform});
+  waitingTestsToPerform.push_back({cull_matrix, texel_size});
 }
 
-void RiShadowCullBboxesLoaderJob::removeOutsideShadowRegions(const ToroidalStaticShadows &static_shadows)
+void RiShadowCullBboxesLoaderJob::start()
 {
-  WinAutoLock lock(testsQueueMutex);
-  TMatrix cascadeGlobTm = static_shadows.getLightViewProj(static_shadows.cascadesCount() - 1);
-  mat44f invCascadeGlobTm, tmpTm;
-  v_mat44_make_from_43cu(tmpTm, cascadeGlobTm.m[0]);
-  v_mat44_inverse43_to44(invCascadeGlobTm, tmpTm);
-  waitingTestsToPerform.erase(eastl::remove_if(waitingTestsToPerform.begin(), waitingTestsToPerform.end(),
-                                [&invCascadeGlobTm](const ShadowsOcclusionTestData &regionData) {
-                                  return !ToroidalStaticShadows::isRegionInsideCascade(invCascadeGlobTm, regionData.transform);
-                                }),
-    waitingTestsToPerform.end());
-}
-
-void RiShadowCullBboxesLoaderJob::start(const ToroidalStaticShadows &static_shadows)
-{
-  if (!interlocked_acquire_load(this->done) || waitingTestsToPerform.empty())
-    return;
-  removeOutsideShadowRegions(static_shadows);
-  if (!waitingTestsToPerform.empty())
+  if (interlocked_acquire_load(this->done) && !waitingTestsToPerform.empty())
     threadpool::add(this);
 }
 
@@ -59,7 +42,7 @@ void RiShadowCullBboxesLoaderJob::doJob()
   for (size_t i = 0; i < currentTestsToPerform.size(); ++i)
   {
     const ShadowsOcclusionTestData &testData = currentTestsToPerform[i];
-    int riLeftCount = shadowsManager.gatherAndTryAddRiForShadowsVisibilityTest(testData.cullMatrix, testData.transform);
+    int riLeftCount = shadowsManager.gatherAndTryAddRiForShadowsVisibilityTest(testData.cullMatrix, testData.texelSize);
     if (riLeftCount > 0)
       currentTestsToPerform[leftoversCount++] = testData;
   }

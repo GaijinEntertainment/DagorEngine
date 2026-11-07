@@ -13,6 +13,7 @@
 #include "main/settings.h"
 #include <quirrel/sqSysInfo/sqSysInfo.h>
 #include <quirrel/yupfile_parse/yupfile_parse.h>
+#include <quirrel/sqPacked/sqPacked_api.h>
 #include <quirrel/lastInputMonitor/lastInputMonitor.h>
 #include <quirrel/ecsComputed/ecsComputed_api.h>
 #include "main/watchdog.h"
@@ -154,9 +155,6 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
     uiinput::call_dainput([iflags] {
       uiinput::mask_dainput_pointers(iflags, int(uiinput::DaInputMaskLayers::OverlayUiPointers));
 
-      // Need the code below to allow implementing User UI scripts in Overlay UI VM
-      // Assuming there are no two scenes using "HUD" action set at the same time
-      // This function is essentially the same as onToggleInteractive in HUD VM
       bool active = (iflags & (IF_MOUSE | IF_KEYBOARD)) != 0;
       dainput::action_set_handle_t s = dainput::get_action_set_handle("HUD");
       if (s != dainput::BAD_ACTION_SET_HANDLE)
@@ -255,12 +253,13 @@ static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
   bindquirrel::bind_sysinfo(moduleMgr);
 
   bindquirrel::register_yupfile_module(moduleMgr);
+  bindquirrel::register_packed_module(moduleMgr);
 
 #if _TARGET_C1 | _TARGET_C2
 
 #endif
   clientlog::bind_script(moduleMgr, "overlay_ui");
-  sq::auto_bind_native_api(moduleMgr, sq::VM_INTERNAL_UI);
+  sq::auto_bind_native_api(moduleMgr, sq::VM_UI);
   register_net_sqevent(moduleMgr);
   net::register_dasevents(moduleMgr);
   ecs::sq::bind_net(moduleMgr);

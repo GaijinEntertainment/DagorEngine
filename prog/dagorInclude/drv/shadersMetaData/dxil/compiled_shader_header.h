@@ -34,6 +34,7 @@ inline constexpr uint32_t ROOT_CONSTANT_BUFFER_REGISTER_INDEX = 8;
 inline constexpr uint32_t ROOT_CONSTANT_BUFFER_REGISTER_SPACE_OFFSET = 1;
 inline constexpr uint32_t SPECIAL_CONSTANTS_REGISTER_INDEX = 7;
 inline constexpr uint32_t DRAW_ID_REGISTER_SPACE = 1;
+inline constexpr uint32_t DRAW_ID_ROOT_PARAMETER_INDEX = 0;
 inline constexpr uint32_t MAX_UNBOUNDED_REGISTER_SPACES = 8;
 
 inline constexpr uint32_t REGULAR_RESOURCES_SPACE_INDEX = 0;

@@ -44,7 +44,7 @@ Mapping Graph::calculateMapping() const
   IdExtentsFinder<MultiplexingIndex> multiIdxExtents;
 
   IdExtentsFinder<NodeNameId> nodeNameIdExtents;
-  for (const auto &node : nodes.values())
+  for (const auto &node : nodes.all().values())
   {
     multiIdxExtents.update(node.multiplexingIndex);
     if (node.frontendNode)
@@ -65,7 +65,7 @@ Mapping Graph::calculateMapping() const
     for (auto resNameId : res.frontendResources)
       result.mapRes(resNameId, res.multiplexingIndex) = i;
 
-  for (const auto &[i, node] : nodes.enumerate())
+  for (const auto &[i, node] : nodes.all().enumerate())
     if (node.frontendNode)
       result.mapNode(*node.frontendNode, node.multiplexingIndex) = i;
 
@@ -106,27 +106,30 @@ void Graph::validate() const
     "Inconsistent IR: resources (mask %s) and resource names (mask %s) should be parallel if names are present at all!",
     resources.makeUsedKeysBitmaskString().c_str(), resourceNames.makeUsedKeysBitmaskString().c_str());
 
-  for (auto &node : nodes.values())
+  for (auto &node : nodes.all().values())
   {
     for (const auto pred : node.predecessors)
-      G_ASSERTF(nodes.isMapped(pred), "Inconsistent IR: missing node with index %d", pred);
+      G_ASSERTF(nodes.all().isMapped(pred), "Inconsistent IR: missing node with index %d", pred);
     for (auto &req : node.resourceRequests)
       G_ASSERTF(resources.isMapped(req.resource), "Inconsistent IR: missing resource with index %d", req.resource);
   }
 
+  FRAMEMEM_VALIDATE;
+  IdIndexedFlags<ResourceIndex, framemem_allocator> requestedByNode(resources.totalKeys(), false);
   for (const auto &[nodeIdx, state] : nodeStates.enumerate())
   {
-    const auto validateRes = [this, nodeIdx = nodeIdx](ResourceIndex res_idx) {
+    if (!nodes[nodeIdx].hasSideEffects)
+      continue;
+
+    const auto &requests = nodes[nodeIdx].resourceRequests;
+    for (const auto &req : requests)
+      requestedByNode.set(req.resource, true);
+
+    const auto validateRes = [this, &requestedByNode, nodeIdx = nodeIdx](ResourceIndex res_idx) {
       G_ASSERTF_RETURN(resources.isMapped(res_idx), , "Inconsistent IR: missing resource with index %d", res_idx);
 
-      if (!nodes[nodeIdx].hasSideEffects)
-        return;
-
-      bool found = false;
-      for (const auto &req : nodes[nodeIdx].resourceRequests)
-        if (req.resource == res_idx)
-          found = true;
-      G_ASSERTF(found, "Inconsistent IR: resource %s used in node %s state, but was not requested by it!", resourceNames[res_idx],
+      G_ASSERTF(requestedByNode.test(res_idx, false),
+        "Inconsistent IR: resource %s used in node %s state, but was not requested by it!", resourceNames[res_idx],
         nodeNames[nodeIdx]);
     };
 
@@ -134,16 +137,19 @@ void Graph::validate() const
       if (binding.resource.has_value())
         validateRes(*binding.resource);
 
-    if (state.pass.has_value())
+    if (const auto *pass = eastl::get_if<RenderPass>(&state.pass))
     {
-      if (state.pass->depthAttachment.has_value())
-        validateRes(state.pass->depthAttachment->resource);
-      if (state.pass->vrsRateAttachment.has_value())
-        validateRes(state.pass->vrsRateAttachment->resource);
-      for (const auto &color : state.pass->colorAttachments)
+      if (pass->depthAttachment.has_value())
+        validateRes(pass->depthAttachment->resource);
+      if (pass->vrsRateAttachment.has_value())
+        validateRes(pass->vrsRateAttachment->resource);
+      for (const auto &color : pass->colorAttachments)
         if (color.has_value())
           validateRes(color->resource);
     }
+
+    for (const auto &req : requests)
+      requestedByNode.set(req.resource, false);
   }
 
   for (const auto &res : resources.values())
@@ -264,20 +270,20 @@ void erase_moved_nodes(Graph &graph, const IdIndexedMapping<NodeIndex, NodeIndex
   {
     if (prevDst == NODE_NOT_MAPPED || kept_in_place.test(source, false))
       continue;
-    const bool nodeMapped = graph.nodes.isMapped(prevDst);
-    G_FAST_ASSERT(graph.nodeStates.empty() || graph.nodeStates.isMapped(prevDst) == nodeMapped);
-    G_FAST_ASSERT(graph.nodeNames.empty() || graph.nodeNames.isMapped(prevDst) == nodeMapped);
+    const bool nodeMapped = graph.nodes.all().isMapped(prevDst);
+    G_FAST_ASSERT(graph.nodeStates.all().empty() || graph.nodeStates.all().isMapped(prevDst) == nodeMapped);
+    G_FAST_ASSERT(graph.nodeNames.all().empty() || graph.nodeNames.all().isMapped(prevDst) == nodeMapped);
     if (nodeMapped)
       graph.nodes.erase(prevDst);
-    if (graph.nodeStates.isMapped(prevDst))
+    if (graph.nodeStates.all().isMapped(prevDst))
       graph.nodeStates.erase(prevDst);
-    if (graph.nodeNames.isMapped(prevDst))
+    if (graph.nodeNames.all().isMapped(prevDst))
       graph.nodeNames.erase(prevDst);
   }
 }
 
 void emplace_moved_nodes(Graph &graph, const Graph &source_graph, const NodeMappingFmem &source_to_dst,
-  const NodeFlagsFmem &kept_in_place, NodeFlagsFmem &out_nodes_changed)
+  const NodeFlagsFmem &kept_in_place, bool hide_no_effect_nodes, NodeFlagsFmem &out_nodes_changed)
 {
   size_t dstCount = graph.nodes.totalKeys();
   for (auto dst : source_to_dst)
@@ -290,14 +296,25 @@ void emplace_moved_nodes(Graph &graph, const Graph &source_graph, const NodeMapp
     if (dst == NODE_NOT_MAPPED || kept_in_place.test(source, false))
       continue;
 
-    G_ASSERTF(!graph.nodes.isMapped(dst), "daFG: IR node slot %d was claimed twice while remapping!", eastl::to_underlying(dst));
-    graph.nodes.emplaceAt(dst, source_graph.nodes[source]);
+    G_ASSERTF(!graph.nodes.all().isMapped(dst), "daFG: IR node slot %d was claimed twice while remapping!", eastl::to_underlying(dst));
+    const auto &node = source_graph.nodes[source];
+    graph.nodes.emplaceAt(dst, node);
     if (source_graph.nodeStates.isMapped(source))
       graph.nodeStates.emplaceAt(dst, source_graph.nodeStates[source]);
     if (source_graph.nodeNames.isMapped(source))
       graph.nodeNames.emplaceAt(dst, source_graph.nodeNames[source]);
 
-    out_nodes_changed.set(dst, true);
+    if (!hide_no_effect_nodes || !node.frontendNode || node.hasSideEffects)
+    {
+      out_nodes_changed.set(dst, true);
+      continue;
+    }
+
+    graph.nodes.hide(dst);
+    if (graph.nodeStates.isMapped(dst))
+      graph.nodeStates.hide(dst);
+    if (graph.nodeNames.isMapped(dst))
+      graph.nodeNames.hide(dst);
   }
 }
 
@@ -305,7 +322,7 @@ void refresh_predecessors(Graph &graph, const Graph &source_graph, const NodeMap
   const NodeFlagsFmem &kept_in_place)
 {
   const auto rebuild = [&](NodeIndex source, NodeIndex dst) {
-    auto &preds = graph.nodes[dst].predecessors;
+    auto &preds = graph.nodes.all()[dst].predecessors;
     preds.clear();
     for (const auto sourcePred : source_graph.nodes[source].predecessors)
       if (source_to_dst[sourcePred] != NODE_NOT_MAPPED)
@@ -313,7 +330,7 @@ void refresh_predecessors(Graph &graph, const Graph &source_graph, const NodeMap
   };
 
   const auto isStale = [&](NodeIndex source, NodeIndex dst) {
-    const auto &stored = graph.nodes[dst].predecessors;
+    const auto &stored = graph.nodes.all()[dst].predecessors;
     uint32_t mappedPreds = 0;
     for (const auto sourcePred : source_graph.nodes[source].predecessors)
     {
@@ -333,18 +350,7 @@ void refresh_predecessors(Graph &graph, const Graph &source_graph, const NodeMap
       continue;
 
     if (!kept_in_place.test(source, false) || isStale(source, dst))
-    {
       rebuild(source, dst);
-      continue;
-    }
-
-#if DAGOR_DBGLEVEL > 0
-    const auto actual = graph.nodes[dst].predecessors;
-    rebuild(source, dst);
-    G_ASSERTF(actual == graph.nodes[dst].predecessors,
-      "daFG: selective predecessor refresh went stale for IR node slot %d (source %d)!", eastl::to_underlying(dst),
-      eastl::to_underlying(source));
-#endif
   }
 }
 
@@ -354,7 +360,7 @@ IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> apply_node_remap(Grap
   const IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> &source_to_desired,
   const IdIndexedMapping<NodeIndex, NodeIndex> &source_to_prev_dst,
   const IdIndexedFlags<NodeIndex, framemem_allocator> &source_nodes_changed,
-  IdIndexedFlags<NodeIndex, framemem_allocator> &out_nodes_changed)
+  IdIndexedFlags<NodeIndex, framemem_allocator> &out_nodes_changed, bool hide_no_effect_nodes)
 {
   // The assignment reuses slots that are about to be vacated, so it runs before any erasure.
   auto sourceToDst = remap_node_order(source_to_desired, source_to_prev_dst);
@@ -368,7 +374,7 @@ IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> apply_node_remap(Grap
   // Relocated nodes routinely land on slots that other relocated nodes vacate,
   // so all erasures come before all emplacements.
   erase_moved_nodes(graph, source_to_prev_dst, keptInPlace);
-  emplace_moved_nodes(graph, source_graph, sourceToDst, keptInPlace, out_nodes_changed);
+  emplace_moved_nodes(graph, source_graph, sourceToDst, keptInPlace, hide_no_effect_nodes, out_nodes_changed);
   refresh_predecessors(graph, source_graph, sourceToDst, keptInPlace);
 
   return sourceToDst;

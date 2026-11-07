@@ -31,6 +31,7 @@
 #include <frustumCulling/frustumPlanes.h>
 #include "render/indoorProbeManager.h"
 #include <render/debugBoxRenderer.h>
+#include <render/raytracedToroidalStaticShadow/raytracedToroidalStaticShadow_api.h>
 #include <render/world/private_worldRenderer.h>
 #include <rendInst/rendInstGenRender.h>
 #include <ecs/render/updateStageRender.h>
@@ -44,20 +45,18 @@ CONSOLE_BOOL_VAL("render", debug_light_probe_mirror_sphere, false);
 CONSOLE_INT_VAL("render", show_hero_bbox, 0, 0, 2, "1 - weapons only, 2 - weapons+vehicle");
 CONSOLE_BOOL_VAL("ridestr", show_ri_phys_bboxes, false);
 CONSOLE_INT_VAL("render", show_shadow_occlusion_bboxes, -1, -1, 1);
-CONSOLE_BOOL_VAL("render", show_static_shadow_mesh, false);
-CONSOLE_BOOL_VAL("render", show_static_shadow_frustums, false);
+CONSOLE_INT_VAL("render", show_static_shadow_mesh, 0, 0, 4, "rtss: 1 visibility, 2 level, 3 slot bit, 4 fallback");
+CONSOLE_INT_VAL("render", show_static_shadow_frustums, -1, -1, RTSS_MAX_LEVELS - 1, "rtss: the atlas of this level");
 CONSOLE_BOOL_VAL("render", show_debug_light_probe_shapes, false);
-CONSOLE_FLOAT_VAL_MINMAX("render", static_shadow_mesh_range, 0.5f, 0.0001f, 1.0f);
 #if _TARGET_PC_TOOLS_BUILD
 CONSOLE_BOOL_VAL("render", show_wireframe_overlay, false);
-extern void render_mainhero_trans(const TMatrix &view_tm);
+extern void render_late_trans(const TMatrix &view_tm);
+extern void render_late_trans_cockpit(const TMatrix &view_tm);
 #endif
 
 extern void debug_draw_shadow_occlusion_bboxes(const Point3 &dir_from_sun, bool final_extend);
 eastl::unique_ptr<DebugBoxRenderer> debugBoxRenderer;
-eastl::unique_ptr<DebugLightProbeSpheres> debugLightProbeMirrorSphere;
 eastl::unique_ptr<DebugLightProbeShapeRenderer> debugShapeRenderer;
-DynamicShaderHelper static_shadow_debug_mesh_shader;
 
 namespace var
 {
@@ -240,16 +239,13 @@ void makeDebugVisualizationNodes(eastl::vector<dafg::NodeHandle> &fg_node_handle
     prevNs.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
     registry.requestState().setFrameBlock("global_frame");
 
-    return [] {
+    DebugLightProbeSpheres debugMirrorSphere("debug_mirror_sphere");
+    debugMirrorSphere.setSpheresCount(1);
+    return [mirrorSphere = eastl::move(debugMirrorSphere)] {
       if (debug_light_probe_mirror_sphere.get())
       {
-        if (!debugLightProbeMirrorSphere)
-        {
-          debugLightProbeMirrorSphere = eastl::make_unique<DebugLightProbeSpheres>("debug_mirror_sphere");
-          debugLightProbeMirrorSphere->setSpheresCount(1);
-        }
         TIME_D3D_PROFILE(debug_mirror_sphere);
-        debugLightProbeMirrorSphere->render();
+        mirrorSphere.render();
       }
     };
   }));
@@ -405,73 +401,25 @@ void makeDebugVisualizationNodes(eastl::vector<dafg::NodeHandle> &fg_node_handle
     };
   }));
 
-  // static shadow mesh node
-  fg_node_handles.emplace_back(ns.registerNode("static_shadow_mesh_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+  // static shadow debug node
+  fg_node_handles.emplace_back(ns.registerNode("static_shadow_debug_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("shadow_occlusion_bboxes_node");
-    setupTargetForDebug(registry);
+    registry.requestRenderPass().color({"target_for_debug"}).depthReadTestAndSample(depthTexNameForDebug(), {"depth_gbuf"});
 
     auto prevNs = registry.root();
-    prevNs.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewTm>().bindAsProj<&CameraParams::jitterProjTm>();
-    prevNs.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
-    registry.requestState().setFrameBlock("global_frame");
-
-    return []() mutable {
-      if (show_static_shadow_mesh.get())
-      {
-        float samplingRange = static_shadow_mesh_range.get();
-        ShadowsManager &shadowsManager = WRDispatcher::getShadowsManager();
-        FRAME_LAYER_GUARD(-1);
-        if (!static_shadow_debug_mesh_shader.material)
-        {
-          static_shadow_debug_mesh_shader.init("static_shadow_debug_mesh_shader", nullptr, 0, "static_shadow_debug_mesh_shader");
-        }
-
-        TextureInfo ti;
-        shadowsManager.getStaticShadowsTex()->getinfo(ti);
-        int staticShadowSize = ti.w;
-        float samplingSize = staticShadowSize * samplingRange;
-        ShaderGlobal::set_int(::get_shader_variable_id("static_shadow_size", true), staticShadowSize);
-        ShaderGlobal::set_float(::get_shader_variable_id("static_shadow_sampling_range", true), samplingRange);
-        TMatrix4 matrixInverse = inverse(shadowsManager.getStaticShadows()->getLightViewProj(0));
-        ShaderGlobal::set_float4x4(::get_shader_variable_id("static_shadow_matrix_inverse"), matrixInverse.transpose());
-
-        int line_count = samplingSize * samplingSize * 4;
-        static_shadow_debug_mesh_shader.shader->setStates();
-        d3d_err(d3d::draw(PRIM_LINELIST, 0, line_count));
-      }
-    };
-  }));
-
-  // static shadow frustums node
-  fg_node_handles.emplace_back(ns.registerNode("static_shadows_frustums", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.orderMeAfter("static_shadow_mesh_node");
-    setupTargetForDebug(registry);
-
-    auto prevNs = registry.root();
-    prevNs.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewTm>().bindAsProj<&CameraParams::jitterProjTm>();
+    CameraViewShvars{prevNs.readBlob<CameraParams>("current_camera")}.bindViewVecs();
     prevNs.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
     registry.requestState().setFrameBlock("global_frame");
 
     return [] {
-      if (show_static_shadow_frustums.get())
-      {
-        ::begin_draw_cached_debug_lines(true, false);
-        ::set_cached_debug_lines_wtm(TMatrix::IDENT);
-
-        auto &shadowsManager = WRDispatcher::getShadowsManager();
-        const ToroidalStaticShadows *staticShadows = shadowsManager.getStaticShadows();
-        for (int cascadeId = 0; cascadeId < staticShadows->cascadesCount(); ++cascadeId)
-          draw_debug_frustum(Frustum(staticShadows->getLightViewProj(cascadeId)), E3DCOLOR(255, 0, 0));
-
-        ::end_draw_cached_debug_lines();
-      }
+      WRDispatcher::getShadowsManager().debugRenderStaticShadows(show_static_shadow_mesh.get(), show_static_shadow_frustums.get());
     };
   }));
 
   // wireframe overlay nodes
 #if _TARGET_PC_TOOLS_BUILD
   fg_node_handles.emplace_back(ns.registerNode("render_wireframe_overlay_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.orderMeAfter("static_shadows_frustums");
+    registry.orderMeAfter("static_shadow_debug_node");
 
     auto prevNs = registry.root();
     auto cameraHndl = prevNs.readBlob<CameraParams>("current_camera").handle();
@@ -530,7 +478,8 @@ void makeDebugVisualizationNodes(eastl::vector<dafg::NodeHandle> &fg_node_handle
         g_entity_mgr->broadcastEventImmediate(
           UpdateStageInfoRenderDistortion(camera.viewTm, camera.jitterProjTm, camera.viewItm, wr->getTexCtx()));
       }
-      render_mainhero_trans(camera.viewTm);
+      render_late_trans(camera.viewTm);
+      render_late_trans_cockpit(camera.viewTm);
 
       ShaderGlobal::set_int(use_atestVarId, useATest);
       rendinst::render::useRiDepthPrepass(useDepthPrepass);

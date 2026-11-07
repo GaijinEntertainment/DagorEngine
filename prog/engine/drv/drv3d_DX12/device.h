@@ -20,7 +20,6 @@
 #include "swapchain.h"
 #include "tagged_handles.h"
 
-#include <atomic>
 #include <debug/dag_debug.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_driver.h>
@@ -28,18 +27,29 @@
 #include <drv/3d/dag_driverNetManager.h>
 #include <drv_log_defs.h>
 
+enum class APISupport;
+
 namespace drv3d_dx12
 {
 class Device;
 
 struct TextureSubresourceInfo
 {
+#if defined(D3D12XBOX_TEXTURE_DATA_PITCH_ALIGNMENT)
+  static constexpr uint32_t pitch_alignment = D3D12XBOX_TEXTURE_DATA_PITCH_ALIGNMENT;
+#else
+  static constexpr uint32_t pitch_alignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+#endif
+  static constexpr uint32_t placement_alignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
+
   D3D12_SUBRESOURCE_FOOTPRINT footprint{};
-  uint32_t rowCount{};
+  uint32_t rowCount = 0;
   // basically footprint.RowPitch before the format dependent pitch alignment
-  uint32_t rowByteSize{};
-  // RowPitch * rowCount * Depth * Arrays aligned to D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT
-  uint64_t totalByteSize{};
+  uint32_t rowByteSize = 0;
+  // RowPitch * rowCount aligned to alignment. The alignment depends of the resource format.
+  uint64_t slicePitchSizeInBytes = 0;
+  // RowPitch * rowCount * Depth * Arrays aligned to alignment. The alignment depends of the resource format.
+  uint64_t totalAlignedByteSize{};
 };
 
 TextureSubresourceInfo calculate_texture_region_info(Extent3D ext, FormatStore fmt, FormatPlaneIndex plane_index = {});
@@ -106,7 +116,7 @@ class DeviceErrorState
   };
 
   // will be set when a device removal event occurs
-  std::atomic<Health> contextHealth{Health::HEALTHY};
+  dag::AtomicPod<Health> contextHealth{Health::HEALTHY};
 
 protected:
   /// @brief Transitions the device to an error state using atomic state machine logic.
@@ -171,17 +181,17 @@ protected:
 public:
   bool isHealthyOrRecovering() const
   {
-    auto v = contextHealth.load(std::memory_order_relaxed);
+    auto v = contextHealth.load(dag::memory_order_relaxed);
     return (Health::HEALTHY == v) || (Health::RECOVERING == v);
   }
-  bool isHealthy() const { return Health::HEALTHY == contextHealth.load(std::memory_order_relaxed); }
-  bool isIll() const { return Health::ILL == contextHealth.load(std::memory_order_relaxed); }
-  bool isRecovering() const { return Health::RECOVERING == contextHealth.load(std::memory_order_relaxed); }
-  bool isDead() const { return Health::DEAD == contextHealth.load(std::memory_order_relaxed); }
+  bool isHealthy() const { return Health::HEALTHY == contextHealth.load(dag::memory_order_relaxed); }
+  bool isIll() const { return Health::ILL == contextHealth.load(dag::memory_order_relaxed); }
+  bool isRecovering() const { return Health::RECOVERING == contextHealth.load(dag::memory_order_relaxed); }
+  bool isDead() const { return Health::DEAD == contextHealth.load(dag::memory_order_relaxed); }
 
   bool isInErrorState() const
   {
-    auto v = contextHealth.load(std::memory_order_relaxed);
+    auto v = contextHealth.load(dag::memory_order_relaxed);
     return (Health::ILL == v) || (Health::DEAD == v);
   }
 
@@ -190,7 +200,7 @@ public:
   // until the reset process is started, this will return false. In any other case it will return true.
   bool checkResourceCreateState(const char *what = "checkResourceCreateState", const char *name = "<unknown>")
   {
-    auto v = contextHealth.load(std::memory_order_seq_cst);
+    auto v = contextHealth.load(dag::memory_order_seq_cst);
     // On healthy and recovering state we can create resources without issues
     if ((Health::HEALTHY == v) || (Health::RECOVERING == v))
     {
@@ -474,7 +484,139 @@ inline D3D12_FEATURE_DATA_SHADER_MODEL get_shader_model(D3DDevice *device)
   return sm;
 }
 
-class Device : public DeviceErrorState, public DeviceErrorObserver<Device>, protected debug::DeviceState
+#if _TARGET_PC_WIN
+/// Handler that handles DX12 device object release.
+/// This extra step is needed as on some systems, with very slow disk writing to the OS derive, cause long application hangs during
+/// device object release.
+class DeviceObjectShutdownHandler
+{
+  /// Indicates if we loaded the behavior settings from the applications config.
+  bool loadedFromConfig : 1 = false;
+  /// When a slow system was detected, should we keep the device object around.
+  bool lingerOnSlowSystem : 1 = 0 == DAGOR_DBGLEVEL;
+  /// When a slow system was detected, should we remove the device before we may try to reset it.
+  bool removeOnSlowSystem : 1 = false;
+  /// When true we invoke RemoveDevice on the device object before reset, this may skips some of the expensive driver stuff on exit.
+  bool removeDeviceBeforeReset : 1 = false;
+  /// We keep the device object dangling, we still keep a pointer of it, should we need to properly release it, in preparation of a new
+  /// device being create.
+  bool keepLingering : 1 = false;
+  /// Should the detection only be used on known bad driver versions or on ever version.
+  bool applyToAllNvidia : 1 = false;
+  /// Hold on to the device pointer should be keepLingering be set to true. Deliberately not using automatic ref counting, as we want
+  /// it to leak.
+  AnyDevicePtr lingeringDevice;
+  /// For now we default to 3000ms as threshold for considering a system as slow.
+  static constexpr int default_slow_threshold_usec = 3000 * 1000;
+  /// Timeout value that is used to determine if a system is considered slow.
+  int slowThresholdUsec = default_slow_threshold_usec;
+  /// We have only seen this kind of behavior on NVIDIA, so the default is that for now.
+  static constexpr uint32_t default_affected_vendor_mask = 1u << eastl::to_underlying(GpuVendor::NVIDIA);
+  /// Stores for which device vendors we apply any of our workarounds.
+  uint32_t affectedVendorMask = default_affected_vendor_mask;
+
+  void loadConfig()
+  {
+    auto &dxCfg = *::dgs_get_settings()->getBlockByNameEx("dx12");
+    removeOnSlowSystem = dxCfg.getBool("deviceObjectRemoveOnSlowSystem", removeOnSlowSystem);
+    lingerOnSlowSystem = dxCfg.getBool("deviceObjectLingerOnSlowSystem", lingerOnSlowSystem);
+    applyToAllNvidia = dxCfg.getBool("applyToAllNvidiaOnSlowSystem", applyToAllNvidia);
+    slowThresholdUsec = dxCfg.getInt("onSlowSystemThresholdUsec", default_slow_threshold_usec);
+    affectedVendorMask = dxCfg.getInt("onSlowSystemVendorMask", affectedVendorMask);
+    loadedFromConfig = true;
+    logdbg("DX12: DeviceObjectShutdownHandler config...");
+    logdbg("DX12: ...removeOnSlowSystem: %s...", removeOnSlowSystem ? "on" : "off");
+    logdbg("DX12: ...lingerOnSlowSystem: %s...", lingerOnSlowSystem ? "on" : "off");
+    logdbg("DX12: ...applyToAllNvidia: %s...", applyToAllNvidia ? "on" : "off");
+    logdbg("DX12: ...slowThresholdUsec: %dusec (%dms)", slowThresholdUsec, slowThresholdUsec / 1000);
+    logdbg("DX12: ...affectedVendorMask: %08X", affectedVendorMask);
+  }
+
+public:
+  void shutdownDeviceObject(AnyDeviceComPtr &device)
+  {
+    if (removeDeviceBeforeReset)
+    {
+      logdbg("DX12: Invoking RemoveDevice");
+      device->RemoveDevice();
+    }
+    if (keepLingering)
+    {
+      logdbg("DX12: Keeping device object lingering");
+      lingeringDevice = device;
+      lingeringDevice->AddRef();
+    }
+    device.reset();
+  }
+  void resetLingeringDevice()
+  {
+    if (!lingeringDevice)
+    {
+      return;
+    }
+    lingeringDevice->Release();
+    lingeringDevice.reset();
+  }
+  void detectSlowSystem(int duration, GpuVendor vendor, DriverVersion driver_version, const char *what)
+  {
+    if (!loadedFromConfig)
+    {
+      loadConfig();
+    }
+    // always report the timing for consistent logs
+    logdbg("DX12: %s took: %ims", what, duration / 1000);
+    if (duration < slowThresholdUsec)
+    {
+      return;
+    }
+
+    bool shouldBeApplied = false;
+    if (0 != (affectedVendorMask & (1u << eastl::to_underlying(vendor))))
+    {
+      shouldBeApplied = true;
+    }
+
+    if (GpuVendor::NVIDIA == vendor)
+    {
+      const auto nvDriver = to_nvidia_version(driver_version);
+      // Only seen this problem on 616 and 617 drivers so far, so we are limiting it to that
+      shouldBeApplied = shouldBeApplied && (applyToAllNvidia || (nvDriver >= TwoComponentVersion{.major = 616, .minor = 0} &&
+                                                                  nvDriver <= TwoComponentVersion{.major = 617, .minor = 99}));
+    }
+
+    if (shouldBeApplied)
+    {
+      removeDeviceBeforeReset = removeOnSlowSystem;
+      keepLingering = lingerOnSlowSystem;
+    }
+
+    // still report that we have seen a "slow" system, even when we do not use any of the workarounds
+    logdbg("DX12: Slow system detected, remove device before reset is %s, keep device lingering is %s",
+      removeDeviceBeforeReset ? "on" : "off", keepLingering ? "on" : "off");
+  }
+
+  bool hasLingeringDevice() const { return static_cast<bool>(lingeringDevice); }
+};
+#else
+/// No-op implementation, simply releases the device object on request.
+class DeviceObjectShutdownHandler
+{
+public:
+  void shutdownDeviceObject(AnyDeviceComPtr &device) { device.reset(); }
+  void resetLingeringDevice() {}
+  bool detectSlowSystem([[maybe_unused]] int duration, [[maybe_unused]] GpuVendor vendor,
+    [[maybe_unused]] DriverVersion driver_version, [[maybe_unused]] const char *what)
+  {
+    return false;
+  }
+  bool hasLingeringDevice() const { return false; }
+};
+#endif
+
+class Device : public DeviceErrorState,
+               public DeviceErrorObserver<Device>,
+               protected debug::DeviceState,
+               protected DeviceObjectShutdownHandler
 {
   friend class DeviceContext;
   friend class backend::Swapchain;
@@ -508,6 +650,7 @@ private:
     enum
     {
       DEPTH_BOUNDS_TEST,
+      DEPTH_RESOLVE,
 #if D3D_HAS_RAY_TRACING
       /// Indicates that the basic RT features are supported:
       /// - Ray Dispatch Pipelines
@@ -556,8 +699,17 @@ private:
   NullResourceTable nullResourceTable = {};
   D3D12_CPU_DESCRIPTOR_HANDLE defaultSampler{};
   D3D12_CPU_DESCRIPTOR_HANDLE defaultCmpSampler{};
+  enum class CreationState
+  {
+    None,
+    PendingInit,
+    InitInProgress,
+    Initialized,
+  };
 #if _TARGET_PC_WIN
   DriverVersion driverVersion{};
+  HLSLVendorExtensions hlslVendorExtension;
+  CreationState creationState = CreationState::None;
 #endif
 #if HAS_NVAPI
   bool isNvapiInitialized = false;
@@ -620,8 +772,9 @@ private:
 
 #if _TARGET_PC_WIN
   bool deviceUsesSoftwareRaytracing(const D3D12_FEATURE_DATA_D3D12_OPTIONS5 &op5);
-  bool createD3d12DeviceWithCheck(const Direct3D12Enviroment &d3d_env, D3D_FEATURE_LEVEL feature_level);
+  bool createD3d12DeviceWithCheck(const Direct3D12Enviroment &d3d_env, D3D_FEATURE_LEVEL feature_level, int &duration);
 #endif
+  void shutdownInitPart();
 
   template <typename F>
   bool processDefragmentation(const F &defragmentation_call, const char *defragmentation_method_name);
@@ -654,8 +807,14 @@ public:
   Device() : context(*this) {}
   ~Device();
 #if _TARGET_PC_WIN
+  // Only the device creation, which is enough to find the APISupport. init() does the rest of the setup.
+  APISupport create(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, const ComPtr<DXGIAdapter> &dxgi_adapter,
+    D3D_FEATURE_LEVEL feature_level, bool check_features = false);
+  // The complete device initialization.
   bool init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, ComPtr<DXGIFactory> &factory,
     AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg);
+  bool canReuseCreatedDevice(const DXGI_ADAPTER_DESC1 &adapter_desc);
+  void discardPendingDevice();
   uint32_t ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIFactory> &factory);
   void destroySecondarySwapchainForWindow(HWND window);
 #elif _TARGET_XBOX
@@ -702,6 +861,7 @@ public:
   void deletePredicate(int name);
   void setTexName(Image *img, const char *name);
   bool hasDepthBoundsTest() const { return caps.test(Caps::DEPTH_BOUNDS_TEST); }
+  bool hasDepthResolve() const { return caps.test(Caps::DEPTH_RESOLVE); }
   uint64_t getBufferSizeAlignment() const
   {
     return caps.test(Caps::TIGHT_BUFFER_ALIGNMENT) ? 256 : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;

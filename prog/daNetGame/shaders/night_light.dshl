@@ -15,8 +15,9 @@ endmacro
 macro USE_NIGHT_LIGHT(code)
   hlsl (code) {
     half3 fakeNightLight(half3 albedo, float strength, float saturated_NdotV, float distSq) {
-     //use albedo instead of diffuseColor, so fake light affects metal
-      return albedo * half(night_light.x * strength * saturated_NdotV / (1 + night_light.y * distSq));//fake light
+      float NdotVTerm = 0.5 + 0.5 * saturated_NdotV;
+      //use albedo instead of diffuseColor, so fake light affects metal
+      return albedo * half(night_light.x * strength * NdotVTerm / (1 + night_light.y * distSq));//fake light
     }
   }
 endmacro

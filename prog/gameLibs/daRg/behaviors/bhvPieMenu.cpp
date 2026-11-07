@@ -17,6 +17,7 @@
 #include <drv/hid/dag_hiKeybIds.h>
 #include <drv/hid/dag_hiMouseIds.h>
 #include <drv/hid/dag_hiKeyboard.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <gui/dag_visualLog.h>
@@ -90,12 +91,15 @@ static void reset_sector(Element *elem)
 {
   WatchedHandle *obsCurSector = get_observable(elem, elem->csk->curSector);
   WatchedHandle *obsCurAngle = get_observable(elem, elem->csk->curAngle);
+  WatchedHandle *obsCurDistance = get_observable(elem, elem->csk->curDistance);
 
   Sqrat::Object nullObj;
   if (obsCurSector)
     obsCurSector->graph->setValue(obsCurSector->id, nullObj);
   if (obsCurAngle)
     obsCurAngle->graph->setValue(obsCurAngle->id, nullObj);
+  if (obsCurDistance)
+    obsCurDistance->graph->setValue(obsCurDistance->id, nullObj);
 }
 
 
@@ -103,6 +107,14 @@ static void update_sector_rel(Element *elem, float x, float y)
 {
   WatchedHandle *obsCurSector = get_observable(elem, elem->csk->curSector);
   WatchedHandle *obsCurAngle = get_observable(elem, elem->csk->curAngle);
+  WatchedHandle *obsCurDistance = get_observable(elem, elem->csk->curDistance);
+
+  if (obsCurDistance)
+  {
+    const float distanceStep = 0.02f;
+    float distance = floorf(sqrtf(x * x + y * y) / distanceStep + 0.5f) * distanceStep;
+    obsCurDistance->graph->setValue(obsCurDistance->id, Sqrat::Object(distance, elem->getVM()));
+  }
 
   if (x * x + y * y > 0.1f)
   {
@@ -164,8 +176,8 @@ void BhvPieMenu::onDetach(Element *elem, DetachMode)
 }
 
 
-int BhvPieMenu::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
-  Point2 pos, int accum_res)
+int BhvPieMenu::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int pointer_id, int button_id, Point2 pos, int accum_res)
 {
   int pointingDevice = elem->props.getInt(elem->csk->devId, -1);
   if (pointingDevice != DEVID_MOUSE)

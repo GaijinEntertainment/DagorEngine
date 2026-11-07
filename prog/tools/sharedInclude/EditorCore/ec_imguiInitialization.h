@@ -33,6 +33,10 @@ void editor_core_load_dag_imgui_windows(const DataBlock &blk);
 // Same as imgui_perform_registered() but renders the windows with themed title bars.
 void editor_core_render_dag_imgui_windows();
 
+// Builds the main window UI with IMainWindowImguiRenderingService and renders it to the backbuffer.
+// The caller holds the GPU lock; UI code can release one hold of it while the UI builds.
+void editor_core_update_and_render_imgui(int client_rect_width, int client_rect_height);
+
 // Save the last used display options for ImGui's built-in color editor control (ColorEdit4).
 // Display option can be RGB or HSV with range 0-255 or 0-1, or hexadecimal text.
 void editor_core_save_imgui_color_editor_options(DataBlock &dst_blk);

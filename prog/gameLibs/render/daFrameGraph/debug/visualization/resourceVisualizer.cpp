@@ -77,6 +77,7 @@ constexpr eastl::pair<d3d::PipelineStageFlag, const char *> ENHANCED_STAGE_NAMES
   {d3d::PipelineStageFlag::Blit, "Blit"},
   {d3d::PipelineStageFlag::Clear, "Clear"},
   {d3d::PipelineStageFlag::Resolve, "Resolve"},
+  {d3d::PipelineStageFlag::ClearView, "ClearView"},
 };
 
 constexpr eastl::pair<d3d::AccessFlag, const char *> ENHANCED_ACCESS_NAMES[]{
@@ -98,6 +99,7 @@ constexpr eastl::pair<d3d::AccessFlag, const char *> ENHANCED_ACCESS_NAMES[]{
   {d3d::AccessFlag::ResolveRead, "ResolveRead"},
   {d3d::AccessFlag::ResolveWrite, "ResolveWrite"},
   {d3d::AccessFlag::ClearWrite, "ClearWrite"},
+  {d3d::AccessFlag::ClearTargetWrite, "ClearTargetWrite"},
   {d3d::AccessFlag::ShadingRate, "ShadingRate"},
 };
 
@@ -1436,7 +1438,7 @@ void ResourseVisualizer::updateVisualization()
 
   nodeNames.clear();
   nodeNames.resize(nodeCount);
-  for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
+  for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.all().enumerate())
   {
     if (irNode.frontendNode)
       nodeNames[nodeIdx] = registry.knownNames.getName(*irNode.frontendNode);
@@ -1452,7 +1454,7 @@ void ResourseVisualizer::updateVisualization()
   irResourceInfos.clear();
   irResourceInfos.resize(intermediateGraph.resources.totalKeys());
 
-  for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
+  for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.all().enumerate())
   {
     const int nodeExecIdx = eastl::to_underlying(nodeIdx);
 
@@ -1544,7 +1546,7 @@ void ResourseVisualizer::updateVisualization()
     }
 
     // Compute per-frontend logical lifetimes from the registry
-    for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
+    for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.all().enumerate())
     {
       if (!irNode.frontendNode)
         continue;
@@ -1609,7 +1611,7 @@ void ResourseVisualizer::updateVisualization()
     }
 
     // Step 4: Populate usage timelines
-    for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
+    for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.all().enumerate())
     {
       if (!irNode.frontendNode)
         continue;

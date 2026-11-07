@@ -51,19 +51,6 @@ enum FxResolutionSetting
   FX_HIGH_RESOLUTION = 2,
 };
 
-enum
-{
-  HUID_ACES_DISTRIBUTE_MODE = 0xA671B023u
-};
-enum
-{
-  HUID_ACES_ALPHA_HEIGHT_RANGE = 0xBA2908F1u
-};
-enum
-{
-  HUID_ACES_RESET = 0xA781BF24u
-};
-
 namespace acesfx
 {
 struct GravityZoneWithDistanceToCamera
@@ -185,7 +172,7 @@ void start_all_effects(const Point3 &pos, float rad, int mul, float rad_step);
 void setup_camera_and_debug(float dt, const TMatrix &view_itm, const Driver3dPerspective &persp, int targetWidth, int targetHeight);
 void update_fx_managers(float dt);
 void flush_dafx_commands();
-void start_dafx_update(float dt = -1.0f);
+void start_dafx_update(float dt = -1.0f, bool tp_wake_up = true);
 
 void finish_update_main_camera(const TMatrix4 &tm);
 void finish_update(const TMatrix4 &tm, Occlusion *);

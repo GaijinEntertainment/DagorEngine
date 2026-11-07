@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <gameLibs/textureGen/graph/texgenGraph_api.h>
+#include <gameLibs/textureGen/registry/texgenRegistry_api.h>
 #include <ioSys/dag_dataBlock.h>
 
 #include <EASTL/fixed_vector.h>
@@ -15,49 +17,14 @@
 // saved .blk graph) and the in-editor texgen service (which reads the BLKs + dirs to drive generation). Lives
 // in sharedInclude so the dynamically-loaded plugin and the editor binary can both include it
 // without crossing source-tree boundaries.
-enum class PinType : uint8_t
-{
-  Unknown = 0,
-  Bool,
-  Int,
-  Uint,
-  Float,
-  Float2,
-  Float3,
-  Float4,
-  Texture1D,
-  Texture2D,
-  Texture3D,
-  Texture2DArray,
-  Texture2DShdArray,
-  Particles,
-  BiomeData,
-  NBSGbuffer,
-  MaterialT,
-  LayerT,
-  MaskT,
-  CtrlT,
-};
-
-PinType parse_pin_type(const char *type_name);
-bool is_texture_or_particles(PinType t);
-
-// The pin types a node can inherit its texture size from: the array forms included, particles not.
-bool is_texture_type_for_inherit(PinType t);
-
-// 1 / 2 / 3, particles counting as 2, and 0 for a type that produces no texture.
-int texture_out_dimension(PinType t);
-
-// Polymorphic read of a BLK param into the canonical text form used throughout
-// GraphData (Node::propertyValues stores values as strings regardless of the
-// descriptor's declared type; the consumer re-parses with `type` in hand).
-// Handles TYPE_STRING / INT / REAL / BOOL / POINT4; returns "" when the param
-// is absent or the type isn't representable as a scalar string.
-eastl::string param_as_string(const DataBlock *blk, const char *name);
-
-// Inverse of parse_pin_type; "" for Unknown. The subgraph extraction names an input boundary after
-// the producer's type ("subgraph in: <this>").
-const char *pin_type_to_string(PinType t);
+using PinType = texgen::PinType;
+using texgen::is_texture_or_particles;
+using texgen::is_texture_type_for_inherit;
+using texgen::param_as_string;
+using texgen::parse_pin_type;
+using texgen::pin_type_to_string;
+using texgen::preprocess_node_descriptor;
+using texgen::texture_out_dimension;
 
 // Returns the property's declared type string ("bool" / "int" / "float" /
 // "color" / "string" / ...) or "" when neither `type:t` nor the val tag yields
@@ -98,11 +65,12 @@ struct GraphData
   // only by the texture-preview panel (graph_tab.cpp). NOT persisted, NOT read from
   // loaded files -- doing so would carry stale values across edits that re-number elements.
   //
-  // `type` / `types` / `typeGroup` / `role` / `isInput` / `singleConnect` / `hidden` are a *cache*
-  // resolved from base_nodes.blk by `resolve_node_pins` at well-defined moments (graph load,
-  // drag-drop insert, BLK reload). They are NOT authoritative -- the descriptor is. Never
-  // serialize them back to the saved graph. `hidden` defaults to true so a pin not present in the
-  // descriptor renders as hidden (safe default for unknown / dangling pins).
+  // `type` / `types` / `typeGroup` / `role` / `isInput` / `singleConnect` / `hidden` / `boundaryId` are a *cache*
+  // resolved from base_nodes.blk by `resolve_node_pins` (graph load, BLK reload) or `descriptor_pins`
+  // (a fresh node, as at drag-drop insert). They are NOT authoritative -- the descriptor is. The save
+  // writes `role` and `types` too: the saved role picks the descriptor pin, and a node with no
+  // descriptor keeps both. `hidden` defaults to true so a pin not present in the descriptor renders
+  // as hidden (safe default for unknown / dangling pins).
   struct Pin
   {
     eastl::string name;
@@ -122,6 +90,10 @@ struct GraphData
     // on the parent subgraph node as one of these. Renders as a labelled rule across the node and is
     // never connectable, so every consumer must skip it (validation, hit-testing, compile).
     bool separator = false;
+    // On a subgraph instance: the boundary node it stands for inside the subgraph, -1 on a separator or when none does.
+    int boundaryId = -1;
+    // Set by the live sync on a pin the subgraph's file lacks; a revert to the file matches it by name only. Not saved.
+    bool addedLive = false;
     // Per-instance pin data, populated from the saved pin's `data{}` block.
     // For regular nodes this overlaps with the descriptor's pin data sub-block in
     // base_nodes.blk; for shader_editor sub-graph nodes (mask_from_index etc.)
@@ -179,6 +151,7 @@ struct GraphData
   // Texgen pipeline input (consumed by IGraphTexGenService).
   DataBlock mainGraphBlk;
   DataBlock shaderListBlk;
+  uint32_t mainGraphStamp = 0; // the editor compile that wrote mainGraphBlk; 0 before the first
 
   // Output directories loaded from the graph .blk. Node input paths resolve against the application
   // dir directly (no per-graph texture root); renderDir / entityDir are export destinations.
@@ -246,6 +219,19 @@ inline const eastl::string *find_property_value(const GraphData::Node &n, const 
   return nullptr;
 }
 
+inline void set_property_value(GraphData::Node &n, const char *prop_name, eastl::string value)
+{
+  for (auto &pv : n.propertyValues)
+  {
+    if (pv.first == prop_name)
+    {
+      pv.second = eastl::move(value);
+      return;
+    }
+  }
+  n.propertyValues.emplace_back(eastl::string(prop_name), eastl::move(value));
+}
+
 // The node{} block for a templateUid, or nullptr. Linear scan; a per-frame caller wants an index.
 inline const DataBlock *find_node_desc(const DataBlock *base_nodes_blk, const char *template_uid)
 {
@@ -282,27 +268,15 @@ inline const DataBlock *find_node_desc_by_name(const DataBlock &base_nodes_blk, 
   return nullptr;
 }
 
-// A fresh node from its descriptor: templateUid, descName, plugin, pin stubs in descriptor order
-// (resolved by resolve_node_pins) and the default property values. No id: the caller allocates it.
-void make_node_from_descriptor(const DataBlock &base_nodes_blk, const DataBlock &desc, float x, float y, GraphData::Node &out);
+// A fresh node from its descriptor: templateUid, descName, plugin, its pins (descriptor_pins) and the default property
+// values. No id: the caller allocates it.
+void make_node_from_descriptor(const DataBlock &desc, float x, float y, GraphData::Node &out);
+// The pins a descriptor shows, in its order, each resolved from its own pin block.
+void descriptor_pins(const DataBlock &desc, eastl::vector<GraphData::Pin> &out);
 
-// The descriptor block of one pin, or nullptr when the node template has no pin by that name.
-inline const DataBlock *find_pin_desc(const DataBlock *node_desc, const char *pin_name)
-{
-  if (!node_desc || !pin_name)
-  {
-    return nullptr;
-  }
-  for (uint32_t i = 0; i < node_desc->blockCount(); ++i)
-  {
-    const DataBlock *b = node_desc->getBlock(i);
-    if (strcmp(b->getBlockName(), "pin") == 0 && strcmp(b->getStr("name", ""), pin_name) == 0)
-    {
-      return b;
-    }
-  }
-  return nullptr;
-}
+// The descriptor block of one pin, or nullptr when the node template has none of that name and role: an input and an
+// output can share a name.
+const DataBlock *find_pin_desc(const DataBlock *node_desc, const char *pin_name, PinRole role);
 
 // The descriptor block of one property, or nullptr when the node template has no property by that name.
 inline const DataBlock *find_property_desc(const DataBlock *node_desc, const char *prop_name)
@@ -324,7 +298,7 @@ inline const DataBlock *find_property_desc(const DataBlock *node_desc, const cha
 
 // What the node stored for a texture property, else the descriptor default. An empty stored value
 // counts as unset here but not in the properties panel, so the two differ for a cleared combobox.
-// constraint: the texture properties only; every other property reads the stored value raw.
+// the texture properties only; every other property reads the stored value raw.
 inline eastl::string texture_property_value(const GraphData::Node &n, const DataBlock *node_desc, const char *prop_name)
 {
   const eastl::string *const stored = find_property_value(n, prop_name);
@@ -336,7 +310,7 @@ inline eastl::string texture_property_value(const GraphData::Node &n, const Data
 }
 
 // 0 when the node produces no texture. The last texture out-pin wins, hidden included.
-// constraint: preprocess_node_descriptor takes the maximum instead, so a node with a 3D and a 2D
+// preprocess_node_descriptor takes the maximum instead, so a node with a 3D and a 2D
 // output gets a depth property it never uses.
 inline int node_out_texture_dimension(const GraphData::Node &n)
 {
@@ -373,6 +347,8 @@ inline bool is_subgraph_instance(const GraphData::Node &n) { return n.plugin == 
 // The interface nodes of a subgraph file. An input names its type after the colon: "subgraph in: float".
 inline bool is_input_boundary(const GraphData::Node &n) { return strncmp(n.descName.c_str(), "subgraph in:", 12) == 0; }
 inline bool is_output_boundary(const GraphData::Node &n) { return n.descName == "subgraph out"; }
+// Canvas state: a block holds nodes, a comment is a label.
+inline bool is_annotation_node(const GraphData::Node &n) { return n.descName == "block" || n.descName == "comment"; }
 inline bool is_separator_boundary(const GraphData::Node &n) { return n.descName == "subgraph separator"; }
 
 // Edge::id is allocated like Node::id, so an endpoint always needs a lookup. Linear, as
@@ -437,35 +413,25 @@ void collect_pin_edges(const GraphData &gd, int node_id, int pin_index, eastl::v
 bool has_reachable_destination(const GraphData &gd, int node_id, int pin_index);
 
 // Fills the resolved-cache fields (type, isInput, hidden) on each pin of `node` by looking
-// up `node.descName` in `base_nodes_blk` and matching pins by name. Pins whose name is not in
-// the descriptor stay `hidden = true`. If `base_nodes_blk` is null or the descriptor is not
-// found, all pins stay `hidden = true`. Also evaluates the shader_editor visibility rule
+// up `node.templateUid` in `base_nodes_blk` and matching pins by name and saved role. Pins with no
+// such descriptor pin stay `hidden = true`. If `base_nodes_blk` is null or the descriptor is not
+// found, the pins keep their saved fields and turn visible. Also evaluates the shader_editor visibility rule
 // (`plugin == "shader_editor"` outputs whose first type is not texture/particles -> hidden),
 // since the descriptor's types and the node's plugin are both available here.
 void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk);
 
-// For a single node{} block from base_nodes.blk: if its output pins include
-// texture1D/texture2D/texture3D/particles, append synthetic property{} blocks for
-// "texture width", "texture height" (>=2D), "texture depth" (>=3D), "texture type",
-// "texture wrap" -- but only those not already declared. Mutates the block in place.
-// Ports the property-injection portion of mainNodes.js GE_preprocessDescription
-// (lines 2923-3021). The JS editor synthesizes these at descriptor load; the C++
-// properties panel walks the BLK directly, so we have to materialize them ahead of
-// time or the panel never surfaces them. The `<graph properties>` pseudo-node is
-// skipped: in the C++ port its texture defaults live on GraphData fields and are
-// rendered by PropertiesPanel::rebuildForGraph instead.
-void preprocess_node_descriptor(DataBlock &node_desc);
+// Texture combobox item lists; the order is the combobox order.
+using texgen::BASE_SIZES;
+using texgen::BASE_TYPES;
+using texgen::BASE_WRAPS;
+using texgen::SIZE_PREFIXES;
+using texgen::SIZE_SAME_AS_WIDTH;
+using texgen::TYPE_PREFIXES;
+using texgen::WRAP_PREFIXES;
 
-// Texture combobox item lists shared between preprocess_node_descriptor (per-node
-// synthetic property injection) and PropertiesPanel::rebuildForGraph (graph-level
-// defaults). The relative-mode prefix items ("parent size", "graph size", "parent
-// type", "parent wrap", etc.) are per-node only -- they have no meaning at the
-// graph level, so they stay private to graph_data.cpp.
-inline constexpr const char *BASE_SIZES[] = {
-  "= 1", "= 2", "= 4", "= 8", "= 16", "= 32", "= 64", "= 128", "= 256", "= 512", "= 1024", "= 2048", "= 4096", "= 8192"};
-inline constexpr const char *BASE_TYPES[] = {
-  "R8", "R16", "R16F", "R32F", "RG16", "RG16F", "RG32F", "ARGB8", "ARGB16", "ARGB16F", "ARGB32F", "R11G11B10F"};
-inline constexpr const char *BASE_WRAPS[] = {"wrap", "clamp"};
+// True for "= N" / "x N" / "/ N" with the given prefix; false for tokens like "parent size". Space after the prefix
+// is skipped, so the authored "/ 8" form parses.
+bool parse_prefixed_int(const char *value, char prefix, int &out_n);
 
 // Encode a graph element as the 64-bit handle the node editor keys on. It treats 0 as "none", hence
 // the +1 on every field. A pin id packs the node id above the pin index, so the pin index is what
@@ -552,8 +518,8 @@ struct SubgraphSchemaError
     NO_BOUNDARIES,        // graph has no `subgraph in:` / `subgraph out` nodes -- nothing to expose
     NO_OUTPUTS,           // graph has boundary nodes but zero `subgraph out` -- parent cannot consume anything
     EMPTY_INTERFACE_NAME, // boundary node's `name` property is empty
-    DUPLICATE_NAME,       // two boundaries share the same (role, name) -- ambiguous splice
-    SEPARATOR_NAME_CLASH, // a separator's label repeats a boundary name, and pins are found by name
+    DUPLICATE_NAME,       // two boundaries share a name, in any roles -- an instance shows no two pins of one name
+    SEPARATOR_NAME_CLASH, // a separator's label repeats a boundary name -- its pin block has no role, so it reads as an input
   };
   Code code = NO_BOUNDARIES;
   int nodeId = -1;
@@ -599,7 +565,19 @@ struct DroppedInstanceEdge
   eastl::string pinName; // the instance pin it sat on, which the subgraph no longer has
 };
 
-// The instance with pins rebuilt from its descriptor, matched by name and role. out_incident_edges replaces
-// every edge that touches it, remapped; out_dropped: the edges of lost pins. False when nothing changes.
+// The instance with pins rebuilt from its descriptor, matched by name and role. out_incident_edges replaces every edge
+// that touches it, remapped; out_dropped: the edges of lost pins. False when nothing changes, boundary ids included.
+// from_live: the pins the file has match by boundary node first, and the added mark counts as a change.
 bool resync_subgraph_instance(const GraphData &gd, int node_id, const DataBlock &base_nodes_blk, GraphData::Node &out_node,
-  eastl::vector<GraphData::Edge> &out_incident_edges, eastl::vector<DroppedInstanceEdge> &out_dropped);
+  eastl::vector<GraphData::Edge> &out_incident_edges, eastl::vector<DroppedInstanceEdge> &out_dropped, bool from_live = false);
+
+// Pin by pin: name, shape and boundary ids. Not the added mark: alone it only changes when the file catches up,
+// which changes no match.
+bool same_instance_pins(const eastl::vector<GraphData::Pin> &a, const eastl::vector<GraphData::Pin> &b);
+
+
+// The instance with interface_pins in their order, matched by boundary node, else by name and role; edges remapped, those of
+// lost pins dropped. file_pins (null: no registered file) set the added mark. False when nothing changes.
+bool sync_subgraph_instance(const GraphData &gd, int node_id, const eastl::vector<GraphData::Pin> &interface_pins,
+  const eastl::vector<GraphData::Pin> *file_pins, GraphData::Node &out_node, eastl::vector<GraphData::Edge> &out_incident_edges,
+  eastl::vector<DroppedInstanceEdge> &out_dropped);

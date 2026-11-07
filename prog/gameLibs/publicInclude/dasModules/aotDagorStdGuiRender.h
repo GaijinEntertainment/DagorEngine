@@ -23,6 +23,8 @@ BlendMode get_alpha_blend(::StdGuiRender::GuiContext &ctx);
 void set_alpha_blend(::StdGuiRender::GuiContext &ctx, BlendMode mode);
 void render_line_aa(::StdGuiRender::GuiContext &ctx, const das::TArray<Point2> &points, bool is_closed, float line_width,
   const Point2 line_indent, E3DCOLOR color);
+void render_line_aa_from_to(::StdGuiRender::GuiContext &ctx, Point2 from, Point2 to, float line_width, const Point2 line_indent,
+  E3DCOLOR color);
 void render_poly(::StdGuiRender::GuiContext &ctx, const das::TArray<Point2> &points, E3DCOLOR fill_color);
 void render_inverse_poly(::StdGuiRender::GuiContext &ctx, const das::TArray<Point2> &points_ccw, E3DCOLOR fill_color, Point2 left_top,
   Point2 right_bottom);

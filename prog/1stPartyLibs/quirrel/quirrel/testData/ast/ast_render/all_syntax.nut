@@ -1,3 +1,4 @@
+#allow-delete-operator
 from "math" import sin, cos as cosine
 from "string" import *
 import "datetime"
@@ -29,8 +30,6 @@ enum Enum8 { AA = 102, BB = "enum_str1", }
 enum Enum9 { AA BB = "enum_str2", }
 global enum Enum10 {CC = null}
 
-
-#forbid-delete-operator
 
 const cn0 = 201
 const cn1 = "const_str1"
@@ -409,8 +408,6 @@ catch (e) {
   println("other")
 }
 
-
-#allow-delete-operator
 
 local w = getlocals()
 local res = []

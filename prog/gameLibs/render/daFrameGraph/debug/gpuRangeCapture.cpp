@@ -70,7 +70,7 @@ static void begin_capture()
   for (char c : capture.fileBaseName)
     fileName.push_back(static_cast<wchar_t>(c));
 
-  d3d::driver_command(Drv3dCommand::PIX_GPU_BEGIN_CAPTURE, nullptr, fileName.data());
+  d3d::driver_command(Drv3dCommand::GPU_BEGIN_CAPTURE, nullptr, fileName.data());
   capture.status = GpuCaptureRangeStatus::Capturing;
   debug("daFG: GPU range capture begin: %s", capture.fileBaseName.c_str());
 }
@@ -78,7 +78,7 @@ static void begin_capture()
 static void end_capture()
 {
   G_ASSERT(capture.status == GpuCaptureRangeStatus::Capturing);
-  d3d::driver_command(Drv3dCommand::PIX_GPU_END_CAPTURE);
+  d3d::driver_command(Drv3dCommand::GPU_END_CAPTURE);
   capture.status = GpuCaptureRangeStatus::Taken;
   append_captured_line("GpuCaptures/" + capture.fileBaseName);
   debug("daFG: GPU range capture end: %s", capture.fileBaseName.c_str());
@@ -127,37 +127,53 @@ void gpu_capture_range_prepare(const intermediate::Graph &graph, multiplexing::E
   capture.endIdx.reset();
   capture.fileBaseName.clear();
 
-  for (auto i : graph.nodes.keys())
-    if (capture.start == NodeNameId::Invalid || node_matches(graph.nodes[i], capture.start, capture.extentFilter))
+  eastl::optional<intermediate::NodeIndex> startIdx;
+  for (auto i : graph.nodes.all().keys())
+    if (capture.start == NodeNameId::Invalid || node_matches(graph.nodes.all()[i], capture.start, capture.extentFilter))
     {
-      capture.beginIdx = i;
+      startIdx = i;
       break;
     }
 
-  if (!capture.beginIdx.has_value())
+  if (!startIdx.has_value())
   {
     fail_capture("start node was not scheduled");
     return;
   }
 
-  const auto multiplexing = graph.nodes[*capture.beginIdx].multiplexingIndex;
+  capture.beginIdx = graph.nodes.isMapped(*startIdx) ? *startIdx : graph.nodes.getNextUsed(*startIdx);
+  const auto multiplexing = graph.nodes.all()[*startIdx].multiplexingIndex;
 
+  eastl::optional<intermediate::NodeIndex> stopIdx;
   if (capture.end != NodeNameId::Invalid)
-    for (auto i : graph.nodes.keys())
-      if (node_matches(graph.nodes[i], capture.end, multiplexing))
+  {
+    eastl::optional<intermediate::NodeIndex> lastExecuted;
+    for (auto i : graph.nodes.all().keys())
+    {
+      if (graph.nodes.isMapped(i) && graph.nodes[i].frontendNode)
+        lastExecuted = i;
+      if (node_matches(graph.nodes.all()[i], capture.end, multiplexing))
       {
-        capture.endIdx = i;
+        stopIdx = i;
+        capture.endIdx = lastExecuted;
         break;
       }
+    }
+  }
 
-  if (capture.end != NodeNameId::Invalid && !capture.endIdx.has_value())
+  if (capture.end != NodeNameId::Invalid && !stopIdx.has_value())
   {
     fail_capture("end node was not scheduled");
     return;
   }
-  if (capture.endIdx.has_value() && capture.beginIdx.has_value() && *capture.endIdx < *capture.beginIdx)
+  if (stopIdx.has_value() && *stopIdx < *startIdx)
   {
     fail_capture("end node is scheduled before start node");
+    return;
+  }
+  if (stopIdx.has_value() && (!capture.endIdx.has_value() || *capture.endIdx < *capture.beginIdx))
+  {
+    fail_capture("no node between start and end node is executed");
     return;
   }
 

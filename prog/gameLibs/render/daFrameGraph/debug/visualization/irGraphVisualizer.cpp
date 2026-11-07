@@ -126,6 +126,12 @@ extern ConVarT<bool, false> recompile_graph;
 namespace visualization::irgraph
 {
 
+static const sd::NodeStateDelta &get_state_delta(const sd::NodeStateDeltas &deltas, intermediate::NodeIndex idx)
+{
+  static const sd::NodeStateDelta noDelta{};
+  return deltas.isMapped(idx) ? deltas[idx] : noDelta;
+}
+
 Visualizer::Visualizer(const InternalRegistry &int_registry, const intermediate::Graph &ir_graph, const PassColoring &coloring,
   const sd::NodeStateDeltas &state_deltas) :
   registry{int_registry}, intermediateGraph{ir_graph}, passColoring(coloring), stateDeltas(state_deltas)
@@ -188,10 +194,7 @@ void Visualizer::drawUI()
 
     ImGui::SameLine();
     if (ImGui::Button("Reset view"))
-    {
       canvasCamera.reset();
-      canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
-    }
 
     ImGui::SameLine();
     if (ImGui::Button("Reset focus"))
@@ -209,9 +212,12 @@ void Visualizer::drawCanvas()
   if (!canvas.Begin("##scrolling_region", ImVec2(0, 0)))
     return;
 
+  canvasCamera.update();
+  canvas.SetView(canvas.ViewOrigin(), canvasCamera.scale);
+  canvas.CenterView(canvasCamera.center);
+
   hoverState.canvas = canvas.ViewRect().Contains(ImGui::GetMousePos());
   checkHovering(generalLayout);
-
 
   ImDrawList *drawList = ImGui::GetWindowDrawList();
 
@@ -238,9 +244,9 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
     draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
 
     const auto &node = nodes[nodeId];
-    const auto &irNode = intermediateGraph.nodes[node.irIndex];
-    const auto &state = intermediateGraph.nodeStates[node.irIndex];
-    const auto &nodeName = intermediateGraph.nodeNames[node.irIndex];
+    const auto &irNode = intermediateGraph.nodes.all()[node.irIndex];
+    const auto &state = intermediateGraph.nodeStates.all()[node.irIndex];
+    const auto &nodeName = intermediateGraph.nodeNames.all()[node.irIndex];
 
     static String label;
     ImVec2 selectibleMaxSize = {NODE_BLOCK_WIDTH, 0.f};
@@ -275,10 +281,11 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
     ImGui::SetCursorScreenPos(passBlockStart + NODE_BLOCK_BORDER_PADDING);
     ImGui::BeginGroup();
     {
-      ImGui::Text("RENDER PASS%s", state.pass ? (state.pass->isLegacyPass ? " (LEGACY)" : "") : NODE_NOOPT_LABEL);
-      if (state.pass)
+      const auto *renderPass = eastl::get_if<intermediate::RenderPass>(&state.pass);
+      ImGui::Text("RENDER PASS%s", renderPass ? (renderPass->isLegacyPass ? " (LEGACY)" : "") : NODE_NOOPT_LABEL);
+      if (renderPass)
       {
-        const auto rp = *state.pass;
+        const auto &rp = *renderPass;
 
         if (!rp.colorAttachments.empty())
         {
@@ -502,7 +509,7 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
 
 
     {
-      const auto &stateDelta = stateDeltas[node.irIndex];
+      const auto &stateDelta = get_state_delta(stateDeltas, node.irIndex);
 
       ImVec2 deltaBlockStart = {(nodeStart.x + nodeEnd.x) / 2.f - STATE_DELTA_BLOCK_WIDTH / 2.f, nodeStart.y};
       {
@@ -1270,22 +1277,14 @@ void Visualizer::processInput()
 {
   if (hoverState.window && hoverState.canvas)
   {
+    const auto &input = ImGui::GetIO();
+
     if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f))
-    {
-      canvasCamera.canvasOffset += ImGui::GetIO().MouseDelta;
-      canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
-    }
-    if (abs(ImGui::GetIO().MouseWheel) > 0.1 && !hoverState.searchBox)
-    {
-      ImGui::GetIO().MouseWheel > 0 ? canvasCamera.zoomIn() : canvasCamera.zoomOut();
+      canvasCamera.moveCamera(-input.MouseDelta / canvasCamera.scale);
 
-      ImVec2 oldPos = canvas.ToLocal(ImGui::GetIO().MousePos);
-      canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
-      ImVec2 newPos = canvas.ToLocal(ImGui::GetIO().MousePos);
-
-      canvasCamera.canvasOffset += canvas.FromLocalV(newPos - oldPos);
-      canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
-    }
+    if (abs(input.MouseWheel) > 0.1 && !hoverState.searchBox)
+      if (input.MouseWheel > 0 ? canvasCamera.zoomIn() : canvasCamera.zoomOut())
+        canvasCamera.scalePointRelative(canvas.ToLocal(input.MousePos));
   }
 
   if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -1362,8 +1361,8 @@ void Visualizer::updateNodes()
 {
   TIME_PROFILE(update_nodes);
 
-  const uint32_t irNodesCount = intermediateGraph.nodes.used();
-  const uint32_t irNodesRange = intermediateGraph.nodes.totalKeys();
+  const uint32_t irNodesCount = intermediateGraph.nodes.all().used();
+  const uint32_t irNodesRange = intermediateGraph.nodes.all().totalKeys();
 
   nodes.clear();
   irNodeRepresent.clear();
@@ -1380,26 +1379,25 @@ void Visualizer::updateNodes()
   PassColor previousPassColor = UNKNOWN_PASS_COLOR;
   uint32_t curExecTime = 0;
 
-  for (auto irNodeIndex : intermediateGraph.nodes.keys())
-    if (intermediateGraph.nodes.isMapped(irNodeIndex))
+  for (auto irNodeIndex : intermediateGraph.nodes.all().keys())
+  {
+    auto [newNodeId, newNode] = nodes.appendNew();
+    irNodeRepresent[irNodeIndex] = newNodeId;
+    newNode.irIndex = irNodeIndex;
+    newNode.executionTime = curExecTime;
+
+    if (previousPassColor != passColoring[irNodeIndex])
     {
-      auto [newNodeId, newNode] = nodes.appendNew();
-      irNodeRepresent[irNodeIndex] = newNodeId;
-      newNode.irIndex = irNodeIndex;
-      newNode.executionTime = curExecTime;
-
-      if (previousPassColor != passColoring[irNodeIndex])
-      {
-        ++currentPassNumber;
-        previousPassColor = passColoring[irNodeIndex];
-      }
-      newNode.renderPassNumber = currentPassNumber;
-
-      presIrNodeIndices.push_back(irNodeIndex);
-      presIrNodeNames.push_back(intermediateGraph.nodeNames[irNodeIndex]);
-
-      ++curExecTime;
+      ++currentPassNumber;
+      previousPassColor = passColoring[irNodeIndex];
     }
+    newNode.renderPassNumber = currentPassNumber;
+
+    presIrNodeIndices.push_back(irNodeIndex);
+    presIrNodeNames.push_back(intermediateGraph.nodeNames.all()[irNodeIndex]);
+
+    ++curExecTime;
+  }
 }
 
 void Visualizer::updateResourses()
@@ -1440,7 +1438,7 @@ void Visualizer::updateConnections()
 
   for (auto [nodeId, node] : nodes.enumerate())
   {
-    for (const auto prevIrNodeIndex : intermediateGraph.nodes[node.irIndex].predecessors)
+    for (const auto prevIrNodeIndex : intermediateGraph.nodes.all()[node.irIndex].predecessors)
     {
       const auto prevNodeId = irNodeRepresent[prevIrNodeIndex];
       auto &prevNode = nodes[prevNodeId];
@@ -1451,7 +1449,7 @@ void Visualizer::updateConnections()
       prevNode.following.push_back(newOrderingId);
     }
 
-    for (const auto &request : intermediateGraph.nodes[node.irIndex].resourceRequests)
+    for (const auto &request : intermediateGraph.nodes.all()[node.irIndex].resourceRequests)
     {
       const auto requestedResId = irResRepresent[request.resource];
       auto &requestedRes = resources[requestedResId];
@@ -1512,15 +1510,15 @@ void Visualizer::placeNodesByPasses(CanvasLayout &layout)
   const float lineHeight = ImGui::GetFrameHeight();
   for (auto &&[nodeId, node] : nodes.enumerate())
   {
-    const auto &state = intermediateGraph.nodeStates[node.irIndex];
+    const auto &state = intermediateGraph.nodeStates.all()[node.irIndex];
 
-    ImVec2 nameBlockSize = ImVec2{ImGui::CalcTextSize(intermediateGraph.nodeNames[node.irIndex].c_str()).x, 2.f * lineHeight} +
+    ImVec2 nameBlockSize = ImVec2{ImGui::CalcTextSize(intermediateGraph.nodeNames.all()[node.irIndex].c_str()).x, 2.f * lineHeight} +
                            2.f * NODE_BLOCK_BORDER_PADDING;
 
     ImVec2 rpBlockSize = ImVec2{NODE_BLOCK_WIDTH, lineHeight} + 2.f * NODE_BLOCK_BORDER_PADDING;
-    if (state.pass)
+    if (const auto *renderPass = eastl::get_if<intermediate::RenderPass>(&state.pass))
     {
-      const auto rp = *state.pass;
+      const auto &rp = *renderPass;
       if (!rp.colorAttachments.empty())
         rpBlockSize.y += (1 + rp.colorAttachments.size()) * lineHeight;
 
@@ -1603,7 +1601,7 @@ void Visualizer::placeNodesByPasses(CanvasLayout &layout)
       const float betweenLines = 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y + STATE_DELTA_BLOCK_MARGIN;
       float deltaBlocksHeight = 0.f;
 
-      const auto &stateDelta = stateDeltas[node.irIndex];
+      const auto &stateDelta = get_state_delta(stateDeltas, node.irIndex);
 
       if (stateDelta.asyncPipelines)
         deltaBlocksHeight += lineHeight + betweenLines;
@@ -1809,8 +1807,7 @@ void Visualizer::centerOnFocusedNode()
   const auto nodeRect = generalLayout.nodes[focusState.node];
   const ImVec2 centerView = nodeRect.offset + nodeRect.size / 2.f;
 
-  canvas.CenterView(centerView);
-  canvasCamera.canvasOffset = canvas.ViewOrigin();
+  canvasCamera.targetCamera(centerView);
 }
 
 void Visualizer::centerOnFocusedResource()
@@ -1821,8 +1818,7 @@ void Visualizer::centerOnFocusedResource()
   const auto resRect = generalLayout.resources[focusState.resource];
   const ImVec2 centerView = resRect.offset + ImVec2{0.f, resRect.size.y / 2.f};
 
-  canvas.CenterView(centerView);
-  canvasCamera.canvasOffset = canvas.ViewOrigin();
+  canvasCamera.targetCamera(centerView);
 }
 
 } // namespace visualization::irgraph

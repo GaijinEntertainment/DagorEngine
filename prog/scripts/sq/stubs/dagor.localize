@@ -1,3 +1,22 @@
+//like parse_loc_args() of the native: a string is the default text, a table, class or instance is the params
+function [pure] locDefault(fname, args) {
+  local def = null
+  foreach (a in args) {
+    let t = type(a)
+    if (t == "string")
+      def = a
+    else
+      assert(a == null || t == "table" || t == "class" || t == "instance",
+        @() $"unexpected argument type '{t}' for {fname}()")
+  }
+  return def
+}
+
+function [pure] processHypenations(str) {
+  assert("string" == type(str), @() $"type of argument should be one of: 'string'")
+  return str
+}
+
 return {
   function getCurrentLanguage() {
     return "English"
@@ -8,26 +27,22 @@ return {
   function setLanguageToSettings(_lang) {}
   function [pure] loc(key, ...) {
     assert(key == null || type(key) == "string", @() $"type of 'key' argument should be string")
-    assert(vargv.len() <= 2)
-    let def = vargv.findvalue(@(v) type(v)=="string")
-    let params = vargv.findvalue(@(v) type(v)=="table")
-    assert(def==null || type(def) == "string", @() $"type of 'def' argument should be string or null")
-    assert(params==null || type(params) == "table", @() $"type of 'params' argument should be table")
-    return def ?? key
+    let def = locDefault("loc", vargv)
+    return key == null ? null : (def ?? key)
   }
   function [pure] doesLocTextExist(key) {
     assert("string" == type(key), @() $"type of argument should be one of: 'string'")
     return false
   }
-  function [pure] getLocTextForLang(key, lang) {
+  function [pure] getLocTextForLang(key, lang, ...) {
     assert("string" == type(key), @() $"type of argument should be one of: 'string'")
     assert("string" == type(lang), @() $"type of argument should be one of: 'string'")
-    return key
+    return locDefault("getLocTextForLang", vargv) ?? key
   }
   function initLocalization(a, b = "") {
     assert(["instance"].contains(type(a)), @() $"type of argument should be one of: 'instance'")
     assert(["string"].contains(type(b)), @() $"type of argument should be one of: 'string'")
   }
-  processHypenationsCN = @[pure](...) ""
-  processHypenationsJP = @[pure](...) ""
+  processHypenationsCN = processHypenations
+  processHypenationsJP = processHypenations
 }

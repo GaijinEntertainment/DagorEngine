@@ -1,4 +1,4 @@
 "42".tointeger() = 42
 "2a".tointeger(16) = 42
 "2a".tointeger(16, 999) = 42
-"xyz".tointeger() throws: cannot convert the string to integer
+s.tointeger() throws: cannot convert the string to integer

@@ -1,0 +1,2 @@
+// 0 outdoors, 1 indoors, game driven
+float camera_indoor = 0;

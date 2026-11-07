@@ -94,7 +94,7 @@ bool X11::init()
   return true;
 }
 
-// constraint: libXi fills XIRawEvent::sourceid only with XI 2.2 or newer
+// libXi fills XIRawEvent::sourceid only with XI 2.2 or newer
 static constexpr int XI_REQUIRED_MAJOR = 2, XI_REQUIRED_MINOR = 2;
 
 void X11::initRawMotion()
@@ -167,11 +167,11 @@ bool X11::isRelativePointerSource(int sourceid)
 
 bool X11::accumulateRawMotion(const XIRawEvent &ev)
 {
-  // constraint: raw events arrive regardless of focus, and absolute devices put positions in them
+  // raw events arrive regardless of focus, and absolute devices put positions in them
   if (!::dgs_app_active || !isRelativePointerSource(ev.sourceid))
     return false;
 
-  // constraint: raw_values holds only the valuators set in the mask, x and y are valuators 0 and 1
+  // raw_values holds only the valuators set in the mask, x and y are valuators 0 and 1
   const double *unaccelValue = ev.raw_values;
   double delta[2] = {0, 0};
   for (int axis = 0; axis < 2 && axis < ev.valuators.mask_len * 8; ++axis)
@@ -1133,13 +1133,13 @@ void X11::processMessages()
         {
           if (xev.xcookie.evtype == XI_RawMotion)
           {
-            // constraint: a pointer held at the confine edge sends raw motion but no MotionNotify
+            // a pointer held at the confine edge sends raw motion but no MotionNotify
             if (accumulateRawMotion(*(const XIRawEvent *)xev.xcookie.data))
               updateMousePos = true;
           }
           else if (xev.xcookie.evtype == XI_HierarchyChanged)
           {
-            // constraint: the X server reuses ids of removed devices
+            // the X server reuses ids of removed devices
             resetXiSourceKinds();
           }
           XFreeEventData(rootDisplay, &xev.xcookie);
@@ -1365,8 +1365,8 @@ void X11::getAbsoluteCursorPosition(int &cx, int &cy)
 
 bool X11::getCursorDelta(int &cx, int &cy, void *)
 {
-  // constraint: Xwayland moves the real pointer on XWarpPointer only while the X cursor is NULL
-  // shortcut: absolute pointers give no deltas once raw motion is seen - replace if they must drive relative mode
+  // Xwayland moves the real pointer on XWarpPointer only while the X cursor is NULL
+  // absolute pointers give no deltas once raw motion is seen - replace if they must drive relative mode
   if (!rawMotionSeen)
     return false;
 

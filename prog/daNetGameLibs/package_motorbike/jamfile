@@ -1,0 +1,22 @@
+ModuleDependsOnVars = Dedicated PhysName ;
+Dedicated ?= no ;
+
+Module = package_motorbike ;
+Root    ?= ../../.. ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_package_motorbike_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+;
+
+local AllSrcFolder_DAS = main ;
+if $(Dedicated) != yes {
+  AllSrcFolder_DAS += input ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

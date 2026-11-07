@@ -324,6 +324,13 @@ VkWriteDescriptorSet BindlessManagerBackend::initSetWrite(uint32_t set_idx, uint
   return descriptorWrite;
 }
 
+VkImageLayout BindlessManagerBackend::getImageRoLayout(Image *image)
+{
+  return (image->getUsage() & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) && Globals::cfg.bits.sampledDepthReadOnlyLayout
+           ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+           : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+}
+
 void BindlessManagerBackend::restoreBindlessTexture(uint32_t index, Image *image)
 {
   G_ASSERTF(index < setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX],
@@ -336,7 +343,7 @@ void BindlessManagerBackend::restoreBindlessTexture(uint32_t index, Image *image
 
   VkDescriptorImageInfo descriptorImageInfo{};
   descriptorImageInfo.imageView = image->getImageView(imageSlots[index].viewState);
-  descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  descriptorImageInfo.imageLayout = getImageRoLayout(image);
   descriptorImageInfo.sampler = VK_NULL_HANDLE;
 
   VkWriteDescriptorSet descriptorWrite = initSetWrite(spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX, index);
@@ -413,11 +420,8 @@ void BindlessManagerBackend::setBindlessTexture(uint32_t index, Image *image, vo
   {
     // NOTE: for content textures VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL should be ensured by the driver
     // for other resources the correct layout must be ensured by explicit barriers.
-    // The questionable state is VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, which
-    // enables using the texture as a readonly depth attachment and as shader resource in the same time.
-    // To support this the driver should be informed about it and it requires extending the d3d interface.
     descriptorImageInfo.imageView = image->getImageView(view);
-    descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    descriptorImageInfo.imageLayout = getImageRoLayout(image);
   }
   else
   {

@@ -8,6 +8,7 @@
 
 #include <math/dag_mathBase.h>
 
+#include <ctype.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,7 +53,7 @@ int parse_gradient(const char *stored, eastl::vector<GradientStop> &out_stops, b
   eastl::vector<float> nums;
   while (*p)
   {
-    while (*p == ' ' || *p == '\t' || *p == ',')
+    while (isspace((unsigned char)*p) || *p == ',')
     {
       ++p;
     }
@@ -62,7 +63,7 @@ int parse_gradient(const char *stored, eastl::vector<GradientStop> &out_stops, b
     }
     char *next = nullptr;
     const double v = strtod(p, &next);
-    // Junk: keep the prefix. The consumer instead pushes zeros until it gives up and fills nothing.
+    // Junk: keep the prefix, as the consumer does.
     if (next == p)
     {
       break;

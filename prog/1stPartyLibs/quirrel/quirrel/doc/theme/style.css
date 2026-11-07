@@ -268,7 +268,7 @@ tr:last-child td { border-bottom: none; }
 @media (max-width: 101.99em) {
   .members td.sg { white-space: normal; padding-left: 1.6em; text-indent: -1.6em; }
 
-  table.members, table.mms, table.md, table.ops, table.vmbench { display: block; overflow-x: auto; }
+  table.members, table.mms, table.md, table.ops { display: block; overflow-x: auto; }
 }
 .seealso td:first-child { width: 12%; white-space: nowrap; }
 
@@ -457,7 +457,7 @@ main.cheatsheet pre.code { margin: 0.25rem 0; }
     overflow: visible; white-space: pre-wrap;
     padding-left: 1.6em; text-indent: -1.6em;
   }
-  table.members, table.mms, table.md, table.ops, table.vmbench { display: table; overflow: visible; }
+  table.members, table.mms, table.md, table.ops { display: table; overflow: visible; }
 }
 
 h1[id], h2[id], .example[id], .capifn[id], table.mms tr[id] { scroll-margin-top: 3.25rem; }
@@ -484,21 +484,6 @@ table.chart td { padding: 0.0625rem 0; }
   font-family: var(--mono); font-size: 0.75rem; text-align: right;
 }
 .chart-bar.featured { background: var(--accent); color: var(--bg); font-weight: 700; }
-
-table.vmbench { margin: 0 0 0.75rem; }
-table.vmbench th {
-  padding: 0.0625rem 0.5rem 0.0625rem 0; text-align: left; white-space: nowrap;
-  font-family: var(--mono); font-size: 0.78125rem; font-weight: 400;
-}
-table.vmbench thead th {
-  color: var(--dim); font-size: 0.6875rem; font-weight: 700;
-  border-bottom: 1px solid var(--line);
-}
-table.vmbench td.num {
-  padding: 0.0625rem 0 0.0625rem 0.75rem; text-align: right; white-space: nowrap;
-  font-family: var(--mono); font-size: 0.78125rem;
-}
-table.vmbench .ratio { color: var(--dim); }
 
 p.benchinfo { color: var(--dim); font-size: 0.78125rem; }
 p.nobench { color: var(--warn); background: var(--warnbg); padding: 0.375rem 0.5rem; }

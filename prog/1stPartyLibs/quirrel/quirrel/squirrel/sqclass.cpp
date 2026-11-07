@@ -63,6 +63,7 @@ SQClass::~SQClass()
 
 SQClass* SQClass::Create(SQVM *v,SQClass *base)
 {
+    SQObjectPtr baseRef; // _lock can drop the last reference
     if (base) {
         if (base->_is_builtin_type) {
             v->Raise_Error("Cannot inherit from built-in type '%s'", IdType2Name(base->_builtin_type_id));
@@ -70,6 +71,7 @@ SQClass* SQClass::Create(SQVM *v,SQClass *base)
         }
 
         if (!base->isLocked()) {
+            baseRef = base;
             if (!base->Lock(v))
                 return nullptr;
         }
@@ -83,10 +85,11 @@ SQClass* SQClass::Create(SQVM *v,SQClass *base)
 
 bool SQClass::NewSlot(SQSharedState *ss,const SQObjectPtr &key,const SQObjectPtr &val,bool bstatic)
 {
+    if (isLocked())
+        return false;
+
     SQObjectPtr temp;
     bool belongs_to_static_table = sq_type(val) == OT_CLOSURE || sq_type(val) == OT_NATIVECLOSURE || bstatic;
-    if(isLocked() && !belongs_to_static_table)
-        return false; //the class already has an instance so cannot be modified
     if(_members->Get(key,temp)) {
         if (_isfield(temp)) { //overrides the default value
             _defaultvalues[_member_idx(temp)].val = val;
@@ -176,14 +179,13 @@ bool SQClass::Lock(SQVM *v)
     bool success = true;
 
     if (sq_type(_metamethods[MT_LOCK]) != OT_NULL) {
-        SQInteger prevTop = v->_top;
         SQObjectPtr res;
         v->Push(SQObjectPtr(this));
         success = v->Call(_metamethods[MT_LOCK], 1, v->_top-1, res, true);
-        v->_top = prevTop;
+        v->Pop();
     }
 
-    _lockedTypeId = currentHint();
+    _lockedTypeId = newLockedTypeId();
 
     return success;
 }

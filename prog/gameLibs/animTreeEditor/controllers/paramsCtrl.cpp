@@ -70,7 +70,7 @@ static String get_if_math_operand(const DataBlock &blk, const char *float_key, c
   int pidx = blk.findParam(float_key);
   if (pidx >= 0 && blk.getParamType(pidx) == DataBlock::TYPE_STRING)
     return String(blk.getStr(pidx));
-  return String(0, "%g", blk.getReal(float_key, 0.f));
+  return String(0, "%g", blk.getReal(pidx));
 }
 
 static const char *MATH_OPS[] = {"=", "+", "-", "*", "/", "%", "[]", "rnd", "approach", "sin", "floor"};
@@ -574,13 +574,26 @@ static bool parse_if_math_text(const char *text, DataBlock &out, String &error, 
   return true;
 }
 
-static int count_if_math_fields(PropPanel::ContainerPropertyControl *panel)
+static int count_created_fields(PropPanel::ContainerPropertyControl *panel, int field_start, int field_end)
 {
   int count = 0;
-  for (int pid = PID_CTRLS_PARAMS_CTRL_IF_MATH_FIELD; pid < PID_CTRLS_PARAMS_CTRL_IF_MATH_FIELD_SIZE; ++pid)
+  for (int pid = field_start; pid < field_end; ++pid)
     if (panel->getById(pid) != nullptr)
       ++count;
   return count;
+}
+
+static int remove_last_created_field(PropPanel::ContainerPropertyControl *panel, int field_start, int field_end, int remove_btn_pid)
+{
+  const int countBefore = count_created_fields(panel, field_start, field_end);
+  for (int pid = field_end - 1; pid >= field_start; --pid)
+    if (panel->getById(pid) != nullptr)
+    {
+      panel->removeById(pid);
+      panel->setEnabledById(remove_btn_pid, countBefore > 1);
+      break;
+    }
+  return countBefore;
 }
 
 void AnimTreeEditor::initIfMathFields(PropPanel::ContainerPropertyControl *panel, const DataBlock &settings)
@@ -737,15 +750,6 @@ static void change_param_save_fields(PropPanel::ContainerPropertyControl *panel,
     settings.setStr("scaleParam", panel->getText(PID_CTRLS_PARAMS_CTRL_CHANGE_SCALE_PARAM).c_str());
   else if (scaleSrc == SCALE_SRC_AUTO)
     settings.setBool("variableScale", true);
-}
-
-static int count_param_remap_mappings(PropPanel::ContainerPropertyControl *group)
-{
-  int count = 0;
-  for (int pid = PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD; pid < PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD_SIZE; ++pid)
-    if (group->getById(pid) != nullptr)
-      ++count;
-  return count;
 }
 
 static void init_param_remap_mappings(PropPanel::ContainerPropertyControl *group, const DataBlock &settings, bool is_editable)
@@ -993,7 +997,8 @@ void params_ctrl_block_type_changed(PropPanel::ContainerPropertyControl *group, 
 void params_ctrl_add_mapping(PropPanel::ContainerPropertyControl *panel)
 {
   PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
-  const int count = count_param_remap_mappings(group);
+  const int count =
+    count_created_fields(group, PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD, PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD_SIZE);
   if (count >= PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD_SIZE - PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD)
     return;
   const int pid = PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD + count;
@@ -1005,16 +1010,8 @@ void params_ctrl_add_mapping(PropPanel::ContainerPropertyControl *panel)
 void params_ctrl_remove_mapping(PropPanel::ContainerPropertyControl *panel)
 {
   PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
-  for (int pid = PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD_SIZE - 1; pid >= PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD; --pid)
-  {
-    if (group->getById(pid) != nullptr)
-    {
-      group->removeById(pid);
-      const int count = count_param_remap_mappings(group);
-      group->setEnabledById(PID_CTRLS_PARAMS_CTRL_REMAP_REMOVE_MAPPING, count > 0);
-      return;
-    }
-  }
+  remove_last_created_field(group, PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD, PID_CTRLS_PARAMS_CTRL_REMAP_MAPPING_FIELD_SIZE,
+    PID_CTRLS_PARAMS_CTRL_REMAP_REMOVE_MAPPING);
 }
 
 void AnimTreeEditor::paramsCtrlAddIfMath(PropPanel::ContainerPropertyControl *panel)
@@ -1039,15 +1036,8 @@ void AnimTreeEditor::paramsCtrlAddIfMath(PropPanel::ContainerPropertyControl *pa
 
 static bool params_ctrl_remove_if_math(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const int uiCountBefore = count_if_math_fields(panel);
-  for (int pid = PID_CTRLS_PARAMS_CTRL_IF_MATH_FIELD_SIZE - 1; pid >= PID_CTRLS_PARAMS_CTRL_IF_MATH_FIELD; --pid)
-  {
-    if (panel->getById(pid) == nullptr)
-      continue;
-    panel->removeById(pid);
-    panel->setEnabledById(PID_CTRLS_PARAMS_CTRL_IF_MATH_REMOVE, count_if_math_fields(panel) > 0);
-    break;
-  }
+  const int uiCountBefore = remove_last_created_field(panel, PID_CTRLS_PARAMS_CTRL_IF_MATH_FIELD,
+    PID_CTRLS_PARAMS_CTRL_IF_MATH_FIELD_SIZE, PID_CTRLS_PARAMS_CTRL_IF_MATH_REMOVE);
 
   if (!settings)
     return false;
@@ -1087,10 +1077,9 @@ void AnimTreeEditor::paramsCtrlRemoveIfMath(PropPanel::ContainerPropertyControl 
   TLeafHandle parent = tree->getParentLeaf(leaf);
   String fullPath;
   DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
-  if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, props, tree, parent))
-    if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
-      if (params_ctrl_remove_if_math(panel, settings))
-        saveProps(props, fullPath);
+  if (DataBlock *settings = find_ctrl_settings(controllersData, props, tree, parent, tree->getCaption(leaf)))
+    if (params_ctrl_remove_if_math(panel, settings))
+      saveProps(props, fullPath);
 }
 
 void AnimTreeEditor::changeParamsCtrlBlockType(PropPanel::ContainerPropertyControl *panel)
@@ -1104,9 +1093,8 @@ void AnimTreeEditor::changeParamsCtrlBlockType(PropPanel::ContainerPropertyContr
   TLeafHandle parent = tree->getParentLeaf(leaf);
   String fullPath;
   DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
-  if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, props, tree, parent))
-    if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
-      params_ctrl_block_type_changed(group, settings);
+  if (DataBlock *settings = find_ctrl_settings(controllersData, props, tree, parent, tree->getCaption(leaf)))
+    params_ctrl_block_type_changed(group, settings);
   group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
 }
 

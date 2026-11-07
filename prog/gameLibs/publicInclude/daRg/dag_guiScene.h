@@ -128,7 +128,7 @@ public:
   virtual void setCallback(IGuiSceneCallback *cb) = 0;
   virtual void initDasEnvironment(TGuiInitDas init_callback) = 0;
   virtual void shutdownDasEnvironment() = 0;
-  // Call on the scene's API thread before unloading shared das modules: in-flight jobs reference them.
+  // Call on the scene's API thread, never under darg::lock_das_compile(): a running das job takes that lock.
   virtual void waitAllDasJobsDone() = 0;
   virtual bool isDasJobsInFlight() const = 0;
 
@@ -166,10 +166,6 @@ public:
     const HumanInput::ButtonBits &buttons, int prev_result = 0) = 0;
   // returns a combination of BehaviorResult flags
   virtual int onVrInputEvent(InputEvent event, int hand, int button_id, int prev_result = 0) = 0;
-  // returns a combination of BehaviorResult flags; state is HumanInput::Gesture::State, gesture is in pad pixels
-  virtual int onTouchPadGesture(int state, const HumanInput::Gesture &gesture, int prev_result = 0) = 0;
-  // GestureDetector::Type mask that the elements under the active pointer take
-  virtual int getTouchPadGesturesAtPointer() const = 0;
 
   virtual void setVrStickScroll(int hand, const Point2 &scroll) = 0;
 
@@ -185,8 +181,7 @@ public:
 
   virtual bool hasInteractiveElements() const = 0;
   virtual bool hasInteractiveElements(int bhv_flags) const = 0;
-  virtual bool hasActiveCursor() const = 0;    //< for WT mouse mode management
-  virtual Point2 activePointerPos() const = 0; //< screen pixels of the mouse or gamepad cursor used last
+  virtual bool hasActiveCursor() const = 0; //< for WT mouse mode management
   virtual bool getForcedCursorMode(bool &out_value) const = 0;
 
   virtual void activateProfiler(bool on) = 0;
@@ -221,6 +216,7 @@ public:
 
       Total
     };
+    // pos and dir are valid only when origin is not Undefined
     struct Aim
     {
       AimOrigin origin = AimOrigin::Undefined;

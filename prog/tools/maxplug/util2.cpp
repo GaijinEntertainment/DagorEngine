@@ -4,6 +4,9 @@
 #include <meshadj.h>
 #include <spline3d.h>
 #include <splshape.h>
+#include <algorithm>
+#include <cfloat>
+#include <unordered_set>
 #include "enumnode.h"
 
 void extrude_spline(TimeValue time, INode &node, BezierShape &bshp, Mesh &m, float ht, float tile, float grav, int segs, int steps,
@@ -223,6 +226,8 @@ static bool segs_crossing(Point3 &a, Point3 &b, Point3 &c, Point3 &d, Point3 &p)
   return true;
 }
 
+static float xy_extent(const Point3 &p) { return std::max(fabsf(p.x), fabsf(p.y)); }
+
 static DWORD WINAPI dummyprogressfn(LPVOID arg) { return 0; }
 
 void project_spline_on_scene(Interface *ip, INode &snode, BezierShape &shape, BezierShape &rshp, float maxseglen, float optang,
@@ -327,11 +332,12 @@ void project_spline_on_scene(Interface *ip, INode &snode, BezierShape &shape, Be
       AdjFaceList &af = *cb.mesh[mi]->af;
       int lv1 = -1, lv2 = -1;
       int added = 0;
-      while (f1 != f2)
+      std::unordered_set<int> visited;
+      while (f1 != f2 && visited.insert(f1).second)
       {
         ProjPt p;
-        int j;
-        for (j = 0; j < 3; ++j)
+        int exitj = -1;
+        for (int j = 0; j < 3; ++j)
         {
           int v1 = m.faces[f1].v[j];
           int v2 = m.faces[f1].v[j + 1 < 3 ? j + 1 : 0];
@@ -339,24 +345,32 @@ void project_spline_on_scene(Interface *ip, INode &snode, BezierShape &shape, Be
             continue;
           if (v1 == lv2 && v2 == lv1)
             continue;
-          if (segs_crossing(pt[i].p, pt[i - 1].p, m.verts[v1], m.verts[v2], p.p))
-          {
-            lv1 = v1;
-            lv2 = v2;
-            p.mi = mi;
-            p.fi = -1;
-            pt.Insert(i, 1, &p);
-            ++added;
-            DWORD f = af[f1].f[j];
-            if (f == UNDEFINED)
-              f1 = f2;
-            else
-              f1 = f;
+          Point3 cp;
+          if (!segs_crossing(pt[i].p, pt[i - 1].p, m.verts[v1], m.verts[v2], cp))
+            continue;
+          // a crossing within float noise of the current point only touches it: take it when the line leaves through no other edge
+          float tol = 64 * FLT_EPSILON * std::max({xy_extent(pt[i].p), xy_extent(m.verts[v1]), xy_extent(m.verts[v2])});
+          bool touch = fabsf(cp.x - pt[i].p.x) <= tol && fabsf(cp.y - pt[i].p.y) <= tol;
+          if (touch && exitj >= 0)
+            continue;
+          exitj = j;
+          p.p = cp;
+          if (!touch)
             break;
-          }
         }
-        if (j >= 3)
+        if (exitj < 0)
           break;
+        lv1 = m.faces[f1].v[exitj];
+        lv2 = m.faces[f1].v[exitj + 1 < 3 ? exitj + 1 : 0];
+        p.mi = mi;
+        p.fi = -1;
+        pt.Insert(i, 1, &p);
+        ++added;
+        DWORD f = af[f1].f[exitj];
+        if (f == UNDEFINED)
+          f1 = f2;
+        else
+          f1 = f;
       }
       i += added;
     }

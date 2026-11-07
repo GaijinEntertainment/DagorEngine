@@ -971,7 +971,7 @@ __forceinline bool CollisionResource::forEachIntersectedNodePrepared(const mat44
     vec4f qf, qt, lFrom;
     int seg;
   };
-  // constraint: declaration order is framemem free order
+  // declaration order is framemem free order
   dag::Vector<SegQ, framemem_allocator> segs;
   // Instance-TLAS prefilter: one walk per trace marks the nodes this call can reach, and the
   // per-node loops skip the rest -- a prefilter over the existing loop bodies, not a
@@ -1536,7 +1536,7 @@ __forceinline bool CollisionResource::forEachIntersectedNodePrepared(const mat44
   // Node-indexed slot map, BATCH scope like the cache it indexes (a per-ray map would re-append
   // the same node every ray and overflow narrow slots): a scan-based find-or-add is quadratic
   // across the first ray's appends. Sized lazily so plain-IDENT batches never touch it.
-  // constraint: declaration order is framemem free order
+  // declaration order is framemem free order
   dag::Vector<int, framemem_allocator> primSlotOfNode;
   dag::Vector<PrimInvCache, framemem_allocator> primInvCache;
 
@@ -2982,6 +2982,24 @@ DAGOR_NOINLINE bool CollisionResource::traceAllHitsNodeChunk(const CollisionNode
     },
     unq);
   return any;
+}
+
+bool CollisionResource::visitNodeTrianglesNearRay(const CollisionNode &node, vec3f local_from, vec3f local_dir, float local_len,
+  vec3f local_pad, const NodeTriVisitor &visitor) const
+{
+  const uint8_t *chunk = nodeChunkPtr(node);
+  if (!chunk)
+    return false;
+  const NodeChunkFrame fr = decode_node_chunk_frame(chunk);
+  // bmin is subtracted before the scale, as in padded_q_box: the qOfs form cancels two big products far from the node origin.
+  const BlasBoxRay ray = BlasBoxRay::make(v_sub(local_from, fr.unq.bmin), local_dir, fr.scale, v_zero());
+  const vec3f qPad = v_mul(local_pad, fr.scale);
+  return soa4::iterateFiltered(
+    fr.tree, fr.rootRef, [&](vec3f bmn, vec3f bmx) { return ray.admits(v_sub(bmn, qPad), v_add(bmx, qPad), local_len); },
+    [&](vec3f v0, vec3f v1, vec3f v2, soa4::LeafRef ref, int subTri, int) -> bool {
+      return visitor(v0, v1, v2, tri_ref::make_node_blas(node.nodeIndex, ref, (uint32_t)subTri, data->nodeBlasBuildId));
+    },
+    fr.unq);
 }
 
 // Decode a node's per-face triangle into resource-local vert positions: walk the node's chunk
@@ -5469,6 +5487,23 @@ Point3 CollisionResource::getWorldBoundingSphere(const TMatrix &tm, const Collis
   return ret;
 }
 
+void CollisionResource::materializeNodeMesh(int node_id, dag::Vector<Point3_vec4, framemem_allocator> &verts,
+  dag::Vector<uint32_t, framemem_allocator> &indices) const
+{
+  const CollisionNode *n = getNode(node_id);
+  if (!n || !n->hasGeometry())
+    return;
+  verts.resize_noinit((uint32_t)n->verticesCount);
+  Point3_vec4 *dst = verts.data();
+  iterateNodeVerts(node_id, [&](int i, vec4f v) { v_st(&dst[i].x, v); });
+  indices.reserve(n->indicesCount);
+  iterateNodeFaces(node_id, [&](int, uint32_t i0, uint32_t i1, uint32_t i2) {
+    indices.push_back(i0);
+    indices.push_back(i1);
+    indices.push_back(i2);
+  });
+}
+
 bool CollisionResource::validateVerticesForJolt(const char *res_name)
 {
   return validateVerticesForJolt(res_name, [](const uint32_t *, const CollisionNode *) {});
@@ -5503,17 +5538,9 @@ bool CollisionResource::validateVerticesForJolt(const char *res_name, auto &&on_
     // values every dacoll trimesh path hands Jolt.
     // not hoisted: framemem needs LIFO frees
     dag::Vector<Point3_vec4, framemem_allocator> vertsTmp;
-    vertsTmp.resize_noinit((uint32_t)node->verticesCount);
-    Point3_vec4 *dst = vertsTmp.data();
-    iterateNodeVerts((int)node->nodeIndex, [&](int i, vec4f v) { v_st(&dst[i].x, v); });
-    const Point3_vec4 *__restrict vertices = dst;
     dag::Vector<uint32_t, framemem_allocator> idxTmp;
-    idxTmp.reserve(node->indicesCount);
-    iterateNodeFaces((int)node->nodeIndex, [&](int, uint32_t i0, uint32_t i1, uint32_t i2) {
-      idxTmp.push_back(i0);
-      idxTmp.push_back(i1);
-      idxTmp.push_back(i2);
-    });
+    materializeNodeMesh((int)node->nodeIndex, vertsTmp, idxTmp);
+    const Point3_vec4 *__restrict vertices = vertsTmp.data();
     const uint32_t *__restrict idxBase = idxTmp.data();
     const uint32_t *__restrict idxEnd = idxBase + idxTmp.size();
     // Mirror JPH::MeshShapeSettings::Create() per node (the runtime feeds Jolt ONE MeshShape per mesh

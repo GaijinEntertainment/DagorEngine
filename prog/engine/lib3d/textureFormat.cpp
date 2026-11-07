@@ -286,7 +286,12 @@ static uint32_t compose_float(uint32_t sign, uint32_t exponent, uint32_t mantiss
   return (sign << (exponent_bits + mantissa_bits)) | (exponent << mantissa_bits) | mantissa;
 }
 
-float channel_bits_to_float(uint32_t bits, ChannelDType type, const TextureChannelFormatDesc &channel)
+[[maybe_unused]] static constexpr uint32_t SIGN_BIT = 0x80000000;
+[[maybe_unused]] static constexpr uint32_t MAGNITUDE_MASK = 0x7FFFFFFF;
+[[maybe_unused]] static constexpr uint32_t INF_BITS = 0x7F800000;
+static constexpr uint32_t QNAN_BITS = 0x7FC00000;
+
+uint32_t channel_bits_to_float_bits(uint32_t bits, ChannelDType type, const TextureChannelFormatDesc &channel)
 {
   // Conversion is done as per section 3.9 of vulkan API specification
   // The hope is that no other platform is crazy enough to implement
@@ -296,23 +301,23 @@ float channel_bits_to_float(uint32_t bits, ChannelDType type, const TextureChann
   const uint32_t mask = (uint64_t{1} << channel.bits) - 1;
   switch (type)
   {
-    case ChannelDType::UNORM: return static_cast<float>(bits & mask) / ((uint64_t{1} << channel.bits) - 1);
+    case ChannelDType::UNORM: return dag::bit_cast<uint32_t>(static_cast<float>(bits & mask) / ((uint64_t{1} << channel.bits) - 1));
 
     case ChannelDType::SNORM:
     {
       const bool sign = bits >> (channel.bits - 1);
 
       // Extend sign bit to convert into 32bit 2-s compliment
-      const int32_t value = bitwise_cast<int32_t>(bits) | (sign ? ~mask : 0);
+      const int32_t value = dag::bit_cast<int32_t>(bits) | (sign ? ~mask : 0);
 
-      return max(static_cast<float>(value) / ((1 << (channel.bits - 1)) - 1), -1.f);
+      return dag::bit_cast<uint32_t>(max(static_cast<float>(value) / ((1 << (channel.bits - 1)) - 1), -1.f));
     }
 
     case ChannelDType::SFLOAT: [[fallthrough]];
     case ChannelDType::UFLOAT:
       if (channel.bits == 32)
       {
-        return bitwise_cast<float>(bits);
+        return bits;
       }
       else if (channel.bits == 10 || channel.bits == 11 || channel.bits == 16)
       {
@@ -326,7 +331,7 @@ float channel_bits_to_float(uint32_t bits, ChannelDType type, const TextureChann
         const auto [sign, exponent, mantissa] = decompose_float(bits, exponentBits, mantissaBits);
 
         const auto composeFloat32 = [](uint32_t sign, uint32_t exponent, uint32_t mantissa) {
-          return bitwise_cast<float>(compose_float(sign, exponent, mantissa, 8, 23));
+          return compose_float(sign, exponent, mantissa, 8, 23);
         };
 
         if (exponent == 0 && mantissa == 0)
@@ -375,25 +380,27 @@ float channel_bits_to_float(uint32_t bits, ChannelDType type, const TextureChann
           return composeFloat32(sign, (1 << 8) - 1, 1);
         }
       }
-      G_ASSERTF_RETURN(false, NAN, "Encountered an unsupported signed float format!");
+      G_ASSERTF_RETURN(false, QNAN_BITS, "Encountered an unsupported signed float format!");
 
-    default: G_ASSERTF_RETURN(false, NAN, "The channel did not have a format convertible to float!");
+    default: G_ASSERTF_RETURN(false, QNAN_BITS, "The channel did not have a format convertible to float!");
   }
 }
 
-uint32_t float_to_channel_bits(float value, ChannelDType type, const TextureChannelFormatDesc &channel)
+uint32_t float_bits_to_channel_bits(uint32_t value_bits, ChannelDType type, const TextureChannelFormatDesc &channel)
 {
   // Conversion is done as per section 3.9 of vulkan API specification
   // The hope is that no other platform is crazy enough to implement
   // these formats in a fundamentally different way.
 
+  const float value = dag::bit_cast<float>(value_bits);
+
 #if DAGOR_DBGLEVEL > 0
-  const auto fpClass = fpclassify(value);
+  const uint32_t magnitudeBits = value_bits & MAGNITUDE_MASK;
   if (!channel.isFloatPoint)
-    G_ASSERTF(fpClass == FP_ZERO || fpClass == FP_NORMAL || fpClass == FP_SUBNORMAL,
-      "Cannot convert a nan or infinite float to a non-floating point format!");
+    G_ASSERTF(magnitudeBits < INF_BITS, "Cannot convert a nan or infinite float to a non-floating point format!");
   if (!channel.isSigned)
-    G_ASSERTF(fpClass == FP_NAN || value >= 0, "Cannot convert a negative float to an unsigned format!");
+    G_ASSERTF(magnitudeBits > INF_BITS || (value_bits & SIGN_BIT) == 0 || magnitudeBits == 0,
+      "Cannot convert a negative float to an unsigned format!");
 #endif
 
   // 64-bit channels are not supported on some of our platforms, so we
@@ -424,11 +431,11 @@ uint32_t float_to_channel_bits(float value, ChannelDType type, const TextureChan
     case ChannelDType::UFLOAT:
       if (channel.bits == 32 && channel.isSigned)
       {
-        return bitwise_cast<uint32_t>(value);
+        return value_bits;
       }
       else if (channel.bits == 10 || channel.bits == 11 || channel.bits == 16)
       {
-        const auto [sign32, exponent32, mantissa32] = decompose_float(bitwise_cast<uint32_t>(value), 8, 23);
+        const auto [sign32, exponent32, mantissa32] = decompose_float(value_bits, 8, 23);
         const uint32_t sign = sign32;
 
         static constexpr uint32_t exponentBits = 5;

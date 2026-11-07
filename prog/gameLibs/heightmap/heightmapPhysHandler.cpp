@@ -98,9 +98,11 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, int skip_mips)
   int width_version = loadCb.readInt();
   int version = width_version >> HMAP_WIDTH_BITS;
   hmapWidth.x = (width_version & HMAP_WIDTH_MASK) >> skip_mips;
-  const uint32_t heightMirrored = loadCb.readInt();
-  mirror = heightMirrored >> 31; // "mirror" initial state is used to decide whether the land tracer is needed.
-  const uint32_t height = heightMirrored & 0x7FFFFFFF;
+  const uint32_t heightMainHmap = loadCb.readInt();
+  mainHmap = heightMainHmap >> 31;
+  anyMirror = mainHmap;
+  mirrorXZPosNeg = anyMirror ? v_splats((float)(128 << 20)) : v_zero();
+  const uint32_t height = heightMainHmap & 0x7FFFFFFF;
   hmapWidth.y = (height >> skip_mips);
   excludeBounding[0].x = loadCb.readInt();
   excludeBounding[0].y = loadCb.readInt();
@@ -395,6 +397,9 @@ bool HeightmapPhysHandler::traceray(const Point3 &p, const Point3 &dir, real &t,
     return false;
   if (!v_test_segment_box_intersection(v_ldu_p3_safe(&p.x), v_ld(&end.x), vecbox))
     return false;
+  int nodeCount;
+  if (const int nodeStep = getHeightmapRangeGrid(nodeCount))
+    return trace_ray_midpoint_heightmap_range_grid(*this, p, dir, t, normal, cull, nodeStep, nodeCount);
   return trace_ray_midpoint_heightmap(*this, p, dir, t, normal, cull);
 }
 bool HeightmapPhysHandler::rayhitNormalized(const Point3 &p, const Point3 &normDir, real t) const
@@ -407,6 +412,9 @@ bool HeightmapPhysHandler::rayhitNormalized(const Point3 &p, const Point3 &normD
     return false;
   if (!v_test_segment_box_intersection(pt, end, vecbox))
     return false;
+  int nodeCount;
+  if (const int nodeStep = getHeightmapRangeGrid(nodeCount))
+    return ray_hit_midpoint_heightmap_range_grid(*this, p, normDir, t, nodeStep, nodeCount);
   return ray_hit_midpoint_heightmap(*this, p, normDir, t);
 }
 

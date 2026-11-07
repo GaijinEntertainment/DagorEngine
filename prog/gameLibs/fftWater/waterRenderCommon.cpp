@@ -26,6 +26,7 @@ static int wind_dir_xVarId = -1, wind_dir_yVarId = -1;
 static int wind_speedVarId = -1;
 static int shoreDampVarId = -1;
 static int max_wave_heightVarId = -1;
+static int water_render_max_wave_heightVarId = -1;
 static int shoreDistanceFieldTexVarId = -1;
 static int wakeHtTexVarId = -1;
 static ShaderVariableInfo shore_waves_onVarId;
@@ -37,6 +38,7 @@ void WaterRenderCommon::init()
 
   water_levelVarId = get_shader_variable_id("water_level", true);
   max_wave_heightVarId = get_shader_variable_id("max_wave_height", true);
+  water_render_max_wave_heightVarId = get_shader_variable_id("water_render_max_wave_height", true);
 
   wind_dir_xVarId = get_shader_variable_id("wind_dir_x");
   wind_dir_yVarId = get_shader_variable_id("wind_dir_y");
@@ -55,8 +57,9 @@ void WaterRenderCommon::init()
   inited = true;
 }
 
-void WaterRenderCommon::setGlobalShaderConsts(bool is_chop_water, float max_wave_height) const
+void WaterRenderCommon::setGlobalShaderConsts(bool is_chop_water, float max_wave_height, float render_max_wave_height) const
 {
+  ShaderGlobal::set_float(water_render_max_wave_heightVarId, render_max_wave_height);
   ShaderGlobal::set_float(water_levelVarId, waterLevel);
 
   ShaderGlobal::set_float(wind_dir_xVarId, windDirX);

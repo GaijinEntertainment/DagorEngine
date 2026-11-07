@@ -311,7 +311,22 @@ struct StatelessRasterizer
         return AllNeg;
     }
 
-    // This function can be used instead of SquareInTriangle if it's known that 
+    // Gaijin: perform SquareInTriangleSkipAABBTest for a block 2x2
+    // exploiting linear property of x, y increments
+    uint SquaresInTriangleSkipAABBTest2x2(float2 s) {
+        const PRECISE float3 nx = float3(_e0.N.x, _e1.N.x, _e2.N.x);
+        const PRECISE float3 ny = float3(_e0.N.y, _e1.N.y, _e2.N.y);
+        const PRECISE float3 c = float3(_e0.C, _e1.C, _e2.C) + min(nx, 0.f) + min(ny, 0.f);
+
+        const PRECISE float3 eval00 = nx * s.x + ny * s.y + c;
+        const PRECISE float3 eval10 = eval00 + nx;
+        const PRECISE float3 eval01 = eval00 + ny;
+        const PRECISE float3 eval11 = eval01 + nx;
+        return (all(eval00 < 0.f) ? 1u : 0u) | (all(eval10 < 0.f) ? 2u : 0u) |
+               (all(eval01 < 0.f) ? 4u : 0u) | (all(eval11 < 0.f) ? 8u : 0u);
+    }
+
+    // This function can be used instead of SquareInTriangle if it's known that
     // s is inside the triangle aabb.
     bool SquareEntierlyInTriangleSkipAABBTest(float2 s, PRECISE float2 e) {
         // Now do the conservative raster edge function test.
@@ -355,6 +370,9 @@ void StoreMacroTriangleState(OpacityState opacityState, uint primitiveIndex)
     }
 }
 
+
+#include "dag_omm_common.hlsli"
+
 [numthreads(128, 1, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
 {
@@ -395,7 +413,13 @@ void main(uint3 tid : SV_DispatchThreadID)
         isTransparent = !isOpaque;
     }
 
+    // Gaijin: OC1_2 stores bit 0 of GetOpacityState, which is the bit of AlphaCutoffGreater for an opaque state whatever
+    // isTransparent is. The Linear filter only adds flags, thus an opaque state is enough to stop resampling.
+    const bool isOpaqueEnough = ommFormat == OMMFormat::OC1_2 &&
+        (TextureFilterMode)g_GlobalConstants.FilterType == TextureFilterMode::Linear;
+
     // 2. Resample properly
+    if (!(isOpaque && isOpaqueEnough))
     {
         const bool isBackfacing = microTri._winding == WindingOrder::CW;
         const PRECISE float2 offset = float2(-0.5, -0.5);
@@ -409,7 +433,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         else
             t.Init(
                 g_GlobalConstants.TexSize * microTri.p[0] + offset,
-                g_GlobalConstants.TexSize * microTri.p[1] + offset, 
+                g_GlobalConstants.TexSize * microTri.p[1] + offset,
                 g_GlobalConstants.TexSize * microTri.p[2] + offset);
 
         // The gfx path gets this clip from the GPU. This loop has none, thus a micro-triangle with a very
@@ -423,25 +447,33 @@ void main(uint3 tid : SV_DispatchThreadID)
         _tix.Init(t);
         const PRECISE float2 pixelSize = float2(1, 1);
 
-        for (int y = min.y; y < max.y; ++y)
+        // Gaijin: use optimized opacity state extraction for aabbs with size up to 7x7 (Linear filter with level lines)
+        if (!dagor::tryOpacityStateFastPath(min, max, _tix, microTri.p, primitiveIndex, isOpaque, isTransparent, isOpaqueEnough))
         {
-            bool wasInside = false;
-            for (int x = min.x; x < max.x; ++x)
+            bool isCompleted = false;
+            for (int y = min.y; y < max.y && !isCompleted; ++y)
             {
-                // if constexpr(eRasterMode == RasterMode::OverConservative) 
+                bool wasInside = false;
+                for (int x = min.x; x < max.x && !isCompleted; ++x)
                 {
-                    const PRECISE float2 s = float2(x, y);
-
-                    if (_tix.SquareInTriangleSkipAABBTest(s, pixelSize))
+                    // if constexpr(eRasterMode == RasterMode::OverConservative)
                     {
-                        const PRECISE float2 texel = float2(x, y) + 0.5f;
-                        const PRECISE float2 texCoord = (float2(x, y) + 1.0f) * g_GlobalConstants.InvTexSize;
-                        raster::GetStateAtPixelCenter(texCoord, texel, microTri.p[0], microTri.p[1], microTri.p[2], primitiveIndex, isOpaque, isTransparent);
+                        const PRECISE float2 s = float2(x, y);
 
-                        wasInside = true;
+                        if (_tix.SquareInTriangleSkipAABBTest(s, pixelSize))
+                        {
+                            const PRECISE float2 texel = float2(x, y) + 0.5f;
+                            const PRECISE float2 texCoord = (float2(x, y) + 1.0f) * g_GlobalConstants.InvTexSize;
+                            raster::GetStateAtPixelCenter(texCoord, texel, microTri.p[0], microTri.p[1], microTri.p[2], primitiveIndex, isOpaque, isTransparent);
+
+                            wasInside = true;
+
+                            // Gaijin: we can stop processing, if microtriangle can be both opaque and transparent
+                            isCompleted = (isOpaque && (isTransparent || isOpaqueEnough));
+                        }
+                        else if (wasInside)
+                            break;
                     }
-                    else if (wasInside)
-                        break;
                 }
             }
         }

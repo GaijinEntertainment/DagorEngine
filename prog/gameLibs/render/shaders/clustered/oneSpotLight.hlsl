@@ -96,7 +96,11 @@
         lightBRDF += (foliageSSS(NoL, view, dirFromLight)*ao) * gbuffer.translucencyColor;//can make ao*gbuffer.translucencyColor only once for all lights
     }
   #else
-    #if SHEEN_SPECULAR
+    #if !DYNAMIC_LIGHTS_SPECULAR && !SPOT_LIGHT_KEEP_SPECULAR
+      // The caller turned dynamic light specular off: Lambert only, as the omni path.
+      // SPOT_LIGHT_KEEP_SPECULAR keeps the full BRDF for spots only.
+      half3 lightBRDF = diffuseLambert(gbuffer.diffuseColor);
+    #elif SHEEN_SPECULAR
       half3 lightBRDF = standardBRDF_NO_NOL( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal, gbuffer.translucencyColor, gbuffer.sheen);
     #else
       half3 lightBRDF = standardBRDF_NO_NOL( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal);

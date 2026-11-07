@@ -4,6 +4,7 @@
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 #include <dag/dag_vector.h>
+#include <fx/dag_baseFxClasses.h>
 
 namespace dafx
 {
@@ -38,8 +39,7 @@ struct CommandQueue
   struct InstanceStatus
   {
     InstanceId iid;
-    float distance;
-    bool enabled;
+    BaseEffectEnabled dafxe;
   };
 
   struct InstanceVisibility
@@ -78,7 +78,6 @@ struct CommandQueue
 
   eastl::vector<CreateInstance> createInstance;
   eastl::vector<InstanceId> destroyInstance;
-  eastl::vector<InstanceId> resetInstance;
 
   eastl::vector<InstancePos> instancePos;
   eastl::vector<InstanceStatus> instanceStatus;

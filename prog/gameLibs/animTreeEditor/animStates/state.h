@@ -25,7 +25,6 @@ void state_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *
   const DataBlock &state_desc, dag::ConstSpan<AnimStatesData> states_data, dag::Vector<DependentParamData> &params,
   dag::ConstSpan<AnimParamData> base_params);
 void state_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock &settings);
-const char *state_get_child_name_by_idx(const DataBlock &settings, int idx);
 void state_update_child_name(DataBlock &settings, const char *name, const String &old_name);
-IListReorderHandler *state_get_reorder_handler(AnimTreeEditor &editor, dag::ConstSpan<AnimStatesData> states,
+IListReorderHandler *state_get_reorder_handler(AnimTreeEditor &editor, dag::Vector<AnimStatesData> &states,
   PropPanel::ContainerPropertyControl *panel);

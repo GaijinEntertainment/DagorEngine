@@ -73,8 +73,8 @@ static bool should_consume_key(Element *elem, int k)
 
 
 BhvTextInput::BhvTextInput() :
-  Behavior(0,
-    F_HANDLE_KEYBOARD | F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_HANDLE_JOYSTICK | F_FOCUS_ON_CLICK | F_CAN_HANDLE_CLICKS | F_DISPLAY_IME)
+  Behavior(0, F_HANDLE_KEYBOARD | F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_HANDLE_JOYSTICK | F_FOCUS_ON_CLICK | F_CAN_HANDLE_CLICKS |
+                F_DISPLAY_IME | F_USES_TOUCH_MARGIN)
 {}
 
 
@@ -396,8 +396,8 @@ int BhvTextInput::text_width_to_char_idx_u(Element *elem, int width_px, Tab<wcha
   return res;
 }
 
-int BhvTextInput::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/,
-  int /*data*/, Point2 pos, int accum_res)
+int BhvTextInput::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int pointer_id, int /*data*/, Point2 pos, int accum_res)
 {
   if (event == INP_EV_MOUSE_WHEEL || event == INP_EV_POINTER_MOVE)
     return 0;
@@ -409,19 +409,35 @@ int BhvTextInput::pointingEvent(ElementTree *etree, Element *elem, InputDevice d
 
   if (device == DEVID_TOUCH)
   {
-    if (event == INP_EV_RELEASE && !(accum_res & R_PROCESSED) && elem->hitTest(pos) && !etree->guiScene->kbFocus.hasCapturedFocus())
+    BhvTextInputData *data = getData(elem);
+    if (!data)
+      return 0;
+
+    if (event == INP_EV_PRESS)
     {
-      etree->guiScene->kbFocus.setFocus(elem);
-      position_cursor_on_click(elem, pos);
-      return R_PROCESSED;
+      if (data->isPressedBy(pointer_id))
+        data->release();
+      if (!data->isPressed() && !(accum_res & R_PROCESSED) && elem->hitTestWithTouchMargin(pos, device))
+        data->press(pointer_id);
+    }
+    else if (event == INP_EV_RELEASE && data->isPressedBy(pointer_id))
+    {
+      data->release();
+      if (!(accum_res & R_PROCESSED) && elem->hitTestWithTouchMargin(pos, device) && !etree->guiScene->kbFocus.hasCapturedFocus())
+      {
+        etree->guiScene->kbFocus.setFocus(elem);
+        position_cursor_on_click(elem, pos);
+        return R_PROCESSED;
+      }
     }
   }
   else
   {
-    if (event == INP_EV_RELEASE && elem->hitTest(pos))
+    if (event == INP_EV_RELEASE && elem->hitTestWithTouchMargin(pos, device))
       return R_PROCESSED;
 
-    if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTest(pos) && !etree->guiScene->kbFocus.hasCapturedFocus())
+    if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTestWithTouchMargin(pos, device) &&
+        !etree->guiScene->kbFocus.hasCapturedFocus())
     {
       etree->guiScene->kbFocus.setFocus(elem);
       position_cursor_on_click(elem, pos);
@@ -462,12 +478,36 @@ int BhvTextInput::joystickBtnEvent(ElementTree *etree, Element *elem, const Huma
 
 void BhvTextInput::onAttach(Element *elem)
 {
+  elem->props.storage.SetValue(elem->csk->textInputData, new BhvTextInputData());
   elem->recalcContentSize(0);
   scroll_to_cursor(elem);
 }
 
 
-void BhvTextInput::onDetach(Element *elem, DetachMode) { close_ime(elem); }
+void BhvTextInput::onDetach(Element *elem, DetachMode)
+{
+  close_ime(elem);
+  BhvTextInputData *data = getData(elem);
+  if (data)
+  {
+    elem->props.storage.DeleteSlot(elem->csk->textInputData);
+    delete data;
+  }
+}
+
+
+BhvTextInputData *BhvTextInput::getData(Element *elem)
+{
+  return elem->props.storage.RawGetSlotValue<BhvTextInputData *>(elem->csk->textInputData, nullptr);
+}
+
+
+int BhvTextInput::onDeactivateAllInput(Element *elem)
+{
+  if (BhvTextInputData *data = getData(elem))
+    data->release();
+  return 0;
+}
 
 
 void BhvTextInput::onKbFocusChange(Element *elem, bool focused)
@@ -559,6 +599,9 @@ void BhvTextInput::on_ime_finish(void *, const char *, int, int) {}
 #if _TARGET_HAS_IME
 void BhvTextInput::open_ime(Element *elem)
 {
+  if (!GuiScene::get_from_elem(elem)->isScreenKeyboardWanted())
+    return;
+
   if (HumanInput::isImeAvailable())
   {
     DataBlock params;

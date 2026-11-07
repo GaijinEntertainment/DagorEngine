@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <math/dag_mesh.h>
+#include <math/dag_mathUtils.h>
+#include <math/dag_half.h>
 #include <shaders/dag_rendInstRes.h>
 #include <rendInst/rendInstConsts.h>
 #include <ioSys/dag_dataBlock.h>
@@ -84,6 +86,99 @@ static bool is_impostor_shader(const char *class_name)
   return strstr(class_name, "rendinst_impostor") || strstr(class_name, "rendinst_baked_impostor");
 }
 
+static void prepare_lod_materials(RenderableInstanceLodsResSrc &ri, dag::ConstSpan<Ptr<MaterialData>> mats, int lod_idx,
+  const char *add_mat_script)
+{
+  const bool canUseTessellation = lod_idx == 0;
+  for (MaterialData *mat : mats)
+  {
+    matSubst.substMatClass(*mat);
+    ri.processMaterial(mat, false);
+
+    if (add_mat_script)
+    {
+      eastl::string script = mat->matScript.c_str();
+      script += add_mat_script;
+      mat->matScript = script.c_str();
+    }
+
+    if (!canUseTessellation)
+      remove_mat_script_param(*mat, "material_pn_triangulation");
+
+    for (const auto &delete_parameters_from_lod : RenderableInstanceLodsResSrc::deleteParameters)
+    {
+      if (delete_parameters_from_lod.lod != lod_idx)
+        continue;
+
+      if (!delete_parameters_from_lod.shader_name.empty() && delete_parameters_from_lod.shader_name != mat->className.c_str())
+        continue;
+
+      if (!get_mat_script_bool(mat->matScript, "autoLodOptimization", true))
+        continue;
+
+      for (const auto &param : delete_parameters_from_lod.parameters)
+        remove_mat_script_param(*mat, param.c_str());
+    }
+  }
+}
+
+static constexpr float MIN_TREE_TRUNK_HEIGHT = 1.0f;
+
+static Point3 read_vertex_pos(const GlobalVertexDataSrc &vd, int vert_index, int pos_offset, int pos_type)
+{
+  const uint8_t *pos = &vd.vData[vert_index * vd.stride + pos_offset];
+  if (pos_type == SCTYPE_HALF4)
+  {
+    const uint16_t *halfPos = (const uint16_t *)pos;
+    return Point3(half_to_float(halfPos[0]), half_to_float(halfPos[1]), half_to_float(halfPos[2]));
+  }
+  return *(const Point3 *)pos;
+}
+
+template <typename FaceCB>
+static bool for_each_face_pos(const ShaderMeshData::RElem &elem, FaceCB face_cb)
+{
+  G_ASSERT_RETURN(elem.bv == 0, false);
+  if (!elem.vertexData || elem.si == RELEM_NO_INDEX_BUFFER || elem.numf < 0)
+    return false;
+  const GlobalVertexDataSrc &vd = *elem.vertexData;
+  int posType = -1;
+  const int posOffset = find_vertex_channel_offset(vd, SCUSAGE_POS, 0, &posType);
+  if (posOffset < 0 || (posType != SCTYPE_FLOAT3 && posType != SCTYPE_FLOAT4 && posType != SCTYPE_HALF4))
+    return false;
+  for (int faceStart = elem.si, end = elem.si + elem.numf * 3; faceStart < end; faceStart += 3)
+  {
+    Point3 face[3];
+    for (int corner = 0; corner < 3; corner++)
+    {
+      const int vertIndex = vd.is32bit() ? vd.iData32[faceStart + corner] : vd.iData[faceStart + corner];
+      face[corner] = read_vertex_pos(vd, vertIndex, posOffset, posType);
+    }
+    face_cb(face);
+  }
+  return true;
+}
+
+static void clip_at_crown_bottom(const Point3 (&face)[3], float crown_bottom, BBox3 &trunk_bbox, BBox3 &crown_bbox)
+{
+  for (uint32_t corner = 0; corner < 3; corner++)
+  {
+    const Point3 &vert = face[corner];
+    const Point3 &nextVert = face[(corner + 1) % 3];
+    bool isBelow = vert.y < crown_bottom;
+    if (isBelow)
+      trunk_bbox += vert;
+    else
+      crown_bbox += vert;
+    if (isBelow != (nextVert.y < crown_bottom))
+    {
+      Point3 cut = lerp(vert, nextVert, saturate((crown_bottom - vert.y) / (nextVert.y - vert.y)));
+      trunk_bbox += cut;
+      crown_bbox += cut;
+    }
+  }
+}
+
 
 void RenderableInstanceLodsResSrc::splitRealTwoSided(Mesh &m, Bitarray &is_material_real_two_sided_array)
 {
@@ -105,12 +200,13 @@ void RenderableInstanceLodsResSrc::addMeshNode(int lod_no, Lod &lod, Node *n_, N
   if ((n.flags & NODEFLG_RENDERABLE) && n.mat && n.mat->subMatCount() && n.obj && n.obj->isSubOf(OCID_MESHHOLDER))
   {
     MeshHolderObj &mh = *(MeshHolderObj *)n.obj;
+    int numMat = n.mat->subMatCount();
     if (!mh.bones && mh.mesh)
     {
       // add mesh
       Mesh &mesh = *mh.mesh;
 
-      for (unsigned int materialNo = 0; materialNo < n.mat->subMatCount(); materialNo++)
+      for (unsigned int materialNo = 0; materialNo < numMat; materialNo++)
         if (is_impostor_shader(n.mat->getSubMat(materialNo)->className)) //-V522
           hasImpostor = true;
 
@@ -138,8 +234,8 @@ void RenderableInstanceLodsResSrc::addMeshNode(int lod_no, Lod &lod, Node *n_, N
       // Process real_two_sided.
 
       Bitarray isMaterialRealTwoSidedArray;
-      isMaterialRealTwoSidedArray.resize(n.mat->subMatCount());
-      for (unsigned int materialNo = 0; materialNo < n.mat->subMatCount(); materialNo++)
+      isMaterialRealTwoSidedArray.resize(numMat);
+      for (unsigned int materialNo = 0; materialNo < numMat; materialNo++)
       {
         Ptr<MaterialData> subMat = n.mat->getSubMat(materialNo);
         if (!subMat)
@@ -147,9 +243,6 @@ void RenderableInstanceLodsResSrc::addMeshNode(int lod_no, Lod &lod, Node *n_, N
           isMaterialRealTwoSidedArray.reset(materialNo);
           continue;
         }
-
-        matSubst.substMatClass(*subMat);
-        subMat = processMaterial(subMat, false);
 
         if (get_mat_script_bool(subMat->matScript, "real_two_sided", false))
           isMaterialRealTwoSidedArray.set(materialNo);
@@ -179,7 +272,6 @@ void RenderableInstanceLodsResSrc::addMeshNode(int lod_no, Lod &lod, Node *n_, N
       // transform mesh to key node space
       int i;
       // prepare mesh for building
-      int numMat = n.mat->subMatCount();
       mesh.clampMaterials(numMat - 1);
 
       G_VERIFY(mesh.sort_faces_by_mat());
@@ -214,8 +306,6 @@ void RenderableInstanceLodsResSrc::addMeshNode(int lod_no, Lod &lod, Node *n_, N
           {
             lastMatId = mesh.face[i].mat;
             Ptr<MaterialData> mat = n.mat->getSubMat(lastMatId);
-            matSubst.substMatClass(*mat);
-            mat = processMaterial(mat, false);
             if (const char *p = strstr(mat->matScript, "atest="))
               skip_last_mat = atoi(p + 6);
             else
@@ -268,7 +358,7 @@ void RenderableInstanceLodsResSrc::addMeshNode(int lod_no, Lod &lod, Node *n_, N
           shmat[i]->enum_channels(extra_chans_used, flags);
         }
         if (log && shmat[i])
-          AlphaTestValidation::validate(mesh, i, *subMat, *shmat[i], lod.fileName, n.name, *log);
+          AlphaTestValidation::validate(atestValidationCtx, mesh, i, *subMat, *shmat[i], lod.fileName, n.name, *log);
       }
 
       if (find_value_idx(extra_chans_used.extraIdx, 53) >= 0)
@@ -1063,48 +1153,31 @@ bool RenderableInstanceLodsResSrc::addLod(const char *filename, real range, Lods
 
   override_materials(matList, material_overrides, nullptr);
 
-  if (add_mat_script)
+  struct GatherMats : public Node::NodeEnumCB
   {
-    for (auto &mat : matList)
+    PtrTab<MaterialData> mats;
+    int node(Node &n) override
     {
-      eastl::string script = mat->matScript.c_str();
-      script += add_mat_script;
-      mat->matScript = script.c_str();
+      if (n.mat)
+        for (unsigned int materialNo = 0; materialNo < n.mat->subMatCount(); materialNo++)
+          if (MaterialData *subMat = n.mat->getSubMat(materialNo))
+            if (find_value_idx(mats, subMat) < 0)
+              mats.push_back(subMat);
+      return 0;
     }
-  }
+  } gm;
+  sc.root->enum_nodes(gm);
 
-  const bool canUseTessellation = lods.size() == 0; // only for first lod
-  if (!canUseTessellation)
-  {
-    for (auto &mat : matList)
-      remove_mat_script_param(*mat, "material_pn_triangulation");
-  }
+  const int lodId = lods.size();
+  prepare_lod_materials(*this, gm.mats, lodId, add_mat_script);
 
   sc.root->calc_wtm();
   if (log)
     if (!matSubst.checkMatClasses(sc.root, filename, *log))
       return false;
 
-  int lodId = append_items(lods, 1);
+  append_items(lods, 1);
   Lod &lod = lods[lodId];
-
-  for (const auto &delete_parameters_from_lod : deleteParameters)
-  {
-    if (delete_parameters_from_lod.lod != lodId)
-      continue;
-
-    for (auto &mat : matList)
-    {
-      if (!delete_parameters_from_lod.shader_name.empty() && delete_parameters_from_lod.shader_name != mat->className.c_str())
-        continue;
-
-      if (!get_mat_script_bool(mat->matScript, "autoLodOptimization", true))
-        continue;
-
-      for (const auto &param : delete_parameters_from_lod.parameters)
-        remove_mat_script_param(*mat, param.c_str());
-    }
-  }
 
   lod.fileName = filename;
   lod.range = range;
@@ -1336,7 +1409,7 @@ bool RenderableInstanceLodsResSrc::build(const DataBlock &blk, voxelcache::Cache
 
     const int lodNum = lods.size();
 
-    // constraint: without use_cross_dissolve > 0, RendInstGenData::prepareRtData() takes a transition LOD impostor as a
+    // without use_cross_dissolve > 0, RendInstGenData::prepareRtData() takes a transition LOD impostor as a
     // regular mesh and asserts on its missing normal channel.
     const int useCrossDissolveVarId = VariableMap::getVariableId("use_cross_dissolve", true);
     for (const Lod *srcLod : {&lods[lodNum - 2], &lods[lodNum - 1]})
@@ -1613,6 +1686,49 @@ void RenderableInstanceLodsResSrc::presave()
     lods[i].rigid.presave(matSaver);
 }
 
+bool RenderableInstanceLodsResSrc::calcTreeSplitBoxes(const BBox3 &bbox, BBox3 &trunk_bbox, BBox3 &crown_bbox) const
+{
+  if (!hasImpostor)
+    return false;
+  BBox3 atestBbox;
+  auto addFaceToAtestBbox = [&](const Point3(&face)[3]) {
+    for (const Point3 &vert : face)
+      atestBbox += vert;
+  };
+  for (const Lod &lod : lods)
+  {
+    if (lod.numVoxelMips)
+      return false;
+    for (const ShaderMeshData::RElem &elem : lod.rigid.meshData.elems)
+    {
+      const char *className = elem.mat->getShaderClassName();
+      if (strstr(className, "facing_leaves") || strstr(className, "plod"))
+        return false;
+      if (elem.getStage() != ShaderMesh::STG_atest || is_impostor_shader(className))
+        continue;
+      if (!for_each_face_pos(elem, addFaceToAtestBbox))
+        return false;
+    }
+  }
+  if (atestBbox.isempty())
+    return false;
+  const float crownBottom = atestBbox.lim[0].y;
+  if (crownBottom - bbox.lim[0].y < MIN_TREE_TRUNK_HEIGHT)
+    return false;
+
+  crown_bbox = atestBbox;
+  auto clipFaceAtCrownBottom = [&](const Point3(&face)[3]) { clip_at_crown_bottom(face, crownBottom, trunk_bbox, crown_bbox); };
+  for (const Lod &lod : lods)
+    for (const ShaderMeshData::RElem &elem : lod.rigid.meshData.elems)
+    {
+      if (elem.getStage() == ShaderMesh::STG_atest || is_impostor_shader(elem.mat->getShaderClassName()))
+        continue;
+      if (!for_each_face_pos(elem, clipFaceAtCrownBottom))
+        return false;
+    }
+  return !trunk_bbox.isempty() && trunk_bbox.width().x < crown_bbox.width().x && trunk_bbox.width().z < crown_bbox.width().z;
+}
+
 bool RenderableInstanceLodsResSrc::save(mkbindump::BinDumpSaveCB &cwr, const LodValidationSettings *lvs, ILogWriter &log_writer)
 {
   BBox3 bbox(Point3(0, 0, 0), 0);
@@ -1634,6 +1750,8 @@ bool RenderableInstanceLodsResSrc::save(mkbindump::BinDumpSaveCB &cwr, const Lod
   }
   for (int i = 1; i < lods.size(); ++i)
   {
+    if (lods[i].voxelHullVerts != 0)
+      continue;
     bbox += lods[i].bbox;
     bsph += lods[i].bsph;
     if (bs0rad2 < lods[i].bs0rad2)
@@ -1654,6 +1772,8 @@ bool RenderableInstanceLodsResSrc::save(mkbindump::BinDumpSaveCB &cwr, const Lod
       debug("discard bad occluder-box: %@", occlBb);
       hasOccl = false;
     }
+  BBox3 trunkBbox, crownBbox;
+  const bool hasTreeSplitBoxes = buildResultsBlk && calcTreeSplitBoxes(bbox, trunkBbox, crownBbox);
   presave();
 
   // validate LODs
@@ -1677,6 +1797,13 @@ bool RenderableInstanceLodsResSrc::save(mkbindump::BinDumpSaveCB &cwr, const Lod
     buildResultsBlk->setPoint3("bbox0", bbox[0]);
     buildResultsBlk->setPoint3("bbox1", bbox[1]);
     buildResultsBlk->setPoint4("bsph", Point4::xyzV(bsph.c, bsph.r));
+    if (hasTreeSplitBoxes)
+    {
+      buildResultsBlk->setPoint3("split0Bbox0", trunkBbox.lim[0]);
+      buildResultsBlk->setPoint3("split0Bbox1", trunkBbox.lim[1]);
+      buildResultsBlk->setPoint3("split1Bbox0", crownBbox.lim[0]);
+      buildResultsBlk->setPoint3("split1Bbox1", crownBbox.lim[1]);
+    }
   }
 
   texSaver.prepareTexNames(textureSlots);

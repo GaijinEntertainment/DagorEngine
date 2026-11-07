@@ -365,7 +365,8 @@ namespace drv3d_metal
                                                       options : MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
           dynamic_buffer.label = [NSString stringWithUTF8String : name.c_str()];
           dynamic_offset = 0;
-          render.queueResourceForDeletion(dynamic_buffer);
+          std::lock_guard scopedLock(render.dynamic_buffer_lock);
+          render.frame_callback.push_back([buf = dynamic_buffer] { [buf release]; });
         }
         else
 #endif

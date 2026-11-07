@@ -56,17 +56,16 @@ static void volfog_convar_init_es(
 
 ECS_TAG(render, dev)
 ECS_AFTER(animchar_before_render_es) // require for execute animchar_before_render_es as early as possible
-static void volfog_convar_change_es(const UpdateStageInfoBeforeRender &,
-  ecs::EntityManager &manager,
-  bool &render_settings__HQVolfog,
-  ecs::string &render_settings__volumeFogQuality)
+ECS_REQUIRE(bool render_settings__HQVolfog, const ecs::string &render_settings__volumeFogQuality)
+static void volfog_convar_change_es(const UpdateStageInfoBeforeRender &, ecs::EntityManager &manager, ecs::EntityId eid)
 {
+  // both are tracked: RW params would compare them every frame, while convars change rarely
   if (hq_volfog.pullValueChange())
-    render_settings__HQVolfog = hq_volfog;
+    manager.set(eid, ECS_HASH("render_settings__HQVolfog"), hq_volfog.get());
 
   if (distant_fog_quality.pullValueChange())
-    render_settings__volumeFogQuality =
-      get_distant_fog_quality_str(static_cast<VolumeLight::DistantFogQuality>(distant_fog_quality.get()));
+    manager.set(eid, ECS_HASH("render_settings__volumeFogQuality"),
+      get_distant_fog_quality_str(static_cast<VolumeLight::DistantFogQuality>(distant_fog_quality.get())));
 
   if (disable_volfog_shadows.pullValueChange())
     manager.broadcastEvent(OnExplicitVolfogSettingsChange());

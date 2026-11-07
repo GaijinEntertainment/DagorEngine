@@ -175,7 +175,8 @@ static unsigned shadow_rt_texFmt = 0, shadow_texFmt = 0;
 
 void allocate_clipmap_shadows()
 {
-  rendinstClipmapShadowTexSize = ::dgs_get_game_params()->getBlockByNameEx("rendinstShadows")->getInt("clipmapTexSize", 64);
+  rendinstClipmapShadowTexSize =
+    ::dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("rendinstShadows")->getInt("clipmapTexSize", 64);
 
   rendinstClipmapShadowTexSize = get_closest_pow2(rendinstClipmapShadowTexSize);
   numMips = get_log2i_of_pow2(rendinstClipmapShadowTexSize) - 2; // last mip is set
@@ -226,8 +227,11 @@ void allocate_clipmap_shadows()
     "clipmapshadow_blurTempTex", RESTAG_RENDINST);
   d3d_err(blurTemp.getTex2D());
   rtTemp.close();
-  rtTemp = dag::create_tex(nullptr, rendinstClipmapShadowTexSize, rendinstClipmapShadowTexSize, shadow_rt_texFmt | TEXCF_RTARGET, 1,
-    "clipmapshadow_rtTempTex", RESTAG_RENDINST);
+  // the BC4 compressor reads every mip of rtTemp, so it needs a generated chain
+  const int rtTempMips = g_compressors[0] ? numMips : 1;
+  rtTemp = dag::create_tex(nullptr, rendinstClipmapShadowTexSize, rendinstClipmapShadowTexSize,
+    shadow_rt_texFmt | TEXCF_RTARGET | (rtTempMips > 1 ? TEXCF_GENERATEMIPS : 0), rtTempMips, "clipmapshadow_rtTempTex",
+    RESTAG_RENDINST);
   d3d_err(rtTemp.getTex2D());
 
   blurRenderer.init("blur");
@@ -415,6 +419,7 @@ bool render_clipmap_shadow_pool(rendinst::render::RtPoolData &pool, RenderableIn
   {
     BcCompressor *compr = g_compressors[g_current_compressor];
 
+    targetTex->generateMips();
     for (int i = 0; i < numMips; ++i)
     {
       compr->updateFromMip(targetTexId, i, i);

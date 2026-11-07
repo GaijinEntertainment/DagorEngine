@@ -15,6 +15,7 @@
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <render/renderer.h>
+#include <render/debugMesh.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/defaultVrsSettings.h>
 #include "render/world/shadowsManager.h"
@@ -163,6 +164,7 @@ struct ProtoDrawCall
   shaders::CombinedDynVariantState dvState;
   int vbIndex;
   int vbStride;
+  int meshDebugValue;
 
   DagdpBvhPreMapping preMapping;
 };
@@ -183,6 +185,7 @@ struct MultiDrawCall
   shaders::CombinedDynVariantState dvState;
   int vbIndex;
   int vbStride;
+  int meshDebugValue;
 
   dag::Vector<DagdpBvhPreMapping> preMappings;
 };
@@ -196,7 +199,8 @@ struct MultiDrawCall
   CMP(dvState.variant)     \
   CMP(dvState.state_index) \
   CMP(vbIndex)             \
-  CMP(vbStride)
+  CMP(vbStride)            \
+  CMP(meshDebugValue)
 
 static bool operator<(const ProtoDrawCall &a, const ProtoDrawCall &b)
 {
@@ -245,6 +249,7 @@ struct RiexConstants
 // May be recalculated for the given view, if RElem vertex data is moved.
 struct RiexCache
 {
+  bool isSplitByLod;
   uint32_t numCounterPatches;
   uint32_t numCallsPerViewport;
   dag::VectorSet<const ScriptedShaderElement *> usedSElems;
@@ -418,13 +423,14 @@ void update_draw_calls(LockedBuffer<Args> &locked_buffer,
   return true;
 }
 
-static void rebuild_cache(RiexPersistentData &persistent_data)
+static void rebuild_cache(RiexPersistentData &persistent_data, bool split_by_lod)
 {
   FRAMEMEM_REGION;
 
   RiexConstants &constants = persistent_data.constants;
   RiexCache &cache = persistent_data.cache;
 
+  cache.isSplitByLod = split_by_lod;
   cache.usedSElems.clear();
   cache.packedConstStates.clear();
   cache.numCounterPatches = 0;
@@ -476,6 +482,8 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
           call.dvState = dvState;
           call.vbIndex = rElem.vertexData->getVbIdx();
           call.vbStride = rElem.vertexData->getStride();
+          // The stencil ref is per draw, so LOD coloring needs a separate multidraw per LOD.
+          call.meshDebugValue = split_by_lod ? renderable.info.lodIndex : 0;
 
           int elemIdx = stageElemIdx;
           if (stage > stages.first)
@@ -513,6 +521,7 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
         multiCall.dvState = call.dvState;
         multiCall.vbIndex = call.vbIndex;
         multiCall.vbStride = call.vbStride;
+        multiCall.meshDebugValue = call.meshDebugValue;
 
         lastMulti = &multiCall;
       }
@@ -565,6 +574,7 @@ static void render(SubPass sub_pass,
     return;
 
   const RiexConstants &constants = persistent_data.constants;
+  const bool isLodColoring = sub_pass == SubPass::NORMAL_PASS_OPAQUE && persistent_data.cache.isSplitByLod;
 
   // Needed as part RiShaderConstBuffers' contract.
   rendinst::render::startRenderInstancing();
@@ -576,7 +586,10 @@ static void render(SubPass sub_pass,
   d3d_err(d3d::setind(ib));
 
   rendinst::render::RiShaderConstBuffers cb;
-  cb.setInstancing(0, 4, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_GLOBAL_BUFFER | RI_CBUFFER_FLAGS__INSTANCE_OFFSET_FROM_CBUFFER, 0);
+  cb.setInstancing(0, 4,
+    RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_GLOBAL_BUFFER | RI_CBUFFER_FLAGS__INSTANCE_OFFSET_FROM_CBUFFER |
+      RI_CBUFFER_FLAGS__DAGDP_INSTANCES,
+    0);
   cb.setOpacity(0, 1);
   const E3DCOLOR defaultColors[] = {E3DCOLOR(0x80808080), E3DCOLOR(0x80808080)};
   cb.setRandomColors(defaultColors);
@@ -697,10 +710,18 @@ static void render(SubPass sub_pass,
         d3d::set_immediate_const(STAGE_PS, treeImmediateConsts, countof(treeImmediateConsts));
       else
         d3d::set_immediate_const(STAGE_PS, nullptr, 0);
+
+      lastIsTree = call.isTree;
     }
+
+    if (isLodColoring)
+      debug_mesh::set_debug_value(call.meshDebugValue);
 
     d3d::multi_draw_indexed_indirect(PRIM_TRILIST, draw_args_buf, call.count, constants.argsStride, totalByteOffset);
   }
+
+  if (isLodColoring)
+    debug_mesh::reset_debug_value();
 
   // Needed as part RiShaderConstBuffers' contract.
   rendinst::render::endRenderInstancing();
@@ -785,12 +806,17 @@ static dafg::NodeHandle create_main_camera_subpass_node(SubPass sub_pass, const 
     return [sub_pass, persistent_data, instanceDataHandle, drawArgsHandle, cameraHndl = cameraHndl,
              blockId = ShaderGlobal::getBlockId(sub_pass == SubPass::PRE_PASS_ALL ? "rendinst_depth_scene" : "rendinst_scene")](
              const dafg::multiplexing::Index &multiplexing_index) {
+      const bool isMeshColoringPass = sub_pass == SubPass::NORMAL_PASS_OPAQUE;
+      if (isMeshColoringPass)
+        debug_mesh::activate_mesh_coloring_master_override();
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
 
       RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
       SCENE_LAYER_GUARD(blockId);
       const uint32_t viewportIndex = 0; // Main camera only has one viewport.
       render(sub_pass, viewportIndex, *persistent_data, instanceDataHandle.view().getBuf(), drawArgsHandle.view().getBuf());
+      if (isMeshColoringPass)
+        debug_mesh::deactivate_mesh_coloring_master_override();
     };
   });
 }
@@ -1108,10 +1134,11 @@ void riex_finalize_view(const ViewInfo &view_info,
 
     return [persistentData, use_ri_burnt_grassVarId = get_shader_variable_id("use_ri_burnt_grass", true)] {
       // Rebuilding the cache will update the draw_args, patch buffers.
-      if (!persistentData->isCacheValid)
+      const bool splitByLod = debug_mesh::is_enabled(debug_mesh::Type::lod);
+      if (!persistentData->isCacheValid || persistentData->cache.isSplitByLod != splitByLod)
       {
         ShaderGlobal::set_int(use_ri_burnt_grassVarId, 1);
-        rebuild_cache(*persistentData);
+        rebuild_cache(*persistentData, splitByLod);
         ShaderGlobal::set_int(use_ri_burnt_grassVarId, 0);
       }
 

@@ -221,7 +221,7 @@ bool ECSSceneObject::mayDelete()
 {
   ecs::Scene &scene = ecs::g_scenes->getActiveScene();
   if (const ecs::Scene::SceneRecord *srecord = scene.getSceneRecordById(sceneId);
-      srecord && (srecord->importDepth == 0 || srecord->loadType != ecs::Scene::LoadType::IMPORT))
+      srecord && (srecord->isSystemOwned || srecord->importDepth == 0 || srecord->loadType != ecs::Scene::LoadType::IMPORT))
   {
     return false;
   }
@@ -233,6 +233,9 @@ void ECSSceneObject::onRemove(ObjectEditor *editor)
 {
   if (const ecs::Scene::SceneRecord *record = ecs::g_scenes->getActiveScene().getSceneRecordById(sceneId))
   {
+    if (record->isSystemOwned)
+      return;
+
     auto &ed = *static_cast<ECSObjectEditor *>(editor);
 
     undoData = eastl::make_unique<UndoData>();
@@ -391,6 +394,12 @@ bool ECSSceneObject::canChangeSceneParentTo(ecs::Scene::SceneId potential_parent
   const ecs::Scene &scene = ecs::g_scenes->getActiveScene();
   const ecs::Scene::SceneRecord *parentRecord = scene.getSceneRecordById(potential_parent);
   if (!parentRecord || parentRecord->loadType != ecs::Scene::LoadType::IMPORT)
+  {
+    return false;
+  }
+
+  const ecs::Scene::SceneRecord *sourceRecord = scene.getSceneRecordById(sceneId);
+  if (sourceRecord->isSystemOwned != parentRecord->isSystemOwned)
   {
     return false;
   }

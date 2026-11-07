@@ -74,6 +74,9 @@ struct CmdSetCameraTarget
 struct RequestCamSwitch
   isTpsView : bool
 
+[event(unicast, routing=ROUTING_CLIENT_CONTROLLED_ENTITY_TO_SERVER)]
+struct RequestMotorbikeGetUp {}
+
 [event(broadcast)]
 struct PlayerStartQuitGameTimer {}
 

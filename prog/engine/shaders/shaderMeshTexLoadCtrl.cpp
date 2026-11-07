@@ -13,6 +13,12 @@ const char *IShaderMatVdataTexLoadCtrl::preprocess_tex_name(const char *original
   return dagor_sm_tex_load_controller->preprocessMatVdataTexName(original_tex_name, ctx_type, ctx_name, tmp_storage);
 }
 
+void IShaderMatVdataTexLoadCtrl::on_material_created(ShaderMaterial &mat)
+{
+  if (dagor_sm_tex_load_controller)
+    dagor_sm_tex_load_controller->onMatVdataMaterialCreated(mat);
+}
+
 void dagor_set_sm_tex_load_ctx_type(unsigned obj_type) { ctx_type = obj_type; }
 void dagor_set_sm_tex_load_ctx_name(const char *obj_name) { ctx_name = obj_name; }
 void dagor_reset_sm_tex_load_ctx()

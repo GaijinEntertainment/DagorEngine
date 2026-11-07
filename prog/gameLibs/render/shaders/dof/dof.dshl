@@ -17,7 +17,14 @@ texture dof_mask;
 int simplified_dof = 0;
 interval simplified_dof: off<1, on;
 
-hlsl(ps) {
+texture dof_classify_near_coc;
+texture dof_classify_far_coc;
+buffer dof_tiles_list;
+buffer dof_tiles_args;
+texture dof_gather_out_near;
+texture dof_gather_out_far;
+
+hlsl {
   #define COMBINE_LAYERS 0
 }
 
@@ -50,21 +57,21 @@ macro POSTFX()
   compile("target_vs", "postfx_vs");
 endmacro
 
-macro NEAR_FAR_DEFINES()
+macro NEAR_FAR_DEFINES(stage)
   if (dof_far_layer != NULL)
   {
-    hlsl(ps) {
+    hlsl(stage) {
       #define HAS_FAR_DOF 1
     }
     if (dof_near_layer != NULL)
     {
-      hlsl(ps) {
+      hlsl(stage) {
         #define HAS_NEAR_DOF 1
       }
     }
   } else
   {
-    hlsl(ps) {
+    hlsl(stage) {
       #define HAS_NEAR_DOF 1
     }
   }
@@ -102,7 +109,7 @@ shader dof_downsample
     (ps) { dof_blend_depth_tex@smp2d = dof_blend_depth_tex; }
   }
   INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
-  NEAR_FAR_DEFINES()
+  NEAR_FAR_DEFINES(ps)
 
   hlsl(ps) {
     #define dof_coc_history_samplerstate global_linear_clamp_sampler
@@ -372,16 +379,142 @@ shader dof_tile
   compile("target_ps", "dof_tile_ps");
 }
 
+shader dof_classify_tiles
+{
+  if (dof_classify_near_coc == NULL && dof_classify_far_coc == NULL)
+  {
+    dont_render;
+  }
+
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(cs)
+  (cs) {
+    dof_tiles_mask@uav = dof_tiles_mask hlsl { RWByteAddressBuffer dof_tiles_mask@uav; };
+    dof_tiles_args@uav = dof_tiles_args hlsl { RWByteAddressBuffer dof_tiles_args@uav; };
+    dof_tiles_count@i4 = dof_tiles_count;
+    dof_rt_size@f4 = dof_rt_size;
+  }
+  if (dof_classify_near_coc != NULL)
+  {
+    (cs) { dof_classify_near_coc@tex2d = dof_classify_near_coc; }
+  }
+  if (dof_classify_far_coc != NULL)
+  {
+    (cs) { dof_classify_far_coc@tex2d = dof_classify_far_coc; }
+  }
+
+  hlsl(cs) {
+    #include <waveUtils.hlsl>
+
+    groupshared uint dof_tiles_dword;
+
+    //one group per mask dword, 4 threads per tile
+    [numthreads(DOF_TILES_PER_DWORD * 4, 1, 1)]
+    void dof_classify_tiles_cs(uint tid : SV_GroupThreadID, uint gid : SV_GroupID)
+    {
+      if (tid == 0)
+        dof_tiles_dword = 0;
+      if (tid == 0 && gid == 0)
+      {
+        dof_tiles_args.Store3(0, uint3(0, 1, 1));
+        dof_tiles_args.Store3(DOF_TILES_ARGS_STRIDE, uint3(0, 1, 1));
+      }
+      GroupMemoryBarrierWithGroupSync();
+
+      uint slot = tid / 4;
+      uint part = tid & 3;
+      uint tileIdx = gid * DOF_TILES_PER_DWORD + slot;
+      uint bits = 0;
+      if (tileIdx < uint(dof_tiles_count.z))
+      {
+        float2 tileOrigin = float2(tileIdx % uint(dof_tiles_count.x), tileIdx / uint(dof_tiles_count.x)) * DOF_TILE_SIZE;
+        ##if dof_classify_near_coc != NULL
+          float2 nearPx = tileOrigin + float2(part & 1, part >> 1) * (DOF_TILE_SIZE - 1) + 0.5;
+          float4 nearCoc = dof_classify_near_coc.GatherRed(global_linear_clamp_sampler, nearPx * dof_rt_size.zw);
+          bits |= any(nearCoc > 0) ? 1 : 0;
+        ##endif
+        ##if dof_classify_far_coc != NULL
+          float2 farPx = tileOrigin + float2(1, part * 2 + 1);
+          float4 farCoc = 0;
+          UNROLL
+          for (int i = 0; i < DOF_TILE_SIZE / 2; i++)
+            farCoc = max(farCoc, dof_classify_far_coc.GatherRed(global_linear_clamp_sampler, (farPx + float2(i * 2, 0)) * dof_rt_size.zw));
+          bits |= any(farCoc > 1e-4) ? 2 : 0;
+        ##endif
+      }
+      bits <<= slot * 2;
+
+      #if WAVE_INTRINSICS
+        bits = WaveActiveBitOr(bits);
+        if (WaveIsFirstLane())
+          InterlockedOr(dof_tiles_dword, bits);
+      #else
+        InterlockedOr(dof_tiles_dword, bits);
+      #endif
+      GroupMemoryBarrierWithGroupSync();
+
+      if (tid == 0)
+        storeBuffer(dof_tiles_mask, gid * 4, dof_tiles_dword);
+    }
+  }
+  compile("target_cs", "dof_classify_tiles_cs");
+}
+
+shader dof_build_tiles_list
+{
+  (cs) {
+    dof_tiles_mask@buf = dof_tiles_mask hlsl { ByteAddressBuffer dof_tiles_mask@buf; };
+    dof_tiles_list@uav = dof_tiles_list hlsl { RWByteAddressBuffer dof_tiles_list@uav; };
+    dof_tiles_args@uav = dof_tiles_args hlsl { RWByteAddressBuffer dof_tiles_args@uav; };
+    dof_tiles_count@i4 = dof_tiles_count;
+  }
+
+  hlsl(cs) {
+    #include <waveUtils.hlsl>
+
+    uint dof_tile_bits(int2 tile)
+    {
+      uint tileIdx = tile.y * dof_tiles_count.x + tile.x;
+      return (loadBuffer(dof_tiles_mask, (tileIdx / DOF_TILES_PER_DWORD) * 4) >> ((tileIdx % DOF_TILES_PER_DWORD) * 2)) & 3;
+    }
+
+    [numthreads(64, 1, 1)]
+    void dof_build_tiles_list_cs(uint tileIdx : SV_DispatchThreadID)
+    {
+      if (tileIdx >= uint(dof_tiles_count.z))
+        return;
+      int2 tile = int2(tileIdx % uint(dof_tiles_count.x), tileIdx / uint(dof_tiles_count.x));
+      uint ownBits = dof_tile_bits(tile);
+      uint anyBits = ownBits;
+      UNROLL
+      for (int ty = -1; ty <= 1; ty++)
+        UNROLL
+        for (int tx = -1; tx <= 1; tx++)
+          anyBits |= dof_tile_bits(clamp(tile + int2(tx, ty), int2(0, 0), dof_tiles_count.xy - 1));
+
+      if (anyBits != 0)
+      {
+        uint slot;
+        WaveInterlockedAddRawUintOriginal(dof_tiles_args, 0, 1, slot);
+        storeBuffer(dof_tiles_list, slot * 4, tileIdx);
+      }
+      if (ownBits != 0)
+      {
+        uint slot;
+        WaveInterlockedAddRawUintOriginal(dof_tiles_args, DOF_TILES_ARGS_STRIDE, 1, slot);
+        storeBuffer(dof_tiles_list, (dof_tiles_count.w + slot) * 4, tileIdx);
+      }
+    }
+  }
+  compile("target_cs", "dof_build_tiles_list_cs");
+}
+
 int dof_gather_iteration = 0;
 interval dof_gather_iteration:first<1, second;
 
 int num_dof_taps = 49;
 
-shader dof_gather
-{
-  POSTFX()
-
-  (ps) {
+macro DOF_GATHER(stage)
+  (stage) {
     texLayerNear@tex2d : register(0);
     texLayerNear_samplerstate@sampler : register(0);
     texLayerFar@tex2d : register(1);
@@ -395,15 +528,14 @@ shader dof_gather
 
   if (dof_gather_iteration == second)
   {
-    (ps) { dof_coc_scale@f4 = (dof_rt_size.z*(2*0.15), dof_rt_size.w*(2*0.15), num_dof_taps, dof_rt_size.w); }
+    (stage) { dof_coc_scale@f4 = (dof_rt_size.z*(2*0.15), dof_rt_size.w*(2*0.15), num_dof_taps, dof_rt_size.w); }
   } else
   {
-    (ps) { dof_coc_scale@f4 = (dof_rt_size.z*2, dof_rt_size.w*2, num_dof_taps, dof_rt_size.w); }
+    (stage) { dof_coc_scale@f4 = (dof_rt_size.z*2, dof_rt_size.w*2, num_dof_taps, dof_rt_size.w); }
   }
-  NEAR_FAR_DEFINES()
+  NEAR_FAR_DEFINES(stage)
 
-
-  hlsl(ps) {
+  hlsl(stage) {
 
     ##if dof_gather_iteration == second
       ##if simplified_dof == on
@@ -430,11 +562,11 @@ shader dof_gather
     struct pixout_dof
     {
       #if HAS_NEAR_DOF
-      float4 LayerNear : SV_Target0;
+      float4 LayerNear DOF_GATHER_OUT(SV_Target0);
       #endif
       #if COMPLICATED_DOF
       #if HAS_FAR_DOF
-        float4 LayerFar : SV_Target1;
+        float4 LayerFar DOF_GATHER_OUT(SV_Target1);
       #endif
       #endif
       //float2 CocNearFar : SV_Target2;
@@ -527,21 +659,19 @@ shader dof_gather
     }
 
     #if !COMPLICATED_DOF
-      pixout_dof dof_gather_ps(VsOutput IN)
+      pixout_dof dof_gather_pixel(float2 tc)
       {
-        //discard;
         pixout_dof OUT = (pixout_dof) 0;
         ##if dof_gather_iteration == second
-          OUT.LayerNear = frag_Blur2(IN.tc);
+          OUT.LayerNear = frag_Blur2(tc);
         ##else
-          OUT.LayerNear = frag_Blur1(IN.tc, dof_coc_scale.x/dof_coc_scale.y, 4);
+          OUT.LayerNear = frag_Blur1(tc, dof_coc_scale.x/dof_coc_scale.y, 4);
         ##endif
         return OUT;
       }
     #else
-    pixout_dof dof_gather_ps(VsOutput IN)
+    pixout_dof dof_gather_pixel(float2 tc)
     {
-      //discard;
       pixout_dof OUT = (pixout_dof) 0;
 
       const int nNumTaps = num_dof_taps;
@@ -550,7 +680,7 @@ shader dof_gather
       float2 fCocScale = dof_coc_scale.xy;
 
       #if HAS_NEAR_DOF
-      float4 cCenterTapNear =tex2Dlod(texLayerNear, float4(IN.tc.xy, 0, 0));
+      float4 cCenterTapNear =tex2Dlod(texLayerNear, float4(tc, 0, 0));
       ##if dof_gather_iteration != second
         #if COMBINE_LAYERS
           cCenterTapNear.w = max(0, cCenterTapNear.w);
@@ -561,8 +691,8 @@ shader dof_gather
       float4 cAccNear = float4(0,0,0,0);
       float caccNear = 0;
 
-      //const float tileVal = (tex2Dlod(texTile, float4(IN.tc.xy, 0, 0)).r);
-      const float4 tileVal4 = texTile.GatherRed(texTile_samplerstate, IN.tc.xy, 0);
+      //const float tileVal = (tex2Dlod(texTile, float4(tc, 0, 0)).r);
+      const float4 tileVal4 = texTile.GatherRed(texTile_samplerstate, tc, 0);
       const float tileVal = max(max(tileVal4.x, tileVal4.y), max(tileVal4.z, tileVal4.w));
       const float vMinTileCoC = MAX_COC*tileVal;
       //const float vMinTileCoC = SCALE_NEAR;
@@ -574,7 +704,7 @@ shader dof_gather
         {
             const float2 scaledOffset = g_Taps[t].xy;
             float2 cocOffset = vMinTileCoC * scaledOffset.xy;
-            float4 cn = tex2Dlod(texLayerNear, float4(IN.tc.xy + cocOffset, 0, 0));
+            float4 cn = tex2Dlod(texLayerNear, float4(tc + cocOffset, 0, 0));
 
             float wn;
             //const float k = 1.075;
@@ -599,14 +729,14 @@ shader dof_gather
       #endif
 
       #if HAS_FAR_DOF
-      float4 cCenterTapFar = tex2Dlod(texLayerFar, float4(IN.tc.xy, 0, 0));
+      float4 cCenterTapFar = tex2Dlod(texLayerFar, float4(tc, 0, 0));
       ##if dof_gather_iteration != second
         #if COMBINE_LAYERS
           cCenterTapFar.w = max(0, -cCenterTapFar.w);
         #endif
       ##endif
 
-      float fCocFar = texMaxCocFar.SampleLevel(texMaxCocFar_samplerstate, IN.tc.xy, 0, 0).r;
+      float fCocFar = texMaxCocFar.SampleLevel(texMaxCocFar_samplerstate, tc, 0, 0).r;
       float scaledCocFar = fCocFar*MAX_COC;
       float caccFar = 0; //for coef accumulation
       ##if dof_gather_iteration == second
@@ -624,7 +754,7 @@ shader dof_gather
           const float2 scaledOffset = g_Taps[t].xy;
           float2 cocOffset = scaledCocFar * scaledOffset;
 
-          float4 cf = tex2Dlod(texLayerFar, float4(IN.tc.xy + cocOffset, 0, 0));
+          float4 cf = tex2Dlod(texLayerFar, float4(tc + cocOffset, 0, 0));
 
           ##if dof_gather_iteration != second
             cf.w = saturate((cf.w-0.75)*4); //decoding coc
@@ -669,8 +799,69 @@ shader dof_gather
     }
     #endif
   }
+endmacro
+
+shader dof_gather
+{
+  POSTFX()
+  hlsl(ps) {
+    #define DOF_GATHER_OUT(semantic) : semantic
+  }
+  DOF_GATHER(ps)
+
+  hlsl(ps) {
+    pixout_dof dof_gather_ps(VsOutput IN)
+    {
+      return dof_gather_pixel(IN.tc.xy);
+    }
+  }
 
   compile("target_ps", "dof_gather_ps");
+}
+
+shader dof_gather_cs
+{
+  hlsl(cs) {
+    #define DOF_GATHER_OUT(semantic)
+  }
+  DOF_GATHER(cs)
+
+  (cs) {
+    dof_tiles_list@buf = dof_tiles_list hlsl { ByteAddressBuffer dof_tiles_list@buf; };
+    dof_tiles_count@i4 = dof_tiles_count;
+    dof_rt_size@f4 = dof_rt_size;
+  }
+  if (dof_far_layer == NULL || dof_near_layer != NULL)
+  {
+    (cs) { dof_gather_out_near@uav = dof_gather_out_near hlsl { RWTexture2D<float4> dof_gather_out_near@uav; }; }
+  }
+  if (dof_far_layer != NULL)
+  {
+    (cs) { dof_gather_out_far@uav = dof_gather_out_far hlsl { RWTexture2D<float4> dof_gather_out_far@uav; }; }
+  }
+
+  hlsl(cs) {
+    [numthreads(DOF_TILE_SIZE, DOF_TILE_SIZE, 1)]
+    void dof_gather_cs(uint2 gtid : SV_GroupThreadID, uint gid : SV_GroupID)
+    {
+      ##if dof_gather_iteration == second
+        uint tileIdx = loadBuffer(dof_tiles_list, (dof_tiles_count.w + gid) * 4);
+      ##else
+        uint tileIdx = loadBuffer(dof_tiles_list, gid * 4);
+      ##endif
+      uint2 pixel = uint2(tileIdx % uint(dof_tiles_count.x), tileIdx / uint(dof_tiles_count.x)) * DOF_TILE_SIZE + gtid;
+      if (any(pixel >= uint2(dof_rt_size.xy)))
+        return;
+      pixout_dof OUT = dof_gather_pixel((pixel + 0.5) * dof_rt_size.zw);
+      #if HAS_NEAR_DOF
+        texture2DAt(dof_gather_out_near, pixel) = OUT.LayerNear;
+      #endif
+      #if HAS_FAR_DOF
+        texture2DAt(dof_gather_out_far, pixel) = OUT.LayerFar;
+      #endif
+    }
+  }
+  compile("target_cs", "dof_gather_cs");
 }
 
 shader dof_composite

@@ -62,6 +62,15 @@ BBox2 calc_xmb_viewport(Element *node, Element **nearest_xmb_viewport)
 }
 
 
+static bool is_in_hidden_subtree(const Element *node)
+{
+  for (const Element *e = node; e; e = e->parent)
+    if (e->isHidden())
+      return true;
+  return false;
+}
+
+
 bool is_xmb_node_input_covered(Element *node)
 {
   Screen *screen = node->etree->screen;
@@ -110,6 +119,26 @@ bool is_xmb_node_input_covered(Element *node)
 }
 
 
+bool is_xmb_node_blocked(Element *node) { return is_in_hidden_subtree(node) || is_xmb_node_input_covered(node); }
+
+
+// -1 when a step goes past either end without wrap; `from` itself after a full wrap
+template <typename Skip>
+static int next_index_skipping(int from, int delta, int count, bool wrap, Skip skip)
+{
+  int idx = from;
+  do
+  {
+    idx += delta;
+    if (wrap)
+      idx = (idx + count) % count;
+    else if (idx < 0 || idx >= count)
+      return -1;
+  } while (idx != from && skip(idx));
+  return idx;
+}
+
+
 Element *xmb_grid_navigate(Element *cur_focus, Direction dir)
 {
   G_ASSERT_RETURN(cur_focus, nullptr);
@@ -140,22 +169,27 @@ Element *xmb_grid_navigate(Element *cur_focus, Direction dir)
 
   int delta = (dir == DIR_LEFT || dir == DIR_UP) ? -1 : 1;
 
-  int newLineIdx = curLineIdx + delta;
-  bool wrap = xmbGrandParent->xmb->nodeDesc.RawGetSlotValue<bool>("wrap", true);
-  if (wrap)
-    newLineIdx = (newLineIdx + xmbGrandParent->xmb->xmbChildren.size()) % xmbGrandParent->xmb->xmbChildren.size();
+  const dag::Vector<Element *> &lines = xmbGrandParent->xmb->xmbChildren;
+  auto cellInColumn = [curCellIdx](const Element *line) {
+    const dag::Vector<Element *> &cells = line->xmb->xmbChildren;
+    return cells[::clamp(int(curCellIdx), 0, int(cells.size() - 1))];
+  };
 
-  if (newLineIdx < 0 || newLineIdx >= xmbGrandParent->xmb->xmbChildren.size())
+  bool wrap = xmbGrandParent->xmb->nodeDesc.RawGetSlotValue<bool>("wrap", true);
+  int newLineIdx = next_index_skipping(curLineIdx, delta, lines.size(), wrap, [&](int line_idx) {
+    const Element *line = lines[line_idx];
+    return !line->xmb->xmbChildren.empty() && is_in_hidden_subtree(cellInColumn(line));
+  });
+  if (newLineIdx < 0)
     return nullptr;
 
-  Element *newLine = xmbGrandParent->xmb->xmbChildren[newLineIdx];
+  Element *newLine = lines[newLineIdx];
   if (newLine->xmb->xmbChildren.empty())
     return nullptr;
   if ((newLine->layout.flowType == FLOW_HORIZONTAL) == horiz)
     return nullptr;
 
-  Element *newCell = newLine->xmb->xmbChildren[::clamp(int(curCellIdx), 0, int(newLine->xmb->xmbChildren.size() - 1))];
-  return newCell;
+  return cellInColumn(newLine);
 }
 
 
@@ -180,12 +214,9 @@ Element *xmb_siblings_navigate(Element *cur_focus, Direction dir)
     if (prevIt != parentXmbData->xmbChildren.end())
     {
       ptrdiff_t prevIdx = eastl::distance(parentXmbData->xmbChildren.begin(), prevIt);
-      newIdx = prevIdx + delta;
       bool wrap = parentXmbData->nodeDesc.RawGetSlotValue<bool>("wrap", true);
-      if (wrap)
-        newIdx = (newIdx + parentXmbData->xmbChildren.size()) % parentXmbData->xmbChildren.size();
-      else if (newIdx < 0 || newIdx >= parentXmbData->xmbChildren.size())
-        newIdx = -1;
+      newIdx = next_index_skipping(prevIdx, delta, parentXmbData->xmbChildren.size(), wrap,
+        [&](int idx) { return is_in_hidden_subtree(parentXmbData->xmbChildren[idx]); });
     }
   }
 
@@ -210,7 +241,7 @@ Element *xmb_screen_space_navigate(Element *cur_focus, Direction dir)
   for (Element *elem : xmbParent->xmb->xmbChildren)
   {
     G_ASSERT_CONTINUE(elem->xmb);
-    if (elem == cur_focus)
+    if (elem == cur_focus || is_in_hidden_subtree(elem))
       continue;
     if (!elem->xmb->calcCanFocus())
       continue;

@@ -17,8 +17,12 @@ namespace core
 inline bool broken_pipeline_cache_with_so_without_gs() { return 618 == Direct3D12Enviroment::getD3D12SdkVersion(); }
 // AddToStateObject hangs for unknown reason
 inline bool broken_rt_state_object_additions() { return GpuVendor::AMD == d3d::get_driver_desc().info.vendor; }
+// Nvidia does not execute a uav -> indirect arg transition properly, a transition to common flushes the buffer. Intel reads stale
+// indirect args after the implicit promotion from common, so the other vendors keep the plain transition.
+inline bool broken_uav_to_indirect_arg_transition() { return GpuVendor::NVIDIA == d3d::get_driver_desc().info.vendor; }
 #else
 inline constexpr bool broken_pipeline_cache_with_so_without_gs() { return false; }
+inline constexpr bool broken_uav_to_indirect_arg_transition() { return false; }
 #endif
 /// Issues with Nvidia drivers
 namespace nvidia

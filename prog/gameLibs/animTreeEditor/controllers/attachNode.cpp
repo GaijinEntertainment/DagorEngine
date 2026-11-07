@@ -62,21 +62,27 @@ void attach_node_save_block_settings(PropPanel::ContainerPropertyControl *panel,
 {
   const char *defaultWtModulate = settings->getStr("wtModulate", "");
   const bool defaultWtModulateInverse = settings->getBool("wtModulateInverse", DEFAULT_WT_MODULATE_INVERSE);
-  const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  if (listName.empty())
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  if (selectedIdx < 0)
     return;
 
-  DataBlock *selectedBlock = nullptr;
-  for (int i = 0; i < settings->blockCount(); ++i)
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "attach");
+  if (selectedIdx > positions.size())
   {
-    DataBlock *child = settings->getBlock(i);
-    if (listName == child->getStr("node", nullptr))
-      selectedBlock = child;
+    logerr("attachNode <%s>: can't save new attach, save the new attach above it first", settings->getStr("name", ""));
+    return;
   }
+  DataBlock *selectedBlock = selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : nullptr;
+  const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
   const SimpleString nodeValue = panel->getText(PID_CTRLS_ATTACH_NODE_NODE);
   const SimpleString varValue = panel->getText(PID_CTRLS_ATTACH_NODE_VAR);
   const SimpleString wtModulateValue = panel->getText(PID_CTRLS_ATTACH_NODE_WT_MODULATE);
   const bool wtModulateInverseValue = panel->getBool(PID_CTRLS_ATTACH_NODE_WT_MODULATE_INVERSE);
+  if (nodeValue.empty() || varValue.empty())
+  {
+    logerr("attachNode <%s>: can't save attach with empty node or var", settings->getStr("name", ""));
+    return;
+  }
   if (!selectedBlock)
     selectedBlock = settings->addNewBlock("attach");
   for (int i = selectedBlock->paramCount() - 1; i >= 0; --i)
@@ -98,21 +104,17 @@ void attach_node_set_selected_node_list_settings(PropPanel::ContainerPropertyCon
 {
   const char *defaultWtModulate = settings->getStr("wtModulate", "");
   const bool defaultWtModulateInverse = settings->getBool("wtModulateInverse", DEFAULT_WT_MODULATE_INVERSE);
-  const SimpleString name = panel->getText(PID_CTRLS_NODES_LIST);
-  const DataBlock *selectedBlock = &DataBlock::emptyBlock;
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    const DataBlock *child = settings->getBlock(i);
-    if (name == child->getStr("node", nullptr))
-      selectedBlock = child;
-  }
-  panel->setText(PID_CTRLS_ATTACH_NODE_NODE, name);
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const dag::Vector<int> positions = collect_block_positions_by_name(*settings, "attach");
+  const DataBlock *selectedBlock =
+    selectedIdx >= 0 && selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : &DataBlock::emptyBlock;
+  panel->setText(PID_CTRLS_ATTACH_NODE_NODE, panel->getText(PID_CTRLS_NODES_LIST));
   panel->setText(PID_CTRLS_ATTACH_NODE_VAR, selectedBlock->getStr("var", ""));
   const char *wtModulateValue = selectedBlock->getStr("wtModulate", defaultWtModulate);
   panel->setText(PID_CTRLS_ATTACH_NODE_WT_MODULATE, wtModulateValue);
   const bool wtModulateInverseValue = selectedBlock->getBool("wtModulateInverse", defaultWtModulateInverse);
   panel->setBool(PID_CTRLS_ATTACH_NODE_WT_MODULATE_INVERSE, wtModulateInverseValue);
-  bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
+  bool isEditable = selectedIdx >= 0;
   for (int i = PID_CTRLS_ATTACH_NODE_NODE; i <= PID_CTRLS_ATTACH_NODE_WT_MODULATE_INVERSE; ++i)
     panel->setEnabledById(i, isEditable);
 

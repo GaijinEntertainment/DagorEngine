@@ -98,26 +98,15 @@ static void close_textures(ContextId context_id)
   va.cpu.valid = false;
 }
 
-void begin_ri_gen_placement(ContextId context_id)
+static void reset_counters(dag::AtomicInteger<uint32_t> &considered, dag::AtomicInteger<uint32_t> &culled)
 {
-  auto &va = context_id->voxelActivity;
-  va.riGenConsidered.store(0);
-  va.riGenCulled.store(0);
+  considered.store(0);
+  culled.store(0);
 }
 
-void begin_ri_extra_placement(ContextId context_id)
-{
-  auto &va = context_id->voxelActivity;
-  va.riExConsidered.store(0);
-  va.riExCulled.store(0);
-}
-
-void begin_dynrend_placement(ContextId context_id)
-{
-  auto &va = context_id->voxelActivity;
-  va.dynConsidered.store(0);
-  va.dynCulled.store(0);
-}
+void begin_ri_gen_placement(ContextId id) { reset_counters(id->voxelActivity.riGenConsidered, id->voxelActivity.riGenCulled); }
+void begin_ri_extra_placement(ContextId id) { reset_counters(id->voxelActivity.riExConsidered, id->voxelActivity.riExCulled); }
+void begin_dynrend_placement(ContextId id) { reset_counters(id->voxelActivity.dynConsidered, id->voxelActivity.dynCulled); }
 
 static void consume_readback(Context::VoxelActivity &va)
 {
@@ -143,6 +132,11 @@ static IPoint3 origin_voxel_for(const Context::VoxelActivity &va, const Point3 &
 {
   auto floorDiv = [&](float v) { return int(floorf(v / va.voxelSize)); };
   return IPoint3(floorDiv(camera_pos.x), floorDiv(camera_pos.y), floorDiv(camera_pos.z)) - va.dims / 2;
+}
+
+static Point3 grid_origin_rel_for(const Context::VoxelActivity &va, const Point3 &camera_pos)
+{
+  return Point3(va.originVoxel.x, va.originVoxel.y, va.originVoxel.z) * va.voxelSize - camera_pos;
 }
 
 void update(ContextId context_id, const Point3 &camera_pos)
@@ -181,8 +175,7 @@ void update(ContextId context_id, const Point3 &camera_pos)
     // The grid is world anchored while the camera keeps moving, so the camera relative origin
     // must follow every build. The flush covers marks stored before the freeze flipped.
     d3d::resource_barrier({va.tex[va.current].getBaseTex(), RB_FLUSH_UAV | RB_SOURCE_STAGE_ALL_SHADERS | RB_STAGE_ALL_SHADERS, 0, 0});
-    const Point3 gridOrigin = Point3(va.originVoxel.x, va.originVoxel.y, va.originVoxel.z) * va.voxelSize;
-    va.gridOriginRel = gridOrigin - camera_pos;
+    va.gridOriginRel = grid_origin_rel_for(va, camera_pos);
     return;
   }
 
@@ -243,8 +236,7 @@ void update(ContextId context_id, const Point3 &camera_pos)
     va.readback.startCPUCopy();
   }
 
-  const Point3 gridOrigin = Point3(va.originVoxel.x, va.originVoxel.y, va.originVoxel.z) * va.voxelSize;
-  va.gridOriginRel = gridOrigin - camera_pos;
+  va.gridOriginRel = grid_origin_rel_for(va, camera_pos);
 }
 
 void bind(ContextId context_id)

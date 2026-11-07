@@ -6,6 +6,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderBlock.h>
 #include <ecs/render/aimRender.h>
+#include <render/compressedRtOverrideFlag.h>
 
 #include "render/fx/fx.h"
 #include "render/fx/fxRenderTags.h"
@@ -21,6 +22,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_rwResource.h>
 #include <generic/dag_align.h>
+#include <generic/dag_carray.h>
 #include "shaders/apply_lowres_fx.hlsli"
 
 dafg::NodeHandle makeAcesFxTransparentPartitionNode()
@@ -36,7 +38,7 @@ dafg::NodeHandle makeAcesFxTransparentPartitionNode()
     return [cullingIdHndl, cullingIdWrapper{acesfx::UniqueCullingId(dafx::create_proxy_culling_state(acesfx::get_dafx_context()))}] {
       G_ASSERT(cullingIdWrapper.get());
 
-      const eastl::vector<eastl::string> tags = {
+      const carray<eastl::string_view, 3> tags = {
         render_tags[ERT_TAG_LOWRES], render_tags[ERT_TAG_HIGHRES], render_tags[ERT_TAG_ATEST]};
 
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
@@ -76,7 +78,8 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeAcesFxLowresTransparentNodes
 
   const char *prepareNodeName = "acesfx_prepare_lowres_transparent_node";
   nodes.emplace_back(nodeNs.registerNode(prepareNodeName, DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.create("low_res_fx_rt").texture({TEXFMT_A16B16G16R16F | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f)});
+    registry.create("low_res_fx_rt")
+      .texture({TEXFMT_A16B16G16R16F | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view", 0.5f)});
 
     auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
     AntiAliasing *antiAliasing = wr.getAntialiasing();
@@ -84,7 +87,7 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeAcesFxLowresTransparentNodes
 
     if (needReactiveMask)
       registry.create("low_res_fx_reactive_mask_rt")
-        .texture({TEXFMT_R8 | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f)});
+        .texture({TEXFMT_R8 | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, registry.getResolution<2>("main_view", 0.5f)});
 
     registry.create("effects_depth_sampler").blob<d3d::SamplerHandle>(d3d::request_sampler({}));
   }));
@@ -100,8 +103,6 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeAcesFxLowresTransparentNodes
     registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
     auto cameraHndl = read_camera_in_camera(registry).handle();
 
-    auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
-
     auto lowResFxReactiveMaskHndl = registry.modifyTexture("low_res_fx_reactive_mask_rt")
                                       .atStage(dafg::Stage::PS)
                                       .useAs(dafg::Usage::COLOR_ATTACHMENT)
@@ -113,8 +114,7 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeAcesFxLowresTransparentNodes
       is_early ? eastl::make_optional(registry.readBlob<dafx::CullingId>("early_particles_cullingId").handle()) : eastl::nullopt;
 
     // TODO: this request should depend on water rendering mode, but now we don't recompile FG underwater.
-    bool upscaleTexAvailable = wr.hasFeature(FeatureRenderFlags::UPSCALE_SAMPLING_TEX);
-    auto depthWithWaterHndl = registry.read(upscaleTexAvailable ? "checkerboard_depth_with_water" : "far_downsampled_depth_with_water")
+    auto depthWithWaterHndl = registry.read(get_half_res_depth_with_water_name())
                                 .texture()
                                 .atStage(dafg::Stage::PS)
                                 .useAs(dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE)
@@ -157,7 +157,7 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeAcesFxLowresTransparentNodes
       const bool thermalVisionOn = acesfx::thermal_vision_on();
 
       ClusteredLights &lights = WRDispatcher::getClusteredLights();
-      if (lights.hasClusteredLights() && hasAnyDynamicLightsHndl.ref())
+      if (hasAnyDynamicLightsHndl.ref())
         lights.setInsideOfFrustumLightsToShader();
 
       Texture *depthAttachment;
@@ -290,7 +290,7 @@ dafg::NodeHandle makeAcesFxTransparentNode(bool is_early)
         const bool thermalVisionOn = acesfx::thermal_vision_on();
 
         ClusteredLights &lights = WRDispatcher::getClusteredLights();
-        if (lights.hasClusteredLights() && hasAnyDynamicLightsHndl.ref())
+        if (hasAnyDynamicLightsHndl.ref())
           lights.setInsideOfFrustumLightsToShader();
 
         if (shouldHaveLowres)

@@ -26,6 +26,11 @@ class Bitarray;
 class DataBlock;
 class ILogWriter;
 
+namespace AlphaTestValidation
+{
+struct Context;
+}
+
 
 class DynamicRenderableSceneLodsResSrc
 {
@@ -129,6 +134,7 @@ public:
 
   Tab<Lod> lods;
   ILogWriter *log = nullptr;
+  AlphaTestValidation::Context *atestValidationCtx = nullptr;
 
 
   DynamicRenderableSceneLodsResSrc(IProcessMaterialData *pm = nullptr);

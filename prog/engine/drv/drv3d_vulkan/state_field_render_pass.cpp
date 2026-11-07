@@ -80,9 +80,9 @@ void StateFieldRenderPassTarget::applyTo(uint32_t index, FrontRenderPassStateSto
   {
     att.info.usage = image->getUsage();
     att.info.flags = image->getCreateFlags();
-    VkExtent3D baseExtent = image->getBaseExtent();
-    att.info.width = baseExtent.width;
-    att.info.height = baseExtent.height;
+    VkExtent2D viewExtent = image->getMipExtents2D(mipLevel);
+    att.info.width = viewExtent.width;
+    att.info.height = viewExtent.height;
     att.info.layerCount = att.layers;
 
     viewFormatListFrom(fmt, att.info.usage, att.formats);

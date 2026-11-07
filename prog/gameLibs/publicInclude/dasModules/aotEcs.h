@@ -706,6 +706,10 @@ inline ecs::EntityId getSingletonEntityHint(const char *key, uint32_t key_hash)
   return g_entity_mgr->getSingletonEntity(ecs::HashedConstString({key, key_hash}));
 }
 inline ecs::EntityId getSingletonEntity(const char *s) { return g_entity_mgr->getSingletonEntity(ECS_HASH_SLOW(s ? s : "")); }
+inline ecs::EntityId getOrCreateSingletonEntity(const char *s)
+{
+  return g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH_SLOW(s ? s : ""));
+}
 inline bool is_entity_mgr_exists() { return (bool)g_entity_mgr; }
 
 template <typename T>

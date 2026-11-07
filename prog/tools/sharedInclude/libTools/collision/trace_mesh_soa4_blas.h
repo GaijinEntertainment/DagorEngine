@@ -23,7 +23,7 @@ inline bool trace_mesh_soa4_blas(const MeshSoa4BLAS &blas, const Point3 &from, c
   if (blas.empty())
     return false;
   const vec3f o = v_ldu_p3_safe(&from.x), d = v_ldu_p3_safe(&unnormalized_dir.x);
-  // constraint: the builds take -fp:fast, so a NaN test has to be the bit one
+  // the builds take -fp:fast, so a NaN test has to be the bit one
   if (!v_test_xyz_finite(o) || !v_test_xyz_finite(d) || !v_test_xyz_finite(v_splats(max_t)) || v_extract_x(v_length3_sq_x(d)) <= 0.f ||
       max_t <= 0.f || max_t >= BVH_MISS_T)
     return false;
@@ -38,7 +38,7 @@ inline bool trace_mesh_soa4_blas(const MeshSoa4BLAS &blas, const Point3 &from, c
     return false;
 
   max_t = r.t;
-  // constraint: BestRefCb leaves a raw LeafRef in bestTriOffset, and the leaf test picks its sub-triangle
+  // BestRefCb leaves a raw LeafRef in bestTriOffset, and the leaf test picks its sub-triangle
   if (out_norm)
     v_stu_p3(&out_norm->x, soa4::refNormalToWorld(r.data, (soa4::LeafRef)r.bestTriOffset, r.bestSubTri, blas.scale));
   return true;

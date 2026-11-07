@@ -46,7 +46,9 @@ ECS_REGISTER_EVENT(OnRTTRChanged);
 
 extern ShaderBlockIdHolder dynamicTransSceneBlockId;
 
-extern void render_mainhero_trans(const TMatrix &view_tm);
+extern void render_late_trans_cockpit(const TMatrix &view_tm);
+extern void render_late_trans(const TMatrix &view_tm);
+
 
 static void render_dynrend_ctx(dynrend::ContextId ctx, const TMatrix &vtm, int block)
 {
@@ -58,10 +60,71 @@ static void render_dynrend_ctx(dynrend::ContextId ctx, const TMatrix &vtm, int b
   dynrend::render_all_stages(ctx);
 }
 
+static void request_glass_gbuffer_state(dafg::Registry registry)
+{
+  shaders::OverrideState overrideState;
+  overrideState.set(shaders::OverrideState::Z_WRITE_ENABLE);
+  overrideState.zFunc = CMPF_GREATEREQUAL;
+  registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
+  registry.setPriority(TRANSPARENCY_NODE_PRIORITY_RENDINST);
+  registry.requestState().enableOverride(overrideState).setFrameBlock("global_frame");
+}
+
+static void request_common_glass_gbuffer_late_trans_state(dafg::Registry registry, bool only_depth)
+{
+  request_glass_gbuffer_state(registry);
+  if (only_depth)
+    registry.allowAsyncPipelines().requestRenderPass().depth("glass_depth");
+  else
+    registry.allowAsyncPipelines().requestRenderPass().color({"glass_target"}).depth("glass_depth");
+}
+
+static dafg::NodeHandle make_glass_late_trans_node(bool only_depth)
+{
+  auto nodeNs = dafg::root() / "transparent" / "close";
+  return nodeNs.registerNode("glass_late_trans_node", DAFG_PP_NODE_SRC, [only_depth](dafg::Registry registry) {
+    request_common_glass_gbuffer_late_trans_state(registry, only_depth);
+    auto cameraHndl = use_camera_in_camera(registry).handle();
+
+    registry.createBlob<OrderingToken>("glass_late_trans_cockpit_ordering_token");
+
+    return [cameraHndl, rendinst_transparent_gbuffer_passVarId = get_shader_variable_id("rendinst_transparent_gbuffer_pass")] {
+      ShaderGlobal::set_int(rendinst_transparent_gbuffer_passVarId, TrancslucentGbufferPass::GENERATE);
+      render_late_trans(cameraHndl.ref().viewTm);
+      ShaderGlobal::set_int(rendinst_transparent_gbuffer_passVarId, TrancslucentGbufferPass::OFF);
+    };
+  });
+}
+
+static dafg::NodeHandle make_glass_late_trans_cockpit_node(bool only_depth)
+{
+  auto nodeNs = dafg::root() / "transparent" / "close";
+  return nodeNs.registerNode("glass_late_trans_cockpit_node", DAFG_PP_NODE_SRC, [only_depth](dafg::Registry registry) {
+    request_common_glass_gbuffer_late_trans_state(registry, only_depth);
+    auto cameraHndl = use_current_cockpit_camera(registry).handle();
+    registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
+
+    registry.readBlob<OrderingToken>("glass_late_trans_cockpit_ordering_token");
+
+    return [cameraHndl, rendinst_transparent_gbuffer_passVarId = get_shader_variable_id("rendinst_transparent_gbuffer_pass")](
+             const dafg::multiplexing::Index &multiplex_index) {
+      if (multiplex_index.subCamera != 0)
+        return;
+
+      ShaderGlobal::set_int(rendinst_transparent_gbuffer_passVarId, TrancslucentGbufferPass::GENERATE);
+      render_late_trans_cockpit(cameraHndl.ref().viewTm);
+      ShaderGlobal::set_int(rendinst_transparent_gbuffer_passVarId, TrancslucentGbufferPass::OFF);
+    };
+  });
+}
+
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear, ChangeRenderFeatures, OnRTTRChanged)
-static void glass_gbuffer_renderer_es(
-  const ecs::Event &evt, ecs::EntityManager &manager, dafg::NodeHandle &glass_gbuffer_renderer_node)
+static void glass_gbuffer_renderer_es(const ecs::Event &evt,
+  ecs::EntityManager &manager,
+  dafg::NodeHandle &glass_gbuffer_renderer_node,
+  dafg::NodeHandle &glass_late_trans_node,
+  dafg::NodeHandle &glass_late_trans_cockpit_node)
 {
   if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
     if (!(changedFeatures->isFeatureChanged(CAMERA_IN_CAMERA)))
@@ -75,9 +138,6 @@ static void glass_gbuffer_renderer_es(
   auto nodeNs = dafg::root() / "transparent" / "close";
   glass_gbuffer_renderer_node =
     nodeNs.registerNode(nodeName, DAFG_PP_NODE_SRC, [only_depth, targetSize, &manager](dafg::Registry registry) {
-      shaders::OverrideState overrideState;
-      overrideState.set(shaders::OverrideState::Z_WRITE_ENABLE);
-      overrideState.zFunc = CMPF_GREATEREQUAL;
       registry.orderMeAfter("begin"); // need for correct ordering inside transparent "group"
       auto depth =
         registry.createTexture2d("glass_depth", {TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view", targetSize)})
@@ -96,13 +156,11 @@ static void glass_gbuffer_renderer_es(
         registry.allowAsyncPipelines().requestRenderPass().color({target}).depth(depth);
       }
 
-      registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
-      registry.setPriority(TRANSPARENCY_NODE_PRIORITY_RENDINST);
-
-      registry.requestState().enableOverride(overrideState).setFrameBlock("global_frame");
       int rendinstTransSceneBlockid = ShaderGlobal::getBlockId("rendinst_trans_scene");
 
+      request_glass_gbuffer_state(registry);
       auto cameraHndl = use_camera_in_camera(registry).handle();
+
       auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
       return [cameraHndl, strmCtxHndl, rendinstTransSceneBlockid,
                rendinst_transparent_gbuffer_passVarId = get_shader_variable_id("rendinst_transparent_gbuffer_pass"), &manager] {
@@ -141,10 +199,12 @@ static void glass_gbuffer_renderer_es(
         render_dynrend_ctx(ctx, vtm, dynamicTransSceneBlockId);
         d3d::settm(TM_VIEW, camera.viewTm);
 
-        render_mainhero_trans(cameraHndl.ref().viewTm);
         ShaderGlobal::set_int(rendinst_transparent_gbuffer_passVarId, TrancslucentGbufferPass::OFF);
       };
     });
+
+  glass_late_trans_node = make_glass_late_trans_node(only_depth);
+  glass_late_trans_cockpit_node = make_glass_late_trans_cockpit_node(only_depth);
 }
 
 ECS_TAG(render)

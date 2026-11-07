@@ -1,0 +1,8 @@
+untyped: typecheck 49313, -1, -1; varargs 0; object 49313; args -1, -1; ellipsis 0
+untypedVararg: typecheck 49313, -1; varargs -1; object 49313; args -1; ellipsis -1
+typed: typecheck 49313, 2, 16; varargs 0; object 49313; args 2, 16; ellipsis 0
+typedVararg: typecheck 49313, -1; varargs 2; object 49313; args -1; ellipsis 2
+lambda: typecheck 49313, -1; varargs 0; object 49313; args -1; ellipsis 0
+method: typecheck 49313, -1; varargs 0; object 49313; args -1; ellipsis 0
+calls: 3 st 3 3x 3 7 null
+error: parameter 3 of 'typedVararg' has an invalid type 'string' ; expected: 'integer'

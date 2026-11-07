@@ -7,9 +7,6 @@
 #include "animationClip.h"
 #include "animationDataBase.h"
 
-// it's usefull ot disable mm work while debug new animations
-#define DISABLE_MOTION_MATCHING 0
-
 class MotionMatchingController : public AnimV20::IMotionMatchingController
 {
 public:
@@ -94,7 +91,8 @@ public:
   bool isAnimationTagsMatch() const
   {
     const AnimationClip &clip = dataBase->clips[currentClipInfo.clip];
-    return currentTags.isMatch(clip.intervals[clip.getInterval(currentClipInfo.frame)].tags);
+    int interval = clip.getInterval(currentClipInfo.frame);
+    return interval >= 0 && currentTags.isMatch(clip.intervals[interval].tags);
   }
 };
 

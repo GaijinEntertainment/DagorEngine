@@ -152,6 +152,25 @@ static ActionDescription spShortcuts[] = {
 const ActionContextId FreeCamContext = 0x2bfc51d6;
 const ActionTableId FreeCamShortcuts = 0x2bfc51d6;
 
+static VOID CALLBACK TimerFunc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
+{
+  if (!freecam.modon || !freecam.on)
+    return;
+  if (!freecam.changed)
+    return;
+  ViewExp *ve = getActiveViewport();
+  freecam.SetView(ve);
+  GetCOREInterface()->ForceCompleteRedraw(FALSE);
+  releaseViewport(ve);
+}
+static UINT_PTR timer_id = NULL;
+
+static void set_main_ui_active(bool active)
+{
+  if (ActionContext *uimain = GetCOREInterface()->GetActionManager()->FindContext(kActionMainUIContext))
+    uimain->SetActive(active);
+}
+
 class FreeCamCommandMode : public CommandMode, public MouseCallBack
 {
 public:
@@ -171,6 +190,7 @@ public:
   {
     started = 0;
     ViewExp *ve = getActiveViewport();
+    freecam.InitView(ve);
     HWND hwnd = ve->GetHWnd();
     RECT Rect;
     bool gr = true;
@@ -183,12 +203,20 @@ public:
       mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_LEFTDOWN, 65535 * (Rect.right + Rect.left) / (2 * desktopr.right),
         65535 * (Rect.top + Rect.bottom) / (2 * desktopr.bottom), 0, NULL);
     prevcur = SetCursor(NULL);
+    freecam.on = 1;
+    timer_id = SetTimer(NULL, NULL, 10, (TIMERPROC)&TimerFunc);
+    set_main_ui_active(false);
   }
   void ExitMode() override
   {
     if (prevcur)
       SetCursor(prevcur);
     prevcur = NULL;
+    freecam.on = 0;
+    if (timer_id)
+      KillTimer(NULL, timer_id);
+    timer_id = NULL;
+    set_main_ui_active(true);
   }
 
   // Mouse
@@ -257,7 +285,6 @@ public:
     {
       op = m;
       started = 0;
-      freecam.on = 0;
       GetCOREInterface()->DeleteMode(this);
     }
     else if (msg == MOUSE_INIT)
@@ -287,19 +314,6 @@ static class FreeCamShortcut *fccb = NULL;
 
 static FreeCamCommandMode freecamcm;
 
-static VOID CALLBACK TimerFunc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
-{
-  if (!freecam.modon || !freecam.on)
-    return;
-  if (!freecam.changed)
-    return;
-  ViewExp *ve = getActiveViewport();
-  freecam.SetView(ve);
-  GetCOREInterface()->ForceCompleteRedraw(FALSE);
-  releaseViewport(ve);
-}
-static UINT_PTR timer_id = NULL;
-
 class FreeCamShortcut : public ActionCallback
 {
 public:
@@ -309,13 +323,6 @@ public:
       return FALSE;
     if (!freecam.on && id != IDR_FREE)
       return FALSE;
-    ViewExp *ve = NULL;
-    bool set = false;
-    if ((freecam.on && id != IDR_FREE) || (!freecam.on && id == IDR_FREE))
-    {
-      set = true;
-      ve = getActiveViewport();
-    }
     switch (id)
     {
       case IDR_FREE_UP: freecam.MoveViewByRow(1, 1); break;
@@ -331,34 +338,11 @@ public:
       case IDR_FREET_UP: freecam.MoveViewByRow(1, freecam.turbo); break;
       case IDR_FREET_DOWN: freecam.MoveViewByRow(1, -freecam.turbo); break;
       case IDR_FREE:
-      {
-        freecam.on = !freecam.on;
         if (freecam.on)
-        {
-          freecam.InitView(ve);
-          GetCOREInterface()->SetCommandMode(&freecamcm);
-          timer_id = SetTimer(NULL, NULL, 10, (TIMERPROC)&TimerFunc);
-          ActionContext *uimain = GetCOREInterface()->GetActionManager()->FindContext(kActionMainUIContext);
-          if (uimain)
-            uimain->SetActive(false);
-        }
-        else
-        {
-          if (timer_id)
-            KillTimer(NULL, timer_id);
-          timer_id = NULL;
           GetCOREInterface()->DeleteMode(&freecamcm);
-          ActionContext *uimain = GetCOREInterface()->GetActionManager()->FindContext(kActionMainUIContext);
-          if (uimain)
-            uimain->SetActive(true);
-        }
-        return TRUE;
-      }
-      break;
-    }
-    if (set)
-    {
-      releaseViewport(ve);
+        else
+          GetCOREInterface()->SetCommandMode(&freecamcm);
+        break;
     }
     return TRUE;
   };
@@ -543,22 +527,8 @@ void DagFreeCamUtil::update_freecam_ui()
 
 void DagFreeCamUtil::set_cam(char fcmon)
 {
-  if (fcmon)
-    ; // no-op
-  else if (!fcmon)
-  {
-    if (freecam.on)
-    {
-      freecam.on = 0;
-      GetCOREInterface()->DeleteMode(&freecamcm);
-      if (timer_id)
-        KillTimer(NULL, timer_id);
-      timer_id = NULL;
-      ActionContext *uimain = GetCOREInterface()->GetActionManager()->FindContext(kActionMainUIContext);
-      if (uimain)
-        uimain->SetActive(true);
-    }
-  }
+  if (!fcmon && freecam.on)
+    GetCOREInterface()->DeleteMode(&freecamcm);
 }
 
 void DagFreeCamUtil::update_freecam_vars()

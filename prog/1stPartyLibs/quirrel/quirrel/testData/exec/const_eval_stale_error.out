@@ -1,0 +1,13 @@
+3
+6
+true
+3
+true
+false
+1
+1
+null
+null
+ERROR: error in get operation: Error in '_get' metamethod: boom
+ERROR: error in get operation: Error in '_get' metamethod: boom
+ERROR: Error while applying 'in' operator: Error in '_get' metamethod: boom

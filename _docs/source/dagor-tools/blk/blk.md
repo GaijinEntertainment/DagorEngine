@@ -146,6 +146,33 @@ presence of `vsync` before it.
 
 ```text
 "@delete:<name_of_block_or_parameter>"
+"@delete:<name_of_parameter>[<ordinal>]":t="<expected>"
+"@delete:<name_of_parameter>":t="<expected>"
+```
+
+The directive removes the first parameter with this name, or the parameter with
+this 1-based ordinal (`name[2]` is the second `name`).
+
+A string value on the directive (`:t="<expected>"`) is the expected value of the
+removed parameter:
+
+- If `<expected>` is not empty, the target must be a string parameter with the
+  same value. A different value or a target of other type is a syntax error, and
+  the BLK load fails.
+- An empty string (`""`) is a wildcard: the parameter is removed with no check.
+- A value of other type (for example `"@delete:vsync":b=no`) is not compared.
+
+If no parameter with this name is found or the ordinal is greater than the number
+of parameters with the specified name, the parser writes an error to the log and
+either fails or proceeds loading depending on `fatalOnLoadFailed` flag. Robust
+mode can skip logging if no error reporter installed.
+
+**Example:**
+
+```text
+"@delete:part[2]":t="aa_turret_2_dm"  // error if the second `part` is not "aa_turret_2_dm"
+"@delete:part":t="aa_turret_1_dm"     // error if the first `part` is not "aa_turret_1_dm"
+"@delete:part":t=""                   // removes the first `part`, whatever its value
 ```
 
 #### Directive `@clone-last`

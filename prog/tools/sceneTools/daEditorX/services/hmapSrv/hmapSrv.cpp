@@ -92,6 +92,8 @@
 #include <heightmap/heightmapRenderer.h>
 #include <heightmap/heightmapHandler.h>
 
+#include <3d/dag_texMgr.h>
+
 /*#include "detailRenderData.h"
 Tab<DetailRenderData::TexturePingPong> DetailRenderData::colorMapTexArr;
 Tab<Texture *> DetailRenderData::detailMaskTexArr;
@@ -1242,7 +1244,7 @@ public:
     clipmap = new Clipmap(clipBlk->getBool("useUAVFeedback", false));
     clipmap->init(texel_sz, Clipmap::CPU_HW_FEEDBACK, Clipmap::getDefaultFeedbackProperties(), clipBlk->getInt("texMips", 7));
     clipmap->initVirtualTexture(clipBlk->getInt("cacheWidth", 4096), clipBlk->getInt("cacheHeight", 8192), 256, 1,
-      ::dgs_tex_anisotropy, float(2 * 1920 * 1080));
+      ::dgs_tex_anisotropy, float(2 * 1920 * 1080), false);
     if (useToroidalHeightmap)
     {
       toroidalHeightmap.reset(new ToroidalHeightmap());
@@ -1944,7 +1946,7 @@ public:
       }
       cullData.eraseAll();
       cull_lod_grid3(*hm2.metrics, cullData, frustum, nullptr, hm2.hMin, hm2.hMax, hm2.bboxMain, maxUpwardDisplacement,
-        maxDownwardDisplacement, mirror, v_ldu(&vpos.x), nullptr, hq);
+        maxDownwardDisplacement, mirror ? v_splats((128 << 20)) : v_zero(), v_ldu(&vpos.x), nullptr, hq);
 
       if (cullData.hasPatches())
       {
@@ -2224,6 +2226,13 @@ public:
       shaders::overrides::reset();
     }
 
+    uint32_t renderClipmapTile(const BBox2 &region, const CacheCoords &cachecoords, int totalMipLevel) override
+    {
+      G_UNUSED(cachecoords);
+      G_UNUSED(totalMipLevel);
+      renderTile(region);
+      return 0;
+    }
     void renderTile(const BBox2 &region) override
     {
       d3d::settm(TM_WORLD, TMatrix::IDENT);
@@ -2580,8 +2589,32 @@ public:
     if (!out_tex)
       return NULL;
 
-    prepareFixedClipCommon(p, r, texture_size,
-      [&](LandMeshData &data) { render_last_clip_to_tex(out_tex, data, Point3{0.f, 0.f, 0.f}); });
+    auto prepareFixedClipCommon1 = [&] {
+      prepareFixedClipCommon(p, r, texture_size,
+        [&](LandMeshData &data) { render_last_clip_to_tex(out_tex, data, Point3{0.f, 0.f, 0.f}); });
+    };
+
+    {
+      // Increase the frame number so that the textures used in prepareFixedClip can be separated via the LFU value comparison
+      dagor_frame_no_increment();
+      const unsigned prepareFrameNo = dagor_frame_no();
+      prepareFixedClipCommon1();
+
+      Tab<TEXTUREID> usedTex(tmpmem);
+      for (TEXTUREID id = first_managed_texture(); id != BAD_TEXTUREID; id = next_managed_texture(id))
+        if (get_managed_res_lfu(id) >= prepareFrameNo)
+          usedTex.push_back(id);
+
+      int64_t reft = ref_time_ticks();
+      const bool loaded = prefetch_and_wait_managed_textures_loaded(usedTex, true, 300 * 1000000); // wait upto 300 sec
+      debug("prepareFixedClipForExport: loaded %d textures in %dms", usedTex.size(), get_time_usec(reft) / 1000);
+
+      if (!loaded)
+        DAEDITOR3.conError("prepareFixedClipForExport: could not load all of the textures necessary for the lastclip export");
+    }
+
+    prepareFixedClipCommon1();
+
     return out_tex;
   }
 
@@ -2686,7 +2719,7 @@ public:
     shaders::overrides::reset();
   }
 
-  void renderDecals(LandMeshRenderer &r, LandMeshManager &p) const override
+  void renderDecals(LandMeshRenderer &r, LandMeshManager &p, bool water_decals) const override
   {
     BBox3 levelBox = BBox3();
 
@@ -2701,7 +2734,8 @@ public:
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
     LandMeshRenderDesc desc;
     desc.renderInBBox = levelBox;
-    r.renderDecals(p, LandMeshRenderer::RENDER_WITH_CLIPMAP, desc, globtm, HmapOrigin(::grs_cur_view.pos));
+    r.renderDecals(p, water_decals ? LandMeshRenderer::RENDER_WATER_DECALS : LandMeshRenderer::RENDER_WITH_CLIPMAP, desc, globtm,
+      HmapOrigin(::grs_cur_view.pos));
     r.setLMeshRenderingMode(omode);
   }
 

@@ -263,6 +263,15 @@ static void dagdp_global_density_mul_settings_es(
   manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateViews(); });
 }
 
+ECS_TAG(render)
+ECS_TRACK(render_settings__dagdpLodRangeMul)
+ECS_ON_EVENT(OnRenderSettingsReady)
+ECS_NO_ORDER
+static void dagdp_lod_range_mul_settings_es(const ecs::Event &, float render_settings__dagdpLodRangeMul)
+{
+  GlobalManager::setLodRangeMul(render_settings__dagdpLodRangeMul);
+}
+
 template <typename Callable>
 static inline void grass_range_mul_ecs_query(ecs::EntityManager &manager, Callable);
 

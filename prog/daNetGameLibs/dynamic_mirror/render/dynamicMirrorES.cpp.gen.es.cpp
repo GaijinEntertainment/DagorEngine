@@ -16,7 +16,7 @@ static constexpr ecs::ComponentDesc prepare_mirror_es_comps[] =
   {ECS_HASH("dynamic_mirror_render_ground_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("dynamic_mirror_resolve_gbuf_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("dynamic_mirror_resolve_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("dynamic_mirror_prepare_envi_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("dynamic_mirror_render_water_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("dynamic_mirror_envi_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static void prepare_mirror_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -34,7 +34,7 @@ static void prepare_mirror_es_all_events(const ecs::Event &__restrict evt, const
     , ECS_RW_COMP(prepare_mirror_es_comps, "dynamic_mirror_render_ground_node", dafg::NodeHandle)
     , ECS_RW_COMP(prepare_mirror_es_comps, "dynamic_mirror_resolve_gbuf_node", dafg::NodeHandle)
     , ECS_RW_COMP(prepare_mirror_es_comps, "dynamic_mirror_resolve_node", dafg::NodeHandle)
-    , ECS_RW_COMP(prepare_mirror_es_comps, "dynamic_mirror_prepare_envi_node", dafg::NodeHandle)
+    , ECS_RW_COMP(prepare_mirror_es_comps, "dynamic_mirror_render_water_node", dafg::NodeHandle)
     , ECS_RW_COMP(prepare_mirror_es_comps, "dynamic_mirror_envi_node", dafg::NodeHandle)
     );
   while (++comp != compE);
@@ -138,18 +138,17 @@ static ecs::EntitySystemDesc animchar_mirror_before_render_es_es_desc
 ,"render",nullptr,nullptr,"animchar_before_render_es");
 static constexpr ecs::ComponentDesc get_dynamic_mirror_ecs_query_comps[] =
 {
-//start of 1 rw components at [0]
-  {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
-//start of 3 ro components at [1]
+//start of 4 ro components at [0]
   {ECS_HASH("dynamic_mirror_holder__mirrorNormal"), ecs::ComponentTypeInfo<Point3>()},
-  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-  {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()}
+  {ECS_HASH("dynamic_mirror_holder__mirrorPos"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("dynamic_mirror_holder__znearBias"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()}
 };
 static ecs::CompileTimeQueryDesc get_dynamic_mirror_ecs_query_desc
 (
   "get_dynamic_mirror_ecs_query",
-  make_span(get_dynamic_mirror_ecs_query_comps+0, 1)/*rw*/,
-  make_span(get_dynamic_mirror_ecs_query_comps+1, 3)/*ro*/,
+  empty_span(),
+  make_span(get_dynamic_mirror_ecs_query_comps+0, 4)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -162,9 +161,9 @@ inline void get_dynamic_mirror_ecs_query(ecs::EntityManager &manager, Callable f
         {
           function(
               ECS_RO_COMP(get_dynamic_mirror_ecs_query_comps, "dynamic_mirror_holder__mirrorNormal", Point3)
+            , ECS_RO_COMP(get_dynamic_mirror_ecs_query_comps, "dynamic_mirror_holder__mirrorPos", Point3)
+            , ECS_RO_COMP(get_dynamic_mirror_ecs_query_comps, "dynamic_mirror_holder__znearBias", float)
             , ECS_RO_COMP(get_dynamic_mirror_ecs_query_comps, "transform", TMatrix)
-            , ECS_RO_COMP(get_dynamic_mirror_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
-            , ECS_RW_COMP(get_dynamic_mirror_ecs_query_comps, "animchar", AnimV20::AnimcharBaseComponent)
             );
 
         }while (++comp != compE);

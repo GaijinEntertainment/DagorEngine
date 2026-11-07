@@ -19,7 +19,7 @@ IPoint<D> AutoResolutionRequest<D>::get() const
     return {};
   }
   const auto &res = eastl::get<IPoint<D>>(provider->resolutions[autoResTypeId]);
-  return scale_by(res, multiplier);
+  return scale_by(res, multiplier, roundUp);
 }
 
 template class AutoResolutionRequest<2>;

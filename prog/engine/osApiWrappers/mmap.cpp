@@ -100,9 +100,11 @@ const void *df_mmap(file_ptr_t fp, int *flen, int length, int offset)
   void *mem = malloc(length); //-V779
   if (!mem)
     return NULL;
-  if (offset)
-    df_seek_to(fp, offset);
-  if (df_read(fp, mem, length) != length)
+  const int savedPos = df_tell(fp);
+  df_seek_to(fp, base + offset);
+  const bool readOk = df_read(fp, mem, length) == length;
+  df_seek_to(fp, savedPos);
+  if (!readOk)
   {
     free(mem);
     return NULL;

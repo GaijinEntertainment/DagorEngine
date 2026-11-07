@@ -454,7 +454,6 @@ public:
   virtual ~WatchedHandle();
 
   Sqrat::Object getValue();
-  Sqrat::Object getValueDeprecated();
   bool getImmediate() const;
   void setImmediate(bool v);
   int getTimeChangeReq() const;

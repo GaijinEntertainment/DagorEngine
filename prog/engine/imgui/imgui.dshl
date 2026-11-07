@@ -85,8 +85,10 @@ shader imgui
   else if (imgui_tex_type == threeD)
   {
     (ps) {
-      tex@smp3d = imgui_tex;
-      diff@smp3d = imgui_tex_diff;
+      tex@tex3d = imgui_tex;
+      tex_samplerstate@sampler = imgui_tex_samplerstate;
+      diff@tex3d = imgui_tex_diff;
+      diff_samplerstate@sampler = imgui_tex_diff_samplerstate;
     }
   }
   else if (imgui_tex_type == array)

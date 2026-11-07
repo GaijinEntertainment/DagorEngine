@@ -22,7 +22,7 @@ SQRESULT sq_ext_getfuncinfo(HSQOBJECT obj, SQFunctionInfo *fi)
       return SQ_ERROR;
 
     fi->funcid = proto;
-    fi->name = sq_type(proto->_name) == OT_STRING?_stringval(proto->_name):"unknown";
+    fi->name = _stringval(proto->GetName());
     fi->source = sq_type(proto->_sourcename) == OT_STRING?_stringval(proto->_sourcename):"unknown";
     fi->line = proto->_lineinfos->_first_line;
   }

@@ -99,9 +99,10 @@ static ecs::EntitySystemDesc dagdp_volume_start_csm_gather_es_es_desc
 ,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc dagdp_placer_volume_changed_es_comps[] =
 {
-//start of 1 ro components at [0]
+//start of 2 ro components at [0]
   {ECS_HASH("dagdp__sample_range"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
-//start of 11 rq components at [1]
+  {ECS_HASH("dagdp__discard_below_heightmap"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 11 rq components at [2]
   {ECS_HASH("dagdp__volume_axis_abs"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dagdp__volume_axis_local"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dagdp__distance_based_scale"), ecs::ComponentTypeInfo<Point2>()},
@@ -120,6 +121,7 @@ static void dagdp_placer_volume_changed_es_all_events(const ecs::Event &__restri
     dagdp::dagdp_placer_volume_changed_es(evt
         , components.manager()
     , ECS_RO_COMP_OR(dagdp_placer_volume_changed_es_comps, "dagdp__sample_range", float(-1))
+    , ECS_RO_COMP_OR(dagdp_placer_volume_changed_es_comps, "dagdp__discard_below_heightmap", bool(false))
     );
   while (++comp != compE);
 }
@@ -129,15 +131,15 @@ static ecs::EntitySystemDesc dagdp_placer_volume_changed_es_es_desc
   "prog/daNetGameLibs/daGdp/render/placers/volumeES.cpp.inl",
   ecs::EntitySystemOps(nullptr, dagdp_placer_volume_changed_es_all_events),
   empty_span(),
-  make_span(dagdp_placer_volume_changed_es_comps+0, 1)/*ro*/,
-  make_span(dagdp_placer_volume_changed_es_comps+1, 11)/*rq*/,
+  make_span(dagdp_placer_volume_changed_es_comps+0, 2)/*ro*/,
+  make_span(dagdp_placer_volume_changed_es_comps+2, 11)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear,
                        ecs::EventEntityDestroyed,
                        ecs::EventComponentsDisappear>::build(),
   0
-,"render","dagdp__density,dagdp__distance_based_center,dagdp__distance_based_range,dagdp__distance_based_scale,dagdp__name,dagdp__sample_range,dagdp__target_mesh_lod,dagdp__volume_axis,dagdp__volume_axis_abs,dagdp__volume_axis_local,dagdp__volume_min_triangle_area");
+,"render","dagdp__density,dagdp__discard_below_heightmap,dagdp__distance_based_center,dagdp__distance_based_range,dagdp__distance_based_scale,dagdp__name,dagdp__sample_range,dagdp__target_mesh_lod,dagdp__volume_axis,dagdp__volume_axis_abs,dagdp__volume_axis_local,dagdp__volume_min_triangle_area");
 static constexpr ecs::ComponentDesc dagdp_placer_on_meshes_resource_link_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -463,7 +465,7 @@ inline void dagdp::volume_spheres_ecs_query(ecs::EntityManager &manager, Callabl
 }
 static constexpr ecs::ComponentDesc on_mesh_placers_ecs_query_comps[] =
 {
-//start of 13 ro components at [0]
+//start of 14 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("dagdp__density"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__volume_min_triangle_area"), ecs::ComponentTypeInfo<float>()},
@@ -477,15 +479,16 @@ static constexpr ecs::ComponentDesc on_mesh_placers_ecs_query_comps[] =
   {ECS_HASH("dagdp__target_mesh_lod"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__sample_range"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("dagdp__csm_cascade_count"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [13]
+  {ECS_HASH("dagdp__discard_below_heightmap"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [14]
   {ECS_HASH("dagdp_placer_on_meshes"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc on_mesh_placers_ecs_query_desc
 (
   "dagdp::on_mesh_placers_ecs_query",
   empty_span(),
-  make_span(on_mesh_placers_ecs_query_comps+0, 13)/*ro*/,
-  make_span(on_mesh_placers_ecs_query_comps+13, 1)/*rq*/,
+  make_span(on_mesh_placers_ecs_query_comps+0, 14)/*ro*/,
+  make_span(on_mesh_placers_ecs_query_comps+14, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::on_mesh_placers_ecs_query(ecs::EntityManager &manager, Callable function)
@@ -509,6 +512,7 @@ inline void dagdp::on_mesh_placers_ecs_query(ecs::EntityManager &manager, Callab
             , ECS_RO_COMP(on_mesh_placers_ecs_query_comps, "dagdp__target_mesh_lod", int)
             , ECS_RO_COMP_OR(on_mesh_placers_ecs_query_comps, "dagdp__sample_range", float(-1))
             , ECS_RO_COMP_OR(on_mesh_placers_ecs_query_comps, "dagdp__csm_cascade_count", int(-1))
+            , ECS_RO_COMP_OR(on_mesh_placers_ecs_query_comps, "dagdp__discard_below_heightmap", bool(false))
             );
 
         }while (++comp != compE);
@@ -675,6 +679,36 @@ inline void dagdp::around_ri_placers_ecs_query(ecs::EntityManager &manager, Call
             , ECS_RO_COMP(around_ri_placers_ecs_query_comps, "dagdp__volume_cylinder_eids", ecs::EidList)
             , ECS_RO_COMP(around_ri_placers_ecs_query_comps, "dagdp__volume_sphere_eids", ecs::EidList)
             , ECS_RO_COMP(around_ri_placers_ecs_query_comps, "dagdp__csm_cascade_count", int)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc underground_zones_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+//start of 1 rq components at [1]
+  {ECS_HASH("underground_zone"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc underground_zones_ecs_query_desc
+(
+  "dagdp::underground_zones_ecs_query",
+  empty_span(),
+  make_span(underground_zones_ecs_query_comps+0, 1)/*ro*/,
+  make_span(underground_zones_ecs_query_comps+1, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void dagdp::underground_zones_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, underground_zones_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(underground_zones_ecs_query_comps, "transform", TMatrix)
             );
 
         }while (++comp != compE);

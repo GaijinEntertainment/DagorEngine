@@ -92,6 +92,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
   if (rendinst_render_pass == rendinst_render_pass_to_heightmap) { dont_render;}
 
   USE_COMBINED_WIND(vs)
+  USE_TREE_WIND_ANIM_FADE(vs)
 
   if (shader == rendinst_tree_perlin_layered)
   {
@@ -240,6 +241,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
     }
 
     USE_PERLIN_LAYERED(ps)
+    USE_VOXEL_BAKING()
 
     if (compatibility_mode == compatibility_mode_off && shader == rendinst_tree_perlin_layered && rendinst_render_pass == rendinst_render_pass_normal && use_parallax_shadows_or_ao)
     {
@@ -270,7 +272,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
       #ifndef IS_DYNAMIC
         #define IS_DYNAMIC 0
       #endif
-      UnpackedGbuffer get_current_gbuffer(VsOutput input, float3 cameraWorldViewPos)
+      UNPACKED_GBUFFER get_current_gbuffer(VsOutput input, float3 cameraWorldViewPos)
       {
         #if SET_UP_MULTIDRAW
           SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
@@ -436,7 +438,11 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
 
         init_albedo(gbuffer, diffuseColor.rgb);
         init_translucency(gbuffer, get_constant_translucency());
-        return gbuffer;
+        #if RENDINST_IMPOSTOR_VOXEL
+          return baker_output_from_gbuffer(gbuffer, 0, 1.0, 0, 0, 0).data;
+        #else
+          return gbuffer;
+        #endif
       }
     }
   endmacro
@@ -575,25 +581,32 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         ##endif
         float maxMovement = 0;
 
-        VegetationInteractionInput vegInput = (VegetationInteractionInput)0;
-        ##if (is_pivoted == yes)
-          HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
+        #if RENDINST_IMPOSTOR_VOXEL
+          float3 vegetationInteractionOffset = 0;
           float3 prevWorldPos = worldPos;
-          ##if (instancing_type == tm_vb && rendinst_render_pass == rendinst_render_pass_normal)
-            float3 prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos;
-            LOAD_PREV_WORLD_TM(worldLocalX, worldLocalY, worldLocalZ, worldLocalPos, prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos)
-            prevWorldPos = localPos.x * prevWorldTmX + localPos.y * prevWorldTmY + localPos.z * prevWorldTmZ + prevWorldTmPos;
+        #else
+          VegetationInteractionInput vegInput = (VegetationInteractionInput)0;
+          ##if (is_pivoted == yes)
+            HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
+            float3 prevWorldPos = worldPos;
+            ##if (instancing_type == tm_vb && rendinst_render_pass == rendinst_render_pass_normal)
+              float3 prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos;
+              LOAD_PREV_WORLD_TM(worldLocalX, worldLocalY, worldLocalZ, worldLocalPos, prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos)
+              prevWorldPos = localPos.x * prevWorldTmX + localPos.y * prevWorldTmY + localPos.z * prevWorldTmZ + prevWorldTmPos;
+            ##endif
+            float windAnimWeight = get_tree_wind_anim_weight(length(world_view_pos.xyz - worldLocalPos));
+          BRANCH
+          if (windAnimWeight > 0)
+              applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, prevWorldPos, maxMovement);
+            vegInput.hData = Data;
           ##endif
-          float windAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, prevWorldPos, maxMovement);
-          vegInput.hData = Data;
-        ##endif
-        vegInput.worldPivot = worldLocalPos;
-        vegInput.worldPos = worldPos;
-        vegInput.localPos = localPos;
-        vegInput.height = physBbox.y * length(worldLocalY);
-        float3 vegetationInteractionOffset = apply_vegetation_interactions(vegInput);
-        worldPos += vegetationInteractionOffset;
+          vegInput.worldPivot = worldLocalPos;
+          vegInput.worldPos = worldPos;
+          vegInput.localPos = localPos;
+          vegInput.height = physBbox.y * length(worldLocalY);
+          float3 vegetationInteractionOffset = apply_vegetation_interactions(vegInput);
+          worldPos += vegetationInteractionOffset;
+        #endif
 
         float3 pointToEye = world_view_pos-worldPos;
 
@@ -641,7 +654,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
 
   endmacro
 
-  if (rendinst_render_pass == rendinst_render_pass_impostor_color)
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color || rendinst_render_pass == rendinst_render_pass_impostor_voxel)
   {
     DEFAULT_VERTEX_SHADER_LAYERED()
 
@@ -650,15 +663,20 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
     PACK_UNPACK_GBUFFER()
     USE_PIXEL_TANGENT_SPACE()
     FILL_CURRENT_GBUFFER_LAYERED()
-    USE_RENDINST_IMPOSTOR_SHADOW()
+    if (rendinst_render_pass != rendinst_render_pass_impostor_voxel)
+    {
+      USE_RENDINST_IMPOSTOR_SHADOW()
+    }
     USE_WEIGHT_FOR_AO()
     hlsl(ps) {
-      UnpackedGbuffer get_impostor_gbuffer(VsOutput input, out half alpha, out half coloring)
+      UNPACKED_GBUFFER get_impostor_gbuffer(VsOutput input, out half alpha, out half coloring)
       {
-        UnpackedGbuffer gbuffer = get_current_gbuffer(input, 0);
-        half shadow = getShadow(input.pointToEye.xyz);
-        init_shadow(gbuffer, shadow);
-        apply_additional_gbuffer_ao(gbuffer, input.mossAo.y);
+        UNPACKED_GBUFFER gbuffer = get_current_gbuffer(input, 0);
+        #if !RENDINST_IMPOSTOR_VOXEL
+          half shadow = getShadow(input.pointToEye.xyz);
+          init_shadow(gbuffer, shadow);
+          apply_additional_gbuffer_ao(gbuffer, input.mossAo.y);
+        #endif
         alpha = 1; coloring = 0;
 
         return gbuffer;
@@ -769,8 +787,10 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         ##if (is_pivoted == yes)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
           float3 unusedPrevPos;
-          float windAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, unusedPrevPos);
+          float windAnimWeight = get_tree_wind_anim_weight(length(world_view_pos.xyz - worldLocalPos));
+          BRANCH
+          if (windAnimWeight > 0)
+            applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, unusedPrevPos);
           vegInput.hData = Data;
         ##endif
         vegInput.worldPivot = worldLocalPos;

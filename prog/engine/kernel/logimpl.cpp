@@ -42,7 +42,6 @@ int debug_internal::append_files_stage = 0;
 
 #if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
 static int logimpl_ctors_inited = 0;
-volatile debug_log_callback_t debug_internal::log_callback = NULL;
 
 thread_local debug_internal::Context debug_internal::dbg_ctx;
 bool debug_internal::timestampEnabled = true;
@@ -92,6 +91,7 @@ static CryptLog cryptLog;
 
 void crypt_debug_setup(const unsigned char *nkey, unsigned)
 {
+  WinAutoLock lock(writeCS);
   if (nkey && *nkey)
   {
     memcpy(cryptLog.key.data(), nkey, cryptLog.key.size());
@@ -327,9 +327,10 @@ static void log_write(char *data, size_t len)
   WinAutoLock lock(writeCS);
 
   PUT_TO_TAIL_BUF(data, len);
-
+#if _TARGET_IOS | _TARGET_TVOS
   const int keyOffset = cryptLog.cur;
   crypt_out_str((unsigned char *)data, len);
+#endif
 #endif
 
 #if _TARGET_C1 || _TARGET_C2 || _TARGET_C3
@@ -384,7 +385,10 @@ static void log_write(char *data, size_t len)
     PUT_TO_TAIL_BUF(data, len);
   }
   else if (get_debug_console_handle() != invalid_console_handle)
+  {
+    crypt_out_str((unsigned char *)data, len);
     logWriterThread.writeData(data, len);
+  }
 #else
   logWriterThread.writeDebugStr(data, len);
 #endif
@@ -549,6 +553,240 @@ static inline bool fneq(int t, int *ta, int n)
   return false;
 }
 
+namespace
+{
+struct LogHandlerEntry
+{
+  log_handler_t handler = nullptr;
+  void *ctx = nullptr;
+  LogHandlerDesc desc;
+  LogHandlerId id = LogHandlerId::Invalid;
+};
+
+static constexpr int MAX_LOG_HANDLERS = 64;
+static constexpr int MAX_NESTED_LOG_DISPATCH = 4;
+static constexpr int MAX_DRAIN_WAIT_STEPS = 2000;
+static constexpr int LOG_HANDLER_TABLE_POOL_SIZE = 4;
+
+struct LogHandlerTable
+{
+  int count = 0;
+  LogHandlerEntry entries[MAX_LOG_HANDLERS];
+};
+} // namespace
+
+static LogHandlerTable log_handler_table_pool[LOG_HANDLER_TABLE_POOL_SIZE];
+static bool log_handler_table_taken[LOG_HANDLER_TABLE_POOL_SIZE] = {};
+static LogHandlerTable *volatile log_handlers = nullptr;
+static volatile uint32_t log_handlers_wanted_mask = 0;
+static volatile int log_handlers_stopped = 0;
+static volatile int log_dispatches_in_flight[2] = {0, 0};
+static volatile int log_dispatch_epoch = 0;
+static volatile int log_handlers_lock = 0;
+static uint32_t last_log_handler_id = 0;
+static thread_local int log_dispatch_depth = 0;
+
+static bool is_log_level(int lev_tag) { return (unsigned)lev_tag <= LOGLEVEL_REMARK; }
+
+static bool wants_log_message(const LogHandlerDesc &desc, int lev_tag)
+{
+  if (is_log_level(lev_tag))
+    return desc.levelMask & (1u << lev_tag);
+  if (desc.levelMask & LOGMASK_ANY_TAG)
+    return true;
+  for (int tag : desc.tags)
+    if (tag == lev_tag)
+      return true;
+  return false;
+}
+
+static uint32_t wanted_mask_of(const LogHandlerTable *table)
+{
+  uint32_t mask = 0;
+  for (int i = 0; table && i < table->count; i++)
+  {
+    const LogHandlerDesc &desc = table->entries[i].desc;
+    mask |= desc.levelMask;
+    for (int tag : desc.tags)
+      if (tag)
+        mask |= LOGMASK_ANY_TAG;
+  }
+  return mask;
+}
+
+static bool any_log_handler_wants(int lev_tag)
+{
+  const uint32_t mask = interlocked_relaxed_load(log_handlers_wanted_mask);
+  return mask & (is_log_level(lev_tag) ? 1u << lev_tag : (uint32_t)LOGMASK_ANY_TAG);
+}
+
+namespace
+{
+struct LogDispatchScope
+{
+  const int epochSlot = interlocked_acquire_load(log_dispatch_epoch) & 1;
+
+  LogDispatchScope()
+  {
+    interlocked_increment(log_dispatches_in_flight[epochSlot]);
+    log_dispatch_depth++;
+  }
+  ~LogDispatchScope()
+  {
+    log_dispatch_depth--;
+    interlocked_decrement(log_dispatches_in_flight[epochSlot]);
+  }
+};
+} // namespace
+
+static void call_log_handlers(LogMessage &msg)
+{
+  if (!any_log_handler_wants(msg.levTag) || interlocked_relaxed_load(log_handlers_stopped))
+    return;
+  if (log_dispatch_depth >= MAX_NESTED_LOG_DISPATCH)
+    return;
+
+  LogDispatchScope dispatchScope;
+  const LogHandlerTable *table = interlocked_acquire_load_ptr(log_handlers);
+  for (int i = 0; table && i < table->count; i++)
+  {
+    const LogHandlerEntry &entry = table->entries[i];
+    if (!wants_log_message(entry.desc, msg.levTag))
+      continue;
+    entry.handler(entry.ctx, msg);
+    const bool filterStopsTheRest = entry.desc.order <= LOGORDER_FILTER && (msg.flags & LOGMSG_STOP_HANDLERS);
+    if (filterStopsTheRest)
+      break;
+  }
+}
+
+static void lock_log_handlers()
+{
+  while (interlocked_compare_exchange(log_handlers_lock, 1, 0) != 0)
+    sleep_msec(0);
+}
+
+static void unlock_log_handlers() { interlocked_release_store(log_handlers_lock, 0); }
+
+static bool wait_until_dispatches_drain()
+{
+  for (int pass = 0; pass < 2; pass++)
+  {
+    const int retiredSlot = (interlocked_increment(log_dispatch_epoch) - 1) & 1;
+    for (int step = 0; interlocked_acquire_load(log_dispatches_in_flight[retiredSlot]) != 0; step++)
+    {
+      if (step >= MAX_DRAIN_WAIT_STEPS)
+        return false;
+      sleep_msec(step < 16 ? 0 : 1);
+    }
+  }
+  return true;
+}
+
+static void release_log_handler_table_locked(const LogHandlerTable *table)
+{
+  if (table)
+    log_handler_table_taken[table - log_handler_table_pool] = false;
+}
+
+static void publish_log_handlers_locked(LogHandlerTable *table)
+{
+  if (table && !table->count)
+  {
+    release_log_handler_table_locked(table);
+    table = nullptr;
+  }
+  const uint32_t wantedMask = wanted_mask_of(table);
+  interlocked_or(log_handlers_wanted_mask, wantedMask);
+  LogHandlerTable *retired = interlocked_exchange_ptr(log_handlers, table);
+  interlocked_exchange(log_handlers_wanted_mask, wantedMask);
+
+  G_ASSERTF(log_dispatch_depth == 0, "log handlers must not be added or removed from inside a log handler");
+  const bool insideDispatch = log_dispatch_depth != 0;
+  if (!insideDispatch && wait_until_dispatches_drain())
+    release_log_handler_table_locked(retired);
+}
+
+static LogHandlerTable *clone_log_handlers_locked()
+{
+  LogHandlerTable *table = nullptr;
+  for (int i = 0; i < LOG_HANDLER_TABLE_POOL_SIZE && !table; i++)
+    if (!log_handler_table_taken[i])
+    {
+      log_handler_table_taken[i] = true;
+      table = &log_handler_table_pool[i];
+    }
+  G_ASSERTF_RETURN(table, nullptr, "no free log handler table: dispatches that did not drain still hold all %d",
+    LOG_HANDLER_TABLE_POOL_SIZE);
+
+  const LogHandlerTable *current = interlocked_relaxed_load_ptr(log_handlers);
+  table->count = current ? current->count : 0;
+  for (int i = 0; i < table->count; i++)
+    table->entries[i] = current->entries[i];
+  return table;
+}
+
+LogHandlerId debug_add_log_handler(log_handler_t handler, void *ctx, const LogHandlerDesc &desc)
+{
+  G_ASSERT_RETURN(handler, LogHandlerId::Invalid);
+  lock_log_handlers();
+  LogHandlerTable *table = clone_log_handlers_locked();
+  if (!table || table->count >= MAX_LOG_HANDLERS)
+  {
+    release_log_handler_table_locked(table);
+    unlock_log_handlers();
+    G_ASSERTF(!table, "too many log handlers, the limit is %d", MAX_LOG_HANDLERS);
+    return LogHandlerId::Invalid;
+  }
+
+  if (++last_log_handler_id == 0)
+    ++last_log_handler_id;
+  const LogHandlerId id = LogHandlerId(last_log_handler_id);
+
+  int at = table->count;
+  while (at > 0 && table->entries[at - 1].desc.order > desc.order)
+  {
+    table->entries[at] = table->entries[at - 1];
+    at--;
+  }
+  table->entries[at] = LogHandlerEntry{handler, ctx, desc, id};
+  table->count++;
+
+  publish_log_handlers_locked(table);
+  unlock_log_handlers();
+  return id;
+}
+
+void debug_remove_log_handler(LogHandlerId id)
+{
+  if (id == LogHandlerId::Invalid)
+    return;
+  lock_log_handlers();
+  if (LogHandlerTable *table = clone_log_handlers_locked())
+  {
+    int kept = 0;
+    for (int i = 0; i < table->count; i++)
+      if (table->entries[i].id != id)
+        table->entries[kept++] = table->entries[i];
+    const bool found = kept != table->count;
+    table->count = kept;
+    if (found)
+      publish_log_handlers_locked(table);
+    else
+      release_log_handler_table_locked(table);
+  }
+  unlock_log_handlers();
+}
+
+void debug_remove_all_log_handlers()
+{
+  lock_log_handlers();
+  publish_log_handlers_locked(nullptr);
+  unlock_log_handlers();
+}
+
+void debug_stop_calling_log_handlers() { interlocked_release_store(log_handlers_stopped, 1); }
+
 bool debug_internal::on_log_handler(int tag, const char *fmt, const void *arg, int anum)
 {
   if (tag == -1) // special case - invalid tag, should never happens
@@ -571,9 +809,9 @@ ret_l:
       if (feq(tag, promoted_tags, countof(promoted_tags)))
         (*func)(tag, fmt, arg, anum);
 
-  if (debug_log_callback_t cb = interlocked_relaxed_load_ptr(debug_internal::log_callback))
-    r = cb(tag, fmt, arg, anum, (&dbg_ctx)->file, (&dbg_ctx)->line) > 0;
-  return r;
+  LogMessage msg{fmt, arg, (&dbg_ctx)->file, tag, anum, (&dbg_ctx)->line, r ? 0u : LOGMSG_SKIP_FILE};
+  call_log_handlers(msg);
+  return !(msg.flags & LOGMSG_SKIP_FILE);
 }
 
 void debug_setup_tags(const dag::ConstSpan<int> *allowed_tags_, const dag::ConstSpan<int> *ignored_tags_,
@@ -762,12 +1000,6 @@ const char *get_log_filename()
 #else
   return debug_internal::get_logfilename_for_sending();
 #endif
-}
-
-debug_log_callback_t debug_set_log_callback(debug_log_callback_t cb)
-{
-  debug_log_callback_t prev = interlocked_exchange_ptr(debug_internal::log_callback, cb);
-  return prev;
 }
 #endif // DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
 

@@ -34,13 +34,12 @@ struct SensorsPollingData
 };
 
 /*
-  AndroidSensor mimicks JoyAccelGyroInpDevice
-  thus it has all 17 axis
-  but in fact uses only 3 of them: GyroX GyroY GyroZ.
-  It allows us to use the same axis bindings for android sensor and joystick
+  AndroidSensor has the same 17 axes as JoyAccelGyroInpDevice, so a binding by axis index works for both devices.
+  A binding by axis name does not: the sensor names every axis except GyroX/GyroY/GyroZ (9-11) "stub".
+  It fills only the gyro (9-11) and gravity (12-14) axes; the stick and trigger axes stay zero.
 
-  It is expected to register android sensor
-  from joystick thread because event queue will be associated with it
+  The sensor event queues are attached to dagor_command_thread_looper. They are destroyed only when the gyroscope
+  is disabled (from updateState()) or when registerSensor() fails, never in the destructor.
 */
 class AndroidSensor final : public IAndroidJoystick
 {
@@ -80,13 +79,14 @@ public:
   int getPovHatAngle(int axis_id) const override { return -1; }
 
   bool isConnected() override { return !failState; }
+  void allowRegistrationRetry() { failState = false; }
 
   void enableGyroscope(bool enable) override;
-  static void cleanupAndroidResources();
 
   virtual bool isDeviceGyro() const override { return true; }
 
 private:
+  static void cleanupAndroidResources();
   void registerSensor();
   void disableGyroscope();
   bool pollSensorsData();

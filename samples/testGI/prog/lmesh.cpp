@@ -143,7 +143,7 @@ BBox3 get_lmesh_box(const LMesh &l) { return l.lmeshMgr->getBBox(); }
 
 bool cull_lmesh(const LMesh &l, mat44f_cref globtm, const Point3 &vp, LandMeshCullingData &out)
 {
-  // constraint: mirrors the draw decision of LandMeshRenderer::renderImpl, which is this simple for an ortho view only
+  // mirrors the draw decision of LandMeshRenderer::renderImpl, which is this simple for an ortho view only
   if (!l.lmRenderer || fabsf(v_extract_w(globtm.col3) - 1.f) >= 0.001f)
     return false;
   const LandMeshManager &mgr = *l.lmeshMgr;

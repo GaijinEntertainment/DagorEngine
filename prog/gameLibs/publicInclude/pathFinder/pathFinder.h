@@ -276,7 +276,7 @@ struct CorridorInput
 void init_path_corridor(dtPathCorridor &corridor);
 FindPathResult set_path_corridor(dtPathCorridor &corridor, const CorridorInput &inp, const CustomNav *custom_nav = nullptr);
 FindPathResult set_curved_path_corridor(dtPathCorridor &corridor, const CorridorInput &inp, float max_deflection_angle,
-  float min_curved_pathlen_sq_threshold, const CustomNav *custom_nav = nullptr);
+  float min_curved_pathlen_sq_threshold, const CustomNav *custom_nav = nullptr, uint32_t custom_nav_mask = 0);
 FindCornersResult find_corridor_corners(dtPathCorridor &corridor, Tab<Point3> &corners, int num,
   const CustomNav *custom_nav = nullptr);
 
@@ -285,8 +285,10 @@ bool set_corridor_agent_position(dtPathCorridor &corridor, const Point3 &pos, da
 bool set_corridor_target(dtPathCorridor &corridor, const Point3 &target, dag::ConstSpan<Point2> *areas_cost,
   const CustomNav *custom_nav = nullptr);
 
-bool optimize_corridor_path(dtPathCorridor &corridor, const FindRequest &req, bool inc_jump, const CustomNav *custom_nav = nullptr);
-bool optimize_corridor_path(dtPathCorridor &corridor, const Point3 &extents, bool inc_jump, const CustomNav *custom_nav = nullptr);
+bool optimize_corridor_path(dtPathCorridor &corridor, const FindRequest &req, bool inc_jump, const CustomNav *custom_nav = nullptr,
+  uint32_t custom_nav_mask = 0);
+bool optimize_corridor_path(dtPathCorridor &corridor, const Point3 &extents, bool inc_jump, const CustomNav *custom_nav = nullptr,
+  uint32_t custom_nav_mask = 0);
 bool get_poly_flags(dtPolyRef ref, unsigned short &result_flags);
 bool set_poly_flags(dtPolyRef ref, unsigned short flags);
 bool get_poly_area(dtPolyRef ref, unsigned char &result_area);
@@ -384,7 +386,7 @@ bool get_poly_flags_ex(int nav_mesh_idx, dtPolyRef ref, unsigned short &result_f
 bool find_polys_in_circle_ex(int nav_mesh_idx, dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos, float radius,
   float height_half_offset);
 FindPathResult set_path_corridor_ex(int nav_mesh_idx, dtPathCorridor &corridor, const CorridorInput &inp,
-  const CustomNav *custom_nav = nullptr);
+  const CustomNav *custom_nav = nullptr, uint32_t custom_nav_mask = 0);
 bool set_corridor_agent_position_ex(int nav_mesh_idx, dtPathCorridor &corridor, const Point3 &pos, dag::ConstSpan<Point2> *areas_cost,
   const CustomNav *custom_nav = nullptr);
 FindCornersResult find_corridor_corners_ex(int nav_mesh_idx, dtPathCorridor &corridor, Tab<Point3> &corners, int num,
@@ -459,6 +461,10 @@ void tilecache_ri_enable_obstacle(rendinst::riex_handle_t ri_handle, bool enable
 bool tilecache_ri_obstacle_add(rendinst::riex_handle_t ri_handle, const BBox3 &oobb_inflate, const Point2 &padding = ZERO<Point2>(),
   bool sync = false);
 bool tilecache_ri_obstacle_remove(rendinst::riex_handle_t ri_handle, bool sync = false);
+// Adds the after-destroy obstacle that the obstacle settings set for the RI pool, if any; the handle may be already invalid.
+// These obstacles stay until tilecache_ri_after_destroy_obstacles_remove() or tilecache_stop().
+bool tilecache_ri_after_destroy_obstacle_add(rendinst::riex_handle_t ri_handle, const TMatrix &tm);
+void tilecache_ri_after_destroy_obstacles_remove();
 void mark_polygons_lower(float, unsigned char);
 void mark_polygons_upper(float, unsigned char);
 

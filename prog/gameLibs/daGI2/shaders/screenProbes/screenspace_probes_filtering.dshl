@@ -53,6 +53,7 @@ macro SAMPLE_PREV_RADIANCE_SP(code)
 endmacro
 
 macro COMMON_RADIANCE_FILTER(code)
+  SP_RADIANCE_OCT_RES(code)
   SCREENSPACE_PROBES_POSITIONS(code)
   SREENSPACE_PROBES_OCTAHEDRAL(code)
   (code) {
@@ -61,42 +62,38 @@ macro COMMON_RADIANCE_FILTER(code)
     }
     sp_radiance_area@i1 = sp_radiance_area;
     sp_radiance_tc_decode@f4 = (1./screenspace_probe_res.w, 0.5/screenspace_probe_res.w, 2./screenspace_probe_res.w, 1/screenspace_probe_res.w - 1);
+    sp_round_temporal@i2 = screenspace_probes_temporal;
     radiance_sp@uav : register(0) hlsl {
       RWTexture2D<float4> radiance_sp@uav;
     }
   }
   hlsl(code) {
-    float3 Round_R11G11B10_FLOAT( float3 rgb, uint3 round = 15)//use rounding when convert to r11g11b10. HW uses truncation, causing yellowish picture
-    {
-      //return float3(f16tof32((f32tof16(rgb.xy) +  8) & 0x7FF0), f16tof32((f32tof16(rgb.z) + 16) & 0x7FE0));
-      //return float3(f16tof32(f32tof16(rgb) & 0x7FE0)); //trunc
-      return float3(f16tof32((f32tof16(rgb) + round) & 0x7FE0)); //trunc with rounding as 11bit
-    }
+    #include <pcg_hash.hlsl>
+    #include <stochastic_rounding.hlsl>
 
     // Based on pack/unpack implementation from PixelPacking_RGBE.hlsl
-    float3 Round_R9G9B9E5_FLOAT(float3 rgb)
+    // dither in [0, 1) of the 9-bit step makes the Bias add round stochastically; max keeps the sum in the Bias binade, min a carry
+    float3 Round_R9G9B9E5_FLOAT(float3 rgb, float3 dither)
     {
       const float kMaxVal = asfloat(0x477F8000); // 1.FF x 2^+15
       const float kMinVal = asfloat(0x37800000); // 1.00 x 2^-16
       rgb = clamp(rgb, 0, kMaxVal);
       float MaxChannel = max(max(kMinVal, rgb.r), max(rgb.g, rgb.b));
       float Bias = asfloat((asuint(MaxChannel) + 0x07804000) & 0x7F800000);
-      uint3 RGB = asuint(rgb + Bias);
+      uint3 RGB = asuint(max(rgb + (dither - 0.5)*(Bias*exp2(-23.)), float3(0, 0, 0)) + Bias);
       uint E = (asuint(Bias) << 4) + 0x10000000;
-      return ldexp(float3(RGB & 0x1FF), (int)(E >> 27) - 24);
+      return ldexp(float3(min(RGB & 0x3FF, uint3(0x1FF, 0x1FF, 0x1FF))), (int)(E >> 27) - 24);
     }
 
-    void write_texture_encoded_radiance_distance(float4 rad, float exposure, uint probe_index, uint2 crd)
+    void write_texture_encoded_radiance_distance(float4 rad, uint2 crd)
     {
       //use rounding when convert to r11g11b10 or rgb9e5. HW uses truncation, causing yellowish or blueish picture
-      ##if dagi_sp_has_exposure_assume == can_be_r11g11b10
-        ##if gi_use_r9g9b9e5_tex_fmt == yes
-          rad.xyz = Round_R9G9B9E5_FLOAT(rad.xyz);
-        ##else
-          rad.xyz = Round_R11G11B10_FLOAT(rad.xyz, select(rad.xyz*exposure < 1, uint3(16,16,16), uint3(15,15,15)));
-        ##endif
-      ##elif dagi_sp_has_exposure_assume == always_rgbe
-        rad.xyz = Round_R9G9B9E5_FLOAT(rad.xyz);
+      // random per texel and frame: a fixed rounding never lands a temporal step under half a format step
+      uint3 dither = pcg3d_hash_16bit(uint3(crd, uint(sp_round_temporal.y)));
+      ##if dagi_sp_has_exposure_assume == always_rgbe || gi_use_r9g9b9e5_tex_fmt == yes
+        rad.xyz = Round_R9G9B9E5_FLOAT(rad.xyz, float3(dither)*(1.0f/65536));
+      ##else
+        rad.xyz = round_r11g11b10_stochastic(rad.xyz, dither);
       ##endif
       texture2DAt(radiance_sp, crd) = rad;
     }
@@ -400,7 +397,7 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
 
       encodedRadianceDistance.xyz = h3nanofilter(encodedRadianceDistance.xyz);
       uint2 writeCoord = atlasProbeCoord*sp_getRadianceRes() + octCoord;
-      write_texture_encoded_radiance_distance(encodedRadianceDistance, currentExposure, atlasProbeIndex, writeCoord);
+      write_texture_encoded_radiance_distance(encodedRadianceDistance, writeCoord);
     }
   }
   compile("target_cs", "filter_radiance_cs");
@@ -488,7 +485,7 @@ shader filter_screenspace_radiance_cs
         rad_distance.xyz = rad_distance.xyz*rad_distance.xyz;  // favor dark restore
         #endif
       }
-      write_texture_encoded_radiance_distance(float4(rad_distance.xyz*sourceExposure/currentExposure, rad_distance.w), currentExposure, atlasProbeIndex, atlasProbeCoord*sp_getRadianceRes() + octCoord);
+      write_texture_encoded_radiance_distance(float4(rad_distance.xyz*sourceExposure/currentExposure, rad_distance.w), atlasProbeCoord*sp_getRadianceRes() + octCoord);
     }
   }
   compile("target_cs", "filter_radiance_cs");

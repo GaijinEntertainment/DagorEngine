@@ -318,7 +318,7 @@ D3dResource *NativeResourceAllocator::placeResource(intermediate::ResourceIndex 
       [&](const auto &res) {
         if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(res)>, eastl::monostate>)
         {
-          const auto resolution = scale_by(res, schedRes.resolutionType->multiplier);
+          const auto resolution = scale_by(res, schedRes.resolutionType->multiplier, schedRes.resolutionType->roundUp);
           const ResourceKey dynamicKey(key, resolution, schedRes.autoMipCount);
           if (dynamicKey != key)
           {
@@ -489,7 +489,7 @@ void NativeResourceAllocator::resizeAutoResTextures(int frame, const DynamicReso
       [&](const auto &res) {
         if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(res)>, NoDynamicResolutionUpdate>)
         {
-          const auto resolution = scale_by(res.dynamicRes, mult);
+          const auto resolution = scale_by(res.dynamicRes, mult, schedRes.resolutionType->roundUp);
           object = placeDynamicTexture(idx, heapIdx, offset, staticSize, ResourceKey(staticKey, resolution, schedRes.autoMipCount),
             resolution);
         }

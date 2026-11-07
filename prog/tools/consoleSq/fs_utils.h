@@ -11,6 +11,5 @@
 #endif
 #endif
 
-bool is_file_case_valid(const char *file_name);
 bool change_dir(const char *dir);
 eastl::string resolve_absolute_file_name(const char *file_name);

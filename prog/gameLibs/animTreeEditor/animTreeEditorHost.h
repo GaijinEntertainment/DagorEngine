@@ -27,6 +27,8 @@ public:
   virtual String selectOpenFile(const char *init_path, const char *init_fn) = 0;
   virtual bool confirmCreateNewBlk(const char *path) = 0;
   // Blend node a2d preview, played by the host dynModel.
+  // A host without the a2d preview returns false; the blend node settings hide "Play animation".
+  virtual bool canPlayAnimation() = 0;
   virtual void setSelectedA2dName(const char *name) = 0;
   virtual void resetSelectedA2dName() = 0;
   virtual void loadA2dResource(PropPanel::ContainerPropertyControl *panel, const dag::Vector<AnimParamData> &params,
@@ -42,6 +44,10 @@ public:
   virtual void showInfoBox(const char *title, const char *text) = 0;
   // Returns PropPanel::DIALOG_ID_YES, DIALOG_ID_NO or DIALOG_ID_CANCEL.
   virtual int showYesNoCancelBox(const char *title, const char *text) = 0;
+  // A host that cannot route the selection to an anim graph viewer returns false; the trees hide "Select in graph".
+  virtual bool canSelectInGraph() = 0;
+  // Selects in the viewer the runtime nodes made from the controller or blend node with this blk name.
+  virtual void selectInGraph(const char *name) = 0;
 
 #define DSA_OVERLOADS_PARAM_DECL
 #define DSA_OVERLOADS_PARAM_PASS

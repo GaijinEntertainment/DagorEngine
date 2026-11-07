@@ -2,7 +2,6 @@
 
 #include "single.h"
 #include "../animTreeUtils.h"
-#include <util/dag_string.h>
 #include <util/dag_simpleString.h>
 
 const int DEFAULT_START = -1;
@@ -36,13 +35,7 @@ void single_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerP
 void single_set_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel,
   const DagorAssetMgr &mgr)
 {
-  const SimpleString nameValue = get_str_param_by_name_optional(params, panel, "name");
-  set_str_param_by_name_if_default(params, panel, "key", nameValue.c_str());
-  const SimpleString keyValue = get_str_param_by_name_optional(params, panel, "key");
-  const String defaultKeyStart(0, "%s_start", keyValue.c_str());
-  const String defaultKeyEnd(0, "%s_end", keyValue.c_str());
-  set_str_param_by_name_if_default(params, panel, "key_start", defaultKeyStart.c_str());
-  set_str_param_by_name_if_default(params, panel, "key_end", defaultKeyEnd.c_str());
+  set_key_dependent_defaults(params, panel);
   const SimpleString keyStartValue = get_str_param_by_name_optional(params, panel, "key_start");
   set_str_param_by_name_if_default(params, panel, "sync_time", keyStartValue.c_str());
   const SimpleString a2dValue = get_str_param_by_name_optional(params, panel, "a2d");
@@ -52,11 +45,7 @@ void single_set_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel
 void single_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, bool default_foreign,
   const DagorAssetMgr &mgr)
 {
-  const SimpleString nameValue = get_str_param_by_name_optional(params, panel, "name");
-  const SimpleString keyValue = get_str_param_by_name_optional(params, panel, "key", nameValue.c_str());
-  const String defaultKeyStart(0, "%s_start", keyValue.c_str());
-  const String defaultKeyEnd(0, "%s_end", keyValue.c_str());
-  const SimpleString keyStartValue = get_str_param_by_name_optional(params, panel, "key_start", defaultKeyStart.c_str());
+  const SimpleString keyStartValue = remove_key_params_if_default(params, panel);
   const SimpleString a2dValue = get_str_param_by_name_optional(params, panel, "a2d");
 
   remove_param_if_default_bool(params, panel, "own_timer");
@@ -64,9 +53,6 @@ void single_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::Contai
   remove_param_if_default_str(params, panel, "timer");
   remove_param_if_default_str(params, panel, "apply_node_mask");
   remove_param_if_default_bool(params, panel, "disable_origin_vel");
-  remove_param_if_default_str(params, panel, "key", nameValue.c_str());
-  remove_param_if_default_str(params, panel, "key_start", defaultKeyStart.c_str());
-  remove_param_if_default_str(params, panel, "key_end", defaultKeyEnd.c_str());
   remove_param_if_default_int(params, panel, "start", DEFAULT_START);
   remove_param_if_default_int(params, panel, "end", DEFAULT_END);
   remove_param_if_default_float(params, panel, "time", get_default_anim_time(a2dValue, mgr));

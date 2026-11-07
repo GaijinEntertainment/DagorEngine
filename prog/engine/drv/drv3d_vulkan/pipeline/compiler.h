@@ -57,9 +57,17 @@ typedef Timeline<PipelineCompilerWork, PipelineCompileTimelineSync, PipelineComp
 class PipelineCompiler
 {
   static constexpr size_t pipeline_compiler_stack = 256 << 10; // 512KB, 256KB is not enough on Radeon (yes, 256 is 512)
+#if _TARGET_ANDROID
+  static inline uint64_t android_pipeline_compiler_affinity()
+  {
+    return cpujobs::get_core_count() >= 4 ? ~MAIN_THREAD_AFFINITY : ~0ull;
+  }
+#endif
   struct PrimaryWorkerThread : public DaThread
   {
-    PrimaryWorkerThread(PipelineCompiler &c) : DaThread("VkPipeComp", pipeline_compiler_stack), compiler(c) {}
+    PrimaryWorkerThread(PipelineCompiler &c) :
+      DaThread("VkPipeComp", pipeline_compiler_stack, 0, WORKER_THREADS_AFFINITY_MASK), compiler(c)
+    {}
     void execute() override;
 
   private:
@@ -71,7 +79,7 @@ class PipelineCompiler
     static const char *getWorkerName(int idx);
 
     SecondaryWorkerThread(PipelineCompiler &c, int idx) :
-      DaThread(String(16, "VkPipeComp%u", idx), pipeline_compiler_stack), compiler(c)
+      DaThread(String(16, "VkPipeComp%u", idx), pipeline_compiler_stack, 0, WORKER_THREADS_AFFINITY_MASK), compiler(c)
     {
       os_event_create(&wakeEvent);
     }

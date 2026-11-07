@@ -249,7 +249,7 @@ private:
 
   AccelerationStructureResult allocAccelStruct(Device &device, uint32_t size, ResourceTagType tag,
     RaytraceAccelerationStructure::Type type);
-  void freeAccelStruct(RaytraceAccelerationStructure *accelStruct);
+  void freeAccelStruct(D3DDevice *device, RaytraceAccelerationStructure *accelStruct);
   void retireEmptyAccelStructHeaps();
 
 protected:
@@ -270,19 +270,19 @@ protected:
       {
         freeBufferSRVDescriptor(as->descriptor);
         recordRaytraceTopStructureFreed(as->requestedSize);
-        freeAccelStruct(as);
+        freeAccelStruct(info.device, as);
       }
       for (auto as : data.deletedBottomAccelerationStructure)
       {
         G_ASSERT(as->descriptor == D3D12_CPU_DESCRIPTOR_HANDLE{});
         recordRaytraceBottomStructureFreed(as->requestedSize);
-        freeAccelStruct(as);
+        freeAccelStruct(info.device, as);
       }
       for (auto omm : data.deletedOpacityMicroMapTriangleArrays)
       {
         G_ASSERT(omm->descriptor == D3D12_CPU_DESCRIPTOR_HANDLE{});
         recordRaytraceOpacityMicroMapTriangleArrayFreed(omm->requestedSize);
-        freeAccelStruct(omm);
+        freeAccelStruct(info.device, omm);
       }
     }
     data.deletedTopAccelerationStructure.clear();

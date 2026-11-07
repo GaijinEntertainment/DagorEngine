@@ -11,7 +11,6 @@ Sources =
   dsPadDevice.cpp
   dsPadProtocol.cpp
   dsPadSteam.cpp
-  touchpadGestureRecognizer.cpp
 ;
 
 if $(Platform) = windows {

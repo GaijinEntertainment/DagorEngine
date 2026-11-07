@@ -108,6 +108,7 @@ public:
     SQCollectable *_gc_chain;
 #endif
     SQObjectPtr _root_vm;
+    uint64_t _classTypeIdCounter;
 
     // Built-in type classes
     SQObjectPtr _null_class;
@@ -175,7 +176,8 @@ public:
     SQUnsignedInteger32 table_iter_seed;
     SQUnsignedInteger32 watchdog_last_alive_time_msec;
     SQUnsignedInteger32 watchdog_threshold_msec;
-    SQObjectPtr _typeNames[24]; // constraint: one per bit of _RT_MASK
+    const SQStackInfos *_constEvalPos; // the constant the compiler evaluates now, null when it evaluates none
+    SQObjectPtr _typeNames[24]; // one per bit of _RT_MASK
     SQObjectPtr _trueString, _falseString;
 private:
     char *_scratchpad;

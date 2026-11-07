@@ -26,6 +26,7 @@ struct Configuration
   bool enableAgsTrace : 1 = false;
   bool enableAgsProfile : 1 = false;
   bool loadRenderDoc : 1 = false;
+  bool loadNsightCapture : 1 = false;
 
   bool anyValidation() const { return enableGPUValidation || enableCPUValidation; }
 
@@ -76,6 +77,8 @@ struct Configuration
   void applyRenderDocProfile() { loadRenderDoc = true; }
 
   void applyGenericCaptureToolProfile() { enableGPUCapturers = usePIXCapturer = true; }
+
+  void applyNsightCaptureProfile() { enableGPUCapturers = loadNsightCapture = true; }
 
   void applyShaderDebugProfile()
   {
@@ -166,6 +169,10 @@ struct Configuration
     {
       applyGenericCaptureToolProfile();
     }
+    else if (0 == profile.compare("nsight"))
+    {
+      applyNsightCaptureProfile();
+    }
     else if ((0 == profile.compare("hung")) || (0 == profile.compare("hang")))
     {
       applyTraceProfile();
@@ -238,6 +245,7 @@ struct Configuration
     dredMarkersOnly = modernSettings->getBool("DREDMarkersOnly", dredMarkersOnly);
     enableGPUCapturers = modernSettings->getBool("gpuCapturers", enableGPUCapturers);
     usePIXCapturer = modernSettings->getBool("loadPixCapturer", usePIXCapturer);
+    loadNsightCapture = modernSettings->getBool("loadNsightCapture", loadNsightCapture);
     enableDagorGPUTrace = modernSettings->getBool("dagorGPUTrace", enableDagorGPUTrace);
     enableShaderErrorReporting = modernSettings->getBool("shaderErrorReporting", enableShaderErrorReporting);
     ignoreDREDAvailability = modernSettings->getBool("ignoreDREDAvailability", ignoreDREDAvailability);
@@ -254,6 +262,7 @@ struct Configuration
   {
     applyLegacySettings(settings);
     applyModernSettings(settings);
+    enableGPUCapturers = enableGPUCapturers || loadNsightCapture;
   }
 };
 

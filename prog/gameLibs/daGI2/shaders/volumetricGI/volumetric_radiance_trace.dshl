@@ -7,6 +7,7 @@ include "volumetric_gi_jitter.dshl"
 include "dagi_rad_grid_common.dshl"
 include "dagi_irrad_grid_sample.dshl"
 include "gpu_occlusion.dshl"
+include "tonemapHelpers/debug_draw_hdr_inc.dshl"
 include_optional "project_volumetric_gi.dshl"
 
 hlsl {
@@ -182,8 +183,12 @@ shader calc_current_gi_froxels_cs
 
 macro GI_VOLUMETRIC_SPATIAL_FILTER(code)
   (cs) {
-    gi_current_froxels_radiance@smp3d = gi_current_froxels_radiance;
+    gi_current_froxels_radiance@tex3d = gi_current_froxels_radiance;
     gi_froxels_atlas_sizei@i4 = gi_froxels_atlas_sizei;
+  }
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(cs)
+  hlsl(cs) {
+    #define gi_current_froxels_radiance_samplerstate global_linear_clamp_sampler
   }
   GI_VOLUMETRIC_TRACE(cs)
   hlsl(code) {
@@ -331,8 +336,13 @@ float4 gi_froxels_history_blur_ofs;
 shader calc_gi_froxels_irradiance_cs
 {
   (cs) {
-    gi_prev_froxels_sph0@smp3d = gi_prev_froxels_sph0;
-    gi_prev_froxels_sph1@smp3d = gi_prev_froxels_sph1;
+    gi_prev_froxels_sph0@tex3d = gi_prev_froxels_sph0;
+    gi_prev_froxels_sph1@tex3d = gi_prev_froxels_sph1;
+  }
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(cs)
+  hlsl(cs) {
+    #define gi_prev_froxels_sph0_samplerstate global_linear_clamp_sampler
+    #define gi_prev_froxels_sph1_samplerstate global_linear_clamp_sampler
   }
   GI_VOLUMETRIC_SPATIAL_FILTER(cs)
   local float4 gi_froxels_size = gi_froxels_sizei;
@@ -547,18 +557,22 @@ shader froxels_gi_draw_debug
 {
   supports global_frame;
   supports none;
+  color_write = rgb;
 
   (ps) {
-    gi_current_froxels_radiance@smp3d = gi_current_froxels_radiance;
+    gi_current_froxels_radiance@tex3d = gi_current_froxels_radiance;
     gi_froxels_atlas_sizei@i4 = gi_froxels_atlas_sizei;
     gi_froxels_debug_type@i1 = gi_froxels_debug_type;
+  }
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
+  hlsl(ps) {
+    #define gi_current_froxels_radiance_samplerstate global_linear_clamp_sampler
   }
   GI_VOLUMETRIC_IRRADIANCE_INIT(ps)
   GI_VOLUMETRIC_IRRADIANCE_USE(ps)
   GI_VOLUMETRIC_TRACE(vs)
   GI_VOLUMETRIC_VIEW_VEC_OPTIMIZED(vs)
-  INIT_HDR(ps)
-  USE_HDR(ps)
+  INIT_AND_USE_DEBUG_DRAW_HDR()
   (vs) {
     globtm@f44 = globtm;
   }
@@ -609,14 +623,14 @@ shader froxels_gi_draw_debug
         octOffset = clamp(octOffset, 0.5/gi_froxels_sizei.w, 1-0.5/gi_froxels_sizei.w);//fixme: constant
         //radiance texture has only traced slices (atlas_sizei.z), not the full froxel depth
         float3 sampleTC= (input.volumeProbeCoordinates + float3(octOffset, 0.5))/float3(gi_froxels_sizei.xy, gi_froxels_atlas_sizei.z);
-        return tex3Dlod(gi_current_froxels_radiance, float4(sampleTC, 0)).xyz;
+        return pack_debug_draw_hdr(tex3Dlod(gi_current_froxels_radiance, float4(sampleTC, 0)).xyz);
       } else
       {
         float3 uvw = (input.volumeProbeCoordinates + 0.5) / gi_froxels_sizei.xyz;
         float3 ambient = tex3Dlod(gi_froxels_sph0, float4(uvw, 0)).xyz;
         float4 directional = tex3Dlod(gi_froxels_sph1, float4(uvw, 0));
         SH1 sh1 = decode_sh1_luminance(ambient, directional);
-        return pack_hdr(sh1_premul_exp1_irradiance(sh1, normalize(input.norm)));
+        return pack_debug_draw_hdr(sh1_premul_exp1_irradiance(sh1, normalize(input.norm)));
       }
     }
   }

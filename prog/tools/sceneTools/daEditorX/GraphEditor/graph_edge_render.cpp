@@ -3,7 +3,6 @@
 #include "graph_edge_render.h"
 
 #include "graph_canvas_cull.h"
-#include "graph_dead_paths.h"
 #include "graph_document.h"
 #include "graph_edge_reconnect.h"
 #include "graph_edit_types.h"
@@ -11,12 +10,14 @@
 #include "graph_pin_jump_menu.h"
 #include "graph_validation.h"
 
+#include <graphEditor/graph_dead_paths.h>
 #include <libTools/util/hdpiUtil.h>
 
 #include <EASTL/algorithm.h>
 #include <EASTL/vector.h>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <imgui_node_editor.h>
 
 #include <math.h>
@@ -29,6 +30,7 @@ namespace
 constexpr int EDGE_THICKNESS = 2;
 constexpr int EDGE_THICKNESS_ACTIVE = 4;
 constexpr int EDGE_MUTED_DASH = 4; // dash and gap length, passed to ne::SetNextLinkDashSize
+constexpr float EDGE_MIN_COVERAGE = 0.2f;
 } // namespace
 
 GraphEdgeFrame::GraphEdgeFrame(const GraphData &graph_data, const GraphCanvasCull &canvas_cull, const DeadPaths &dead_paths,
@@ -54,6 +56,8 @@ void draw_graph_edges(const GraphEdgeFrame &frame)
 {
   const ne::LinkId hoveredLink = ne::GetHoveredLink();
   const int jumpMenuEdgeId = frame.pinJumpMenu.highlightedEdgeId();
+  const float invZoom = ne::GetCurrentZoom(); // canvas units per screen pixel
+  const ImVec4 canvasBg = ne::GetStyle().Colors[ne::StyleColor_Bg];
 
   for (int ei = 0; ei < static_cast<int>(frame.graph.edges.size()); ++ei)
   {
@@ -83,14 +87,18 @@ void draw_graph_edges(const GraphEdgeFrame &frame)
     const float thickness = active ? frame.thicknessActive : frame.thickness;
 
     const bool dead = frame.deadPaths.isDeadEdge(ei);
-    const ImU32 color = dead ? dead_color_for_type(type) : pin_color_for_type(type);
+    const ImVec4 edgeColor = ImColor(dead ? dead_color_for_type(type) : pin_color_for_type(type));
+    // ImGui draws any line under one screen pixel as an opaque 1 px line, so mix it toward the canvas by its
+    // coverage, and by its own alpha too: drawn translucent, overlapping edges would add up.
+    ImVec4 color = ImLerp(canvasBg, edgeColor, edgeColor.w * eastl::clamp(thickness / invZoom, EDGE_MIN_COVERAGE, 1.0f));
+    color.w = 1.0f;
 
     if (e.muted)
     {
       ne::SetNextLinkDashSize(frame.mutedDash);
     }
-    ne::Link(ne::LinkId(make_link_id(e.id)), ne::PinId(make_pin_id(e.elemA, e.pinA)), ne::PinId(make_pin_id(e.elemB, e.pinB)),
-      ImColor(color), thickness);
+    ne::Link(ne::LinkId(make_link_id(e.id)), ne::PinId(make_pin_id(e.elemA, e.pinA)), ne::PinId(make_pin_id(e.elemB, e.pinB)), color,
+      thickness);
   }
 }
 

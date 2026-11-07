@@ -4,6 +4,7 @@
 #include "frontend_state.h"
 #include "external_issues.h"
 
+#include "debug/memory_heap_reporter.h"
 #if _TARGET_PC_WIN
 #include "debug/global_state.h"
 #endif
@@ -11,14 +12,17 @@
 #include <dxgi_utils.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_finally.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 #include <cinttypes>
 #include <gpuVendor.h>
 #include <gpuVendorNvidia.h>
 
 #include <3d/gpuLatency.h>
 #include <3d/dag_gpuConfig.h>
+#include <drv/3d/dag_info.h>
 #include <3d/tql.h>
 #include <startup/dag_globalSettings.h>
+#include <osApiWrappers/dag_unicode.h>
 #include <osApiWrappers/dag_winVersionQuery.h>
 
 
@@ -63,6 +67,28 @@ eastl::optional<TwoComponentVersion> parse_nvidia_version(const char *text)
   if (2 != sscanf(text, " %u . %u", &version.major, &version.minor))
     return eastl::nullopt;
   return version;
+}
+
+eastl::optional<DriverVersion> parse_driver_version(const char *text)
+{
+  DriverVersion version{};
+  if (4 != sscanf(text, " %hu . %hu . %hu . %hu", &version.product, &version.major, &version.minor, &version.build))
+    return eastl::nullopt;
+  return version;
+}
+
+bool is_gpu_name_selected(const DataBlock &blk, const wchar_t *description)
+{
+  const int gpuNameId = blk.getNameId("gpu");
+  if (gpuNameId < 0 || blk.findParam(gpuNameId) < 0)
+    return true;
+  char name[256];
+  if (!wcs_to_utf8(description, name, sizeof(name)))
+    return false;
+  bool selected = false;
+  dblk::iterate_params_by_name_id_and_type(blk, gpuNameId, DataBlock::TYPE_STRING,
+    [&](int param_idx) { selected |= *blk.getStr(param_idx) && strstr(name, blk.getStr(param_idx)); });
+  return selected;
 }
 #endif
 } // namespace
@@ -633,11 +659,6 @@ raytraceGeometryDescriptionToGeometryDesc(const RaytraceGeometryDescription &des
 } // namespace drv3d_dx12
 #endif
 
-// for whatever reason this is missing on GDK, GDK is a mess...
-#ifndef D3D12_TEXTURE_DATA_PITCH_ALIGNMENT
-#define D3D12_TEXTURE_DATA_PITCH_ALIGNMENT D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT
-#endif
-
 namespace
 {
 
@@ -798,7 +819,7 @@ bool is_threaded_command_execution(const char *name)
 
 uint32_t get_texture_data_pitch_alignment(FormatStore fmt)
 {
-  return fmt.getPlanes().count() > 1 ? D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT : D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+  return fmt.getPlanes().count() > 1 ? TextureSubresourceInfo::placement_alignment : TextureSubresourceInfo::pitch_alignment;
 }
 } // namespace
 
@@ -823,8 +844,11 @@ TextureSubresourceInfo drv3d_dx12::calculate_texture_region_info(Extent3D ext, F
   result.footprint.Height = align_value<uint32_t>(ext.height, blockY);
   result.footprint.Depth = ext.depth;
   result.footprint.RowPitch = align_value<uint32_t>(result.rowByteSize, get_texture_data_pitch_alignment(fmt));
-  result.totalByteSize =
-    align_value<uint64_t>(uint64_t{result.rowCount} * result.footprint.RowPitch * ext.depth, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+  // implicitly aligned
+  result.slicePitchSizeInBytes = uint64_t{result.rowCount} * result.footprint.RowPitch;
+  // placement_alignment may be different than pitch_alignment
+  result.totalAlignedByteSize =
+    align_value<uint64_t>(result.slicePitchSizeInBytes * ext.depth, TextureSubresourceInfo::placement_alignment);
   return result;
 }
 
@@ -851,7 +875,8 @@ TextureSubresourceInfo drv3d_dx12::calculate_texture_subresource_info(const Imag
   G_ASSERT(referenceRowCount == subresourceInfo.rowCount);
   G_ASSERT(referenceRowPitch == subresourceInfo.rowByteSize);
   // GetCopyableFootprints does not align the total size.
-  G_ASSERT(align_value<uint32_t>(referenceTotalBytesSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT) == subresourceInfo.totalByteSize);
+  G_ASSERT(align_value<uint64_t>(referenceTotalBytesSize, TextureSubresourceInfo::placement_alignment) ==
+           subresourceInfo.totalAlignedByteSize);
 #endif
   return subresourceInfo;
 }
@@ -871,7 +896,7 @@ uint64_t drv3d_dx12::calculate_texture_staging_buffer_size(Extent3D size, MipMap
     auto rowCount = block_count(ext.height, blockY);
     auto rowByteSize = block_count(ext.width, blockX) * blockBytes;
     auto rowPitch = align_value<uint32_t>(rowByteSize, pitchAlignment);
-    totalSize += align_value<uint64_t>(uint64_t{rowCount} * rowPitch * ext.depth, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+    totalSize += align_value<uint64_t>(uint64_t{rowCount} * rowPitch * ext.depth, TextureSubresourceInfo::placement_alignment);
   }
 
   return totalSize;
@@ -1227,50 +1252,188 @@ bool Device::deviceUsesSoftwareRaytracing(const D3D12_FEATURE_DATA_D3D12_OPTIONS
   return true;
 }
 
-bool Device::createD3d12DeviceWithCheck(const Direct3D12Enviroment &d3d_env, D3D_FEATURE_LEVEL feature_level)
+namespace
 {
-  return device.autoQuery([&d3d_env, this, feature_level](auto uuid, auto ptr) {
+APISupport check_device_features(D3DDevice *device)
+{
+  // devices below feature level 12.0 are not required to support 6.0+/DXIL shaders, but we only
+  // ship those so we can only use devices with support for that.
+  auto sm = get_shader_model(device);
+  if (sm.HighestShaderModel < D3D_SHADER_MODEL_6_0)
+  {
+    logdbg("DX12: Rejected, no HLSL shader model 6.0+ support (DXIL)");
+    return APISupport::NO_DEVICE_FOUND;
+  }
+
+  const auto minSmValue = ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("minShaderModel", D3D_SHADER_MODEL_6_5);
+
+  if (sm.HighestShaderModel < minSmValue)
+  {
+    logdbg("DX12: Rejected, HLSL shader model too low %02X vs %02X", sm.HighestShaderModel, minSmValue);
+    return APISupport::INSUFFICIENT_DEVICE;
+  }
+
+  D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
+  auto apiSupport = APISupport::FULL_SUPPORT;
+  if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options)) == S_OK)
+  {
+    if (options.ResourceBindingTier < D3D12_RESOURCE_BINDING_TIER_2)
+      return APISupport::INSUFFICIENT_DEVICE;
+
+    // I want to make it constexpr, but we don't have such map
+    // use string literals for keys, please
+    const ska::flat_hash_map<eastl::string_view, bool (*)(const D3D12_FEATURE_DATA_D3D12_OPTIONS &)> requiredFeaturesMap = {
+      // TODO: adapt it for D3D12_FEATURE_DATA_D3D12_OPTIONS<N > 0> when we need more features
+      // For example, add an extra class containing D3D12_FEATURE_DATA_D3D12_OPTIONS<0-12> and use hashmap for the class methods
+      {"TypedUAVLoadAdditionalFormats",
+        +[](const D3D12_FEATURE_DATA_D3D12_OPTIONS &opts) -> bool { return opts.TypedUAVLoadAdditionalFormats; }},
+    };
+
+    const DataBlock &requiredFeatures = *::dgs_get_settings()->getBlockByNameEx("directx")->getBlockByNameEx("dx12RequiredFeatures");
+    dblk::iterate_params_by_name(requiredFeatures, "requires",
+      [&apiSupport, &options, &requiredFeatures, &requiredFeaturesMap](int param_idx, auto, auto) {
+        eastl::string_view feature = requiredFeatures.getStr(param_idx);
+        if (auto it = requiredFeaturesMap.find(feature); it != requiredFeaturesMap.end())
+        {
+          // don't check further if we already have an error ...
+          if (apiSupport != APISupport::FULL_SUPPORT)
+            return;
+          const bool featureIsSupported = it->second(options);
+          if (!featureIsSupported)
+            apiSupport = APISupport::INSUFFICIENT_DEVICE;
+        }
+        else
+          // ... but validate it anyway
+          logdbg("Skipping unknown required DirectX feature: %s", feature.data());
+      });
+  }
+
+  if (apiSupport == APISupport::FULL_SUPPORT)
+    logdbg("DX12: Device fulfills requirements, DX12 is available!");
+  return apiSupport;
+}
+} // namespace
+
+bool Device::createD3d12DeviceWithCheck(const Direct3D12Enviroment &d3d_env, D3D_FEATURE_LEVEL feature_level, int &duration)
+{
+  return device.autoQuery([&duration, &d3d_env, this, feature_level](auto uuid, auto ptr) {
     ::to_debuglog(this->adapter.Get());
     logdbg("DX12: Feature level = %s", to_string(feature_level));
 
+    auto startPoint = ref_time_ticks();
     const auto hr = d3d_env.D3D12CreateDevice(this->adapter.Get(), feature_level, uuid, ptr);
+    duration = get_time_usec(startPoint);
     if (FAILED(hr))
+    {
       logdbg("DX12: D3D12CreateDevice returned: %s (HRESULT: 0x%x)", dxgi_error_code_to_string(hr), hr);
+      report_agility_sdk_error(hr);
+    }
     return SUCCEEDED(hr);
   });
+}
+
+APISupport Device::create(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state,
+  const ComPtr<DXGIAdapter> &dxgi_adapter, D3D_FEATURE_LEVEL feature_level, bool check_features)
+{
+  adapter = dxgi_adapter;
+
+  hlslVendorExtension = {};
+
+  // ensure no old device object is lingering around, it may block creation of a new one
+  resetLingeringDevice();
+
+  logdbg("DX12: D3D12CreateDevice...");
+  auto deviceCreateStart = ref_time_ticks();
+  bool isToolDevice = device.autoQuery([&debug_state, this, feature_level](auto uuid, auto ptr) {
+    return debug_state.captureTool().tryCreateDevice(this->adapter.Get(), uuid, feature_level, ptr, this->hlslVendorExtension);
+  });
+  auto deviceCreateDurationUsec = get_time_usec(deviceCreateStart);
+
+  if (!isToolDevice)
+  {
+    deviceCreateStart = ref_time_ticks();
+    isToolDevice = device.autoQuery([&debug_state, this, feature_level](auto uuid, auto ptr) {
+      // Some debug tools require the device to be created with special API functions (e.g. AGS)
+      return debug_state.postmortemTrace().tryCreateDevice(this->adapter.Get(), uuid, feature_level, ptr, this->hlslVendorExtension);
+    });
+    deviceCreateDurationUsec = get_time_usec(deviceCreateStart);
+  }
+  if (isToolDevice)
+    logdbg("DX12: Device has been created with debug tools");
+  if (!isToolDevice)
+  {
+    if (!createD3d12DeviceWithCheck(d3d_env, feature_level, deviceCreateDurationUsec))
+    {
+      logdbg("DX12: Failed...");
+      shutdown();
+      adapter.Reset();
+      return APISupport::NO_DEVICE_FOUND;
+    }
+  }
+
+  DXGI_ADAPTER_DESC2 desc{};
+  dxgi_adapter->GetDesc2(&desc);
+
+  detectSlowSystem(deviceCreateDurationUsec, d3d_get_vendor(desc.VendorId), get_driver_version_from_adapter(dxgi_adapter.Get()),
+    "Device Object Create");
+
+  if (check_features)
+  {
+    if (const APISupport support = check_device_features(device.get()); APISupport::FULL_SUPPORT != support)
+    {
+      device.reset();
+      adapter.Reset();
+      return support;
+    }
+  }
+  creationState = CreationState::PendingInit;
+
+  return APISupport::FULL_SUPPORT;
+}
+
+bool Device::canReuseCreatedDevice(const DXGI_ADAPTER_DESC1 &adapter_desc)
+{
+  if (CreationState::PendingInit != creationState)
+    return false;
+
+  DXGI_ADAPTER_DESC1 createdDesc = {};
+  adapter->GetDesc1(&createdDesc);
+  return adapter_desc.AdapterLuid.LowPart == createdDesc.AdapterLuid.LowPart &&
+         adapter_desc.AdapterLuid.HighPart == createdDesc.AdapterLuid.HighPart;
+}
+
+void Device::discardPendingDevice()
+{
+  if (CreationState::PendingInit != creationState)
+    return;
+
+  device.reset();
+  adapter.Reset();
+  creationState = CreationState::None;
 }
 
 bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, ComPtr<DXGIFactory> &factory,
   AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg)
 {
-  adapter = eastl::move(adapter_info.adapter);
+  if (canReuseCreatedDevice(adapter_info.info))
+  {
+    logdbg("DX12: Using the device that was created before");
+  }
+  else
+  {
+    if (CreationState::PendingInit == creationState)
+    {
+      logdbg("DX12: The device that was created before is for another adapter, it is released");
+      discardPendingDevice();
+    }
+    if (APISupport::FULL_SUPPORT != create(d3d_env, debug_state, adapter_info.adapter, feature_level))
+      return false;
+  }
+  creationState = CreationState::InitInProgress;
 
   DeviceCapsOverrides deviceCapsOverrides;
   PipelineManager::SetupParameters pipelineManagerSetup;
-
-  logdbg("DX12: D3D12CreateDevice...");
-  bool isToolDevice = device.autoQuery([&debug_state, &pipelineManagerSetup, this, feature_level](auto uuid, auto ptr) {
-    return debug_state.captureTool().tryCreateDevice(this->adapter.Get(), uuid, feature_level, ptr,
-      pipelineManagerSetup.hlslVendorExtension);
-  });
-
-  if (!isToolDevice)
-  {
-    isToolDevice = device.autoQuery([&debug_state, &pipelineManagerSetup, this, feature_level](auto uuid, auto ptr) {
-      // Some debug tools require the device to be created with special API functions (e.g. AGS)
-      return debug_state.postmortemTrace().tryCreateDevice(this->adapter.Get(), uuid, feature_level, ptr,
-        pipelineManagerSetup.hlslVendorExtension);
-    });
-  }
-  if (isToolDevice)
-    logdbg("DX12: Device has been created with debug tools");
-  if (!isToolDevice && !createD3d12DeviceWithCheck(d3d_env, feature_level))
-  {
-    logdbg("DX12: Failed...");
-    shutdown();
-    return false;
-  }
-  logdbg("DX12: ...Device has been successfully created");
+  pipelineManagerSetup.hlslVendorExtension = hlslVendorExtension;
 
   const auto vendor = d3d_get_vendor(adapter_info.info.VendorId);
 
@@ -1407,6 +1570,20 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
     }
   }
 
+  if (GpuVendor::NVIDIA == vendor && allowPipelineSetCompilation)
+  {
+    const DataBlock &skipCfg = *dxCfg.getBlockByNameEx("skipPipelineSetCompilationOnNvidia");
+    const auto fixedIn = parse_driver_version(skipCfg.getStr("below", ""));
+    if (fixedIn && driverVersion < *fixedIn && is_gpu_name_selected(skipCfg, adapter_info.info.Description))
+    {
+      allowPipelineSetCompilation = false;
+      if (skipCfg.getBool("markDriverOutdated", false))
+        d3d_mark_gpu_driver_outdated();
+      logwarn("DX12: Driver version %s is below %s, skipPipelineSetCompilationOnNvidia disables PSO cache warmup",
+        driverVersion.toString().c_str(), fixedIn->toString().c_str());
+    }
+  }
+
   debug::DeviceState::setup(debug_state, device.get(), d3d_env);
 
   startDeviceErrorObserver(device.get());
@@ -1430,7 +1607,9 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 #endif
   }
 
+  auto streamlineStartPoint = ref_time_ticks();
   context.initStreamline(adapter.Get());
+  detectSlowSystem(get_time_usec(streamlineStartPoint), vendor, driverVersion, "NVIDIA Streamline startup");
 
   logdbg("DX12: Creating queues...");
   if (!queues.init(device.get(), *this))
@@ -1483,6 +1662,13 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
     rootSignatureVersion.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1;
   }
 
+  pipelineManagerSetup.device = this;
+  pipelineManagerSetup.serializeRootSignature = d3d_env.D3D12SerializeRootSignature;
+  pipelineManagerSetup.rootSignatureVersion = rootSignatureVersion.HighestVersion;
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+  pipelineManagerSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
+#endif
+#if _TARGET_PC_WIN
   D3D12_SHADER_CACHE_SUPPORT_FLAGS cacheModes = D3D12_SHADER_CACHE_SUPPORT_NONE;
   cacheModes |= D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO;
   if (!config.features.test(DeviceFeaturesConfig::DISABLE_PIPELINE_LIBRARY_CACHE))
@@ -1497,24 +1683,10 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
     cacheModes |= D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE;
   }
 
-  pipelineManagerSetup.device = this;
-  pipelineManagerSetup.serializeRootSignature = d3d_env.D3D12SerializeRootSignature;
-  pipelineManagerSetup.rootSignatureVersion = rootSignatureVersion.HighestVersion;
-#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
-  pipelineManagerSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
-#endif
   pipelineManagerSetup.cacheSetup.device = device.get();
   pipelineManagerSetup.cacheSetup.allowedModes = cacheModes;
   pipelineManagerSetup.cacheSetup.fileName = CACHE_FILE_NAME;
-  pipelineManagerSetup.cacheSetup.deviceVendorID = adapter_info.info.VendorId;
-  pipelineManagerSetup.cacheSetup.deviceID = adapter_info.info.DeviceId;
-  pipelineManagerSetup.cacheSetup.subSystemID = adapter_info.info.SubSysId;
-  pipelineManagerSetup.cacheSetup.revisionID = adapter_info.info.Revision;
-  pipelineManagerSetup.cacheSetup.rawDriverVersion = driverVersion.raw();
-#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
   pipelineManagerSetup.cacheSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
-#endif
-#if _TARGET_PC_WIN
   pipelineManagerSetup.cacheSetup.buildInCacheFileName = dxCfg.getStr("buildInCacheFileName", BUILD_IN_CACHE_FILE_NAME);
   pipelineManagerSetup.cacheSetup.blitByteCodeHash = get_build_in_blit_shaders_hash();
   pipelineManagerSetup.cacheSetup.clearByteCodeHash = get_build_in_clear_shaders_hash();
@@ -1559,6 +1731,7 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 
   dummyUavBuffer = newBufferObject(16, 1, SBCF_UA_STRUCTURED, 0, "dummy_buf", nullptr);
 
+  creationState = CreationState::Initialized;
   return true;
 }
 
@@ -1654,26 +1827,23 @@ void Device::destroySecondarySwapchainForWindow(HWND window)
 #include "device_xbox.inl.cpp"
 #endif
 
-bool Device::isInitialized() const { return nullptr != device.get(); }
-
-void Device::shutdown()
+bool Device::isInitialized() const
 {
-  if (!isInitialized())
-    return;
+#if _TARGET_PC_WIN
+  // the device is null also while it recovers from a removal, then the state is still Initialized
+  return nullptr != device.get() && CreationState::Initialized == creationState;
+#else
+  return nullptr != device.get();
+#endif
+}
+
+void Device::shutdownInitPart()
+{
+  watchdog_kick();
 
 #if _TARGET_PC_WIN
   pipeMan.asyncPipelineCompiler.shutdown();
   pipeMan.pipelineSetCompileWorker.reset();
-#endif
-
-#if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0
-  device->AddRef();
-  Finally deviceRefCountChecker{[dev = device.get()] {
-    const auto deviceRefCount = dev->Release();
-    if (deviceRefCount != 0)
-      logdbg("DX12: Object leak! Device's refcount after shutdown: %d", deviceRefCount);
-    // G_ASSERTF(deviceRefCount == 0, "DX12: Object leak! Device's refcount after shutdown: %d", deviceRefCount);
-  }};
 #endif
 
   context.destroyBuffer(eastl::move(nullBuffer));
@@ -1705,21 +1875,8 @@ void Device::shutdown()
   PipelineManager::ShutdownParameters pipelineShutdownParams{};
 
 #if _TARGET_PC_WIN
-  DXGI_ADAPTER_DESC2 adapterDesc = {};
-  adapter->GetDesc2(&adapterDesc);
-
   pipelineShutdownParams.cacheShutdown.fileName = CACHE_FILE_NAME;
-  pipelineShutdownParams.cacheShutdown.deviceVendorID = adapterDesc.VendorId;
-  pipelineShutdownParams.cacheShutdown.deviceID = adapterDesc.DeviceId;
-  pipelineShutdownParams.cacheShutdown.subSystemID = adapterDesc.SubSysId;
-  pipelineShutdownParams.cacheShutdown.revisionID = adapterDesc.Revision;
-  pipelineShutdownParams.cacheShutdown.rawDriverVersion = driverVersion.raw();
-#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
-  pipelineShutdownParams.cacheShutdown.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
-#endif
   auto dxBlock = dgs_get_settings()->getBlockByNameEx("dx12");
-  pipelineShutdownParams.cacheShutdown.generateBlks = dxBlock->getBool("generateCacheBlks", pipeMan.needToUpdateCache);
-  pipelineShutdownParams.cacheShutdown.alwaysGenerateBlks = dxBlock->getBool("alwaysGenerateCacheBlks", pipeMan.needToUpdateCache);
   pipelineShutdownParams.cacheShutdown.buildInCacheFileName = dxBlock->getStr("buildInCacheFileName", BUILD_IN_CACHE_FILE_NAME);
   pipelineShutdownParams.cacheShutdown.blitByteCodeHash = get_build_in_blit_shaders_hash();
   pipelineShutdownParams.cacheShutdown.clearByteCodeHash = get_build_in_clear_shaders_hash();
@@ -1727,6 +1884,40 @@ void Device::shutdown()
   pipeMan.shutdown(pipelineShutdownParams);
 
   resources.shutdown(getDXGIAdapter(), &bindlessManager);
+}
+
+void Device::shutdown()
+{
+  if (!device)
+    return;
+
+#if _TARGET_PC_WIN
+  // only create() ran, it made nothing but the device
+  if (CreationState::PendingInit == creationState)
+  {
+    discardPendingDevice();
+    return;
+  }
+#endif
+
+#if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0
+  device->AddRef();
+  Finally deviceRefCountChecker{[dev = device.get(), this] {
+    const auto deviceRefCount = dev->Release();
+    const uint32_t expectedCount = hasLingeringDevice() ? 1u : 0u;
+    if (expectedCount != deviceRefCount)
+      logdbg("DX12: Object leak! Device's refcount after shutdown: %d", deviceRefCount);
+    // G_ASSERTF(expectedCount == deviceRefCount, "DX12: Object leak! Device's refcount after shutdown: %d", deviceRefCount);
+  }};
+#endif
+
+#if _TARGET_PC_WIN
+  if (CreationState::InitInProgress == creationState)
+    context.shutdownStreamline();
+  else
+#endif
+    shutdownInitPart();
+
   debug::DeviceState::teardown();
   queues.shutdown();
 
@@ -1741,10 +1932,15 @@ void Device::shutdown()
 #if _TARGET_PC_WIN
   stopDeviceErrorObserver(enterDeviceErrorObserverInShutdownMode());
 #endif
+  debug::clear_memory_heaps();
 
-  device.reset();
+  // nvidia drivers can take forever on some systems to shutdown, cause seems to be slow drives plus the driver writing data for all
+  // the extra features the driver offers
+  watchdog_kick();
+  shutdownDeviceObject(device);
 #if _TARGET_PC_WIN
   adapter.Reset();
+  creationState = CreationState::None;
 #endif
 }
 
@@ -1790,6 +1986,8 @@ void Device::adjustCaps([[maybe_unused]] const DeviceCapsOverrides &overrides, [
   caps.set(Caps::DEPTH_BOUNDS_TEST, opt2.DepthBoundsTestSupported != FALSE);
 
 #if _TARGET_PC_WIN
+  caps.set(Caps::DEPTH_RESOLVE, D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_1 <= opt2.ProgrammableSamplePositionsTier);
+
   driverDesc.caps.hasDepthReadOnly = true;
   driverDesc.caps.hasStructuredBuffers = true;
   driverDesc.caps.hasNoOverwriteOnShaderResourceBuffers = true;
@@ -1797,6 +1995,9 @@ void Device::adjustCaps([[maybe_unused]] const DeviceCapsOverrides &overrides, [
   driverDesc.caps.hasVolMipMap = true;
   driverDesc.caps.hasOcclusionQuery = true;
   driverDesc.caps.hasDepthBoundsTest = hasDepthBoundsTest();
+  driverDesc.caps.hasRenderPassDepthResolve = hasDepthResolve();
+  driverDesc.depthResolveModes =
+    hasDepthResolve() ? DepthResolveMode::DEPTH_RESOLVE_MODE_MIN : DepthResolveMode::DEPTH_RESOLVE_MODE_NONE;
   driverDesc.caps.hasConditionalRender = true;
   driverDesc.caps.hasResourceCopyConversion = true;
   driverDesc.caps.hasDepthConversionByTransfer = true;
@@ -1965,6 +2166,14 @@ void Device::adjustCaps([[maybe_unused]] const DeviceCapsOverrides &overrides, [
     logwarn("DX12: AMD device, assuming broken draw id in amplification shaders");
   }
 
+  // RDNA4 has broken draw id of indirect draws with tessellation
+  const uint32_t deviceId = driverDesc.info.deviceId;
+  if (GpuVendor::AMD == driverDesc.info.vendor && (0x7550 == deviceId || 0x7551 == deviceId || 0x7590 == deviceId))
+  {
+    driverDesc.issues.hasBrokenTessellationDrawID = true;
+    logwarn("DX12: AMD RDNA4 device, assuming broken draw id of indirect draws with tessellation");
+  }
+
   bool disableRayTracing = overrides.forceOffRayTracing;
   if (D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier)
   {
@@ -2015,6 +2224,8 @@ void Device::adjustCaps([[maybe_unused]] const DeviceCapsOverrides &overrides, [
   driverDesc.caps.hasEnhancedResourceBarriers = FALSE != op12.EnhancedBarriersSupported;
 
 #else
+  caps.set(Caps::DEPTH_RESOLVE);
+  driverDesc.depthResolveModes = DepthResolveMode::DEPTH_RESOLVE_MODE_MIN;
   xbox_adjust_caps<Caps>(driverDesc, caps, config);
 
   driverDesc.caps.hasRayDispatch = isDispatchRaysFeatureInited();
@@ -2293,6 +2504,10 @@ void Device::processEmergencyDefragmentation(uint32_t requested_group, bool is_a
   // Keep before any lock: the hook frees only CPU-side texture memory, makes no d3d calls.
   if (dgs_on_out_of_memory)
     dgs_on_out_of_memory(tql::sizeInKb(requested_size + (2 << 20)));
+
+#if _TARGET_PC_WIN
+  resources.waitForSystemCommit(requested_size);
+#endif
 
   ScopedCommitLock ctxLock{context};
   WinAutoLock defragLock(context.getDefragGuard());
@@ -2764,9 +2979,8 @@ LUID Device::preRecovery()
   // ensure we are in error state, might not be if the engine requested a reset.
   enterErrorState();
   resources.waitForTemporaryUsesToFinish();
-  // error observer has to enter shutdown state or on some special cases preRecovery will lockout the observer from
-  // reporting errors during wind down phase and result in a stuck thread, we wait to finish for.
-  auto errorObserverShutdownToken = enterDeviceErrorObserverInShutdownMode();
+  // join before context.preRecovery takes the front lock: an observer past its shutdown check waits for it in onDeviceError
+  stopDeviceErrorObserver(enterDeviceErrorObserverInShutdownMode());
   // also shuts down the swapchain
   GpuLatency::teardown();
   context.preRecovery(wasDeviceLost);
@@ -2781,7 +2995,7 @@ LUID Device::preRecovery()
   // queues and the device are still alive.
   context.preRecoverStreamline();
   queues.shutdown();
-  stopDeviceErrorObserver(eastl::move(errorObserverShutdownToken));
+  debug::clear_memory_heaps();
   device.reset();
   adapter.Reset();
   debug::DeviceState::preRecovery();
@@ -2802,7 +3016,8 @@ bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, 
   adapter = eastl::move(input_adapter);
 
   logdbg("DX12: D3D12CreateDevice...");
-  if (!createD3d12DeviceWithCheck(d3d_env, feature_level))
+  int timing = 0;
+  if (!createD3d12DeviceWithCheck(d3d_env, feature_level, timing))
   {
     logdbg("DX12: Failed...");
     enterErrorState();
@@ -3391,11 +3606,12 @@ RayTracePipeline *Device::expandPipeline(RayTracePipeline *base, const ::raytrac
     else
     {
       // log this case so that we may increase smallGeometryDescCount if needed.
-      logdbg("DX12: calculateAccelerationStructureSizes with count %u > %u, frame mem used", geometryDesc.size(),
+      logdbg("DX12: calculateAccelerationStructureSizes with count %u > %u, frame mem used", info.geometryDesc.size(),
         smallGeometryDescCount);
       geometryDesc.resize(info.geometryDesc.size());
       targetDesc = geometryDesc.data();
     }
+    uint32_t descIndex = 0;
 
 #if DX12_HAS_OMM_INTERFACE
     dag::Vector<eastl::pair<D3D12_RAYTRACING_GEOMETRY_TRIANGLES_DESC, D3D12_RAYTRACING_GEOMETRY_OMM_LINKAGE_DESC>> extraData;
@@ -3413,13 +3629,13 @@ RayTracePipeline *Device::expandPipeline(RayTracePipeline *base, const ::raytrac
         geoDesc.OmmTriangles.pOmmLinkage = &extraData.back().second;
       }
 #endif
-      *targetDesc++ = geoDesc;
+      targetDesc[descIndex++] = geoDesc;
     }
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS desc = {
       .Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL,
       .Flags = to_acceleration_structure_build_flags(info.flags, false),
-      .NumDescs = geometryDesc.size(),
+      .NumDescs = descIndex,
       .DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY,
       .pGeometryDescs = targetDesc,
     };

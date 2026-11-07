@@ -72,6 +72,10 @@ public:
       "bind_dascript::das_connect_to_session_1");
     das::addExtern<DAS_BIND_FUN(das_connect_to_session)>(*this, lib, "connect_to_session", das::SideEffects::modifyExternal,
       "bind_dascript::das_connect_to_session");
+    das::addExtern<DAS_BIND_FUN(das_connect_to_session_with_kinds_1)>(*this, lib, "connect_to_session",
+      das::SideEffects::modifyExternal, "bind_dascript::das_connect_to_session_with_kinds_1");
+    das::addExtern<DAS_BIND_FUN(das_connect_to_session_with_kinds)>(*this, lib, "connect_to_session", das::SideEffects::modifyExternal,
+      "bind_dascript::das_connect_to_session_with_kinds");
     das::addExtern<DAS_BIND_FUN(bind_dascript::exit_game_safe)>(*this, lib, "exit_game", das::SideEffects::modifyExternal,
       "bind_dascript::exit_game_safe");
     das::addExternTempRef<DAS_BIND_FUN(dgs_get_game_params)>(*this, lib, "dgs_get_game_params", das::SideEffects::accessExternal,

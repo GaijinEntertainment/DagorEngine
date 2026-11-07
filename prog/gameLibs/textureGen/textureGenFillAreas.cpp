@@ -22,8 +22,8 @@ public:
   virtual int getInputParametersCount() const { return 2; }
   virtual bool isInputParameterOptional(int) const { return true; }
 
-  virtual int getRegCount(TShaderRegType tp) const { return tp == TSHADER_REG_TYPE_INPUT ? 2 : 2; }
-  virtual bool isRegOptional(TShaderRegType tp, int reg) const { return tp == TSHADER_REG_TYPE_INPUT ? reg == 1 : false; }
+  virtual int getRegCount(TShaderRegType) const { return 1; }
+  virtual bool isRegOptional(TShaderRegType, int) const { return false; }
 
   virtual bool process(TextureGenerator &gen, TextureRegManager &regs, const TextureGenNodeData &data, int)
   {
@@ -66,11 +66,14 @@ public:
       uint32_t tempRegFmt = TEXFMT_R32F;
       tempReg[0] = regs.createTexture(String(128, "fill_iter_%dx%d_0", w, h), tempRegFmt, w, h, 1);
       tempReg[1] = regs.createTexture(String(128, "fill_iter_%dx%d_1", w, h), tempRegFmt, w, h, 1);
+      if (!regs.keepAllOrNone(tempReg))
+        return false;
       temp[0] = regs.getTexture(tempReg[0]);
       temp[1] = regs.getTexture(tempReg[1]);
     }
 
-    for (int i = 0; i < steps; i++)
+    bool ok = true;
+    for (int i = 0; i < steps && ok; i++)
     {
       DataBlock stepParams;
       stepParams.setReal("seed", seed);
@@ -88,14 +91,14 @@ public:
       else
         curShader = fill_areas_step;
 
-      curShader->processAll(gen, regs,
+      ok = curShader->processAll(gen, regs,
         TextureGenNodeData(w, h, NO_BLENDING, false, stepParams, make_span_const(in, countof(in)), make_span_const(&out, 1), NULL));
     }
 
     regs.textureUsed(tempReg[0]);
     regs.textureUsed(tempReg[1]);
 
-    return true;
+    return ok;
   }
 } texgen_fill_areas;
 

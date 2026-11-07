@@ -100,8 +100,8 @@ void restore_scope_aim_dof(const AimDofSettings &savedDofSettings);
 void prepare_aim_dof(const ScopeAimRenderingData &scopeAimData, const AimRenderingData &aim_data, AimDofSettings &dof_settings,
   Texture *aim_dof_depth, const TexStreamingContext &tex_ctx);
 
-void render_scope_prepass(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx);
-void render_scope(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx);
+void render_scope_prepass(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx, const bool gun_only = false);
+void render_scope(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx, const bool gun_only = false);
 void render_scope_trans_except_lens(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx);
 void render_scope_lens_mask(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx,
   const bool use_depth_as_val = false);

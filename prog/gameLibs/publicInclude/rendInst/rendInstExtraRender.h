@@ -25,10 +25,6 @@ struct RiGenVisibility;
 namespace rendinst::render
 {
 
-using ri_extra_render_marker_cb = void (*)(bool begin);
-void registerRIGenExtraRenderMarkerCb(ri_extra_render_marker_cb cb);
-bool unregisterRIGenExtraRenderMarkerCb(ri_extra_render_marker_cb cb);
-
 void setRIGenExtraDiffuseTexture(uint16_t ri_idx, int tex_var_id);
 
 void ensureElemsRebuiltRIGenExtra(bool gpu_instancing);
@@ -36,7 +32,8 @@ void renderRIGenExtraFromBuffer(Sbuffer *buffer, dag::ConstSpan<IPoint2> offsets
   dag::ConstSpan<uint32_t> lod_offsets, RenderPass render_pass, OptimizeDepthPass optimization_depth_pass,
   OptimizeDepthPrepass optimization_depth_prepass, IgnoreOptimizationLimits ignore_optimization_instances_limits, LayerFlag layer,
   ShaderElement *shader_override = nullptr, uint32_t instance_multiply = 1, bool gpu_instancing = false,
-  Sbuffer *indirect_buffer = nullptr, Sbuffer *ofs_buffer = nullptr, bool use_external_per_draw_cb = false);
+  Sbuffer *indirect_buffer = nullptr, Sbuffer *ofs_buffer = nullptr, bool use_external_per_draw_cb = false,
+  const char *only_shader_name = nullptr);
 
 void renderSortedTransparentRiExtraInstances(const RiGenVisibility &v, const TexStreamingContext &tex_ctx,
   bool draw_partitioned_elems = false, const RiExtraRenderer *prebuilt = nullptr);

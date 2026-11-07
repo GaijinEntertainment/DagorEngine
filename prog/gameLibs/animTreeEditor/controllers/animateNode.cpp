@@ -322,7 +322,7 @@ void animate_node_remove_anim_node_re(PropPanel::ContainerPropertyControl *panel
     PID_CTRLS_ANIMATE_NODE_REMOVE_NODE_RE);
 }
 
-void AnimTreeEditor::animateNodeFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings)
+void AnimTreeEditor::animateNodeFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings)
 {
   const int animNid = settings.getNameId("anim");
   for (int i = 0; i < settings.blockCount(); ++i)
@@ -333,7 +333,7 @@ void AnimTreeEditor::animateNodeFindChilds(PropPanel::ContainerPropertyControl *
       const char *bnl = block->getStr("bnl", settings.getStr("bnl", ""));
       if (*bnl)
       {
-        const int childIdx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, bnl);
+        const int childIdx = add_ctrl_child_idx_by_name(child_index, data, bnl);
         check_ctrl_child_idx(childIdx, settings.getStr("name"), bnl);
       }
       else

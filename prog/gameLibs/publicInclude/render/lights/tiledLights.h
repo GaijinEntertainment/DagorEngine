@@ -13,22 +13,22 @@
 #include <vecmath/dag_vecMathDecl.h>
 #include <render/lights/lightsBase.h>
 
+class LightsResourcesManager;
+
 class TiledLights final : public IDynLightsPipelineSection
 {
+  const LightsResourcesManager *lightsResMgr = nullptr;
   ResizableTex tilesRT;
-  UniqueBufWithShaderVar lightsListBuf;
-  UniqueBufWithShaderVar zbinningLUT;
-  UniqueBufWithShaderVar zBinBeginsEndsBuf;
+  UniqueBuf lightsListBuf;
+  UniqueBuf zbinningLUT;
+  UniqueBuf zBinBeginsEndsBuf;
   float maxLightsDist = 500;
   Tab<uint32_t> zBinningData;
   Tab<uint16_t> zBinBegins, zBinEnds;
   IPoint2 tilesGridSize;
-  uint32_t omniLightCount, spotLightCount;
   bool useTilesRT = false;
+  bool resizeTilesRT = true;
 
-  int maxDistanceVarId = -1;
-  int viewDirVarId = -1;
-  int viewPosVarId = -1;
   Color4 binningViewDir;
   Color4 binningViewPos;
 
@@ -36,8 +36,7 @@ class TiledLights final : public IDynLightsPipelineSection
   ShaderElement *spotLightsElem = 0;
   ShaderMaterial *omniLightsMat = 0;
   ShaderElement *omniLightsElem = 0;
-  ComputeShader zBinningOmniElem;
-  ComputeShader zBinningSpotElem;
+  ComputeShader zBinningElem;
   ComputeShader zBinningClearElem;
   ComputeShader zBinningPackElem;
   shaders::UniqueOverrideStateId conservativeOverrideId;
@@ -46,7 +45,6 @@ class TiledLights final : public IDynLightsPipelineSection
 
   uint32_t spotsSlices = 8;
   uint32_t spotsStacks = 10;
-  uint32_t spotsVertexCount = 0;
   uint32_t spotsFaceCount = 0;
   bool spotFilled = false;
 
@@ -58,8 +56,14 @@ class TiledLights final : public IDynLightsPipelineSection
   void clearZBinningLUT();
 
 public:
+  struct DrawCounts
+  {
+    uint32_t omniVertexCount = 0;
+    uint32_t spotIndexCount = 0;
+  };
+
   void fillSpotLightIb();
-  TiledLights(float max_lights_dist);
+  TiledLights(float max_lights_dist, const LightsResourcesManager *lights_res_mgr);
   void init(DynLightsFeatures requested_features) override;
   DynLightsFeatures getRuntimeFeatures() const override;
   ~TiledLights();
@@ -68,11 +72,13 @@ public:
   void changeResolution(uint32_t width, uint32_t height);
   void prepare(const Tab<vec4f> &omni_ligth_bounds, const Tab<vec4f> &spot_light_bounds, const vec4f &cur_view_pos,
     const vec4f &cur_view_dir);
-  void applyBinning();
-  void computeTiledLigths(const bool clear_lights = true);
+  DrawCounts getDrawCounts() const;
+  void applyBinning(Sbuffer *indirect_args, uint32_t indirect_args_offset);
+  void computeTiledLigths(Sbuffer *indirect_args, uint32_t indirect_args_offset, const bool clear_lights = true);
   void setMaxLightsDist(const float max_lights_dist);
   void afterResetDevice();
   void beforeResetDevice();
-  Sbuffer *getLUTBuffer();
+  D3DRESID getLUTBufId() const;
+  D3DRESID getLightsListBufId() const;
   const Tab<uint32_t> &getZBinningData() const;
 };

@@ -1,0 +1,10 @@
+const STRIPPED = "  hi  ".strip()
+const LEFT = "  hi".lstrip()
+const RIGHT = "hi  ".rstrip()
+const ESCAPED = "a\tb".escape()
+const STARTS = "prefix_x".startswith("prefix_")
+const ENDS = "x_suffix".endswith("_suffix")
+const FROZEN = freeze({x = 1})
+
+println($"[{STRIPPED}] [{LEFT}] [{RIGHT}] {ESCAPED}")
+println($"{STARTS} {ENDS} {FROZEN.x} {getobjflags(FROZEN) == SQOBJ_FLAG_IMMUTABLE}")

@@ -2,15 +2,15 @@
 title: RFCs
 group: Guides
 order: 96
-summary: How a change to the language is proposed, and the current proposals.
+summary: Proposals for the language that are open for comments, and their status.
 layout: rfcs
 ---
 
-Every change to Quirrel syntax or semantics, and every new function in a core
-library, goes through an RFC. Once code depends on a change it is very hard to
-reverse, so it is worth discussing first.
+An RFC is a request for comments. This page collects proposals for Quirrel
+syntax, semantics and core libraries that need discussion: an idea with no
+decision yet, or with no clear design.
 
-## Why an RFC
+## What to consider
 
 Whenever Quirrel changes its syntax or semantics (including behavior of builtin
 libraries), we need to consider many implications of the changes.
@@ -46,26 +46,26 @@ learn, harder to implement with consistent quality, slower, etc. Any language
 is greater than the sum of its parts, and features often have non-intuitive
 interactions with each other.
 
-Since reversing these decisions is very costly and can be impossible due to
-backwards compatibility, all user facing changes to the Quirrel language and
-core libraries must go through an RFC process.
+Reversing such a change is costly, and backwards compatibility can make it
+impossible. When these questions have no clear answer yet, write a proposal
+here before the implementation.
 
 ## The process
 
 There is no special process for RFC review at the moment.
 
-When an RFC gets merged, the feature *can* be implemented; however, there is no
-set timeline for that implementation. In some cases implementation may land in
-a matter of days after an RFC is merged, in some it may take months.
+When a proposal is accepted, the feature *can* be implemented; however, there
+is no set timeline for that implementation. In some cases implementation may
+land in a matter of days, in some it may take months.
 
 To avoid permanently stale RFCs, in rare cases the Quirrel team can *remove* a
-previously merged RFC when the landscape has changed enough for the feature to
-need further discussion.
+proposal when the landscape has changed enough for the feature to need further
+discussion.
 
-When an RFC is implemented, its entry below gets "**Status**: Implemented" and
-a link to the page that documents the feature. The entry stays until nothing
-about the feature is optional any more, so that the same idea is not proposed
-twice.
+When a proposal is implemented, its entry below gets "**Status**: Implemented"
+and a link to the page that documents the feature. The entry stays until
+nothing about the feature is optional any more, so that the same idea is not
+proposed twice.
 
 ## Implemented
 

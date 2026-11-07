@@ -25,6 +25,7 @@
 
 #include <osApiWrappers/dag_files.h>
 #include <ioSys/dag_dataBlock.h>
+#include <debug/dag_debug.h>
 
 #include <util/dag_string.h>
 
@@ -273,6 +274,8 @@ bool patchedNavMesh_loadFromFile(const char *fileName, dtTileCache *tlCache, uin
     navData += 4;
     sizeLeft -= 4;
 
+    int movedTiles = 0;
+    int skippedTiles = 0;
     for (uint32_t i = 0u; i < count; ++i)
     {
       if (sizeLeft < sizeof(dtTileRef))
@@ -293,14 +296,28 @@ bool patchedNavMesh_loadFromFile(const char *fileName, dtTileCache *tlCache, uin
       navData += dataSize;
       sizeLeft -= dataSize;
 
-      // pinned restore fails when the tile array was sized below the saved index or
-      // the slot is taken; a partially applied patch must not pass as a loaded one
-      if (dtStatusFailed(navMesh->addTile(data, dataSize, 0, tileToSave, 0)))
+      const int savedSlot = (int)navMesh->decodePolyIdTile(tileToSave);
+      dtStatus tileStatus = navMesh->addTile(data, dataSize, 0, tileToSave, 0);
+      if (dtStatusFailed(tileStatus) && dtStatusDetail(tileStatus, DT_OUT_OF_MEMORY))
       {
-        logerr("patched navmesh: failed to restore nav tile into slot %d", (int)navMesh->decodePolyIdTile(tileToSave));
-        return false;
+        tileStatus = navMesh->addTile(data, dataSize, 0, 0, 0);
+        if (dtStatusSucceed(tileStatus))
+        {
+          ++movedTiles;
+          debug("patched navmesh: nav tile for slot %d moved to a free slot", savedSlot);
+        }
+      }
+      if (dtStatusFailed(tileStatus))
+      {
+        ++skippedTiles;
+        debug("patched navmesh: nav tile for slot %d skipped, status 0x%08X", savedSlot, tileStatus);
       }
     }
+    if (skippedTiles)
+      logerr("patched navmesh '%s': %d of %d nav tiles skipped, %d moved to free slots", fileName, skippedTiles, (int)count,
+        movedTiles);
+    else if (movedTiles)
+      logwarn("patched navmesh '%s': %d of %d nav tiles moved to free slots", fileName, movedTiles, (int)count);
   }
 
   if (sizeLeft > 0)

@@ -2017,6 +2017,15 @@ struct VertexShaderModuleRefStore
     }
     return nullptr;
   }
+
+  uint32_t getGroupIndex() const
+  {
+    if (auto *vs = eastl::get_if<VertexShaderModuleBytcodeInDumpRef>(&bytecode))
+    {
+      return vs->shaderGroup;
+    }
+    return 0;
+  }
 };
 
 inline const dxil::ShaderHeader *get_gs(const VertexShaderModuleRefStore &ref)
@@ -2062,6 +2071,15 @@ struct PixelShaderModuleRefStore
       return tmpstorage.data();
     }
     return nullptr;
+  }
+
+  uint32_t getGroupIndex() const
+  {
+    if (auto *ps = eastl::get_if<PixelShaderModuleBytcodeInDumpRef>(&bytecode))
+    {
+      return ps->shaderGroup;
+    }
+    return 0;
   }
 };
 

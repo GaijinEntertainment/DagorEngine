@@ -16,7 +16,7 @@ namespace darg
 using namespace textlayout;
 
 
-static const int editor_base_flags = textlayout::FMT_KEEP_SPACES | textlayout::FMT_HIDE_ELLIPSIS;
+static const int editor_base_flags = textlayout::FMT_KEEP_SPACES;
 static const int editor_preformatted_flags = editor_base_flags | textlayout::FMT_IGNORE_TAGS;
 
 

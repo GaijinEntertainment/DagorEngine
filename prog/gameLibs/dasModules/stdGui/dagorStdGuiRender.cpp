@@ -77,6 +77,13 @@ void render_line_aa(::StdGuiRender::GuiContext &ctx, const das::TArray<Point2> &
   ctx.render_line_aa((const Point2 *)points.data, points.size, is_closed, line_width, line_indent, color);
 }
 
+void render_line_aa_from_to(::StdGuiRender::GuiContext &ctx, Point2 from, Point2 to, float line_width, const Point2 line_indent,
+  E3DCOLOR color)
+{
+  const Point2 points[2] = {from, to};
+  ctx.render_line_aa(points, 2, false, line_width, line_indent, color);
+}
+
 void render_poly(::StdGuiRender::GuiContext &ctx, const das::TArray<Point2> &points, E3DCOLOR fill_color)
 {
   ctx.render_poly(make_span_const((const Point2 *)points.data, points.size), fill_color);
@@ -179,6 +186,7 @@ struct DagorStdGuiRender final : public das::Module
     BIND_MEMBER(::StdGuiRender::GuiContext, screen_height, "screen_height", das::SideEffects::none);
 
     BIND_MEMBER(::StdGuiRender::GuiContext, render_frame, "render_frame", das::SideEffects::modifyArgument);
+    BIND_MEMBER(::StdGuiRender::GuiContext, render_quad, "render_quad", das::SideEffects::modifyArgument);
     BIND_MEMBER_SIGNATURE(::StdGuiRender::GuiContext, render_box, "render_box", das::SideEffects::modifyArgument,
       void(::StdGuiRender::GuiContext::*)(real, real, real, real));
     BIND_MEMBER_SIGNATURE(::StdGuiRender::GuiContext, render_box, "render_box", das::SideEffects::modifyArgument,
@@ -212,6 +220,8 @@ struct DagorStdGuiRender final : public das::Module
       "bind_dascript::set_alpha_blend");
     das::addExtern<DAS_BIND_FUN(render_line_aa)>(*this, lib, "render_line_aa", das::SideEffects::modifyArgument,
       "bind_dascript::render_line_aa");
+    das::addExtern<DAS_BIND_FUN(render_line_aa_from_to)>(*this, lib, "render_line_aa", das::SideEffects::modifyArgument,
+      "bind_dascript::render_line_aa_from_to");
     DAS_ADD_METHOD_BIND("render_line_gradient_out", worstDefault, StdGuiRender::GuiContext::render_line_gradient_out);
     das::addExtern<DAS_BIND_FUN(render_poly)>(*this, lib, "render_poly", das::SideEffects::modifyArgument,
       "bind_dascript::render_poly");

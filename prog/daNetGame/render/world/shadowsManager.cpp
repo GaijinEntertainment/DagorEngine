@@ -23,7 +23,6 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_commands.h>
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 
 #include <shaders/dag_shaderBlock.h>
 
@@ -33,8 +32,10 @@
 #include <fx/dag_leavesWind.h>
 
 #include <render/cascadeShadows.h>
-#include <render/toroidal_update.h>
-#include <render/toroidalStaticShadows.h>
+#include <render/raytracedToroidalStaticShadow/raytracedToroidalStaticShadow_api.h>
+#include <render/staticShadowsCB.h>
+#include <render/lruCollision.h>
+#include <daGI2/lruCollisionVoxelization.h>
 #include <ecs/render/renderPasses.h>
 #include <render/skies.h>
 #include <render/lights/clusteredLights.h>
@@ -45,12 +46,16 @@
 
 #include <startup/dag_globalSettings.h>
 #include <shaders/dag_overrideStates.h>
+#include <shaders/dag_computeShaders.h>
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstGenRender.h>
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstExtraRender.h>
+#include <rendInst/rendInstRenderJob.h>
+#include <rendInst/ccExtra.h>
 #include <rendInst/visibility.h>
 #include <rendInst/gpuObjects.h>
+#include <util/dag_stlqsort.h>
 
 #include "wrDispatcher.h"
 #include "global_vars.h"
@@ -64,20 +69,30 @@
 #include <render/cameraInCamera/cameraInCamera.h>
 #include "depthBounds.h"
 #include <render/world/bvh.h>
+#include <render/denoiser/denoiser_api.h>
 #include "main/level.h"
 
 
 CONSOLE_FLOAT_VAL_MINMAX("csm", resolution_mul, 1.0f, 0.5f, 4.0f);
-CONSOLE_FLOAT_VAL_MINMAX("shadows", static_shadows_depth_bias, 0.0f, -10.0f, 2000.0f);
 CONSOLE_BOOL_VAL("csm", cascade_depth_high_precision, false);
 CONSOLE_BOOL_VAL("shadows", static_shadows_occlusion, true);
-CONSOLE_INT_VAL("shadows", static_shadows_invalidation_grouping_us, 100 * 1000, 0, 10000 * 1000);
-CONSOLE_INT_VAL("shadows", static_shadows_invalidation_merge_boxes_threshold, 250, 0, 10000);
 
-CONSOLE_BOOL_VAL("shadows", render_static_shadows_every_frame, false);
-CONSOLE_BOOL_VAL("shadows", always_render_all_cascades, false); // for debugging
-// -1 to disable the check
-CONSOLE_FLOAT_VAL_MINMAX("shadows", static_shadow_drop_cascade0_dist_m, 1000.f, -1.f, 4000.f);
+// 0: the classic match plus rtss_additional_levels
+CONSOLE_INT_VAL("shadows", rtss_levels, 0, 0, RTSS_MAX_LEVELS);
+CONSOLE_FLOAT_VAL_MINMAX("shadows", rtss_texel0, 0.f, 0.f, 1000.f);
+CONSOLE_FLOAT_VAL("shadows", rtss_tolerance_deg, 0.f); // of level 0, doubled per level
+CONSOLE_FLOAT_VAL("shadows", rtss_tolerance_max_deg, 2.5f);
+CONSOLE_FLOAT_VAL("shadows", rtss_raster_cost, 1.f);
+CONSOLE_INT_VAL("shadows", rtss_budget, 15, 1, 256);
+CONSOLE_INT_VAL("shadows", rtss_batch_frames, 1, 1, 16);
+CONSOLE_INT_VAL("shadows", rtss_burst, 15, 1, 256);
+CONSOLE_INT_VAL("shadows", rtss_raster_batch, 64, 1, 256);
+CONSOLE_INT_VAL("shadows", rtss_raster_box, 2, 1, 64);
+CONSOLE_BOOL_VAL("shadows", rtss_raster_transpose, true);
+CONSOLE_FLOAT_VAL("shadows", rtss_call_cost, 7.f); // a raster call costs its rendinst draws, not its area
+CONSOLE_FLOAT_VAL_MINMAX("shadows", rtss_riex_min_texels, 1.f, 0.f, 8.f);
+CONSOLE_INT_VAL("shadows", rtss_additional_levels, 1, 0, 2);        // no RIGen, cut past maxCasterReach
+CONSOLE_BOOL_VAL("shadows", static_shadows_raster_collision, true); // riExtra collision, not meshes, on RIGen levels
 
 CONSOLE_FLOAT_VAL_MINMAX("shadow", depth_bias, 0.2f, -0.5, 0.5);
 CONSOLE_FLOAT_VAL_MINMAX("shadow", const_depth_bias, 0.0005, -0.5, 0.5);
@@ -88,17 +103,21 @@ CONSOLE_FLOAT_VAL("shadow", cascade0_dist_override, -1.f);
 CONSOLE_BOOL_VAL("csm", always_render_dynamic_rendinsts, false);
 
 extern ConVarT<bool, false> volfog_enabled;
+extern ConVarT<float, true> sun_direction_update_threshold_deg;
 
-#define SHADOW_MANAGER_VARS       \
-  VAR(projtm_psf_0)               \
-  VAR(projtm_psf_1)               \
-  VAR(projtm_psf_2)               \
-  VAR(projtm_psf_3)               \
-  VAR(shadow_frame)               \
-  VAR(temporal_shadow_frame)      \
-  VAR_OPT(dafx_use_voxel_shadows) \
-  VAR_OPT(offset_foliage_shadows) \
-  VAR_OPT(parallax_shadow_enabled)
+#define SHADOW_MANAGER_VARS         \
+  VAR(projtm_psf_0)                 \
+  VAR(projtm_psf_1)                 \
+  VAR(projtm_psf_2)                 \
+  VAR(projtm_psf_3)                 \
+  VAR(shadow_frame)                 \
+  VAR(temporal_shadow_frame)        \
+  VAR_OPT(dafx_use_voxel_shadows)   \
+  VAR_OPT(offset_foliage_shadows)   \
+  VAR_OPT(parallax_shadow_enabled)  \
+  VAR_OPT(rasterize_collision_type) \
+  VAR_OPT(force_rtss_shadows)       \
+  VAR_OPT(static_shadows_cascades)
 
 #define VAR(a)     static ShaderVariableInfo a##VarId(#a);
 #define VAR_OPT(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -112,37 +131,11 @@ enum class ShadowOcclType : uint32_t
   SHADOW_OCCL_RIEXTRA
 };
 
-enum
-{
-  TOROIDAL_TEXTURE_MAX_VIEWS_PER_BOX = 4
-};
-
 struct ShadowOcclUsrData
 {
   uint32_t occlType : 1;
   uint32_t frameNo : 31;
 };
-
-static struct StaticShadowsLandmeshCullingJob final : public cpujobs::IJob
-{
-  LandMeshManager *lmeshMgr;
-  LandMeshCullDesc cullDesc; // fully captured in start() before the job is queued
-  LandMeshCullingData cullingData;
-  void start(const Frustum &frustum_, const TMatrix4 &proj, LandMeshManager *lmesh_mgr, const Point3 &hmap_origin)
-  {
-    lmeshMgr = lmesh_mgr;
-    cullDesc = LandMeshCullDesc::forView(hmap_origin, frustum_);
-    cullDesc.useExclBox = lmesh_mgr->cullingState.useExclBox;
-    cullDesc.hmapMetrics = {proj_to_distance_scale(proj), 0, HeightmapMetricsQuality::FASTEST};
-    threadpool::add(this, threadpool::PRIO_HIGH);
-  }
-
-  void clear() { clear_and_shrink(cullingData.heightmapData.patches); }
-
-  const char *getJobName(bool &) const override { return DAPROFILER_STRING("static_shadow_lmesh_cull"); }
-
-  virtual void doJob() override { landmesh::frustum_cull(*lmeshMgr, cullDesc, cullingData); }
-} static_shadows_lmesh_cull_job;
 
 static void safe_znzf(Point2 &znzf)
 {
@@ -152,25 +145,33 @@ static void safe_znzf(Point2 &znzf)
     znzf.y = znzf.y < 0 ? -VERY_SMALL_NUMBER : VERY_SMALL_NUMBER;
 }
 
-shaders::OverrideState get_static_shadows_override_state()
+struct ShadowsManager::StaticShadows
 {
-  shaders::OverrideState state;
-  state.set(shaders::OverrideState::Z_CLAMP_ENABLED);
-  state.set(shaders::OverrideState::Z_BIAS);
-  state.set(shaders::OverrideState::Z_FUNC);
-  state.zBias = 0.0000025 * 130; // average zfar-znear is 130m.
-  state.slopeZBias = 0.7;
-  state.zFunc = CMPF_LESSEQUAL;
-  return state;
-}
+  RaytracedToroidalStaticShadow rtss;
+  RaytracedToroidalStaticShadowSettings match; // the classic layout: the RIGen levels
+  int64_t lastTicks = 0;
+  Point3 viewPos = Point3(0, 0, 0);
+  uint32_t convergedFrames = 0;
+  // MAIN on purpose: another context costs vb memory
+  rendinst::render::RiExtraRendererBuilder riexBuilder{
+    RI_EXTRA_VB_CTX_MAIN, rendinst::RenderPass::ToShadow, rendinst::OptimizeDepthPass::Yes};
+  shaders::UniqueOverrideStateId flipCullOverride;
+  eastl::shared_ptr<LRURendinstCollision> lruCollision; // null where the dump has no render_lru_collision
+  LRUCollisionVoxelization collisionDraw;
+  eastl::unique_ptr<ComputeShaderElement> boxOcclusionCs;
+
+  StaticShadows(const RaytracedToroidalStaticShadowSettings &settings, const RaytracedToroidalStaticShadowSettings &classic_match) :
+    rtss(settings), match(classic_match)
+  {}
+  int riGenLevels() const { return min(match.levels, rtss.getSettings().levels); }
+  float texel(int level) const { return rtss.getSettings().texel0 * float(1 << level); }
+};
 
 ShadowsManager::ShadowsManager(IShadowInfoProvider &provider, ClusteredLights &lights) :
-  shadowInfoProvider{provider},
-  clusteredLights{lights},
-  isTimeDynamic{provider.isTimeDynamic()},
-  shadowsGpuOcclusionMgr(get_static_shadows_override_state()),
-  riShadowCullBboxesLoader(*this)
+  shadowInfoProvider{provider}, clusteredLights{lights}, shadowsGpuOcclusionMgr({}), riShadowCullBboxesLoader(*this)
 {}
+
+ShadowsManager::~ShadowsManager() = default;
 
 void ShadowsManager::initVisibilityNode()
 {
@@ -213,20 +214,12 @@ void ShadowsManager::initVisibilityNode()
               rendinst::setRIGenExtraNodeShadowsVisibility(nodeId, visible);
             }
           });
-
-          TMatrix cascadeGlobTm = staticShadows->getLightViewProj(staticShadows->cascadesCount() - 1);
-          mat44f invCascadeGlobTm, tmpTm;
-          v_mat44_make_from_43cu(tmpTm, cascadeGlobTm.m[0]);
-          v_mat44_inverse43_to44(invCascadeGlobTm, tmpTm);
-          shadowsGpuOcclusionMgr.removeOutdatedObjectGroups([&invCascadeGlobTm](const ViewTransformData &group_view) {
-            return !ToroidalStaticShadows::isRegionInsideCascade(invCascadeGlobTm, group_view);
-          });
         }
         if (!cullBboxes.empty())
           setAnimcharShadowCullBboxes(make_span(cullBboxes), cam_pos);
 
         // Find next ri objects
-        riShadowCullBboxesLoader.start(*staticShadows);
+        riShadowCullBboxesLoader.start();
       };
     });
 
@@ -234,12 +227,9 @@ void ShadowsManager::initVisibilityNode()
     dafg::register_node("static_shadows_visibility_gpu", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       registry.create("shadow_visibility_token").blob<OrderingToken>();
       registry.read("shadow_visibility_cpu_token");
-      registry.requestState().setFrameBlock("global_frame").maxVrs();
+      registry.requestState().setFrameBlock("global_frame");
 
-      return [this]() {
-        WinAutoLock lock(shadowsGpuOcclusionMgrMutex);
-        shadowsGpuOcclusionMgr.doTestsOnGpu(getStaticShadowsTex());
-      };
+      return [this]() { testStaticShadowOcclusion(); };
     });
 }
 
@@ -323,7 +313,7 @@ void ShadowsManager::initCombineShadowsNode()
     combineShadowsNode = dafg::register_node("combine_shadows_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       registry.readBlob("after_prepare_lights_node_token");
       read_all_camera_view_tokens(registry.root(), {"after_gtao_node_token", "after_ssao_node_token", "after_ssr_node_token"});
-      registry.readBlob<OrderingToken>("rtsm_token").optional();
+      denoiser::read_shadow_output(registry); // the shadow comes through bindless, the optional read orders after the denoiser
       read_gbuffer(registry);
       read_gbuffer_depth(registry);
       registry.bindTexPs("far_downsampled_depth", "downsampled_far_depth_tex");
@@ -360,7 +350,7 @@ void ShadowsManager::initCombineShadowsNode()
     combineShadowsNode = dafg::register_node("combine_shadows_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       registry.readBlob("after_prepare_lights_node_token");
       read_all_camera_view_tokens(registry.root(), {"after_gtao_node_token", "after_ssao_node_token", "after_ssr_node_token"});
-      registry.readBlob<OrderingToken>("rtsm_token").optional();
+      denoiser::read_shadow_output(registry); // the shadow comes through bindless, the optional read orders after the denoiser
       read_gbuffer(registry);
       registry.bindTexPs("far_downsampled_depth", "downsampled_far_depth_tex");
       registry.bindBlob<d3d::SamplerHandle>("far_downsampled_depth_sampler", "downsampled_far_depth_tex_samplerstate");
@@ -397,7 +387,7 @@ void ShadowsManager::initCombineShadowsNode()
   combineShadowsNode = dafg::register_node("combine_shadows_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
     registry.readBlob("after_prepare_lights_node_token");
     read_all_camera_view_tokens(registry.root(), {"after_gtao_node_token", "after_ssao_node_token", "after_ssr_node_token"});
-    registry.readBlob<OrderingToken>("rtsm_token").optional();
+    denoiser::read_shadow_output(registry); // the shadow comes through bindless, the optional read orders after the denoiser
     read_gbuffer(registry);
     read_gbuffer_depth(registry);
     registry.bindTexPs("far_downsampled_depth", "downsampled_far_depth_tex");
@@ -480,12 +470,14 @@ void ShadowsManager::setShadowFrameIndex(const CameraParams &cur_frame_camera)
   {
     shadow_frames_count = shadowInfoProvider.getShadowFramesCount();
     tempCount = shadowInfoProvider.getTemporalShadowFramesCount();
-    frameNo = ::dagor_frame_no();
+    frameNo = ::dagor_frame_no() - shadowFrameBase;
   }
   ShaderGlobal::set_int(shadow_frameVarId, frameNo % shadow_frames_count);
   ShaderGlobal::set_int4(temporal_shadow_frameVarId, frameNo % tempCount, frameNo % shadow_frames_count, frameNo & ((1 << 23) - 1),
     tempCount);
 }
+
+void ShadowsManager::resetShadowFrame() { shadowFrameBase = ::dagor_frame_no(); }
 
 void ShadowsManager::updateCsmData(const CameraParams &cur_frame_camera)
 {
@@ -518,16 +510,50 @@ static bool are_ri_visibility_lods_loaded(const RiGenVisibility *visibility, boo
                               : rendinst::isRiGenVisibilityForcedLodLoaded(visibility);
 }
 
+// cull_tm clips the region to x, y in [-1, 1], z in [0, 1]
+static void gather_collision_casters(Tab<rendinst::riex_handle_t> &handles, mat44f_cref cull_tm, float min_size)
+{
+  mat44f clipToWorld, frame;
+  v_mat44_inverse43(clipToWorld, cull_tm);
+  frame.col2 = v_norm3(clipToWorld.col2);
+  frame.col0 = v_norm3(v_sub(clipToWorld.col0, v_mul(frame.col2, v_dot3(clipToWorld.col0, frame.col2))));
+  frame.col1 = v_cross3(frame.col2, frame.col0);
+  frame.col3 = clipToWorld.col3;
+  TMatrix tm;
+  v_mat_43cu_from_mat44(&tm.m[0][0], frame);
+  auto along = [&](vec3f axis) {
+    return fabsf(v_extract_x(v_dot3_x(clipToWorld.col0, axis))) + fabsf(v_extract_x(v_dot3_x(clipToWorld.col1, axis)));
+  };
+  const float ex = along(frame.col0), ey = along(frame.col1), dz = along(frame.col2);
+  const float depth = v_extract_x(v_length3_x(clipToWorld.col2)) + 2.f * dz;
+  // the grid walks aabbs: segments about as deep as wide
+  const int segments = clamp(int(ceilf(depth / (2.f * max(ex, ey)))), 1, 8);
+  handles.clear();
+  for (int s = 0; s < segments; ++s)
+    rendinst::gatherRIGenExtraCollidableMin(handles, tm,
+      BBox3(Point3(-ex, -ey, depth * s / segments - dz), Point3(ex, ey, depth * (s + 1) / segments - dz)), min_size * 0.5f);
+  stlsort::sort(handles.begin(), handles.end()); // by pool; border spheres came twice
+  handles.resize(eastl::unique(handles.begin(), handles.end()) - handles.begin());
+}
+
 struct StaticShadowCullJob final : public cpujobs::IJob
 {
-  mat44f cullTm;
+  mat44f cullTm = {};
   Point3 viewPos;
-  bool readyToRenderWithFinalQuality = false;
+  float riexMinSize = 0;
+  bool riGen = false, riexCollision = false, ready = false;
   RiGenVisibility *visibility = nullptr;
-  mat44f culledTm = {};
-  bool culledThisFrame = false;
+  Tab<rendinst::riex_handle_t> collisionHandles;
+  LandMeshManager *lmeshMgr = nullptr;
+  LandMeshCullDesc lmeshCullDesc;
+  LandMeshCullingData lmeshCull;
 
-  StaticShadowCullJob() = default;
+  StaticShadowCullJob()
+  {
+    visibility = rendinst::createRIGenVisibility(midmem);
+    rendinst::setRIGenVisibilityMinLod(visibility, rendinst::MAX_LOD_COUNT, 1);
+    rendinst::setRIGenVisibilityRendering(visibility, rendinst::VisibilityRenderingFlag::Static);
+  }
   StaticShadowCullJob(const StaticShadowCullJob &) = delete;
   ~StaticShadowCullJob() { rendinst::destroyRIGenVisibility(visibility); }
 
@@ -535,29 +561,30 @@ struct StaticShadowCullJob final : public cpujobs::IJob
 
   void doJob() override
   {
-    culledThisFrame = false;
-    if (!are_ri_visibility_lods_loaded(visibility, is_bvh_enabled()) && memcmp(&cullTm, &culledTm, sizeof(cullTm)) == 0)
-      return;
-
-    rendinst::prepareRIGenExtraVisibility(cullTm, viewPos, *visibility, true, nullptr);
-    rendinst::prepareRIGenVisibility(Frustum(cullTm), viewPos, visibility, true, nullptr);
-    culledTm = cullTm;
-    culledThisFrame = true;
+    if (lmeshMgr)
+      landmesh::frustum_cull(*lmeshMgr, lmeshCullDesc, lmeshCull);
+    if (riexCollision)
+      gather_collision_casters(collisionHandles, cullTm, riexMinSize);
+    else
+    {
+      const float minSizeSq = sqr(riexMinSize);
+      const auto bigEnough = [minSizeSq](vec4f bbmin, vec4f bbmax) {
+        vec4f diagonal = v_sub(bbmax, bbmin);
+        return v_extract_x(v_dot3_x(diagonal, diagonal)) >= minSizeSq;
+      };
+      rendinst::prepareRIGenExtraVisibility(*visibility, cullTm, {.viewPos = viewPos, .externalFilter = bigEnough, .forShadow = true});
+    }
+    if (riGen)
+      rendinst::prepareRIGenVisibility(Frustum(cullTm), viewPos, visibility, true, nullptr);
   }
 };
-DAG_DECLARE_RELOCATABLE(StaticShadowCullJob);
-static dag::RelocatableFixedVector<StaticShadowCullJob, 8, true, framemem_allocator>
-  static_shadow_jobs[ShadowsManager::MAX_NUM_STATIC_SHADOWS_CASCADES];
+static dag::Vector<eastl::unique_ptr<StaticShadowCullJob>> static_shadow_jobs; // by raster region of the frame
+
 void wait_static_shadows_cull_jobs()
 {
   TIME_PROFILE(wait_static_shadows_cull_jobs);
-  for (auto &jobs : static_shadow_jobs)
-  {
-    for (auto &j : jobs)
-      threadpool::wait(&j);
-    if (DAGOR_UNLIKELY(jobs.size() > jobs.static_size)) // Overflowed?
-      jobs.resize(jobs.static_size);
-  }
+  for (auto &job : static_shadow_jobs)
+    threadpool::wait(job.get());
 }
 
 struct ShadowsManager::StaticShadowCallback final : public IStaticShadowsCB
@@ -581,33 +608,85 @@ struct ShadowsManager::StaticShadowCallback final : public IStaticShadowsCB
     LeavesWindEffect::setNoAnimShaderVars(invShadowViewMatrix.getcol(0), invShadowViewMatrix.getcol(1), invShadowViewMatrix.getcol(2));
   }
 
-  bool readyToRenderRegionWithFinalQuality(const ViewTransformData &curTransform, int region) override
+  bool readyToRenderRegionWithFinalQuality(const ViewTransformData &, int region) override
   {
-    auto &job = static_shadow_jobs[curTransform.cascade][region];
+    G_ASSERT_RETURN(region < (int)static_shadow_jobs.size(), false);
+    StaticShadowCullJob &job = *static_shadow_jobs[region];
     threadpool::wait(&job);
-    RiGenVisibility *rendinstStaticShadowVisibility = job.visibility;
-    bool anyLodQualityFine = is_bvh_enabled();
-    bool riLodsLoaded = are_ri_visibility_lods_loaded(rendinstStaticShadowVisibility, anyLodQualityFine);
-    if (!riLodsLoaded && !anyLodQualityFine)
-      rendinst::riGenVisibilityScheduleForcedLodLoading(rendinstStaticShadowVisibility);
-    job.readyToRenderWithFinalQuality = job.culledThisFrame && riLodsLoaded &&
-                                        (!rendinst::rendinstGlobalShadows || rendinst::render::isRIGenGlobalShadowTexturesReady());
-    return job.readyToRenderWithFinalQuality;
+    job.ready = !job.riGen || !rendinst::rendinstGlobalShadows || rendinst::render::isRIGenGlobalShadowTexturesReady();
+    if (!job.riexCollision)
+    {
+      const bool anyLodQualityFine = is_bvh_enabled();
+      const bool riLodsLoaded = are_ri_visibility_lods_loaded(job.visibility, anyLodQualityFine);
+      if (!riLodsLoaded && !anyLodQualityFine)
+        rendinst::riGenVisibilityScheduleForcedLodLoading(job.visibility);
+      job.ready &= riLodsLoaded;
+    }
+    else if (!job.collisionHandles.empty()) // a failed upload keeps the page dirty
+      job.ready &= shadowsManager.staticShadows->lruCollision->updateLRU(job.collisionHandles);
+    return job.ready;
   }
 
-  RasterizedResult renderStaticShadowDepth(const mat44f &cull_matrix, const ViewTransformData &curTransform, int region) override
+  RasterizedResult renderStaticShadowDepth(const mat44f &cull_matrix, const ViewTransformData &transform, int region) override
   {
-    TMatrix4 lightGlobTm;
-    v_mat_44cu_from_mat44(&lightGlobTm._11, curTransform.globtm);
+    G_ASSERT_RETURN(region < (int)static_shadow_jobs.size(), RasterizedResult::NothingRendered);
+    const StaticShadowCullJob &job = *static_shadow_jobs[region];
+    StaticShadows &ss = *shadowsManager.staticShadows;
+    TIME_D3D_PROFILE(static_shadow_region);
+    FRAME_LAYER_GUARD(globalFrameBlockId);
 
-    shadowsManager.renderStaticShadowsRegion(cull_matrix, lightGlobTm, invShadowViewMatrix, curTransform.cascade, region);
+    shadowsManager.shadowInfoProvider.renderStaticSceneForShadowPass(RENDER_STATIC_SHADOW, job.viewPos, invShadowViewMatrix,
+      Frustum(cull_matrix));
 
-    bool readyToTestShadowOcclusion = static_shadow_jobs[curTransform.cascade][region].readyToRenderWithFinalQuality;
-    if (shadowsManager.hasRIShadowOcclusion() && readyToTestShadowOcclusion &&
-        curTransform.cascade == shadowsManager.staticShadows->cascadesCount() - 1)
+    if (job.riGen || !job.riexCollision)
     {
-      shadowsManager.riShadowCullBboxesLoader.addTest(cull_matrix, curTransform);
+      rendinst::render::RiExtraRenderer *riexRenderer = nullptr;
+      if (!job.riexCollision)
+        riexRenderer = ss.riexBuilder.buildNow(*job.visibility, globalFrameBlockId, rendinstDepthSceneBlockId, TexStreamingContext(0));
+      rendinst::LayerFlags layers = job.riexCollision ? rendinst::LayerFlags() : rendinst::LayerFlag::Opaque;
+      if (job.riGen)
+        layers |= rendinst::LayerFlag::NotExtra;
+      SCENE_LAYER_GUARD(rendinstDepthSceneBlockId);
+      rendinst::render::renderRIGen(rendinst::RenderPass::ToShadow, job.visibility, invShadowViewMatrix, layers,
+        rendinst::OptimizeDepthPass::No, 1, rendinst::AtestStage::All, riexRenderer);
+      if (!job.riexCollision) // both faces of riExtra cast, for the thin single sided meshes
+      {
+        const shaders::OverrideStateId rasterState = shaders::overrides::get_current();
+        shaders::overrides::reset();
+        shaders::overrides::set(ss.flipCullOverride.get());
+        rendinst::render::renderRIGen(rendinst::RenderPass::ToShadow, job.visibility, invShadowViewMatrix, rendinst::LayerFlag::Opaque,
+          rendinst::OptimizeDepthPass::No, 1, rendinst::AtestStage::All, riexRenderer);
+        shaders::overrides::reset();
+        shaders::overrides::set(rasterState);
+      }
     }
+
+    if (job.riexCollision && !job.collisionHandles.empty())
+    {
+      TIME_D3D_PROFILE(static_shadow_ri_collision);
+      rasterize_collision_typeVarId.set_int(2); // the depth variant, a null pixel shader
+      rendinst::ScopedRIExtraReadLock riexLock; // the LRU reads riTm by handle
+      ss.lruCollision->draw(job.collisionHandles, nullptr, nullptr, 1, *ss.collisionDraw.renderCollisionElem);
+    }
+
+    if (LandMeshRenderer *lmeshRenderer = WRDispatcher::getLandMeshRenderer(); lmeshRenderer && job.lmeshMgr)
+    {
+      TIME_D3D_PROFILE(render_ground);
+      LandMeshRenderDesc desc;
+      desc.mode = LMeshRenderingMode::RENDERING_DEPTH;
+      desc.invGeomLodDist = 1. / 30000;
+      TMatrix4 globtm;
+      v_mat_44cu_from_mat44(&globtm._11, transform.globtm);
+      const TMatrix4 globtmTr = globtm.transpose();
+      ShaderGlobal::set_float4(globtm_psf_0VarId, Color4(globtmTr[0]));
+      ShaderGlobal::set_float4(globtm_psf_1VarId, Color4(globtmTr[1]));
+      ShaderGlobal::set_float4(globtm_psf_2VarId, Color4(globtmTr[2]));
+      ShaderGlobal::set_float4(globtm_psf_3VarId, Color4(globtmTr[3]));
+      lmeshRenderer->renderCulled(*job.lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, desc, job.lmeshCull, job.viewPos);
+    }
+
+    if (job.ready && transform.cascade == ss.riGenLevels() - 1 && shadowsManager.hasRIShadowOcclusion())
+      shadowsManager.riShadowCullBboxesLoader.addTest(cull_matrix, ss.texel(transform.cascade));
     return RasterizedResult::SomethingRendered;
   }
 
@@ -618,32 +697,10 @@ struct ShadowsManager::StaticShadowCallback final : public IStaticShadowsCB
   }
 };
 
-float ShadowsManager::getStaticShadowsSmallestTexelSize() const
+// of the coarsest RIGen level, which gathers the riExtra tests
+float ShadowsManager::getStaticShadowsBiggestTexelSize() const
 {
-  return staticShadows ? staticShadows->getSmallestTexelSize() : 10000;
-}
-
-float ShadowsManager::getStaticShadowsBiggestTexelSize() const { return staticShadows ? staticShadows->getBiggestTexelSize() : 0; }
-
-int ShadowsManager::getStaticShadowsCascadesCount() const { return staticShadows ? staticShadows->cascadesCount() : 0; }
-
-void ShadowsManager::getStaticShadowsBoxViews(const BBox3 &box, ViewTransformData *out_views, int &out_cnt) const
-{
-  out_cnt = 0;
-  if (staticShadows)
-  {
-    int cascade = staticShadows->getBoxViews(box, out_views, out_cnt);
-    for (int vi = 0; vi < out_cnt; ++vi)
-      out_views[vi].layer = cascade;
-  }
-}
-
-bool ShadowsManager::getStaticShadowsCascadeWorldBoxViews(int cascade_id, ViewTransformData *out_views, int &out_cnt) const
-{
-  out_cnt = 0;
-  if (staticShadows)
-    return staticShadows->getCascadeWorldBoxViews(cascade_id, out_views, out_cnt);
-  return true;
+  return staticShadows ? staticShadows->texel(staticShadows->riGenLevels() - 1) : 0;
 }
 
 bool ShadowsManager::hasRIShadowOcclusion() const
@@ -651,11 +708,10 @@ bool ShadowsManager::hasRIShadowOcclusion() const
   return anyCsmCascadeRendersStatic() && static_shadows_occlusion.get() && staticShadows;
 }
 
-int ShadowsManager::gatherAndTryAddRiForShadowsVisibilityTest(mat44f_cref globtm_cull, const ViewTransformData &transform)
+int ShadowsManager::gatherAndTryAddRiForShadowsVisibilityTest(mat44f_cref globtm_cull, float texel_size)
 {
   FRAMEMEM_REGION;
   Tab<GpuVisibilityTestManager::TestObjectData> objData(framemem_ptr());
-  float texelSize = getStaticShadowsBiggestTexelSize();
   ShadowOcclUsrData usrData;
   usrData.occlType = eastl::to_underlying(ShadowOcclType::SHADOW_OCCL_RIEXTRA);
   int availableSpace = 0;
@@ -665,13 +721,13 @@ int ShadowsManager::gatherAndTryAddRiForShadowsVisibilityTest(mat44f_cref globtm
     shadowsGpuOcclusionMgr.reserveSpaceForObjectsGroup(availableSpace);
   }
   uint32_t riLeftCount = 0;
-  rendinst::gatherRIGenExtraToTestForShadows(objData, globtm_cull, texelSize, bitwise_cast<uint32_t>(usrData), availableSpace,
+  rendinst::gatherRIGenExtraToTestForShadows(objData, globtm_cull, texel_size, bitwise_cast<uint32_t>(usrData), availableSpace,
     riLeftCount);
 
   {
     WinAutoLock lock(shadowsGpuOcclusionMgrMutex);
     shadowsGpuOcclusionMgr.clearReservedSpace();
-    shadowsGpuOcclusionMgr.addObjectGroupToTest(make_span_const(objData), transform);
+    shadowsGpuOcclusionMgr.addObjectGroupToTest(make_span_const(objData), ViewTransformData{});
   }
 
   return riLeftCount;
@@ -684,21 +740,23 @@ void ShadowsManager::testAnimcharTestBboxes(const Point3 &cam_pos, int frame_no)
   ShadowOcclUsrData usrData;
   usrData.occlType = eastl::to_underlying(ShadowOcclType::SHADOW_OCCL_ANIMCHAR);
   usrData.frameNo = frame_no;
-  bbox3f overallBbox = gatherBboxesForAnimcharShadowCull(cam_pos, objData, bitwise_cast<uint32_t>(usrData));
+  gatherBboxesForAnimcharShadowCull(cam_pos, objData, bitwise_cast<uint32_t>(usrData));
   if (objData.empty())
     return;
 
-  ViewTransformData views[TOROIDAL_TEXTURE_MAX_VIEWS_PER_BOX];
-  int viewsCnt;
-  BBox3 box;
-  v_stu_bbox3(box, overallBbox);
-  getStaticShadowsBoxViews(box, views, viewsCnt);
-
   WinAutoLock lock(shadowsGpuOcclusionMgrMutex);
-  if (shadowsGpuOcclusionMgr.getAvailableSpace() < objData.size() * viewsCnt)
+  if (shadowsGpuOcclusionMgr.getAvailableSpace() < objData.size())
     return;
-  for (int i = 0; i < viewsCnt; ++i)
-    shadowsGpuOcclusionMgr.addObjectGroupToTest(make_span_const(objData), views[i]);
+  shadowsGpuOcclusionMgr.addObjectGroupToTest(make_span_const(objData), ViewTransformData{});
+}
+
+void ShadowsManager::testStaticShadowOcclusion()
+{
+  WinAutoLock lock(shadowsGpuOcclusionMgrMutex);
+  if (staticShadows)
+    shadowsGpuOcclusionMgr.doTestsOnGpu(*staticShadows->boxOcclusionCs);
+  else
+    shadowsGpuOcclusionMgr.clearObjectsToTest();
 }
 
 void ShadowsManager::resetShadowsVisibilityTesting()
@@ -708,31 +766,65 @@ void ShadowsManager::resetShadowsVisibilityTesting()
   shadowsGpuOcclusionMgr.clearObjectsToTest();
 }
 
-BaseTexture *ShadowsManager::getStaticShadowsTex() { return staticShadows ? staticShadows->getTex().getBaseTex() : nullptr; }
-
-bool ShadowsManager::insideStaticShadows(const Point3 &pos, float radius) const
+bool ShadowsManager::validStaticShadows(const Point3 &pos, float cube_size) const
 {
-  return staticShadows ? staticShadows->isInside(BBox3(pos, radius)) : false;
+  return staticShadows && staticShadows->rtss.isReady(BBox3(pos, cube_size));
 }
 
-bool ShadowsManager::validStaticShadows(const Point3 &pos, float radius) const
+bool ShadowsManager::fullyUpdatedStaticShadows(const Point3 &pos, float cube_size) const
 {
-  // sphere is inside valid static shadows. Valid means something was ever rendered to it
-  return staticShadows ? staticShadows->isValid(BBox3(pos, radius)) : false;
+  return staticShadows && staticShadows->convergedFrames > 0 && validStaticShadows(pos, cube_size);
 }
 
-bool ShadowsManager::fullyUpdatedStaticShadows(const Point3 &pos, float radius) const
+uint32_t ShadowsManager::getStaticShadowsConvergedFrames() const
 {
-  // sphere is inside valid static shadows. Valid means something was ever rendered to it and it wasnt invalidated after that
-  return staticShadows ? staticShadows->isCompletelyValid(BBox3(pos, radius)) : false;
+  return staticShadows ? staticShadows->convergedFrames : UINT32_MAX;
 }
 
-bool ShadowsManager::updateStaticShadowAround(const Point3 &pos, bool update_only_last_cascade)
-{
-  G_ASSERT_RETURN(staticShadows, false);
-  TIME_D3D_PROFILE(updateStaticShadowAround);
+static const float CLASSIC_SUN_STEP_DEG = RadToDeg(acosf(0.999f));
 
-  G_ASSERT(staticShadows->cascadesCount() <= MAX_NUM_STATIC_SHADOWS_CASCADES);
+// the classic reach, at most 7.2% over its texel
+static RaytracedToroidalStaticShadowSettings rtss_match_classic(float distance, int resolution, int cascades)
+{
+  RaytracedToroidalStaticShadowSettings s;
+  const float reachTexels = float((s.windowPages / 2 - 1) * s.pageTexels());
+  const float classicTexel0 = 2 * (cascades < 2 ? distance : distance / (cascades + 1)) / max(resolution, 1);
+  s.levels = clamp(1 + (int)ceilf(log2f(distance / (reachTexels * classicTexel0)) - 0.1f), 1, (int)RTSS_MAX_LEVELS);
+  s.texel0 = distance / (reachTexels * float(1 << (s.levels - 1)));
+  return s;
+}
+
+static RaytracedToroidalStaticShadowSettings rtss_settings(const RaytracedToroidalStaticShadowSettings &match)
+{
+  RaytracedToroidalStaticShadowSettings s = match;
+  s.levels = min(match.levels + rtss_additional_levels.get(), (int)RTSS_MAX_LEVELS);
+  s.texel0 = rtss_texel0.get() > 0 ? rtss_texel0.get() : s.texel0;
+  const float reachTexels = float((s.windowPages / 2 - 1) * s.pageTexels());
+  while (s.levels > match.levels && reachTexels * s.texel0 * float(1 << (s.levels - 1)) > s.maxCasterReach)
+    --s.levels;
+  s.levels = rtss_levels.get() > 0 ? rtss_levels.get() : s.levels;
+  s.toleranceDeg0 = rtss_tolerance_deg.get() > 0 ? rtss_tolerance_deg.get() : CLASSIC_SUN_STEP_DEG;
+  s.toleranceDegMax = rtss_tolerance_max_deg.get() > 0 ? rtss_tolerance_max_deg.get() : s.toleranceDeg0;
+  s.updatePagesPerFrame = rtss_budget.get();
+  s.batchFrames = rtss_batch_frames.get();
+  s.validityBurstPagesPerFrame = rtss_burst.get();
+  s.rasterBatchPages = rtss_raster_batch.get();
+  s.rasterBoxPagesPerJob = rtss_raster_box.get();
+  s.rasterCallCost = rtss_call_cost.get();
+  s.rasterTranspose = rtss_raster_transpose.get();
+  s.sunJumpDeg = 2.f * sun_direction_update_threshold_deg.get(); // a sunDirectionUpdateStage step is a move, not a jump
+  for (int k = 0; k < s.levels; ++k)
+    s.recipes[k] = {RtssRaster::All, rtss_raster_cost.get()};
+  return s;
+}
+
+bool ShadowsManager::updateStaticShadowAround(const Point3 &pos)
+{
+  if (!staticShadows)
+    return false;
+  TIME_PROFILE(updateStaticShadowAround);
+  StaticShadows &ss = *staticShadows;
+  wait_static_shadows_cull_jobs();
 
   if (worldBBoxDirty)
   {
@@ -740,109 +832,65 @@ bool ShadowsManager::updateStaticShadowAround(const Point3 &pos, bool update_onl
     worldBBoxDirty = false;
   }
 
-  if (always_render_all_cascades)
-    update_only_last_cascade = false;
+  bool invalidate = rtss_riex_min_texels.pullValueChange(); // the pages hold the casters of the old filter
+  invalidate |= static_shadows_raster_collision.pullValueChange();
+  if (invalidate)
+    ss.rtss.invalidate();
+  ss.rtss.setSettings(rtss_settings(ss.match));
 
-  staticShadows->invalidateCascadeIfCameraTooFar(0, pos, static_shadow_drop_cascade0_dist_m.get());
+  const float dt = ss.lastTicks ? get_time_usec(ss.lastTicks) * 1e-6f : 0.f;
+  ss.lastTicks = ref_time_ticks();
+  const Point3 velocity = dt > 0 ? (pos - ss.viewPos) / dt : Point3(0, 0, 0);
+  ss.viewPos = pos;
+  ss.rtss.setSun(shadowInfoProvider.getDirToSun(IShadowInfoProvider::DirToSunType::STATIC));
+  ss.rtss.update(dpoint3(pos), velocity, dt);
 
-  bool timeDynamicityChanged = isTimeDynamic != shadowInfoProvider.isTimeDynamic();
-  if (timeDynamicityChanged)
+  RaytracedToroidalStaticShadow::Stats stats;
+  ss.rtss.getStats(stats);
+  const bool converged =
+    stats.rasterJobs == 0 && eastl::none_of(stats.levels.begin(), stats.levels.end(),
+                               [](const RtssSchedulerLevelStats &l) { return l.dirtySlots || l.requiredPending || l.sweeping; });
+  ss.convergedFrames = converged ? ss.convergedFrames + 1 : 0;
+
+  const int regionCount = ss.rtss.getRasterRegionCount();
+  while ((int)static_shadow_jobs.size() < regionCount)
+    static_shadow_jobs.push_back(eastl::make_unique<StaticShadowCullJob>());
+  LandMeshManager *lmeshMgr = WRDispatcher::getLandMeshManager();
+  for (int r = 0; r < regionCount; ++r)
   {
-    // Force reinit to not have issues with changing settings mid-transition.
-    closeStaticShadow();
-    isTimeDynamic = shadowInfoProvider.isTimeDynamic();
-    initStaticShadow();
-  }
-  constexpr float staticShadowThreshold = 0.999;
-  auto dirToSun = shadowInfoProvider.getDirToSun(IShadowInfoProvider::DirToSunType::STATIC);
-  bool sunDirChanged = staticShadows->setSunDir(dirToSun, staticShadowThreshold, staticShadowThreshold);
-
-  bool depthBiasChanged = false;
-  int cascadesCount = staticShadows->cascadesCount();
-  if (cascadesCount > 1)
-  {
-    for (int i = 0; i < cascadesCount - 1; i++)
-      depthBiasChanged |= staticShadows->setDepthBiasForCascade(i, static_shadows_depth_bias.get());
-
-    // This bias applies only to the last cascade.
-    // This is done in order to get rid of the wierd self-shadowing in the far terrain,
-    // because it does into the gbuffer from the nonzero lod, but into the shadowmap from lod0
-    depthBiasChanged |=
-      staticShadows->setDepthBiasForCascade(cascadesCount - 1, static_shadows_depth_bias.get() + 0.005f * staticShadows->getTexSize());
-  }
-  else
-  {
-    depthBiasChanged = staticShadows->setDepthBias(static_shadows_depth_bias.get());
-  }
-
-  bool tpJobsAdded = false;
-  auto updateOriginAndDispatchCullingThreads = [&]() {
-    ToroidalStaticShadowCascade::BeforeRenderReturned ret =
-      staticShadows->updateOrigin(pos, 0.05f, 0.1f, staticShadowUniformUpdate, staticShadowMaxUpdateAmount, update_only_last_cascade);
-    for (int i = 0, cn = staticShadows->cascadesCount(); i < cn; i++)
-      if (int rn = staticShadows->getRegionToRenderCount(i))
-      {
-        if (DAGOR_UNLIKELY(rn > static_shadow_jobs[i].size()))
-          static_shadow_jobs[i].resize(rn);
-        for (int j = 0; j < rn; ++j)
-        {
-          if (!static_shadow_jobs[i][j].visibility)
-            static_shadow_jobs[i][j].visibility = initOneStaticShadowsVisibility();
-
-          TMatrix4_vec4 mat = staticShadows->getRegionToRenderCullTm(i, j);
-          static_shadow_jobs[i][j].cullTm = (mat44f &)mat;
-          static_shadow_jobs[i][j].viewPos = pos;
-          threadpool::add(&static_shadow_jobs[i][j], threadpool::PRIO_LOW, /*wake*/ false);
-          tpJobsAdded = true;
-        }
-      }
-    return ret;
-  };
-
-  if (!render_static_shadows_every_frame)
-  {
-    ToroidalStaticShadowCascade::BeforeRenderReturned ret = updateOriginAndDispatchCullingThreads();
-    staticShadowsSetShaderVars = depthBiasChanged || sunDirChanged || ret.varsChanged;
-    if (ret.scrolled)
+    const ViewTransformData &region = ss.rtss.getRasterRegion(r);
+    StaticShadowCullJob &job = *static_shadow_jobs[r];
+    job.cullTm = region.globtm;
+    job.viewPos = pos;
+    job.riexMinSize = rtss_riex_min_texels.get() * ss.texel(region.cascade);
+    job.riGen = region.cascade < ss.riGenLevels();
+    job.riexCollision = ss.lruCollision && (!job.riGen || static_shadows_raster_collision.get());
+    job.lmeshMgr = lmeshMgr;
+    if (lmeshMgr)
     {
-      staticShadows->setShaderVars();
-      staticShadowsSetShaderVars = false;
+      job.lmeshCullDesc = LandMeshCullDesc::forView(pos, Frustum(region.globtm));
+      job.lmeshCullDesc.useExclBox = lmeshMgr->cullingState.useExclBox;
+      job.lmeshCullDesc.hmapMetrics = {0, 0, HeightmapMetricsQuality::FASTEST};
     }
+    threadpool::add(&job, threadpool::PRIO_LOW, /*wake*/ false);
   }
-  else
-  {
-    staticShadows->invalidate(true);
-
-    for (int i = 0, n = staticShadows->cascadesCount(); i < n; i++)
-    {
-      staticShadows->enableOptimizeBigQuadsRender(i, false);
-      staticShadows->enableTransitionCascade(i, false);
-
-      updateOriginAndDispatchCullingThreads();
-
-      // Render immediately when debugging to avoid state issues with multiple updateOrigin calls in a frame
-      StaticShadowCallback cb(*this);
-      staticShadows->render(cb);
-    }
-    staticShadows->setShaderVars();
-  }
-
-  if (!tpJobsAdded) // No regions to render
-    static_shadows_lmesh_cull_job.clear();
-
-  return tpJobsAdded;
+  return regionCount > 0;
 }
 
 void ShadowsManager::renderStaticShadows()
 {
-  if (!render_static_shadows_every_frame) // The debug code path renders immediately after culling.
-  {
-    StaticShadowCallback cb(*this);
-    staticShadows->render(cb);
-    if (staticShadowsSetShaderVars)
-      staticShadows->setShaderVars();
-    wait_static_shadows_cull_jobs(); // Free overflowed jobs
-  }
+  if (!staticShadows)
+    return;
+  StaticShadowCallback cb(*this);
+  staticShadows->rtss.render(&cb, nullptr);
+}
+
+void ShadowsManager::debugRenderStaticShadows(int screen_mode, int atlas_level)
+{
+  if (staticShadows && screen_mode > 0)
+    staticShadows->rtss.debugRenderScreen(screen_mode, false); // the FG node holds a native pass
+  if (staticShadows && atlas_level >= 0)
+    staticShadows->rtss.debugDrawAtlas(atlas_level);
 }
 
 void ShadowsManager::prepareShadowsMatrices(
@@ -861,7 +909,7 @@ void ShadowsManager::prepareShadowsMatrices(
   csmSettings.shadowConstDepthBias = const_depth_bias.get();
   csmSettings.shadowDepthSlopeBias = slope_depth_bias.get();
   csm->setDepthBiasSettings(csmSettings);
-  const float staticDist = staticShadows ? staticShadows->getDistance() : 1e6f;
+  const float staticDist = staticShadows ? staticShadows->rtss.getDistance(staticShadows->riGenLevels() - 1) : 1e6f;
   // Adjust shadow distance based on FOV (roughly keep top-down frustum area constant)
   const float fovMultiplier = csmShadowsDistanceFovScaling ? p.wk : 1.0f;
   const float adjustedMaxDist = fovMultiplier * csmShadowsMaxDist;
@@ -877,48 +925,45 @@ void ShadowsManager::prepareShadowsMatrices(
 
 void ShadowsManager::initStaticShadow()
 {
-  const int cascades = shadowsQuality < ShadowsQuality::SHADOWS_LOW ? 1 : 2;
-  if (staticShadows && cascades == staticShadows->cascadesCount())
+  if (!ShaderGlobal::is_var_assumed(force_rtss_shadowsVarId) ||
+      ShaderGlobal::get_interval_assumed_value(force_rtss_shadowsVarId) != 1 || !shader_exists("rtss_resolve_cs") ||
+      !shader_exists("rtss_box_occlusion_cs"))
+  {
+    LOGERR_ONCE("static shadows: the shader dump has no rtss (force_rtss_shadows and its shaders), no static shadow");
     return;
-  closeStaticShadow();
-  shaders::OverrideState state = get_static_shadows_override_state();
-  staticShadowsOverride = shaders::overrides::create(state);
-  state.set(shaders::OverrideState::FLIP_CULL);
-  state.zBias = 0.000000001;
-  staticShadowsOverrideFlipCull = shaders::overrides::create(state);
-
+  }
   const DataBlock *lvlSettings = shadowInfoProvider.getLevelSettings();
-
-  const int toroidalShadowResDefault = 4096;
-  int toroidalShadowsRes = lvl_override::getInt(lvlSettings, "staticShadowsResolution", toroidalShadowResDefault);
-  G_ASSERT(toroidalShadowsRes > 0);
-  if (toroidalShadowsRes <= 0)
-    toroidalShadowsRes = toroidalShadowResDefault;
-
-  const float staticShadowDistance = lvl_override::getReal(lvlSettings, "staticShadowsDistance", 700.f);
+  const int cascades = shadowsQuality < ShadowsQuality::SHADOWS_LOW ? 1 : 2;
+  const int resolution = lvl_override::getInt(lvlSettings, "staticShadowsResolution", 4096);
+  const float distance = lvl_override::getReal(lvlSettings, "staticShadowsDistance", 700.f);
+  if (resolution <= 0 || distance <= 0)
+    logerr("static shadows: staticShadowsResolution %d and staticShadowsDistance %g must be positive", resolution, distance);
+  RaytracedToroidalStaticShadowSettings match = rtss_match_classic(max(distance, 1.f), resolution, cascades);
+  match.minSunY = lvl_override::getReal(lvlSettings, "staticShadowsMinSunY", match.minSunY);
   static_shadows_occlusion.set(
     dgs_get_settings()->getBlockByNameEx("graphics")->getBool("staticShadowsOcclusion", static_shadows_occlusion.get()));
-  static_shadows_invalidation_grouping_us.set(
-    dgs_get_settings()
-      ->getBlockByNameEx("graphics")
-      ->getInt("staticShadowsInvalidationGroupingUs", static_shadows_invalidation_grouping_us.get()));
-  debug("static shadowsQuality = %d, cascades = %d, isTimeDynamic = %d", eastl::to_underlying(shadowsQuality), cascades,
-    (int)isTimeDynamic);
-  staticShadows = eastl::make_unique<ToroidalStaticShadows>(toroidalShadowsRes, cascades, staticShadowDistance, 512.f, true);
-  // Shares RI_EXTRA_VB_CTX_MAIN on purpose: a dedicated context would cost another 64 * rendinstExtraMaxCnt bytes of vb
-  staticShadowsRiexBuilder = eastl::make_unique<rendinst::render::RiExtraRendererBuilder>(RI_EXTRA_VB_CTX_MAIN,
-    rendinst::RenderPass::ToShadow, rendinst::OptimizeDepthPass::Yes);
-  staticShadows->enableTextureSpaceAlignment(true);
-
-  if (isTimeDynamic)
+  debug("static shadows: rtss, %d RIGen levels from %g m for %g m, %d texels, %d cascades", match.levels, match.texel0, distance,
+    resolution, cascades);
+  if (staticShadows)
   {
-    staticShadows->enableTransitionCascade(cascades - 1, true);
-    staticShadows->enableOptimizeBigQuadsRender(cascades - 1, true);
-    staticShadows->enableStopRenderingAfterRegionSplit(cascades - 1, true);
-    staticShadows->enableTransitionCascade(0, false);
-    staticShadows->enableOptimizeBigQuadsRender(0, false);
-    staticShadows->enableStopRenderingAfterRegionSplit(0, false);
+    if (staticShadows->riGenLevels() != match.levels) // the pages hold the RIGen of the old levels
+      staticShadows->rtss.invalidate();
+    staticShadows->match = match;
+    return;
   }
+
+  staticShadows = eastl::make_unique<StaticShadows>(rtss_settings(match), match);
+  shaders::OverrideState flipCull; // as the raster state of the rtss
+  flipCull.set(shaders::OverrideState::Z_CLAMP_ENABLED | shaders::OverrideState::Z_FUNC | shaders::OverrideState::FLIP_CULL);
+  flipCull.zFunc = CMPF_LESSEQUAL;
+  flipCull.colorWr = 0;
+  staticShadows->flipCullOverride = shaders::overrides::create(flipCull);
+  staticShadows->collisionDraw.init(false);
+  if (staticShadows->collisionDraw.renderCollisionElem)
+    staticShadows->lruCollision = LRURendinstCollision::acquire();
+  staticShadows->boxOcclusionCs.reset(new_compute_shader("rtss_box_occlusion_cs"));
+  static_shadows_cascadesVarId.set_int(2); // consumers gate the static shadow on it
+  worldBBoxDirty = true;
 
   staticShadowRenderNode = dafg::register_node("static_shadow_render_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
     registry.orderMeAfter("after_world_render_node");
@@ -931,29 +976,11 @@ void ShadowsManager::initStaticShadow()
 void ShadowsManager::staticShadowsSetWorldSize()
 {
   BBox3 shadowBox = shadowInfoProvider.getStaticShadowsBBox();
-  if (staticShadows && !shadowBox.isempty())
-  {
-    shadowBox[0].y = max(shadowBox[0].y, shadowInfoProvider.getWaterLevel() - 10.f);
-    shadowBox[1].y = shadowBox[1].y + staticShadowsAdditionalHeight;
-    // extend bbox to ensure skewed shadow volume covers world bbox (when not exceeding max distance)
-    // otherwise geometry at the edges may be outside of the shadow
-    auto dirToSun = shadowInfoProvider.getDirToSun(IShadowInfoProvider::DirToSunType::STATIC);
-    if (dirToSun.y >= ToroidalStaticShadows::ORTHOGONAL_THRESHOLD)
-    {
-      Point3 bboxWidth = shadowBox.width();
-      Point3 bboxMax = shadowBox.boxMax();
-      Point3 bboxMin = shadowBox.boxMin();
-      float projectStep = bboxWidth.y / dirToSun.y;
-      Point2 xMinMax = (dirToSun.x > 0) ? Point2(bboxMin.x, bboxMax.x) : Point2(bboxMax.x, bboxMin.x);
-      Point2 zMinMax = (dirToSun.z > 0) ? Point2(bboxMin.z, bboxMax.z) : Point2(bboxMax.z, bboxMin.z);
-      shadowBox += Point3(xMinMax.x, bboxMax.y * 0.5f, zMinMax.x) - dirToSun * projectStep * 0.5f;
-      shadowBox += Point3(xMinMax.y, bboxMax.y * 0.5f, zMinMax.y) + dirToSun * projectStep * 0.5f;
-    }
-    staticShadows->setWorldBox(shadowBox);
-    // no point
-    const float htRange = min(ceilf((shadowBox[1].y - shadowBox[0].y) / 8.f) * 8., 1024.); // no more than 1km
-    staticShadows->setMaxHtRange(htRange);                                                 // that is only for skewed matrix
-  }
+  if (!staticShadows || shadowBox.isempty())
+    return;
+  shadowBox[0].y = max(shadowBox[0].y, shadowInfoProvider.getWaterLevel() - 10.f);
+  shadowBox[1].y = shadowBox[1].y + staticShadowsAdditionalHeight;
+  staticShadows->rtss.setWorldBox(shadowBox);
 }
 
 void ShadowsManager::markWorldBBoxDirty() { worldBBoxDirty = true; }
@@ -961,8 +988,12 @@ void ShadowsManager::markWorldBBoxDirty() { worldBBoxDirty = true; }
 void ShadowsManager::shadowsInvalidate(bool force)
 {
   TIME_PROFILE_DEV(shadows_invalidate);
+  if (staticShadows && force)
+    staticShadows->rtss.afterDeviceReset();
+  else if (staticShadows)
+    staticShadows->rtss.invalidate();
   if (staticShadows)
-    staticShadows->invalidate(force);
+    staticShadows->convergedFrames = 0;
   {
     OSSpinlockScopedLock scopedLock{clusteredLights.lightLock};
     clusteredLights.invalidateAllShadows();
@@ -980,8 +1011,11 @@ void ShadowsManager::shadowsInvalidate(bool force)
 void ShadowsManager::shadowsInvalidate(const BBox3 *boxes, uint32_t cnt)
 {
   TIME_PROFILE_DEV(shadows_invalidate_boxes);
-  if (staticShadows)
-    staticShadows->invalidateBoxes(boxes, cnt);
+  if (staticShadows && cnt) // eden calls each frame, mostly empty
+  {
+    staticShadows->rtss.invalidateBoxes(boxes, cnt);
+    staticShadows->convergedFrames = 0;
+  }
   for (auto be = boxes + cnt; boxes != be; ++boxes)
   {
     auto &box = *boxes;
@@ -1002,78 +1036,11 @@ void ShadowsManager::shadowsInvalidate(const BBox3 *boxes, uint32_t cnt)
     voxelShadows->invalidate();
 }
 
-void ShadowsManager::shadowsAddInvalidBBox(const BBox3 &box)
-{
-  dag::lock_guard scopedLock(staticShadowInvalidBboxes.lock); // Note: does this really needed? Could it be replaced
-                                                              // with G_ASSERT(is_main_thread()) instead?
-  staticShadowInvalidBboxes.list.push_back(box);
-  if (staticShadowInvalidBboxes.list.size() == staticShadowInvalidBboxes.list.capacity()) // Keep 1 spare for v_ldu(&bbox[1].x) to work
-  {
-    staticShadowInvalidBboxes.list.push_back_uninitialized();
-    staticShadowInvalidBboxes.list.pop_back();
-  }
-}
-
-void ShadowsManager::shadowsInvalidateGatheredBBoxes()
-{
-  if (!shadowInfoProvider.hasRenderFeature(FeatureRenderFlags::STATIC_SHADOWS))
-    return;
-
-  // group up invalidations for defined time period, to avoid excessive updates
-  // when same bboxes are slowly added in list over long (compared to frame time) period
-  uint64_t timeGap = static_shadows_invalidation_grouping_us.get();
-  if (timeGap)
-  {
-    if (staticShadowInvalidBboxes.lastApplyTicks == 0)
-    {
-      dag::lock_guard scopedLock(staticShadowInvalidBboxes.lock);
-      if (staticShadowInvalidBboxes.list.size())
-        staticShadowInvalidBboxes.lastApplyTicks = ref_time_ticks();
-      return;
-    }
-
-    if (ref_time_delta_to_usec(ref_time_ticks() - staticShadowInvalidBboxes.lastApplyTicks) < timeGap)
-      return;
-
-    staticShadowInvalidBboxes.lastApplyTicks = 0;
-  }
-
-  decltype(staticShadowInvalidBboxes.list) boxes;
-  {
-    dag::lock_guard scopedLock(staticShadowInvalidBboxes.lock);
-    staticShadowInvalidBboxes.list.swap(boxes); // To consider: double buffering? framemem?
-  }
-
-  if (boxes.empty())
-    return;
-
-  TIME_PROFILE(shadowsInvalidateGatheredBBoxes);
-  bool merge = boxes.size() >= static_shadows_invalidation_merge_boxes_threshold.get();
-  DA_PROFILE_TAG(shadowsInvalidateGatheredBBoxes, "boxes.size=%d merged=%d", boxes.size(), merge);
-
-  if (!merge)
-  {
-    for (const BBox3 &box : boxes)
-      shadowsInvalidate(box);
-  }
-  else
-  {
-    BBox3 mergedBox;
-    for (const BBox3 &box : boxes)
-      mergedBox += box;
-    shadowsInvalidate(mergedBox);
-  }
-}
-
 void ShadowsManager::closeStaticShadow()
 {
-  if (staticShadows)
-    staticShadows->printCascadesStatistics();
-  shaders::overrides::destroy(staticShadowsOverride);
-  shaders::overrides::destroy(staticShadowsOverrideFlipCull);
-  staticShadows.reset();
-  staticShadowsRiexBuilder.reset();
   closeAllStaticShadowsVisibility();
+  staticShadows.reset();
+  static_shadows_cascadesVarId.set_int(0);
   staticShadowRenderNode = {};
 }
 
@@ -1321,8 +1288,6 @@ void ShadowsManager::initShadows()
 void ShadowsManager::initShadowsSettings()
 {
   const DataBlock *graphicsBlock = dgs_get_settings()->getBlockByNameEx("graphics");
-  staticShadowMaxUpdateAmount = graphicsBlock->getReal("staticShadowMaxUpdateAmount", 0.1);
-  staticShadowUniformUpdate = graphicsBlock->getBool("staticShadowUniformUpdate", false);
   const char *quality = graphicsBlock->getStr("shadowsQuality", "low");
 
   const DataBlock *lvlSettings = shadowInfoProvider.getLevelSettings();
@@ -1423,87 +1388,10 @@ void ShadowsManager::renderGroundShadows(
 
 void ShadowsManager::closeAllStaticShadowsVisibility()
 {
-  for (auto &jobs : static_shadow_jobs)
-  {
-    for (auto &job : jobs)
-      threadpool::wait(&job);
-    jobs.clear();
-  }
-}
-
-RiGenVisibility *ShadowsManager::initOneStaticShadowsVisibility()
-{
-  RiGenVisibility *visibility = rendinst::createRIGenVisibility(midmem);
-  rendinst::setRIGenVisibilityMinLod(visibility, rendinst::MAX_LOD_COUNT, 1);
-  rendinst::setRIGenVisibilityRendering(visibility, rendinst::VisibilityRenderingFlag::Static);
-  return visibility;
-}
-
-void ShadowsManager::renderStaticShadowsRegion(
-  const mat44f &culling_view_proj, const TMatrix4 &shadow_glob_tm, const TMatrix &view_itm, int cascade, int region)
-{
-  G_ASSERT(staticShadows);
-  TIME_D3D_PROFILE(static_shadow_region);
-  FRAME_LAYER_GUARD(globalFrameBlockId);
-  Point3 camera_pos = ::grs_cur_view.pos; // todo: should be like Point3(0,0,0)
-
-  Frustum cullingFrustum(culling_view_proj);
-
-  LandMeshManager *lmeshMgr = WRDispatcher::getLandMeshManager();
-  LandMeshRenderer *lmeshRenderer = WRDispatcher::getLandMeshRenderer();
-  if (lmeshMgr)
-  {
-    // For ortho shadows cull with culling matrix, because it may not render the whole depth range.
-    Frustum lmeshCullingFrustum = staticShadows->isOrthoShadow() ? cullingFrustum : Frustum(shadow_glob_tm);
-    static_shadows_lmesh_cull_job.start(lmeshCullingFrustum, shadow_glob_tm, lmeshMgr, camera_pos);
-  }
-
-  shaders::overrides::set(staticShadowsOverride.get());
-  shadowInfoProvider.renderStaticSceneForShadowPass(RENDER_STATIC_SHADOW, camera_pos, view_itm, cullingFrustum);
-
-  {
-
-    auto &job = static_shadow_jobs[cascade][region];
-    G_ASSERT(job.done);
-    RiGenVisibility *rendinstStaticShadowVisibility = job.visibility;
-
-    rendinst::render::RiExtraRenderer *riexRenderer = staticShadowsRiexBuilder->buildNow(*rendinstStaticShadowVisibility,
-      globalFrameBlockId, rendinstDepthSceneBlockId, TexStreamingContext(0));
-
-    SCENE_LAYER_GUARD(rendinstDepthSceneBlockId);
-    // ccw + bias
-    rendinst::render::renderRIGen(rendinst::RenderPass::ToShadow, rendinstStaticShadowVisibility, view_itm,
-      rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra, rendinst::OptimizeDepthPass::No, 1, rendinst::AtestStage::All,
-      riexRenderer);
-
-    // cw
-    shaders::overrides::reset();
-    shaders::overrides::set(staticShadowsOverrideFlipCull.get());
-    rendinst::render::renderRIGen(rendinst::RenderPass::ToShadow, rendinstStaticShadowVisibility, view_itm,
-      rendinst::LayerFlag::Opaque, rendinst::OptimizeDepthPass::No, 1, rendinst::AtestStage::All, riexRenderer);
-    shaders::overrides::reset();
-    shaders::overrides::set(staticShadowsOverride.get());
-  }
-
-  if (lmeshMgr)
-  {
-    TIME_D3D_PROFILE(render_ground);
-    LandMeshRenderDesc desc;
-    desc.mode = staticShadows->isOrthoShadow() ? LMeshRenderingMode::RENDERING_DEPTH : LMeshRenderingMode::RENDERING_VSM;
-    desc.invGeomLodDist = 1. / 30000;
-
-    TMatrix4 globtmTr = shadow_glob_tm.transpose();
-    ShaderGlobal::set_float4(globtm_psf_0VarId, Color4(globtmTr[0]));
-    ShaderGlobal::set_float4(globtm_psf_1VarId, Color4(globtmTr[1]));
-    ShaderGlobal::set_float4(globtm_psf_2VarId, Color4(globtmTr[2]));
-    ShaderGlobal::set_float4(globtm_psf_3VarId, Color4(globtmTr[3]));
-
-    threadpool::wait(&static_shadows_lmesh_cull_job, 0, threadpool::PRIO_HIGH);
-    lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, desc, static_shadows_lmesh_cull_job.cullingData,
-      camera_pos);
-  }
-
-  shaders::overrides::reset();
+  wait_static_shadows_cull_jobs();
+  clear_and_shrink(static_shadow_jobs);
+  if (staticShadows && staticShadows->lruCollision)
+    staticShadows->lruCollision->clearRiInfo();
 }
 
 void ShadowsManager::updateShadowsQFromSun()
@@ -1537,6 +1425,13 @@ void ShadowsManager::updateShadowsQFromSunAndReinit()
 
 void ShadowsManager::afterDeviceReset()
 {
+  if (staticShadows)
+  {
+    staticShadows->rtss.afterDeviceReset();
+    staticShadows->convergedFrames = 0;
+    if (staticShadows->lruCollision)
+      staticShadows->lruCollision->reset(); // its heaps are created again empty
+  }
   WinAutoLock lock(shadowsGpuOcclusionMgrMutex);
   shadowsGpuOcclusionMgr.afterDeviceReset();
   if (vsm.isInited())
@@ -1699,6 +1594,7 @@ static bool shadows_console_handler(const char *argv[], int argc)
       force = atoi(argv[1]) != 0;
     shadowsManager.shadowsInvalidate(force);
   }
+  CONSOLE_CHECK_NAME("shadow", "reset_frame", 1, 1) { WRDispatcher::getShadowsManager().resetShadowFrame(); }
   return found;
 }
 

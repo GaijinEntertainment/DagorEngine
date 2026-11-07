@@ -4,10 +4,11 @@
 #include <animChar/dag_animCharacter2.h>
 #include <anim/dag_animBlend.h>
 #include <anim/dag_animBlendCtrl.h>
+#include <debug/dag_log.h>
 
 AnimCharHelper::AnimCharHelper() : animChar(NULL) {}
 
-AnimCharHelper::~AnimCharHelper() { root = NULL; }
+AnimCharHelper::~AnimCharHelper() = default;
 
 void AnimCharHelper::init(AnimV20::IAnimCharacter2 *anim_char, const char *root_name)
 {
@@ -17,8 +18,9 @@ void AnimCharHelper::init(AnimV20::IAnimCharacter2 *anim_char, const char *root_
 
   AnimV20::AnimationGraph *ag = animChar->getAnimGraph();
   AnimV20::IAnimBlendNode *n = ag->getBlendNodePtr(root_name);
-  G_ASSERT(n && n->isSubOf(AnimV20::AnimBlendCtrl_Fifo3CID));
-  root = (AnimV20::AnimBlendCtrl_Fifo3 *)n;
+  root = n && n->isSubOf(AnimV20::AnimBlendCtrl_Fifo3CID) ? (AnimV20::AnimBlendCtrl_Fifo3 *)n : nullptr;
+  if (!root)
+    logerr("animChar %s: no Fifo3 blend node <%s>", animChar->getCreateInfo()->resName.c_str(), root_name);
   clear_and_shrink(bnls);
   animNames.reset();
 }
@@ -41,15 +43,12 @@ int AnimCharHelper::registerAnim(const char *name)
   return nameId;
 }
 
-void AnimCharHelper::playAnim(int anim_id, bool seek)
+void AnimCharHelper::playAnim(int anim_id)
 {
   if (anim_id < 0 || !animChar || !root)
     return;
 
-  if (seek)
-  {
-    bnls[anim_id]->seek(*animChar->getAnimState(), 0.f);
-    bnls[anim_id]->resume(*animChar->getAnimState(), true);
-  }
+  bnls[anim_id]->seek(*animChar->getAnimState(), 0.f);
+  bnls[anim_id]->resume(*animChar->getAnimState(), true);
   root->enqueueState(*animChar->getAnimState(), bnls[anim_id], 0.05f);
 }

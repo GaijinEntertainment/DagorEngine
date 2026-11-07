@@ -2,6 +2,9 @@
 
 #include <sepClient/sepClient.h>
 
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
+
 #include <catch2/catch_test_macros.hpp>
 
 
@@ -25,7 +28,7 @@ TEST_CASE("Dummy test", "[dummy2]") // the same test name is ok once tag differs
 }
 
 
-static void verify_size(const std::vector<std::string> &v, size_t expected_size)
+static void verify_size(const eastl::vector<eastl::string> &v, size_t expected_size)
 {
   if (expected_size == 0)
   {
@@ -44,7 +47,7 @@ SCENARIO("Vector can be sized and resized", "[dummy]")
 {
   GIVEN("An empty vector")
   {
-    auto v = std::vector<std::string>{};
+    auto v = eastl::vector<eastl::string>{};
 
     THEN("The size and capacity start at 0") { verify_size(v, 0); }
 

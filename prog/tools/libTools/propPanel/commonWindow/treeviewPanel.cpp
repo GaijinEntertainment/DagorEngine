@@ -48,6 +48,8 @@ TreeBaseWindow::TreeBaseWindow(ITreeViewEventHandler *event_handler, void *phand
 
 TreeBaseWindow::~TreeBaseWindow() { del_it(mTree); }
 
+void TreeBaseWindow::setColor(TLeafHandle item, E3DCOLOR color) { mTree->setColor(item, color); }
+
 void TreeBaseWindow::onWcChange(WindowBase *source)
 {
   if (source == treeWindowBase && mEventHandler)

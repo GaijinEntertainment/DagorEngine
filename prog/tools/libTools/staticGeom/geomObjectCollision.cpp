@@ -58,7 +58,7 @@ void GeomObject::initCollision()
       const Face &f = faces[fi];
       if (!smesh.mats[f.mat < numMats ? f.mat : numMats - 1])
         continue;
-      // constraint: one bad vertex refuses the object's only BLAS, so the face goes instead
+      // one bad vertex refuses the object's only BLAS, so the face goes instead
       if (f.v[0] >= nodeVerts || !v_test_xyz_finite(v_ldu_p3_safe(&verts[base + f.v[0]].x)) || f.v[1] >= nodeVerts ||
           !v_test_xyz_finite(v_ldu_p3_safe(&verts[base + f.v[1]].x)) || f.v[2] >= nodeVerts ||
           !v_test_xyz_finite(v_ldu_p3_safe(&verts[base + f.v[2]].x)))

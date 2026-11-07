@@ -411,6 +411,13 @@ void DecalsMatrices::UniqueMap::clear()
 
 void DecalsMatrices::UniqueMap::resetItem(uint32_t id)
 {
+  G_ASSERTF_RETURN(id < itemToMatrix.size(), , "DecalsMatrices: item id %d out of %d", id, itemToMatrix.size());
+  auto removedItr = eastl::find(removedItems.begin(), removedItems.end(), id);
+  if (removedItr != removedItems.end())
+  {
+    *removedItr = removedItems.back();
+    removedItems.pop_back();
+  }
   id_t &matrix = itemToMatrix[id];
   if (matrix == INVALID_ID)
     return;
@@ -423,7 +430,7 @@ void DecalsMatrices::UniqueMap::resetItem(uint32_t id)
 
 void DecalsMatrices::UniqueMap::set(uint32_t matrix, uint32_t id)
 {
-  G_ASSERT(id < itemToMatrix.size());
+  G_ASSERTF_RETURN(id < itemToMatrix.size(), , "DecalsMatrices: item id %d out of %d", id, itemToMatrix.size());
   resetItem(id);
   itemToMatrix[id] = matrix;
   matrixToItems[matrix].push_back(id);
@@ -445,16 +452,20 @@ void DecalsMatrices::UniqueMap::removeMatrix(uint32_t matrix)
 uint32_t DecalsMatrices::UniqueMap::matrixByItem(uint32_t id) const { return itemToMatrix[id]; }
 
 
+eastl::optional<uint32_t> DecalsMatrices::UniqueMap::peekReusableItem() const
+{
+  if (removedItems.empty())
+    return {};
+  const uint32_t id = removedItems.back();
+  return {id};
+}
+
 eastl::optional<uint32_t> DecalsMatrices::UniqueMap::popReusableItem()
 {
-  if (removedItems.size() > 0)
-  {
-    const uint32_t id = removedItems.back();
+  eastl::optional<uint32_t> id = peekReusableItem();
+  if (id)
     removedItems.pop_back();
-    return {id};
-  }
-  else
-    return {};
+  return id;
 }
 
 int DecalsMatrices::UniqueMap::getMatrixItemCount(uint32_t matrix) const { return matrixToItems[matrix].size(); }

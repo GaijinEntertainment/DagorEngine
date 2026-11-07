@@ -2,6 +2,7 @@
 
 #include <daFracture/render/renderMesh.h>
 
+#include <EASTL/algorithm.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <util/dag_hash.h>
 #include <util/dag_stlqsort.h>
@@ -41,9 +42,12 @@ void add_destr_geometry(DestrContext &ctx, dag::Span<ShaderGeomLoadRequest> requ
 
   dag::Vector<uint8_t, framemem_allocator> rawMeshDataBuffer;
   for (ShaderGeomLoadRequest &req : requests)
-  {
     for (const ShaderMesh::RElem &srcElem : req.shaderMesh->getAllElems())
       rawMeshData.emplace(srcElem.vertexData, RawMeshDataSpan());
+  for (ShaderGeomLoadRequest &req : requests)
+  {
+    if (eastl::any_of(requests.begin(), &req, [&](const ShaderGeomLoadRequest &prev) { return prev.smvd == req.smvd; }))
+      continue;
     req.smvd->unpackVData([&](ShaderMatVDataReadCbSrc &reader, const GlobalVertexData *vd, bool is_ib) {
       const auto it = rawMeshData.find(vd);
       if (it == rawMeshData.end())
@@ -104,6 +108,8 @@ void add_destr_geometry(DestrContext &ctx, dag::Span<ShaderGeomLoadRequest> requ
             G_ASSERT(idx < srcElem.numv);
             face.idx[j] = idx + pushVertBase;
           }
+          if (req.invertWinding)
+            eastl::swap(face.idx[1], face.idx[2]);
         }
 
         const auto &channels = rMat.channels;
@@ -111,7 +117,8 @@ void add_destr_geometry(DestrContext &ctx, dag::Span<ShaderGeomLoadRequest> requ
         {
           auto &v = req.outMesh->verts.emplace_back(parse_vertex(channels, vertSrcPtr + i * vStride));
           v_stu_p3(&v.pos.x, v_mat44_mul_vec3p(toLocal44, v_ldu(&v.pos.x)));
-          v_stu_p3(&v.norm.x, v_mat44_mul_vec3v(toLocal44, v_ldu(&v.norm.x)));
+          const vec3f norm = v_mat44_mul_vec3v(toLocal44, v_ldu(&v.norm.x));
+          v_stu_p3(&v.norm.x, req.invertWinding ? v_neg(norm) : norm);
         }
       }
     }

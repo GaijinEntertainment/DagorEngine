@@ -7,15 +7,16 @@ println("format(\"%d\", 3.9) =", format("%d", 3.9))
 
 // extra arguments are ignored, a missing one is not
 println("format(\"%d %d\", 1, 2, 3) =", format("%d %d", 1, 2, 3))
+let x = 1
 try {
-  format("%d %d", 1)
+  format("%d %d", x)
 } catch (e) {
-  println("format(\"%d %d\", 1) throws:", e)
+  println("format(\"%d %d\", x) throws:", e)
 }
 
 // "*" (width taken from an argument, as in C's printf) is not supported
 try {
-  format("%*d", 5, 1)
+  format("%*d", 5, x)
 } catch (e) {
-  println("format(\"%*d\", 5, 1) throws:", e)
+  println("format(\"%*d\", 5, x) throws:", e)
 }

@@ -7,6 +7,7 @@
 #include <osApiWrappers/dag_winVersionQuery.h>
 #include <supp/_platform.h>
 #include <util/dag_globDef.h>
+#include <debug/dag_debug.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,6 +29,7 @@
 #include "gdk/misc_api.h"
 #elif _TARGET_PC_WIN
 #include <windows.h>
+#pragma comment(lib, "advapi32.lib")
 #elif _TARGET_ANDROID
 
 #include <supp/dag_android_native_app_glue.h>
@@ -515,6 +517,53 @@ const char *get_console_model_revision(ConsoleModel model)
     case ConsoleModel::XBOX_ANACONDA: return "ANACONDA";
     default: return "";
   }
+}
+
+
+#if _TARGET_PC_WIN
+static bool bios_value_starts_with(const char *name, const char *prefix)
+{
+  char value[128];
+  DWORD size = sizeof(value);
+  return RegGetValueA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\BIOS", name, RRF_RT_REG_SZ, nullptr, value, &size) ==
+           ERROR_SUCCESS &&
+         _strnicmp(value, prefix, strlen(prefix)) == 0;
+}
+
+static bool is_running_on_handheld_impl()
+{
+  using GetDeviceFamilyInfo = VOID(WINAPI *)(ULONGLONG *, DWORD *, DWORD *);
+  DWORD form = 0;
+  if (auto getDeviceFamilyInfo =
+        (GetDeviceFamilyInfo)(void *)GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlGetDeviceFamilyInfoEnum"))
+    getDeviceFamilyInfo(nullptr, nullptr, &form);
+  if (form == 0x2E) // DEVICEFAMILYDEVICEFORM_GAMING_HANDHELD
+  {
+    debug("gaming handheld: device form");
+    return true;
+  }
+  // older handhelds do not report the device form
+  static const char *const known_handhelds[][2] = {{"SystemProductName", "ROG Ally"}, {"SystemProductName", "ROG Xbox Ally"},
+    {"SystemFamily", "Legion Go"}, {"SystemProductName", "Claw"}, {"SystemProductName", "ZOTAC GAMING ZONE"},
+    {"SystemManufacturer", "ONE-NETBOOK"}};
+  for (const auto &h : known_handhelds)
+    if (bios_value_starts_with(h[0], h[1]))
+    {
+      debug("gaming handheld: SMBIOS %s %s", h[0], h[1]);
+      return true;
+    }
+  return false;
+}
+#endif
+
+bool is_running_on_handheld()
+{
+#if _TARGET_PC_WIN
+  static bool cached = is_running_on_handheld_impl();
+  return cached;
+#else
+  return false;
+#endif
 }
 
 

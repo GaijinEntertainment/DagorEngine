@@ -73,6 +73,9 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   if (desc.specialFlags & SystemDesc::FLAG_DISABLE_CULLING)
     sys.refFlags |= SYS_DISABLE_CULLING;
 
+  if (desc.specialFlags & SystemDesc::FLAG_DISABLE_OCCLUSION)
+    sys.refFlags |= SYS_DISABLE_OCCLUSION;
+
   if (!(desc.specialFlags & SystemDesc::FLAG_DISABLE_SIM_LODS))
     sys.refFlags |= SYS_ALLOW_SIMULATION_LODS;
   sys.qualityFlags = desc.qualityFlags;

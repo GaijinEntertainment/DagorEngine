@@ -945,6 +945,46 @@ void flush_shaders(RenderState &rs, bool flushConsts)
   }
 }
 
+#if DAGOR_DBGLEVEL > 0
+void check_draw_uav_formats(RenderState &rs)
+{
+  const ShaderData *ps = (rs.nextPixelShader == BAD_FSHADER) ? nullptr : g_pixel_shaders[rs.nextPixelShader].obj;
+  const ShaderData *vs = (rs.nextVertexShader == BAD_VPROG) ? nullptr : g_vertex_shaders[rs.nextVertexShader].ilCache;
+  uint8_t readMask = 0, writeMask = 0;
+  const char *names[2] = {};
+  int nameCount = 0;
+  for (const ShaderData *shader : {ps, vs})
+  {
+    if (!shader || shader->source.metadata.size() < dx11::SIMPLE_METADATA_SIZE)
+      continue;
+    const auto &header = *reinterpret_cast<const dx11::SimpleHeader *>(shader->source.metadata.data());
+    const uint8_t shaderReadMask = dx11::get_uav_read_mask(header);
+    const uint8_t shaderWriteMask = dx11::get_uav_write_mask(header);
+    if (!(shaderReadMask | shaderWriteMask))
+      continue;
+    readMask |= shaderReadMask;
+    writeMask |= shaderWriteMask;
+    names[nameCount++] = shader->shaderDebugName ? shader->shaderDebugName.get() : "<unnamed>";
+  }
+  // constraint: d3d::set_rwtex and d3d::set_rwbuffer bind STAGE_VS UAVs to STAGE_PS, graphics UAVs share one slot range
+  rs.texFetchState.checkUavFormats(STAGE_PS, readMask, writeMask, names[0] ? names[0] : "<unnamed>", names[1]);
+}
+
+void check_dispatch_uav_formats(RenderState &rs, bool async)
+{
+  const ComputeShader *cs = (rs.nextComputeShader == BAD_SHADER_ID) ? nullptr : g_compute_shaders[rs.nextComputeShader].obj;
+  uint8_t readMask = 0, writeMask = 0;
+  if (cs && cs->source.metadata.size() >= dx11::SIMPLE_METADATA_SIZE)
+  {
+    const auto &header = *reinterpret_cast<const dx11::SimpleHeader *>(cs->source.metadata.data());
+    readMask = dx11::get_uav_read_mask(header);
+    writeMask = dx11::get_uav_write_mask(header);
+  }
+  const char *name = cs && cs->shaderDebugName ? cs->shaderDebugName.get() : "<unnamed>";
+  rs.texFetchState.checkUavFormats(async ? STAGE_CS_ASYNC_STATE : STAGE_CS, readMask, writeMask, name);
+}
+#endif
+
 void close_shaders()
 {
   g_render_state.constants.destroy();

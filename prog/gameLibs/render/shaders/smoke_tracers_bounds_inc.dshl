@@ -1,0 +1,9 @@
+macro SMOKE_TRACERS_BOUNDS_FUNC(stage)
+  hlsl(stage) {
+    float get_tracers_max_reach(float radius_start, float time, float4 turbulence_params, float3 wind_drift)
+    {
+      return radius_start + (get_tracers_max_turbulence_radius(radius_start, turbulence_params) +
+                             get_tracers_max_wind_radius(radius_start, turbulence_params))*sqrt(time);
+    }
+  }
+endmacro

@@ -13,6 +13,7 @@
 #include <render/debugMultiTextLabels/debugMultiTextLabels_api.h>
 #include <debug/dag_debugTextStream.h>
 #include <gameRes/dag_gameResSystem.h>
+#include <gameRes/dag_gameResHooks.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_initOnDemand.h>
@@ -35,6 +36,7 @@
 #include <util/dag_localization.h>
 #include <util/dag_threadPool.h>
 #include <util/dag_fileMd5Validate.h>
+#include <util/dag_finally.h>
 #include <supp/dag_cpuControl.h>
 #include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_gameSettings.h>
@@ -108,7 +110,6 @@
 #include <animated_splash_screen_api.h>
 #include "sound/dngSound.h"
 #include "sound_net/registerSoundNetProps.h"
-#include "ui/userUi.h"
 #include "ui/uiShared.h"
 #include "ui/uiRender.h"
 #include "main/browser/webBrowser.h"
@@ -174,7 +175,7 @@ namespace
 {
 struct DummyAntialiasingAppGlue : render::antialiasing::AppGlue
 {
-  TMatrix4 getUvReprojectionToPrevFrameTmNoJitter() const override { return TMatrix4::IDENT; }
+  TMatrix4 getUvReprojectionToPrevFrameTmNoJitter(const render::RenderView &) const override { return TMatrix4::IDENT; }
   IPoint2 getInputResolution() const override { return {0, 0}; }
   IPoint2 getOutputResolution() const override { return getDisplayResolution(); }
   IPoint2 getDisplayResolution() const override
@@ -208,6 +209,8 @@ static String scenePath;
 void updateInput(float rtDt, float dt, double cur_time)
 {
   TIME_PROFILE(updateInput);
+  // In the parallel logic mode this runs after dagor_start_next_frame(), so the input belongs to that next frame
+  lowlatency::set_marker(dagor_get_latest_frame_started(), lowlatency::LatencyMarkerType::PC_LATENCY_PING);
   controls::process_input(rtDt);
   controls::check_system_keys();
   g_entity_mgr->broadcastEventImmediate(UpdateStageUpdateInput(cur_time, dt));
@@ -434,10 +437,21 @@ void on_scene_deselected()
 
 static int loading_job_mgr_id = -1;
 
+static const char *res_patch_root = nullptr;
+
+// --onlychanged leaves unchanged files in the package
+static bool resolve_missing_res_patch_file(const char *fname, String &out_fname)
+{
+  const size_t len = strlen(res_patch_root);
+  const char *realName = strncmp(fname, res_patch_root, len) == 0 ? df_get_real_name(fname + len) : nullptr;
+  if (realName)
+    out_fname = realName;
+  return realName != nullptr;
+}
+
 void load_res_package(const char *folder, bool optional)
 {
-  String mnt0(0, "%s/", folder);
-  String mntP(0, "%s/%s", dgs_get_settings()->getStr("addonsPatchRoot", "patch"), mnt0);
+  const String mnt0 = resolve_res_base_dir(folder);
   bool base_pkg_loaded = false;
   bool load_tex = !dgs_get_settings()->getBlockByNameEx("texStreaming")->getBool("disableTexScan", false) && have_renderer();
 
@@ -445,7 +459,9 @@ void load_res_package(const char *folder, bool optional)
   gameres_append_desc(gameres_dynmodel_desc, mnt0 + "dynModelDesc.bin", folder);
 
   {
-    RAIIVrom vrom(mnt0 + "grp_hdr.vromfs.bin", optional, tmpmem, true, mnt0.str());
+    String mnt = mnt0; // add_vromfs keeps and lowercases this buffer, so pack names use mnt0
+    // the vrom name stays relative: get_eff_vrom_fpath() prefixes it with the updater cache folder
+    RAIIVrom vrom(String::mk_str_cat(folder, "/grp_hdr.vromfs.bin"), optional, tmpmem, true, mnt.str());
     if (vrom.isLoaded())
     {
       debug("loading res pkg: %s", mnt0);
@@ -473,10 +489,24 @@ void load_res_package(const char *folder, bool optional)
 
   if (base_pkg_loaded)
   {
+    String relP = String::mk_str_cat(dgs_get_settings()->getStr("addonsPatchRoot", "patch"), "/") + folder;
+    const auto prevResolve = gamereshooks::on_missing_pack_resolve;
+    FINALLY([prevResolve] { gamereshooks::on_missing_pack_resolve = prevResolve; });
+    res_patch_root = get_actual_res_patch_folder();
+    if (res_patch_root)
+    {
+      relP = String::mk_str_cat(res_patch_root, relP);
+      gamereshooks::on_missing_pack_resolve = &resolve_missing_res_patch_file;
+    }
+    const String mntP = resolve_res_base_dir(relP);
     gameres_patch_desc(gameres_rendinst_desc, mntP + "riDesc.bin", folder, mnt0 + "riDesc.bin");
     gameres_patch_desc(gameres_dynmodel_desc, mntP + "dynModelDesc.bin", folder, mnt0 + "dynModelDesc.bin");
 
-    RAIIVrom vrom(mntP + "grp_hdr.vromfs.bin", true, framemem_ptr(), true, mntP);
+    String hdr = relP + "/grp_hdr.vromfs.bin";
+    if (res_patch_root && !dd_file_exists(hdr))
+      resolve_missing_res_patch_file(String(hdr), hdr);
+    String mnt = mntP;
+    RAIIVrom vrom(hdr, true, framemem_ptr(), true, mnt.str());
     if (vrom.isLoaded())
     {
       debug("loading res pkg(patch): %s", folder);
@@ -581,13 +611,10 @@ static void init_main_thread(void *)
 #if _TARGET_PC_WIN || _TARGET_XBOX
   const DataBlock &cfg = *dgs_get_settings()->getBlockByNameEx("debug");
   G_ASSERT(is_main_thread());
-  // Note: boost main thread priority in order to overrule loading threads (resources, textures, etc...)
+  // Note: boost main thread priority in order to overrule loading threads (resources, textures, etc...) and to be the
+  // least likely target to be scheduled out when all cores are saturated
   if (cfg.getBool("boostMainThreadPriority", true))
-#if _TARGET_XBOX // Note: when all cores are saturated this ensures that main thread is less likely target to be scheduled out
-    DaThread::applyThisThreadPriority(THREAD_PRIORITY_HIGHEST);
-#else
-    DaThread::applyThisThreadPriority(THREAD_PRIORITY_ABOVE_NORMAL);
-#endif
+    DaThread::applyThisThreadPriority(MAIN_THREAD_PRIORITY);
 
   if (cfg.getBool("pinMainThreadToCore",
 #if _TARGET_XBOX
@@ -649,7 +676,6 @@ void app_close()
 
   controls::global_destroy();
 
-  user_ui::term();
   overlay_ui::shutdown_ui(true);
   overlay_ui::shutdown_network_services();
   uishared::term();
@@ -795,6 +821,8 @@ namespace riexsync
 bool is_server() { return ::is_server(); }
 } // namespace riexsync
 
+void (*on_app_before_game_scripts)() = nullptr;
+
 void app_start(bool register_dagor_scene)
 {
 #if _TARGET_ANDROID || _TARGET_IOS
@@ -822,6 +850,7 @@ void app_start(bool register_dagor_scene)
 
   httprequests::InitAsyncParams initHttpAsyncParams;
   initHttpAsyncParams.verboseDebug = debugSettings.getBool("httpClientVerbose", false);
+  initHttpAsyncParams.pollInThread = settings.getBlockByNameEx("network")->getBool("httpClientPollInThread", false);
   httprequests::init_async(initHttpAsyncParams);
   init_auth();
 
@@ -960,6 +989,9 @@ void app_start(bool register_dagor_scene)
     projectId);
 
   G_VERIFY(gamescripts::init());
+
+  if (on_app_before_game_scripts)
+    on_app_before_game_scripts();
 
   gamescripts::run();
 

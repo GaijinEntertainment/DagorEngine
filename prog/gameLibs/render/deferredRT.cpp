@@ -311,7 +311,7 @@ void DeferredRT::initDebugTex()
   {
     IPoint2 cs = calcCreationSize();
     auto tempTex =
-      dag::create_tex(NULL, cs.x, cs.y, TEXFMT_R8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, 1, "dbg_gbuff_tex", RESTAG_TARGET);
+      dag::create_tex(NULL, cs.x, cs.y, TEXFMT_R16F | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, 1, "dbg_gbuff_tex", RESTAG_TARGET);
 
     dbgTex = ResizableTex(eastl::move(tempTex), "dbg_gbuff_tex");
   }

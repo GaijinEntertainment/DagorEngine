@@ -157,7 +157,7 @@ static AlbedoScene save_albedo_scene(const char *dir, DataBlock &blk)
 }
 
 bool save_capture(const char *dir, const TMatrix &view_itm, const Driver3dPerspective &persp, int width, int height,
-  const Point3 &dir_to_sun, const char *source_dump, const char *level_bin, EnvWriter env_writer)
+  const Point3 &dir_to_sun, const char *source_dump, const char *level_bin, EnvWriter env_writer, dag::ConstSpan<Point4> extra_spheres)
 {
   if (width <= 0 || height <= 0)
   {
@@ -179,18 +179,19 @@ bool save_capture(const char *dir, const TMatrix &view_itm, const Driver3dPerspe
   cam->setInt("width", width);
   cam->setInt("height", height);
 
-  // sun: caller-supplied to-sun direction + sun_light_color as every game
-  // shades with it (dagor convention: E/PI; the replay multiplies by PI)
+  // sun: caller-supplied to-sun direction + the colour the frame shades with, sun_color_0 (dagor convention:
+  // E/PI, the replay multiplies by PI); a black sun_color_0 is kept as is
   DataBlock *sun = blk.addBlock("sun");
-  Color4 sunCol = ShaderGlobal::get_float4(get_shader_variable_id("sun_light_color", true));
-  const Point3 sunColor(sunCol.r, sunCol.g, sunCol.b);
+  const int sunColorVarId = get_shader_variable_id("sun_color_0", true);
+  const Point3 sunColor = Point3::rgb(ShaderGlobal::get_float4(
+    VariableMap::isGlobVariablePresent(sunColorVarId) ? sunColorVarId : get_shader_variable_id("sun_light_color", true)));
   const bool haveSunDir = dir_to_sun.lengthSq() > 1e-12f;
   // the replay turns the sun on from its COLOUR, so a live colour with a
   // degenerate direction lights nothing: the replay would then differ from the
   // captured frame by exactly the sun, and nothing would say so
   if (sunColor.lengthSq() > 0 && !haveSunDir)
   {
-    logerr("gi_verify capture: sun_light_color is set but dir_to_sun is zero - the replay would lose the sun");
+    logerr("gi_verify capture: the sun colour is set but dir_to_sun is zero - the replay would lose the sun");
     return false;
   }
   sun->setPoint3("dirToSun", haveSunDir ? normalize(dir_to_sun) : Point3(0, 1, 0)); // replay uses it as a unit direction
@@ -285,6 +286,16 @@ bool save_capture(const char *dir, const TMatrix &view_itm, const Driver3dPerspe
   if (!haveDump)
     logerr("gi_verify capture: no collision dump path (check the ri_collisions setting) - "
            "the capture cannot be replayed");
+  if (!extra_spheres.empty())
+  {
+    DataBlock *geo = blk.addBlock("extraGeometry");
+    for (const Point4 &s : extra_spheres)
+    {
+      DataBlock *sph = geo->addNewBlock("sphere");
+      sph->setPoint3("center", Point3(s.x, s.y, s.z));
+      sph->setReal("radius", s.w);
+    }
+  }
 
   const AlbedoScene albedo = save_albedo_scene(dir, blk);
 

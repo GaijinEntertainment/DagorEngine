@@ -213,10 +213,8 @@ Terminal *GeneratedLexer::get_terminal()
   return t;
 }
 
-static InputFile open_input_file(const char *fn)
+String resolve_shader_source_path(const char *fn)
 {
-  InputFile input;
-
   String inc_fpath;
   if (dd_file_exists(fn))
   {
@@ -229,7 +227,19 @@ static InputFile open_input_file(const char *fn)
   {
     inc_fpath = shc::search_include_with_pathes(fn);
   }
+  if (!inc_fpath.empty())
+  {
+    dd_simplify_fname_c(inc_fpath.str());
+    inc_fpath.updateSz();
+  }
+  return inc_fpath;
+}
 
+static InputFile open_input_file(const char *fn)
+{
+  InputFile input;
+
+  String inc_fpath = resolve_shader_source_path(fn);
   if (!input.include_alefile(inc_fpath))
   {
     sh_debug(SHLOG_FATAL, "can't read shader script '%s'", fn);

@@ -103,6 +103,7 @@ public:
 
     RenderableInstanceLodsResSrc *resSrc = new RenderableInstanceLodsResSrc;
     resSrc->log = &log;
+    resSrc->atestValidationCtx = atest_validation_ctx;
 
     ::generate_extra_in_prepare_billboard_mesh = false;
 

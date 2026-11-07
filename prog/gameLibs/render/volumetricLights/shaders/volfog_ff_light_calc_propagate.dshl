@@ -243,20 +243,26 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
         uint clusterIndex = frustum_clusters_get_cluster_index(half2(screenTcJittered.xy), nextDepth, depthSliceScale, depthSliceBias);
         uint wordsPerOmni, wordsPerSpot;
         get_clustered_light_word_counts(wordsPerOmni, wordsPerSpot);
-        uint omniAddress = get_cluster_grid_omni_address(clusterIndex, wordsPerOmni);
+        uint omniAddress = get_cluster_grid_omni_address(clusterIndex, omniLightsWordCount);
 
         ##if (dynamic_lights_count == lights_omnispot_1 || dynamic_lights_count == lights_omni_1 || dynamic_lights_count == lights_spot_1)
           #define CLUSTER_GRID_WALK_WORD_LOOP_ATTR UNROLL
+        ##endif
+        ##if clustered_lights_limited_omni_words_read
+          #define CLUSTER_GRID_WALK_ACTUAL_WORDS_COUNT omniLightsWordCount
         ##endif
         #define CLUSTER_GRID_WALK_ADDRESS omniAddress
         #define CLUSTER_GRID_WALK_WORD_COUNT wordsPerOmni
         #define CLUSTER_GRID_WALK_LIGHT_BODY(omni_light_index) calc_omni_light(omni_light_index, worldPos, ambPhase, lightsEffect, dynamicLighting);
         #include <cluster_grid_lights_walk.hlsli>
 
-        uint spotAddress = get_cluster_grid_spot_address(clusterIndex, wordsPerSpot, wordsPerOmni);
+        uint spotAddress = get_cluster_grid_spot_address(clusterIndex, spotLightsWordCount, omniLightsWordCount);
 
         ##if (dynamic_lights_count == lights_omnispot_1 || dynamic_lights_count == lights_omni_1 || dynamic_lights_count == lights_spot_1)
           #define CLUSTER_GRID_WALK_WORD_LOOP_ATTR UNROLL
+        ##endif
+        ##if clustered_lights_limited_spot_words_read
+          #define CLUSTER_GRID_WALK_ACTUAL_WORDS_COUNT spotLightsWordCount
         ##endif
         #define CLUSTER_GRID_WALK_ADDRESS spotAddress
         #define CLUSTER_GRID_WALK_WORD_COUNT wordsPerSpot
@@ -281,7 +287,6 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
   hlsl(stage)
   {
     #define FASTEST_STATIC_SHADOW_PCF 1
-    #define DO_NOT_FILTER_GI_AMBIENT_BY_NORMAL_WEIGHT 1
   }
 
   INIT_BLURRED_DEPTH_ABOVE(stage)
@@ -311,11 +316,11 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
     inv_resolution@f3 = (inv_volfog_froxel_volume_res.x, inv_volfog_froxel_volume_res.y, inv_volfog_froxel_volume_res.z, 0);
     jitter_ray_offset@f4 = jitter_ray_offset;
     local_view_z@f3 = local_view_z;
-    prev_initial_inscatter@smp3d = prev_initial_inscatter;
-    prev_initial_extinction@smp3d = prev_initial_extinction;
-    initial_media@smp3d = initial_media;
+    prev_initial_inscatter@tex3d = prev_initial_inscatter;
+    prev_initial_extinction@tex3d = prev_initial_extinction;
+    initial_media@tex3d = initial_media;
     volfog_occlusion@tex2d = volfog_occlusion;
-    prev_volfog_weight@smp3d = prev_volfog_weight;
+    prev_volfog_weight@tex3d = prev_volfog_weight;
 
     volfog_froxel_range@f1 = volfog_froxel_range_params.x;
     channel_swizzle_indices@i2 = (channel_swizzle_indices.x, channel_swizzle_indices.y, 0, 0);
@@ -335,6 +340,13 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
     volfog_light_leak_sun_bias_scale@f1 = volfog_light_leak_sun_bias_scale;
 
     volfog_gi_sampling_mode@i1 = volfog_gi_sampling_mode;
+  }
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(stage)
+  hlsl(stage) {
+    #define prev_initial_inscatter_samplerstate global_linear_clamp_sampler
+    #define prev_initial_extinction_samplerstate global_linear_clamp_sampler
+    #define initial_media_samplerstate global_linear_clamp_sampler
+    #define prev_volfog_weight_samplerstate global_linear_clamp_sampler
   }
 
   bool enable_self_shadowing = froxel_fog_use_self_shadowing == yes && volfog_shadow != NULL;
@@ -963,6 +975,7 @@ shader froxel_fog_light_calc_propagate_cs
         #define WARP_SIZE_X 4
         #define WARP_SIZE_Y 4
         #define WARP_SIZE_Z 4
+        #define RTSS_TAP_LOOP 1 // single pass costs a wave on Scarlett
 
 ##if hardware.metal // metal can't handle matrix types in groupshared memory
         struct InscatterAcc

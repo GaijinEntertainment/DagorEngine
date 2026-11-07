@@ -15,8 +15,8 @@ on class instances).
 ## Notes
 
 Locks the class as a side effect, the same as calling `ClassName(...)` does: a
-class permanently stops accepting new plain fields the first time any instance
-of it exists, whichever way that instance was made.
+class becomes read-only the first time any instance of it exists, whichever way
+that instance was made, so add every member before that.
 
 Useful for a class whose constructor requires arguments a caller does not have
 yet, or for tooling that wants a template instance to inspect without running

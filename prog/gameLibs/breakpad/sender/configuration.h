@@ -56,7 +56,6 @@ struct Configuration
   std::string crashType;
   bool sendLogs = true;
   bool allowEmail = false;
-  bool restartParent = false;
   std::vector<std::string> parent;
 
   struct Stats

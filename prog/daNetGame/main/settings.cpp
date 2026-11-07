@@ -1,12 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "settings.h"
+#include <debug/dag_logSys.h>
 #include "main.h"
 #include "level.h"
 #include "vromfs.h"
 #include "gameLoad.h"
 #include "render/renderer.h"
 #include "ui/uiShared.h"
+#include "sound/dngSound.h"
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_loadSettings.h>
 #include <osApiWrappers/dag_direct.h>
@@ -64,6 +66,9 @@
 
 static eastl::unique_ptr<DataBlock> settings_override_blk;
 static String settings_override_filename;
+static bool settings_apply_deferred = false;
+static SettingsHashMap deferred_changed_settings;
+static FastNameMap deferred_notified_settings;
 
 
 static void split_blk_path(String &path_buf, Tab<const char *> &parts)
@@ -220,11 +225,27 @@ void dgs_set_project_override_blk(const DataBlock &blk)
     load_settings_and_apply_config(nullptr);
 }
 
+static void apply_handheld_settings_overrides()
+{
+  if (!is_running_on_handheld())
+    return;
+
+  const DataBlock *overrides = ::dgs_get_settings()->getBlockByNameEx("handheldOverrides");
+  if (!overrides->isEmpty())
+  {
+    debug("settings: applying handheldOverrides block");
+    dgs_apply_config_blk(*overrides, /*force_apply_all*/ true, /*store_cfg_copy*/ false);
+  }
+}
+
 static void load_settings_and_apply_config(const char *stg_fn, const SettingsHashMap *changed_settings)
 {
   // [Re]load settings
   dgs_load_settings_blk_ex(DataBlock::emptyBlock, stg_fn, console_config_blk_from_bin_folder(), /*force_apply_all*/ false,
     /*store_cfg_copy*/ false, /*resolve_tex_streaming*/ true);
+
+  // before EventOnSettingsLoaded, so the more specific steamDeckOverrides win
+  apply_handheld_settings_overrides();
 
   if (g_entity_mgr)
     g_entity_mgr->broadcastEventImmediate(EventOnSettingsLoaded{});
@@ -341,6 +362,15 @@ static SQInteger get_setting_by_blk_path(HSQUIRRELVM v)
 
   for (int i = 0; i < (int)parts.size() - 1; ++i)
     blk = blk->getBlockByNameEx(parts[i]);
+  // live blk is stale until deferred apply
+  if (settings_apply_deferred)
+  {
+    const DataBlock *saved = settings_override_blk.get();
+    for (int i = 0; saved && i < (int)parts.size() - 1; ++i)
+      saved = saved->getBlockByName(parts[i]);
+    if (saved && saved->paramExists(parts.back()))
+      blk = saved;
+  }
 
   DataBlock::ParamType type = DataBlock::TYPE_NONE;
   int paramIdx = blk->findParam(parts.back());
@@ -405,7 +435,7 @@ static SQInteger set_setting_by_blk_path(HSQUIRRELVM v)
   const char *paramName = parts.back();
 
   if (!force_apply_all && (!aco->getBool("__allow_all_params", false) && aco->findParam(paramName) < 0))
-    logmessage(DAGOR_DBGLEVEL > 0 ? LOGLEVEL_ERR : _MAKE4C('nEvt'), "settings.blk override for '%s' is not allowed!", path.value);
+    logmessage(DAGOR_DBGLEVEL > 0 ? LOGLEVEL_ERR : LOGTAG_NET_EVENT, "settings.blk override for '%s' is not allowed!", path.value);
 
   switch (val.value.GetType())
   {
@@ -655,11 +685,32 @@ void save_settings(const SettingsHashMap *changed_settings, bool apply_settings)
     cpujobs::reset_job_queue(jobMgrId, false);
   cpujobs::add_job(jobMgrId, new SaveConfigBlkJob);
 
-  if (apply_settings)
+  if (!apply_settings)
+    return;
+  // LevelLoadJob reads the blk this rebuilds
+  if (is_level_loading())
   {
-    load_settings_and_apply_config(nullptr, changed_settings);
-    apply_settings_override_entity();
+    settings_apply_deferred = true;
+    for (int i = 0; changed_settings && i < changed_settings->nameCount(); i++)
+      deferred_changed_settings.addNameId(changed_settings->getName(i));
+    return;
   }
+  load_settings_and_apply_config(nullptr, changed_settings);
+  apply_settings_override_entity();
+}
+
+void apply_settings_deferred_by_level_load()
+{
+  if (!eastl::exchange(settings_apply_deferred, false))
+    return;
+  debug("apply settings saved during the level load");
+  load_settings_and_apply_config(nullptr, &deferred_changed_settings);
+  apply_settings_override_entity();
+  dngsound::apply_config_volumes();
+  deferred_changed_settings.reset();
+  if (deferred_notified_settings.nameCount())
+    apply_settings_changes(deferred_notified_settings);
+  deferred_notified_settings.reset();
 }
 
 void commit_settings(const eastl::function<void(DataBlock &)> &mutate_cb)
@@ -708,6 +759,12 @@ void set_fps_limit_from_level()
 
 void apply_settings_changes(const FastNameMap &changed_fields)
 {
+  if (settings_apply_deferred && is_level_loading())
+  {
+    for (int i = 0; i < changed_fields.nameCount(); i++)
+      deferred_notified_settings.addNameId(changed_fields.getName(i));
+    return;
+  }
   bool applyAfterResetDevice = false;
 
   if (do_settings_changes_need_videomode_change(changed_fields))

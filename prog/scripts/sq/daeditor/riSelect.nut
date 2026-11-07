@@ -222,7 +222,7 @@ function riBuildTags() {
   let tags = []
   foreach (word, count in allWords)
     tags.append({word = word, count = count})
-  tags.sort(@(a,b) a.word <=> b.word)
+  tags.sortby(@(a) a.word)
   riTags.set(tags)
 }
 

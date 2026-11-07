@@ -16,7 +16,6 @@ rootFolder:t="."
 folder {
   path:t="gameBase"
   dest_path:t="./"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t="*.json"
   wildcard:t="*.blk"
@@ -27,7 +26,6 @@ folder {
 folder {
   path:t="scripts/"
   dest_path:t="scripts/"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t="*.json"
   wildcard:t="*.blk"
@@ -42,7 +40,6 @@ folder {
 folder {
   path:t="../../prog/scripts/sq/daRg"
   dest_path:t="sq/darg"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*.nut
 }
@@ -50,14 +47,12 @@ folder {
 folder {
   path:t="../../prog/scripts/sq/std"
   dest_path:t="sq/std"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*.nut
 }
 folder {
   path:t="../../prog/scripts/sq/daeditor"
   dest_path:t="sq/daeditor"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*.nut
   wildcard:t=*.blk
@@ -161,6 +156,21 @@ folder {
 "@clone-last:folder"{
   "@override:path":t="../../prog/daNetGameLibs/composite_entity/"
   "@override:dest_path":t="danetlibs/composite_entity/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/phys_kind/"
+  "@override:dest_path":t="danetlibs/phys_kind/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/phys_kind_jolt_vehicle/"
+  "@override:dest_path":t="danetlibs/phys_kind_jolt_vehicle/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/package_motorbike/"
+  "@override:dest_path":t="danetlibs/package_motorbike/"
 }
 
 exclude {

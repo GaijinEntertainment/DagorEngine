@@ -31,6 +31,7 @@ public:
   ~Di8JoystickDevice();
 
   void setDeviceName(const char *name);
+  void setInstanceGuid(const unsigned *guid);
   void setId(int id, int user_id)
   {
     ordId = id;
@@ -61,7 +62,7 @@ public:
   // IGenJoystick interface implementation
   const char *getName() const override { return name; }
   const char *getDeviceID() const override { return devID; }
-  bool getDeviceDesc(DataBlock &out_desc) const override { return false; }
+  bool getDeviceDesc(DataBlock &out_desc) const override;
   unsigned short getUserId() const override { return userId; }
   const JoystickRawState &getRawState() const override { return state; }
   void setClient(IGenJoystickClient *cli) override;
@@ -149,6 +150,7 @@ protected:
   Tab<PovHatData> povHats;
   String name;
   char devID[34];
+  char instanceGuid[33] = {};
   float stickDeadZoneScale[2] = {0, 0};
 
   static constexpr int MAX_BUTTONS = JoystickRawState::MAX_BUTTONS - 16;

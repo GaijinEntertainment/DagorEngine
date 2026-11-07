@@ -122,7 +122,6 @@ third-party component as follows:
   prog/3rdPartyLibs/libcurl/COPYING
   prog/3rdPartyLibs/libev/LICENSE
   prog/3rdPartyLibs/libunwind/LICENSE.TXT
-  prog/3rdPartyLibs/math/carve/LICENSE
   prog/3rdPartyLibs/math/clipper-4.x/license.txt
   prog/3rdPartyLibs/math/DelaunayTriangulator/LICENSE
   prog/3rdPartyLibs/math/misc/LICENSE

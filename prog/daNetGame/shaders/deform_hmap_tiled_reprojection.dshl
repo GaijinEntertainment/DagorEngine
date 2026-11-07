@@ -43,20 +43,6 @@ shader deform_hmap_classify_reprojection_tiles_cs
     #include "deform_hmap.hlsli"
 
     #define DWORD_BITS 32u
-    #define MAX_WAVE_DWORD_COUNT (128 / DWORD_BITS)
-
-    uint fill_tile_occupancy_mask(uint dwordIdx, out uint mask[MAX_WAVE_DWORD_COUNT])
-    {
-      uint tilesToAdd = 0;
-
-      const uint DWORDS_PROCESSED_BY_WAVE = max(WaveGetLaneCount() / DWORD_BITS, 1);
-      for (int i = 0; i < DWORDS_PROCESSED_BY_WAVE; ++i)
-      {
-        mask[i] = loadBuffer(occupied_tiles_bitvector, dwordIdx * DWORDS_PROCESSED_BY_WAVE + i);
-        tilesToAdd += countbits(mask[i]);
-      }
-      return WaveReadLaneFirst(tilesToAdd);
-    }
 
     // atomically increment instance count of indirect draw and return tile instance insert offset
     uint allocate_tile_instances(uint tilesToAdd)
@@ -67,38 +53,20 @@ shader deform_hmap_classify_reprojection_tiles_cs
       return WaveReadLaneFirst(tileInsertOffset);
     }
 
-    void extract_clear_tile_indices(uint tileInsertOffset, uint dwordIdx, uint mask[MAX_WAVE_DWORD_COUNT])
-    {
-      // Perform several iterations for hardware with lane count 16 or 8.
-      for (int dwordPartIdx = 0; dwordPartIdx < max(DWORD_BITS / WaveGetLaneCount(), 1); ++dwordPartIdx)
-      {
-        uint additionalOffset = dwordPartIdx * WaveGetLaneCount();
-        uint indexToProcess = (WaveGetLaneIndex() + additionalOffset);
-        // Check if the bit in the bitvector for the corresponding thread is set and mark the lane as active.
-        uint isTileClearNeeded = ((1u << (indexToProcess % DWORD_BITS)) & mask[indexToProcess / DWORD_BITS]) != 0 ? 1 : 0;
-        uint tileInsertIndex = WavePrefixSum(isTileClearNeeded);
-        // Write the instance index to the buffer.
-        if (isTileClearNeeded)
-          structuredBufferAt(clear_tiles_indices, tileInsertOffset + tileInsertIndex) = dwordIdx * max(WaveGetLaneCount(), DWORD_BITS) + indexToProcess;
-        tileInsertOffset += WaveActiveSum(isTileClearNeeded);
-      }
-    }
-
     // Convert bitvector to a list of instance indices.
     [numthreads(128, 1, 1)]
     void deform_hmap_classify_reprojection_tiles_cs(uint threadId : SV_DispatchThreadID)
     {
-      // Read the same dword (or dwords for 64 threads) in the wave.
-      uint dwordIdx = WaveReadLaneFirst(threadId / WaveGetLaneCount());
-
-      // Mask should have length of DWORDS_PROCESSED_BY_WAVE, but the compiler doesn't know that WaveGetLaneCount is a constant, so we use a big enough const here.
-      uint mask[MAX_WAVE_DWORD_COUNT];
-      uint tilesToAdd = fill_tile_occupancy_mask(dwordIdx, mask);
+      uint mask = structuredBufferAt(occupied_tiles_bitvector, threadId / DWORD_BITS);
+      bool isTileClearNeeded = (mask & (1u << (threadId % DWORD_BITS))) != 0;
+      uint tilesToAdd = WaveActiveCountBits(isTileClearNeeded);
       if (tilesToAdd == 0)
         return;
 
       uint tileInsertOffset = allocate_tile_instances(tilesToAdd);
-      extract_clear_tile_indices(tileInsertOffset, dwordIdx, mask);
+      uint tileInsertIndex = WavePrefixCountBits(isTileClearNeeded);
+      if (isTileClearNeeded)
+        structuredBufferAt(clear_tiles_indices, tileInsertOffset + tileInsertIndex) = threadId;
     }
   }
   compile("target_cs", "deform_hmap_classify_reprojection_tiles_cs");

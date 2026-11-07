@@ -43,6 +43,7 @@ public:
     texgen_get_logger(&gen)->log(LOGLEVEL_ERR, String(128, "no shader <%s> required for %s", #a, getName())); \
     return false;                                                                                             \
   }
+    REQUIRE(img_to_gradient_reduce_ps);
     REQUIRE(img_to_gradient_ps);
 #undef REQUIRE
 
@@ -66,10 +67,24 @@ public:
     psParams.setReal("bias", data.params.getReal("bias", 0.5f));
     psParams.setInt("sort_mode", sort_mode_from_string(data.params.getStr("sort_mode", "luminance")));
 
-    img_to_gradient_ps->processAll(gen, regs,
-      TextureGenNodeData(data.nodeW, data.nodeH, NO_BLENDING, false, psParams, data.inputs, data.outputs, nullptr));
-    return true;
+    const int cellsReg = regs.createTexture("img_to_gradient_cells", TEXFMT_A32B32G32R32F, CELLS, CELLS, 1);
+    if (cellsReg < 0)
+      return false;
+    BaseTexture *cells = regs.getTexture(cellsReg);
+    D3dResource *cellsOut = cells;
+    const TextureInput cellsIn(cells, false);
+    const bool ok =
+      img_to_gradient_reduce_ps->processAll(gen, regs,
+        TextureGenNodeData(CELLS, CELLS, NO_BLENDING, false, DataBlock(), make_span_const(data.inputs.data(), 1),
+          make_span_const(&cellsOut, 1), nullptr)) &&
+      img_to_gradient_ps->processAll(gen, regs,
+        TextureGenNodeData(data.nodeW, data.nodeH, NO_BLENDING, false, psParams, make_span_const(&cellsIn, 1), data.outputs, nullptr));
+    regs.textureUsed(cellsReg);
+    return ok;
   }
+
+private:
+  static constexpr int CELLS = 32;
 } texgen_img_to_gradient;
 
 void init_texgen_img_to_gradient_shader(TextureGenerator *tex_gen)

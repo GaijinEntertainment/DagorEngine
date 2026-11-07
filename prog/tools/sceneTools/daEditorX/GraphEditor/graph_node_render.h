@@ -8,21 +8,28 @@
 #include <imgui/imgui.h>
 
 #include <graphEditor/graph_data.h>
-
-#include "graph_resolutions.h"
+#include <graphEditor/graph_resolutions.h>
 
 #include <stdint.h>
 
 class GraphEdgeReconnect;
 class GraphPinJumpMenu;
 
+// The worst compile or texgen message a node has.
+enum class NodeIssue : uint8_t
+{
+  Warning,
+  Error
+};
+
 // Every node metric derived from the hdpi scale and the canvas font, computed once per frame instead
 // of once per node. Construct inside the ImGui frame and use it for that frame only.
 struct GraphNodeFrame
 {
   GraphNodeFrame(const GraphData &graph_data, const eastl::hash_set<uint64_t> &linked_pins, const eastl::hash_set<uint64_t> &live_pins,
-    const GraphResolutions &node_resolutions, const GraphPinJumpMenu &pin_jump_menu, GraphEdgeReconnect &edge_reconnect,
-    eastl::string &hover_tooltip, uint64_t hovered_ne_node_id, int preview_node_id, uint64_t highlight_pin_id);
+    const GraphResolutions &node_resolutions, const eastl::hash_map<int, NodeIssue> &node_issues,
+    const GraphPinJumpMenu &pin_jump_menu, GraphEdgeReconnect &edge_reconnect, eastl::string &hover_tooltip,
+    uint64_t hovered_ne_node_id, int preview_node_id, uint64_t highlight_pin_id);
 
   const GraphData &graph;
   // Pins touched by any edge, and the subset touched by a live one, as make_pin_id keys.
@@ -30,6 +37,7 @@ struct GraphNodeFrame
   const eastl::hash_set<uint64_t> &livePins;
   // What each node produces, parallel to graph.nodes. GraphTab keeps it current.
   const GraphResolutions &resolutions;
+  const eastl::hash_map<int, NodeIssue> &nodeIssues; // by node id
   const GraphPinJumpMenu &pinJumpMenu;
   GraphEdgeReconnect &edgeReconnect; // fed the anchor pin's screen centre as the pins are laid out
   eastl::string &hoverTooltip;       // out: an ellipsized label's full text, or the icon hint under the cursor
@@ -133,6 +141,7 @@ void draw_canvas_hint(ImDrawList *draw_list, const ImVec2 &avoid_min, const ImVe
   const ImVec2 &bounds_min, const ImVec2 &bounds_max);
 
 // Placement preview for the node a link dropped on empty canvas will create; nameless because the
-// type is not chosen yet. anchor is the link's loose end, in screen space, as above.
-void draw_add_node_ghost(ImDrawList *draw_list, const ImVec2 &anchor, ImU32 pin_color, bool source_is_output, const ImVec2 &bounds_min,
-  const ImVec2 &bounds_max);
+// type is not chosen yet. anchor is the link's loose end, in screen space, as above; a pick with no
+// pin draws no dot there.
+void draw_add_node_ghost(ImDrawList *draw_list, const ImVec2 &anchor, ImU32 pin_color, bool source_is_output, bool has_pin,
+  const ImVec2 &bounds_min, const ImVec2 &bounds_max);

@@ -2,6 +2,7 @@
 
 #include "gpu_postmortem_microsoft_dred.h"
 #include "configuration.h"
+#include "memory_heap_reporter.h"
 #include "names.h"
 #include <platform.h>
 
@@ -398,6 +399,7 @@ void report_page_fault(ID3D12DeviceRemovedExtendedData2 *dred, eastl::string &ou
 
   out.append_sprintf("GPU page fault address 0x%016" PRIX64 ", flags 0x%X\n", output.PageFaultVA,
     static_cast<uint32_t>(output.PageFaultFlags));
+  drv3d_dx12::debug::report_memory_heap_at(output.PageFaultVA, out);
   report_allocations("Existing allocations near the fault address", output.pHeadExistingAllocationNode, out);
   report_allocations("Recently freed allocations near the fault address", output.pHeadRecentFreedAllocationNode, out);
 }

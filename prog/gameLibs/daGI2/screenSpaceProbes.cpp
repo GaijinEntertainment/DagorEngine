@@ -7,6 +7,7 @@
 #include <render/spheres_consts.hlsli>
 #include "screenSpaceProbes.h"
 #include "shaders/screenProbes/screenprobes_consts.hlsli"
+#include "shaders/voxelLitScene/dagi_surface_cache_consts.hlsli"
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
@@ -234,6 +235,7 @@ void ScreenSpaceProbes::initMaxResolution(int tile_size, int max_sw, int max_sh,
 #define CS(a) a.reset(new_compute_shader(#a))
     CS(calc_screenspace_radiance_cs);
     CS(calc_screenspace_selected_radiance_cs);
+    CS(patch_screenspace_radiance_cs);
     CS(filter_screenspace_radiance_cs);
     CS(temporal_filter_screenspace_radiance_cs);
     CS(temporal_only_filter_screenspace_radiance_cs);
@@ -501,7 +503,19 @@ void ScreenSpaceProbes::trace_probe_radiance(float quality, bool angle_filtering
   ShaderGlobal::set_texture(screenprobes_current_radianceVarId, dest.getTexId());
 }
 
-void ScreenSpaceProbes::calc_probe_radiance(float quality, bool angle_filtering)
+void ScreenSpaceProbes::patch_probe_radiance()
+{
+  DA_PROFILE_GPU;
+  auto dest = current_radiance.getTex2D();
+  d3d::resource_barrier({dest, RB_RW_UAV | RB_STAGE_COMPUTE, 0, 0});
+  d3d::set_rwtex(STAGE_CS, 0, dest, 0, 0);
+  // the GPU knows the count: threads past it return at once
+  patch_screenspace_radiance_cs->dispatchThreads(DAGI_SC_SCREEN_MISSES_CAPACITY, 1, 1);
+  d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
+  d3d::resource_barrier({dest, RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE, 0, 0});
+}
+
+void ScreenSpaceProbes::calc_probe_radiance(float quality, bool angle_filtering, dag::FunctionRef<void()> relight_hits)
 {
   DA_PROFILE_GPU;
   angle_filtering &= bool(currentNeedDistance) && quality > 0 && currentTemporality >= 1;
@@ -531,6 +545,12 @@ void ScreenSpaceProbes::calc_probe_radiance(float quality, bool angle_filtering)
 
   calc_probes_back_colors();
   trace_probe_radiance(quality, angle_filtering);
+  if (relight_hits)
+  {
+    relight_hits();
+    if (patch_screenspace_radiance_cs)
+      patch_probe_radiance();
+  }
 
   {
     TIME_D3D_PROFILE(sp_temporal_filter);
@@ -594,10 +614,6 @@ void ScreenSpaceProbes::afterReset()
   d3d::clear_rwtexf(screenspaceRadiance[1].getTex2D(), vf, 0, 0);
   frame = radianceFrame = 0;
   validHistory = false;
-  current_radiance.dropAliases();
-  screenspace_irradiance.dropAliases();
-  screenspaceRadiance[0].dropAliases();
-  screenspaceRadiance[1].dropAliases();
 }
 
 void ScreenSpaceProbes::resetHistoryAge() { afterReset(); }
@@ -674,10 +690,10 @@ void ScreenSpaceProbes::calcProbesPlacement(const DPoint3 &world_pos, const TMat
   prevFrameInfo = cFrameInfo;
 }
 
-void ScreenSpaceProbes::relightProbes(float quality, bool angle_filtering)
+void ScreenSpaceProbes::relightProbes(float quality, bool angle_filtering, dag::FunctionRef<void()> relight_hits)
 {
   DA_PROFILE_GPU;
-  calc_probe_radiance(quality, angle_filtering);
+  calc_probe_radiance(quality, angle_filtering, relight_hits);
   calc_probe_irradiance();
   validHistory = true;
   prev = current;

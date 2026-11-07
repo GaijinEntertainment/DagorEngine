@@ -55,6 +55,13 @@ macro FFX_RAYMARCH_USE(code)
   }
 endmacro
 
+define_macro_if_not_defined SSR_BEHIND_DEPTH_HOOK(code)
+  hlsl(code) {
+    bool ssr_behind_depth_hit(float3 uvz) { return false; }
+    bool ssr_behind_depth_hit_point(float3 camera_to_point) { return false; }
+  }
+endmacro
+
 macro FFX_RAYMARCH(code)
   FFX_RAYMARCH_INIT(code)
   FFX_RAYMARCH_USE(code)

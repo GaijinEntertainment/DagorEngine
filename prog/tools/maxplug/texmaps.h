@@ -40,7 +40,7 @@ public:
   }
 
   Class_ID ClassID() override { return Texmaps_CID; }
-  void GetClassName(TSTR &s, bool localized = true) { s = _T("DagorTexmaps"); }
+  void GetClassName(WStr &s, bool localized) const override { s = L"DagorTexmaps"; }
   void DeleteThis() override { delete this; }
   int NumSubs() override { return NUMTEXMAPS; }
   Animatable *SubAnim(int i) override

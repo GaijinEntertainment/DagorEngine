@@ -163,7 +163,6 @@ void dng_load_localization()
   DataBlock *locBlk = &get_localization_blk();
   locBlk->clearData();
   locBlk->setStr("english_us", "English");
-  locBlk->setStr("default_audio", "English");
   locBlk->setStr("default_lang", "English");
   DataBlock *b = locBlk->addBlock("locTable");
   for (int i = 0; i < csvFiles.size(); i++)
@@ -227,14 +226,13 @@ static bool localization_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("localization", "reinit", 1, 2)
   {
     sq_reinit_localization(argc > 1 ? argv[1] : nullptr);
-    // only a hard reload drops the loc() memo cache persisted in the overlay VM
     delayed_call([]() { overlay_ui::reload_scripts(true); });
   }
   return found;
 }
 REGISTER_CONSOLE_HANDLER(localization_console_handler);
 
-SQ_DEF_AUTO_BINDING_MODULE_EX(bind_localizations, "app", sq::VM_ALL /*VM_INTERNAL_UI*/)
+SQ_DEF_AUTO_BINDING_MODULE_EX(bind_localizations, "app", sq::VM_ALL)
 {
   Sqrat::Table tbl(vm);
 

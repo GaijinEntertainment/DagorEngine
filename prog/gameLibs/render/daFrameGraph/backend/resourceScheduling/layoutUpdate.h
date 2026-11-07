@@ -34,7 +34,7 @@ struct Preservation
 {
   uint32_t prevFrame = 0;
   bool historyInvalid = false;
-  eastl::span<const intermediate::ResourceIndex> historyInvalidFor;
+  eastl::span<const intermediate::ResourceIndex> historyInvalidFor{};
   const ResourceSetFmem *spanningBefore = nullptr;
 
   bool covers(const Layout &layout, FrameResource what) const;

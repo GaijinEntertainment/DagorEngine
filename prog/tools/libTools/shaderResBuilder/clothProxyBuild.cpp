@@ -3,6 +3,7 @@
 #include "clothProxyBuild.h"
 
 #include <libTools/shaderResBuilder/dynSceneResSrc.h>
+#include <libTools/shaderResBuilder/shaderMeshData.h>
 #include <libTools/util/iLogWriter.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_clothSimChannels.h>
@@ -40,23 +41,6 @@
     else                                              \
       debug(__VA_ARGS__);                             \
   } while (0)
-
-// Byte offset within the packed vertex, or -1 when the shader variant did not take the channel.
-static int find_vertex_channel_offset(const GlobalVertexDataSrc &vd, int usage, int usage_index)
-{
-  int offset = 0;
-  for (const CompiledShaderChannelId &c : vd.vDesc)
-  {
-    if (c.streamId != 0)
-      continue;
-    if (c.vbu == usage && c.vbui == usage_index)
-      return offset;
-    unsigned chSize = 0;
-    if (channel_size(c.t, chSize))
-      offset += chSize;
-  }
-  return -1;
-}
 
 struct ClothChannelOffsets
 {

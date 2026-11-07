@@ -189,9 +189,6 @@ float getSignificantWaterWaveHeight();
 bool get_min_max_hmap_in_circle(const Point2 &center, float rad, float &min_ht, float &max_ht);
 void get_min_max_hmap_list_in_circle(const Point2 &center, float rad, Tab<Point2> &list);
 
-void set_enable_apex(bool flag);
-bool is_apex_enabled();
-
 CollisionObject create_coll_obj_from_shape(const PhysCollision &shape, void *userPtr, bool kinematic, bool add_to_world,
   bool auto_mask, int group_filter = EPL_KINEMATIC, int mask = DEFAULT_DYN_COLLISION_MASK, const TMatrix *wtm = nullptr,
   int physMatId = -1);
@@ -216,7 +213,6 @@ enum AddDynCOFromCollResFlags
   ACO_KINEMATIC = 1 << 1,
   ACO_ADD_TO_WORLD = 1 << 2,
   ACO_APEX_IS_PLAYER = 1 << 3,
-  ACO_APEX_IS_VEHICLE = 1 << 4,
   ACO_APEX_ADD = 1 << 5,
   ACO_FORCE_CONVEX_HULL = 1 << 6,
 };
@@ -247,6 +243,11 @@ void destroy_dynamic_collision(CollisionObject co);
 void add_object_to_world(CollisionObject co);
 void remove_object_from_world(CollisionObject co);
 
+// Made with ACO_APEX_ADD and ACO_APEX_IS_PLAYER, or set
+bool is_player_apex_body(const PhysBody *body);
+void set_player_apex_body(const CollisionObject &co, bool is_player);
+int get_player_apex_body_changes();
+
 CollisionObject &get_reusable_sphere_collision();
 CollisionObject &get_reusable_capsule_collision();
 CollisionObject &get_reusable_box_collision();
@@ -272,6 +273,7 @@ bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<ga
   bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache = NULL, int mat_id = -1,
   bool process_tree_behaviour = true);
 int update_ri_cache_in_volume_to_phys_world(const BBox3 &box);
+void update_lmesh_cache_in_volume_to_phys_world(const BBox3 &box);
 bool test_collision_world(const CollisionObject &co, Tab<gamephys::CollisionContactData> &out_contacts, int mat_id = -1,
   dacoll::PhysLayer group = EPL_DEFAULT, int mask = EPL_ALL);
 bool test_collision_world(dag::ConstSpan<CollisionObject> collision, const TMatrix &tm, float bounding_rad,
@@ -285,12 +287,33 @@ bool test_box_collision_world(const TMatrix &tm, int mat_id, Tab<gamephys::Colli
 bool test_capsule_collision_world(const TMatrix &tm, float radius, float height, int mat_id,
   Tab<gamephys::CollisionContactData> &out_contacts, dacoll::PhysLayer group = EPL_DEFAULT, int mask = EPL_ALL);
 
+// The same contact tests over a free shape at tm: a sphere, a box or a capsule, the kinds the backends build on the
+// stack. A caller that probes with a size that changes per call (the walker torso per collision link) needs no
+// PhysBody for it, so no body shape is rebuilt. Contacts carry no userPtrA and no collapse threshold: on Bullet the
+// body tests merge near-duplicate contacts of one probe by the body's breaking threshold, these do not.
+bool test_collision_frt(const PhysCollision &shape, const TMatrix &tm, Tab<gamephys::CollisionContactData> &out_contacts,
+  int mat_id = -1);
+bool test_collision_lmesh(const PhysCollision &shape, const TMatrix &tm, float max_rad, int def_mat_id,
+  Tab<gamephys::CollisionContactData> &out_contacts, int mat_id = -1);
+bool test_collision_ri(const PhysCollision &shape, const TMatrix &tm, const BSphere3 &sphere,
+  Tab<gamephys::CollisionContactData> &out_contacts, const TraceMeshFaces *trace_cache, int mat_id);
+bool test_collision_ri(const PhysCollision &shape, const TMatrix &tm, const BSphere3 &sphere,
+  Tab<gamephys::CollisionContactData> &out_contacts, bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache = NULL,
+  int mat_id = -1, bool process_tree_behaviour = true);
+bool test_collision_world(const PhysCollision &shape, const TMatrix &tm, Tab<gamephys::CollisionContactData> &out_contacts,
+  int mat_id = -1, dacoll::PhysLayer group = EPL_DEFAULT, int mask = EPL_ALL);
+
 bool test_pair_collision(dag::ConstSpan<CollisionObject> co_a, uint64_t cof_a, dag::ConstSpan<CollisionObject> co_b, uint64_t cof_b,
   Tab<gamephys::CollisionContactData> &out_contacts, TestPairFlags flags = TestPairFlags::Default);
 
 bool test_pair_collision(dag::ConstSpan<CollisionObject> co_a, uint64_t cof_a, const TMatrix &tm_a,
   dag::ConstSpan<CollisionObject> co_b, uint64_t cof_b, const TMatrix &tm_b, Tab<gamephys::CollisionContactData> &out_contacts,
   TestPairFlags flags = TestPairFlags::Default, bool set_co_tms = true);
+
+// Side A is a free shape at tm_a (see the shape overloads of test_collision_* above)
+bool test_pair_collision(const PhysCollision &shape_a, const TMatrix &tm_a, dag::ConstSpan<CollisionObject> co_b, uint64_t cof_b,
+  const TMatrix &tm_b, Tab<gamephys::CollisionContactData> &out_contacts, TestPairFlags flags = TestPairFlags::Default,
+  bool set_co_tms = true);
 
 bool test_pair_collision_continuous(dag::ConstSpan<CollisionObject> co_a, uint64_t cof_a, const TMatrix &tm_a,
   const TMatrix &tm_a_prev, dag::ConstSpan<CollisionObject> co_b, uint64_t cof_b, const TMatrix &tm_b, const TMatrix &tm_b_prev,
@@ -303,6 +326,10 @@ void shape_query_lmesh(const PhysBody *shape, const TMatrix &from, const TMatrix
 void shape_query_ri(const PhysBody *shape, const TMatrix &from, const TMatrix &to, float rad, ShapeQueryOutput &out,
   int cast_mat_id = -1, Tab<rendinst::RendInstDesc> *out_desc = nullptr, const TraceMeshFaces *handle = nullptr,
   RIFilterCB *filterCB = nullptr);
+// A free sphere or box shape, no body: the sphere and box casts sweep it.
+void shape_query_ri(const PhysCollision &shape, const TMatrix &from, const TMatrix &to, float rad, ShapeQueryOutput &out,
+  int cast_mat_id = -1, Tab<rendinst::RendInstDesc> *out_desc = nullptr, const TraceMeshFaces *handle = nullptr,
+  RIFilterCB *filterCB = nullptr);
 bool sphere_query_ri(const Point3 &from, const Point3 &to, float rad, ShapeQueryOutput &out, int cast_mat_id = -1,
   Tab<rendinst::RendInstDesc> *out_desc = nullptr, const TraceMeshFaces *handle = nullptr, RIFilterCB *filterCB = nullptr);
 bool sphere_cast(const Point3 &from, const Point3 &to, float rad, ShapeQueryOutput &out, int cast_mat_id = -1,
@@ -312,7 +339,7 @@ static constexpr int DEFAULT_SPHERE_CAST_MASK = EPL_ALL & ~(EPL_CHARACTER | EPL_
 bool sphere_cast_ex(const Point3 &from, const Point3 &to, float rad, ShapeQueryOutput &out, int cast_mat_id,
   dag::ConstSpan<CollisionObject> ignore_objs, const TraceMeshFaces *handle = nullptr, int mask = DEFAULT_SPHERE_CAST_MASK,
   int hmap_step = -1);
-bool box_cast_ex(const TMatrix &from, const TMatrix &to, Point3 rad, ShapeQueryOutput &out, int cast_mat_id,
+bool box_cast_ex(const TMatrix &from, const TMatrix &to, Point3 half_ext, ShapeQueryOutput &out, int cast_mat_id,
   dag::ConstSpan<CollisionObject> ignore_objs, const TraceMeshFaces *handle, int mask, int hmap_step);
 
 void draw_phys_body(const PhysBody *body, unsigned col = 0xFFFFFF);

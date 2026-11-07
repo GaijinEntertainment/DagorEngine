@@ -268,14 +268,6 @@ void FluidWind::init()
   project3d.reset(new_compute_shader("fluid_wind_project3d"));
   render.reset(new_compute_shader("fluid_wind_render"));
 
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
-    smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
-    smpInfo.filter_mode = d3d::FilterMode::Linear;
-    ShaderGlobal::set_sampler(get_shader_variable_id("fluid_wind_tex_samplerstate", true), d3d::request_sampler(smpInfo));
-  }
-
   for (int i = 0; i < 2; ++i)
   {
     String texName(0, "windSpeedTex%d", i);

@@ -20,7 +20,6 @@
 class Point2;
 class Point3;
 class FFTWater;
-class TextureIDHolderWithVar;
 class BBox2;
 struct IWaterDecalsRenderHelper;
 class DataBlock;
@@ -325,12 +324,14 @@ void set_grid_lod0_area_radius(FFTWater *water, float radius);
 // how far the last lod ring of the water mesh extends, meters; the far
 // water->sky fade completes at min(zfar, this), so it should reach max zfar
 void set_last_lod_extension(FFTWater *water, float extension);
+// grows each patch cull box by this many cells of its lod; 1 for water with FULL_GEOMORPH_LODS
+void set_cull_patch_margin_cells(FFTWater *water, float cells);
 void set_period(FFTWater *water, float period);
 int get_num_cascades(const FFTWater *water);
 void set_num_cascades(FFTWater *water, int cascades);
 float get_period(const FFTWater *water);
 void delete_water(FFTWater *&water);
-void simulate(FFTWater *water, double time);
+void simulate(FFTWater *water, double time, bool wake_up_pool = true);
 void before_render(const FFTWater *water, float scaled_dt);
 void set_render_quad(FFTWater *water, const BBox2 &quad);
 void render(const FFTWater *water, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, Occlusion *occlusion,

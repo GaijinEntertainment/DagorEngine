@@ -23,7 +23,8 @@ same thing written differently, but those parentheses group the operand.
 Ignores metamethods, unlike the `typeof` operator: `typeof` calls a class's
 `_typeof` method when it defines one, so an instance can report any string it
 likes there, while `type()` on the same instance always reports the plain
-`"instance"`. Marked `pure` because the result depends only on `obj`.
+`"instance"`. Marked `pure` because the result depends only on `obj`, and
+`fastcall` because it calls nothing back and pushes one value.
 
 ## Example
 

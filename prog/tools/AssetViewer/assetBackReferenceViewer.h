@@ -6,7 +6,6 @@
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
 #include <assets/assetRefs.h>
-#include <assetsGui/av_assetSelectorCommon.h>
 #include <coolConsole/coolConsole.h>
 #include <de3_interface.h>
 #include <EditorCore/ec_input.h>
@@ -19,25 +18,10 @@ class AssetBackReferenceViewer : public AssetSearchResultsWindow
 public:
   AssetBackReferenceViewer() : AssetSearchResultsWindow("Asset back references") { addColumnTitle("Asset name"); }
 
-  void setAsset(DagorAsset *asset)
-  {
-    static AllAssetRefsHashType allAssetRefs; // Getting references for rendInsts is slow, so we cache the results.
+  // return false if the user declines the one-time reference collection
+  static bool ensureAllAssetRefsCollected(DagorAsset &asset);
 
-    assetNameTypified = asset ? asset->getNameTypified() : String();
-    setWindowSubtitle(asset ? asset->getName() : "");
-    setWindowSubtitleIcon(asset ? AssetSelectorCommon::getAssetTypeIcon(asset->getType()) : PropPanel::IconId::Invalid);
-    clearResults();
-
-    if (asset)
-    {
-      if (allAssetRefs.empty())
-        collectAllAssetReferences(allAssetRefs, asset->getMgr(), EDITORCORE->getConsole());
-
-      getBackReferences(*asset, allAssetRefs);
-    }
-
-    fillResultsList();
-  }
+  void setAsset(DagorAsset *asset);
 
 private:
   struct AllAssetRefsElement
@@ -46,6 +30,8 @@ private:
   };
 
   typedef eastl::hash_map<const DagorAsset *, AllAssetRefsElement> AllAssetRefsHashType;
+
+  static AllAssetRefsHashType &getAllAssetRefs();
 
   void saveResultsToBlk(DataBlock &blk) const override
   {

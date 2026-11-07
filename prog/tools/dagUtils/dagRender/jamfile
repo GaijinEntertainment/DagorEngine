@@ -1,0 +1,42 @@
+Root    ?= ../../../.. ;
+Location = prog/tools/dagUtils/dagRender ;
+ConsoleExe = yes ;
+
+include $(Root)/prog/tools/tools_setup.jam ;
+
+TargetType  = exe ;
+Target      = util/dagrender ;
+OutDir      = $(Root)/tools/util ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(Platform) = windows && ( ! $(Sanitize) || $(Sanitize) = disabled ) { UseMemoryAllocator ?= mimalloc ; }
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+;
+
+Sources =
+  main.cpp
+  softRender.cpp
+;
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/baseUtil
+  engine/ioSys
+  engine/math
+  engine/lib3d
+  engine/image
+  engine/drv/drv3d_null
+  engine/perfMon/daProfilerStub
+  engine/startup
+
+  tools/libTools/util
+  tools/libTools/dagFileRW
+  3rdPartyLibs/eastl
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

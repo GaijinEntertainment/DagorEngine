@@ -20,8 +20,12 @@ the path a reader can open, even when the source came from an archive.
 `bindings` supplies compile-time names. A host uses it to make constants and
 imported modules visible to the unit being compiled.
 
-Compiling does not run anything. The closure left on the stack must be called
-like any other function. The call runs the top-level statements of the file.
+Compiling does not run the top-level statements. It can run a pure function:
+the compiler calls a pure function with constant arguments to fold the call,
+and an error in that call fails the compile; see "Folding outside const" in
+[Bindings and constants](page:language/bindings). The closure left on the
+stack must be called like any other function. The call runs the top-level
+statements of the file.
 
 A syntax error goes to the compiler error handler, which is set once per VM:
 

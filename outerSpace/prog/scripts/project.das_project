@@ -42,7 +42,7 @@ def module_get(req, _from:string) : tuple<string;string;string> const
     return [[auto mod_name, path_name, ""]]
 
   let alias_name = rs[length(rs)-1]
-  var prefix = unsafe(commonMountPointPrefixes?[rs[0]])
+  let prefix = unsafe(commonMountPointPrefixes?[rs[0]])
   if prefix != null
     rs |> erase(0)
     return [[auto mod_name, "{*prefix}/{join(rs,"/")}.das", alias_name]]

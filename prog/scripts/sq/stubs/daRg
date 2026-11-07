@@ -3,8 +3,14 @@ let dw = require_optional("dagor.workcycle")
 
 //This is list of all darg native functions and consts, to use in mockups
 
+//the pure natives take only numbers, as their decl strings say
+function [pure] num(val) {
+  assert(type(val) == "integer" || type(val) == "float", @() $"type of argument should be number, got '{type(val)}'")
+  return val
+}
+
 function [pure] Color(r,g,b,a=255) {
-  return (a.tointeger() << 24) + (r.tointeger() << 16) + (g.tointeger() << 8) + b.tointeger()
+  return (num(a).tointeger() << 24) + (num(r).tointeger() << 16) + (num(g).tointeger() << 8) + num(b).tointeger()
 }
 
 let timeoutStub = function(timeout, func, _id=null){
@@ -56,6 +62,7 @@ let gui_scene = {
   keyboardLocks = Watched(0)
   keyboardLayout = Watched("ru")
   forceCursorActive = function(val){assert(type(val)=="bool")}
+  requestHoverUpdate = @() null
   config = {
     defaultFont = 0
     defaultFontSize = 10
@@ -66,12 +73,14 @@ let gui_scene = {
     getClickButtons = @() ["J:A"]
     gamepadCursorControl = true
     gamepadStickAsDirpad = false
+    gamepadCursorMovesMouse = false
     ignorePointerVisibilityForHovers = false
     reportNestedWatchedUpdate = false
     gamepadCursorDeadZone = 0.05
     gamepadCursorNonLin = 1.5
     gamepadCursorHoverMinMul = 0.005
     gamepadCursorHoverMaxMul = 0.1
+    padTouchpadSensitivity = 0.5
     gamepadCursorHoverMaxTime = 0.5
     gamepadCursorAxisH = 0
     gamepadCursorAxisV = 1
@@ -82,7 +91,6 @@ let gui_scene = {
     dirPadRepeatDelay = 0.6
     dirPadRepeatTime = 0.2
     allScreensAcceptInput = false
-    touchPadWidthInScreenHeights = 1.0
   }
   cursorOverStickScroll = Watched(true)
   cursorOverClickable = Watched(true)
@@ -190,16 +198,16 @@ let darg = {
   anim_stop = @(_anim) null
   anim_pause = @(_anim, _set_pause) null
 
-  fontH = @[pure](height) height
+  fontH = @[pure](height) num(height)
 
-  flex = @[pure](weight=1) weight*100
+  flex = @[pure](weight=1) num(weight)*100
 
-  sw = @[pure](val) val*1920/100
-  sh = @[pure](val) val*1080/100
-  pw = @[pure](val) val
-  ph = @[pure](val) val
-  elemw = @[pure](val) val
-  elemh = @[pure](val) val
+  sw = @[pure](val) num(val)*1920/100
+  sh = @[pure](val) num(val)*1080/100
+  pw = @[pure](val) num(val)
+  ph = @[pure](val) num(val)
+  elemw = @[pure](val) num(val)
+  elemh = @[pure](val) num(val)
   get_font_metrics = function(fontId, fontSize=null) {
     assert(type(fontId)=="integer")
     assert(fontSize==null || type(fontSize)=="float" || type(fontSize)=="integer")
@@ -320,18 +328,13 @@ global const TEXFMT_UNORM = 1
 global const TEXFMT_SRGB_DECAL = 2
 
 global const TOVERFLOW_CLIP="TOVERFLOW_CLIP"
-global const TOVERFLOW_CHAR="TOVERFLOW_CHAR"
-global const TOVERFLOW_WORD="TOVERFLOW_WORD"
-global const TOVERFLOW_LINE="TOVERFLOW_LINE"
+global const TOVERFLOW_ELLIPSIS="TOVERFLOW_ELLIPSIS"
 global const EVENT_BREAK = "EVENT_BREAK"
 global const EVENT_CONTINUE= "EVENT_CONTINUE"
 
-global const GESTURE_DETECTOR_PINCH = 0x1
-global const GESTURE_DETECTOR_ROTATE = 0x2
-global const GESTURE_DETECTOR_DRAG = 0x4
-global const GESTURE_DETECTOR_TAP = 0x8
-global const GESTURE_DETECTOR_DOUBLE_TAP = 0x10
-global const GESTURE_DETECTOR_HOLD = 0x20
+global const GESTURE_DETECTOR_DRAG = "GESTURE_DETECTOR_DRAG"
+global const GESTURE_DETECTOR_PINCH = "GESTURE_DETECTOR_PINCH"
+global const GESTURE_DETECTOR_ROTATE = "GESTURE_DETECTOR_ROTATE"
 
 global const Linear = "Linear"
 
@@ -421,6 +424,10 @@ global const DEVID_MOUSE = 2
 global const DEVID_JOYSTICK = 3
 global const DEVID_TOUCH = 4
 global const DEVID_VR = 5
+global const TOUCH_SRC_NONE = 0
+global const TOUCH_SRC_PAD = 1
+global const TOUCH_SRC_SCREEN = 2
+global const TOUCH_SRC_EMU_SCREEN = 3
 global const KBD_BIT_CAPS_LOCK = 0
 global const PANEL_ANCHOR_NONE = -1
 global const PANEL_ANCHOR_SCENE = 0
@@ -448,7 +455,6 @@ global const PANEL_RENDER_ALWAYS_ON_TOP = 4
 global const FMT_NO_WRAP = 0x01
 global const FMT_KEEP_SPACES = 0x02
 global const FMT_IGNORE_TAGS = 0x04
-global const FMT_HIDE_ELLIPSIS = 0x08
 global const FMT_AS_IS = 0xFF
 
 global const XMB_STOP = 0

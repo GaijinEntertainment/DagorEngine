@@ -13,10 +13,40 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderVariableInfo.h>
 #include <generic/dag_sort.h>
+#include <memory/dag_framemem.h>
+#include <generic/dag_relocatableFixedVector.h>
+
+using SortedTiles = dag::RelocatableFixedVector<const TilesHashMap::value_type *, 64, true, framemem_allocator>;
 
 static const Point2 tcCoords[4] = {Point2(0, 0), Point2(1, 0), Point2(1, 1), Point2(0, 1)};
 
 static ShaderVariableInfo bgColorVar("fog_of_war_bg_color", true);
+
+static Point2 tile_grid_to_screen(const TiledMapContext &tiled_map_ctx, IPoint2 grid_xy, float resolution, Point2 screen_center)
+{
+  Point2 world = Point2(grid_xy.x, grid_xy.y) * tiled_map_ctx.tileWidth * resolution + tiled_map_ctx.worldLeftTop;
+  return floor(screen_center + tiled_map_ctx.worldToMap(Point3(world.x, 0, world.y)));
+}
+
+static void calc_tile_screen_corners(
+  TiledMapContext &tiled_map_ctx, const QuadKey &quad_key, Point2 screen_center, Point2 (&corners)[4])
+{
+  int z = quad_key.size(); // the quadkey property
+                           // https://learn.microsoft.com/en-us/azure/azure-maps/zoom-levels-and-tile-grid?tabs=csharp#quadkey-indices
+  IPoint2 xy = TiledMapContext::quadKeyToTileXY(quad_key, z);
+  xy.y = (1 << z) - 1 - xy.y; // flip y because of left handed world coordinate system
+
+  const float resolution = tiled_map_ctx.getTileResolution(z);
+  // note: worldToMap converts left handed world coordinates to right handed screen coordinates, so lt -> screenlb and rb -> screenrt
+  Point2 screenlb = tile_grid_to_screen(tiled_map_ctx, xy, resolution, screen_center);
+  Point2 screenrt = tile_grid_to_screen(tiled_map_ctx, xy + IPoint2(1, 1), resolution, screen_center);
+
+  // same order as tcCoords
+  corners[0] = Point2(screenlb.x, screenrt.y);
+  corners[1] = screenrt;
+  corners[2] = Point2(screenrt.x, screenlb.y);
+  corners[3] = screenlb;
+}
 
 void RobjTiledMap::render(
   StdGuiRender::GuiContext &ctx, const darg::Element *elem, const darg::ElemRenderData *rdata, const darg::RenderState &render_state)
@@ -46,43 +76,31 @@ void RobjTiledMap::render(
   ctx.set_color(255, 255, 255);
   ctx.start_raw_layer();
 
-  eastl::vector<QuadKey> sortedTiles;
+  SortedTiles sortedTiles;
   sortedTiles.reserve(tiledMapCtx->tiles.size());
   for (auto &tile : tiledMapCtx->tiles)
   {
-    sortedTiles.push_back(tile.first);
+    sortedTiles.push_back(&tile);
   }
-  eastl::sort(sortedTiles.begin(), sortedTiles.end(), [](const QuadKey &a, const QuadKey &b) { return a.size() < b.size(); });
+  fast_sort_branchless(sortedTiles.begin(), sortedTiles.end(), [](auto a, auto b) { return a->first.size() < b->first.size(); });
 
-  for (auto quadKey : sortedTiles)
+  for (const TilesHashMap::value_type *tile : sortedTiles)
   {
-    const TileHandle tileHandle = tiledMapCtx->tiles[quadKey];
+    const QuadKey &quadKey = tile->first;
+    const TileHandle tileHandle = tile->second;
 
     if (tileHandle.texId == BAD_TEXTUREID)
       continue;
 
-    int z = quadKey.size(); // the quadkey property
-                            // https://learn.microsoft.com/en-us/azure/azure-maps/zoom-levels-and-tile-grid?tabs=csharp#quadkey-indices
-    IPoint2 xy = TiledMapContext::quadKeyToTileXY(quadKey, z);
-    xy.y = (1 << z) - 1 - xy.y; // flip y because of left handed world coordinate system
+    Point2 corners[4];
+    calc_tile_screen_corners(*tiledMapCtx, quadKey, c, corners);
 
-    const float resolution = tiledMapCtx->getTileResolution(z);
-    Point2 lt = Point2(xy.x, xy.y) * tiledMapCtx->tileWidth * resolution + tiledMapCtx->worldLeftTop;
-    Point2 rb = lt + Point2(tiledMapCtx->tileWidth, tiledMapCtx->tileWidth) * resolution;
-
-    // note: worldToMap converts left handed world coordinates to right handed screen coordinates, so lt -> screenlb and rb -> screenrt
-    Point2 screenlb = tiledMapCtx->worldToMap(Point3(lt.x, 0, lt.y));
-    Point2 screenrt = tiledMapCtx->worldToMap(Point3(rb.x, 0, rb.y));
-    Point2 screenlt = Point2(screenlb.x, screenrt.y);
-    Point2 tileWH = Point2(screenrt.x - screenlb.x, screenlb.y - screenrt.y);
-
-    ctx.set_texture(tileHandle.texId, tileHandle.smpId);
+    ctx.set_texture(tileHandle.texId, tiledMapCtx->clampSampler);
 
     GuiVertex v[4];
     for (int i = 0; i < 4; ++i)
     {
-      Point2 pos = screenlt + Point2(tcCoords[i].x * tileWH.x, tcCoords[i].y * tileWH.y);
-      v[i].setPos(xf, floor(c + pos));
+      v[i].setPos(xf, corners[i]);
       v[i].setTc0(tcCoords[i]);
       v[i].zeroTc1();
       v[i].color = color;
@@ -236,12 +254,15 @@ void RobjTiledMapFogOfWar::render(
   ctx.getViewTm(xf.vtm);
   ctx.set_color(bgColor);
 
+  const bool hasViewport = tiledMapCtx->getViewportWidth() > 0 && tiledMapCtx->getViewportHeight() > 0;
+  const Point2 fogMaskSize = hasViewport ? Point2(tiledMapCtx->getViewportWidth(), tiledMapCtx->getViewportHeight()) : wh;
+
   // setShader() resets the GuiContext layer params (including the mask), so the
   // mask must be re-applied after every shader switch, not just once up front.
   auto applyFogMask = [&] {
     if (tiledMapCtx->fogOfWarTex.getTexId() != BAD_TEXTUREID && tiledMapCtx->fogOfWarTexInited)
-      darg::uishader::set_mask(ctx, tiledMapCtx->fogOfWarTex.getTexId(), tiledMapCtx->fogOfWarSampler, c, 0,
-        Point2(2.0f * wh.x / StdGuiRender::screen_width(), -2.0f * wh.y / StdGuiRender::screen_height()));
+      darg::uishader::set_mask(ctx, tiledMapCtx->fogOfWarTex.getTexId(), tiledMapCtx->clampSampler, c, 0,
+        Point2(2.0f * fogMaskSize.x / StdGuiRender::screen_width(), -2.0f * fogMaskSize.y / StdGuiRender::screen_height()));
   };
   applyFogMask();
 
@@ -262,42 +283,30 @@ void RobjTiledMapFogOfWar::render(
   ctx.setShader(&tiledMapCtx->fogOfWarTileShader);
   applyFogMask(); // setShader reset the layer params above; reinstall the mask for the tiles
 
-  eastl::vector<QuadKey> sortedTiles;
+  SortedTiles sortedTiles;
   sortedTiles.reserve(tiledMapCtx->tiles.size());
   for (auto &tile : tiledMapCtx->tiles)
   {
-    sortedTiles.push_back(tile.first);
+    sortedTiles.push_back(&tile);
   }
-  eastl::sort(sortedTiles.begin(), sortedTiles.end(), [](const QuadKey &a, const QuadKey &b) { return a.size() < b.size(); });
-  for (auto quadKey : sortedTiles)
+  fast_sort_branchless(sortedTiles.begin(), sortedTiles.end(), [](auto a, auto b) { return a->first.size() < b->first.size(); });
+  for (const TilesHashMap::value_type *tile : sortedTiles)
   {
-    const TileHandle tileHandle = tiledMapCtx->tiles[quadKey];
+    const QuadKey &quadKey = tile->first;
+    const TileHandle tileHandle = tile->second;
 
     if (tileHandle.texId == BAD_TEXTUREID)
       continue;
 
-    int z = quadKey.size(); // the quadkey property
-                            // https://learn.microsoft.com/en-us/azure/azure-maps/zoom-levels-and-tile-grid?tabs=csharp#quadkey-indices
-    IPoint2 xy = TiledMapContext::quadKeyToTileXY(quadKey, z);
-    xy.y = (1 << z) - 1 - xy.y; // flip y because of left handed world coordinate system
+    Point2 corners[4];
+    calc_tile_screen_corners(*tiledMapCtx, quadKey, c, corners);
 
-    const float resolution = tiledMapCtx->getTileResolution(z);
-    Point2 lt = Point2(xy.x, xy.y) * tiledMapCtx->tileWidth * resolution + tiledMapCtx->worldLeftTop;
-    Point2 rb = lt + Point2(tiledMapCtx->tileWidth, tiledMapCtx->tileWidth) * resolution;
-
-    // note: worldToMap converts left handed world coordinates to right handed screen coordinates, so lt -> screenlb and rb -> screenrt
-    Point2 screenlb = tiledMapCtx->worldToMap(Point3(lt.x, 0, lt.y));
-    Point2 screenrt = tiledMapCtx->worldToMap(Point3(rb.x, 0, rb.y));
-    Point2 screenlt = Point2(screenlb.x, screenrt.y);
-    Point2 tileWH = Point2(screenrt.x - screenlb.x, screenlb.y - screenrt.y);
-
-    ctx.set_texture(tileHandle.texId, tileHandle.smpId);
+    ctx.set_texture(tileHandle.texId, tiledMapCtx->clampSampler);
 
     GuiVertex v[4];
     for (int i = 0; i < 4; ++i)
     {
-      Point2 pos = screenlt + Point2(tcCoords[i].x * tileWH.x, tcCoords[i].y * tileWH.y);
-      v[i].setPos(xf, floor(c + pos));
+      v[i].setPos(xf, corners[i]);
       v[i].setTc0(tcCoords[i]);
       v[i].zeroTc1();
       v[i].color = color;

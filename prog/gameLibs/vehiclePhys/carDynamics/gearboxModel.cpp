@@ -166,14 +166,15 @@ void CarGearBox::requestGear(int n, bool ignore_cur_shift_timeout)
 // Based on current input values, adjust the engine
 void CarGearBox::integrate(float dt)
 {
-  if (child[0])
-    child[0]->integrate(dt);
-  if (child[1])
-    child[1]->integrate(dt);
+  for (CarDrivelineElement *c : child)
+    if (c)
+      c->integrate(dt);
 
+  // the clutch compares the shaft with the engine after the ratio, so a large first gear ratio turns a
+  // small shaft drift into a clutch that brakes the driveline
   float target_vel = calcRotVel() / getRatio();
   CarDrivelineElement::integrate(dt);
-  if (fabsf(getRotVel() - target_vel) > 5)
+  if (fabsf(getRotVel() - target_vel) * fabsf(getRatio()) > 5)
   {
     // debug("%d: gearbox sync: getRotVel()=%.3f calcRotVel()=%.3f",
     //   get_time_msec(), getRotVel(), target_vel);

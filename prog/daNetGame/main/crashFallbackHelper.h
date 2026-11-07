@@ -6,6 +6,7 @@
 struct CrashFallbackHelper : public ICrashFallback
 {
   bool previousStartupFailed() override;
+  bool alreadySetToAuto() override;
   void beforeStartup() override;
   void successfullyLoaded() override;
   void setSettingToAuto() override;

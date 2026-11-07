@@ -106,6 +106,8 @@ static be_node *_be_decode(const char **data, long long *data_len)
       unsigned int i = 0;
 
       ret = be_alloc(BE_LIST);
+      /* Gaijin change: a slot for the NULL end also when the list is empty */
+      ret->val.l = malloc(sizeof(*ret->val.l));
 
       --(*data_len);
       ++(*data);
@@ -129,6 +131,8 @@ static be_node *_be_decode(const char **data, long long *data_len)
       unsigned int i = 0;
 
       ret = be_alloc(BE_DICT);
+      /* Gaijin change: a slot for the NULL end also when the dict is empty */
+      ret->val.d = malloc(sizeof(*ret->val.d));
 
       --(*data_len);
       ++(*data);

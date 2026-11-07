@@ -9,7 +9,9 @@
 #include <render/lights/spotLightsManager.h>
 #include <render/lights/reallocatableLightsConstBuffer.h>
 #include <render/lights/lightsResources.h>
+#include <render/lights/lightsRenderer.h>
 #include <render/lights/lightsSorter.h>
+#include <render/lights/tiledLights.h>
 #include <render/lights/lightsVisibilityChecker.h>
 #include <drv/3d/dag_buffers.h>
 #include <math/dag_frustum.h>
@@ -45,9 +47,13 @@ public:
   void executeLightsGPUPartition(const LightsVisibilityChecker::TestParameters &test_params, float zfar, bool update_variables = true);
 
   void close();
+  void afterResetDevice();
 
   void updateBuffersForVisibleLightsCPU(LightBufferSlot buffer_slot);
   void updateBuffersForVisibleLightsGPU();
+
+  void fillVisibleLightsIndirectArgs(LightBufferSlot buffer_slot, const LightsRenderer::IndexRanges &index_ranges,
+    const TiledLights::DrawCounts &tiled_lights_draw_counts);
 
   const Tab<uint16_t> &getVisibleClusteredSpotLightsIds() const;
   const Tab<uint16_t> &getVisibleClusteredOmniLightsIds() const;
@@ -68,6 +74,7 @@ public:
 
   const UniqueBuf &getVisibleLightsDataBuffer() const;
   const UniqueBuf &getVisibleLightsCountsBuffer() const;
+  const UniqueBuf &getVisibleLightsIndirectArgs() const;
 
 private:
   static void executeLightsCPUPartition(LightType light_type, int max_index, const LightsVisibilityChecker &checker,
@@ -87,6 +94,7 @@ private:
   void handleVisibleLightsIdListsOverflowCPU(Tab<uint16_t> &clustered_lights, Tab<uint16_t> &far_lights, int max_clustered_count);
 
   size_t getBufferSlotIndex(LightBufferSlot buffer_slot) const;
+  void clearVisibleLightsIndirectArgs();
 
   OmniLightsManager *omniLights;
   SpotLightsManager *spotLights;
@@ -118,10 +126,12 @@ private:
 
   ComputeShader partitionCS;
   ComputeShader packConstantBuffersCS;
+  ComputeShader fillIndirectArgsCS;
 
   UniqueBuf frustumPlanesCB;
 
   UniqueBuf visibleLightsDataBuffer;
   UniqueBuf visibleLightsCountsBuffer;
   UniqueBuf visibleLightsTransitBuffer;
+  UniqueBuf visibleLightsIndirectArgs;
 };

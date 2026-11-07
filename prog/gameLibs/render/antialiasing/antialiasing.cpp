@@ -30,6 +30,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <workCycle/dag_workCycle.h>
 #include <EASTL/string.h>
+#include <EASTL/tuple.h>
 #include <EASTL/unique_ptr.h>
 #if _TARGET_C2
 
@@ -70,32 +71,6 @@ inline AppGlue *app_glue()
   G_ASSERT(app_glue_ptr);
   return app_glue_ptr;
 };
-
-using MotionVectorsHandle = dafg::VirtualResourceHandle<const BaseTexture, true, true>;
-
-struct MotionVectorsRequest
-{
-  eastl::optional<MotionVectorsHandle> current;
-  eastl::optional<MotionVectorsHandle> prev;
-};
-
-static eastl::unique_ptr<MotionVectorsRequest> request_motion_vectors(dafg::Registry registry, bool with_prev = false)
-{
-  return eastl::make_unique<MotionVectorsRequest>(MotionVectorsRequest{
-    app_glue()->requestMotionVectors(registry), with_prev ? app_glue()->requestPrevMotionVectors(registry) : eastl::nullopt});
-}
-
-static ApplyContext with_motion_vectors(const ApplyContext &ctx, const MotionVectorsRequest &motion)
-{
-  ApplyContext result = ctx;
-  if (motion.current)
-    result.motionTexture = motion.current->get();
-#if _TARGET_C2
-
-
-#endif
-  return result;
-}
 
 enum class XessQuality
 {
@@ -752,12 +727,28 @@ struct Context
                                                .optional()
                                                .handle();
 
-          auto albedoHndl = prepareDlssRayReconstruction ? app_glue()->requestRayReconstructionGbuffer(registry) : eastl::nullopt;
+          eastl::optional<TextureHandleRO> albedoHndl;
+          eastl::optional<OptionalTextureHandleRO> hitDistHndl;
+          if (prepareDlssRayReconstruction)
+          {
+            albedoHndl = app_glue()->requestRayReconstructionGbuffer(registry);
+            hitDistHndl = app_glue()->requestRayReconstructionHitDist(registry);
+          }
 
-          return [this, frameHndl, applyCtxHndl, antialiasedHndl, depthHndl, colorBeforeTransparencyHndl, albedoHndl,
-                   motion = request_motion_vectors(registry)] {
+          auto motionVectorsHndl = app_glue()->requestMotionVectors(registry);
+
+          auto resources = eastl::make_tuple(frameHndl, applyCtxHndl, antialiasedHndl, depthHndl, colorBeforeTransparencyHndl,
+            albedoHndl, hitDistHndl, motionVectorsHndl);
+
+          return [this, resources = eastl::make_unique<decltype(resources)>(resources)] {
+            auto [frameHndl, applyCtxHndl, antialiasedHndl, depthHndl, colorBeforeTransparencyHndl, albedoHndl, hitDistHndl,
+              motionVectorsHndl] = *resources;
+            ApplyContext ctx = applyCtxHndl.ref();
+            if (motionVectorsHndl)
+              ctx.motionTexture = motionVectorsHndl->get();
+            ctx.hitDistTexture = hitDistHndl ? hitDistHndl->get() : nullptr;
             applyDlss(frameHndl.get(), depthHndl.get(), colorBeforeTransparencyHndl.get(), albedoHndl ? albedoHndl->get() : nullptr,
-              with_motion_vectors(applyCtxHndl.ref(), *motion), antialiasedHndl.get());
+              ctx, antialiasedHndl.get());
           };
         });
     }
@@ -890,8 +881,13 @@ struct Context
           auto depthHndl =
             registry.readTexture(depth_name).atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
-          return [this, frameHndl, applyCtxHndl, antialiasedHndl, depthHndl, motion = request_motion_vectors(registry)] {
-            applyFsr(frameHndl.get(), depthHndl.get(), with_motion_vectors(applyCtxHndl.ref(), *motion), antialiasedHndl.get());
+          auto motionVectorsHndl = app_glue()->requestMotionVectors(registry);
+
+          return [this, frameHndl, applyCtxHndl, antialiasedHndl, depthHndl, motionVectorsHndl] {
+            ApplyContext ctx = applyCtxHndl.ref();
+            if (motionVectorsHndl)
+              ctx.motionTexture = motionVectorsHndl->get();
+            applyFsr(frameHndl.get(), depthHndl.get(), ctx, antialiasedHndl.get());
           };
         });
     }
@@ -973,8 +969,13 @@ struct Context
           auto depthHndl =
             registry.readTexture(depth_name).atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
-          return [this, frameHndl, applyCtxHndl, antialiasedHndl, depthHndl, motion = request_motion_vectors(registry)] {
-            applyXess(frameHndl.get(), depthHndl.get(), with_motion_vectors(applyCtxHndl.ref(), *motion), antialiasedHndl.get());
+          auto motionVectorsHndl = app_glue()->requestMotionVectors(registry);
+
+          return [this, frameHndl, applyCtxHndl, antialiasedHndl, depthHndl, motionVectorsHndl] {
+            ApplyContext ctx = applyCtxHndl.ref();
+            if (motionVectorsHndl)
+              ctx.motionTexture = motionVectorsHndl->get();
+            applyXess(frameHndl.get(), depthHndl.get(), ctx, antialiasedHndl.get());
           };
         });
     }
@@ -1009,7 +1010,7 @@ struct Context
     d3d::driver_command(Drv3dCommand::EXECUTE_XESS, &xessParams);
   }
 
-  bool tryInitTaa(const IPoint2 &outputResolution, IPoint2 &inputResolution, const char *input_name)
+  bool tryInitTaa(const IPoint2 &outputResolution, IPoint2 &inputResolution, const char *input_name, const char *depth_name)
   {
     if (method != AntialiasingMethod::TAA)
       return false;
@@ -1050,20 +1051,23 @@ struct Context
 
     if (input_name)
     {
-      aaApplyNode = dafg::register_node("taa", DAFG_PP_NODE_SRC, [this, outputResolution, input_name](dafg::Registry registry) {
-        textureFlg = TEXFMT_A16B16G16R16F;
-        auto antialiasedHndl = registry.createTexture2d("frame_after_aa", {textureFlg | TEXCF_RTARGET, outputResolution})
-                                 .atStage(dafg::Stage::PS_OR_CS)
-                                 .useAs(dafg::Usage::COLOR_ATTACHMENT)
-                                 .handle();
+      aaApplyNode =
+        dafg::register_node("taa", DAFG_PP_NODE_SRC, [this, outputResolution, input_name, depth_name](dafg::Registry registry) {
+          textureFlg = TEXFMT_A16B16G16R16F;
+          auto antialiasedHndl = registry.createTexture2d("frame_after_aa", {textureFlg | TEXCF_RTARGET, outputResolution})
+                                   .atStage(dafg::Stage::PS_OR_CS)
+                                   .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                                   .handle();
 
-        auto frameHndl =
-          registry.read(input_name).texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
-        registry.readBlob<ApplyContext>("aa_apply_context"); // For proper ordering
-        app_glue()->requestMotionVectors(registry);
+          auto frameHndl =
+            registry.read(input_name).texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+          registry.readBlob<ApplyContext>("aa_apply_context"); // For proper ordering
+          app_glue()->requestMotionVectors(registry);
+          if (depth_name)
+            registry.readTexture(depth_name).atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
 
-        return [this, frameHndl, antialiasedHndl] { applyTaa(frameHndl.get(), antialiasedHndl.get()); };
-      });
+          return [this, frameHndl, antialiasedHndl] { applyTaa(frameHndl.get(), antialiasedHndl.get()); };
+        });
     }
 
     return true;
@@ -1160,7 +1164,8 @@ struct Context
 
     initCommonUpscaling("TSR", int(resolutionScale * 100.f), inputResolution, outputResolution);
 
-    tsr = eastl::make_unique<TemporalSuperResolution>(inputResolution, outputResolution, app_glue()->isVrHmdEnabled());
+    const bool vrMode = app_glue()->isVrHmdEnabled();
+    tsr = eastl::make_unique<TemporalSuperResolution>(inputResolution, outputResolution, vrMode);
 
     mipBias = tsr->getLodBias();
 
@@ -1168,7 +1173,11 @@ struct Context
     {
       bool isSsaa = displayResolution.x > 0 && (outputResolution.x > displayResolution.x || outputResolution.y > displayResolution.y);
       tsr->setExtraTexFlags(isSsaa ? TEXCF_RTARGET : 0);
-      aaApplyNode = tsr->createApplierNode(input_name, [](dafg::Registry registry) { app_glue()->requestMotionVectors(registry); });
+      aaApplyNode = tsr->createApplierNode(input_name, [vrMode](dafg::Registry registry) {
+        app_glue()->requestMotionVectors(registry);
+        if (vrMode)
+          app_glue()->requestMaterialGbuffer(registry);
+      });
     }
 
     textureFlg = tsr->getOutputTextureFormat();
@@ -1436,6 +1445,17 @@ struct Context
   void applySmaa(Texture *source_tex, Texture *dest_tex) { smaa->apply(source_tex, dest_tex); }
 
 #if _TARGET_C2
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2059,7 +2079,7 @@ void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolutio
         fallbackToNone();
       break;
     case AntialiasingMethod::TAA:
-      if (!g_ctx->tryInitTaa(postfx_resolution, rendering_resolution, input_name))
+      if (!g_ctx->tryInitTaa(postfx_resolution, rendering_resolution, input_name, depth_name))
         fallbackToNone();
       break;
     case AntialiasingMethod::TSR:
@@ -2285,7 +2305,9 @@ void adjust_mip_bias(const IPoint2 &dynamic_resolution, const IPoint2 &output_re
   if (!g_ctx)
     return;
 
-  g_ctx->mipBias = is_temporal() ? log2((float)dynamic_resolution.y / (float)output_resolution.y) : 0;
+  constexpr float MIP_BIAS_STEPS_PER_MIP = 8;
+  float mipBias = is_temporal() ? log2((float)dynamic_resolution.y / (float)output_resolution.y) : 0;
+  g_ctx->mipBias = floorf(mipBias * MIP_BIAS_STEPS_PER_MIP) / MIP_BIAS_STEPS_PER_MIP;
 }
 
 bool is_metalfx_upscale_supported()
@@ -2346,7 +2368,8 @@ bool before_render_view(const RenderView &view)
   {
     case AntialiasingMethod::TAA:
     case AntialiasingMethod::MobileTAA:
-    case AntialiasingMethod::MobileTAALow: return g_ctx->taa->beforeRenderView(app_glue()->getUvReprojectionToPrevFrameTmNoJitter());
+    case AntialiasingMethod::MobileTAALow:
+      return g_ctx->taa->beforeRenderView(app_glue()->getUvReprojectionToPrevFrameTmNoJitter(view));
 #if HAS_SGSR
     case AntialiasingMethod::SGSR2: g_ctx->sgsr2->beforeRenderView(view);
 #endif
@@ -2512,9 +2535,12 @@ const char *get_available_methods(bool is_vr, bool names_only)
     if (!is_vr && g_ctx->isFsrUpscalingSupported())
     {
       aaOptions += ";fsr";
-      auto version = g_ctx->getFsrVersionString();
-      if (!version.empty() && !names_only)
-        aaOptions += "|" + version;
+      if (!names_only)
+      {
+        auto version = g_ctx->getFsrVersionString();
+        if (!version.empty())
+          aaOptions += "|" + version;
+      }
     }
 
     if (app_glue()->hasMinimumRenderFeatures())
@@ -2841,6 +2867,7 @@ unsigned int get_frame_after_aa_flags()
     case AntialiasingMethod::MSAA:
     case AntialiasingMethod::FXAALow:
     case AntialiasingMethod::FXAAHigh:
+    case AntialiasingMethod::SSAA:
     case AntialiasingMethod::MOBILE_MSAA: return TEXFMT_R11G11B10F | TEXCF_RTARGET;
     default: return g_ctx->textureFlg;
   }

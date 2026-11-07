@@ -33,7 +33,6 @@ constexpr int STATUS_SLOT_MIN_WIDTH = 200;
 constexpr float STATUS_SLOT_MAX_FRACTION = 0.25f;
 
 constexpr ImU32 STATUS_ERROR_COLOR = IM_COL32(0xF1, 0x47, 0x47, 0xFF);
-constexpr ImU32 STATUS_WARNING_COLOR = IM_COL32(0xFF, 0xCF, 0x11, 0xFF);
 constexpr ImU32 STATUS_INFO_COLOR = IM_COL32(0x42, 0x96, 0xFA, 0xFF);
 // White at 0.15 alpha; shared by the donut's background ring and the progress pill's track.
 constexpr ImU32 STATUS_TRACK_COLOR = IM_COL32(0xFF, 0xFF, 0xFF, 38);
@@ -86,9 +85,10 @@ void draw_status_donut(ImDrawList *dl, const ImVec2 &center, float outer_radius,
 
 float graph_status_bar_height() { return static_cast<float>(hdpi::_pxS(STATUS_BAR_HEIGHT)); }
 
-void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStatus &pipeline, int selected_object_count,
+GraphStatusFocus draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStatus &pipeline, int selected_object_count,
   float bar_height)
 {
+  GraphStatusFocus focus = GraphStatusFocus::None;
   const float padX = static_cast<float>(hdpi::_pxS(STATUS_BAR_PADDING));
   const float blockGap = static_cast<float>(hdpi::_pxS(STATUS_BAR_BLOCK_GAP));
   const float iconGap = static_cast<float>(hdpi::_pxS(STATUS_BAR_ICON_GAP));
@@ -102,6 +102,8 @@ void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStat
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(padX, 0.0f));
   const bool barVisible = ImGui::BeginChild("graph_status_bar", ImVec2(0.0f, bar_height), ImGuiChildFlags_AlwaysUseWindowPadding,
     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+  // Popped at once: a child keeps the padding it began with, and the tooltips need the editor's.
+  ImGui::PopStyleVar();
   if (barVisible)
   {
     ImFont *boldFont = DAEDITOR3.getPropPanelService()->getBoldFont();
@@ -167,7 +169,7 @@ void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStat
     // status bar carries no message until a generation actually runs.
     const char *MEM_MAX_LABEL = "Memory used (max)";
     const char *MEM_CUR_LABEL = "Memory used (current)";
-    const bool showProgress = pipeline.generating && pipeline.commandsTotal > 0;
+    const bool showProgress = pipeline.generating && pipeline.nodesTotal > 0;
     // Pill / message frame: at most 1/4 of the bar, but never below STATUS_SLOT_MIN_WIDTH so it
     // stays usable on a narrow panel.
     const float slotMaxW =
@@ -176,10 +178,11 @@ void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStat
     const float iconSize = static_cast<float>(hdpi::_pxS(STATUS_MSG_ICON_SIZE));
 
     // Message occupies the slot only when NOT generating (the pill owns it during a pass).
-    // Priority: stage-1 graph-compile failure > stage-2 texgen error > texgen warning > clean info.
+    // Priority: stage-1 graph-compile failure > stage-2 texgen error > texgen warning > auto-update off > clean info.
     String msgText;
     ImU32 msgColor = 0;
     const char *iconName = nullptr; // commonData/icons/dark/<name>.png; pre-colored, drawn untinted
+    GraphStatusFocus msgFocus = GraphStatusFocus::None;
     if (!showProgress)
     {
       if (pipeline.graphCompileFailed)
@@ -189,18 +192,27 @@ void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStat
                                              : String(0, "ERROR: %s", pipeline.lastError.c_str());
         msgColor = STATUS_ERROR_COLOR;
         iconName = "dark/error";
+        msgFocus = GraphStatusFocus::CompileIssues;
       }
       else if (pipeline.hasErrors)
       {
         msgText = String(0, "ERROR: %s", pipeline.lastError.c_str());
         msgColor = STATUS_ERROR_COLOR;
         iconName = "dark/error";
+        msgFocus = GraphStatusFocus::ErrorNode;
       }
       else if (pipeline.hasWarnings)
       {
         msgText = String(0, "WARNING: %s", pipeline.lastWarning.c_str());
-        msgColor = STATUS_WARNING_COLOR;
+        msgColor = GRAPH_WARNING_COLOR;
         iconName = "dark/warning";
+        msgFocus = pipeline.graphCompileWarned ? GraphStatusFocus::CompileIssues : GraphStatusFocus::WarningNode;
+      }
+      else if (pipeline.passHeldByAutoupdate)
+      {
+        msgText = "Auto-update is off";
+        msgColor = STATUS_INFO_COLOR;
+        iconName = "dark/info";
       }
       else if (pipeline.generationCompleted)
       {
@@ -242,16 +254,14 @@ void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStat
       const float rounding = progressHeight * 0.5f; // design radius 64 == full pill
       dl->AddRectFilled(pillMin, pillMax, STATUS_TRACK_COLOR, rounding);
 
-      // texGenStep advances by the per-batch command count, so the last batch can overshoot
-      // the total; clamp for display.
-      const int done = eastl::min(pipeline.commandsDone, pipeline.commandsTotal);
-      const float fillWidth = slotMaxW * (static_cast<float>(done) / static_cast<float>(pipeline.commandsTotal));
+      const int done = pipeline.nodesDone;
+      const float fillWidth = slotMaxW * (static_cast<float>(done) / static_cast<float>(pipeline.nodesTotal));
       if (fillWidth >= 1.0f)
       {
         dl->AddRectFilled(pillMin, ImVec2(pillMin.x + fillWidth, pillMax.y), STATUS_PROGRESS_FILL_COLOR, rounding);
       }
 
-      tempString.printf(0, "%d/%d", done, pipeline.commandsTotal);
+      tempString.printf(0, "%d/%d", done, pipeline.nodesTotal);
       dl->AddText(ImVec2(pillMin.x + static_cast<float>(hdpi::_pxS(STATUS_PROGRESS_PAD_X)),
                     pillMin.y + (progressHeight - ImGui::GetTextLineHeight()) * 0.5f),
         GRAPH_TEXT_COLOR, tempString.str());
@@ -261,6 +271,7 @@ void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStat
     {
       // Message in the same slot: real themed icon (untinted, pre-colored) + ellipsized
       // severity-colored text, capped at slotWidth. Full text on hover.
+      ImGui::BeginGroup(); // the icon takes the hover and the double-click too
       if (msgIcon)
       {
         ImGui::SetCursorPosY((bar_height - iconSize) * 0.5f);
@@ -277,9 +288,14 @@ void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStat
       // The ellipsized run is draw-list-only output; a matching Dummy turns it into an item so the
       // full message can be hovered for a tooltip.
       ImGui::Dummy(ImVec2(msgTextWidth, ImGui::GetTextLineHeight()));
+      ImGui::EndGroup();
       if (ImGui::IsItemHovered())
       {
         ImGui::SetTooltip("%s", msgText.str());
+        if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+        {
+          focus = msgFocus;
+        }
       }
       ImGui::SameLine(0.0f, blockGap);
     }
@@ -296,6 +312,6 @@ void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStat
     drawMemoryBlock(MEM_CUR_LABEL, currentFraction, pipeline.memUsedCurrent);
   }
   ImGui::EndChild();
-  ImGui::PopStyleVar();
   ImGui::PopStyleColor(3);
+  return focus;
 }

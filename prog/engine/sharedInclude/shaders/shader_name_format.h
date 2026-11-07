@@ -14,6 +14,7 @@
 //
 // human-readable-name (for display in logs/capture tools, 'static' part):
 //  minimal-name < [STATIC: (variable-name=value )*][DYNAMIC: (variable-name=value )*>
+//  mode intervals print as 2SIDED=ON|OFF and REAL2SIDED=ON|OFF in place of variable-name=value
 //
 // list-of-aliases (same, but conservatively list all aliasing names, used when listAllAliases=true):
 //  human-readable-name( \| human-readable-name)*
@@ -108,6 +109,25 @@ inline void compile_minimal_variant_name(auto &out, const VariantIdentifierRef &
   truncate_variant_name(out, settings);
 }
 
+inline void append_interval_value(auto &out, const bindump::Mapper<shader_layout::ScriptedShadersBinDumpV2> &dump, const auto &ival,
+  int subcode, const VariantNameCompilationSettings &settings)
+{
+  if (settings.intervalValuesAsNames && ival.type == ival.TYPE_GLOBAL_INTERVAL)
+  {
+    const auto &ivalName = dump.varMap[ival.nameId];
+    uint32_t ivalNameHash = mem_hash_fnv1<32>(ivalName.c_str(), ivalName.length());
+    const auto &ivalInfo = dump.getIntervalInfoByHash(ivalNameHash);
+    G_ASSERT(subcode >= 0);
+    G_ASSERT(subcode < ivalInfo.subintervals.size());
+    out.append(ivalInfo.subintervals[subcode].c_str());
+  }
+  else
+  {
+    // TODO: add static variant names as well
+    out.append_sprintf("#%d", subcode);
+  }
+}
+
 inline void decode_variant_str(auto &out, const bindump::Mapper<shader_layout::ScriptedShadersBinDumpV2> &dump,
   dag::ConstSpan<bindump::Mapper<shader_layout::VariantTable>::IntervalBind> p, unsigned code,
   const VariantNameCompilationSettings &settings = {})
@@ -116,23 +136,50 @@ inline void decode_variant_str(auto &out, const bindump::Mapper<shader_layout::S
   {
     if (out.length() >= settings.maxNameLen)
       break;
-    const auto &ival = dump.intervals[p[i].intervalId];
+    using Interval = bindump::Mapper<shader_layout::Interval>;
+    const Interval &ival = dump.intervals[p[i].intervalId];
     int mul = p[i].totalMul;
     int subcode = (code / mul) % ival.getValCount();
-    const auto &ivalName = dump.varMap[ival.nameId];
-    if (settings.intervalValuesAsNames && ival.type == ival.TYPE_GLOBAL_INTERVAL)
+    switch (ival.type)
     {
-      uint32_t ivalNameHash = mem_hash_fnv1<32>(ivalName.c_str(), ivalName.length());
-      const auto &ivalInfo = dump.getIntervalInfoByHash(ivalNameHash);
-      G_ASSERT(subcode >= 0);
-      G_ASSERT(subcode < ivalInfo.subintervals.size());
-      out.append_sprintf("%s=%s ", ivalName.c_str(), ivalInfo.subintervals[subcode].c_str());
+      case Interval::TYPE_MODE:
+        switch (ival.nameId)
+        {
+          case Interval::MODE_2SIDED: out.append_sprintf("2SIDED=%s", subcode ? "ON" : "OFF"); break;
+          case Interval::MODE_REAL2SIDED: out.append_sprintf("REAL2SIDED=%s", subcode ? "ON" : "OFF"); break;
+        }
+        break;
+
+      case Interval::TYPE_INTERVAL:
+      case Interval::TYPE_GLOBAL_INTERVAL:
+        out.append_sprintf("%s=", dump.varMap[ival.nameId].c_str());
+        append_interval_value(out, dump, ival, subcode, settings);
+        break;
     }
-    else
-    {
-      // @TODO: add static variant names as well (need shader compiler/dump support)
-      out.append_sprintf("%s=#%d ", ivalName.c_str(), subcode);
-    }
+
+    out.append(" ");
+  }
+}
+
+inline void decode_variant_diff_str(auto &out, const bindump::Mapper<shader_layout::ScriptedShadersBinDumpV2> &dump,
+  dag::ConstSpan<bindump::Mapper<shader_layout::VariantTable>::IntervalBind> p, unsigned from_code, unsigned to_code,
+  const VariantNameCompilationSettings &settings = {})
+{
+  for (int i = 0; i < p.size(); i++)
+  {
+    if (out.length() >= settings.maxNameLen)
+      break;
+    const auto &ival = dump.intervals[p[i].intervalId];
+    int mul = p[i].totalMul;
+    int fromSubcode = (from_code / mul) % ival.getValCount();
+    int toSubcode = (to_code / mul) % ival.getValCount();
+    if (fromSubcode == toSubcode)
+      continue;
+    out.append_sprintf("%s=", dump.varMap[ival.nameId].c_str());
+    append_interval_value(out, dump, ival, fromSubcode, settings);
+    out.append("->");
+    append_interval_value(out, dump, ival, toSubcode, settings);
+    out.append(" ");
   }
 }
 

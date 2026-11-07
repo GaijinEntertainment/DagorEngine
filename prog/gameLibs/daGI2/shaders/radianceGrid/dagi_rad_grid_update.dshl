@@ -10,6 +10,8 @@ include "dagi_rad_grid_temporal_common.dshl"
 
 int dagi_rad_grid_support_uav_load = 0;
 interval dagi_rad_grid_support_uav_load : off < 1, on;
+int dagi_rad_grid_surface_cache_requests = 0;
+interval dagi_rad_grid_surface_cache_requests : off < 1, on;
 
 float dagi_rad_grid_max_quick_update_frames = 32;
 float dagi_rad_grid_quick_update_min_weight = 0.3;
@@ -36,6 +38,10 @@ shader dagi_radiance_grid_toroidal_movement_cs
     hlsl {
       #define DAGI_RAD_GRID_TYPED_UAV_LOAD 1
     }
+  }
+  if (dagi_rad_grid_surface_cache_requests == on)
+  {
+    DAGI_SURFACE_CACHE_REQUESTS(cs)
   }
   RADIANCE_GRID_TRACE_PROBE(cs)
   INIT_RAD_GRID_PROBES_AGE_UAV(cs)
@@ -140,6 +146,10 @@ shader dagi_radiance_grid_calc_temporal_cs
 
   hlsl {
     #define DAGI_RAD_GRID_TYPED_UAV_LOAD 0
+  }
+  if (dagi_rad_grid_surface_cache_requests == on)
+  {
+    DAGI_SURFACE_CACHE_REQUESTS(cs)
   }
   RADIANCE_GRID_TRACE_PROBE(cs)
   (cs)

@@ -10,6 +10,7 @@ namespace dafg
 struct AutoResolutionData
 {
   AutoResTypeNameId id;
+  bool roundUp; // no initializer, daScript builds the data on the stack and needs the trivial constructor
   float multiplier;
 
   // Bitwise float comparison is intentional.

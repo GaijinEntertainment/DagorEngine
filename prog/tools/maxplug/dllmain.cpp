@@ -31,6 +31,8 @@ const TCHAR *GetString(int id)
 }
 
 void load_dagorpath_cfg();
+void register_export_path_reset();
+void unregister_export_path_reset();
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, ULONG fdwReason, LPVOID lpvReserved)
 {
@@ -74,3 +76,15 @@ __declspec(dllexport) ClassDesc *LibClassDesc(int i)
 }
 
 __declspec(dllexport) ULONG LibVersion() { return VERSION_3DSMAX; }
+
+__declspec(dllexport) int LibInitialize()
+{
+  register_export_path_reset();
+  return TRUE;
+}
+
+__declspec(dllexport) int LibShutdown()
+{
+  unregister_export_path_reset();
+  return TRUE;
+}

@@ -21,6 +21,7 @@ Sources =
   phys.cpp
   phys_bullet.cpp
   phys_jolt.cpp
+  bikeDesc.cpp
 ;
 
 include $(Root)/prog/3rdPartyLibs/phys/bullet-$(BulletSdkVer)/setup.jam ;

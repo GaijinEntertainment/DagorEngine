@@ -16,6 +16,12 @@
 #include <util/dag_convar.h>
 #include <util/dag_threadPool.h>
 #include <memory/dag_mem.h>
+#include <memory/dag_framemem.h>
+#include <EASTL/fixed_vector.h>
+#include <ecs/anim/anim.h>
+#include <render/dynmodelRenderer.h>
+#include <render/world/animCharRenderUtil.h>
+#include <render/world/dynModelRenderPass.h>
 
 #include <render/renderEvent.h>
 #include <render/cameraInCamera/cameraInCamera.h>
@@ -39,6 +45,7 @@ CONSOLE_INT_VAL("render", volfog_force_invalidate, 0, 0, 2); // 0 - off, 1 - inv
 static constexpr float DEFAULT_LIGHTS_SHADOW_DYN_OBJECTS_UPDATE_RANGE = 5;
 CONSOLE_FLOAT_VAL("render", lights_shadow_dyn_objects_update_range, DEFAULT_LIGHTS_SHADOW_DYN_OBJECTS_UPDATE_RANGE);
 CONSOLE_BOOL_VAL("render", async_scene_shadow_ri, true);
+CONSOLE_BOOL_VAL("render", scene_shadow_shared_animchar_gather, true);
 
 static void cull_scene_shadow_ri_view(RiGenVisibility *vis, mat44f_cref glob_tm, const Point3 &light_pos, bool dynamic_casters)
 {
@@ -133,6 +140,85 @@ static int start_scene_shadow_ri_cull_jobs(const dynamic_shadow_render::FrameUpd
   return nextSlot;
 }
 
+struct SceneShadowUpdateViews
+{
+  eastl::array<Frustum, 6> frustums;
+  eastl::array<dynrend::ContextId, 6> animcharCtxs;
+};
+
+
+// These are sizes in vec4! (not bytes)
+static constexpr int DEFAULT_DYNLIGHT_DYNREND_INITIAL_RING_BUFFER_SIZE = 1 << 10; // 16 KB
+static int initialDynlightDynrendContextRingBufferSize = DEFAULT_DYNLIGHT_DYNREND_INITIAL_RING_BUFFER_SIZE;
+
+template <typename T>
+static inline void gather_scene_shadow_animchars_ecs_query(ecs::EntityManager &manager, T cb);
+
+static void gather_scene_shadow_animchars(const dynamic_shadow_render::FrameUpdates &updates,
+  const Point3 &cam_pos,
+  int dyn_model_render_pass_var_id,
+  dag::Span<SceneShadowUpdateViews> views)
+{
+  TIME_PROFILE(scene_shadow_gather_animchars);
+  G_ASSERT_RETURN(views.size() == updates.size(), );
+  bbox3f combinedViewsBox;
+  v_bbox3_init_empty(combinedViewsBox);
+  for (int u = 0; u < updates.size(); ++u)
+  {
+    const auto &upd = updates[u];
+    SceneShadowUpdateViews &updViews = views[u];
+    alignas(16) TMatrix4 projTm;
+    (mat44f &)projTm = upd.proj;
+    for (int v = 0; v < upd.numViews; ++v)
+    {
+      G_ASSERT(u < 100 && v < 10);
+      char name[] = "dynlight#00#0";
+      name[9] = '0' + u / 10;
+      name[10] = '0' + u % 10;
+      name[12] = '0' + v;
+      const dynrend::ContextId ctx = dynrend::get_or_create_context(name, initialDynlightDynrendContextRingBufferSize);
+      updViews.animcharCtxs[v] = ctx;
+
+      // camera-relative view, the same as the shadow stage of animchar_render_opaque builds from the stage itm
+      alignas(16) TMatrix itm;
+      v_mat_43ca_from_mat44(itm.m[0], upd.views[v].invView);
+      itm.setcol(3, itm.getcol(3) - cam_pos);
+      const TMatrix4 viewTm(inverse(itm));
+      dynrend::set_context_view_proj(ctx, viewTm, projTm, viewTm, projTm);
+
+      mat44f globTm;
+      v_mat44_mul(globTm, upd.proj, upd.views[v].view);
+      updViews.frustums[v] = Frustum(globTm);
+      bbox3f box;
+      updViews.frustums[v].calcFrustumBBox(box);
+      v_bbox3_add_box(combinedViewsBox, box);
+    }
+  }
+
+  const animchar_visbits_t requireAnyVisBits = VISFLG_WITHIN_RANGE | VISFLG_COCKPIT_VISIBLE;
+
+  // add_animchar reads the live shader globals for the variant selection
+  ShaderGlobal::set_int(dyn_model_render_pass_var_id, eastl::to_underlying(dynmodel::RenderPass::Depth));
+  gather_scene_shadow_animchars_ecs_query(*g_entity_mgr,
+    [&](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender) animchar_visbits_t &animchar_visbits, const vec4f &animchar_bsph,
+      const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox, const AnimV20::AnimcharRendComponent &animchar_render,
+      const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
+      const ecs::Tag *invisibleUpdatableAnimchar, bool animchar__renderPriority = false) {
+      const vec4f radius = v_splat_w(animchar_bsph);
+      if (!(animchar_visbits & requireAnyVisBits) ||
+          !v_bbox3_test_sph_intersect(combinedViewsBox, animchar_bsph, v_mul_x(radius, radius)))
+        return;
+
+      for (int u = 0; u < updates.size(); ++u)
+        for (int v = 0; v < updates[u].numViews; ++v)
+          add_animchar_if_visible(views[u].animcharCtxs[v], views[u].frustums[v], nullptr, animchar_visbits, requireAnyVisBits, 0,
+            VISFLG_CSM_SHADOW_RENDERED, animchar_bsph, animchar_bbox, animchar_attaches_bbox, animchar_render, additional_data,
+            animchar_render__nodeVisibleStgFilters, invisibleUpdatableAnimchar, animchar__renderPriority,
+            dynrend::NeedPreviousMatrices::No, UpdateStageInfoRender::RENDER_SHADOW, TexStreamingContext(0));
+    });
+  ShaderGlobal::set_int(dyn_model_render_pass_var_id, eastl::to_underlying(dynmodel::RenderPass::Color));
+}
+
 void prepare_scene_shadows_in_lights_job(WorldRenderer &wr, vec3f view_pos, mat44f_cref globtm, float hk)
 {
   if (!dynamic_lights.get() || wr.canChangeAltitudeUnexpectedly)
@@ -168,7 +254,7 @@ dafg::NodeHandle makePrepareLightsNode()
     return [hasAnyDynamicLightsHndl, dynamic_lights_countVarId, cameraHndl]() {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       cameraHndl.ref().jobsMgr->waitLights();
-      if (dynamic_lights.get() && (wr.lights.hasClusteredLights() || wr.lights.hasDeferredLights()))
+      if (dynamic_lights.get())
         wr.lights.fillAndSetInsideOfFrustumLightsBuffers();
 
       DynLightsOptimizationMode dynLightsMode =
@@ -183,6 +269,10 @@ dafg::NodeHandle makePrepareLightsNode()
 // TODO: separate this into more fine-grained nodes.
 eastl::array<dafg::NodeHandle, 2> makeSceneShadowPassNodes(const DataBlock *level_blk)
 {
+  const DataBlock *graphicsBlk = ::dgs_get_settings()->getBlockByNameEx("graphics");
+  initialDynlightDynrendContextRingBufferSize =
+    graphicsBlk->getInt("dynlightDynrendInitialRingBufferSize", DEFAULT_DYNLIGHT_DYNREND_INITIAL_RING_BUFFER_SIZE);
+
   lights_shadow_dyn_objects_update_range =
     lvl_override::getReal(level_blk, "lightsShadowDynObjectsUpdateRange", DEFAULT_LIGHTS_SHADOW_DYN_OBJECTS_UPDATE_RANGE);
   auto prepareNode = dafg::register_node("scene_shadow_prepare_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
@@ -229,10 +319,22 @@ eastl::array<dafg::NodeHandle, 2> makeSceneShadowPassNodes(const DataBlock *leve
     if (wr->shadowRenderExtender)
       wr->shadowRenderExtender->declareAll(registry);
 
-    return [wr, cameraHndl, renderDataHndl, rendinstDepthSceneBlockId = ShaderGlobal::getBlockId("rendinst_depth_scene")] {
+    return [wr, cameraHndl, renderDataHndl, rendinstDepthSceneBlockId = ShaderGlobal::getBlockId("rendinst_depth_scene"),
+             dynModelRenderPassVarId = ::get_shader_variable_id("dyn_model_render_pass")] {
       const auto &camera = cameraHndl.ref();
       const SceneShadowRenderData &renderData = renderDataHndl.ref();
       const Point3 dynCameraPos = camera.viewItm.getcol(3);
+
+      FRAMEMEM_REGION;
+      eastl::fixed_vector<SceneShadowUpdateViews, dynamic_shadow_render::ESTIMATED_MAX_SHADOWS_TO_UPDATE_PER_FRAME, true,
+        framemem_allocator>
+        shadowViews;
+      if (scene_shadow_shared_animchar_gather.get() && !renderData.volumeData.dynamicUpdates.empty())
+      {
+        shadowViews.resize(renderData.volumeData.dynamicUpdates.size());
+        gather_scene_shadow_animchars(renderData.volumeData.dynamicUpdates, dynCameraPos, dynModelRenderPassVarId,
+          make_span(shadowViews.data(), shadowViews.size()));
+      }
 
       wr->lights.frameRenderShadows(
         renderData.volumeData,
@@ -280,8 +382,13 @@ eastl::array<dafg::NodeHandle, 2> makeSceneShadowPassNodes(const DataBlock *leve
               rendinst::OptimizeDepthPass::No);
           }
 
+          const bool updateIndexValid = updateIndex >= 0 && updateIndex < (int)shadowViews.size();
+          const bool viewIndexValid =
+            updateIndexValid && viewIndex >= 0 && viewIndex < renderData.volumeData.dynamicUpdates[updateIndex].numViews;
+          const dynrend::ContextId animcharCtx =
+            viewIndexValid ? shadowViews[updateIndex].animcharCtxs[viewIndex] : dynrend::ContextId::Invalid;
           ScopeFrustumPlanesShaderVars scopedFrustumPlaneVars;
-          wr->renderDynamicOpaque(RENDER_DYNAMIC_SHADOW, view_itm, viewTm, projTm, dynCameraPos);
+          wr->renderDynamicOpaque(RENDER_DYNAMIC_SHADOW, view_itm, viewTm, projTm, dynCameraPos, animcharCtx);
         });
 
       rendinst::setRIGenVisibilityRendering(wr->rendinst_dynamic_shadow_visibility, rendinst::VisibilityRenderingFlag::All);
@@ -318,6 +425,7 @@ dafg::NodeHandle makePrepareTiledLightsNode()
       .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
     registry.requestState().setFrameBlock("global_frame");
     auto hasAnyDynamicLightsHndl = registry.readBlob<bool>("has_any_dynamic_lights").handle();
+    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
 
     auto camera = use_camera_in_camera(registry);
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
@@ -345,7 +453,7 @@ dafg::NodeHandle makePrepareTiledLightsNode()
       else
         ShaderGlobal::set_int(use_downsampled_depth_in_tiled_lightsVarId, 0);
 
-      if (wr.lights.hasClusteredLights() && hasAnyDynamicLightsHndl.ref())
+      if (hasAnyDynamicLightsHndl.ref())
         wr.lights.setInsideOfFrustumLightsToShader();
 
       camera_in_camera::ApplyPostfxState camcam{multiplex_index, cameraHndl.ref()};
@@ -592,7 +700,7 @@ eastl::array<dafg::NodeHandle, 10> makeVolumetricLightsNodes()
       return [hasDynLightsHndl] {
         auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
-        if (wr.lights.hasClusteredLights() && hasDynLightsHndl.ref())
+        if (hasDynLightsHndl.ref())
           wr.lights.setInsideOfFrustumLightsToShader();
 
         CascadeShadows *csm = wr.shadowsManager.getCascadeShadows();

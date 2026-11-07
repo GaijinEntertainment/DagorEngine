@@ -105,6 +105,13 @@ void Clouds2::setCloudLightVars()
   ShaderGlobal::set_float(clouds_perlin_worley_dilationVarId, formParams.perlin_worley_dilation);
   ShaderGlobal::set_float(clouds_worley_erosionVarId, formParams.worley_erosion);
   ShaderGlobal::set_float(clouds_shape_gammaVarId, formParams.shape_gamma);
+  ShaderGlobal::set_float(clouds_density_alter_strengthVarId, formParams.density_alter_strength);
+  ShaderGlobal::set_float(clouds_anvil_amountVarId, formParams.anvil_amount);
+  ShaderGlobal::set_float(clouds_mushroom_amountVarId, formParams.mushroom_amount);
+  ShaderGlobal::set_float(clouds_anvil_spreadVarId, formParams.anvil_spread);
+  ShaderGlobal::set_float(clouds_anvil_flare_fromVarId, formParams.anvil_flare_from);
+  ShaderGlobal::set_float(clouds_anvil_flare_powVarId, formParams.anvil_flare_pow);
+  ShaderGlobal::set_float(clouds_cumulonimbus_topVarId, formParams.cumulonimbus_top);
   setCloudsShadowCoverage();
 }
 

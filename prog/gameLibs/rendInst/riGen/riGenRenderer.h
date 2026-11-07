@@ -20,7 +20,8 @@ class RiGenRenderer
 {
 public:
   RiGenRenderer(RenderPass render_pass, LayerFlags layer_flags, bool optimization_depth_prepass, bool depth_optimized,
-    bool depth_prepass_for_impostors, bool depth_prepass_for_cells, int per_inst_data_dwords, int draw_order_var_id);
+    bool depth_prepass_for_impostors, bool depth_prepass_for_cells, int per_inst_data_dwords, int draw_order_var_id,
+    int material_write_var_id);
   void addCellVisibleObjects(RendInstGenData::RtData &rt_data, const RiGenVisibility &visibility,
     dag::ConstSpan<RendInstGenData::Cell> cells, IPoint2 cell_dim);
   void addInstanceVisibleObjects(RendInstGenData::RtData &rt_data, const RiGenVisibility &visibility);
@@ -43,21 +44,26 @@ private:
 
 private:
   template <bool separate_mesh_debug_values>
-  void coalescePackedRecords()
+  void coalescePackedRecords(const RendInstGenData::RtData &rt_data, bool separate_impostor_data)
   {
     TIME_PROFILE(ri_gen_coalesce_packed_render_records);
 
     if (!packedRenderRecords.size())
       return;
 
-    const auto isMergeable = [](const RiGenRenderRecord &r1, const RiGenRenderRecord &r2) {
+    const auto isMergeable = [&](const RiGenRenderRecord &r1, const RiGenRenderRecord &r2) {
       bool result = DAGOR_LIKELY(r1.vstride == r2.vstride && r1.vbIdx == r2.vbIdx) && r1.stage == r2.stage &&
                     r1.dvState.render_state == r2.dvState.render_state && r1.dvState.program == r2.dvState.program &&
                     get_material_id(r1.dvState.const_state) == get_material_id(r2.dvState.const_state) &&
-                    r1.visibility == r2.visibility && r1.instanceLod == r2.instanceLod;
+                    r1.visibility == r2.visibility && r1.instanceLod == r2.instanceLod && r1.voxelDataOffset == r2.voxelDataOffset &&
+                    r1.voxelSurfaceId == r2.voxelSurfaceId;
 
       if constexpr (separate_mesh_debug_values)
         result &= r1.meshDebugValue == r2.meshDebugValue;
+
+      // The impostor data offset is a PS immediate, so it can't vary inside one multidraw.
+      if (result && separate_impostor_data && r1.poolIdx != r2.poolIdx)
+        result = getImpostorDataOffset(rt_data, r1) == getImpostorDataOffset(rt_data, r2);
 
       return result;
     };
@@ -85,6 +91,7 @@ private:
     }
   }
   void sortPackedObjects();
+  static uint32_t getImpostorDataOffset(const RendInstGenData::RtData &rt_data, const RiGenRenderRecord &record);
   MultiDrawRenderer getMultiDrawRenderer();
   void renderObjects(const RendInstGenData::RtData &rtData, const RiGenVisibility &visibility);
   void renderPackedObjects(const RendInstGenData::RtData &rtData, const RiGenVisibility &visibility);
@@ -97,6 +104,7 @@ private:
   uint32_t endStage;
   int perInstDataDwords;
   int drawOrderVarId;
+  int materialWriteVarId;
   bool optimizationDepthPrepass;
   bool depthOptimized;
   bool impostorDepthPrepass;

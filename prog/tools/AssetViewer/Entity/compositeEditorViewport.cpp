@@ -252,7 +252,7 @@ bool CompositeEditorViewport::handleMouseDoubleClick(IGenViewportWnd *wnd, int x
   compositeEditor.selectTreeNodeByDataBlockId(dataBlockId, false, false);
 
   const CompositeEditorTreeDataNode *selNode = compositeEditor.getSelectedTreeDataNode();
-  if (!selNode || !selNode->isCompositeAsset())
+  if (!compositeEditor.canEnterSubCompositeEditing(selNode))
     return false;
 
   compositeEditor.enterSubCompositeEditing();
@@ -289,8 +289,10 @@ bool CompositeEditorViewport::handleMouseRBRelease(IGenViewportWnd *wnd, int x, 
           EditorCommandIds::ENTITY_COPY_ASSET, "Copy asset");
         commandSystem->addMenuItem(*popupMenu, PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_PASTE_ASSET,
           EditorCommandIds::ENTITY_PASTE_ASSET, "Paste asset");
+        popupMenu->setEnabledById(CM_COMPOSITE_EDITOR_PASTE_ASSET, !compositeEditor.isSelectionReadOnly());
         commandSystem->addMenuItem(*popupMenu, PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_DUPLICATE_ASSETS,
           EditorCommandIds::ENTITY_DUPLICATE_ASSET, "Duplicate asset");
+        popupMenu->setEnabledById(CM_COMPOSITE_EDITOR_DUPLICATE_ASSETS, !compositeEditor.isSelectionReadOnly());
 
         popupMenu->addSeparator(PropPanel::ROOT_MENU_ITEM);
         commandSystem->addMenuItem(*popupMenu, PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_CLEAR_PARENT,
@@ -300,12 +302,13 @@ bool CompositeEditorViewport::handleMouseRBRelease(IGenViewportWnd *wnd, int x, 
         popupMenu->addSeparator(PropPanel::ROOT_MENU_ITEM);
         popupMenu->addItem(PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_EDIT_SUB_COMPOSITE, "Edit sub-composite in place");
         const CompositeEditorTreeDataNode *selNode = compositeEditor.getSelectedTreeDataNode();
-        popupMenu->setEnabledById(CM_COMPOSITE_EDITOR_EDIT_SUB_COMPOSITE, selNode && selNode->isCompositeAsset());
+        popupMenu->setEnabledById(CM_COMPOSITE_EDITOR_EDIT_SUB_COMPOSITE, compositeEditor.canEnterSubCompositeEditing(selNode));
       }
       else
       {
         commandSystem->addMenuItem(*popupMenu, PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_DUPLICATE_ASSETS,
           EditorCommandIds::ENTITY_DUPLICATE_ASSET, "Duplicate assets");
+        popupMenu->setEnabledById(CM_COMPOSITE_EDITOR_DUPLICATE_ASSETS, !compositeEditor.isSelectionReadOnly());
 
         popupMenu->addSeparator(PropPanel::ROOT_MENU_ITEM);
 
@@ -484,7 +487,7 @@ void CompositeEditorViewport::renderTransObjects(IGenViewportWnd &wnd, IObjEntit
 
   // draw selection bboxes
   begin_draw_cached_debug_lines();
-  for (auto subEntityNode : subEntityNodeLookup)
+  for (auto &subEntityNode : subEntityNodeLookup)
   {
     SubEntityNode &entityNode = subEntityNode.second;
     if (entityNode.isSelected)

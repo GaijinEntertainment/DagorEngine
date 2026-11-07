@@ -16,14 +16,23 @@ struct BufferedLine
   size_t bufferFrames;
 };
 
-static Tab<BufferedLine> buffered_line_list(midmem_ptr()); // Note: sorted by deadline
+enum BufferedLineList
+{
+  NO_DEPTH_TEST_LINES,
+  DEPTH_TEST_LINES,
+  BUFFERED_LINE_LIST_COUNT
+};
+
+static Tab<BufferedLine> buffered_line_lists[BUFFERED_LINE_LIST_COUNT] = {
+  Tab<BufferedLine>(midmem_ptr()), Tab<BufferedLine>(midmem_ptr())};
 static dag::mutex buffer_line_mutex;
 static size_t current_frame = 0;
 static bool last_frame_game_was_paused = false;
 
-void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c, size_t requested_frames)
+void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c, size_t requested_frames, bool depth_test)
 {
   dag::lock_guard lock(buffer_line_mutex);
+  Tab<BufferedLine> &buffered_line_list = buffered_line_lists[depth_test ? DEPTH_TEST_LINES : NO_DEPTH_TEST_LINES];
   size_t frames = last_frame_game_was_paused ? 1 : requested_frames;
   size_t deadlineFrame = current_frame + frames;
   for (int last = buffered_line_list.size() - 1, i = last; i >= 0; --i) // lookup place to insert into (according to deadline)
@@ -54,7 +63,8 @@ void draw_debug_line_buffered(vec3f v0, vec3f dir, float t, E3DCOLOR c, size_t f
 void clear_buffered_debug_lines()
 {
   dag::lock_guard lock(buffer_line_mutex);
-  clear_and_shrink(buffered_line_list);
+  for (Tab<BufferedLine> &buffered_line_list : buffered_line_lists)
+    clear_and_shrink(buffered_line_list);
 }
 
 void draw_debug_arrow_buffered(const Point3 &from, const Point3 &to, E3DCOLOR color, size_t frames)
@@ -334,14 +344,15 @@ void draw_debug_tehedron_buffered(const Point3 &c, real radius, E3DCOLOR col, si
       ::draw_debug_line_buffered(c + vertices[i] * radius, c + vertices[k] * radius, col, frames);
 }
 
-static int draw_buffered_lines(dag::ConstSpan<BufferedLine> lines, size_t cur_frame, E3DCOLOR force_color = E3DCOLOR(0))
+static int draw_buffered_lines(dag::ConstSpan<BufferedLine> lines, size_t cur_frame, bool depth_test,
+  E3DCOLOR force_color = E3DCOLOR(0))
 {
 #if DAGOR_DBGLEVEL > 1
   for (int i = 1; i < lines.size(); ++i)
     G_ASSERT(lines[i].deadlineFrame >= lines[i - 1].deadlineFrame);
 #endif
 
-  begin_draw_cached_debug_lines(true, false); // Note: this sets wtm to identity
+  begin_draw_cached_debug_lines(depth_test, false); // Note: this sets wtm to identity
 
   int eraseNum = -1;
   for (int i = 0; i < lines.size(); ++i)
@@ -369,21 +380,32 @@ static int draw_buffered_lines(dag::ConstSpan<BufferedLine> lines, size_t cur_fr
   return eraseNum;
 }
 
+static void flush_buffered_line_list(Tab<BufferedLine> &buffered_line_list, bool depth_test)
+{
+  int eraseNum = draw_buffered_lines(buffered_line_list, current_frame, depth_test);
+  if (eraseNum > 0)
+    erase_items(buffered_line_list, 0, eraseNum);
+}
+
 void flush_buffered_debug_lines(bool game_is_paused)
 {
   dag::lock_guard lock(buffer_line_mutex);
   last_frame_game_was_paused = game_is_paused;
-  if (buffered_line_list.empty())
+  Tab<BufferedLine> &noDepthTestLines = buffered_line_lists[NO_DEPTH_TEST_LINES];
+  Tab<BufferedLine> &depthTestLines = buffered_line_lists[DEPTH_TEST_LINES];
+  if (noDepthTestLines.empty() && depthTestLines.empty())
     return;
 
   if (game_is_paused)
-    for (auto &line : buffered_line_list)
-      if (line.bufferFrames > 1)
-        line.deadlineFrame++;
+    for (Tab<BufferedLine> &buffered_line_list : buffered_line_lists)
+      for (auto &line : buffered_line_list)
+        if (line.bufferFrames > 1)
+          line.deadlineFrame++;
 
-  int eraseNum = draw_buffered_lines(buffered_line_list, current_frame);
-  if (eraseNum > 0)
-    erase_items(buffered_line_list, 0, eraseNum);
+  // The depth-tested pass goes last: the cached debug lines keep the z state of the last begin call.
+  if (!noDepthTestLines.empty())
+    flush_buffered_line_list(noDepthTestLines, false);
+  flush_buffered_line_list(depthTestLines, true);
 
   current_frame++;
 }

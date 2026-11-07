@@ -16,29 +16,13 @@
 //    (walk-and-emit, no caller index list).
 void CollisionGeometryFeeder::withNodeMeshData(const CollisionResource &coll_res, int node_id, const NodeMeshConsumer &cb)
 {
-  // The resource keeps verts vert21-packed in the node's chunk, so materialise verts+indices via
-  // the iterators into framemem scratches and feed those. cb consumes the pointers synchronously
-  // (NodeMeshConsumer contract: raw pointers valid only during the call).
-  const CollisionNode *n = coll_res.getNode(node_id);
-  if (!n || !n->hasGeometry())
-    return; // genuinely empty node
+  // cb consumes the framemem pointers synchronously (NodeMeshConsumer contract: raw pointers valid only during the call).
   dag::Vector<Point3_vec4, framemem_allocator> matVerts;
-  matVerts.reserve((size_t)n->verticesCount);
-  coll_res.iterateNodeVerts(node_id, [&](int, vec4f v) {
-    Point3_vec4 p;
-    v_st(&p.x, v);
-    matVerts.push_back(p);
-  });
   // 32-bit indices: a per-node BLAS chunk (heavy QUAD_O1 over-spread dup) can exceed 65536 verts. The
   // sole consumer (X-ray vertex cache) uploads the full node mesh into a 32-bit index buffer, so feed all
   // faces -- dropping triangles would render a partial damage mesh and trip its index-count assert.
   dag::Vector<uint32_t, framemem_allocator> matIdx;
-  matIdx.reserve(n->indicesCount);
-  coll_res.iterateNodeFaces(node_id, [&](int, uint32_t i0, uint32_t i1, uint32_t i2) {
-    matIdx.push_back(i0);
-    matIdx.push_back(i1);
-    matIdx.push_back(i2);
-  });
+  coll_res.materializeNodeMesh(node_id, matVerts, matIdx);
   if (matVerts.empty() || matIdx.empty())
     return;
   cb(matVerts.data(), (int)matVerts.size(), sizeof(Point3_vec4), matIdx.data(), (int)matIdx.size(), sizeof(uint32_t));

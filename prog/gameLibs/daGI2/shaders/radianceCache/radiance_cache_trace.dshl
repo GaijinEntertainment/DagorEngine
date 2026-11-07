@@ -220,7 +220,6 @@ shader calc_temporal_radiance_cache_cs
       newValue = lerp(last_encoded_radiance, newValue, temporalW);
       occluder_distance = lerp(last_encoded_distance, occluder_distance, temporalW);
       ##endif
-      //current_radiance_cache[targetCoord] = h3nanofilter(Round_R11G11B10_FLOAT(newValue));//increase precision
       texture2DAt(current_radiance_cache, targetCoord) = h3nanofilter(newValue);//increase precision
       texture2DAt(radiance_cache_dist, targetCoord) = occluder_distance;
       storeBuffer(radiance_cache_age, (radianceCacheProbeIndex + get_radiance_cache_total_atlas_size())*4, encode_temporal_age_and_frame(temporalAge, radiance_cache_current_frame));

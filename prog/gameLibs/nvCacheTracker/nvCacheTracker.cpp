@@ -4,14 +4,19 @@
 
 #include <debug/dag_log.h>
 #include <ioSys/dag_dataBlock.h>
+#include <ioSys/dag_findFiles.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_files.h>
 #include <startup/dag_globalSettings.h>
 #include <statsd/statsd.h>
 #include <util/dag_finally.h>
 #include <util/dag_globDef.h>
+#include <util/dag_hash.h>
+#include <util/dag_string.h>
 
 #include <cstring>
 #include <EASTL/iterator.h>
+#include <EASTL/sort.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/unique_ptr.h>
 #include <MinHook.h>
@@ -19,6 +24,42 @@
 
 
 static uint64_t nv_dx_cache_limit = UINT64_MAX;
+static constexpr const char *SHADER_DUMPS_STAMP_FILE_NAME = "cache/nv_dx_cache_tracker.blk";
+
+static int64_t get_shader_dumps_stamp(const char *shader_dump_dir)
+{
+  Tab<SimpleString> dumps;
+  find_files_in_folder(dumps, shader_dump_dir, ".shdump.bin", false, true, true);
+  eastl::sort(dumps.begin(), dumps.end(), [](const SimpleString &a, const SimpleString &b) { return strcmp(a, b) < 0; });
+
+  uint64_t stamp = FNV1Params<64>::offset_basis;
+  for (const SimpleString &dump : dumps)
+  {
+    DagorStat st;
+    if (df_stat(dump, &st) < 0)
+      continue;
+    stamp = str_hash_fnv1<64>(dump, stamp);
+    stamp = mem_hash_fnv1<64>(reinterpret_cast<const char *>(&st.size), sizeof(st.size), stamp);
+    stamp = mem_hash_fnv1<64>(reinterpret_cast<const char *>(&st.mtime), sizeof(st.mtime), stamp);
+  }
+  return int64_t(stamp);
+}
+
+static bool are_shader_dumps_changed(const char *shader_dump_dir)
+{
+  const int64_t stamp = get_shader_dumps_stamp(shader_dump_dir);
+  DataBlock storedBlk;
+  const bool loaded =
+    dd_file_exists(SHADER_DUMPS_STAMP_FILE_NAME) && dblk::load(storedBlk, SHADER_DUMPS_STAMP_FILE_NAME, dblk::ReadFlag::ROBUST);
+  if (loaded && storedBlk.getInt64("shaderDumps", 0) == stamp)
+    return false;
+  DataBlock blk;
+  blk.setInt64("shaderDumps", stamp);
+  dd_mkpath(SHADER_DUMPS_STAMP_FILE_NAME);
+  if (!blk.saveToTextFile(SHADER_DUMPS_STAMP_FILE_NAME))
+    logwarn("Failed to save <%s>, the NV DX cache warm limit stays off", SHADER_DUMPS_STAMP_FILE_NAME);
+  return true;
+}
 
 static bool ends_with_nvph(LPCWSTR path)
 {
@@ -117,7 +158,7 @@ static HANDLE WINAPI hooked_create_file_w(
   return handle;
 }
 
-void init_nv_cache_tracker()
+void init_nv_cache_tracker(const char *shader_dump_dir)
 {
   auto &videoBlk = *::dgs_get_settings()->getBlockByNameEx("video");
   // if not set in blk the exact value, do not perform delete.
@@ -127,6 +168,15 @@ void init_nv_cache_tracker()
   // allow disabling tracker for safety
   if (!videoBlk.getBool("nvDxCacheTracker", true))
     return;
+
+  if (int warmLimitMb = videoBlk.getInt("nvDxCacheWarmLimitMb", 0); warmLimitMb > 0 && shader_dump_dir)
+  {
+    const bool changed = are_shader_dumps_changed(shader_dump_dir);
+    if (!changed)
+      nv_dx_cache_limit = uint64_t(warmLimitMb) << 20;
+    logdbg("NV DX cache limit: %llu MiB, shader dumps in <%s> %s", nv_dx_cache_limit >> 20, shader_dump_dir,
+      changed ? "changed" : "unchanged");
+  }
 
   if (auto result = MH_Initialize(); result == MH_OK || result == MH_ERROR_ALREADY_INITIALIZED)
   {

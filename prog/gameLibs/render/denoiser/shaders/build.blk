@@ -5,6 +5,7 @@
   file:t = "../../../prog/gameLibs/render/denoiser/shaders/reblur_diffuse.dshl"
   file:t = "../../../prog/gameLibs/render/denoiser/shaders/reblur_specular.dshl"
   file:t = "../../../prog/gameLibs/render/denoiser/shaders/relax_specular.dshl"
+  file:t = "../../../prog/gameLibs/render/denoiser/shaders/reflection_blur.dshl"
 }
 
 incDir:t="../../../prog/gameLibs/render/denoiser/shaders"

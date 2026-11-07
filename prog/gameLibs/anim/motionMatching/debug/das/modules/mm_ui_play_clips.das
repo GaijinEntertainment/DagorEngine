@@ -55,13 +55,13 @@ def history_slider(imgui_state_eid : EntityId; data_base : AnimationDataBase con
       let currentIndex = (mm_clips_historyIndex.x + historyLen + mm_clips_historyIndex.y) % historyLen
       let clipId = mm_clips_history[currentIndex].x
       let frameId = mm_clips_history[currentIndex].y
-      var v = mm_clips_historyIndex.x + 1
+      var v = (mm_clips_historyIndex.x + historyLen) % historyLen + 1
       var playAnim = false
       if imgui::Button("+##history") && v < historyLen
         v++
         playAnim = true
       imgui::SameLine()
-      if imgui::Button("-##history") && v > 0
+      if imgui::Button("-##history") && v > 1
         v--
         playAnim = true
       imgui::SameLine()
@@ -102,7 +102,7 @@ def pause_on_transition(imgui_state_eid : EntityId; data_base : AnimationDataBas
     imgui::Text("From")
     imgui::SameLine()
     imgui_input_text("##From", mm_clips__pauseOnTransitionFrom)
-    if imgui::IsItemDeactivatedAfterEdit()
+    if data_base != null && !imgui::IsItemActive()
       mm_clips__pauseOnTransitionFromIdx = get_clip_id_by_name(data_base, string(mm_clips__pauseOnTransitionFrom))
     if mm_clips__pauseOnTransitionFromIdx >= 0
       imgui::SameLine()
@@ -113,7 +113,7 @@ def pause_on_transition(imgui_state_eid : EntityId; data_base : AnimationDataBas
     imgui::Text("To")
     imgui::SameLine()
     imgui_input_text("##To", mm_clips__pauseOnTransitionTo)
-    if imgui::IsItemDeactivatedAfterEdit()
+    if data_base != null && !imgui::IsItemActive()
       mm_clips__pauseOnTransitionToIdx = get_clip_id_by_name(data_base, string(mm_clips__pauseOnTransitionTo))
     if mm_clips__pauseOnTransitionToIdx >= 0
       imgui::SameLine()
@@ -135,8 +135,8 @@ def pause_on_transition(imgui_state_eid : EntityId; data_base : AnimationDataBas
     if curClipFrame.x == prevClipFrame.x && (prevClipFrame.y + 1) % data_base.clips[curClipFrame.x].tickDuration == curClipFrame.y
       return //no transition
     if ((mm_clips__pauseOnTransitionFromIdx == prevClipFrame.x && mm_clips__pauseOnTransitionToIdx == curClipFrame.x) ||
-        (mm_clips__pauseOnTransitionFromIdx == prevClipFrame.x && mm_clips__pauseOnTransitionToIdx == -1) ||
-        (mm_clips__pauseOnTransitionFromIdx == -1 && mm_clips__pauseOnTransitionToIdx == curClipFrame.x))
+        (mm_clips__pauseOnTransitionFromIdx == prevClipFrame.x && empty(mm_clips__pauseOnTransitionTo)) ||
+        (empty(mm_clips__pauseOnTransitionFrom) && mm_clips__pauseOnTransitionToIdx == curClipFrame.x))
       mm_visualization__prevTransitionClipIdx = prevClipFrame.x
       mm_visualization__prevTransitionFrameIdx = prevClipFrame.y
       set_time_speed(0f)

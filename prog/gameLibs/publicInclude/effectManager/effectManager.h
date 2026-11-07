@@ -74,6 +74,7 @@ public:
 
   float lifeTime() const;
   float soundEnableDistanceSq() const;
+  bool isParentVelocityLateralOnly() const;
   const Point3 &getWorldPos() const;
 
   FxId getFxId() const { return fxId; }
@@ -142,6 +143,7 @@ public:
   void updateActiveAndFree(int active_query_sparse_step);
   void updateDelayedLights();
   float lifeTime() const;
+  bool isParentVelocityLateralOnly() const;
 
   AcesEffect *startEffect(const Point3 &pos, bool lock, bool is_player, FxErrorType *perr = nullptr, bool with_sound = true,
     bool with_biome_query = false);
@@ -202,6 +204,7 @@ private:
     eastl::string name;
     eastl::string resName;
     bool pauseWhenFarAway = false;
+    bool parentVelocityLateralOnly = false;
     float soundMaxDistanceSq = -1.0f;
   } params;
 

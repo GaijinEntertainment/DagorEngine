@@ -19,6 +19,27 @@ hlsl(code) {
   #ifdef SWRT_SHADOW_SKIP_LEAF
   bool swrt_shadow_skip_leaf(uint w1, uint w2, uint w3);
   #endif
+  // set by SW_BVH_BLAS_BOXES_ONLY_VARIANT (swBVH.dshl)
+  #ifndef BVH_BLAS_BOXES_ONLY
+  #define BVH_BLAS_BOXES_ONLY 0
+  #endif
+  #if BVH_BLAS_BOXES_ONLY
+  #undef BVH_BLAS_SHADOW_LEAF_BOXES
+  #define BVH_BLAS_SHADOW_LEAF_BOXES 1
+  #undef BVH_BLAS_CLOSEST_LEAF_BOXES
+  #define BVH_BLAS_CLOSEST_LEAF_BOXES 1
+  #undef BVH_BLAS_LEAF_SIZE
+  #define BVH_BLAS_LEAF_SIZE BVH_BLAS_NODE_SIZE // W0 = flag | QuadPrim::user
+  #endif
+  // BVH_BLAS_SHADOW_LEAF_BOXES: the shadow walk takes each leaf as its box and fetches no triangle;
+  // a box that holds the ray origin does not cast
+  #ifndef BVH_BLAS_SHADOW_LEAF_BOXES
+  #define BVH_BLAS_SHADOW_LEAF_BOXES 0
+  #endif
+  // rayBLAS takes each leaf as its box
+  #ifndef BVH_BLAS_CLOSEST_LEAF_BOXES
+  #define BVH_BLAS_CLOSEST_LEAF_BOXES 0
+  #endif
 
   #ifndef DECODE_BLAS_ELEM_RAW_DEFINED
   void decode_blas_elem_raw(ByteAddressBuffer blas_data, uint offset, out float3 elem1, out float3 elem2, out uint skip)
@@ -30,6 +51,10 @@ hlsl(code) {
   }
   #endif
 
+  // no hit for an origin inside the box
+  bool blas_leaf_box_hit(float t_entry) { return t_entry > 0; }
+
+  #if !BVH_BLAS_BOXES_ONLY
   // #define ALWAYS_PROCESS_QUAD 1 // faster when register pressure is too high (or all triangles are indeed quads).
   // in shadows it is faster to check one triangle for singles
   // A leaf packs up to two strip quads = up to 4 triangles (sub-tri 0/1 = quad A, 2/3 = quad B).
@@ -72,48 +97,60 @@ hlsl(code) {
   // sign-extend the low `bits` of v (offset/base fields are stored 2's-complement)
   int swblas_sx(uint v, int bits) { int s = 32 - bits; return int(v << s) >> s; }
 
-  // w1w2w3: the leaf's W1 (base + o3A high), W2, W3, contiguous after the box node -- one fetch
-  // instead of three, done by the caller so a shadow leaf can read its words before deciding to decode.
-  QuadLeafVerts decodeQuadLeafVertsW(ByteAddressBuffer blas_data, uint dataOffset, uint skip, uint3 w1w2w3, bool extract_winding)
+  // no quad B when oB.x == oB.y
+  void decodeQuadLeafOffsets(uint dataOffset, uint skip, uint3 w1w2w3, out int baseA, out int3 oA, out int baseB, out int3 oB)
   {
-    QuadLeafVerts q;
     uint w1 = w1w2w3.x, w2 = w1w2w3.y;
     // W3's top bits belong to the BLAS owner (QUAD_LEAF_USER_*), never to geometry. The offset
     // fields below sign-extend 13 bits and would discard them anyway; dropping them once here means
     // that stays true if a field ever widens, and no geometry decode can alias an owner's value.
     uint w3 = w1w2w3.z & ~(QUAD_LEAF_USER_MASK << QUAD_LEAF_USER_SHIFT);
-    int o1 = swblas_sx(skip, QUAD_O_BITS);
-    int o2 = swblas_sx(skip >> QUAD_O2_SHIFT, QUAD_O_BITS);
-    int o3 = swblas_sx(((skip >> QUAD_O3_LO_SHIFT) & QUAD_O3_LO_MASK) | ((w1 >> QUAD_O3_HI_SHIFT) << QUAD_O3_LO_BITS), QUAD_O_BITS);
-    int baseA = int(dataOffset) + int((w1 & QUAD_BASE_MASK) << QUAD_BASE_ALIGN_SHIFT);
+    oA.x = swblas_sx(skip, QUAD_O_BITS);
+    oA.y = swblas_sx(skip >> QUAD_O2_SHIFT, QUAD_O_BITS);
+    oA.z = swblas_sx(((skip >> QUAD_O3_LO_SHIFT) & QUAD_O3_LO_MASK) | ((w1 >> QUAD_O3_HI_SHIFT) << QUAD_O3_LO_BITS), QUAD_O_BITS);
+    baseA = int(dataOffset) + int((w1 & QUAD_BASE_MASK) << QUAD_BASE_ALIGN_SHIFT);
+    oB.x = swblas_sx(w2 >> QUADB_O1_SHIFT, QUAD_O_BITS);
+    oB.y = swblas_sx(w3, QUAD_O_BITS);
+    oB.z = swblas_sx(w3 >> QUADB_O3_SHIFT, QUAD_O_BITS);
+    baseB = baseA + int(w2 & QUADB_BASE_MASK) * QUAD_VERT_STRIDE;
+  }
+
+  // a single-triangle quad repeats v2 as v3
+  void loadQuadStrip(ByteAddressBuffer blas_data, int base, int3 o, out float3 v0, out float3 v1, out float3 v2, out float3 v3)
+  {
+    v0 = loadQuadVert(blas_data, base);
+    v1 = loadQuadVert(blas_data, base + o.x*QUAD_VERT_STRIDE);
+    v2 = loadQuadVert(blas_data, base + o.y*QUAD_VERT_STRIDE);
+    v3 = (o.z != o.y) ? loadQuadVert(blas_data, base + o.z*QUAD_VERT_STRIDE) : v2;
+  }
+
+  // w1w2w3: the leaf's W1 (base + o3A high), W2, W3, contiguous after the box node -- one fetch instead of three,
+  // done by the caller so a shadow leaf can read its words before deciding to decode.
+  QuadLeafVerts decodeQuadLeafVertsW(ByteAddressBuffer blas_data, uint dataOffset, uint skip, uint3 w1w2w3, bool extract_winding)
+  {
+    QuadLeafVerts q;
+    uint w2 = w1w2w3.y;
+    int baseA, baseB;
+    int3 oA, oB;
+    decodeQuadLeafOffsets(dataOffset, skip, w1w2w3, baseA, oA, baseB, oB);
     #if ALWAYS_PROCESS_QUAD
     q.isSingle = false;
     #else
-    q.isSingle = (o3 == o2);
+    q.isSingle = (oA.z == oA.y);
     #endif
     // flipSecond only orients triB's winding; extract_winding (default BACKFACE_CULLING) gates the
     // decode. Any-hit/shadow loops don't read it, so getLeafTri's select folds the false case away.
     q.flipSecond = extract_winding && ((w2 & QUAD_FLIPA_FLAG) != 0);
 
-    q.v0 = loadQuadVert(blas_data, baseA);
-    q.v1 = loadQuadVert(blas_data, baseA + o1*QUAD_VERT_STRIDE);
-    q.v2 = loadQuadVert(blas_data, baseA + o2*QUAD_VERT_STRIDE);
-    q.v3 = (o3 != o2) ? loadQuadVert(blas_data, baseA + o3*QUAD_VERT_STRIDE) : q.v2;
+    loadQuadStrip(blas_data, baseA, oA, q.v0, q.v1, q.v2, q.v3);
 
-    int o1b = swblas_sx(w2 >> QUADB_O1_SHIFT, QUAD_O_BITS);
-    int o2b = swblas_sx(w3, QUAD_O_BITS);
-    q.hasB = (o1b != o2b); // sentinel: a present quad B always has a non-degenerate first tri
+    q.hasB = (oB.x != oB.y); // sentinel: a present quad B always has a non-degenerate first tri
     BRANCH
     if (q.hasB)
     {
-      int o3b = swblas_sx(w3 >> QUADB_O3_SHIFT, QUAD_O_BITS);
-      q.isSingleB = (o3b == o2b);
+      q.isSingleB = (oB.z == oB.y);
       q.flipSecondB = extract_winding && ((w2 & QUAD_FLIPB_FLAG) != 0);
-      int baseB = baseA + int(w2 & QUADB_BASE_MASK) * QUAD_VERT_STRIDE;
-      q.vb0 = loadQuadVert(blas_data, baseB);
-      q.vb1 = loadQuadVert(blas_data, baseB + o1b*QUAD_VERT_STRIDE);
-      q.vb2 = loadQuadVert(blas_data, baseB + o2b*QUAD_VERT_STRIDE);
-      q.vb3 = (o3b != o2b) ? loadQuadVert(blas_data, baseB + o3b*QUAD_VERT_STRIDE) : q.vb2;
+      loadQuadStrip(blas_data, baseB, oB, q.vb0, q.vb1, q.vb2, q.vb3);
     }
     else
     {
@@ -197,15 +234,18 @@ hlsl(code) {
     return false;
 #endif
   }
+  #endif
 
   int rayBLASUnordered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
                int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex);
 
-  // constraint: after the walk, call RayTriangleIntersect only through this, or fxc fails with X3531
+  #if !BVH_BLAS_BOXES_ONLY
+  // after the walk, call RayTriangleIntersect only through this, or fxc fails with X3531
   bool rayTriangleIntersectAfterWalk(float3 orig, float3 dir, float3 v0, float3 v1, float3 v2, inout float t, out float2 bc)
   {
     return RayTriangleIntersect(orig, dir, v0, v1, v2, t, bc);
   }
+  #endif
 
   // leaf_user: the hit leaf's QUAD_LEAF_USER_* value, written on a hit only.
   bool rayBLAS(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
@@ -215,6 +255,16 @@ hlsl(code) {
 
     if (bestTriOffset > 0)
     {
+      #if BVH_BLAS_CLOSEST_LEAF_BOXES
+      uint axis = bestTriOffset & 3;
+      localTriNorm = -float3(axis == 0, axis == 1, axis == 2) * sign(rayDir);
+      bCoord = 0;
+      #if BVH_BLAS_BOXES_ONLY
+      leaf_user = loadBuffer(blas_data, (bestTriOffset & ~3) - 4) & QUAD_LEAF_USER_MASK; // W0
+      #else
+      leaf_user = loadBuffer(blas_data, (bestTriOffset & ~3) + 8) >> QUAD_LEAF_USER_SHIFT; // W3
+      #endif
+      #else
       // Refetch the winning leaf to recover normal and bary. The rayTriangleIntersectAfterWalk call below
       // is run only for its bCoord side effect (the returned t in `ct` is discarded): bc is
       // written before the accept/reject test, so it is valid even though `ct == t` makes the test
@@ -232,12 +282,13 @@ hlsl(code) {
       localTriNorm = cross(b - a, c - a);
       float ct = t;
       rayTriangleIntersectAfterWalk(rayOrigin, rayDir, a, b, c, ct, bCoord);
+      #endif
       return true;
     }
     return false;
   }
 
-  #ifdef HAS_INF_BLAS_CB // template-like
+  #if defined(HAS_INF_BLAS_CB) && !BVH_BLAS_BOXES_ONLY // template-like
   bool inf_blas_cb(ByteAddressBuffer blas_data, uint dataOffset, float t, float3 bCoord, inout InfBlasCbData data);
   void rayBLASInfCb(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv, int startOffset, int blasSize, inout InfBlasCbData data)
   {
@@ -364,38 +415,69 @@ hlsl(code) {
       } else if (offsetToNextNode&QUAD_LEAF_FLAG)
       {
         ++complex;
+        #if BVH_BLAS_CLOSEST_LEAF_BOXES
+        float3 tNear = min(bboxMin*rayDirInv + rayOriginScaled, bboxMax*rayDirInv + rayOriginScaled);
+        float tEntry = max(max(tNear.x, tNear.y), tNear.z);
+        if (blas_leaf_box_hit(tEntry) && tEntry < t)
+        {
+          t = tEntry;
+          bestTriOffset = dataOffset | (tEntry == tNear.x ? 0 : tEntry == tNear.y ? 1 : 2);
+          if (SWRT_LEAF_ANY_HIT)
+            break;
+        }
+        #else
         if (rayBLASLeaf(blas_data, rayOrigin, rayDir, dataOffset, offsetToNextNode, bboxMin, bboxMax, t, bCoord, bestTriOffset) &&
             SWRT_LEAF_ANY_HIT)
           break;
+        #endif
         dataOffset += BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE;
       }
     }
     return bestTriOffset;
   }
 
+  #if !BVH_BLAS_BOXES_ONLY
+  // Any-hit is winding-independent: triB is the fixed strip (v1,v2,v3), no flipSecond select.
+  // A single-tri quad repeats v2, so its triB has zero area and RayTriangle2_SoA_AnyHit rejects it.
+  bool rayShadowQuad(float3 rayOrigin, float3 rayDir, float3 v0, float3 v1, float3 v2, float3 v3)
+  {
+    return RayTriangle2_SoA_AnyHit(rayOrigin, rayDir, float2(v0.x, v1.x), float2(v0.y, v1.y), float2(v0.z, v1.z),
+      float2(v1.x, v2.x), float2(v1.y, v2.y), float2(v1.z, v2.z), float2(v2.x, v3.x), float2(v2.y, v3.y), float2(v2.z, v3.z));
+  }
+  #endif
+
   bool rayShadowBLASLeaf(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir,
                   uint dataOffset,
-                  uint skip, float3 bmin, float3 bmax)
+                  uint skip, float tEntry)
   {
-    // SoA 4-wide for shadow: one test over the whole double-quad leaf (4 sub-tris); any lane hit means
-    // shadowed. Degenerate lanes (single quad / single tri / absent quad B collapse to zero area) are
-    // rejected inside RayTriangle4_SoA_AnyHit via its absDet < 1e-37 guard, so no per-quad branch.
+    #if BVH_BLAS_BOXES_ONLY
+    uint3 w1w2w3 = uint3(0, (skip & QUAD_LEAF_USER_TRANSPARENT) ? QUAD_LEAF_TRANSPARENT_FLAG : 0,
+      (skip & QUAD_LEAF_USER_MASK) << QUAD_LEAF_USER_SHIFT); // from W0: w1 0, flag, user
+    #else
     uint3 w1w2w3 = loadBuffer3(blas_data, dataOffset);
+    #endif
     #ifdef SWRT_SHADOW_SKIP_LEAF
     if (swrt_shadow_skip_leaf(w1w2w3.x, w1w2w3.y, w1w2w3.z))
       return false;
     #endif
-    QuadLeafVerts q = decodeQuadLeafVertsW(blas_data, dataOffset, skip, w1w2w3, BACKFACE_CULLING);
-    // Any-hit is winding-independent: triB uses the fixed strip (v1,v2,v3) with NO flipSecond select.
-    // Nothing here reads q.flipSecond/q.flipSecondB, so the compiler drops the whole flip decode.
-    float3 a0 = q.v0,  b0 = q.v1,  c0 = q.v2;
-    float3 a1 = q.v1,  b1 = q.v2,  c1 = q.v3;
-    float3 a2 = q.vb0, b2 = q.vb1, c2 = q.vb2;
-    float3 a3 = q.vb1, b3 = q.vb2, c3 = q.vb3;
-    return RayTriangle4_SoA_AnyHit(rayOrigin, rayDir,
-      float4(a0.x, a1.x, a2.x, a3.x), float4(a0.y, a1.y, a2.y, a3.y), float4(a0.z, a1.z, a2.z, a3.z),
-      float4(b0.x, b1.x, b2.x, b3.x), float4(b0.y, b1.y, b2.y, b3.y), float4(b0.z, b1.z, b2.z, b3.z),
-      float4(c0.x, c1.x, c2.x, c3.x), float4(c0.y, c1.y, c2.y, c3.y), float4(c0.z, c1.z, c2.z, c3.z));
+    #if BVH_BLAS_SHADOW_LEAF_BOXES
+    return blas_leaf_box_hit(tEntry);
+    #else
+    int baseA, baseB;
+    int3 oA, oB;
+    decodeQuadLeafOffsets(dataOffset, skip, w1w2w3, baseA, oA, baseB, oB);
+    // B loads after A misses: fewer live VGPRs
+    float3 v0, v1, v2, v3;
+    loadQuadStrip(blas_data, baseA, oA, v0, v1, v2, v3);
+    BRANCH
+    if (rayShadowQuad(rayOrigin, rayDir, v0, v1, v2, v3))
+      return true;
+    BRANCH
+    if (oB.x == oB.y)
+      return false;
+    loadQuadStrip(blas_data, baseB, oB, v0, v1, v2, v3);
+    return rayShadowQuad(rayOrigin, rayDir, v0, v1, v2, v3);
+    #endif
   }
 
   bool rayShadowBLAS(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv, int startOffset, int blasSize)
@@ -416,7 +498,8 @@ hlsl(code) {
       float3 bboxMax = element1.xyz;
 
       //intermediate node check for intersection with bounding box
-      bool collision = RayIntersectsBoxT0TInf(bboxMin.xyz*rayDirInv + rayOriginScaled, bboxMax.xyz*rayDirInv + rayOriginScaled);
+      float3 tA = bboxMin.xyz*rayDirInv + rayOriginScaled, tB = bboxMax.xyz*rayDirInv + rayOriginScaled;
+      bool collision = RayIntersectsBoxT0TInf(tA, tB);
 
       dataOffset += BVH_BLAS_NODE_SIZE;
       if (!collision)
@@ -424,8 +507,9 @@ hlsl(code) {
         dataOffset += (offsetToNextNode&QUAD_LEAF_FLAG) ? BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE : offsetToNextNode;
       } else if (offsetToNextNode&QUAD_LEAF_FLAG)
       {
+        float3 tNear = min(tA, tB);
         BRANCH
-        if (rayShadowBLASLeaf(blas_data, rayOrigin, rayDir, dataOffset, offsetToNextNode, bboxMin, bboxMax))
+        if (rayShadowBLASLeaf(blas_data, rayOrigin, rayDir, dataOffset, offsetToNextNode, max(max(tNear.x, tNear.y), tNear.z)))
           return true;
         dataOffset += BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE;
       }
@@ -433,6 +517,7 @@ hlsl(code) {
     return false;
   }
 
+  #if !BVH_BLAS_BOXES_ONLY
   // The whole query runs in UNSCALED (rotated world-metric) leaf-local space: the encoded space
   // is anisotropic (per-axis 1/halfExtent), where both candidate selection and the closest point
   // itself come out wrong. Verts are unscaled at decode; local_pos must already be unscaled.
@@ -462,6 +547,7 @@ hlsl(code) {
       }
     }
   }
+  #endif
 
   // BLAS analog of firstTLASOffsetForBox: node offset from which box-overlap testing must
   // begin - leading disjoint subtrees are skipped, fully-containing nodes are entered.
@@ -540,6 +626,7 @@ hlsl(code) {
     return ~0u; // unreachable; fxc rejects a missing terminal return (X3507)
   }
 
+  #if !BVH_BLAS_BOXES_ONLY
   // localPos is in UNSCALED (rotated world-metric) leaf-local units; inv_scale converts the
   // encoded node boxes and verts into that space, so node culling is exact (no conservative
   // maxScale slack) and candidate selection/closest point are world-correct. bestDist2 is the
@@ -610,6 +697,7 @@ hlsl(code) {
     float3 nrm, pos;
     return distBlas(blas_data, startOffset, blasSize, localPos, inv_scale, bestDist2, nrm, pos);
   }
+  #endif
 }
 
 endmacro

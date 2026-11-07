@@ -43,6 +43,8 @@ public:
 
 protected:
   String name;
+  String desc;
+  int panelPid = -1;
 };
 
 }; // namespace ScriptHelpers

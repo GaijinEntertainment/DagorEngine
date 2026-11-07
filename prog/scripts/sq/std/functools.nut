@@ -220,7 +220,8 @@ function curry(fn): function {
 */
 let Leaf = persist("Leaf", @() {})
 let NO_VALUE = persist("NO_VALUE", @() {})
-let listOfCaches = persist("listOfCaches", @() [])
+// Not persisted: a reload must drop the caches of the previous load
+let listOfCaches = []
 
 function setValInCacheVargved(path, value, cache) {
   local curTbl = cache

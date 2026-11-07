@@ -47,7 +47,7 @@ public:
   virtual bool gmehMove(const Context &, float dx, float dy) override
   {
     dainput::mouse_move_event_occurs(ref_time_delta_to_usec(ref_time_ticks()), dx, dy, HumanInput::raw_state_pnt.mouse.x,
-      HumanInput::raw_state_pnt.mouse.y);
+      HumanInput::raw_state_pnt.mouse.y, HumanInput::raw_state_pnt.mouse.moveInjected);
     return false;
   }
   virtual bool gmehButtonDown(const Context &, int btn_idx) override
@@ -71,20 +71,28 @@ public:
     dainput::mouse_wheel_event_occurs(ref_time_delta_to_usec(ref_time_ticks()), scroll);
     return false;
   }
-  virtual bool gtehTouchBegan(const Context &, HumanInput::IGenPointing *, int, const HumanInput::PointingRawState::Touch &) override
+  static void touch_event_occurs(const HumanInput::PointingRawState::Touch &touch)
   {
-    dainput::touch_event_occurs(ref_time_delta_to_usec(ref_time_ticks()));
+    dainput::touch_event_occurs(ref_time_delta_to_usec(ref_time_ticks()),
+      touch.touchSrc == HumanInput::PointingRawState::Touch::TS_touchPad);
+  }
+  virtual bool gtehTouchBegan(const Context &, HumanInput::IGenPointing *, int,
+    const HumanInput::PointingRawState::Touch &touch) override
+  {
+    touch_event_occurs(touch);
     return false;
   }
-  virtual bool gtehTouchMoved(const Context &, HumanInput::IGenPointing *, int, const HumanInput::PointingRawState::Touch &) override
+  virtual bool gtehTouchMoved(const Context &, HumanInput::IGenPointing *, int,
+    const HumanInput::PointingRawState::Touch &touch) override
   {
-    dainput::touch_event_occurs(ref_time_delta_to_usec(ref_time_ticks()));
+    touch_event_occurs(touch);
     return false;
   }
 
-  virtual bool gtehTouchEnded(const Context &, HumanInput::IGenPointing *, int, const HumanInput::PointingRawState::Touch &) override
+  virtual bool gtehTouchEnded(const Context &, HumanInput::IGenPointing *, int,
+    const HumanInput::PointingRawState::Touch &touch) override
   {
-    dainput::touch_event_occurs(ref_time_delta_to_usec(ref_time_ticks()));
+    touch_event_occurs(touch);
     return false;
   }
   virtual bool gkehButtonDown(const Context &, int btn_idx, bool repeat, wchar_t) override
@@ -279,7 +287,8 @@ void ecs::init_hid_drivers(int poll_thread_interval_msec, int init_dev_type)
     else
     {
 #if _TARGET_PC_WIN | _TARGET_PC_LINUX
-      ::global_cls_composite_drv_joy->addPcPadClassDrvs(::dgs_get_settings()->getBlockByNameEx("input")->getBool("useSonyPads", true));
+      const DataBlock *inputBlk = ::dgs_get_settings()->getBlockByNameEx("input");
+      ::global_cls_composite_drv_joy->addPcPadClassDrvs(inputBlk->getBool("useDsPads", inputBlk->getBool("useSonyPads", true)));
 #elif _TARGET_PC | _TARGET_ANDROID | _TARGET_IOS
       ::global_cls_composite_drv_joy->addClassDrv(HumanInput::createJoystickClassDriver(/*exclude_xinput*/ true), /*is_xinput*/ false);
 #endif

@@ -18,13 +18,13 @@
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstExtraAccess.h>
-#include <render/denoiser.h>
 #include <render/smokeTracers.h>
 #include <render/dynmodelRenderer.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <perfMon/dag_statDrv.h>
+#include <generic/dag_align.h>
 #include <generic/dag_enumerate.h>
 #include <generic/dag_zip.h>
 #include <gui/dag_stdGuiRender.h>
@@ -42,6 +42,7 @@
 #include <util/dag_convar.h>
 #include <gameRes/dag_resourceNameResolve.h>
 #include <eventLog/errorLog.h>
+#include <debug/dag_streamingLog.h>
 
 #include "bvh_context.h"
 #include "bvh_debug.h"
@@ -107,10 +108,18 @@ AssetNameRef make_asset_name_ref(const DynamicRenderableSceneLodsResource *resou
           }};
 }
 
+void adjust_united_vdata_blas_size(BvhType type, int64_t delta_bytes)
+{
+  if (type == BvhType::RI)
+    unitedvdata::riUnitedVdata.adjustBlasSize(delta_bytes);
+  else if (type == BvhType::Dyn)
+    unitedvdata::dmUnitedVdata.adjustBlasSize(delta_bytes);
+}
+
 namespace terrain
 {
 bool is_dirty(ContextId context_id);
-dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2>> get_blases(ContextId context_id);
+dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2>, framemem_allocator> get_blases(ContextId context_id);
 
 void init();
 void init(ContextId context_id);
@@ -128,8 +137,8 @@ void on_scene_loaded(ContextId context_id);
 void on_unload_scene(ContextId context_id);
 void prepare_ri_extra_instances();
 // instances in view_frustum in ri_gen_visibilities[1] will be discarded!
-void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities,
-  const Point3 &view_position, const Point3 &light_direction, const Frustum &view_frustum, threadpool::JobPriority prio);
+void update_ri_gen_instances(ContextId context_id, dag::ConstSpan<RiGenVisibility *> ri_gen_visibilities, const Point3 &view_position,
+  const Point3 &light_direction, const Frustum &view_frustum, threadpool::JobPriority prio);
 void update_ri_extra_instances(ContextId context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
   const Frustum &bvh_frustum, const Frustum &view_frustum, const Point3 &light_direction, threadpool::JobPriority prio);
 void wait_ri_gen_instances_update(ContextId context_id);
@@ -151,7 +160,7 @@ void enable_dynamic_planar_decals(bool enable);
 void on_unload_scene(ContextId context_id);
 void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
   dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position,
-  dag::Vector<DynamicRenderableSceneInstance *> &&og_instances);
+  dag::ConstSpan<DynamicRenderableSceneInstance *> og_instances);
 void wait_dynrend_instances();
 void update_animchar_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
   dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position, dynrend::BVHIterateCallback iterate_callback);
@@ -258,9 +267,11 @@ namespace splinegen
 {
 void teardown(ContextId context_id);
 void on_unload_scene(ContextId context_id);
-void add_meshes(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &meshes,
-  uint32_t instance_vertex_count, uint32_t &bvh_id);
+void add_meshes(ContextId context_id, Sbuffer *vertex_buffer, const MeshInfo &mesh, dag::ConstSpan<uint32_t> used_instance_ids,
+  dag::ConstSpan<uint32_t> inactive_instance_ids, uint32_t &bvh_id);
 void update_instances(ContextId context_id, const Point3 &view_pos);
+void tidy_up_splinegen(ContextId context_id);
+void remove_pending_object_add(ContextId context_id, uint32_t bvh_id);
 } // namespace splinegen
 
 namespace smoke_tracers
@@ -507,6 +518,15 @@ static void process_meta(ContextId context_id, MeshMeta &meta, const Mesh &mesh,
 
 static on_parallel_jobs_finished_callback on_parallel_jobs_finished_cb = nullptr;
 
+template <typename Containers>
+static int total_size(const Containers &containers)
+{
+  int size = 0;
+  for (auto &container : containers)
+    size += container.size();
+  return size;
+}
+
 namespace parallel_instance_processing
 {
 struct ParallelFinishResult
@@ -537,7 +557,7 @@ static class PrebuildMetaJob : public cpujobs::IJob
   void processInstance(vec4f vLightDir, Context::Instance &instance, const Frustum &frustum, vec4f_const viewPos)
     DAG_TS_REQUIRES(contextId->meshMetaAllocatorLock) DAG_TS_REQUIRES_SHARED(contextId->objectsLock)
   {
-    if (contextId->halfBakedObjects.count(instance.objectId))
+    if (!contextId->halfBakedObjects.empty() && contextId->halfBakedObjects.count(instance.objectId))
       return;
     auto iter = contextId->objects.find(instance.objectId);
     if (iter == contextId->objects.end())
@@ -668,15 +688,7 @@ static bool upload_main_data(ContextId context_id, TargetFrame target_frame)
 {
   TIME_D3D_PROFILE(upload_main_tlas_data);
 
-  int impostorCount = 0;
-  for (auto &instances : context_id->impostorInstances)
-    impostorCount += instances.size();
-
-  int riExtraCount = 0;
-  for (auto &instances : context_id->riExtraInstances)
-    riExtraCount += instances.size();
-
-  const int uploadCount = impostorCount + riExtraCount;
+  const int uploadCount = total_size(context_id->impostorInstances) + total_size(context_id->riExtraInstances);
   if (uploadCount == 0)
     return true; // no instance, nothing to upload, all good
 
@@ -714,15 +726,7 @@ static bool upload_per_instance_data(ContextId context_id, TargetFrame target_fr
 {
   TIME_D3D_PROFILE(upload_per_instance_data_heavy);
 
-  int impostorCount = 0;
-  for (auto &instances : context_id->impostorInstanceData)
-    impostorCount += instances.size();
-
-  int riExtraCount = 0;
-  for (auto &instances : context_id->riExtraInstanceData)
-    riExtraCount += instances.size();
-
-  const int uploadCount = impostorCount + riExtraCount;
+  const int uploadCount = total_size(context_id->impostorInstanceData) + total_size(context_id->riExtraInstanceData);
   if (uploadCount == 0)
     return true; // no instance, nothing to upload, all good
 
@@ -1097,11 +1101,6 @@ bool is_available() { return is_available_verbose() == BvhAvailabilityCode::AVAI
 
 BvhAvailabilityCode is_available_verbose()
 {
-  if (dgs_get_settings()->getBlockByNameEx("gameplay")->getBool("enableVR", false))
-  {
-    logonce("bvh::is_available is failed because VR is enabled.");
-    return BvhAvailabilityCode::VR_ENABLED;
-  }
   if (!d3d::get_driver_desc().caps.hasRayQuery)
   {
     logonce("bvh::is_available is failed because of no ray query support.");
@@ -1110,11 +1109,6 @@ BvhAvailabilityCode is_available_verbose()
   if (!d3d::get_driver_desc().caps.hasBindless)
   {
     logonce("bvh::is_available is failed because of no bindless support.");
-    return BvhAvailabilityCode::NOT_SUPPORTED;
-  }
-  if (!denoiser::is_available())
-  {
-    logonce("bvh::is_available is failed because of no denoiser support.");
     return BvhAvailabilityCode::NOT_SUPPORTED;
   }
 #if _TARGET_SCARLETT || _TARGET_C2
@@ -1219,8 +1213,9 @@ void enable_dynamic_planar_decals(bool enable) { dyn::enable_dynamic_planar_deca
 ContextId create_context(const char *name, Features features, Features designated_dyn_features)
 {
   G_ASSERT(name && *name);
-  G_ASSERTF((designated_dyn_features & ~Features::AnyDynrend) == 0,
-    "BVH: create_context: designated_dyn_features (0x%x) must be a subset of Features::AnyDynrend", unsigned(designated_dyn_features));
+  G_ASSERTF((designated_dyn_features & ~(Features::AnyDynrend | Features::Splinegen)) == 0,
+    "BVH: create_context: designated_dyn_features (0x%x) must be a subset of Features::AnyDynrend | Features::Splinegen",
+    unsigned(designated_dyn_features));
 
   auto context_id = new Context();
   context_id->name = name;
@@ -1322,6 +1317,8 @@ static void destroy_object(ContextId context_id, uint64_t object_id) DAG_TS_REQU
   if (iter != context_id->objects.end())
   {
     DA_PROFILE_TAG(bvh::do_remove_object, "object");
+    STREAMING_LOG("bvh destroy obj=%016llX %s blas=%uK addr=%llX", object_id, iter->second.tag ? iter->second.tag : "?",
+      iter->second.blas.getASSize() >> 10, iter->second.blas.getGPUAddress());
     iter->second.teardown(context_id, object_id);
     context_id->objects.erase(iter);
   }
@@ -1331,6 +1328,8 @@ static void destroy_object(ContextId context_id, uint64_t object_id) DAG_TS_REQU
     if (iter != context_id->impostors.end())
     {
       DA_PROFILE_TAG(bvh::do_remove_object, "impostor");
+      STREAMING_LOG("bvh destroy impostor obj=%016llX blas=%uK addr=%llX", object_id, iter->second.blas.getASSize() >> 10,
+        iter->second.blas.getGPUAddress());
       iter->second.teardown(context_id, object_id);
       context_id->impostors.erase(iter);
     }
@@ -1400,6 +1399,7 @@ void disable_dyn_models(ContextId context_id)
 
   wait_all_jobs();
 
+  splinegen::teardown(context_id);
   dyn::teardown(context_id);
   remove_all_dyn_objects(context_id);
   context_id->freeUniqueSkinBLASes.clear();
@@ -1422,15 +1422,24 @@ void add_instance(ContextId context_id, uint64_t object_id, mat43f_cref transfor
     MeshMetaAllocator::INVALID_ALLOC_ID, false);
 }
 
-void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
-  const Point3 &light_direction, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
-  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id,
-  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
-  dag::Vector<DynamicRenderableSceneInstance *> &&og_instances, threadpool::JobPriority prio)
+void wait_ri_instances_jobs(ContextId bvh_context_id)
 {
-  bvh_context_id->genericInstances.clear();
-  for (auto &instances : bvh_context_id->dynrendInstances)
-    instances.second.clear();
+  if (!bvh_context_id->hasAny(Features::AnyRI))
+    return;
+  ri::wait_ri_gen_instances_update(bvh_context_id);
+  ri::wait_ri_extra_instances_update(bvh_context_id);
+  dyn::wait_animchar_instances();                         // a member of the group that start_frame reopens
+  parallel_instance_processing::prebuild_meta_job.wait(); // last: the member that finishes the group starts it
+}
+
+static float requested_tree_anim_max_distance = 0;
+
+void update_ri_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
+  const Point3 &light_direction, const Frustum &bvh_frustum, const Frustum &view_frustum, threadpool::JobPriority prio)
+{
+  // the jobs of the previous frame use the arrays below: build waits them, but a frame can end without a build
+  wait_ri_instances_jobs(bvh_context_id);
+
   for (auto &instances : bvh_context_id->riGenInstances)
     instances.clear();
   for (auto &instances : bvh_context_id->riExtraInstances)
@@ -1449,6 +1458,29 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
   bvh_context_id->riGenStartIndexType = (bvh_context_id->riGenStartIndexType + 1) % Context::MaxTreeAnimIndices;
   bvh_context_id->rebuildUpdateSlots();
 
+  if (!bvh_context_id->hasAny(Features::AnyRI))
+    return;
+
+  ri::wait_tidy_up_rendinsts();
+  ri::set_tree_anim_max_distance(requested_tree_anim_max_distance); // the RI jobs read it without a lock
+  parallel_instance_processing::start_frame(bvh_context_id);
+  ri::update_ri_extra_instances(bvh_context_id, view_position, lod_anchor_position, bvh_frustum, view_frustum, light_direction, prio);
+}
+
+void start_ri_gen_instances_update(ContextId bvh_context_id, dag::ConstSpan<RiGenVisibility *> ri_gen_visibilities,
+  const Point3 &view_position, const Point3 &light_direction, const Frustum &view_frustum, threadpool::JobPriority prio)
+{
+  ri::update_ri_gen_instances(bvh_context_id, ri_gen_visibilities, view_position, light_direction, view_frustum, prio);
+}
+
+static void update_dyn_instances_impl(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction,
+  const TMatrix &itm, const TMatrix4 &projTm, dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id,
+  dynrend::BVHIterateCallback dynrend_iterate, dag::ConstSpan<DynamicRenderableSceneInstance *> og_instances)
+{
+  bvh_context_id->genericInstances.clear();
+  for (auto &instances : bvh_context_id->dynrendInstances)
+    instances.second.clear();
+
   binscene::update_instances(bvh_context_id);
   splinegen::update_instances(bvh_context_id, view_position);
 
@@ -1460,18 +1492,12 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
       dyn::update_animchar_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position,
         dynrend_iterate);
     else
-      dyn::update_dynrend_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position,
-        eastl::move(og_instances));
+      dyn::update_dynrend_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position, og_instances);
   }
 
   if (bvh_context_id->hasAny(Features::AnyRI))
   {
-    ri::wait_tidy_up_rendinsts();
     parallel_instance_processing::prebuild_meta_job.prepare(bvh_context_id, view_position, light_direction, itm, projTm);
-    parallel_instance_processing::start_frame(bvh_context_id);
-    ri::update_ri_gen_instances(bvh_context_id, ri_gen_visibilities, view_position, light_direction, view_frustum, prio);
-    ri::update_ri_extra_instances(bvh_context_id, view_position, lod_anchor_position, bvh_frustum, view_frustum, light_direction,
-      prio);
     parallel_instance_processing::finish_adding_jobs(bvh_context_id);
   }
 }
@@ -1479,21 +1505,23 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
 void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
   const Point3 &light_direction, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
   dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
-  dag::Vector<DynamicRenderableSceneInstance *> &&og_instances, threadpool::JobPriority prio)
+  dag::ConstSpan<DynamicRenderableSceneInstance *> og_instances, threadpool::JobPriority prio)
 {
-  update_instances_impl(bvh_context_id, view_position, lod_anchor_position, light_direction, itm, projTm, bvh_frustum, view_frustum,
-    dynrend_context_id, dynrend_no_shadow_context_id, {ri_gen_visibility}, nullptr, eastl::move(og_instances), prio);
+  update_ri_instances(bvh_context_id, view_position, lod_anchor_position, light_direction, bvh_frustum, view_frustum, prio);
+  start_ri_gen_instances_update(bvh_context_id, make_span_const(&ri_gen_visibility, 1), view_position, light_direction, view_frustum,
+    prio);
+  update_dyn_instances_impl(bvh_context_id, view_position, light_direction, itm, projTm, dynrend_context_id,
+    dynrend_no_shadow_context_id, nullptr, og_instances);
 }
 
 // daNetGame doesn't use dynrend, but these can be used to identify contexts in BVH
 static dynrend::ContextId bvh_dynrend_context = dynrend::ContextId::INVALID_BVH;
 static dynrend::ContextId bvh_dynrend_no_shadow_context = dynrend::ContextId::INVALID_BVH_NO_SHADOWS;
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
-  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
-  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate, threadpool::JobPriority prio)
+void update_dyn_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
+  const TMatrix4 &projTm, dynrend::BVHIterateCallback dynrend_iterate)
 {
-  update_instances_impl(bvh_context_id, view_position, view_position, light_direction, itm, projTm, bvh_frustum, view_frustum,
-    &bvh_dynrend_context, &bvh_dynrend_no_shadow_context, ri_gen_visibilities, dynrend_iterate, {}, prio);
+  update_dyn_instances_impl(bvh_context_id, view_position, light_direction, itm, projTm, &bvh_dynrend_context,
+    &bvh_dynrend_no_shadow_context, dynrend_iterate, {});
 }
 
 void wait_dynamic_instances_jobs()
@@ -1589,6 +1617,42 @@ enum class DoAddObjectResult
   WaitingForTexture,
 };
 
+static_assert(int(EmissionMode::Albedo) == BVH_EMISSION_MODE_ALBEDO && int(EmissionMode::Legacy) == BVH_EMISSION_MODE_LEGACY);
+static_assert(int(EmissionMask::None) == BVH_EMISSION_MASK_NONE &&
+              int(EmissionMask::DiffuseAlpha) == BVH_EMISSION_MASK_DIFFUSE_ALPHA &&
+              int(EmissionMask::ExtraTexture) == BVH_EMISSION_MASK_EXTRA_TEXTURE);
+
+static uint32_t pack_r11g11b10f(const Point3 &rgb)
+{
+  auto toHalf = [](float v) { return uint32_t(float_to_half(clamp(v, 0.f, 65000.f))); };
+  return (((toHalf(rgb.x) + 8) >> 4) & 0x7FFu) | (((toHalf(rgb.y) + 8) << 7) & 0x3FF800u) |
+         (((toHalf(rgb.z) + 16) << 17) & 0xFFC00000u);
+}
+
+static uint32_t pack_unorm(float v, uint32_t max_value) { return uint32_t(clamp(v, 0.f, 1.f) * max_value + 0.5f); }
+
+static uint32_t pack_emission_fade_distance(float distance)
+{
+  return pack_unorm(sqrtf(max(distance, 0.f) / BVH_EMISSION_FADE_MAX_DISTANCE), 255);
+}
+
+static void set_emission(MeshMeta &meta, const MeshInfo &info)
+{
+  meta.emissionMode = uint32_t(info.emissionMode);
+  meta.emissionMaskSource = uint32_t(info.emissionMask);
+  meta.emissionInvertMask = info.emissionInvertMask;
+  meta.emissionSrgbMask = info.emissionSrgbMask;
+  meta.emissionOnlyAtNight = info.emissionOnlyAtNight;
+  meta.emissionPart = pack_unorm(info.emissionPart, 15);
+  meta.emissionAlbedoMult = pack_unorm(info.emissionAlbedoMult, 15);
+  if (info.emissionFadeStart >= 0)
+  {
+    meta.emissionFadeStart = pack_emission_fade_distance(info.emissionFadeStart);
+    meta.emissionFadeEnd = max(pack_emission_fade_distance(info.emissionFadeEnd), 1u);
+  }
+  meta.emissionColor = pack_r11g11b10f(info.emissionColor);
+}
+
 static DoAddObjectResult do_add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &object_info)
   DAG_TS_REQUIRES(context_id->objectsLock)
 {
@@ -1614,7 +1678,10 @@ static DoAddObjectResult do_add_object(ContextId context_id, uint64_t object_id,
   if (iter != objectMap.end())
   {
     if (iter->second.blas)
+    {
+      STREAMING_LOG("bvh add-skip obj=%016llX has blas", object_id);
       return DoAddObjectResult::NoActionNeeded;
+    }
 
     iter->second.teardown(context_id, object_id);
     context_id->cancelCompaction(object_id);
@@ -1817,6 +1884,9 @@ static DoAddObjectResult do_add_object(ContextId context_id, uint64_t object_id,
         meta.materialData2 = info.colorOverride;
       }
 
+      if (info.isEmissive)
+        set_emission(meta, info);
+
       if (info.useAtlas)
       {
         meta.atlasTileSize = uint32_t(float_to_half(info.atlasTileU)) | uint32_t(float_to_half(info.atlasTileV)) << 16;
@@ -1874,8 +1944,12 @@ static DoAddObjectResult do_add_object(ContextId context_id, uint64_t object_id,
 
       G_ASSERT(mesh.indexFormat == 2);
 
+      const bool copyVertices = !info.vertexProcessor || info.vertexProcessor->readsSourceVertices();
+      G_ASSERTF(copyVertices || !(mesh.materialType & MeshMeta::bvhMaterialAlphaTest),
+        "Alpha test reads texcoords from the source vertex copy, but the vertex processor of object %016llX skips it", object_id);
+
       int ibDwordCount = (info.indexCount + 1) / 2;
-      int vbDwordCount = (mesh.vertexStride * mesh.vertexCount + 3) / 4;
+      int vbDwordCount = copyVertices ? (mesh.vertexStride * mesh.vertexCount + 3) / 4 : 0;
 
       bool forceUniqueGeomBuffer = !!info.vertexProcessor; // TODO: fix the root cause that breaks these
 
@@ -1887,7 +1961,7 @@ static DoAddObjectResult do_add_object(ContextId context_id, uint64_t object_id,
         mesh.geometry.heapIndex = alloc.heapIx;
         mesh.geometry.bindlessIndex = alloc.bindlessId;
         mesh.geometry.bufferRegion = alloc.region;
-        mesh.geometry.ibOffset = context_id->getSourceBufferOffset(alloc.heapIx, alloc.region);
+        mesh.geometry.ibOffset = context_id->getSourceGeometryRegion(alloc.heapIx, alloc.region).offset;
         mesh.geometry.vbOffset = mesh.geometry.ibOffset + ibDwordCount * 4;
 
         G_ASSERT(mesh.geometry.ibOffset % 4 == 0);
@@ -1911,8 +1985,9 @@ static DoAddObjectResult do_add_object(ContextId context_id, uint64_t object_id,
 
         // Vertices
 
-        info.vertices->copyTo(mesh.geometry.getVertexBuffer(context_id), mesh.geometry.vbOffset,
-          mesh.vertexStride * (mesh.baseVertex + mesh.startVertex), mesh.vertexStride * mesh.vertexCount);
+        if (copyVertices)
+          info.vertices->copyTo(mesh.geometry.getVertexBuffer(context_id), mesh.geometry.vbOffset,
+            mesh.vertexStride * (mesh.baseVertex + mesh.startVertex), mesh.vertexStride * mesh.vertexCount);
         mesh.startVertex = 0;
         mesh.baseVertex = 0;
         meta.startVertex = 0;
@@ -1943,6 +2018,8 @@ static DoAddObjectResult do_add_object(ContextId context_id, uint64_t object_id,
   if (!object_info.isAnimated)
     context_id->halfBakedObjects.insert(object_id);
 
+  STREAMING_LOG("bvh create obj=%016llX %s meshes=%d animated=%d", object_id, object_info.tag ? object_info.tag : "?",
+    object_info.meshes.size(), object_info.isAnimated);
   return DoAddObjectResult::Succeeded;
 }
 
@@ -1951,11 +2028,12 @@ void add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &info
 #if DAGOR_DBGLEVEL > 0
   for (const auto &mesh : info.meshes)
   {
-    G_ASSERT(mesh.vertices);
+    G_ASSERT(mesh.vertices || (mesh.vertexProcessor && !mesh.vertexProcessor->readsSourceVertices()));
     G_ASSERT(!mesh.indices || mesh.indexCount % 3 == 0);
   }
 #endif
 
+  STREAMING_LOG("bvh queue-add obj=%016llX %s", object_id, info.tag ? info.tag : "?");
   uint32_t order = context_id->pendingObjectActionOrderCounter.add_fetch(1);
 
   context_id->hasPendingObjectAddActions.store(true, dag::memory_order_relaxed);
@@ -1971,6 +2049,7 @@ void add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &info
 
 void remove_object(ContextId context_id, uint64_t object_id)
 {
+  STREAMING_LOG("bvh queue-remove obj=%016llX", object_id);
   OSSpinlockScopedLock lock(context_id->pendingObjectActionsLock);
   uint32_t order = context_id->pendingObjectActionOrderCounter.add_fetch(1);
   context_id->pendingObjectRemoveActions.insert({object_id, order});
@@ -1978,6 +2057,7 @@ void remove_object(ContextId context_id, uint64_t object_id)
 
 void before_object_action(ContextId context_id, uint64_t object_id)
 {
+  STREAMING_LOG("bvh queue-prechange obj=%016llX", object_id);
   OSSpinlockScopedLock lock(context_id->pendingObjectActionsLock);
   uint32_t order = context_id->pendingObjectActionOrderCounter.add_fetch(1);
   context_id->pendingObjectPreChangeActions.insert({object_id, order});
@@ -2151,6 +2231,11 @@ struct BlasBuildBatch
   int triangleCount = 0;
 };
 
+static bool any_mesh_in_stage(const Object &object, Mesh::BuildStage stage)
+{
+  return eastl::any_of(object.meshes.begin(), object.meshes.end(), [stage](const Mesh &mesh) { return mesh.buildStage == stage; });
+}
+
 static void process_half_baked_meshes(ContextId context_id, int &budget) DAG_TS_REQUIRES(context_id->objectsLock)
 {
   TIME_PROFILE(process_half_baked_meshes);
@@ -2161,19 +2246,10 @@ static void process_half_baked_meshes(ContextId context_id, int &budget) DAG_TS_
       break;
 
     Object *objectPtr = find_half_baked_object(context_id, objectId);
-    G_ASSERT(objectPtr);
-    if (!objectPtr)
-      continue;
+    G_ASSERT_CONTINUE(objectPtr);
     Object &object = *objectPtr;
 
-    bool anyNeedsProcessing = false;
-    for (const Mesh &mesh : object.meshes)
-      if (mesh.buildStage == Mesh::BuildStage::NeedsProcessing)
-      {
-        anyNeedsProcessing = true;
-        break;
-      }
-    if (!anyNeedsProcessing)
+    if (!any_mesh_in_stage(object, Mesh::BuildStage::NeedsProcessing))
       continue;
 
     TIME_PROFILE(half_baked_process);
@@ -2209,6 +2285,7 @@ static void process_half_baked_meshes(ContextId context_id, int &budget) DAG_TS_
 
       mesh.buildStage = mesh_wants_omm(context_id, mesh) ? Mesh::BuildStage::ResolvingOmm : Mesh::BuildStage::NeedsBlasBuild;
     }
+    STREAMING_LOG("bvh processed obj=%016llX", objectId);
     --budget;
   }
 }
@@ -2225,19 +2302,10 @@ static void resolve_half_baked_omms(ContextId context_id, int &budget) DAG_TS_RE
         break;
 
       Object *objectPtr = find_half_baked_object(context_id, objectId);
-      G_ASSERT(objectPtr);
-      if (!objectPtr)
-        continue;
+      G_ASSERT_CONTINUE(objectPtr);
       Object &object = *objectPtr;
 
-      bool anyResolving = false;
-      for (const Mesh &mesh : object.meshes)
-        if (mesh.buildStage == Mesh::BuildStage::ResolvingOmm)
-        {
-          anyResolving = true;
-          break;
-        }
-      if (!anyResolving)
+      if (!any_mesh_in_stage(object, Mesh::BuildStage::ResolvingOmm))
         continue;
 
       TIME_PROFILE(half_baked_omm);
@@ -2282,7 +2350,8 @@ static void report_omm_asset_problem(const Object &object, uint64_t object_id, c
 static BlasBuildBatch build_half_baked_blases(ContextId context_id, int &budget) DAG_TS_REQUIRES(context_id->objectsLock)
 {
   BlasBuildBatch batch;
-  batch.geomDescriptors.resize(Context::MAX_GEOMS_PER_OBJ * budget);
+  // buildInfo keeps desc pointers, so geomDescriptors must never reallocate.
+  batch.geomDescriptors.reserve(Context::MAX_GEOMS_PER_OBJ * budget);
   // Each built object appends exactly one build and the loop is bounded by budget, so reserve up front
   // to avoid per-frame growth reallocations.
   batch.blasBuildInfos.reserve(budget);
@@ -2362,8 +2431,7 @@ static BlasBuildBatch build_half_baked_blases(ContextId context_id, int &budget)
     // stage, so by the time an object reaches here the fit is guaranteed.
     G_ASSERT(descCount <= Context::MAX_GEOMS_PER_OBJ);
 
-    RaytraceGeometryDescription *desc = &batch.geomDescriptors[Context::MAX_GEOMS_PER_OBJ * batch.blasCount];
-    memset(desc, 0, sizeof(RaytraceGeometryDescription) * descCount);
+    RaytraceGeometryDescription *desc = batch.geomDescriptors.append_default(descCount);
 
     {
       OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock); // for safety, it should never block
@@ -2388,8 +2456,6 @@ static BlasBuildBatch build_half_baked_blases(ContextId context_id, int &budget)
         desc[i].data.triangles.indexOffset = meta.startIndex;
         desc[i].data.triangles.flags =
           (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
-        if (context_id->ommEnabled && !skipped)
-          set_omm_linkage(desc[i], mesh);
 
         if (mesh.posMul != Point4::ONE || mesh.posAdd != Point4::ZERO)
         {
@@ -2435,21 +2501,14 @@ static BlasBuildBatch build_half_baked_blases(ContextId context_id, int &budget)
 
         if (hasSecondaryGeometry)
         {
-          desc[i + 1].type = RaytraceGeometryDescription::Type::TRIANGLES;
-          desc[i + 1].data.triangles.transformBuffer = desc[i].data.triangles.transformBuffer;
-          desc[i + 1].data.triangles.transformOffset = desc[i].data.triangles.transformOffset;
-          desc[i + 1].data.triangles.vertexBuffer = mesh.geometry.getVertexBuffer(context_id);
-          desc[i + 1].data.triangles.indexBuffer = mesh.geometry.getIndexBuffer(context_id);
-          desc[i + 1].data.triangles.vertexCount = mesh.vertexCount;
+          desc[i + 1] = desc[i];
           desc[i + 1].data.triangles.vertexOffset = mesh.vertexCount;
-          desc[i + 1].data.triangles.vertexStride = meta.vertexStride;
-          desc[i + 1].data.triangles.vertexFormat = mesh.processedPositionFormat;
           desc[i + 1].data.triangles.vertexOffsetExtraBytes = mesh.geometry.vbOffset;
-          desc[i + 1].data.triangles.indexCount = skipped ? 0 : mesh.indexCount;
-          desc[i + 1].data.triangles.indexOffset = meta.startIndex;
-          desc[i + 1].data.triangles.flags =
-            (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
-          if (context_id->ommEnabled && !skipped)
+        }
+        if (context_id->ommEnabled)
+        {
+          set_omm_linkage(desc[i], mesh);
+          if (hasSecondaryGeometry)
             set_omm_linkage(desc[i + 1], mesh, OMM_SECONDARY_SLOT);
         }
 
@@ -2474,10 +2533,9 @@ static BlasBuildBatch build_half_baked_blases(ContextId context_id, int &budget)
 
     object.blas = UniqueBLAS::create(desc, descCount, buildInfo.flags);
     HANDLE_LOST_DEVICE_STATE(object.blas, batch);
-    if (object.type == BvhType::RI && object.blas)
-      unitedvdata::riUnitedVdata.adjustBlasSize(object.blas.getASSize());
-    else if (object.type == BvhType::Dyn && object.blas)
-      unitedvdata::dmUnitedVdata.adjustBlasSize(object.blas.getASSize());
+    adjust_united_vdata_blas_size(object.type, object.blas.getASSize());
+    STREAMING_LOG("bvh build obj=%016llX %s blas=%uK addr=%llX compact=%d", objectId, object.tag ? object.tag : "?",
+      object.blas.getASSize() >> 10, object.blas.getGPUAddress(), compaction != nullptr);
 
     buildInfo.geometryDesc = desc;
     buildInfo.geometryDescCount = descCount;
@@ -2517,6 +2575,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
   handle_pending_mesh_actions(context_id, budget);
 
   evict_idle_omm_entries(context_id);
+  log_process_buffers(context_id);
 
   const bool isCompactionCheap = is_blas_compaction_cheap();
 
@@ -2635,6 +2694,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
             }
           }
 
+        STREAMING_LOG("bvh compact-sizes read=%u cancelled=%u", count, cancelledCount);
         if (cancelledCount > 0)
           logerr("[BVH] Compacted size readback failed, %u compactions cancelled", cancelledCount);
 
@@ -2747,6 +2807,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
           }
           else if (context_id->numCompactionBlasesInFlight < maxActiveCompactions * 2)
           {
+            STREAMING_LOG("bvh compact-alloc obj=%016llX size=%uK", compaction.objectId, compaction.compactedSizeValue >> 10);
             creationQueue.push_back(&compaction);
             compaction.stage = Context::BLASCompaction::Stage::WaitingGPUTime;
             context_id->numCompactionBlasesInFlight++;
@@ -2779,6 +2840,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
             }
 
             d3d::copy_raytrace_acceleration_structure(compaction.compactedBlas.get(), blas->get(), true);
+            STREAMING_LOG("bvh compact-copy obj=%016llX", compaction.objectId);
 
             d3d::issue_event_query(compaction.query.get());
 
@@ -2799,16 +2861,10 @@ void process_meshes(ContextId context_id, BuildBudget budget)
           {
             if (auto blas = getBlas(compaction))
             {
-              if (compaction.type == BvhType::RI)
-              {
-                unitedvdata::riUnitedVdata.adjustBlasSize(-int64_t(blas->getASSize()));
-                unitedvdata::riUnitedVdata.adjustBlasSize(compaction.compactedBlas.getASSize());
-              }
-              else if (compaction.type == BvhType::Dyn)
-              {
-                unitedvdata::dmUnitedVdata.adjustBlasSize(-int64_t(blas->getASSize()));
-                unitedvdata::dmUnitedVdata.adjustBlasSize(compaction.compactedBlas.getASSize());
-              }
+              adjust_united_vdata_blas_size(compaction.type,
+                int64_t(compaction.compactedBlas.getASSize()) - int64_t(blas->getASSize()));
+              STREAMING_LOG("bvh compacted obj=%016llX blas=%uK->%uK addr=%llX->%llX", compaction.objectId, blas->getASSize() >> 10,
+                compaction.compactedBlas.getASSize() >> 10, blas->getGPUAddress(), compaction.compactedBlas.getGPUAddress());
               blas->swap(compaction.compactedBlas);
             }
 
@@ -2936,12 +2992,12 @@ static void report_withheld_dynamic_omm(bool &already_logged, const Object &obje
   report_omm_asset_problem(object, object_id, "withholding alpha-tested dynamic object", get_reason());
 }
 
+using BlasAsSet = eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator>;
 static void add_instances(ContextId context_id, const Context::InstanceMap &instances, dag::Vector<NativeInstance> &outInstances,
   uint32_t group_mask, bool is_camera_relative, const char *name, const Point3 &light_direction, const Point3 &camera_pos,
-  eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator> &allBlasUpdatesAs,
-  const Frustum &frustumAbsolute, const Frustum &frustumRelative, const BufferProcessor *assumed_buffer_processor,
-  OmmBuildInfos &ommBuildInfos, OmmBuildResults &ommBuildResults) DAG_TS_REQUIRES(context_id->meshMetaAllocatorLock)
-  DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
+  BlasAsSet &allBlasUpdatesAs, const Frustum &frustumAbsolute, const Frustum &frustumRelative,
+  const BufferProcessor *assumed_buffer_processor, OmmBuildInfos &ommBuildInfos, OmmBuildResults &ommBuildResults)
+  DAG_TS_REQUIRES(context_id->meshMetaAllocatorLock) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   CHECK_LOST_DEVICE_STATE();
 
@@ -2961,7 +3017,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
     BVH_PROFILE(add_one_instance);
     CHECK_LOST_DEVICE_STATE();
 
-    if (context_id->halfBakedObjects.count(instance.objectId))
+    if (!context_id->halfBakedObjects.empty() && context_id->halfBakedObjects.count(instance.objectId))
       continue;
 
     auto iter = context_id->objects.find(instance.objectId);
@@ -3114,12 +3170,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
           (instance.uniqueData->builtGeneration != object.buildInputsGeneration || instance.uniqueData->linkedOmms != desiredOmms))
       {
         if (is_tree_instance(instance))
-        {
-          if (object.type == BvhType::RI)
-            unitedvdata::riUnitedVdata.adjustBlasSize(-int64_t(instance.uniqueData->blas.getASSize()));
-          else if (object.type == BvhType::Dyn)
-            unitedvdata::dmUnitedVdata.adjustBlasSize(-int64_t(instance.uniqueData->blas.getASSize()));
-        }
+          adjust_united_vdata_blas_size(object.type, -int64_t(instance.uniqueData->blas.getASSize()));
         instance.uniqueData->linkedOmms.reset();
         instance.uniqueData->blas.reset();
       }
@@ -3204,16 +3255,16 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
           isNew = true;
 
           HANDLE_LOST_DEVICE_STATE(blas, );
+          STREAMING_LOG("bvh build-inst obj=%016llX blas=%uK addr=%llX unique=%d", instance.objectId, blas.getASSize() >> 10,
+            blas.getGPUAddress(), instance.uniqueData != nullptr);
           if (instance.uniqueData)
           {
             instance.uniqueData->builtGeneration = object.buildInputsGeneration;
             instance.uniqueData->linkedOmms.assign(context_id, desiredOmms);
           }
           // this is how we distinguish tree which are later deleted via stationaryTreeBuffers
-          if (object.type == BvhType::RI && is_tree_instance(instance) && blas)
-            unitedvdata::riUnitedVdata.adjustBlasSize(blas.getASSize());
-          else if (object.type == BvhType::Dyn && is_tree_instance(instance) && blas)
-            unitedvdata::dmUnitedVdata.adjustBlasSize(blas.getASSize());
+          if (is_tree_instance(instance))
+            adjust_united_vdata_blas_size(object.type, blas.getASSize());
 
           if (object.blas && object.blas != blas && !stationary && !hasOverrideLinkage)
           {
@@ -3279,11 +3330,10 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
 
           object.blas = UniqueBLAS::create(geoms.data(), geoms.size(), update.basbi.flags);
           d3d::copy_raytrace_acceleration_structure(object.blas.get(), update.as);
+          STREAMING_LOG("bvh build-template obj=%016llX blas=%uK addr=%llX", instance.objectId, object.blas.getASSize() >> 10,
+            object.blas.getGPUAddress());
 
-          if (object.type == BvhType::RI && object.blas)
-            unitedvdata::riUnitedVdata.adjustBlasSize(object.blas.getASSize());
-          else if (object.type == BvhType::Dyn && object.blas)
-            unitedvdata::dmUnitedVdata.adjustBlasSize(object.blas.getASSize());
+          adjust_united_vdata_blas_size(object.type, object.blas.getASSize());
 
           allBlasUpdatesAs.erase(blasUpdates.back().as);
           blasUpdates.pop_back();
@@ -3355,7 +3405,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     ri::wait_ri_extra_instances_update(context_id);
   }
 
-  // constraint: only a context with RI runs the parallel jobs of update_instances(), and they upload RI instances only
+  // only a context with RI runs the parallel jobs of update_instances(), and they upload RI instances only
   const parallel_instance_processing::ParallelFinishResult parallelFinishResult =
     context_id->hasAny(Features::AnyRI) ? parallel_instance_processing::is_parallel_jobs_finished(context_id)
                                         : parallel_instance_processing::ParallelFinishResult{true, true};
@@ -3431,25 +3481,11 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   int dagdpBufferSize = dagdpInstances ? dagdpInstances->getNumElements() : 0;
   int gpuGrassBufferSize = gpuGrassInstances ? gpuGrassInstances->getNumElements() : 0;
 
-  int impostorCount = 0;
-  for (auto &instances : context_id->impostorInstances)
-    impostorCount += instances.size();
-
-  int riGenCount = 0;
-  for (auto &instances : context_id->riGenInstances)
-    riGenCount += instances.size();
-
-  int riExtraCount = 0;
-  for (auto &instances : context_id->riExtraInstances)
-    riExtraCount += instances.size();
-
-  int riExtraTreeCount = 0;
-  for (auto &instances : context_id->riExtraTreeInstances)
-    riExtraTreeCount += instances.size();
-
-  int riExtraFlagCount = 0;
-  for (auto &instances : context_id->riExtraFlagInstances)
-    riExtraFlagCount += instances.size();
+  int impostorCount = total_size(context_id->impostorInstances);
+  int riGenCount = total_size(context_id->riGenInstances);
+  int riExtraCount = total_size(context_id->riExtraInstances);
+  int riExtraTreeCount = total_size(context_id->riExtraTreeInstances);
+  int riExtraFlagCount = total_size(context_id->riExtraFlagInstances);
 
   int dynrendCount = 0;
   for (auto &instances : context_id->dynrendInstances)
@@ -3516,18 +3552,16 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   static_assert(sizeof(HWInstance) == 64, "HWInstance size must be 64 bytes. If this changes, adjust the allocation size below.");
 
-  auto round_up = [](uint32_t value, uint32_t alignment) { return (value + alignment - 1) & ~(alignment - 1); };
-
   const int particleBufferSize = fxBufferSize + smokeTracerBufferSize;
 
   const int fxParticleRegion = min(fxBufferSize, particles::get_fx_capacity());
   const int builtParticleCount = fxParticleRegion + smokeTracerBufferSize;
 
-  auto uploadSizeMain = max(round_up(allInstancesCount, 1024 << 3), 1U << 17);
-  auto uploadSizeTerrain = round_up(terrainBlases.size() + 1, 64);
-  auto uploadSizeParticles = max(round_up(particleBufferSize, 1024), 1U << 13);
-  auto uploadSizeLruCollision = round_up(lruCollisionCount + 1, 64);
-  auto uploadSizePerInstanceData = max(round_up(allInstancesCount, 1024), 1U << 13);
+  auto uploadSizeMain = max(dag::align_up<uint32_t>(allInstancesCount, 1024 << 3), 1U << 17);
+  auto uploadSizeTerrain = dag::align_up<uint32_t>(terrainBlases.size() + 1, 64);
+  auto uploadSizeParticles = max(dag::align_up<uint32_t>(particleBufferSize, 1024), 1U << 13);
+  auto uploadSizeLruCollision = dag::align_up<uint32_t>(lruCollisionCount + 1, 64);
+  auto uploadSizePerInstanceData = max(dag::align_up<uint32_t>(allInstancesCount, 1024), 1U << 13);
 
   if (context_id->tlasUploadMain && uploadSizeMain > context_id->tlasUploadMain->getNumElements())
     context_id->tlasUploadMain.close();
@@ -3611,7 +3645,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   auto frustumRelative = Frustum(TMatrix4(orthonormalized_inverse(itmRelative)) * projTm);
   auto frustumAbsolute = Frustum(TMatrix4(orthonormalized_inverse(itm)) * projTm);
 
-  eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator> allBlasUpdatesAs;
+  BlasAsSet allBlasUpdatesAs(context_id->blasUpdates.capacity());
   OmmBuildInfos ommBuildInfos;
   OmmBuildResults ommBuildResults;
 
@@ -4136,6 +4170,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   ri::tidy_up_rendinsts(context_id);
   dyn::tidy_up_skins(context_id);
+  splinegen::tidy_up_splinegen(context_id);
 
   context_id->processDeathrow();
 
@@ -4145,7 +4180,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 }
 
 void set_rigen_cpu_budget(int budget_us) { bvh_riGen_budget_us = budget_us; }
-void set_tree_anim_max_distance(float distance) { ri::set_tree_anim_max_distance(distance); }
+void set_tree_anim_max_distance(float distance) { requested_tree_anim_max_distance = distance; }
 
 
 static struct BVHUpdateAtmosphereJob : public cpujobs::IJob
@@ -4186,22 +4221,16 @@ static void upload_atmosphere(ContextId context_id)
   if (!context_id->atmosphereTexture)
     return;
 
-  if (d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex(context_id->atmosphereTexture.getArrayTex(), 0, 0))
-  {
-    auto pitch = d3d::get_update_buffer_pitch(rub) / sizeof(uint32_t); // In pixels
-    auto texels = (uint32_t *)d3d::get_update_buffer_addr_for_write(rub);
-    for (int y = 0; y < Context::atmTexHeight; y++, texels += pitch)
-      memcpy(texels, &context_id->atmData.inscatterValues[y * Context::atmTexWidth], Context::atmTexWidth * sizeof(uint32_t));
-    d3d::update_texture_and_release_update_buffer(rub);
-  }
-  if (d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex(context_id->atmosphereTexture.getArrayTex(), 0, 1))
-  {
-    auto pitch = d3d::get_update_buffer_pitch(rub) / sizeof(uint32_t); // In pixels
-    auto texels = (uint32_t *)d3d::get_update_buffer_addr_for_write(rub);
-    for (int y = 0; y < Context::atmTexHeight; y++, texels += pitch)
-      memcpy(texels, &context_id->atmData.lossValues[y * Context::atmTexWidth], Context::atmTexWidth * sizeof(uint32_t));
-    d3d::update_texture_and_release_update_buffer(rub);
-  }
+  const E3DCOLOR *sliceValues[] = {context_id->atmData.inscatterValues, context_id->atmData.lossValues};
+  for (int slice = 0; slice < countof(sliceValues); slice++)
+    if (d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex(context_id->atmosphereTexture.getArrayTex(), 0, slice))
+    {
+      auto pitch = d3d::get_update_buffer_pitch(rub) / sizeof(uint32_t); // In pixels
+      auto texels = (uint32_t *)d3d::get_update_buffer_addr_for_write(rub);
+      for (int y = 0; y < Context::atmTexHeight; y++, texels += pitch)
+        memcpy(texels, &sliceValues[slice][y * Context::atmTexWidth], Context::atmTexWidth * sizeof(uint32_t));
+      d3d::update_texture_and_release_update_buffer(rub);
+    }
 }
 
 void bind_gbuffer_textures(ContextId context_id, Texture *gbuffer_albedo, Texture *gbuffer_normal, Texture *gbuffer_material,
@@ -4268,18 +4297,13 @@ static void reg_game_textures(ContextId context_id)
 {
   TIME_PROFILE(regGameTex);
 
-  auto regGameTex = [context_id](int var_id, bvh::Context::BindlessTexHolder &holder, uint32_t *size = nullptr) {
+  auto regGameTex = [context_id](int var_id, bvh::Context::BindlessTexHolder &holder) {
     TEXTUREID texId = ShaderGlobal::get_tex(var_id);
     if (holder.texId != texId)
     {
       holder.close(context_id);
       holder.texId = texId;
-      if (auto texture = context_id->holdTexture(texId, holder.bindlessTexture); texture && size)
-      {
-        TextureInfo info;
-        texture->getinfo(info);
-        *size = info.w;
-      }
+      context_id->holdTexture(texId, holder.bindlessTexture);
     }
   };
 
@@ -4287,21 +4311,52 @@ static void reg_game_textures(ContextId context_id)
   static int grass_land_color_maskVarId = get_shader_variable_id("grass_land_color_mask", true);
   static int dynamic_mfd_texVarId = get_shader_variable_id("dynamic_mfd_tex", true);
   static int cache_tex0VarId = get_shader_variable_id("cache_tex0", true);
-  static int indirection_texVarId = get_shader_variable_id("indirection_tex", true);
   static int cache_tex1VarId = get_shader_variable_id("cache_tex1", true);
   static int cache_tex2VarId = get_shader_variable_id("cache_tex2", true);
   static int last_clip_texVarId = get_shader_variable_id("last_clip_tex", true);
   static int dynamic_decals_atlasVarId = get_shader_variable_id("dynamic_decals_atlas", true);
 
   regGameTex(dynamic_mfd_texVarId, context_id->dynamic_mfd_texBindless);
-  regGameTex(paint_details_texVarId, context_id->paint_details_texBindless, &context_id->paintTexSize);
+  regGameTex(paint_details_texVarId, context_id->paint_details_texBindless);
   regGameTex(grass_land_color_maskVarId, context_id->grass_land_color_maskBindless);
   regGameTex(cache_tex0VarId, context_id->cache_tex0Bindless);
-  regGameTex(indirection_texVarId, context_id->indirection_texBindless);
   regGameTex(cache_tex1VarId, context_id->cache_tex1Bindless);
   regGameTex(cache_tex2VarId, context_id->cache_tex2Bindless);
   regGameTex(last_clip_texVarId, context_id->last_clip_texBindless);
   regGameTex(dynamic_decals_atlasVarId, context_id->dynamic_decals_atlasBindless);
+}
+
+static void set_tlas_slots(RaytraceTopAccelerationStructure *main, RaytraceTopAccelerationStructure *terrain,
+  RaytraceTopAccelerationStructure *particles, RaytraceTopAccelerationStructure *lru_collision)
+{
+#if !_TARGET_C2
+  static int bvh_mainVarId = get_shader_variable_id("bvh_main");
+  static int bvh_terrainVarId = get_shader_variable_id("bvh_terrain");
+  static int bvh_particlesVarId = get_shader_variable_id("bvh_particles");
+  static int bvh_lru_collisionVarId = get_shader_variable_id("bvh_lru_collision", true);
+  ShaderGlobal::set_tlas(bvh_mainVarId, main);
+  ShaderGlobal::set_tlas(bvh_terrainVarId, terrain);
+  ShaderGlobal::set_tlas(bvh_particlesVarId, particles);
+  ShaderGlobal::set_tlas(bvh_lru_collisionVarId, lru_collision);
+#else
+
+
+
+
+
+
+
+
+#endif
+
+  static int bvh_main_validVarId = get_shader_variable_id("bvh_main_valid");
+  static int bvh_terrain_validVarId = get_shader_variable_id("bvh_terrain_valid");
+  static int bvh_particles_validVarId = get_shader_variable_id("bvh_particles_valid");
+  static int bvh_lru_collision_validVarId = get_shader_variable_id("bvh_lru_collision_valid", true);
+  ShaderGlobal::set_int(bvh_main_validVarId, main ? 1 : 0);
+  ShaderGlobal::set_int(bvh_terrain_validVarId, terrain ? 1 : 0);
+  ShaderGlobal::set_int(bvh_particles_validVarId, particles ? 1 : 0);
+  ShaderGlobal::set_int(bvh_lru_collision_validVarId, lru_collision ? 1 : 0);
 }
 
 void bind_resources(ContextId context_id, int render_width)
@@ -4323,7 +4378,6 @@ void bind_resources(ContextId context_id, int render_width)
   static int bvh_initial_nodes_buf_slotVarId = get_shader_variable_id("bvh_initial_nodes_buf_slot", true);
 
   static int cache_tex0_tex_slotVarId = get_shader_variable_id("cache_tex0_tex_slot", true);
-  static int indirection_tex_tex_slotVarId = get_shader_variable_id("indirection_tex_tex_slot", true);
   static int cache_tex1_tex_slotVarId = get_shader_variable_id("cache_tex1_tex_slot", true);
   static int cache_tex2_tex_slotVarId = get_shader_variable_id("cache_tex2_tex_slot", true);
   static int last_clip_tex_tex_slotVarId = get_shader_variable_id("last_clip_tex_tex_slot", true);
@@ -4331,45 +4385,15 @@ void bind_resources(ContextId context_id, int render_width)
   static int bvh_mip_rangeVarId = get_shader_variable_id("bvh_mip_range");
   static int bvh_mip_scaleVarId = get_shader_variable_id("bvh_mip_scale");
   static int bvh_mip_biasVarId = get_shader_variable_id("bvh_mip_bias");
-#if !_TARGET_C2
-  static int bvh_mainVarId = get_shader_variable_id("bvh_main");
-  static int bvh_terrainVarId = get_shader_variable_id("bvh_terrain");
-  static int bvh_particlesVarId = get_shader_variable_id("bvh_particles");
-  static int bvh_lru_collisionVarId = get_shader_variable_id("bvh_lru_collision", true);
-#else
-
-
-
-
-#endif
-  static int bvh_main_validVarId = get_shader_variable_id("bvh_main_valid");
-  static int bvh_terrain_validVarId = get_shader_variable_id("bvh_terrain_valid");
-  static int bvh_particles_validVarId = get_shader_variable_id("bvh_particles_valid");
-  static int bvh_lru_collision_validVarId = get_shader_variable_id("bvh_lru_collision_valid", true);
   static int bvh_max_water_distanceVarId = get_shader_variable_id("bvh_max_water_distance", true);
   static int bvh_water_fade_powerVarId = get_shader_variable_id("bvh_water_fade_power", true);
   static int bvh_max_water_depthVarId = get_shader_variable_id("bvh_max_water_depth", true);
   static int rtr_max_water_depthVarId = get_shader_variable_id("rtr_max_water_depth", true);
 
-#if !_TARGET_C2
-  ShaderGlobal::set_tlas(bvh_mainVarId, context_id->tlasMainValid ? context_id->tlasMain.get() : nullptr);
-  ShaderGlobal::set_tlas(bvh_terrainVarId, context_id->tlasTerrainValid ? context_id->tlasTerrain.get() : nullptr);
-  ShaderGlobal::set_tlas(bvh_particlesVarId, context_id->tlasParticlesValid ? context_id->tlasParticles.get() : nullptr);
-  ShaderGlobal::set_tlas(bvh_lru_collisionVarId, context_id->tlasLruCollisionValid ? context_id->tlasLruCollision.get() : nullptr);
-#else
-
-
-
-
-
-
-
-#endif
-
-  ShaderGlobal::set_int(bvh_main_validVarId, context_id->tlasMainValid ? 1 : 0);
-  ShaderGlobal::set_int(bvh_terrain_validVarId, context_id->tlasTerrainValid ? 1 : 0);
-  ShaderGlobal::set_int(bvh_particles_validVarId, context_id->tlasParticlesValid ? 1 : 0);
-  ShaderGlobal::set_int(bvh_lru_collision_validVarId, context_id->tlasLruCollisionValid ? 1 : 0);
+  set_tlas_slots(context_id->tlasMainValid ? context_id->tlasMain.get() : nullptr,
+    context_id->tlasTerrainValid ? context_id->tlasTerrain.get() : nullptr,
+    context_id->tlasParticlesValid ? context_id->tlasParticles.get() : nullptr,
+    context_id->tlasLruCollisionValid ? context_id->tlasLruCollision.get() : nullptr);
   lru_collision::bind_resources(context_id);
   voxel_activity::bind(context_id);
 
@@ -4387,7 +4411,6 @@ void bind_resources(ContextId context_id, int render_width)
   ShaderGlobal::set_int(bvh_dynamic_mfd_color_tex_slotVarId, context_id->dynamic_mfd_texBindless.bindlessTexture);
 
   ShaderGlobal::set_int(cache_tex0_tex_slotVarId, context_id->cache_tex0Bindless.bindlessTexture);
-  ShaderGlobal::set_int(indirection_tex_tex_slotVarId, context_id->indirection_texBindless.bindlessTexture);
   ShaderGlobal::set_int(cache_tex1_tex_slotVarId, context_id->cache_tex1Bindless.bindlessTexture);
   ShaderGlobal::set_int(cache_tex2_tex_slotVarId, context_id->cache_tex2Bindless.bindlessTexture);
   ShaderGlobal::set_int(last_clip_tex_tex_slotVarId, context_id->last_clip_texBindless.bindlessTexture);
@@ -4409,34 +4432,7 @@ void bind_resources(ContextId context_id, int render_width)
 
 void unbind_resources()
 {
-#if !_TARGET_C2
-  static int bvh_mainVarId = get_shader_variable_id("bvh_main");
-  static int bvh_terrainVarId = get_shader_variable_id("bvh_terrain");
-  static int bvh_particlesVarId = get_shader_variable_id("bvh_particles");
-  static int bvh_lru_collisionVarId = get_shader_variable_id("bvh_lru_collision", true);
-  ShaderGlobal::set_tlas(bvh_mainVarId, nullptr);
-  ShaderGlobal::set_tlas(bvh_terrainVarId, nullptr);
-  ShaderGlobal::set_tlas(bvh_particlesVarId, nullptr);
-  ShaderGlobal::set_tlas(bvh_lru_collisionVarId, nullptr);
-#else
-
-
-
-
-
-
-
-
-#endif
-
-  static int bvh_main_validVarId = get_shader_variable_id("bvh_main_valid", true);
-  static int bvh_terrain_validVarId = get_shader_variable_id("bvh_terrain_valid", true);
-  static int bvh_particles_validVarId = get_shader_variable_id("bvh_particles_valid", true);
-  static int bvh_lru_collision_validVarId = get_shader_variable_id("bvh_lru_collision_valid", true);
-  ShaderGlobal::set_int(bvh_main_validVarId, 0);
-  ShaderGlobal::set_int(bvh_terrain_validVarId, 0);
-  ShaderGlobal::set_int(bvh_particles_validVarId, 0);
-  ShaderGlobal::set_int(bvh_lru_collision_validVarId, 0);
+  set_tlas_slots(nullptr, nullptr, nullptr, nullptr);
 
   static int bvh_lru_collision_face_normalsVarId = get_shader_variable_id("bvh_lru_collision_face_normals", true);
   static int bvh_lru_collision_normals_indexVarId = get_shader_variable_id("bvh_lru_collision_normals_index", true);
@@ -4647,18 +4643,23 @@ void tell_active_dynamic_resources(ContextId context_id,
   dyn::tell_active_dynamic_resources(context_id, resources);
 }
 
-void gather_splinegen_instances(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &meshes,
-  uint32_t instance_vertex_count, uint32_t &bvh_id)
+void gather_splinegen_instances(ContextId context_id, Sbuffer *vertex_buffer, const MeshInfo &mesh,
+  dag::ConstSpan<uint32_t> used_instance_ids, dag::ConstSpan<uint32_t> inactive_instance_ids, uint32_t &bvh_id)
 {
 #if DAGOR_DBGLEVEL > 0
   if (!bvh_splinegen_enable)
     return;
 #endif
 
-  splinegen::add_meshes(context_id, vertex_buffer, meshes, instance_vertex_count, bvh_id);
+  splinegen::add_meshes(context_id, vertex_buffer, mesh, used_instance_ids, inactive_instance_ids, bvh_id);
 }
 
 void remove_spline_gen_instances(ContextId context_id) { splinegen::teardown(context_id); }
+
+void remove_spline_gen_pending_object_add(ContextId context_id, uint32_t bvh_id)
+{
+  splinegen::remove_pending_object_add(context_id, bvh_id);
+}
 
 void connect_smoke_tracers(ContextId context_id, smoke_tracers_connect_callback callback)
 {

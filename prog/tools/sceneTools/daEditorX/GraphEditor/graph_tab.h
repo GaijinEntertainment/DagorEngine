@@ -5,15 +5,12 @@
 #include "graph_add_node_popup.h"
 #include "graph_canvas_cull.h"
 #include "graph_context_menu.h"
-#include "graph_dead_paths.h"
 #include "graph_document.h"
-#include "graph_drag_collision.h"
 #include "graph_edge_reconnect.h"
 #include "graph_edge_render.h" // LinkDropOnCanvas
 #include "graph_edit_types.h"
 #include "graph_hotkeys_bar.h"
 #include "graph_pin_jump_menu.h"
-#include "graph_resolutions.h"
 #include "graph_subgraph_window.h"
 
 #include <EASTL/hash_map.h>
@@ -23,6 +20,8 @@
 #include <EASTL/vector.h>
 
 #include <graphEditor/graph_data.h>
+#include <graphEditor/graph_dead_paths.h>
+#include <graphEditor/graph_resolutions.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
 namespace ax
@@ -34,8 +33,10 @@ struct EditorContext;
 } // namespace ax
 
 class GraphEditorPlg;
+class OpenSubgraphs;
 struct IGraphCompiler;
 struct IGraphTexGenService;
+struct TexGenNodeMessages;
 
 class GraphTab final
 {
@@ -85,13 +86,29 @@ public:
   // What is applied now is what is on disk. Called after the graph is written out.
   void markSaved();
 
+  // The undo owner of this tab's entries: one per file it showed, as the undo system keeps one save point per owner.
+  void *getUndoToken() const { return undoToken; }
+  void setUndoToken(void *token)
+  {
+    G_ASSERT(hasUndoToken(token));
+    undoToken = token;
+  }
+  // The token this tab had for the file at path, or a new one kept as long as the tab.
+  void *undoTokenFor(const char *path);
+  // Entries keep the token they were stamped with, so the tab answers for all of them.
+  bool hasUndoToken(const void *token) const;
+  // Only for a tab about to go: removes the entries and save points of every token it had.
+  void dropUndoOps();
+
   ImVec2 getLastCanvasCenter() const { return lastCanvasCenter; }
 
   // True while a node-library drag hovers this canvas -- while releasing would create the node.
   bool isBaseNodeDropTargetHot() const;
 
   // Draws into the current ImGui window at that rect; the hint and status bars around it are the panel's.
-  void updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max);
+  // texgen_node_messages: the last pass's, when the service generates this graph.
+  void updateCanvas(const ImVec2 &canvas_min, const ImVec2 &canvas_max,
+    const eastl::vector<TexGenNodeMessages> *texgen_node_messages = nullptr);
   // What the last pass saw, for the bars the panel draws after it.
   const GraphHotkeyContext &getHotkeyContext() const { return lastHotkeyContext; }
   int getSelectedObjectCount() const { return lastSelectedObjectCount; }
@@ -120,9 +137,13 @@ public:
   // next render pushes graphData.x/y to the node editor.
   void markPositionsPending(const eastl::vector<int> &node_ids);
 
-  // Block sizes changed out of frame (resize undo/redo): drops the cull cache, which holds the old
-  // bounds. draw_block_node pushes the size to ne itself, on the first frame the block draws.
-  void markBlockSizesChanged();
+  // Node bounds changed out of frame (block resize undo/redo, live instance pins): drops the cull cache, which holds the
+  // old bounds. draw_block_node pushes a block's size to ne itself, on the first frame the block draws.
+  void markNodeBoundsChanged();
+
+  // Records, into the open operation, the instances here that no longer match an open subgraph. Skipped while nothing
+  // moved since the last pass, and during an edge reroute. True when one changed.
+  bool recordLivePins(const OpenSubgraphs &open);
 
   // Per-tick hook driven by the plugin's actObjects. Runs between ImGui frames -- the right
   // place for anything that needs to be done outside WithinFrameScope (modal dialogs in
@@ -135,6 +156,8 @@ public:
     return pendingCommentNodeId >= 0 || !pendingNodeDeletes.empty() || !pendingCreateSubgraphIds.empty() ||
            !pendingOpenSubgraphStem.empty();
   }
+  // A surface leaving the UI drops that work, so none of it fires its modal when the surface comes back.
+  void dropPendingActions();
 
   // Original node id (GraphData::Node::id) of the single selected node, or -1 when none /
   // multiple are selected. Refreshed by each updateCanvas after the ne::End call. Stable
@@ -157,6 +180,8 @@ public:
   // already accounted for (folded into an edit, or undo-driven), so it resyncs instead of recording.
   // setPendingSelection queues a set for the next render pass to push to ne (UndoSelection apply).
   const GraphSelection &getRecordedSelection() const { return lastSelection; }
+  // The recorded selection, or the one an edit of this frame already queued over it.
+  const GraphSelection &getLatestSelection() const { return hasPendingSelection ? pendingSelection : lastSelection; }
   void suppressSelectionUndoThisFrame() { suppressSelectionRecord = true; }
   void setPendingSelection(const GraphSelection &selection);
 
@@ -166,6 +191,22 @@ public:
   void requestDeselectAll() { deselectAllRequested = true; }
   void requestInvertSelection() { invertSelectionRequested = true; }
   void requestFrameSelected() { frameSelectedRequested = true; }
+  // The next canvas pass selects these nodes and frames them, as one Select undo step.
+  void requestFocusNodes(eastl::vector<int> node_ids)
+  {
+    focusNodeIds = eastl::move(node_ids);
+    frameSelectedRequested = true;
+  }
+  // For the next canvas pass: the graph toolbar is drawn outside the canvas and cannot read its selection.
+  void requestSubgraphFromSelection() { subgraphFromSelectionRequested = true; }
+  // Shift+Space over nothing: the next click on a pin or a wire places a transit node.
+  void armTransitPlacement() { transitArmed = true; }
+  // The picker with no pin, its ghost at corner (screen), kept inside the canvas top-left.
+  void requestAddNodeAt(const ImVec2 &corner)
+  {
+    addNodeCorner = corner;
+    addNodeAtCornerRequested = true;
+  }
 
   // The resolutions read each node's descriptor, so a base_nodes.blk reload has to drop them. It
   // changes neither the structure revision nor the compiled stamp, so the gate cannot see it.
@@ -206,6 +247,10 @@ private:
   const int tabId;
   GraphTab *const rootTab;
   SubgraphWindow *const hostWindow;
+  // Save as tokens; the undo system compares only their addresses.
+  eastl::vector<eastl::unique_ptr<char>> addedUndoTokens;
+  eastl::hash_map<void *, eastl::string> undoTokenPaths;
+  void *undoToken = this;
   ax::NodeEditor::EditorContext *editor = nullptr;
 
   // Node ids that need ne::SetNodePosition pushed this frame (using node.x/node.y, which is
@@ -269,6 +314,10 @@ private:
   bool deselectAllRequested = false;
   bool invertSelectionRequested = false;
   bool frameSelectedRequested = false;
+  eastl::vector<int> focusNodeIds;
+  bool subgraphFromSelectionRequested = false;
+  bool addNodeAtCornerRequested = false;
+  ImVec2 addNodeCorner = ImVec2(0.0f, 0.0f);
 
   // Reads the current ne selection (nodes + links) into out, as sorted original ids.
   void readSelection(GraphSelection &out) const;
@@ -279,6 +328,7 @@ private:
   GraphHotkeyContext lastHotkeyContext;
   int previewNodeId = -1;
   int navigationFramesLeft = 5;
+  bool loadFitsSelection = false; // a focus came during the load fit, whose retries then frame it, not the graph
   int lastShownSelectedNodeId = -1;
   // Pin whose comment the C shortcut queued for editing; resolved (modal dialog) in actObjects.
   int pendingCommentNodeId = -1;
@@ -287,7 +337,8 @@ private:
   eastl::vector<PendingNodeDelete> pendingNodeDeletes;
   eastl::vector<int> pendingCreateSubgraphIds;
   eastl::string pendingOpenSubgraphStem;
-  uint32_t seenDescriptorGeneration = 0;
+  uint32_t seenInterfaceGeneration = 0;
+  uint64_t liveCheckedRevision = ~uint64_t(0);
 
   // ne node positions at the left press; the release scan compares live positions with them.
   ska::flat_hash_map<int, ImVec2> pressPositions;
@@ -298,7 +349,6 @@ private:
   eastl::vector<BlockSize> blockResizeOld;
 
   GraphCanvasCull canvasCull;
-  GraphDragCollision dragCollision;
 
   DeadPaths deadPaths;
   // Pins touched by any edge, and the subset touched by at least one live one, as make_pin_id keys.
@@ -349,6 +399,8 @@ private:
   void openAddNodePopupAtPin(int node_id, int pin_index, const ImVec2 &canvas_min, const ImVec2 &canvas_max, bool splice);
   void openAddNodePopupAtEdge(int source_node, int source_pin, int edge_id, const ImVec2 &cursor_canvas, const ImVec2 &canvas_min,
     const ImVec2 &canvas_max, bool splice);
+  // No pin: every node is offered and added unconnected, its ghost hung off drop_canvas as an output's.
+  void openPinlessAddNodePopup(const ImVec2 &drop_canvas, const ImVec2 &canvas_min, const ImVec2 &canvas_max);
   // Where a node dropped on a pin lands. Not the cursor: that is on the pin, inside another node.
   ImVec2 spawnPosAtPin(int node_id, int pin_index, const ImVec2 &canvas_min, const ImVec2 &canvas_max) const;
   // Node top-left for a drop point, shared by every placement: the picker's view clamp, then the

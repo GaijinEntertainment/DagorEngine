@@ -68,6 +68,7 @@
 #include <daScript/daScript.h>
 #include <dasModules/dasSystem.h>
 #include <nvCacheTracker/nvCacheTracker.h>
+#include <hardwareInstability/hardwareInstability.h>
 
 #include "game/gameScripts.h"
 #include "input/inputControls.h"
@@ -94,7 +95,6 @@
 #include "net/mainThreadNetInits.h"
 #include "net/telemetry.h"
 #include "render/renderer.h" // init_tex_streaming
-#include "ui/userUi.h"
 #include "level.h"
 #include "logProcessing.h"
 
@@ -844,7 +844,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   // This must be called after settings load
   cpujobs::init(dgs_get_settings()->getBlockByNameEx("debug")->getInt("coreCount", -1), /*reserve_jobmgr_cores*/ false);
-  init_nv_cache_tracker();
+  char shaderDumpDir[DAGOR_MAX_PATH];
+  init_nv_cache_tracker(dd_get_fname_location(shaderDumpDir, dgs_get_settings()->getStr("shadersPath", "compiledShaders/game")));
 
   if (dgs_get_settings()->getBool("runCpuBenchmarkOnStart", false))
     cpu_benchmark::run_benchmark_and_log();
@@ -860,8 +861,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   { // Setup log handlers before we start any threads which can log (specifically start_purge_logs_thread) to avoid dataraces.
     visual_err_log_setup(dedicated::is_dedicated());
-    // HIS default mirror: install above visuallog so DEBUG/WARN reach the host forwarder
-    // without visuallog having to chain non-ERR levels. Eden expect_later skips this arm.
+    // Eden expect_later skips this arm.
     hosted_server_arm_log_mirror_callback();
     bindquirrel::setup_logerr_interceptor();
 
@@ -895,6 +895,11 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 #if _TARGET_PC
   // after settings are loaded and the log handlers are set up
   start_purge_logs_thread(*dgs_get_settings()->getBlockByNameEx("purgeLog"), /*def_enabled*/ !dedicated::is_dedicated());
+#endif
+
+#if _TARGET_PC_WIN // For now this is a windows/dx11 observed issue, can remove in the future
+  if (!dedicated::is_dedicated() && !::dgs_execute_quiet)
+    hardware_instability::schedule_detection_and_warning();
 #endif
 
   g_entity_mgr->broadcastEventImmediate(OnStoreApiInit{});
@@ -1001,9 +1006,6 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     imgui_set_override_blk(overrideBlk);
   }
 
-  if (!dedicated::is_dedicated())
-    ::prelaunch_internal_server_if_needed();
-
   class InitialLoadingThread final : public DaThread
   {
     das::daScriptEnvironment *bound = nullptr;
@@ -1091,7 +1093,12 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
         dagor_sm_tex_load_controller = &texLoadController;
 
       systeminfo::dump_sysinfo();
-      execute_delayed_action_on_main_thread(make_delayed_action([]() { init_game_res(); }));
+      execute_delayed_action_on_main_thread(make_delayed_action([]() {
+        init_game_res();
+        // the hosted server DLL proxies its gameres factories to the ones registered above, so it must start after them
+        if (!dedicated::is_dedicated())
+          ::prelaunch_internal_server_if_needed();
+      }));
 
       if (dgs_get_settings()->getBlockByNameEx("texStreaming")->getBool("disableTexScan", false))
         ::set_default_tex_factory(get_stub_tex_factory());

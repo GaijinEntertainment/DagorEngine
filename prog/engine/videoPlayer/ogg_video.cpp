@@ -93,9 +93,9 @@ class OggVideoPlayer : public IGenVideoPlayer, public VideoPlaybackData
       if (!handle)
         return;
 
-      ::dfa_close(handle);
       if (pendReadSz)
         finishRead();
+      ::dfa_close(handle);
       ::dfa_free_asyncdata(areq);
 
       if (buf)
@@ -108,11 +108,10 @@ class OggVideoPlayer : public IGenVideoPlayer, public VideoPlaybackData
       areq = -1;
     }
 
-    int finishRead(int ms = 0)
+    int finishRead()
     {
       int bytes = 0;
-      while (!::dfa_check_complete(areq, &bytes))
-        ::sleep_msec(ms);
+      ::dfa_wait_until_complete(areq, &bytes);
       return bytes;
     }
 
@@ -802,7 +801,7 @@ private:
       file.pendReadSz = file.bufSz;
     }
 
-    int bytes = file.finishRead(1);
+    int bytes = file.finishRead();
     int wrBufOfs = file.rdBufOfs;
     file.rdBufOfs = file.bufSz - file.rdBufOfs;
 
@@ -852,7 +851,7 @@ private:
     int fh2 = frameH / 2, fw2 = frameW / 2;
 
     //*timing*/int t_st = get_time_usec_qpc(ref_t);
-    if (!tex->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE | TEXLOCK_RAWDATA))
+    if (!tex->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE))
     {
       tex->unlockimg();
       return;
@@ -865,7 +864,7 @@ private:
         memcpy(ptr, y_ptr, frameW);
     tex->unlockimg();
 
-    if (!vBuf.getWr().texU->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE | TEXLOCK_RAWDATA))
+    if (!vBuf.getWr().texU->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE))
     {
       tex->unlockimg();
       return;
@@ -875,7 +874,7 @@ private:
       memcpy(ptr, u_ptr, fw2);
     vBuf.getWr().texU->unlockimg();
 
-    if (!vBuf.getWr().texV->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE | TEXLOCK_RAWDATA))
+    if (!vBuf.getWr().texV->lockimgEx(&ptr, stride, 0, TEXLOCK_WRITE))
     {
       tex->unlockimg();
       return;

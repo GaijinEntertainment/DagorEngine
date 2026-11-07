@@ -13,7 +13,6 @@ int cache_tex0_tex_slot;
 int cache_tex0_smp_slot;
 int cache_tex1_tex_slot;
 int cache_tex2_tex_slot;
-int indirection_tex_tex_slot;
 
 texture last_clip_tex;
 int last_clip_tex_tex_slot;
@@ -159,8 +158,9 @@ macro USE_CLIPMAP_OPT_DEBUG(code)
     // debug color enums
     #define CLIPMAP_DEBUG_FEEDBACK_RESPONSE 1
     #define CLIPMAP_DEBUG_TILES_COLORING 2
+    #define CLIPMAP_DEBUG_TILES_HAS_TAG 3
 
-    void get_clipmap_debug_color(out half3 outCol, float tile_mip, float2 intile_uv, bool is_fb, float smooth_mip, float blend)
+    void get_clipmap_debug_color(out half3 outCol, float tile_mip, float2 intile_uv, bool is_fb, float smooth_mip, float blend, uint tag)
     {
       if (clipmap_enable_debug_color == CLIPMAP_DEBUG_FEEDBACK_RESPONSE)
       {
@@ -181,9 +181,13 @@ macro USE_CLIPMAP_OPT_DEBUG(code)
           outCol = debug_colors[int(tile_mip)] * mask;
         }
       }
+      else if (clipmap_enable_debug_color == CLIPMAP_DEBUG_TILES_HAS_TAG)
+      {
+        outCol = tag != 0 ? float3(0,0,1) : float3(1,1,1);
+      }
     }
   ##else
-    void get_clipmap_debug_color(half3 outCol, float tile_mip, float2 intile_uv, bool is_fb, float smooth_mip, float blend) {}
+    void get_clipmap_debug_color(half3 outCol, float tile_mip, float2 intile_uv, bool is_fb, float smooth_mip, float blend, uint tag) {}
   ##endif
   }
 endmacro
@@ -192,17 +196,17 @@ endmacro
 macro INIT_CLIPMAP_NONORMAL_BASE_COMMON(code, textures_as_bindless)
   INIT_CLIPMAP_LAST_BASE(code, textures_as_bindless)
   (code) {
+    indirection_tex@tex = indirection_tex hlsl { Texture2D<uint> indirection_tex@tex; };
+
     if (textures_as_bindless)
     {
       cache_tex0_tex_slot@i1 = cache_tex0_tex_slot;
       cache_tex0_smp_slot@i1 = cache_tex0_smp_slot;
-      indirection_tex_tex_slot@i1 = indirection_tex_tex_slot;
     }
     else
     {
       cache_tex0@tex2d = cache_tex0;
       cache_tex0_samplerstate@sampler = CacheTex0Sampler;
-      indirection_tex@tex2d = indirection_tex;
     }
 
     g_cache2uv@f2 = (g_cache2uv.xy);
@@ -309,6 +313,7 @@ macro USE_CLIPMAP_MIP_HELPERS(stage)
   BEGIN_ONCE(use_clipmap_mip_helpers)
   hlsl(stage) {
     #include <vtex.hlsli>
+    float exp2_int(int n) { return asfloat(uint(n + 127) << 23); }
 
     // On XZ coordinates, mip "n" pivot can be 2^n - 1 mip0 tiles away from mip0 pivot.
     // Mip "n" has length of 2^n mip0 tiles, that means mip "n" pivot can be (float)(2^n - 1)/2^n mip-n tile lengths away from mip0 pivot.
@@ -343,7 +348,7 @@ macro USE_CLIPMAP_MIP_HELPERS(stage)
     // mippos: camera tile position
     uint2 compute_tile_coords(float2 texcoord, uint mip, int2 mippos)
     {
-      float mipScaleInv = exp2(-(float)mip);
+      float mipScaleInv = exp2_int(-(int)mip);
       float2 tc = texcoord - get_mip_distance_from_mip0(mip, mippos);
       tc = tc * mipScaleInv + 0.5;
 
@@ -367,12 +372,17 @@ macro USE_CLIPMAP_INDIRECTION_SAMPLING(stage)
   USE_CLIPMAP_MIP_HELPERS(stage)
   BEGIN_ONCE(use_clipmap_indirection_sampling)
   hlsl(stage) {
+    static const uint4 INDIRECTION_BITS = uint4(CACHECOORDS_PACKED_X_BITS, CACHECOORDS_PACKED_Y_BITS, CACHECOORDS_PACKED_MIP_BITS, CACHECOORDS_TAG_BITS);
+    static const uint4 INDIRECTION_SHIFT = uint4(0, INDIRECTION_BITS.x, INDIRECTION_BITS.x + INDIRECTION_BITS.y, INDIRECTION_BITS.x + INDIRECTION_BITS.y + INDIRECTION_BITS.z);
+    static const uint4 INDIRECTION_MASK = (1U << INDIRECTION_BITS) - 1U;
+
     struct ClipmapIndirectionResult
     {
       float2 cacheUv;
       float2 intileUv;
-      float2 tileXY;     // atlas tile (x,y) from indirection entry
-      float tileMip;
+      uint2 tileXY;      // atlas tile (x,y) from indirection entry
+      uint tileMip;
+      uint tileTag;
       float fetchMip;    // mip at which indirection_tex was fetched
       float tcScale;
       half blend;
@@ -391,27 +401,31 @@ macro USE_CLIPMAP_INDIRECTION_SAMPLING(stage)
 
       uint2 indirectionXY = compute_tile_coords(texcoord, (uint)fetchMip, mippos);
       uint2 indirection_index = indirectionXY + uint2((uint)min(fetchMip, maxMip), indirectionOffset) * TILE_WIDTH;
-      float4 tileData = texelFetch(indirection_tex, indirection_index, 0).zyxw * 255.0;
+      uint tileDataPacked = texture2DAt(indirection_tex, indirection_index).x;
+      uint4 tileData = (tileDataPacked.xxxx >> INDIRECTION_SHIFT) & INDIRECTION_MASK;
 
-      float tileMip = floor(tileData.z + 0.5);
+      uint2 tileXY = tileData.xy;
+      uint tileMip = tileData.z;
+      uint tileTag = tileData.w;
 
       half blendCoef = half(saturate((smoothMip - (half)maxMip) * 2 - 1));
       blendCoef *= blendCoef;
       blendCoef = saturate(blendCoef * blendCoef);
       blendCoef = !outOfBound && (tileMip <= maxMip) ? blendCoef : half(1);
 
-      float2 tileTc = texcoord - get_mip_distance_from_mip0((uint)tileMip, mippos);
-      float tcScale = exp2(-tileMip);
+      float2 tileTc = texcoord - get_mip_distance_from_mip0(tileMip, mippos);
+      float tcScale = exp2_int(-(int)tileMip);
       float2 scaledTC = (tileTc * tcScale + 0.5) * TILE_WIDTH;
       float2 intileUv = scaledTC - floor(scaledTC);
       float2 in_cacheTexels = intileUv * g_TileInnerSize.x;
-      float2 cacheUV = (tileData.xy * g_TileSize + in_cacheTexels) * g_cache2uv + g_cacheBorderUvOfs;
+      float2 cacheUV = ((float2)tileXY * g_TileSize + in_cacheTexels) * g_cache2uv + g_cacheBorderUvOfs;
 
       ClipmapIndirectionResult result;
       result.cacheUv = cacheUV;
       result.intileUv = intileUv;
-      result.tileXY = tileData.xy;
+      result.tileXY = tileXY;
       result.tileMip = tileMip;
+      result.tileTag = tileTag;
       result.fetchMip = fetchMip;
       result.tcScale = tcScale;
       result.blend = blendCoef;
@@ -422,12 +436,38 @@ macro USE_CLIPMAP_INDIRECTION_SAMPLING(stage)
 endmacro
 
 
-macro INIT_LAND_NORMALMAP()
-(ps) { lightmap_tex@smp2d = lightmap_tex; }
+macro INIT_LAND_NORMALMAP_BASE(stage)
+(stage) { lightmap_tex@smp2d = lightmap_tex; }
 endmacro
 
-macro USE_LAND_NORMAL_FROM_NORMALMAP()
-hlsl(ps) {
+macro USE_CLIPMAP_WORLD_TEXEL_DENSITY(stage)
+  BEGIN_ONCE(use_clipmap_world_texel_density)
+  hlsl(stage) {
+    // mip 0 cache texels per meter of terrain: the asset density, not the mip this view selects
+    float calc_clipmap_world_texel_density()
+    {
+      return sqrt(abs(landscape2uv.x * g_VTexDim.x) * abs(landscape2uv.y * g_VTexDim.y));
+    }
+  }
+  END_ONCE()
+endmacro
+
+macro INIT_LAND_NORMALMAP()
+  INIT_LAND_NORMALMAP_BASE(ps)
+endmacro
+
+macro USE_LTMAP_TC_READ(code)
+hlsl(code) {
+  ##if in_editor == yes
+    #define sample_ltmaptex_h4(tex, tc) tex2Dlod(tex, float4(tc, 0, 0)).arbg
+  ##else
+    #define sample_ltmaptex_h4(tex, tc) tex2Dlod(tex, float4(tc, 0, 0))
+  ##endif
+}
+endmacro
+
+macro USE_LAND_NORMAL_FROM_NORMALMAP_BASE(stage)
+hlsl(stage) {
   half3 get_land_normal_from_normalmap_tc(float2 lightmapTexcoord, out half ao)
   {
     half4 lightmap = sample_ltmaptex_h4(lightmap_tex, lightmapTexcoord);
@@ -453,4 +493,8 @@ hlsl(ps) {
     return get_land_normal_from_normalmap_tc(lightmapTexcoord, lightmapao);
   }
 }
+endmacro
+
+macro USE_LAND_NORMAL_FROM_NORMALMAP()
+  USE_LAND_NORMAL_FROM_NORMALMAP_BASE(ps)
 endmacro

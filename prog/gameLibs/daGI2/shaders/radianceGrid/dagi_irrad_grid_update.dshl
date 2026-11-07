@@ -77,7 +77,7 @@ macro IRRADIANCE_GRID_TRACE_PROBE(code)
   READ_WORLD_SDF(code)
   WORLD_SDF_STEP_OUT(code)
   PROJECT_TRACE(code, false)
-  PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
+  DAGI_SURFACE_CACHE_READ(code)
   PROJECT_GET_SKY_RADIANCE_AT(code)
   DAGI_ALBEDO_SAMPLE(code)
   SUN_LIGHT_POINT_TRACE_HIT(code)
@@ -100,7 +100,7 @@ macro IRRADIANCE_GRID_TRACE_PROBE(code)
         return world_sdf_step_out(worldPos, clip, stepOutSize, voxelStepOutSize);
       return false;
     }
-    bool irradiance_grid_trace_radiance(uint startSDF, float3 worldPos, float probeSize, float3 rayDir, float maxT, float biasK, inout float3 radiance)
+    bool irradiance_grid_trace_radiance(uint startSDF, float3 worldPos, float probeSize, float3 rayDir, float maxT, float biasK, uint firstGridClip, inout float3 radiance)
     {
       #if PROJECT_DAGI_USE_HMAP
         float world_height;
@@ -136,22 +136,36 @@ macro IRRADIANCE_GRID_TRACE_PROBE(code)
         worldNormal = -rayDir;
       #endif
       //radiance = dagi_get_radiance_at(worldPosAt - rayDir*min(t, world_sdf_voxel_size(sdfClip)*0.5), worldNormal);
-      if (!dagi_get_voxels_lit_scene_radiance_at(worldPosAt, worldNormal, radiance))
-      {
-        #if DAGI_HAS_PROJECT_TRACE && DAGI_PROJECT_TRACE_HAS_ALBEDO
-        float3 albedo = hit.hitAlbedo;
-        #else
-        // albedo scene at the hit, not the ray origin; without meaningful
-        // trace albedo (a collision only bvh returns white) it is the best source
-        float3 albedo = DAGI_MISSED_ALBEDO;
-        dagi_sample_albedo_best(worldPosAt, albedo);
-        #endif
-        float3 sunLighting = dagi_get_sun_color(worldPosAt, worldNormal);
-        //fixme: manual trilinear irradiance filtering of upper irradiance cascades if typed uav. if not (Keppler and lower), we should only have skylight only anyway
-        float3 ambient = 0.05*GetSkySHDiffuseSimple(worldNormal);
+      // nested: && runs both calls
+      if (!dagi_surface_cache_get(worldPosAt, worldNormal, radiance))
+        if (!dagi_surface_cache_voxel_get(worldPosAt, radiance))
+        {
+          #if DAGI_HAS_PROJECT_TRACE && DAGI_PROJECT_TRACE_HAS_ALBEDO
+          float3 albedo = hit.hitAlbedo;
+          #else
+          // albedo scene at the hit, not the ray origin; without meaningful
+          // trace albedo (a collision only bvh returns white) it is the best source
+          float3 albedo = DAGI_MISSED_ALBEDO;
+          dagi_sample_albedo_best(worldPosAt, albedo);
+          #endif
+          float3 sunLighting = dagi_get_sun_color(worldPosAt, worldNormal);
+          //fixme: manual trilinear irradiance filtering of upper irradiance cascades if typed uav. if not (Keppler and lower), we should only have skylight only anyway
+          float3 ambient = 0.05*GetSkySHDiffuseSimple(worldNormal);
 
-        radiance = (sunLighting + ambient)*albedo;
-      }
+          radiance = (sunLighting + ambient)*albedo;
+          // the sky term leaks through walls
+          if (dagi_surface_cache_level(worldPosAt) < dagi_surface_cache_levels())
+          {
+            float3 coordF;
+            uint clip = dagi_irrad_grid_get_best_enclosing_clip(worldPosAt, coordF, firstGridClip);
+            if (clip < dagi_irrad_grid_get_clip_count())
+            {
+              SH1Encoded sh1e;
+              dagi_irrad_trilinear_sampling_unsafe(clip, coordF, sh1e);
+              radiance = (sunLighting + sh1_premul_exp1_irradiance(dagi_irrad_decode_sh1(sh1e), worldNormal))*albedo;
+            }
+          }
+        }
       half4 light = dagi_trace_media_scene(worldPos, rayDir, t);
       radiance.xyz = light.w*radiance.xyz + light.xyz;
       return true;
@@ -166,8 +180,9 @@ int4 dagi_irrad_grid_update_sz_coord;
 macro CALC_SHARED_IRRADIANCE(code)
   DAGI_IRRADIANCE_GRID_UAV(code)
   DAGI_RAD_GRID_SAMPLE(code)
-  IRRADIANCE_GRID_TRACE_PROBE(code)
   DAGI_IRRAD_GRID_CLIPMAP_MATH(code)
+  DAGI_IRRAD_SW_TRILINEAR(code)
+  IRRADIANCE_GRID_TRACE_PROBE(code)
   hlsl(code) {
     ##if dagi_warp64_irradiance == on
       #if !_HARDWARE_XBOX || _HARDWARE_SCARLETT
@@ -191,7 +206,7 @@ macro CALC_SHARED_IRRADIANCE(code)
         return dagi_get_sky_radiance_at(worldPos, rayDir);
     }
 
-    float3 dagi_irrad_trace_radiance(uint startSDF, float3 worldPos, float3 rayDir, float maxT, float probeSize, float featureToCaptureSize, float biasK)
+    float3 dagi_irrad_trace_radiance(uint startSDF, float3 worldPos, float3 rayDir, float maxT, float probeSize, float featureToCaptureSize, float biasK, uint firstGridClip)
     {
       float3 radiance = dagi_get_sky_radiance_at(worldPos + rayDir*maxT, rayDir);
 
@@ -206,7 +221,7 @@ macro CALC_SHARED_IRRADIANCE(code)
           float3 worldPosAt = worldPos + rayDir*max(maxT - nextRadianceProbeSize, 0);
           radiance = dagi_trilinear_sample_radiance_grid_cascade_unsafe_oct(nextClip, rayDir, worldPosAt);
         }
-        irradiance_grid_trace_radiance(startSDF, worldPos, probeSize, rayDir, maxT, biasK, radiance);
+        irradiance_grid_trace_radiance(startSDF, worldPos, probeSize, rayDir, maxT, biasK, firstGridClip, radiance);
       }
       return radiance;
     }
@@ -230,7 +245,6 @@ shader dagi_irradiance_grid_toroidal_movement_interpolate_cs
   }
   CALC_SHARED_IRRADIANCE(cs)
   INIT_IRRAD_GRID_PROBES_AGE_UAV(cs)
-  DAGI_IRRAD_SW_TRILINEAR(cs)
   DAGI_IRRAD_GRID_WRITE(cs)
   hlsl(cs) {
     //#include <octahedral_common.hlsl>
@@ -302,7 +316,6 @@ shader dagi_irradiance_grid_toroidal_movement_trace_cs
   }
   CALC_SHARED_IRRADIANCE(cs)
   INIT_IRRAD_GRID_PROBES_AGE_SRV(cs)
-  DAGI_IRRAD_SW_TRILINEAR(cs)
   DAGI_IRRAD_GRID_WRITE(cs)
   hlsl(cs) {
     //#include <octahedral_common.hlsl>
@@ -334,9 +347,10 @@ shader dagi_irradiance_grid_toroidal_movement_trace_cs
 
       float3 rayDir = uniform_sample_sphere(fibonacci_sphere_randomized(tid, NUM_RAYS, rand)).xyz;
       float3 radiance;
+      // the new probes of this clip are stale
       BRANCH
       if (shouldTrace)
-        radiance = dagi_irrad_trace_radiance(startSDF, worldPos, rayDir, maxT, probeSize, featureSize, biasK);
+        radiance = dagi_irrad_trace_radiance(startSDF, worldPos, rayDir, maxT, probeSize, featureSize, biasK, clip + 1);
       else
       {
         //fixme: we can optimize the case of NUM_RAYS == radiance_res*radiance_res, and calculate full irradiance, instead of using fibonacci sphere
@@ -573,7 +587,7 @@ shader dagi_irradiance_grid_calc_temporal_cs
 
       float3 rayDir = uniform_sample_sphere(fibonacci_sphere_randomized(tid, NUM_RAYS, rand)).xyz;
 
-      float3 radiance = dagi_irrad_trace_radiance(startSDF, (absCoord.xzy + 0.5)*probeSize, rayDir, maxT, probeSize, featureSize, biasK);
+      float3 radiance = dagi_irrad_trace_radiance(startSDF, (absCoord.xzy + 0.5)*probeSize, rayDir, maxT, probeSize, featureSize, biasK, 0);
       radiance = select(isfinite(radiance), radiance, float3(0,0,0));
       SH1 shLighting = calc_shared_irradiance(tid, NUM_RAYS, rayDir, radiance);
       SH1Encoded sh1e = dagi_irrad_encode_sh1(shLighting);

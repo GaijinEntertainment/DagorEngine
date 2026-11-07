@@ -17,7 +17,7 @@ struct CmdPlaySound
   param : float
 
 [event(unicast)]
-struct CmdPlaySoundSimple
+struct CmdPlaySoundInTransform
   hash : uint
 
 [cpp_event(unicast)]

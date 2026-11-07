@@ -147,9 +147,7 @@ macro USE_HMAP_BLEND(pass_to_frame) //use after RENDINST_BLOCK()
           sample_clipmaps_no_grad(clipWorldPos.xz, worldPosGradients, result.albedo.rgb, clipNormalXY,
                           result.smoothness, result.ao, result.reflectance, emission, detailNo, smooth_mip,
                           clipmapUv, get_clipmap_indirection_offset());
-          init_normal(result, restore_normal(clipNormalXY));
-
-          result.normal = RNM_ndetail_normalized(half3(0,1,0), result.normal);
+          init_normal(result, half3(0, 1, 0));
           float dist = length(pointToEye);
           float3 pointToEyeNorm = pointToEye * rcp(dist);
           half3 verticalNormal = worldNormal;

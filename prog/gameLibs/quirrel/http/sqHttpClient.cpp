@@ -800,6 +800,7 @@ void http_client_on_vm_shutdown(HSQUIRRELVM vm)
   }
   if (anyForVm)
   {
+    sqasync::stop_tasks(vm);
     const int deadlineMs = get_time_msec() + 5000;
     while (true)
     {

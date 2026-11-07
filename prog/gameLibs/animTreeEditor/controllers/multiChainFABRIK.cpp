@@ -141,10 +141,7 @@ void multi_chain_fabrik_change_block_type(PropPanel::ContainerPropertyControl *p
     const DataBlock *child = settings->getBlock(i);
     if ((child->getBlockNameId() == chainNid || child->getBlockNameId() == mainChainNid) &&
         selectedName == child->getStr("effector", nullptr))
-    {
       selectedBlock = child;
-      break;
-    }
   }
 
   params.clear();
@@ -314,9 +311,8 @@ void AnimTreeEditor::changeMultiChainFABRIKBlockType(PropPanel::ContainerPropert
   TLeafHandle parent = tree->getParentLeaf(leaf);
   String fullPath;
   DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
-  if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, props, tree, parent))
-    if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
-      multi_chain_fabrik_change_block_type(group, settings, ctrlDependentParams);
+  if (DataBlock *settings = find_ctrl_settings(controllersData, props, tree, parent, tree->getCaption(leaf)))
+    multi_chain_fabrik_change_block_type(group, settings, ctrlDependentParams);
   group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
 }
 

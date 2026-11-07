@@ -1,12 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <gamePhys/phys/destructableObject.h>
+#include <gamePhys/phys/destructableProps.h>
 #include <gamePhys/phys/destructableRendObject.h>
 #include <EASTL/algorithm.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_statDrv.h>
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_gameResources.h>
+#include <anim/dag_simpleNodeAnim.h>
 #include <math/dag_geomTree.h>
 #include <util/dag_stlqsort.h>
 #include <vecmath/dag_vecMath.h>
@@ -30,8 +32,48 @@
 #include <gamePhys/collision/physLayers.h>
 #include <gamePhys/props/atmosphere.h>
 
+#include "netDestrPhys.h"
+
 
 using namespace gamephys;
+
+
+static Point3 quat_to_scaled_angle_axis(Quat q, float eps = 1e-8f)
+{
+  if (q.w < 0.f)
+    q = Quat(-q.x, -q.y, -q.z, -q.w);
+  const Point3 v(q.x, q.y, q.z);
+  const float length = v.length();
+  if (length < eps)
+    return v * 2.f;
+  return v * (2.f * acosf(min(1.f, fabs(q.w))) / length);
+}
+
+static Quat quat_from_scaled_angle_axis(const Point3 &v, float eps = 1e-8f)
+{
+  const Point3 halfv = v * 0.5f;
+  const float halfangle = halfv.length();
+  if (halfangle < eps)
+    return normalize(Quat(halfv.x, halfv.y, halfv.z, 1.f));
+  const Point3 xyz = halfv * (sinf(halfangle) / halfangle);
+  return Quat(xyz.x, xyz.y, xyz.z, cosf(halfangle));
+}
+
+static void spring_cd(Point3 &val, Point3 &vel, const Point3 &target, float omega, float dt)
+{
+  const float d = expf(-omega * dt);
+  const Point3 err = val - target;
+  const Point3 b = vel + err * omega;
+  val = target + (err + b * dt) * d;
+  vel = (vel - b * (omega * dt)) * d;
+}
+
+static void spring_cd_quat(Quat &q, Point3 &vel, float omega, float dt)
+{
+  Point3 r = quat_to_scaled_angle_axis(q);
+  spring_cd(r, vel, Point3(0.f, 0.f, 0.f), omega, dt);
+  q = quat_from_scaled_angle_axis(r);
+}
 
 
 namespace destructables
@@ -65,13 +107,13 @@ static InitOnDemand<Context, false> g_context;
 
 static void make_phys_group_and_mask(InteractionFlags flags, int &out_group, int &out_mask)
 {
-  out_group = flags & InteractionFlag::Self ? dacoll::EPL_DEFAULT : flags & InteractionFlag::Static ? dacoll::EPL_DEBRIS : 0;
+  out_group = flags & InteractionFlag::Debris ? dacoll::EPL_DEFAULT : flags & InteractionFlag::Static ? dacoll::EPL_DEBRIS : 0;
   out_mask = 0;
   if (flags & InteractionFlag::Static)
     out_mask |= dacoll::EPL_STATIC;
-  if (flags & InteractionFlag::Self)
+  if (flags & InteractionFlag::Debris)
     out_mask |= dacoll::EPL_DEFAULT;
-  if (flags & InteractionFlag::Character)
+  if (flags & InteractionFlag::Player)
     out_mask |= dacoll::EPL_KINEMATIC | dacoll::EPL_CHARACTER; // walkers & vehicles | ragdolls
 }
 
@@ -84,18 +126,116 @@ void DestructableObjectDeleter::operator()(DestructableObject *object)
 } // namespace destructables
 
 
+namespace destructables
+{
+
+struct DestrAnimState
+{
+  const DestrAnimData *animData = nullptr;
+  Ptr<PhysicsResource> physRes;
+  struct PieceAnim
+  {
+    SimpleNodeAnim anim;
+    int tMin = 0, tMax = 0;
+  };
+  TMatrix baseTm;
+  dag::Vector<PieceAnim> pieces;
+
+  DestrAnimState() = default;
+  ~DestrAnimState()
+  {
+    if (animData)
+      animData->delRef();
+  }
+
+  void init(const DestrAnimData *anim_data, const TMatrix &base_tm, PhysicsResource *phys_res)
+  {
+    G_ASSERT_RETURN(anim_data, );
+    G_ASSERT_RETURN(phys_res, );
+    physRes = phys_res;
+    animData = anim_data;
+    animData->addRef();
+    baseTm = base_tm;
+    const auto &bodies = phys_res->getBodies();
+    pieces.resize(bodies.size());
+    if (!animData->anim)
+      return; // no anim data loaded, init empty
+    bool hasAny = false;
+    for (int i = 0; i < bodies.size(); i++)
+    {
+      auto &piece = pieces[i];
+      if (!piece.anim.init(animData->anim, bodies[i].name))
+        continue;
+      hasAny = true;
+    }
+    if (!hasAny)
+      logerr("destr anim <%s> has no matching bodies in phys obj", animData->animRes.c_str());
+  }
+
+  void initPiece(int piece_id, PhysBody *body)
+  {
+    G_ASSERT_RETURN(body, );
+    if (!pieces[piece_id].anim.isValid())
+      return;
+    auto &piece = pieces[piece_id];
+    piece.anim.calcTimeMinMax(piece.tMin, piece.tMax);
+    if (piece.tMax == 0)
+      return;
+    body->setLockedStatic(true, 0, Point3::ZERO);
+  }
+
+  bool updateAndMovePiece(int piece_id, PhysBody *body, float time, float /*dt*/)
+  {
+    auto &piece = pieces[piece_id];
+    if (piece.tMax == 0)
+      return false;
+    const auto calcTm = [&](int t) {
+      TMatrix animTm;
+      piece.anim.calcAnimTm(animTm, t);
+      return baseTm * animTm;
+    };
+    const int curT = clamp(piece.tMin + int(time * float(AnimV20::TIME_TicksPerSec)), piece.tMin, piece.tMax);
+    TMatrix curTm = calcTm(curT);
+    body->setTm(curTm);
+    if (curT == piece.tMax) // ended
+    {
+      constexpr float sampleDt = 0.1f;
+      const TMatrix prevTm = calcTm(piece.tMax - int(sampleDt * float(AnimV20::TIME_TicksPerSec)));
+      body->setVelocity((curTm.getcol(3) - prevTm.getcol(3)) / sampleDt);
+      Quat deltaRot = Quat(curTm) * inverse(Quat(prevTm));
+      body->setAngularVelocity(quat_to_scaled_angle_axis(deltaRot) / sampleDt);
+      const auto &physResBody = physRes->getBodies()[piece_id];
+      body->setLockedStatic(false, physResBody.mass, physResBody.momj);
+      piece.tMax = 0;
+    }
+    return true;
+  }
+};
+
+} // namespace destructables
+
+
 FracturePhysObject::~FracturePhysObject() = default;
 
+
+static const destructables::DestrObjProps default_destr_obj_props;
 
 DestructableObject::DestructableObject(destructables::DestructableCreationParams &&params, PhysWorld *phys_world, //-V730
   float scale_dt) :
   scaleDt(scale_dt),
-  physObj(params.physObjData ? DynamicPhysObject::create(params.physObjData, phys_world, params.tm,
-                                 destructables::get_config().defaultFGroup, destructables::get_config().defaultFMask)
+  physObj(params.physObjData ? DynamicPhysObject::create(params.physObjData, phys_world, params.tm, destructables::DEFAULT_PHYS_GROUP,
+                                 destructables::DEFAULT_PHYS_MASK, params.addToWorld)
                              : nullptr),
   resIdx(params.resIdx)
 {
   using namespace destructables;
+
+  destrObjProps = params.destrObjProps ? params.destrObjProps : &default_destr_obj_props;
+  destrObjProps->addRef();
+
+  netSyncKey = params.netSyncKey;
+  if (netSyncKey != INVALID_NET_SYNC_KEY)
+    netPhys = eastl::make_unique<destructables::DestrNetPhys>();
 
   mat44f tm44;
   v_mat44_make_from_43cu_unsafe(tm44, params.tm.array);
@@ -105,24 +245,7 @@ DestructableObject::DestructableObject(destructables::DestructableCreationParams
   v_stu(&intialTmAndHash[1].x, m43.row1);
   v_stu(&intialTmAndHash[2].x, m43.row2);
   memcpy(&intialTmAndHash[3].x, &params.hashVal, sizeof(params.hashVal));
-
-  float ttl = 65.f;
-  if (params.timeToLive >= 0.0f)
-    ttl = params.timeToLive;
-  if (params.inactiveTimeBeforeSink >= 0.0f)
-    inactiveTimeBeforeSink = params.inactiveTimeBeforeSink;
-  if (params.timeToKinematic >= 0.0f)
-    minInteractiveTime = params.timeToKinematic;
-  if (params.timeToSinkUnderground > 0.0f)
-    timeToSinkUnderground = params.timeToSinkUnderground;
-  if (params.timeToStartDisintegration >= 0.0f)
-    disintegrationTime = -params.timeToStartDisintegration;
-  if (params.disintegrationDuration >= 0.0f)
-    disintegrationParameters.duration = params.disintegrationDuration;
-  constexpr float BASE_DISINTEGRATION_SCALE = 50.f; // This value looks good, so this will be the base value
-  if (params.disintegrationScale >= 0.0f)
-    disintegrationParameters.scale = params.disintegrationScale * BASE_DISINTEGRATION_SCALE;
-  keepAlive = params.keepAlive;
+  disintegrationTime = -destrObjProps->timeToStartDisintegration;
 
   fracturePhysObjects = eastl::move(params.fracturePhysObjects);
 
@@ -142,36 +265,83 @@ DestructableObject::DestructableObject(destructables::DestructableCreationParams
     }
   }
 
-  const DestructablesConfig &cfg = get_config();
   clear_and_resize(pieces, physObj ? physObj->getPhysSys()->getBodyCount() : fracturePhysObjects.size());
-  for (int i = 0; i < pieces.size(); i++)
-  {
-    Piece &piece = pieces[i];
-    piece.body = physObj ? physObj->getPhysSys()->getBody(i) : fracturePhysObjects[i].body.get();
-    piece.timeToLive = ttl;
-
-    TMatrix bodyTm;
-    piece.body->getTm(bodyTm);
-    piece.visualLoc.fromTM(bodyTm);
-    piece.prevLoc = piece.visualLoc;
-    piece.body->getShapeAabb(piece.localPhysBBox[0], piece.localPhysBBox[1]);
-
-    const float pieceSize = piece.localPhysBBox.width().length();
-    piece.isSentinelBody = pieceSize < 0.1f && piece.body->getMass() > 1000.f;
-    const Point3 bboxMaxAbs = max(abs(piece.localPhysBBox.lim[0]), abs(piece.localPhysBBox.lim[1]));
-    piece.boundingRadSq = bboxMaxAbs.lengthSq();
-    piece.isInteractiveDebris = !piece.isSentinelBody && (params.interactiveDebris || pieceSize > cfg.interactiveDebrisMinSize);
-
-    InteractionFlags flags = InteractionFlag::Static | InteractionFlag::Character;
-    if (piece.isInteractiveDebris)
-      flags |= InteractionFlag::Self | InteractionFlag::Projectile;
-    flags &= cfg.enabledInteractionFlags;
-    piece.interactionFlags = InteractionFlag::None;
-    piece.setInteractionFlags(flags);
-  }
-  alivePieceCnt = pieces.size();
+  if (netPhys)
+    netPhys->pieces.resize(pieces.size());
+  if (params.addToWorld)
+    for (int i = 0; i < pieces.size(); i++)
+      initPiece(i);
 
   rendData.reset(init_rend_data(physObj.get(), params.isDestroyedByExplosion));
+
+  if (params.destrAnim)
+    startDestrAnim(params.destrAnim, params.tm);
+}
+
+DestructableObject::~DestructableObject() { destrObjProps->delRef(); }
+
+void DestructableObject::initPiece(int piece_id)
+{
+  using namespace destructables;
+  const DestructablesConfig &cfg = get_config();
+
+  Piece &piece = pieces[piece_id];
+  G_ASSERT_RETURN(!piece.initialized, );
+  PhysBody *body = physObj ? physObj->getPhysSys()->getBody(piece_id) : fracturePhysObjects[piece_id].body.get();
+  G_ASSERT_RETURN(body, );
+  piece.body = body;
+  piece.timeToLive = destrObjProps->timeToLive;
+  piece.initialized = true;
+
+  TMatrix bodyTm;
+  piece.body->getTm(bodyTm);
+  piece.visualLoc.fromTM(bodyTm);
+  piece.prevLoc = piece.visualLoc;
+  piece.body->getShapeAabb(piece.localPhysBBox[0], piece.localPhysBBox[1]);
+
+  const float pieceSize = piece.localPhysBBox.width().length();
+  const Point3 bboxMaxAbs = max(abs(piece.localPhysBBox.lim[0]), abs(piece.localPhysBBox.lim[1]));
+  piece.boundingRadSq = bboxMaxAbs.lengthSq();
+
+  InteractionFlags flags = InteractionFlag::Static | InteractionFlag::Player;
+  if (destrObjProps->collideWithDebris)
+    flags |= InteractionFlag::Debris;
+  if (pieceSize > cfg.projectileCollisionMinSize)
+    flags |= InteractionFlag::Projectile;
+  if (body->getInteractionLayer() == 0)
+  {
+    flags = InteractionFlag::None;
+    // force lifetime, but give it some timeout to fall through under gravity
+    piece.timeToLive = max(destrObjProps->timeToSinkUnderground, 5.f);
+  }
+  piece.interactionFlags = InteractionFlag::None;
+  piece.setInteractionFlags(flags);
+
+  alivePieceCnt++;
+}
+
+void DestructableObject::addPiecesToWorld(dag::ConstSpan<int> piece_ids, bool drop_joints_to_inactive)
+{
+  G_ASSERT_RETURN(physObj, );
+  G_ASSERT_RETURN(!piece_ids.empty(), );
+  physObj->getPhysSys()->addBodiesToWorld(piece_ids, drop_joints_to_inactive);
+  for (int pieceId : piece_ids)
+    initPiece(pieceId);
+}
+
+void DestructableObject::startDestrAnim(const destructables::DestrAnimData *anim_data, const TMatrix &base_tm,
+  dag::ConstSpan<int> piece_ids)
+{
+  G_ASSERT_RETURN(anim_data, );
+  G_ASSERT_RETURN(physObj, );
+  G_ASSERT_RETURN(physObj->getPhysSys()->getPhysicsResource(), );
+  destrAnimState.reset(new destructables::DestrAnimState);
+  destrAnimState->init(anim_data, base_tm, physObj->getPhysSys()->getPhysicsResource());
+  for (int pieceI = 0, pieceCnt = piece_ids.empty() ? pieces.size() : piece_ids.size(); pieceI < pieceCnt; pieceI++)
+  {
+    const int i = piece_ids.empty() ? pieceI : piece_ids[pieceI];
+    destrAnimState->initPiece(i, pieces[i].body);
+  }
 }
 
 bool DestructableObject::Piece::isInteractable() const { return body && body->getInteractionLayer() != 0 && body->isInWorld(); }
@@ -204,9 +374,10 @@ struct gamephys::DestructableObjectAddImpulse final : public AfterPhysUpdateActi
   Point3 pos, impulse;
   bool simpleImpulse;
   float speedLimit, omegaLimit;
+  dag::Vector<int> pieceIds;
 
   DestructableObjectAddImpulse(DestructableObject &dobj_, const TMatrix &query_tm, const BBox3 &query_box, const Point3 &p,
-    const Point3 &i, bool simple_impulse, float speed_limit, float omega_limit) :
+    const Point3 &i, bool simple_impulse, float speed_limit, float omega_limit, dag::ConstSpan<int> piece_ids = {}) :
     dobj(dobj_),
     gen(dobj_.gen),
     queryTm(query_tm),
@@ -215,7 +386,8 @@ struct gamephys::DestructableObjectAddImpulse final : public AfterPhysUpdateActi
     impulse(i),
     simpleImpulse(simple_impulse),
     speedLimit(speed_limit),
-    omegaLimit(omega_limit)
+    omegaLimit(omega_limit),
+    pieceIds(piece_ids.begin(), piece_ids.end())
   {}
 
   void doAction(PhysWorld &, bool) override
@@ -223,9 +395,9 @@ struct gamephys::DestructableObjectAddImpulse final : public AfterPhysUpdateActi
     if (gen != dobj.gen) // Was destroyed?
       return;
     if (simpleImpulse)
-      dobj.doAddImpulse(pos, impulse, speedLimit, omegaLimit);
+      dobj.doAddImpulse(pos, impulse, speedLimit, omegaLimit, pieceIds);
     else
-      dobj.setupInitialPhysState(queryTm, queryBox, pos, impulse);
+      dobj.setupInitialPhysState(queryTm, queryBox, pos, impulse, pieceIds);
   }
 };
 
@@ -237,10 +409,26 @@ void DestructableObject::addImpulseSimple(PhysWorld &pw, const Point3 &pos, cons
 }
 
 void DestructableObject::applyInitialImpulse(PhysWorld &pw, const TMatrix &query_tm, const BBox3 &query_box, const Point3 &pos,
-  const Point3 &impulse)
+  const Point3 &impulse, dag::ConstSpan<int> piece_ids)
 {
   exec_or_add_after_phys_action<DestructableObjectAddImpulse>(pw, *this, query_tm, query_box, pos, impulse,
-    destructables::get_config().simpleInitialImpulse, 7.f, 5.f);
+    destructables::get_config().simpleInitialImpulse, 7.f, 5.f, piece_ids);
+}
+
+void DestructableObject::resetVisualLocToBodies()
+{
+  for (Piece &piece : pieces)
+  {
+    if (!piece.isAlive())
+      continue;
+    TMatrix bodyTm;
+    piece.body->getTm(bodyTm);
+    piece.visualLoc.fromTM(bodyTm);
+    piece.prevLoc = piece.visualLoc;
+    piece.visualLocErr.P = ZERO<DPoint3>();
+    piece.visualLocErr.O.setQuatToIdentity();
+    piece.posErrVel = piece.rotErrVel = Point3::ZERO;
+  }
 }
 
 void DestructableObject::setTimeToFloat(float time)
@@ -294,7 +482,8 @@ void DestructableObject::Piece::addImpulse(const Point3 &pos, const Point3 &impu
     body->setVelocity(velocity * safediv(speedLimit, velMagnitude));
 }
 
-void DestructableObject::doAddImpulse(const Point3 &pos, const Point3 &impulse, float speedLimit, float omegaLimit)
+void DestructableObject::doAddImpulse(const Point3 &pos, const Point3 &impulse, float speedLimit, float omegaLimit,
+  dag::ConstSpan<int> piece_ids)
 {
   float impulseLen = length(impulse);
   const Point3 impulseDir = impulse * safeinv(impulseLen);
@@ -303,13 +492,17 @@ void DestructableObject::doAddImpulse(const Point3 &pos, const Point3 &impulse, 
   if (impulseLen > 0. && impulseLen < minImpulseLen)
     impulseLen = minImpulseLen;
 
-  for (Piece &piece : pieces)
+  for (int pieceI = 0, pieceCnt = piece_ids.empty() ? pieces.size() : piece_ids.size(); pieceI < pieceCnt; pieceI++)
+  {
+    Piece &piece = pieces[piece_ids.empty() ? pieceI : piece_ids[pieceI]];
     if (piece.isAlive())
       piece.addImpulse(pos, impulseDir, impulseLen, speedLimit, omegaLimit);
+  }
 }
 
 
-void DestructableObject::setupInitialPhysState(const TMatrix &, const BBox3 &, const Point3 &impact_pos, const Point3 &impact_impulse)
+void DestructableObject::setupInitialPhysState(const TMatrix &, const BBox3 &, const Point3 &impact_pos, const Point3 &impact_impulse,
+  dag::ConstSpan<int> piece_ids)
 {
   static constexpr int MAX_BURST_SAMPLES_PER_AXIS = 8;
 
@@ -385,9 +578,10 @@ void DestructableObject::setupInitialPhysState(const TMatrix &, const BBox3 &, c
   field.noiseLateralFrac = clamp(burst.noiseLateralFrac, 0.f, 1.f);
   field.noiseOffset = Point3(_srnd(seed), _srnd(seed), _srnd(seed)) * 100.f;
 
-  for (Piece &piece : pieces)
+  for (int pieceI = 0, pieceCnt = piece_ids.empty() ? pieces.size() : piece_ids.size(); pieceI < pieceCnt; pieceI++)
   {
-    if (piece.isSentinelBody)
+    Piece &piece = pieces[piece_ids.empty() ? pieceI : piece_ids[pieceI]];
+    if (!piece.isAlive() || piece.body->getInteractionLayer() == 0)
       continue;
     PhysBody *body = piece.body;
     TMatrix bodyTm;
@@ -489,52 +683,19 @@ void DestructableObject::Piece::updateFloatable(float dt, float at_time)
   }
 }
 
-static Point3 quat_to_scaled_angle_axis(Quat q, float eps = 1e-8f)
-{
-  const Point3 v(q.x, q.y, q.z);
-  const float length = v.length();
-  if (length < eps)
-    return v * 2.f;
-  return v * (2.f * acosf(min(1.f, fabs(q.w))) / length);
-}
-
-static Quat quat_from_scaled_angle_axis(const Point3 &v, float eps = 1e-8f)
-{
-  const Point3 halfv = v * 0.5f;
-  const float halfangle = halfv.length();
-  if (halfangle < eps)
-    return normalize(Quat(halfv.x, halfv.y, halfv.z, 1.f));
-  const Point3 xyz = halfv * (sinf(halfangle) / halfangle);
-  return Quat(xyz.x, xyz.y, xyz.z, cosf(halfangle));
-}
-
-static void spring_cd(Point3 &val, Point3 &vel, const Point3 &target, float omega, float dt)
-{
-  const float d = expf(-omega * dt);
-  const Point3 err = val - target;
-  const Point3 b = vel + err * omega;
-  val = target + (err + b * dt) * d;
-  vel = (vel - b * (omega * dt)) * d;
-}
-
-static void spring_cd_quat(Quat &q, Point3 &vel, float omega, float dt)
-{
-  Point3 r = quat_to_scaled_angle_axis(q);
-  spring_cd(r, vel, Point3(0.f, 0.f, 0.f), omega, dt);
-  q = quat_from_scaled_angle_axis(r);
-}
-
-
 void DestructableObject::Piece::update(DestructableObject &parent, float dt, float scaled_dt, bool force_inactive_timer)
 {
   using namespace destructables;
 
   G_ASSERT_RETURN(isAlive(), );
   const bool isBodyInWorld = body->isInWorld();
-  const bool isPhysActive = isBodyInWorld && body->isActive() && body->getInteractionLayer() != 0;
+  bool isPlayingAnim = false;
 
   if (isBodyInWorld)
   {
+    if (DAGOR_UNLIKELY(parent.destrAnimState))
+      isPlayingAnim = parent.destrAnimState->updateAndMovePiece(this - parent.pieces.data(), body, lifeTime, dt);
+
     TMatrix wtm;
     body->getTm(wtm);
     gamephys::Loc curLoc;
@@ -543,7 +704,7 @@ void DestructableObject::Piece::update(DestructableObject &parent, float dt, flo
     const destructables::DestructablesConfig &cfg = destructables::get_config();
 
     // accumulate visual error
-    if (lifeTime < cfg.visualErrorAccumulateTime)
+    if (lifeTime < cfg.visualErrorAccumulateTime && !isPlayingAnim)
     {
       const Point3 vel = body->getVelocity();
       const Point3 omega = body->getAngularVelocity();
@@ -557,6 +718,7 @@ void DestructableObject::Piece::update(DestructableObject &parent, float dt, flo
       deviationLoc.substract(predictedLoc, curLoc);
       gamephys::Loc addErr;
       addErr.substract(prevLoc, curLoc);
+      addErr.O.setQuat(prevLoc.O.getQuat() * inverse(curLoc.O.getQuat())); // world-frame delta
 
       // only accumulate error, if deviation from prediction passes threshold (which is ~1 tick worth of current velocity/omega)
       const float thresholdTolerance = 1.05f;
@@ -570,7 +732,7 @@ void DestructableObject::Piece::update(DestructableObject &parent, float dt, flo
       const float rotDeviationThreshold = length(omega) * predictDt;
       if (length(rotDeviationR) < thresholdTolerance * max(rotDeviationThreshold, minRotThreshold))
         addErr.O.setQuatToIdentity();
-      visualLocErr.add(addErr, visualLocErr);
+      visualLocErr.add(visualLocErr, addErr);
     }
 
     prevLoc = visualLoc = curLoc;
@@ -585,29 +747,40 @@ void DestructableObject::Piece::update(DestructableObject &parent, float dt, flo
       Quat errO = visualLocErr.O.getQuat();
       spring_cd_quat(errO, rotErrVel, omegaS, dt);
       visualLocErr.O.setQuat(errO);
-      visualLoc.add(curLoc, visualLocErr);
+      visualLoc.add(visualLocErr, curLoc);
       // snap to zero
       if (visualLocErr.P.lengthSq() < sqr(1e-4))
         visualLocErr.P = ZERO<DPoint3>(), posErrVel = Point3::ZERO;
       if (Point3::xyz(visualLocErr.O.getQuat()).lengthSq() < sqr(1e-3f))
         visualLocErr.O.setQuatToIdentity(), rotErrVel = Point3::ZERO;
     }
+
+    if (parent.netPhys)
+    {
+      DestrNetPhys::PhysBodyState state;
+      state.loc = curLoc;
+      state.vel = body->getVelocity();
+      state.omega = body->getAngularVelocity();
+      parent.netPhys->pieces[this - parent.pieces.data()].record(state, lifeTime);
+    }
   }
+
+  const bool isPhysActive = isBodyInWorld && body->isActive() && body->getInteractionLayer() != 0 || isPlayingAnim;
 
   outOfViewTime = visibleFrames < VISIBLE_FRAMES_THRESHOLD ? outOfViewTime + dt : 0.f;
   inactiveTime = isPhysActive && !force_inactive_timer ? 0.f : inactiveTime + scaled_dt;
+  bool isSinking = interactionFlags == InteractionFlag::None;
 
   const DestructablesConfig &cfg = get_config();
+  const DestrObjProps &props = *parent.destrObjProps;
 
-  const bool isSinking = interactionFlags == InteractionFlag::None;
-
-  // measurement of a moving piece is stale, it is neither resting on the ground nor floor rubble
   if (isPhysActive)
-    elevationAboveGround = FLT_MAX;
+    elevationAboveGround = FLT_MAX; // body in move - keep not measured
 
-  if (!isSinking && (cfg.keepAliveMaxHeightAboveGround > 0.f || (isInteractiveDebris && cfg.minInteractiveHeight > 0.f)))
+  // update elevation
+  if (!isSinking && (cfg.keepAliveMaxHeightAboveGround > 0.f))
   {
-    if (const float groundCheckAtTime = parent.inactiveTimeBeforeSink / 2.f;
+    if (const float groundCheckAtTime = props.inactiveTimeBeforeSink / 2.f;
         inactiveTime >= groundCheckAtTime && groundCheckAtTime > inactiveTime - scaled_dt)
     {
       TMatrix wtm;
@@ -618,60 +791,62 @@ void DestructableObject::Piece::update(DestructableObject &parent, float dt, flo
       elevationAboveGround = traced ? height : FLT_MAX;
     }
   }
-  const bool keptAlive =
-    !isSinking && !isSentinelBody && (parent.keepAlive || elevationAboveGround < cfg.keepAliveMaxHeightAboveGround);
 
-  if (!isSinking && !isSentinelBody)
+  // update interaction flags
+  if (!isSinking)
   {
-    const bool isInteractive = elevationAboveGround > cfg.minInteractiveHeight && isInteractiveDebris;
-    bool isCharacterInteractive = parent.minInteractiveTime > lifeTime;
-    if (!isCharacterInteractive && isInteractive && cfg.characterCollisionDist > 0.f)
-    {
-      const float distHysteresis = interactionFlags & InteractionFlag::Character ? cfg.characterCollisionDistHysteresis : 0.f;
-      isCharacterInteractive =
-        lengthSq(Point3::xyz(visualLoc.P) - g_context->viewPos) < sqr(cfg.characterCollisionDist + distHysteresis);
-    }
-    changeInteractionFlags(InteractionFlag::Projectile & cfg.enabledInteractionFlags, isInteractive);
-    changeInteractionFlags(InteractionFlag::Character, isCharacterInteractive);
+    const bool playerCollision = props.playerCollisionTime > lifeTime || props.playerCollisionTime < 0.f;
+    changeInteractionFlags(InteractionFlag::Player, playerCollision);
   }
 
-  if (!keptAlive && (inactiveTime > parent.inactiveTimeBeforeSink || timeToLive <= parent.timeToSinkUnderground))
+  // start sinking
+  const bool canSink = props.timeToLive > 0.f && elevationAboveGround > cfg.keepAliveMaxHeightAboveGround;
+  if (canSink && !isSinking && timeToLive > 0.f &&
+      (inactiveTime > props.inactiveTimeBeforeSink || timeToLive <= props.timeToSinkUnderground))
   {
-    if (!isSinking)
-    {
-      TMatrix wtm;
-      body->getTm(wtm);
-      BBox3 bbox = wtm * localPhysBBox;
-      float sinkDist = 10.f;
-      dacoll::tracedown_normalized(Point3::xVz(wtm.getcol(3), bbox.lim[1].y), sinkDist, nullptr, nullptr);
-      sinkDist = max(sinkDist, 0.25f);
-      const float sinkUndergroundGravity =
-        eastl::max(0.1f, sinkDist / sqr(max(parent.timeToSinkUnderground - 0.5f, 0.1f) / safediv(scaled_dt, dt)) * 2.0f /
-                           /* adjust for damping */ 0.75f);
-      // disable all collision and sink
-      setInteractionFlags(InteractionFlag::None);
-      body->setGravity(Point3(0.f, -sinkUndergroundGravity, 0.f));
-      body->setVelocity(Point3::ZERO);
-      body->setAngularVelocity(Point3::ZERO);
-      // remove piece after sinking
-      timeToLive = parent.timeToSinkUnderground;
-    }
+    TMatrix wtm;
+    body->getTm(wtm);
+    BBox3 bbox = wtm * localPhysBBox;
+    float sinkDist = 10.f;
+    dacoll::tracedown_normalized(Point3::xVz(wtm.getcol(3), bbox.lim[1].y), sinkDist, nullptr, nullptr);
+    sinkDist = max(sinkDist, 0.25f);
+    const float sinkUndergroundGravity =
+      eastl::max(0.1f, sinkDist / sqr(max(props.timeToSinkUnderground - 0.5f, 0.1f) / safediv(scaled_dt, dt)) * 2.0f /
+                         /* adjust for damping */ 0.75f);
+    // disable all collision and sink
+    setInteractionFlags(InteractionFlag::None);
+    body->setGravity(Point3(0.f, -sinkUndergroundGravity, 0.f));
+    body->setVelocity(Point3::ZERO);
+    body->setAngularVelocity(Point3::ZERO);
+    // remove piece after sinking
+    timeToLive = props.timeToSinkUnderground;
+    isSinking = true;
+  }
+
+  // keep sinking
+  if (isSinking)
+  {
     body->activateBody(true);
-    if (outOfViewTime > 0.5f) // sinking out of view - just destroy
+    if (outOfViewTime > 0.5f && lifeTime > props.inactiveTimeBeforeSink && !props.isPersistent)
     {
-      destroy();
+      destroy(); // sinking out of view - just destroy
       return;
     }
   }
 
+  // update time to live & other timers
+  if (canSink == (timeToLive < 0.f) && !isSinking)
+    timeToLive = canSink ? props.timeToLive : -1.f;
+  if (timeToLive >= 0.f)
+  {
+    timeToLive -= scaled_dt;
+    if (timeToLive <= 0.f)
+      destroy();
+  }
+
+  lifeTime += scaled_dt;
   if (timeToFloat >= 0.f)
     timeToFloat -= scaled_dt;
-  lifeTime += scaled_dt;
-
-  if (!keptAlive)
-    timeToLive -= scaled_dt;
-  if (timeToLive < 0)
-    destroy();
 }
 
 void DestructableObject::Piece::destroy()
@@ -700,13 +875,13 @@ bool DestructableObject::update(float dt, float cur_dt_scale, bool force_inactiv
       piece.update(*this, dt, scaledDt, forceInactiveTimer);
     alivePieceCnt += piece.isAlive();
   }
-  if (get_config().enabledInteractionFlags & InteractionFlag::Projectile)
+  if (get_config().projectileCollisionMinSize < VERY_BIG_NUMBER)
   {
     Context &ctx = *g_context;
     PieceRef pieceRef{getId(), gen, 0};
     for (const Piece &piece : pieces)
     {
-      if (!piece.isAlive())
+      if (!piece.isAlive() || !(piece.interactionFlags & InteractionFlag::Projectile))
         continue;
       const Point3 pos = Point3::xyz(piece.visualLoc.P);
       ctx.traceSpheres.push_back(v_make_vec4f(pos.x, pos.y, pos.z, piece.boundingRadSq));
@@ -714,17 +889,19 @@ bool DestructableObject::update(float dt, float cur_dt_scale, bool force_inactiv
       ctx.tracePieces.push_back(pieceRef);
     }
   }
-  if (disintegrationTime < disintegrationParameters.duration)
+  if (disintegrationTime < destrObjProps->disintegrationDuration)
     disintegrationTime += scaledDt;
   return isAlive();
 }
 
 Point4 DestructableObject::getDisintegrationParams() const
 {
-  return animchar_disintegration::get_additional_data(disintegrationTime, disintegrationParameters);
+  constexpr float BASE_DISINTEGRATION_SCALE = 50.f; // This value looks good, so this will be the base value
+  return animchar_disintegration::get_additional_data(disintegrationTime,
+    {.duration = destrObjProps->disintegrationDuration, .scale = destrObjProps->disintegrationScale * BASE_DISINTEGRATION_SCALE});
 }
 
-bool DestructableObject::hasDisintegrationAnimation() const { return disintegrationParameters.duration > 0; }
+bool DestructableObject::hasDisintegrationAnimation() const { return destrObjProps->disintegrationDuration > 0; }
 
 
 namespace destructables
@@ -754,18 +931,7 @@ void DestructablesConfig::loadFromBlk(const DataBlock *destr_blk)
   outOfViewDisappear.maxSizeTime = outOfViewBlk->getPoint2("maxSizeTime", outOfViewDisappear.maxSizeTime);
   outOfViewDisappear.maxRelSize = outOfViewBlk->getPoint2("maxRelSize", outOfViewDisappear.maxRelSize);
 
-  // world collision is always enabled, character collision is enabled at start and disabled by distance/size later
-  enabledInteractionFlags = InteractionFlag::Static | InteractionFlag::Character;
-  if (destr_blk->getBool("selfCollision", false))
-    enabledInteractionFlags |= InteractionFlag::Self;
-  if (destr_blk->getBool("projectileInteraction", false))
-    enabledInteractionFlags |= InteractionFlag::Projectile;
-  make_phys_group_and_mask(enabledInteractionFlags, defaultFGroup, defaultFMask);
-
-  interactiveDebrisMinSize = destr_blk->getReal("interactiveDebrisMinSize", interactiveDebrisMinSize);
-  characterCollisionDist = destr_blk->getReal("characterCollisionDist", characterCollisionDist);
-  characterCollisionDistHysteresis = destr_blk->getReal("characterCollisionDistHysteresis", characterCollisionDistHysteresis);
-  minInteractiveHeight = destr_blk->getReal("minInteractiveHeight", minInteractiveHeight);
+  projectileCollisionMinSize = destr_blk->getReal("projectileCollisionMinSize", projectileCollisionMinSize);
 
   simpleInitialImpulse = destr_blk->getBool("simpleInitialImpulse", simpleInitialImpulse);
   const DataBlock *burstBlk = destr_blk->getBlockByNameEx("destructionBurst");
@@ -860,31 +1026,40 @@ destructables::id_t addDestructable(gamephys::DestructableObject **out_destr, De
   return obj; // To consider: we can use high 16 bit of pointer for storing generation (for safety)
 }
 
-id_t addDestructable(gamephys::DestructableObject **out_destr, DynamicPhysObjectData *po_data, const TMatrix &tm,
-  PhysWorld *phys_world, const Point3 &cam_pos, int res_idx, uint32_t hash_val, const DataBlock *blk)
+void DestrObjProps::loadFromBlk(const DataBlock &blk)
 {
-  DestructableCreationParams params;
-  params.physObjData = po_data;
-  params.tm = tm;
-  params.camPos = cam_pos;
-  params.resIdx = res_idx;
-  params.hashVal = hash_val;
-  if (blk)
-  {
-    params.timeToLive = blk->getReal("timeToLive", -1.0f);
-    params.inactiveTimeBeforeSink = blk->getReal("timeForBodies", -1.0f);
-    params.timeToKinematic = blk->getReal("timeToKinematic", -1.0f);
-    params.disintegrationDuration = blk->getReal("disintegrationDuration", -1.0f);
-    params.timeToStartDisintegration = blk->getReal("timeToDisintegration", -1.0f);
-    params.disintegrationScale = blk->getReal("disintegrationScale", -1.0f);
-  }
-  return addDestructable(out_destr, eastl::move(params), phys_world);
+  isPersistent = blk.getBool("isPersistent", isPersistent);
+  collideWithDebris = blk.getBool("collideWithDebris", collideWithDebris);
+
+  timeToLive = blk.getReal("timeToLive", timeToLive);
+  inactiveTimeBeforeSink = blk.getReal("inactiveTimeBeforeSink", blk.getReal("timeForBodies", inactiveTimeBeforeSink));
+  playerCollisionTime = blk.getReal("playerCollisionTime", blk.getReal("timeToKinematic", playerCollisionTime));
+  timeToSinkUnderground = blk.getReal("timeToSinkUnderground", timeToSinkUnderground);
+
+  timeToStartDisintegration = blk.getReal("timeToStartDisintegration", timeToStartDisintegration);
+  disintegrationDuration = blk.getReal("disintegrationDuration", disintegrationDuration);
+  disintegrationScale = blk.getReal("disintegrationScale", disintegrationScale);
 }
 
+void DestrAnimData::loadFromBlk(const DataBlock &blk)
+{
+  const char *resName = blk.getStr("animRes", animRes.c_str());
+  if (animRes != resName)
+  {
+    animRes = resName;
+    anim = (AnimV20::AnimData *)get_one_game_resource_ex(resName, Anim2DataGameResClassId);
+    if (anim)
+      release_game_resource_ex(anim, Anim2DataGameResClassId);
+    else if (!animRes.empty())
+      logerr("failed to load destr anim data <%s>", resName);
+  }
+}
 
 void clear()
 {
   G_ASSERT_RETURN(g_context, );
+  for (const auto &rec : g_context->destructablesList)
+    G_VERIFY(!rec->isOwned);
   clear_and_shrink(g_context->traceSpheres);
   clear_and_shrink(g_context->tracePieces);
   clear_and_shrink(g_context->destructablesList);
@@ -960,7 +1135,7 @@ void update(float dt, float cur_time, const Point3 &view_pos)
                                   if (!object->isAlive())
                                   {
                                     // delete objects marked at previous frames
-                                    if (deleteLimit-- > 0)
+                                    if (!object->isOwned && deleteLimit-- > 0)
                                       return true; // ~18 deletions at 1 msec on AMD 5800H. Move to thread?
                                   }
                                   else if (object->update(dt, dtUpdateScale, forceInactiveTimer))
@@ -987,7 +1162,7 @@ void update(float dt, float cur_time, const Point3 &view_pos)
       if (ctx.removeChecksNextIdx >= ctx.destructablesList.size())
         ctx.removeChecksNextIdx = 0;
       DestructableObject &destr = *ctx.destructablesList[ctx.removeChecksNextIdx++];
-      if (!destr.isAlive())
+      if (!destr.isAlive() || destr.destrObjProps->isPersistent)
         continue;
       for (DestructableObject::Piece &piece : destr.pieces)
       {
@@ -1015,15 +1190,16 @@ void update(float dt, float cur_time, const Point3 &view_pos)
       ctx.overflowReportTimeout = 1.0f;
       overflow_handler();
     }
-    for (int pass = 0; pass < 2; pass++)
+    for (int pass = 0; pass < 3; pass++)
     {
-      const bool checkOutOfView = pass == 0;
+      const bool checkOutOfView = pass < 1;
+      const bool checkPersistent = pass < 2;
       for (const auto &destrPtr : ctx.destructablesList)
       {
         if (ctx.numAliveBodies <= config.maxNumberOfDestructableBodies)
           break;
         DestructableObject &destr = *destrPtr;
-        if (!destr.isAlive())
+        if (!destr.isAlive() || (destr.destrObjProps->isPersistent && checkPersistent))
           continue;
         for (DestructableObject::Piece &piece : destr.pieces)
           if (piece.isAlive() && (piece.visibleFrames == 0 || !checkOutOfView))

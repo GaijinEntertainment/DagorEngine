@@ -54,6 +54,7 @@ struct SQStreamSerializer {
     STDLIB::vector<SQObjectPtr> stringList; // to keep track of strings
     STDLIB::unordered_map<SQClass *, ClassDesc> classTable;
     STDLIB::vector<SQObjectPtr> classList; // to keep track of classes
+    STDLIB::vector<SQObjectPtr> pinned; // owners of stringTable and classTable keys
     SQObjectPtr availableClasses; // null or a table of available classes (class_name -> class)
     SQObjectPtr getstateProcName;
     SQObjectPtr setstateProcName;
@@ -115,6 +116,8 @@ struct SQStreamSerializer {
             const char *className = _stringval(key);
             SQClass *cls = _class(value);
             classTable[cls] = { -1, className };
+            pinned.push_back(value);
+            pinned.push_back(key);
         }
 
         getstateProcName = SQString::Create(_ss(vm), "__getstate");
@@ -239,6 +242,7 @@ struct SQStreamSerializer {
                     }
 
                     stringTable[str] = stringCounter++;
+                    pinned.push_back(SQObjectPtr(obj));
                 }
                 else {
                     uint32_t index = it->second;
@@ -291,9 +295,15 @@ struct SQStreamSerializer {
                 stream->Write(&size32, sizeof(uint32_t));
             }
 
-            for (SQInteger i = 0; i < size; ++i)
+            SQObjectPtr arrHolder(obj);
+            for (SQInteger i = 0; i < size; ++i) {
                 if (!serializeObject(arr->_values[i]))
                     return false;
+                if (arr->Size() != size) {
+                    errorString = "Array changed during serialization";
+                    return false;
+                }
+            }
 
             depth--;
         }
@@ -325,16 +335,30 @@ struct SQStreamSerializer {
                 stream->Write(&size32, sizeof(uint32_t));
             }
 
+            SQObjectPtr tblHolder(obj);
             SQTable::_HashNode *node = tbl->_nodes;
             uint32_t count = tbl->_numofnodes_minus_one + 1;
+            SQInteger written = 0;
+            auto isUnchanged = [&]() {
+                return tbl->_nodes == node && tbl->_numofnodes_minus_one + 1 == count && tbl->CountUsed() == size;
+            };
 
             for (uint32_t i = 0; i < count; ++i) {
                 if (sq_type(node[i].key) & OT_FREE_TABLE_SLOT)
                     continue;
                 if (!serializeObject(node[i].key))
                     return false;
-                if (!serializeObject(node[i].val))
+                if (isUnchanged() && !serializeObject(node[i].val))
                     return false;
+                if (!isUnchanged()) {
+                    errorString = "Table changed during serialization";
+                    return false;
+                }
+                written++;
+            }
+            if (written != size) {
+                errorString = "Table changed during serialization";
+                return false;
             }
 
             depth--;
@@ -453,6 +477,7 @@ struct SQStreamSerializer {
         classTable.clear();
         stringList.clear();
         classList.clear();
+        pinned.clear();
         availableClasses = available_classes;
         depth = 0;
 
@@ -761,7 +786,10 @@ struct SQStreamSerializer {
                         return false;
                     }
 
-                    assert(sq_isclass(classObj)); // must be already checked in fillAvailableClassNamesOnDemand()
+                    if (!sq_isclass(classObj)) {
+                        errorString = "Value in available classes is not a class during deserialization";
+                        return false;
+                    }
 
                     classList.push_back(classObj);
                     index = classList.size() - 1;
@@ -884,6 +912,7 @@ struct SQStreamSerializer {
         classTable.clear();
         stringList.clear();
         classList.clear();
+        pinned.clear();
         availableClasses = available_classes;
         depth = 0;
 

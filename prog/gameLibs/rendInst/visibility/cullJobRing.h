@@ -51,8 +51,10 @@ struct CullJobRing
 
     // Warning: scenes are read locked at this point, so any job that want to grab write lock for it will deadlock,
     // therefore try to avoid active wait if we can; can't do that if there are no enough threadpool workers available
-    // since there are might be logical dependencies between jobs (e.g. vis. prepare job wait for occlusion/reproj jobs)
+    // since there are might be logical dependencies between jobs (e.g. vis. prepare job wait for occlusion/reproj jobs).
+    // Same applies to any HIGH prio job (incl. parallel_for ones) performed in spin below
     intptr_t spins = SPINS_BEFORE_SLEEP * (threadpool::get_num_workers() / 3u);
+    const bool helpHighPrioJobs = !is_main_thread();
     while (spins-- > 0)
       if (interlocked_acquire_load(jobs[jobs.size() - 2].done))
       {
@@ -60,7 +62,7 @@ struct CullJobRing
           threadpool::wait(&jobs[i]);
         return;
       }
-      else
+      else if (!helpHighPrioJobs || !threadpool::perform_pending_job(threadpool::PRIO_HIGH))
         cpu_yield();
 
     // Spins are exhausted -> do active wait starting from last added job

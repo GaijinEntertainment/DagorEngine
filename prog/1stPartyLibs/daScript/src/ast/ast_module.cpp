@@ -668,9 +668,6 @@ namespace das {
         if ( fn->result && !fn->result->ref && fn->result->isWorkhorseType() && !fn->result->isPointer() ) {
             fn->result->constant = true;
         }
-        if ( fn->builtIn ) {
-            cumulativeHash = wyhash(mangledName.c_str(), mangledName.size(), cumulativeHash);
-        }
         if ( fn->builtIn && fn->sideEffectFlags==uint32_t(SideEffects::modifyArgument)  ) {
             bool anyRW = false;
             for ( const auto & arg : fn->arguments ) {
@@ -744,6 +741,115 @@ namespace das {
             }
             return false;
         }
+    }
+
+    static void hashExpression ( HashBuilder & hb, const ExpressionPtr & expr ) {
+        hb.update(expr != nullptr);
+        if ( !expr ) return;
+        hb.updateString(expr->__rtti);
+        if ( expr->rtti_isStringConstant() ) {
+            hb.updateString(static_cast<ExprConstString *>(expr)->text);
+        } else if ( expr->rtti_isConstant() ) {
+            auto c = static_cast<ExprConst *>(expr);
+            hb.update(c->baseType);
+            if ( c->baseType == Type::tEnumeration ) {
+                auto e = static_cast<ExprConstEnumeration *>(c);
+                hb.updateString(e->text);
+                if ( e->enumType ) hb.updateString(e->enumType->getMangledName());
+            } else {
+                hb.update(c->value);
+            }
+        } else if ( expr->rtti_isCall() ) {
+            auto call = static_cast<ExprCall *>(expr);
+            hb.updateString(call->name);
+            for ( auto & arg : call->arguments ) hashExpression(hb, arg);
+        }
+    }
+
+    static uint64_t functionContentHash ( const Function * fn ) {
+        HashBuilder hb;
+        hb.updateString(fn->name);
+        fn->result->getSemanticHash(hb);
+        for ( const auto & arg : fn->arguments ) {
+            hb.updateString(arg->name);
+            arg->type->getSemanticHash(hb);
+            hashExpression(hb, arg->init);
+        }
+        hb.update(fn->sideEffectFlags);
+        // only bits the binding declares - the flag words also carry bits a compile sets (addressTaken, recursive, hasReturn, ...), which would move the hash mid-run
+        const bool traits[] = {
+            fn->policyBased, fn->callBased, fn->interopFn, fn->copyOnReturn, fn->moveOnReturn,
+            fn->unsafeOperation, fn->unsafeDeref, fn->noAot, fn->privateFunction, fn->firstArgReturnType,
+            fn->noPointerCast, fn->isTypeConstructor, fn->safeImplicit, fn->mustInline, fn->deprecated,
+            fn->aliasCMRES, fn->neverAliasCMRES, fn->propertyFunction, fn->jitOnly, fn->requestNoJit,
+            fn->jitContextAndLineInfo, fn->nodiscard, fn->captureString, fn->unsafeWhenNotCloneArray,
+            fn->neverInline, fn->tempStringResult, fn->needCallerStackFrame, fn->nttp,
+        };
+        hb.updateString((const char *)traits, sizeof(traits));
+        // BuiltInFunction::noFolding decides whether a call with constant arguments folds into the stored AST
+        hb.update(fn->builtIn && static_cast<const BuiltInFunction *>(fn)->noFolding);
+        return hb.getHash();
+    }
+
+    static uint64_t annotationContentHash ( Annotation * ann ) {
+        HashBuilder hb;
+        hb.updateString(ann->name);
+        if ( ann->rtti_isHandledTypeAnnotation() ) {
+            auto ta = static_cast<TypeAnnotation *>(ann);
+            das_set<Structure *> dep;
+            das_set<Annotation *> adep;
+            hb.update(ta->getOwnSemanticHash(hb, dep, adep));
+            hb.update(uint64_t(ta->getSizeOf()));
+            hb.update(uint64_t(ta->getAlignOf()));
+            const bool traits[] = {
+                ta->canMove(), ta->canCopy(), ta->canClone(), ta->isPod(), ta->isRawPod(), ta->isRefType(),
+                ta->hasNonTrivialCtor(), ta->hasNonTrivialDtor(), ta->hasNonTrivialCopy(),
+                ta->canBePlacedInContainer(), ta->isLocal(), ta->needInScope(), ta->canNew(), ta->canDelete(),
+                ta->needDelete(), ta->canDeletePtr(), ta->isIterable(), ta->isShareable(), ta->isSmart(),
+                ta->avoidNullPtr(), ta->isYetAnotherVectorTemplate(),
+            };
+            hb.updateString((const char *)traits, sizeof(traits));
+        }
+        return hb.getHash();
+    }
+
+    // stable for a whole run - C++ content is complete once registered; a module that grows during a run overrides it
+    uint64_t Module::getOwnSemanticHash () const {
+        uint64_t total = 0;
+        functions.foreach([&](const FunctionPtr & fn) {
+            if ( fn->builtIn ) total += functionContentHash(fn);
+        });
+        generics.foreach([&](const FunctionPtr & fn) {
+            if ( fn->builtIn ) total += functionContentHash(fn);
+        });
+        globals.foreach([&](const VariablePtr & var) {
+            HashBuilder hb;
+            hb.updateString(var->name);
+            var->type->getSemanticHash(hb);
+            hashExpression(hb, var->init);
+            const bool traits[] = { var->private_variable, var->global_shared, var->do_not_delete, var->bitfield_constant };
+            hb.updateString((const char *)traits, sizeof(traits));
+            total += hb.getHash();
+        });
+        enumerations.foreach([&](const EnumerationPtr & en) {
+            HashBuilder hb;
+            total += en->getOwnSemanticHash(hb);
+        });
+        structures.foreach([&](const StructurePtr & st) {
+            HashBuilder hb;
+            das_set<Structure *> dep;
+            das_set<Annotation *> adep;
+            total += st->getOwnSemanticHash(hb, dep, adep);
+        });
+        aliasTypes.foreach([&](const TypeDeclPtr & at) {
+            HashBuilder hb;
+            hb.updateString(at->alias);
+            total += at->getSemanticHash(hb);
+        });
+        for ( const auto & kv : handleTypes ) {
+            total += annotationContentHash(kv.second);
+        }
+        return total;
     }
 
     TypeDeclPtr Module::findAlias ( const string & na ) const {

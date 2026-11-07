@@ -363,7 +363,7 @@ void WaterEffects::update(
 
   if (shipWakeFx)
   {
-    eastl::vector_map<ecs::EntityId, ShipEffectContext> processedShips;
+    FrameShipsMap processedShips;
     processedShips.reserve(knownShips.size());
 
     GatherEmittersEventCtx evtCtx{water, processedShips, knownShips, *shipWakeFx.get(), minSpeed, maxSpeed, waveScale};
@@ -373,7 +373,7 @@ void WaterEffects::update(
       if (processedShips.find(iter.first) == processedShips.end())
         shipWakeFx->removeShip(iter.second.wakeId);
 
-    knownShips.swap(processedShips);
+    knownShips.assign(processedShips.begin(), processedShips.end());
 
     shipWakeFx->update(dt);
   }

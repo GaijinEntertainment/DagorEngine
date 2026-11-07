@@ -14,8 +14,6 @@
 #include <daECS/core/entityManager.h>
 #include <daECS/core/componentTypes.h>
 
-#include "ui/userUi.h"
-
 
 SQ_PRECACHED_STRINGS_REGISTER_WITH_BHV(BhvRotateRelativeToDir, bhv_rotate_relative_to_dir, cstr);
 

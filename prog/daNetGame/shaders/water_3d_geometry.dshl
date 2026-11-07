@@ -29,9 +29,11 @@ hlsl {
   ##if wfx_effects_tex_enabled == yes
   #define has_projection_effects 1
   #define has_wfx_wake 0 // TODO implement this feature for DNG
-  ##if water_tess_factor == water_tess_factor_on
-    #define wfx_vertex_displacement 1
   ##endif
+}
+hlsl(vs) {
+  ##if wfx_effects_tex_enabled == yes && water_tess_factor == water_tess_factor_on
+    #define wfx_vertex_displacement 1
   ##endif
 }
 

@@ -24,14 +24,12 @@ static uint32_t resource_names_counter = 0;
 template <PoolResourceType RES_TYPE>
 struct ResourceCreator
 {
-  ResourceDescription desc;
+  const ResourceDescription &desc;
   eastl::string getResName()
   {
     resource_names_counter++;
     return eastl::string(eastl::string::CtorSprintf(), "fg_resource_pooled_%d", resource_names_counter);
   }
-  ResourceCreator(const ResourceDescription &desc) : desc(desc) {}
-  ResourceCreator() = default;
   auto operator()();
 };
 
@@ -180,33 +178,10 @@ public:
   static void clear() { get().clear(); }
 };
 
-template <PoolResourceType RES_TYPE>
-class PoolsCollection
-{
-  IdIndexedMapping<SimulatedHeapId, ResourceCreator<RES_TYPE>> perDescPools;
-
-  static auto &get()
-  {
-    static PoolsCollection storage;
-    return storage.perDescPools;
-  }
-
-public:
-  static void clear() { get().clear(); }
-
-  static ResourceCreator<RES_TYPE> &poolForHeap(SimulatedHeapId heap_idx)
-  {
-    auto &perDescPools = get();
-    if (!perDescPools.isMapped(heap_idx))
-      perDescPools.set(heap_idx, ResourceCreator<RES_TYPE>(SimulatedHeaps::describeHeap(heap_idx)));
-    return perDescPools[heap_idx];
-  }
-};
-
 static UniqueD3dRes create_pooled_resource(SimulatedHeapId heap_id)
 {
 #define USE(RES_TYPE) \
-  case RES_TYPE: return PoolsCollection<RES_TYPE>::poolForHeap(heap_id)();
+  case RES_TYPE: return ResourceCreator<RES_TYPE>{SimulatedHeaps::describeHeap(heap_id)}();
 
   switch (SimulatedHeaps::resourceTypeOfHeap(heap_id))
   {
@@ -307,14 +282,8 @@ D3dResource *PoolResourceAllocator::placeResource(intermediate::ResourceIndex re
 }
 
 // The heap ids outlive a device reset, because the layout keeps its heaps
-// and names their pools by id
-void PoolResourceAllocator::shutdownInternal()
-{
-  PooledResources::clear();
-#define USE(RES_TYPE) PoolsCollection<RES_TYPE>::clear();
-  SUPPORTED_RESTYPE_LIST
-#undef USE
-}
+// and names their descriptions by id
+void PoolResourceAllocator::shutdownInternal() { PooledResources::clear(); }
 
 PoolResourceAllocator::~PoolResourceAllocator()
 {

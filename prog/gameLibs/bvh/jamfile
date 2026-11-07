@@ -135,7 +135,7 @@ if $(BVHSupport) = yes {
     Sources += bvh_lru_collision.cpp ;
     UseProgLibs += gameLibs/render/lruCollision ;
   } else {
-    Sources += stub/bvh_stub_lru_collision.cpp ;
+    Sources += stub/bvh_stub_lru_collision.cpp stub/bvh_stub_lru_collision_api.cpp ;
     Target = $(Target:S=~nlc.lib) ;
   }
 
@@ -148,6 +148,7 @@ if $(BVHSupport) = yes {
   Sources =
     stub/bvh_stub.cpp
     stub/bvh_stub_processors.cpp
+    stub/bvh_stub_lru_collision_api.cpp
   ;
   Target = $(Target:S=-stub.lib) ;
 }

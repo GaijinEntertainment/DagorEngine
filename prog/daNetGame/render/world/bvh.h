@@ -11,14 +11,15 @@ namespace dafg
 class NodeHandle;
 }
 
-void bvh_update_instances(const Point3 &cameraPos,
+void bvh_update_dyn_instances(const Point3 &cameraPos,
   const Point3 &lightDirection,
   const TMatrix &itm,
   const TMatrix4 &viewRotTm,
   const TMatrix4 &projTm,
   const TMatrix4 &prevViewRotTm,
-  const TMatrix4 &prevProjTm,
-  const Frustum &viewFrustum);
+  const TMatrix4 &prevProjTm);
+void bvh_start_ri_jobs(const Point3 &cameraPos, const Frustum &cullingFrustum, float realDt);
+void bvh_wait_ri_jobs(); // A frame that skips WorldRenderer::draw after bvh_start_ri_jobs must call it.
 void prepareFXForBVH(const Point3 &cameraPos);
 bool is_bvh_enabled();
 bool is_bvh_usable();

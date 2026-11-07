@@ -15,7 +15,7 @@ static constexpr ecs::ComponentDesc lightning_update_es_comps[] =
   {ECS_HASH("lightning"), ecs::ComponentTypeInfo<LightningFX>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("lightning__animchars_eids"), ecs::ComponentTypeInfo<ecs::EidList>()},
-//start of 39 ro components at [3]
+//start of 40 ro components at [3]
   {ECS_HASH("lightning__is_volumetric"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("lightning__base_strike_time_interval"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("lightning__base_sleep_time_interval"), ecs::ComponentTypeInfo<Point2>()},
@@ -54,7 +54,8 @@ static constexpr ecs::ComponentDesc lightning_update_es_comps[] =
   {ECS_HASH("lightning__scene_illumination_multiplier"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("lightning__scene_illumination_enable_for_flash"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("lightning__scene_illumination_near_sun_threshold"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("lightning__cloud_density_check"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
+  {ECS_HASH("lightning__cloud_density_check"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("lightning__follow_camera"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static void lightning_update_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
@@ -104,6 +105,7 @@ static void lightning_update_es_all(const ecs::UpdateStageInfo &__restrict info,
     , ECS_RO_COMP(lightning_update_es_comps, "lightning__scene_illumination_near_sun_threshold", float)
     , ECS_RW_COMP(lightning_update_es_comps, "lightning__animchars_eids", ecs::EidList)
     , ECS_RO_COMP_OR(lightning_update_es_comps, "lightning__cloud_density_check", bool(false))
+    , ECS_RO_COMP_OR(lightning_update_es_comps, "lightning__follow_camera", bool(false))
     );
   while (++comp != compE);
 }
@@ -113,7 +115,7 @@ static ecs::EntitySystemDesc lightning_update_es_es_desc
   "prog/gameLibs/ecs/render/weather_effects/lightningES.cpp.inl",
   ecs::EntitySystemOps(lightning_update_es_all),
   make_span(lightning_update_es_comps+0, 3)/*rw*/,
-  make_span(lightning_update_es_comps+3, 39)/*ro*/,
+  make_span(lightning_update_es_comps+3, 40)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),
@@ -205,6 +207,32 @@ static ecs::EntitySystemDesc lightning_created_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render");
+static constexpr ecs::ComponentDesc lightning_cam_pos_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("lightning"), ecs::ComponentTypeInfo<LightningFX>()}
+};
+static void lightning_cam_pos_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    lightning_cam_pos_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
+        , ECS_RW_COMP(lightning_cam_pos_es_comps, "lightning", LightningFX)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc lightning_cam_pos_es_es_desc
+(
+  "lightning_cam_pos_es",
+  "prog/gameLibs/ecs/render/weather_effects/lightningES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, lightning_cam_pos_es_all_events),
+  make_span(lightning_cam_pos_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
+  0
+,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc get_lightnings_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]

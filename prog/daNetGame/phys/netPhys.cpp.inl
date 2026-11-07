@@ -21,6 +21,7 @@
 #include "net/net.h"
 #include "net/netStat.h"
 #include "net/time.h"
+#include <perfMon/dag_cpuFreq.h>
 #include <gameMath/quantization.h>
 #include <daECS/net/msgDecl.h>
 #include "net/dedicated.h"
@@ -924,6 +925,14 @@ void net_phys_collision_es_impl(const UpdatePhysEvent &info,
   const GridHolders &grids_to_search,
   const ecs::HashedConstString &tag_to_check);
 
+// Messages of the replaced phys type cross a recreate
+static inline bool is_phys_switch_window(const BasePhysActor &actor)
+{
+  const char *futureTemplate = g_entity_mgr->getEntityFutureTemplateName(actor.eid);
+  return get_time_msec() - actor.createdAtMsec < 1000 ||
+         (futureTemplate && strcmp(futureTemplate, g_entity_mgr->getEntityTemplateName(actor.eid)) != 0);
+}
+
 template <typename T>
 inline void net_phys_event_handler(const ecs::Event &event, T &actor)
 {
@@ -933,12 +942,14 @@ inline void net_phys_event_handler(const ecs::Event &event, T &actor)
     if (auto aasMsg = msg->cast<AAStateMsg>()) // executed on client
     {
       if (!actor.phys.receiveAuthorityApprovedState(aasMsg->get<0>(), 0, aasMsg->get<1>()))
-        logerr("Cannot read authority approved for entity %d", (ecs::entity_id_t)actor.eid);
+        logmessage(is_phys_switch_window(actor) ? LOGLEVEL_DEBUG : LOGLEVEL_ERR, "Cannot read authority approved for entity %d (%s)",
+          (ecs::entity_id_t)actor.eid, actor.getPhysTypeStr());
     }
     else if (auto aasPMsg = msg->cast<AAPartialStateMsg>()) // executed on client
     {
       if (!actor.phys.receivePartialAuthorityApprovedState(aasPMsg->get<0>()))
-        logerr("Cannot read authority approved partial for entity %d", (ecs::entity_id_t)actor.eid);
+        logmessage(is_phys_switch_window(actor) ? LOGLEVEL_DEBUG : LOGLEVEL_ERR,
+          "Cannot read authority approved partial for entity %d (%s)", (ecs::entity_id_t)actor.eid, actor.getPhysTypeStr());
     }
     else if (auto ctlMsg = msg->cast<ControlsMsg>()) // executed on server
     {
@@ -947,7 +958,7 @@ inline void net_phys_event_handler(const ecs::Event &event, T &actor)
       {
         static eastl::bitset<NET_MAX_PLAYERS> ctrlLogBitmap;
         int connId = msg->connection->getId();
-        if (!ctrlLogBitmap.test(connId))
+        if (!ctrlLogBitmap.test(connId) && !is_phys_switch_window(actor))
         {
           ctrlLogBitmap.set(connId, true);
           logerr("Failed to read controls packet of %d bytes from conn #%d to entity %d<%s>", cbs.GetNumberOfBytesUsed(), connId,
@@ -1058,11 +1069,9 @@ static void apply_phys_modifications_impl(const ecs::EntityId eid, const ecs::st
       net_phys_apply_authority_state_es(info, phys_comp_name, smoothApplication);                                                   \
   }
 
-#define PHYS_IMPLEMENT_COMMON_ESES(phys_type, phys_comp_name, phys_update_es, coll_tag_str)                               \
-  PHYS_IMPLEMENT_COLL_ES(phys_type, phys_comp_name, coll_tag_str)                                                         \
-  PHYS_IMPLEMENT_APPLY_AUTHORITY_STATE(phys_type, phys_comp_name, phys_update_es)                                         \
-  /* This ES is needed for accessing phys state without depending on actual phys type*/                                   \
-  ECS_AFTER(phys_comp_name##_collision_es)                                                                                \
+// This ES is needed for accessing phys state without depending on actual phys type
+#define PHYS_IMPLEMENT_POST_UPDATE_ES(phys_type, phys_comp_name, after_es)                                                \
+  ECS_AFTER(after_es)                                                                                                     \
   ECS_BEFORE(after_collision_sync)                                                                                        \
   static inline void phys_comp_name##_post_update_es(const UpdatePhysEvent &info, const phys_type &phys_comp_name,        \
     int &net_phys__atTick, int &net_phys__lastAppliedControlsForTick, float &net_phys__timeStep,                          \
@@ -1082,3 +1091,8 @@ static void apply_phys_modifications_impl(const ecs::EntityId eid, const ecs::st
     if (net_phys__interpK)                                                                                                \
       *net_phys__interpK = calc_interpk(phys_comp_name, info.curTimeD);                                                   \
   }
+
+#define PHYS_IMPLEMENT_COMMON_ESES(phys_type, phys_comp_name, phys_update_es, coll_tag_str) \
+  PHYS_IMPLEMENT_COLL_ES(phys_type, phys_comp_name, coll_tag_str)                           \
+  PHYS_IMPLEMENT_APPLY_AUTHORITY_STATE(phys_type, phys_comp_name, phys_update_es)           \
+  PHYS_IMPLEMENT_POST_UPDATE_ES(phys_type, phys_comp_name, phys_comp_name##_collision_es)

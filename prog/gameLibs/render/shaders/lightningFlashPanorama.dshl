@@ -52,16 +52,15 @@ macro USE_PANORAMA_LIGHTNING_FLASH()
     {
       ##if use_panorama_lightning
         //TODO: move some of the calculations to preshader
-        float3 viewDirectionFlash = lightning_pos.xyz - skies_world_view_pos;
-        float viewDistFlash = length(viewDirectionFlash);
-        viewDirectionFlash = normalize(viewDirectionFlash);
+        float3 flashPos = lightning_pos.xyz - skies_world_view_pos;
+        float viewDistFlash = length(flashPos);
+        float3 viewDirectionFlash = normalize(flashPos);
         float2 fragPanoramaUV = sky_uv;
         float fragdDepth = sample_clouds_depth_panorama(fragPanoramaUV, view);
         float2 flashPanoramaUV = get_panorama_uv(skies_world_view_pos, viewDirectionFlash);
         float flashDepth = sample_clouds_depth_panorama(flashPanoramaUV, viewDirectionFlash);
         float maxDist = viewDistFlash / flashDepth;
         float3 fragPos = original_view * fragdDepth * maxDist;
-        float3 flashPos = lightning_pos.xyz;
         float flashDist = length(fragPos - flashPos);
         float x = flashDist / lightning_flash_params.y;
         float distanceFade = lightning_flash_params.x * exp(-x * x );

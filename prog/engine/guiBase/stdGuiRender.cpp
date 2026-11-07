@@ -555,6 +555,14 @@ BBox2 get_str_bbox_u(const wchar_t *str, int len, const StdGuiFontContext &fctx)
   return box;
 }
 
+int get_char_kerning_adjust(wchar_t ch, wchar_t next_ch, const StdGuiFontContext &fctx)
+{
+  if (!fctx.font || !next_ch || fctx.font->isFullyDynamicFont())
+    return 0;
+  const DagorFontBinDump::GlyphData &g = fctx.font->getGlyphU(ch);
+  return fctx.font->getDx(g, next_ch) - g.dx;
+}
+
 BBox2 get_str_bbox_u_ex(const wchar_t *str, int len, const StdGuiFontContext &fctx, float max_w, bool left_align, int &out_start_idx,
   int &out_count, const wchar_t *break_sym, float ellipsis_resv_w)
 {
@@ -1684,7 +1692,10 @@ void GuiContext::renderChunk(int chunk_id)
 
   int objectBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_OBJECT);
 
-  renderer->renderChunk(chunk_id, targetW, targetH, prerotateAngle);
+  {
+    TIME_D3D_PROFILE(gui_render_chunk);
+    renderer->renderChunk(chunk_id, targetW, targetH, prerotateAngle);
+  }
 
   ShaderGlobal::setBlock(objectBlock, ShaderGlobal::LAYER_OBJECT);
 
@@ -1718,7 +1729,10 @@ void GuiContext::endChunkImm()
   d3d::setview(0, 0, targetW, targetH, 0, 1);
 
   int objectBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_OBJECT);
-  renderer->renderChunk(currentChunk, targetW, targetH, prerotateAngle);
+  {
+    TIME_D3D_PROFILE(gui_render_chunk);
+    renderer->renderChunk(currentChunk, targetW, targetH, prerotateAngle);
+  }
   ShaderGlobal::setBlock(objectBlock, ShaderGlobal::LAYER_OBJECT);
 
   d3d::setview(viewX, viewY, viewW, viewH, viewN, viewF);
@@ -1748,7 +1762,10 @@ void GuiContext::end_render()
   currentChunk = -1;
 
   if (!update_internals_per_act_is_used && DagorFontBinDump::reqCharGenChanged)
+  {
+    TIME_PROFILE(gui_update_dyn_fonts);
     update_dyn_fonts();
+  }
   release();
 }
 
@@ -4267,8 +4284,8 @@ void GuiContext::draw_inscription_scaled(real scale, const char *str, int len)
     {
       G_ASSERT(curRenderFont.font->isClassicFontTex());
       enqueue_glyph(*this, DagorFontBinDump::inscr_atlas.tex.first.getId(), DagorFontBinDump::inscr_atlas.tex.second,
-        DagorFontBinDump::inscr_atlas.texBlurred.getId(), DagorFontBinDump::inscr_atlas.texBlurredSampler, false, g->u0, g->v0, g->u1,
-        g->v1, g->w, g->h, lt, rb);
+        DagorFontBinDump::inscr_atlas.texBlurred.getTexId(), DagorFontBinDump::inscr_atlas.texBlurredSampler, false, g->u0, g->v0,
+        g->u1, g->v1, g->w, g->h, lt, rb);
     }
     currentPos.x += g->dx * scale;
     str += sublen;
@@ -4331,7 +4348,7 @@ void GuiContext::draw_inscription(uint32_t inscr_handle, float scale)
 
     G_ASSERT(curRenderFont.font->isClassicFontTex());
     enqueue_glyph(*this, DagorFontBinDump::inscr_atlas.tex.first.getId(), DagorFontBinDump::inscr_atlas.tex.second,
-      DagorFontBinDump::inscr_atlas.texBlurred.getId(), DagorFontBinDump::inscr_atlas.texBlurredSampler, false, g->u0, g->v0,
+      DagorFontBinDump::inscr_atlas.texBlurred.getTexId(), DagorFontBinDump::inscr_atlas.texBlurredSampler, false, g->u0, g->v0,
       g->u1 + expand_pix * DagorFontBinDump::inscr_atlas.getInvW(), g->v1 + expand_pix * DagorFontBinDump::inscr_atlas.getInvH(),
       width, height, lt, rb);
     currentPos.x += g->dx * scale;

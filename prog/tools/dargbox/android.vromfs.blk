@@ -12,7 +12,6 @@ sign_digest:t="sha256"
 folder {
   path:t="../../../tools/dargbox/fonts"
   dest_path:t="fonts"
-  scan_folder:b=true
   scan_subfolders:b=false
   wildcard:t=*
 }
@@ -21,7 +20,6 @@ folder {
 folder {
   path:t="../../../tools/dargbox/ui"
   dest_path:t="ui"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*
 }
@@ -30,7 +28,6 @@ folder {
 folder {
   path:t="gamebase/browser"
   dest_path:t="browser"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*
 }
@@ -38,7 +35,6 @@ folder {
 folder {
   path:t="gamebase/samples_prog"
   dest_path:t="samples_prog"
-  scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*
 }
@@ -46,7 +42,6 @@ folder {
 folder {
   path:t="../../../tools/dargbox"
   dest_path:t="."
-  scan_folder:b=true
   scan_subfolders:b=false
   wildcard:t="settings-android.blk"
 }

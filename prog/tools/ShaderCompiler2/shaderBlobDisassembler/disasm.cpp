@@ -181,7 +181,8 @@ static eastl::string disassembleDX11(dag::ConstSpan<uint8_t> bytecode, dag::Cons
 
   eastl::string result;
   const dx11::SimpleHeader *header = unpacked.stages.front().dx11Header;
-  result.append_sprintf("Header:\n  maxConstants=%d\n  maxRtvUsed=%d\n", header->maxConstantRegUsed, header->maxRtvUsed);
+  result.append_sprintf("Header:\n  maxConstants=%d\n  maxRtvUsed=%d\n  uavReadMask=0x%x\n  uavWriteMask=0x%x\n",
+    header->maxConstantRegUsed, header->maxRtvUsed, dx11::get_uav_read_mask(*header), dx11::get_uav_write_mask(*header));
   for (const StageBlob &stage : unpacked.stages)
   {
     if (unpacked.stages.size() > 1)

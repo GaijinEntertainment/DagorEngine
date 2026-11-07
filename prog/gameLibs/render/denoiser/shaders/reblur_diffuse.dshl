@@ -1,5 +1,8 @@
 include "hardware_defines.dshl"
 
+int denoiser_gi_second_chance = 0;
+interval denoiser_gi_second_chance: no < 1, yes;
+
 hlsl(cs) {
   #pragma hlsl2021
 
@@ -32,6 +35,13 @@ shader nrd_reblur_perf_diffuse_prepass
 
 shader nrd_reblur_diffuse_temporal_accumulation
 {
+  if (denoiser_gi_second_chance == yes)
+  {
+    hlsl(cs) {
+      #define REBLUR_SECOND_CHANCE_HISTORY
+    }
+  }
+
   hlsl(cs) {
     #include "REBLUR_TemporalAccumulation.cs.hlsl"
   }
@@ -41,6 +51,13 @@ shader nrd_reblur_diffuse_temporal_accumulation
 
 shader nrd_reblur_perf_diffuse_temporal_accumulation
 {
+  if (denoiser_gi_second_chance == yes)
+  {
+    hlsl(cs) {
+      #define REBLUR_SECOND_CHANCE_HISTORY
+    }
+  }
+
   hlsl(cs) {
     #define REBLUR_PERFORMANCE_MODE 1
     #include "REBLUR_TemporalAccumulation.cs.hlsl"
@@ -122,6 +139,15 @@ shader nrd_reblur_perf_diffuse_temporal_stabilization
   hlsl (cs) {
     #define REBLUR_PERFORMANCE_MODE 1
     #include "REBLUR_TemporalStabilization.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_reblur_diffuse_behind_history
+{
+  hlsl (cs) {
+    #include "reblur_behind_history.hlsl"
   }
 
   compile("cs_6_5", "main");

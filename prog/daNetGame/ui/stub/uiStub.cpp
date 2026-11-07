@@ -7,26 +7,16 @@
 #include <daRg/dag_guiScene.h>
 #include <daRg/dag_joystick.h>
 #include "ui/uiRender.h"
-#include "ui/userUi.h"
 #include "ui/uiShared.h"
 #include "ui/xrayUiOrder.h"
 #include "ui/loadingUi.h"
 #include "net/netStat.h"
 
 
-eastl::unique_ptr<darg::IGuiScene> user_ui::gui_scene;
 eastl::unique_ptr<darg::JoystickHandler> uishared::joystick_handler;
 TMatrix uishared::view_tm, uishared::view_itm;
 bool uirender::multithreaded = false;
 
-
-void user_ui::init() {}
-void user_ui::term() {}
-void user_ui::reload_user_ui_script(bool /*full_reinit*/) {}
-void user_ui::before_render() {}
-HSQUIRRELVM user_ui::get_vm() { return nullptr; }
-bool user_ui::is_fully_covering() { return false; }
-void user_ui::set_fully_covering(bool) {}
 
 bool uishared::is_ui_available_in_build() { return false; }
 void uishared::init_early() { joystick_handler.reset(new darg::JoystickHandler()); }
@@ -45,7 +35,7 @@ void uishared::activate_ui_elem_action_set(dainput::action_set_handle_t ash, boo
 void uirender::init() {}
 void uirender::update_all_gui_scenes_mainthread(float) {}
 void uirender::prepare_to_start_ui_before_render_job() {}
-void uirender::start_ui_before_render_job() {}
+void uirender::start_ui_before_render_job(bool) {}
 void uirender::skip_ui_render_job() {}
 void uirender::start_ui_render_job(bool) {}
 void uirender::wait_ui_before_render_job_done() {}

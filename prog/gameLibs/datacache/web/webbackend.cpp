@@ -36,13 +36,14 @@ static bool is_url(const char *name) // starts with "http:" or "https:"
   return strncmp(name, http, sizeof(http) - 1) == 0 && (name[4] == ':' || (name[4] == 's' && name[5] == ':'));
 }
 
-static void make_raw_http_cache_key(const char *url, char *out_key, size_t out_key_size)
+const char *make_url_entry_key(const char *url, char *buf, int buf_size)
 {
   uint8_t urlHash[SHA_DIGEST_LENGTH];
   char urlHashStr[SHA_DIGEST_LENGTH * 2 + 1];
   SHA1((const uint8_t *)url, strlen(url), urlHash);
   hashstr(urlHash, urlHashStr);
-  SNPRINTF(out_key, out_key_size, "%s/%.2s/%s", RAW_HTTP_CACHE, urlHashStr, urlHashStr + 2);
+  SNPRINTF(buf, buf_size, "%s/%.2s/%s", RAW_HTTP_CACHE, urlHashStr, urlHashStr + 2);
+  return buf;
 }
 
 WebBackend::WebBackend() :
@@ -160,6 +161,7 @@ bool WebBackend::chooseNextAvailableBaseUrl()
 WebBackendConfig::WebBackendConfig(const DataBlock &blk) : FileBackendConfig(blk)
 {
   noIndex = blk.getBool("noIndex", noIndex);
+  smartMultiThreading = blk.getBool("smartMultiThreading", smartMultiThreading);
   allowReturnStaleData = blk.getBool("allowReturnStaleData", allowReturnStaleData);
   timeoutSec = blk.getInt("timeoutSec", timeoutSec);
   connectTimeoutSec = blk.getInt("connectTimeoutSec", connectTimeoutSec);
@@ -948,7 +950,7 @@ Entry *WebBackend::getEntryNoIndex(const char *key, const char *url, ErrorCode *
   if (key)
     get_real_key(key, realKey);
   else
-    make_raw_http_cache_key(url, realKey, sizeof(realKey));
+    make_url_entry_key(url, realKey, sizeof(realKey));
 
   WinAutoLockOpt lock(csMgr);
   if (tryAddExistingJobCb(key ? realKey : url, user_cb))
@@ -1145,7 +1147,7 @@ bool WebBackend::del(const char *key)
   if (is_url(key))
   {
     char realKey[DAGOR_MAX_PATH];
-    make_raw_http_cache_key(key, realKey, sizeof(realKey));
+    make_url_entry_key(key, realKey, sizeof(realKey));
     return filecache->del(realKey);
   }
   return filecache->del(key);

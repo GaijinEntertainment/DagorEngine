@@ -54,6 +54,11 @@ static jclass find_java_class(JNIEnv *env, const char *class_name)
 
 void jni_register_all_natives()
 {
+  static bool registered = false;
+  if (registered)
+    return;
+  registered = true;
+
   JNIEnv *env = nullptr;
   if (!get_jni_env(&env))
     __android_log_assert("get_jni_env", "dagor", "jni_register_all_natives: failed to get JNIEnv");

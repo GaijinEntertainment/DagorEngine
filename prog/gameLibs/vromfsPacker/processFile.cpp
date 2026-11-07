@@ -361,7 +361,7 @@ static void process_and_copy_file_to_stream(file_ptr_t fp, IGenSave &cwr, int si
           }
           text = delBlock(text, i, delCnt, cached_strlen, keepLines);
           if (strCreated)
-            delete (lastStr);
+            delete[] lastStr;
           strCreated = true;
           continue;
         }
@@ -375,7 +375,7 @@ static void process_and_copy_file_to_stream(file_ptr_t fp, IGenSave &cwr, int si
             delCnt = cached_strlen - i; // remove all trailing text (as no */ found)
           text = delBlock(text, i, delCnt, cached_strlen, keepLines);
           if (strCreated)
-            delete (lastStr);
+            delete[] lastStr;
           strCreated = true;
           continue;
         }
@@ -387,6 +387,8 @@ static void process_and_copy_file_to_stream(file_ptr_t fp, IGenSave &cwr, int si
       size = len = cached_strlen;
       memcpy(buf, text, len);
     }
+    if (strCreated)
+      delete[] text;
     // debug("  -> stripped_len=%d", len);
   }
 

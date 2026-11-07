@@ -1,0 +1,69 @@
+include "tonemapHelpers/lottesSCurve.dshl"
+include "macro_once_inc.dshl"
+
+int neural_rendering_curve = 0;
+interval neural_rendering_curve : aces<1, lottes;
+assume_if_not_assumed neural_rendering_curve = lottes;
+
+macro NEURAL_RENDERING_TRANSFER(code)
+  BEGIN_ONCE_STAGE(neural_rendering_transfer, code)
+  if (neural_rendering_curve == lottes)
+  {
+    LOTTES_TONEMAP_PARAMS(code)
+  }
+  hlsl(code) {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+
+    // DLSS-NR needs the wrapper to round-trip untouched pixels without a color shift, so each curve
+    // comes with its exact inverse.
+    ##if neural_rendering_curve == aces
+    // Narkowicz ACES fit, a rational quadratic, so the inverse is closed form.
+    float3 neural_rendering_apply_curve(float3 x)
+    {
+      return saturate((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14));
+    }
+
+    float3 neural_rendering_invert_curve(float3 y)
+    {
+      return (0.03 - 0.59 * y - sqrt(max(0, -1.0127 * y * y + 1.3702 * y + 0.0009))) / (4.86 * y - 5.02);
+    }
+    ##else
+    float3 neural_rendering_apply_curve(float3 x)
+    {
+      return saturate(applyLottesCurveDirect(x));
+    }
+
+    float3 neural_rendering_invert_curve(float3 y)
+    {
+      return applyLottesCurveDirectInverse(y);
+    }
+    ##endif
+
+    float3 neural_rendering_encode(float3 linear_hdr)
+    {
+      return ApplySRGBCurve(neural_rendering_apply_curve(linear_hdr));
+    }
+
+    float3 neural_rendering_decode(float3 srgb_sdr)
+    {
+      return neural_rendering_invert_curve(RemoveSRGBCurve(srgb_sdr));
+    }
+  }
+  END_ONCE()
+endmacro
+
+macro NEURAL_RENDERING_HIGHLIGHT_MASK(code)
+  BEGIN_ONCE_STAGE(neural_rendering_highlight_mask, code)
+  NEURAL_RENDERING_TRANSFER(code)
+  hlsl(code) {
+    // The SDR shoulder loses superbright energy NR never saw, so take it back from the pre-NR HDR frame
+    // where the pixel is both superbright and compressed (DLSS-NR guide, 9.2).
+    float neural_rendering_highlight_mask(float3 original_hdr)
+    {
+      float preserve = smoothstep(1.0, 8.0, luminance(original_hdr));
+      float shoulder = smoothstep(0.75, 0.99, luminance(neural_rendering_apply_curve(original_hdr)));
+      return preserve * shoulder;
+    }
+  }
+  END_ONCE()
+endmacro

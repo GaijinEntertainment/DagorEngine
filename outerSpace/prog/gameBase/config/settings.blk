@@ -53,8 +53,8 @@ directx{
 }
 
 phys{
-  fixedTimeStepHz:i=30
-  maxSubSteps:i=1
+  fixedTimeStepHz:i=60
+  maxSubSteps:i=2
 }
 
 clipmap{

@@ -1,986 +1,217 @@
 # daRg Input Processing Architecture
 
+An overview: it leaves out details and exceptions, and the code is the
+reference.
+
 ## Overview
 
-daRg (Dagor Reactive GUI) processes input from five device types through a unified
-behavior dispatch model. The host application receives raw
-HID events and forwards them into the `IGuiScene` interface.
-`GuiScene` translates these into behavior callbacks, hover updates,
-hotkey triggers, and navigation actions.
+The host gets raw HID events and gives them to the `IGuiScene` entry points:
+`onMouseEvent`, `onTouchEvent`, `onKbdEvent` (after `onServiceKbdEvent`),
+`onJoystickBtnEvent`, `onVrInputEvent`, `setVrStickScroll` and
+`updateSpatialElements`. `GuiScene` changes them into behavior calls, hover
+updates, hotkeys and navigation.
 
-All input processing runs on the main (API) thread, enforced by `ApiThreadCheck`.
-The one exception is `JoystickHandler::onJoystickStateChanged()`, which may be called
-from a HID polling thread and queues button deltas for main-thread dispatch.
+All input runs on the main (API) thread. The one exception is
+`JoystickHandler` (`dag_joystick.h`), which the client owns: off the main
+thread it queues the button states, and `processPendingBtnStack()` on the main
+thread sends `onJoystickBtnEvent` for each change.
 
-```
-Host App (daguiManager.cpp)
-  |
-  |  HID driver callbacks
-  v
-IGuiScene interface (dag_guiScene.h)
-  |  onMouseEvent, onTouchEvent, onKbdEvent,
-  |  onJoystickBtnEvent, onVrInputEvent, onTouchPadGesture,
-  |  setVrStickScroll, updateSpatialElements
-  v
-GuiScene (guiScene.cpp)
-  |
-  +---> Input Stack dispatch (behaviors)
-  +---> Hotkey matching
-  +---> Hover update (ElementTree::updateHover)
-  +---> XMB / DirPad navigation
-  +---> Pointer position management (MousePointer, GamepadCursor)
-  +---> Active device tracking (activePointingDevice)
-  +---> VR spatial interaction (panels)
-```
+## Principles
 
----
+**One pointing model.** All pointing devices reach behaviors through
+`Behavior::pointingEvent` as (device, pointer, button). The intent: a device
+has M pointers, and each pointer has N buttons. Behaviors are mostly written
+for this model. The core does not always follow it, and legacy code mixes up
+which physical device sends which `InputDevice` (see Known Issues).
 
-## 1. Device Types and Input Events
+**Dispatch never stops.** An event goes to the matching behaviors in the input
+stack from top to bottom. Behaviors coordinate through the result flags of the
+behaviors before them (`accum_res`): `R_PROCESSED` says that one used the
+event, `R_STOPPED` that the later ones should ignore it. An element with
+`F_STOP_POINTING` (script `stopMouse`) adds both when the pointer hits it. The
+elements below still see the event, for example a release, so that a pressed
+button can reset.
 
-### InputDevice enum (dag_inputIds.h)
+**daRg owns the pointer positions.** The mouse (`MousePointer`) and the
+gamepad cursor (`GamepadCursor`) each keep a position. `activePointingDevice`
+tells which one is live; the visible cursor and the click buttons use
+`activePointerPos()`. When the device changes, the new pointer starts where
+the old one was, so the cursor does not jump. daRg writes its own moves to the
+OS cursor (normally once per frame) and reads the position back, because the
+driver can clamp it. A host that shows only the OS cursor (War Thunder, where
+daGUI draws it) sets `gamepadCursorMovesMouse`: then the OS cursor follows
+the gamepad cursor too, as a move of daRg's own.
 
-| Value | Name | Source |
-|-------|------|--------|
-| 1 | `DEVID_KEYBOARD` | Physical keyboard |
-| 2 | `DEVID_MOUSE` | Mouse or mouse-emulated |
-| 3 | `DEVID_JOYSTICK` | Gamepad buttons and stick-as-cursor |
-| 4 | `DEVID_TOUCH` | Touchscreen |
-| 5 | `DEVID_VR` | VR controller aim rays |
+**A gamepad is a full pointer.** The stick moves the gamepad cursor (not
+through the HID mouse), click buttons click at it, and the dpad navigates
+between elements. The pad touch pad gives relative motion, so it drives the
+gamepad cursor too, instead of acting as a touch screen.
 
-Currently VR finger touch generates DEVID_TOUCH, but this will be changed to DEVID_VR.
+**Hover is derived state.** daRg calculates hover from the pointer positions;
+events do not carry it. It runs at once after an input event that moves a
+pointer, in `update()` for the moves that daRg makes itself (after the OS
+cursor sync, so it uses the final position), and one render later when the
+hit areas move only at render (scroll to XMB focus, a pad touch pad pan, a
+screen focus change). Content that a script moves by layout under a still
+pointer, such as a list that scrolls by `pos`, asks for the same with
+`gui_scene.requestHoverUpdate()`. A request that comes while an update is
+pending waits for the next render and does not cancel the pending one.
 
-While there is a legacy code and code written with wrong understanding of the design and
-there are confusion in some places between which physical device produces events with which
-InputDevice, all the pointing devices (mouse, touchscreen and VR controllers) are expected
-to be unified, so that each of devices contains M number of pointers with each of these
-pointers containing N number of buttons. Behaviors are mostly prepared for that and are
-written with this in mind, however in daRg core it is not always like this.
+**Input off stops dispatch, not tracking.** When input is off
+(`isInputActive()`: a host flag and a script flag) or the full error details
+show, the event handlers call no behaviors,
+hotkeys, clicks or navigation. They still track device state: a mouse move
+moves the mouse pointer as usual, and a key, touch or VR press records whether
+the keyboard was used last (`keyboardInUse`, for the on-screen keyboard on
+consoles). So the pointer and the device state are current when input comes
+back.
 
+**Hotkeys read the live device state.** On a button event, the combos read
+the live state of their buttons, not the event. The combo with the most
+buttons wins (Ctrl+S over S).
 
-### InputEvent enum (dag_inputIds.h)
+**Script runs after dispatch.** Behaviors queue their script handlers, and the
+event handler calls them when dispatch is done, so script does not change the
+scene under the dispatch loop. When the event was processed, most handlers
+then rebuild the invalidated parts at once, so the UI does not wait for the
+next `update()`.
 
-| Value | Name | Used by |
-|-------|------|---------|
-| 1 | `INP_EV_PRESS` | All pointing/button devices |
-| 2 | `INP_EV_RELEASE` | All pointing/button devices |
-| 3 | `INP_EV_POINTER_MOVE` | Mouse, touch, VR aim |
-| 4 | `INP_EV_MOUSE_WHEEL` | Mouse wheel |
+## Caveats
 
----
+- `R_STOPPED` stops nothing: no dispatch loop reads it, and only `Pannable`
+  checks it. Most behaviors ignore an event when `accum_res` has
+  `R_PROCESSED`, and that is what makes `stopMouse` work. The mouse wheel
+  adds no stop flags at all; after the first hit element, it goes only to the
+  ancestors of that element.
+- An element is in the input stack only with a mouse, touch, keyboard or focus
+  behavior, hotkeys, an XMB node or an input element flag (`element.cpp`,
+  where the stacks are filled). `F_HANDLE_JOYSTICK` or a stick flag alone does
+  not put it there, and then the flag has no effect.
+- `F_INTERNALLY_HANDLE_GAMEPAD_L_STICK` (or `R`) is read from the summary of
+  the focused screen's input stack: one such behavior anywhere on the screen
+  stops that stick from moving the cursor.
+- Joystick behaviors can get button events also when the app is in the
+  background; only hotkeys, clicks and navigation check `dgs_app_active`.
+- `device` and `pointer_id` depend on the source (see Pointing events): a
+  keyboard click button arrives as `DEVID_KEYBOARD`, a pad touch pad tap as
+  `DEVID_JOYSTICK`, a VR finger as `DEVID_TOUCH` with the hand as the pointer
+  and `TS_none`.
+- From the VR hands, a panel that can be touched gets only `DEVID_TOUCH`, also
+  when it can be pointed at too.
+- Mouse hotkeys match before behaviors; keyboard and joystick hotkeys match
+  after them.
+- A stick scroll clears the XMB focus (with `scrollToEdge` on the XMB parent,
+  only when the focused element leaves the view).
+- Some behaviors call script directly during dispatch (`ProcessPointingInput`,
+  `DragAndDrop` and others). Such script changes scene state (for example the
+  keyboard focus) while dispatch still runs. Queue script handlers when you
+  can.
 
-## 2. The Unified Behavior Model
+## Reference
 
-### Behavior class (dag_behavior.h)
+### Pointing events
 
-Every UI element can have zero or more `Behavior` instances. Behaviors declare their
-capabilities via flag bitmasks and receive input through four virtual methods:
-
-```cpp
-// Pointing devices: mouse, touch, VR, gamepad-as-mouse
-int pointingEvent(ElementTree*, Element*, InputDevice device, InputEvent event,
-                  int pointer_id, int btn_id, Point2 pos, int accum_res);
-
-// Keyboard input (only delivered to kb-focused element, or global handlers)
-int kbdEvent(ElementTree*, Element*, InputEvent event, int key_idx,
-             bool repeat, wchar_t wc, int accum_res);
-
-// Joystick buttons (raw gamepad events, separate from pointing)
-int joystickBtnEvent(ElementTree*, Element*, const IGenJoystick*,
-                     InputEvent event, int key_idx, int device_number,
-                     const ButtonBits& buttons, int accum_res);
-
-// Gamepad touch pad gestures, only the types of getTouchPadGestures(elem) (section 10)
-int touchPadGestureEvent(ElementTree*, Element*, int state, const TouchPadGesture&, int accum_res);
-```
-
-### Key Behavior Flags
-
-| Flag | Hex | Meaning |
-|------|-----|---------|
-| `F_HANDLE_KEYBOARD` | 0x0001 | Receives `kbdEvent` when kb-focused |
-| `F_HANDLE_KEYBOARD_GLOBAL` | 0x10000001 | Receives `kbdEvent` for all keys (not just when focused) |
-| `F_HANDLE_MOUSE` | 0x0002 | Receives `pointingEvent` for mouse/VR/gamepad-as-mouse |
-| `F_HANDLE_TOUCH` | 0x0004 | Receives `pointingEvent` for touch |
-| `F_HANDLE_JOYSTICK` | 0x0008 | Receives `joystickBtnEvent` |
-| `F_CAN_HANDLE_CLICKS` | 0x0010 | Used for cursor-over-clickable detection |
-| `F_INTERNALLY_HANDLE_GAMEPAD_L_STICK` | 0x0020 | Suppresses gamepad cursor on L stick |
-| `F_INTERNALLY_HANDLE_GAMEPAD_R_STICK` | 0x0040 | Suppresses gamepad cursor on R stick |
-| `F_FOCUS_ON_CLICK` | 0x0200 | Gets keyboard focus on click release |
-| `F_ALLOW_AUTO_SCROLL` | 0x0800 | Eligible for auto-scroll in XMB navigation |
-| `F_HANDLE_TOUCH_PAD_GESTURE` | 0x1000 | Receives `touchPadGestureEvent` (gamepad touch pad, see 10) |
-
-### BehaviorResult flags (dag_guiConstants.h)
-
-All event handlers return a bitmask of `BehaviorResult`:
-
-| Flag | Value | Meaning |
-|------|-------|---------|
-| `R_PROCESSED` | 0x01 | Event was consumed. This is used to communicate between behaviors. |
-| `R_STOPPED` | 0x02 | Stop propagation to further elements. Generally not needed, should be used in rare cases. |
-| `R_REBUILD_RENDER_AND_INPUT_LISTS` | 0x04 | Element tree changed, rebuild stacks |
-
-### The `pointingEvent` Unification
-
-All pointing devices share the same `pointingEvent` signature. The `device` parameter
-distinguishes the source, `pointer_id` identifies which pointer (finger index, VR hand,
-always 0 for mouse), and `btn_id` carries button index or wheel delta:
-
-| Device | device | pointer_id | btn_id |
-|--------|--------|-----------|--------|
-| Mouse click | DEVID_MOUSE | 0 | mouse button index |
+| Source | device | pointer_id | btn_id |
+|--------|--------|------------|--------|
+| Mouse button | DEVID_MOUSE | 0 | mouse button |
 | Mouse move | DEVID_MOUSE | 0 | 0 |
-| Mouse wheel | DEVID_MOUSE | 0 | scroll delta |
-| Gamepad cursor | DEVID_JOYSTICK | 0 | 0 |
-| Touch | DEVID_TOUCH | touch_idx | 0 |
-| VR aim | DEVID_VR | aim source (0/1/2; 3=Internal, hover only) | button_id |
-
----
-
-## 3. Screens, Input Stacks, and Element Trees
-
-### Screen
-
-A `Screen` is a self-contained UI surface with its own element tree and stacks:
-
-```cpp
-class Screen {
-  ElementTree etree;        // element hierarchy
-  InputStack inputStack;    // interactive elements sorted by z-order
-  InputStack cursorStack;   // cursor-eligible elements
-  InputStack eventHandlersStack;
-  Panel *panel = nullptr;   // non-null for VR panel screens
-  bool isMainScreen;        // true for the primary screen (MAIN_SCREEN_ID)
-};
-```
-
-`GuiScene` manages multiple screens via `eastl::vector_map<int, unique_ptr<Screen>>`.
-The map key is the screen id. The main screen has the id `MAIN_SCREEN_ID` (999, also
-a global script constant). A panel screen has the id of its panel, the index given to
-`gui_scene.addPanel()`, so panel 0 is not the main screen.
-One screen is the `focusedScreen` which receives most input. The main screen
-gets mouse hover processing; panel screens get VR pointer hover processing.
-
-### InputStack
-
-The `InputStack` is a z-ordered set of interactive elements, rebuilt when the element
-tree changes:
-
-```cpp
-struct InputEntry {
-  Element *elem;
-  int zOrder;        // higher = closer to user
-  int hierOrder;     // tree traversal order for same z
-  bool inputPassive; // doesn't consume input
-};
-
-class InputStack {
-  Stack stack;                // sorted: higher z-order first, then higher hier-order
-  int summaryBhvFlags = 0;   // OR of all behaviors' flags in the stack
-  bool isDirPadNavigable;    // any element supports dirpad navigation
-};
-```
-
-Events are dispatched by iterating the stack top-to-bottom. Elements with
-`F_STOP_POINTING` flag block further propagation when hit-tested.
-
-### Coordinate Spaces
-
-For the main screen, input coordinates are in screen pixels. For VR panel screens,
-coordinates are in panel-local pixels. `Screen::displayToLocal()` and
-`Screen::localToDisplay()` convert between screen space and panel space using
-camera transform and frustum projection.
-
----
-
-## 4. Mouse Input Pipeline
-
-### Entry Point: `GuiScene::onMouseEvent()`
-
-Called by the host when the HID mouse driver fires a move, click, or wheel event.
-
-```
-Host gmcMouseMove/gmcMouseBtnDown/gmcMouseBtnUp/gmcMouseWheel
-  |
-  v
-GuiScene::onMouseEvent(event, data, mx, my, buttons)
-  |
-  +-- POINTER_MOVE:
-  |     skip if relative movement mode
-  |     if activePointingDevice != DEVID_MOUSE:
-  |       warp OS cursor to gamepadCursor.pos (no visual jump)
-  |       switch to DEVID_MOUSE, discard stale event, return
-  |     clear XMB focus (unless programmatic move)
-  |     update mousePointer.pos via onMouseMoveEvent()
-  |     updateGlobalHover()
-  |
-  +-- PRESS/RELEASE (except wheel-emulated buttons): updateHotkeys()
-  |
-  +-- For each screen:
-  |     displayToLocal(mx, my) -> local pos
-  |     onMouseEventInternal(screen, event, DEVID_MOUSE, data, local, buttons)
-  |
-  +-- callScriptHandlers()
-  +-- rebuildInvalidatedParts() if R_PROCESSED
-```
-
-### Internal Dispatch: `GuiScene::onMouseEventInternal()`
-
-Handles three event categories differently:
-
-**PRESS / RELEASE:**
-- `handleMouseClick()` — iterate input stack, dispatch `pointingEvent` to
-  behaviors with `F_HANDLE_MOUSE`, manage keyboard focus via `F_FOCUS_ON_CLICK`.
-  Hotkeys are matched once in `onMouseEvent()`, before the per-screen loop.
-
-**MOUSE_WHEEL:**
-- Iterate input stack but only pass wheel to elements that are ancestors of
-  the first hit element (allows scroll containers behind mouse-blocking children)
-
-**POINTER_MOVE:**
-- Iterate input stack, dispatch `pointingEvent` to all `F_HANDLE_MOUSE` behaviors
-- Gamepad cursor movement dispatches `POINTER_MOVE` with `DEVID_JOYSTICK` directly
-  from `updateGamepadCursor()`, bypassing the HID mouse driver entirely
-
----
-
-## 5. Pointer Position Management
-
-### Dual Pointer Model
-
-Mouse and gamepad each own independent pointer positions. A single
-`activePointingDevice` (member of `GuiScene`) tracks which is live.
-`activePointerPos()` returns the position of the active pointer — this is where
-the visible cursor renders and where click buttons fire.
-
-On device switch, the newly active pointer warps to the previous one's position
-so the cursor doesn't visually jump:
-- **Mouse POINTER_MOVE while gamepad is active**: warp OS cursor to
-  `gamepadCursor.pos`, switch to `DEVID_MOUSE`, discard the stale event.
-- **Gamepad stick active or button press while mouse is active**:
-  `gamepadCursor.syncPosFrom(mousePointer)`, switch to `DEVID_JOYSTICK`.
-
-### CursorPosState base struct (cursorState.h)
-
-Shared position state inherited by both `MousePointer` and `GamepadCursor`:
-
-```
-pos               Current position (in screen pixels)
-targetPos         Animation target (for smooth cursor movement)
-nextFramePos      Deferred jump target (applied next frame)  [protected]
-needToMoveOnNextFrame  Flag: nextFramePos is pending         [protected]
-```
-
-Shared methods:
-- `requestNextFramePos(p)` — queue instant jump for next frame
-- `requestTargetPos(p)` — set smooth animation target
-- `applyNextFramePos()` — apply deferred jump: pos = nextFramePos, sync targetPos
-- `hasNextFramePos()` — check if a deferred jump is pending
-- `syncPosFrom(other)` — copy pos from another pointer (for device switching)
-- `debugRenderState(ctx, frame_color, target_color)` — render nextFramePos/targetPos debug markers
-
-Each device subclass provides its own `moveToTarget(dt)` for smooth animation.
-`MousePointer` also provides `commitToDriver()` for one-way OS cursor sync,
-called once per frame after all internal state updates.
-
-`GuiScene::activePointerState()` returns a `CursorPosState&` to the active pointer,
-used by `requestActivePointerNextFramePos()` and `requestActivePointerTargetPos()`.
-
-### MousePointer class (mousePointer.h/.cpp)
-
-Mouse-specific state (beyond CursorPosState):
-
-```
-isSettingMousePos           Recursion guard for HID driver feedback
-needsDriverSync             Dirty flag: pos changed internally, needs OS sync
-mouseWasRelativeOnLastUpdate  FPS relative-mode tracking
-```
-
-### GamepadCursor class (gamepadCursor.h/.cpp)
-
-Gamepad-specific state (beyond CursorPosState):
-
-```
-currentSector, timeInCurrentSector   Stick sector tracking for friction
-dxCup, dyCup                         Sub-pixel accumulation
-config                               Reference to SceneConfig
-```
-
-### Position Update Flow
-
-```
-User mouse move -> MousePointer::onMouseMoveEvent(p)
-  sets pos = p, targetPos = p
-
-Gamepad stick -> GamepadCursor::updateCursorPos()
-  writes directly to gamepadCursor.pos (no HID driver)
-  dispatches POINTER_MOVE with DEVID_JOYSTICK directly to behaviors
-
-XMB navigation -> moveActiveCursorToElemBox()
-  calls requestActivePointerNextFramePos() (jump)
-  or requestActivePointerTargetPos() (animate)
-```
-
-### HID Driver Synchronization (mouse only)
-
-`MousePointer::commitToDriver()` writes to the HID driver via
-`mouse->setPosition()`, then reads back the actual position. This read-back handles
-driver clamping. The `isSettingMousePos` guard prevents the driver callback from
-recursing. `setMousePos(p, reset_target)` sets `pos` directly and delegates with
-`force = true`:
-
-```
-commitToDriver(force) {
-  if (!force && !needsDriverSync) return;
-  if (!mouse || !dgs_app_active) return;
-  pos = floor(pos);
-  isSettingMousePos = true;
-  mouse->setPosition(pos);     // may trigger onMouseMoveEvent callback
-  isSettingMousePos = false;
-  pos = mouse->getRawState();  // read back clamped value
-}
-```
-
-`isProgrammaticMove()` exposes this guard to callers (e.g. to avoid clearing XMB focus
-when the move was initiated by code, not by the user).
-
-### Relative Movement Mode
-
-When the mouse is in relative mode (FPS camera), pointer position updates are
-suppressed. `syncMouseCursorLocation()` detects the transition from relative back to
-absolute mode and re-syncs the HID driver position.
-
----
-
-## 6. Gamepad Cursor (gamepadCursor.h/.cpp)
-
-Converts gamepad analog stick input into cursor movement. Owns its own pointer
-position (`pos`, `targetPos`) and animation state. The cursor position is updated
-in-place — no HID mouse driver interaction.
-
-### Device Switching
-
-`GuiScene::updateGamepadCursor()` uses `isStickActive()` (lightweight deadzone check
-without state mutation) to detect stick activity. If the stick is active and
-`activePointingDevice != DEVID_JOYSTICK`, it calls `gamepadCursor.syncPosFrom(mousePointer)`
-and switches the active device. Then `updateCursorPos()` computes
-the new position. If the cursor moved, `POINTER_MOVE` events are dispatched directly
-to all screens with `DEVID_JOYSTICK` — bypassing the HID mouse driver entirely.
-
-Gamepad button press in `onJoystickBtnEvent()` also triggers a switch to
-`DEVID_JOYSTICK`.
-
-### Dead Zone
-
-`gamepadCursorDeadZone` is the UI dead zone as an absolute stick deflection.
-The joystick driver has already cut its own dead zone and rescaled the rest
-(`getStickDeadZoneAbs()`, or none when `isStickDeadZoneSetupSupported()` is false),
-so the cursor, the stick scroll and `IGuiScene::getGamepadStick()` cut only the
-part above it: the effective dead zone is the larger of the driver one and
-`gamepadCursorDeadZone` (and, for `getGamepadStick()`, the caller's minimum).
-Behaviors outside daRg that read a stick (a map pan) call
-`getGamepadStick(axis_h, axis_v, min_dead_zone)` so that they share this dead
-zone. It reads the scene's joystick and returns the axis pair in -1..1, in the
-joystick's orientation, scaled from the edge of the dead zone, or zero inside it.
-
-### Computation Pipeline
-
-```
-updateCursorPos(joy, screen, cameraTm, cameraFrustum, dt)
-  |
-  +-- Early exits: no joystick, stick claimed by behavior
-  |
-  +-- 4 iterations of moveOverElements() for sub-frame accuracy:
-        |
-        +-- Read stick axes, apply deadzone + nonlinearity
-        +-- Calculate sector (8-way) for friction timing
-        +-- Field effect: scan input stack for F_STICK_CURSOR elements
-        |   compute proximity -> fieldEffectFactor (0..1)
-        +-- Friction: slow cursor near interactive elements
-        |   based on time-in-sector and fieldEffectFactor
-        +-- Compute dx, dy with speed * friction * screen scaling
-        +-- Sub-pixel accumulation (dxCup, dyCup)
-        +-- Clamp to screen bounds
-  |
-  +-- If pos changed: targetPos = pos, return true
-```
-
-### Stick Ownership
-
-If a behavior on the focused screen has `F_INTERNALLY_HANDLE_GAMEPAD_L_STICK` (or R),
-the corresponding stick is not used for cursor movement. This allows scroll behaviors
-to consume stick input directly.
-
-### Scroll
-
-`GamepadCursor::scroll()` reads the scroll stick (default: right thumb) and returns
-a scroll delta, which `GuiScene` applies via `doJoystickScroll()`.
-
----
-
-## 7. Hover System
-
-### updateGlobalHover()
-
-Recalculates which elements are hovered by all active pointers. Called from:
-
-| Trigger | Location |
-|---------|----------|
-| update() pipeline | Once per frame via dirty flag (consolidates gamepad, animation, deferred pos) |
-| onMouseEvent (MOVE) | Immediate — user moved mouse |
-| onTouchEvent | Immediate — touch point moved |
-| doJoystickScroll | After scroll changed element positions |
-| rebuildInvalidatedParts | After element tree rebuild |
-| applyInteractivityChange | After interactive flags changed |
-| process(GPCM_Activate) | App regained window focus |
-| applyPendingHoverUpdate | Deferred: waits for one render frame |
-
-### How it works
-
-```
-updateGlobalHover() {
-  // active pointer participates only when a cursor is present
-  // (activeCursor != nullptr, or config.ignorePointerVisibilityForHovers)
-  pointers = [activePointerPos() if cursor present] + touchPointers.activePointers
-  focusedScreen->etree.updateHover(inputStack, pointers, stickScrollFlags)
-  // updates: S_HOVER, S_TOP_HOVER state flags on elements
-  // calls: elem->callHoverHandler(true/false) on transitions
-  // updates: cursorOverStickScroll, cursorOverClickable observables
-  validateOverlaidXmbFocus()
-}
-```
-
-`ElementTree::updateHover()` iterates the input stack for each pointer, hit-testing
-elements. `F_STOP_HOVER` and `F_STOP_POINTING` block hover propagation.
-
-### update() Pipeline Hover Consolidation
-
-The pointer phases live in `GuiScene::updatePointers()`, called from `update()`;
-together they consolidate up to 3 hover update sources into a single call:
-
-```cpp
-bool hoverDirty = false;
-
-// GuiScene::updatePointers(dt, hoverDirty):
-// --- Phase 1: Apply deferred jumps (internal state only) ---
-// Skipped entirely when !isInputActive(); mouse also requires dgs_app_active
-if (activePointingDevice == DEVID_MOUSE && ::dgs_app_active)
-{
-  // capture before sync: syncMouseCursorLocation() may consume the jump itself
-  bool mouseJumped = mousePointer.hasNextFramePos();
-  mousePointer.syncMouseCursorLocation();
-  mousePointer.applyNextFramePos();
-  if (mouseJumped) { mousePointer.markNeedsDriverSync(); hoverDirty = true; }
-}
-if (activePointingDevice == DEVID_JOYSTICK)
-{
-  bool gpJumped = gamepadCursor.hasNextFramePos();
-  gamepadCursor.applyNextFramePos();
-  if (gpJumped) hoverDirty = true;
-}
-
-// --- Phase 2: Device-specific movement ---
-updateGamepadCursor(dt, hoverDirty);  // stick-driven pos update
-updateVrStickScroll(dt);
-if (activePointingDevice == DEVID_MOUSE && mousePointer.moveToTarget(dt))
-  hoverDirty = true;
-if (activePointingDevice == DEVID_JOYSTICK && gamepadCursor.moveToTarget(dt))
-  hoverDirty = true;
-
-// --- Phase 3: Sync mouse to OS driver (one-way out) ---
-if (activePointingDevice == DEVID_MOUSE)
-  mousePointer.commitToDriver();
-
-// back in update():
-if (hoverDirty) updateGlobalHover();  // ONCE per frame, after OS sync
-```
-
-### Deferred Hover Update
-
-`requestHoverUpdate()` sets state to `WaitingForRender`. After one render pass
-(`renderThreadBeforeRender` transitions it to `NeedToUpdate`), the next `update()`
-calls `applyPendingHoverUpdate()` which fires `updateGlobalHover()`. This ensures
-layout has been applied before recalculating hovers.
-
----
-
-## 8. Keyboard Input
-
-### Entry Point: `GuiScene::onKbdEvent()`
-
-```
-onKbdEvent(event, key_idx, shifts, repeat, wc)
-  |
-  +-- Click button release (kbCursorControl): if key was a "click button",
-  |   fire handleMouseClick RELEASE
-  |
-  +-- Focused element: dispatch kbdEvent to kbFocus.focus behaviors (F_HANDLE_KEYBOARD)
-  |
-  +-- Global handlers: dispatch to all F_HANDLE_KEYBOARD_GLOBAL behaviors
-  |
-  +-- Hotkeys: if not yet processed and not a key repeat, updateHotkeys()
-  |
-  +-- Click button press (kbCursorControl): if unprocessed and key is a click button,
-  |   fire handleMouseClick PRESS at the active pointer position
-  |
-  +-- DirPad navigation: if kbCursorControl and arrow keys, dirPadNavigate()
-```
-
-### Keyboard Focus (KbFocus)
-
-A single element can hold keyboard focus (`kbFocus.focus`). Focus can be captured
-(`kbFocus.captureFocus`) to prevent click-outside from removing it. Focus is set on
-click release for elements with `F_FOCUS_ON_CLICK`, and cleared when clicking outside.
-
-### Service Keyboard Events
-
-`onServiceKbdEvent()` is called before `onKbdEvent()` for system-level shortcuts
-(Ctrl+Alt+Backspace dismisses the error overlay, Ctrl+Shift+Backspace toggles
-full error details). It does not check `isInputActive()`.
-
----
-
-## 9. Joystick Button Input
-
-### Entry Point: `GuiScene::onJoystickBtnEvent()`
-
-```
-onJoystickBtnEvent(joy, event, btn_idx, device_number, buttons)
-  |
-  +-- Device switch: on PRESS, if activePointingDevice != DEVID_JOYSTICK,
-  |   gamepadCursor.syncPosFrom(mousePointer), switch device
-  |
-  +-- DirPad release: clear repeat state
-  |
-  +-- Click button release: fire handleMouseClick RELEASE (DEVID_JOYSTICK)
-  |
-  +-- Behavior dispatch: iterate focusedScreen input stack,
-  |   dispatch joystickBtnEvent to F_HANDLE_JOYSTICK behaviors
-  |
-  +-- Hotkeys: if unprocessed, updateHotkeys()
-  |
-  +-- Click button press: fire handleMouseClick PRESS (DEVID_JOYSTICK)
-  |
-  +-- DirPad navigation: if press + unprocessed, dirPadNavigate()
-  |   Start repeat timer (dirPadRepeatDelay -> dirPadRepeatTime)
-```
-
-### Thread-Safe Joystick Handler (dag_joystick.h)
-
-`JoystickHandler` bridges the HID polling thread and the main thread:
-
-```
-HID thread: onJoystickStateChanged(scenes, joy, ord_id)
-  -> compares buttons to previous state
-  -> if on main thread: dispatches immediately
-  -> if off main thread: pushes ButtonBits to btnStack queue
-
-Main thread (each update): processPendingBtnStack(scenes)
-  -> pops queued ButtonBits, diffs them, calls onJoystickBtnEvent for changes
-```
-
-### Click Buttons
-
-Both keyboard and joystick can have "click buttons" (configured in `SceneConfig::clickButtons`).
-These map physical buttons to synthetic mouse clicks at the current pointer position.
-`pressedClickButtons` tracks which are currently held to ensure proper release dispatch.
-
----
-
-## 10. Touch Input
-
-### Entry Point: `GuiScene::onTouchEvent()`
-
-```
-onTouchEvent(event, pointing_device, touch_idx, touch)
-  |
-  +-- Iterate focused screen input stack
-  |   dispatch pointingEvent(DEVID_TOUCH, event, touch_idx, 0, pos)
-  |   to F_HANDLE_TOUCH behaviors
-  |
-  +-- On POINTER_MOVE: clear XMB focus
-  +-- touchPointers.updateState(event, touch_idx, pos)
-  +-- updateGlobalHover()
-```
-
-`TouchPointers` tracks active touch points as a vector of `{id, pos}` pairs.
-Touch events are always dispatched to the focused screen only.
-
-### Touch Pad Gestures
-
-A gamepad touch pad has no screen position, so its points never go in as touches. The
-pad driver recognizes the gestures, and the host sends each one with
-`IGuiScene::onTouchPadGesture(state, gesture)` on the main thread: a
-`HumanInput::Gesture` with its `State`, positions and moves in pad pixels.
-
-| Type | States |
-|------|--------|
-| TAP | BEGIN at once, then END (a single tap) or CANCELLED (a DOUBLE_TAP follows) |
-| DOUBLE_TAP | one DOUBLE_TAP event with state ACTIVE (SystemGesture sends it so); daRg reads it as END |
-| HOLD | BEGIN when the hold time is over, END on release (SystemGesture also sends ACTIVE) |
-| DRAG, PINCH, ROTATE | BEGIN, ACTIVE..., END or CANCELLED |
-
-FLICK is not used in the UI. The gesture is the cursor position, so a touch pad gesture
-works as the mouse wheel does:
-
-```
-onTouchPadGesture(state, gesture)
-  |
-  +-- BEGIN: cancel an old capture of the same type
-  |   hit test at activePointerPos() on the focused screen: the first hit element of
-  |   the input stack with F_HANDLE_MOUSE, F_HANDLE_TOUCH_PAD_GESTURE or F_STOP_POINTING
-  |   send to that element, then to its parents, until R_PROCESSED or R_STOPPED
-  |   the element that returns R_PROCESSED captures the gesture
-  |
-  +-- ACTIVE / END / CANCELLED: send to the capturing element only;
-  |   END and CANCELLED release the capture; with no capture the event is dropped
-  |
-  +-- DOUBLE_TAP (not CANCELLED): no capture, sent to the hit chain as END
-  |
-  +-- callScriptHandlers(), rebuildInvalidatedParts()
-```
-
-- The capture is one element per gesture type, so PINCH and ROTATE can run together.
-  When the capturing element is detached (`onElementDetached`, before its behaviors
-  detach), the focused screen changes or the scene input becomes inactive, it gets
-  CANCELLED.
-- A behavior with `F_HANDLE_TOUCH_PAD_GESTURE` gets `touchPadGestureEvent` only for the
-  types of its `getTouchPadGestures(elem)`, a mask of `GestureDetector::Type` bits.
-  `ProcessGesture` returns the `touchPadGestures` property; a native behavior returns
-  its own types.
-- `TouchPadGesture` is in the screen pixels of the element screen: `pos` is the cursor,
-  `delta` and `drag` are the pad moves times `touchPadWidthInScreenHeights * screen
-  height / 1920` (a scene config value; the pads are 1920 pad pixels wide). daRg gives
-  `deltaScale` and `deltaAngle`, the change since the last event of the capture.
-- `IGuiScene::getTouchPadGesturesAtPointer()` gives the OR of the masks along the hit
-  chain. The host uses it to delay a tap click over an element that takes DOUBLE_TAP.
-- dargbox has `dargbox.send_touch_pad_gesture(type, state, params)`. It queues a gesture,
-  and the next act sends it before the scene update, as a pad driver would. A `cursor`
-  in `params` first moves the mouse pointer there, so a test does not depend on the
-  real mouse. `samples_prog/benchmarks/test_touch_pad_gestures.ui.nut` uses it.
-
----
-
-## 11. VR Input
-
-VR input uses a spatial interaction model with raycasting and finger-touch detection.
-
-### Host-Side Setup (daguiManager.cpp)
-
-Each frame, the host constructs `SpatialSceneData` containing:
-- Camera transform and frustum in play space
-- Hand aim rays (LeftHand, RightHand) from VR controller poses
-- Generic aim ray (from mouse screen-to-world projection when not in VR)
-- Index fingertip transforms for touch detection
-- VR surface intersector callback
-
-This is passed to `gui_scene->updateSpatialElements(spatialScene)`.
-
-### Panel System
-
-VR panels are world-space UI surfaces defined from script:
-
-```cpp
-struct PanelSpatialInfo {
-  PanelAnchor anchor;       // Scene, VRSpace, Head, LeftHand, RightHand, Entity
-  PanelGeometry geometry;   // Rectangle
-  bool canBePointedAt;      // Ray intersection
-  bool canBeTouched;        // Finger proximity
-  Point3 position, angles, size;
-};
-
-struct PanelPointer {
-  bool isPresent;
-  Point2 pos;               // Panel-local pixel coordinates
-  Cursor *cursor;
-};
-
-class Panel {
-  PanelPointer pointers[4]; // LeftHand, RightHand, Generic, Internal
-  TouchPointers touchPointers;
-  Screen *screen;           // Panel's own Screen with element tree
-};
-```
-
-`Internal` is not a host aim source: it is daRg's own screen-space cursor
-projected onto a focused panel by `updateGlobalHover()`.
-
-### Spatial Interaction State
-
-`updateSpatialInteractionState()` performs raycasting/proximity checks:
-
-1. Check VR surface intersection for LeftHand and RightHand (if configured)
-2. For each aim source (LeftHand, RightHand, Generic), check each panel:
-   cast ray or project fingertip; track closest hit distance and panel index
-3. Store results in `spatialInteractionState` (arrays sized AimOrigin::Total = 4):
-   - `hitDistances[hand]` — distance to closest hit
-   - `closestHitPanelIdxs[hand]` — which panel was hit (-1 = VR surface)
-   - `hitPos[hand]` — UV or pixel coordinates on hit surface
-   - `isHandTouchingPanel[hand]` — finger touch active
-
-### VR Event Dispatch: `GuiScene::onVrInputEvent()`
-
-Called per-hand for press/release/move events:
-
-```
-onVrInputEvent(event, hand, button_id)
-  |
-  +-- Panel transition: if hand moved to different panel,
-  |   release old panel's touch, deactivate input, switch activePanel
-  |
-  +-- Panel touch (canBeTouched):
-  |   onPanelTouchEvent(panel, hand, event, pos) -> pointingEvent(DEVID_TOUCH)
-  |
-  +-- Panel aim (canBePointedAt):
-  |   onPanelMouseEvent(panel, hand, event, DEVID_VR) -> pointingEvent(DEVID_VR)
-```
-
-VR surface hits are only recorded in `spatialInteractionState` (UV in `hitPos`);
-no events are dispatched for them here. The host reads that state via
-`isAnyPanelPointedAtWithHand()` etc.
-
-### VR Stick Scroll
-
-The host calls `setVrStickScroll(hand, scroll)` each frame. During `update()`,
-`updateVrStickScroll()` applies scroll deltas to the panel or main screen under each hand.
-
-### Notes
-
-Currently VR input works in two modes:
-* Controller aim generates DEVID_VR events
-* In-world finger generates DEVID_TOUCH events.
-This should be unified in future - both shoud send DEVID_VR, and share the same input pointer, but use different button ids for clicks/touches.
-
----
-
-## 12. Hotkeys
-
-### HotkeyCombo
-
-Elements can declare hotkey combinations in their script description. A `HotkeyCombo`
-contains a set of `HotkeyButton` (device + button pairs) and fires when an input event
-of one of its buttons, or app activation, finds all buttons in the combo pressed.
-
-```cpp
-struct HotkeyButton {
-  InputDevice devId;   // DEVID_KEYBOARD, DEVID_JOYSTICK, DEVID_MOUSE
-  unsigned int btnId;  // key/button index
-  bool ckNot;          // negation (button must NOT be pressed)
-};
-```
-
-### Hotkey Processing: `updateHotkeys()`
-
-Called from `onMouseEvent` (PRESS/RELEASE), `onKbdEvent`, `onJoystickBtnEvent`,
-and `process(GPCM_Activate)`.
-
-1. Iterate all screens' input stacks
-2. For each element's hotkey combos, check if the combo is active
-3. Collect matching combos; if multiple match, prefer the one with more buttons
-4. Clear `S_HOTKEY_ACTIVE` state on elements whose combos are subsets of the winner
-5. Fire the winning combo's handler
-
-Elements with `F_STOP_HOTKEYS` block hotkey processing for elements below them.
-
-### Event-Based Hotkeys
-
-`sendEvent(id, data)` allows triggering hotkeys by named event strings (e.g. from
-dainput action system). Events with `:end` suffix map to release.
-
----
-
-## 13. DirPad and XMB Navigation
-
-### DirPad Navigation
-
-Gamepad D-pad (and optionally arrow keys / stick-as-dirpad) navigates between
-interactive elements spatially:
-
-```
-dirPadNavigate(dir)
-  |
-  +-- If XMB mode active: xmbNavigate(dir) — hierarchical navigation
-  |
-  +-- Otherwise: spatial search
-  |   For each navigable element in input stack:
-  |     calc_dir_nav_distance(pointerPos, element_bbox, dir)
-  |   Move cursor to closest element in the given direction
-  |   Set or clear XMB focus
-```
-
-Repeat is handled by `repeatDirPadNav(dt)` with configurable delay/interval.
-
-### XMB Navigation
-
-XMB (Cross-Media Bar) is a hierarchical navigation system where elements are organized
-into parent-child groups:
-
-```
-XmbData {
-  Element *xmbParent;
-  vector<Element*> xmbChildren;
-  Table nodeDesc;  // script-defined params (scrollSpeed, scrollToEdge, onLeave)
-}
-```
-
-`xmbNavigate()` uses either grid-based or screen-space navigation depending on the
-parent's layout flow. When leaving a group, the `onLeave` script handler can return
-`XMB_STOP` to prevent exit.
-
-When XMB focus changes, the cursor is moved to the focused element via
-`moveActiveCursorToElemBox()`, which uses smooth animation (`requestTargetPos`) or
-instant jump (`requestNextFramePos`). Auto-scrolling brings the focused element into
-view.
-
----
-
-## 14. Input Activity Control
-
-### Two Independent Gates
-
-```cpp
-bool isInputActive() const { return isInputEnabledByHost && isInputEnabledByScript; }
-```
-
-- `isInputEnabledByHost` — set by the host via `setSceneInputActive()`. Used to
-  globally disable daRg input when the game needs exclusive control.
-- `isInputEnabledByScript` — set from Quirrel script. Allows scripts to temporarily
-  suppress input.
-
-When input becomes inactive, `applyInputActivityChange()` deactivates all input on
-all screens (`deactivateAllInput()`) and clears pressed click buttons.
-
-### `::dgs_app_active`
-
-Separate from `isInputActive()`. This is the OS window focus state. Checked in:
-- `updateGamepadCursor()` — don't move cursor when window is unfocused
-- `MousePointer::commitToDriver()` — don't write to HID driver when unfocused
-- `GuiScene::updatePointers()` — don't sync mouse cursor or apply deferred mouse moves
-- `onJoystickBtnEvent()` — guard hotkey/click/navigation processing
-
----
-
-## 15. Element Flags Relevant to Input
-
-| Flag | Hex | Effect |
-|------|-----|--------|
-| `F_STOP_POINTING` | 0x0080 | Blocks pointing event propagation (and hover) when hit; set by `stopMouse` script prop |
-| `F_STOP_HOVER` | 0x0100 | Blocks hover propagation (but not events) when hit |
-| `F_STOP_HOTKEYS` | 0x0200 | Blocks hotkey processing for elements below |
-| `F_STICK_CURSOR` | 0x0400 | Gamepad cursor "sticks" near this element (field effect friction) |
-| `F_JOYSTICK_SCROLL` | 0x0800 | Element accepts joystick/VR stick scroll |
-| `F_SKIP_DIRPAD_NAV` | 0x1000 | Element is skipped during dirpad navigation |
-
----
-
-## 16. The update() Frame Pipeline
-
-The main per-frame update, showing all input-related operations in order:
-
-```
-GuiScene::update(dt)
-  |
-  1. applyPendingHoverUpdate()    // deferred hover from previous frame
-  2. applyDeferredRecalLayout()   // deferred layout recalculation
-  3. frpGraph->updateDeferred()   // FRP observable updates
-  4. processPostedEvents()        // events posted from other threads
-  5. joystickHandler.processPendingBtnStack()  // queued joystick button changes
-  6. repeatDirPadNav(dt)          // D-pad repeat navigation
-  |
-  7. bool hoverDirty = false
-  8. updatePointers(dt, hoverDirty):
-     --- Phase 1: Apply deferred jumps (internal state only; skipped if input inactive) ---
-     8a. if (mouse active && dgs_app_active):
-          capture hasNextFramePos(), syncMouseCursorLocation(),
-          applyNextFramePos(), markNeedsDriverSync if jumped
-     8b. if (gamepad active):
-          gamepadCursor.applyNextFramePos()
-     --- Phase 2: Device-specific movement ---
-     8c. updateGamepadCursor(dt, hoverDirty)  // stick -> cursor, direct POINTER_MOVE dispatch
-     8d. updateVrStickScroll(dt)      // VR stick scroll
-     8e. updateJoystickAxesObservables()
-     8f. smooth animation for active device only:
-         if (mouse active && moveToTarget(dt)) hoverDirty = true
-         if (gamepad active && moveToTarget(dt)) hoverDirty = true
-     --- Phase 3: Sync mouse to OS driver (one-way out) ---
-     8g. if (mouse active) mousePointer.commitToDriver()
-  9. update cursorPresent observable (accounts for activePointingDevice)
-  10. if (hoverDirty) updateGlobalHover()  // ONCE per frame, after OS sync
-  |
-  11. updateTimers(dt)
-  12. callScriptHandlers()
-  13. rebuildInvalidatedParts()
-  14. sceneScriptHandlers.onUpdate(dt)
-  15. per-screen etree.update(dt) -> behavior updates, stack rebuilds
-  16. applyInteractivityChange() if stacks changed
-  17. cursor update, panel updates
-```
-
----
-
-## 17. Key File Map
+| Mouse wheel | DEVID_MOUSE | 0 | wheel delta |
+| Gamepad cursor move | DEVID_JOYSTICK | 0 | 0 |
+| Click button, pad touch pad tap | DEVID_KEYBOARD or DEVID_JOYSTICK | 0 | 0; 1 (right button) for a two-finger tap |
+| Touch screen | DEVID_TOUCH | touch index | 0 |
+| VR aim | DEVID_VR | aim source (0, 1, 2) | button |
+| VR finger on a panel | DEVID_TOUCH | hand | 0 |
+
+### Behavior flags
+
+| Flag | Gets |
+|------|------|
+| `F_HANDLE_MOUSE` | `pointingEvent` from mouse, gamepad cursor, click buttons, pad touch pad taps and VR aim |
+| `F_HANDLE_TOUCH` | `pointingEvent` from touch screen and VR finger |
+| `F_HANDLE_TOUCHPAD_PAIR` | `pointingEvent` for a finger pair on a pad touch pad |
+| `F_HANDLE_KEYBOARD` | `kbdEvent` when its element has the keyboard focus |
+| `F_HANDLE_KEYBOARD_GLOBAL` | `kbdEvent` for all keys |
+| `F_HANDLE_JOYSTICK` | `joystickBtnEvent` |
+
+### Screens
+
+There is one main screen (id `MAIN_SCREEN_ID`, 999, also a script const) and
+one screen for each panel (id = the panel index given to
+`gui_scene.addPanel()`, so panel 0 is not the main screen).
+
+Touch screen and joystick button events go only to the `focusedScreen`.
+Keyboard, hotkeys and click buttons go to each screen that
+`doesScreenAcceptInput()`: the main screen and the focused screen, or all
+of them with `allScreensAcceptInput`. Mouse and gamepad cursor moves go to
+all screens.
+
+### Stick dead zone
+
+The joystick driver cuts its own dead zone and scales the rest.
+`gamepadCursorDeadZone` is an absolute deflection, so daRg cuts only the part
+above the driver dead zone: the effective dead zone is the larger of the two.
+The cursor, the stick scroll and `IGuiScene::getGamepadStick()` use the same
+rule; code outside daRg that reads a stick (for example a map pan) can call
+`getGamepadStick()` to use the same dead zone.
+
+### Pad touch pad
+
+A game pad touch pad (`TS_touchPad`) gives finger motion.
+One finger moves the gamepad cursor and a tap clicks at it.
+Two fingers give `F_HANDLE_TOUCHPAD_PAIR` behaviors pointers near the cursor.
+They pan and zoom. With `padTouchpadTwoFingerTapRmb` on (off by default),
+a two-finger tap clicks the right button (button 1) at the cursor.
+The touch pad button cancels taps if held at first touch or pressed later.
+See `padTouchpad.h` and `onPadTouchpadEvent()` for the touch pad state.
+A laptop touchpad gives mouse input through Windows.
+
+### VR
+
+Each frame the host gives `SpatialSceneData` to `updateSpatialElements()`. It
+has room for the camera, the aim rays of the hands, a generic aim ray (not
+bound to a hand), the index fingertips and a VR surface intersector; a host
+fills only what it has, and no host in this repo fills the generic aim.
+
+A panel is a UI surface made from script, with its own screen, usually placed
+in the world. It can be pointed at (ray hit), touched (fingertip near it), or
+both. When a panel screen has the focus, daRg also projects its screen-space
+cursor onto the panel as the `Internal` aim source.
+
+A VR surface hit sends no events and `IGuiScene` has no reader for it (the host
+knows it from its own `vrSurfaceIntersector`). In daRg it only hides the
+panels behind the surface from that aim.
+
+## File Map
 
 | File | Role |
 |------|------|
-| `publicInclude/daRg/dag_guiScene.h` | Public `IGuiScene` interface |
-| `publicInclude/daRg/dag_behavior.h` | `Behavior` base class |
-| `publicInclude/daRg/dag_inputIds.h` | `InputDevice`, `InputEvent` enums |
-| `publicInclude/daRg/dag_guiConstants.h` | `BehaviorResult`, `Direction`, layout enums |
-| `publicInclude/daRg/dag_joystick.h` | `JoystickHandler` (thread-safe button queue) |
-| `publicInclude/daRg/dag_element.h` | `Element` class with flags and behaviors |
-| `daRg/guiScene.h` | `GuiScene` implementation class |
-| `daRg/guiScene.cpp` | Main orchestration (~4800 lines) |
-| `daRg/cursorState.h` | `CursorPosState`: shared pointer position state and deferred jumps |
-| `daRg/mousePointer.h/.cpp` | `MousePointer`: mouse position tracking, animation, HID driver sync |
-| `daRg/gamepadCursor.h/.cpp` | `GamepadCursor`: gamepad pointer position, stick computation, field effects |
-| `daRg/screen.h` | `Screen` (element tree + stacks container) |
-| `daRg/panel.h` | VR `Panel` and `PanelData` |
-| `daRg/inputStack.h` | `InputStack` (z-sorted interactive elements) |
-| `daRg/hotkeys.h` | `Hotkeys` and `HotkeyCombo` |
-| `daRg/touchPointers.h` | `TouchPointers` active touch tracking |
-| `daRg/kbFocus.h` | `KbFocus` keyboard focus management |
-| `daRg/sceneConfig.h` | `SceneConfig` (gamepad, dirpad, click config) |
-| `daRg/elementTree.h/.cpp` | `ElementTree::updateHover()`, `doJoystickScroll()` |
-| `daRg/xmb.h/.cpp` | XMB hierarchical navigation algorithms |
-| `daRg/dirPadNav.h/.cpp` | Spatial D-pad navigation |
+| `publicInclude/daRg/dag_guiScene.h` | `IGuiScene` entry points, `SpatialSceneData` |
+| `publicInclude/daRg/dag_behavior.h` | `Behavior`, behavior flags |
+| `publicInclude/daRg/dag_inputIds.h` | `InputDevice`, `InputEvent` |
+| `publicInclude/daRg/dag_guiConstants.h` | `BehaviorResult`, `Direction` |
+| `publicInclude/daRg/dag_joystick.h` | `JoystickHandler` |
+| `publicInclude/daRg/dag_element.h` | `Element` flags and state flags |
+| `daRg/guiScene.h/.cpp` | All entry points, dispatch, hover, navigation, `update()` |
+| `daRg/cursorState.h` | `CursorPosState`, shared by both pointers |
+| `daRg/mousePointer.h/.cpp` | Mouse position and HID driver sync |
+| `daRg/gamepadCursor.h/.cpp` | Stick to cursor, dead zone, stick scroll |
+| `daRg/padTouchpad.h` | Pad touch pad state |
+| `daRg/screen.h`, `daRg/inputStack.h` | Screens and input stacks |
+| `daRg/element.cpp` | Which elements go into the input stack |
+| `daRg/panel.h` | Panels |
+| `daRg/hotkeys.h/.cpp` | Hotkey combos |
+| `daRg/touchPointers.h`, `daRg/kbFocus.h` | Active touches, keyboard focus |
+| `daRg/sceneConfig.h` | Gamepad, dirpad and click button config |
+| `daRg/elementTree.cpp` | `updateHover()`, `doJoystickScroll()` |
+| `daRg/xmb.cpp`, `daRg/dirPadNav.cpp` | XMB and dirpad navigation |
 
----
+## Known Issues and Direction
 
-## 18. Known Architectural Issues and Future Directions
-
-### Dual Pointer Model (Resolved)
-
-Mouse and gamepad now have independent pointer positions. `activePointingDevice`
-tracks which is live, and `activePointerPos()` returns the visible cursor position.
-Device switching warps the newly active pointer to the previous one's position.
-The gamepad cursor dispatches `POINTER_MOVE` with `DEVID_JOYSTICK` directly —
-no HID mouse driver interaction, no `isMovingMouse` flag, no Xbox synthetic events.
-The gamepad path performs no relative-mouse-mode checks; only the mouse pointer
-tracks relative mode (for cursorPresent and driver sync).
-
-### Duplicated Event Dispatch Loops
-
-The "iterate input stack, dispatch to behaviors" loop appears 5-6 times across
-`onMouseEventInternal` (PRESS/RELEASE, WHEEL, MOVE paths), `onTouchEvent`,
-`onPanelMouseEvent`, `onPanelTouchEvent`. The core pattern is identical:
-
-```cpp
-for (const InputEntry &ie : screen->inputStack.stack) {
-  if (ie.elem->hasBehaviors(FLAG)) {
-    for (Behavior *bhv : ie.elem->behaviors)
-      if (bhv->flags & FLAG)
-        summaryRes |= bhv->pointingEvent(...);
-  }
-  if (ie.elem->hasFlags(F_STOP_POINTING) && ie.elem->hitTest(pos))
-    summaryRes |= R_PROCESSED | R_STOPPED;
-}
-```
-
-Variations: behavior flag (`F_HANDLE_MOUSE` vs `F_HANDLE_TOUCH`), parameters, and
-interleaved special logic (wheel ancestry filtering, focus management). A unified
-dispatch helper could reduce this significantly.
-
-### Touch-Screen Emulation
-
-`emuTouchScreenWithMouse` is a HID-level flag that reroutes mouse events to touch.
-When active, `mousePointer.pos` diverges from actual mouse position. The
-`updateGlobalActiveCursor()` has a workaround that reads the HID driver directly.
+- VR uses two device ids: controller aim sends `DEVID_VR`, a finger on a panel
+  sends `DEVID_TOUCH`. Both should send `DEVID_VR` with one pointer, and use
+  different button ids for click and touch.
+- The loop "go through the input stack, call the behaviors" is repeated in
+  `handleMouseClick`, the wheel and move paths of `onMouseEventInternal`,
+  `dispatchTouchEvent`, `onPanelMouseEvent` and `onPanelTouchEvent`. They
+  differ in the flag, the arguments and some special logic (wheel ancestors,
+  keyboard focus). One dispatch helper could replace them.

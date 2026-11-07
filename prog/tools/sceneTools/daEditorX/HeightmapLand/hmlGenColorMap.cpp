@@ -1785,6 +1785,7 @@ public:
   int elcMaskCurIdx, elcMaskImageIndex, elcMaskImageBpp;
 
   void *drdHandle;
+  bool lc1ChangePending = false, lc2ChangePending = false;
 
 
   PostScriptParamLandLayer(int slot_idx, int land_idx, const char *nm) :
@@ -2497,23 +2498,30 @@ public:
     LandClassSlotsManager::releaseAsset(a);
   }
 
-  // IAssetUpdateNotify interface
-  void onLandClassAssetChanged(landclass::AssetData *data) override
+  void applyLandClassAssetChange() override
   {
-    bool changed = lc1.assetData == data || lc2.assetData == data;
-    if (lc1.assetData == data)
+    if (lc1ChangePending)
     {
       unregisterAsset(lc1);
       registerAsset(lc1);
       updateEditableLandClassFlag();
     }
-    if (lc2.assetData == data)
+    if (lc2ChangePending)
     {
       unregisterAsset(lc2);
       registerAsset(lc2);
     }
-    if (changed)
-      HmapLandPlugin::self->getLandClassMgr().regenerateObjects(HmapLandPlugin::self->getlandClassMap());
+    lc1ChangePending = lc2ChangePending = false;
+  }
+
+  // IAssetUpdateNotify interface
+  void onLandClassAssetChanged(landclass::AssetData *data) override
+  {
+    // Each slot change reinits RIGen, so the plugin re-registers the assets later, in one frame.
+    lc1ChangePending |= lc1.assetData == data;
+    lc2ChangePending |= lc2.assetData == data;
+    if (lc1ChangePending || lc2ChangePending)
+      HmapLandPlugin::self->requestLandClassRegenerate();
   }
   void onLandClassAssetTexturesChanged(landclass::AssetData *data) override {}
   void onSplineClassAssetChanged(splineclass::AssetData *data) override {}

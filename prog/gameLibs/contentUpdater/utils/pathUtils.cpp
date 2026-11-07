@@ -7,9 +7,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_pathDelim.h>
 #include <memory/dag_framemem.h>
-#include <util/dag_baseDef.h>
 
-#include <EASTL/array.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 
@@ -17,14 +15,10 @@
 template <typename Allocator>
 eastl::basic_string<char, Allocator> updater::fs::simplify_path(const char *path)
 {
-  eastl::array<char, DAGOR_MAX_PATH> buffer;
-  eastl::fill(buffer.begin(), buffer.end(), 0);
-
-  ::strcpy(buffer.data(), path);
-
-  dd_simplify_fname_c(buffer.data());
-
-  return eastl::basic_string<char, Allocator>{buffer.data()};
+  eastl::basic_string<char, Allocator> res{path};
+  dd_simplify_fname_c(res.data());
+  res.resize(strlen(res.c_str()));
+  return res;
 }
 
 

@@ -24,6 +24,8 @@ void PipelineCache::shutdown()
 
 void PipelineCache::onDeviceReset()
 {
+  // storeAsync reads Globals::cfg and Globals::VK::phy
+  waitAsyncStoreComplete();
   // destroy without saving, because on reset it may be corrupted
   VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyPipelineCache(Globals::VK::dev.get(), handle, VKALLOC(pipeline_cache)));
   handle = VulkanNullHandle();
@@ -107,8 +109,11 @@ void PipelineCache::storeAsync()
       asyncInProgress.store(true);
       execute_in_new_thread(
         [data = eastl::move(data), this](auto) {
-          PipelineCacheOutFile dst;
-          dst.storeCacheFor(Globals::VK::phy.properties.pipelineCacheUUID, data);
+          {
+            // scoped: the dtor does the file store, it must finish before the flag drops
+            PipelineCacheOutFile dst;
+            dst.storeCacheFor(Globals::VK::phy.properties.pipelineCacheUUID, data);
+          }
           asyncInProgress.store(false);
         },
         "vulkan_async_pipeline_cache_store");

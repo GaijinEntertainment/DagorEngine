@@ -125,6 +125,12 @@ public:
     return it != nodes.end() ? &it->second : nullptr;
   }
 
+  const ImGuiTestItemNode *getNode(ImGuiID id) const
+  {
+    auto it = nodes.find(id);
+    return it != nodes.end() ? &it->second : nullptr;
+  }
+
   const char *createDesc(const char *str)
   {
     String &temp = desc.emplace_back(str);
@@ -283,6 +289,53 @@ public:
     return count;
   }
 
+  // The root windows that other lacks, walked as the previous frame's: a window the frame skipped or closed.
+  int walkRootsMissingFrom(const ImGuiTestItemTree &other, int max_depth, const OnTestItemWalkFunc &func) const
+  {
+    int count = 0;
+    for (ImGuiID id : roots)
+      if (other.getNode(id) == nullptr)
+        if (const ImGuiTestItemNode *node = getNode(id))
+          count += walkNode(*node, 0, max_depth, func, /*current_frame*/ false);
+    return count;
+  }
+
+  int walk(ImGuiID root_id, int max_depth, const OnTestItemWalkFunc &func, bool current_frame) const
+  {
+    const Tab<ImGuiID> *level = &roots;
+    if (root_id != NO_PARENT)
+    {
+      const ImGuiTestItemNode *node = getNode(root_id);
+      if (node == nullptr)
+        return -1;
+      level = &node->children;
+    }
+    else if (roots.empty())
+      return -1;
+    return walkLevel(*level, 0, max_depth, func, current_frame);
+  }
+
+  static bool isQueryWildcard(const char *name)
+  {
+    return strcmp(name, "*") == 0 || strcmp(name, "**") == 0 || strcmp(name, "$") == 0 || strcmp(name, "$$") == 0;
+  }
+
+  // False for a component that would not read back through query(): an unnamed item, a wildcard token, a trailing backslash.
+  bool itemPath(ImGuiID id, String &out_path)
+  {
+    const ImGuiTestItemNode *node = getNode(id);
+    if (node == nullptr)
+      return false;
+    for (; node != nullptr; node = getNode(node->parentId))
+    {
+      const char *name = node->displayName();
+      if (name == nullptr || name[0] == '\0' || isQueryWildcard(name) || name[strlen(name) - 1] == '\\')
+        return false;
+    }
+    out_path = queryDebugLabel(id);
+    return true;
+  }
+
   const char *queryDebugLabel(ImGuiID id)
   {
     String labelBuilder;
@@ -316,6 +369,25 @@ public:
   }
 
 private:
+  int walkLevel(const Tab<ImGuiID> &level, int depth, int max_depth, const OnTestItemWalkFunc &func, bool current_frame) const
+  {
+    int count = 0;
+    for (ImGuiID id : level)
+      if (const ImGuiTestItemNode *node = getNode(id))
+        count += walkNode(*node, depth, max_depth, func, current_frame);
+    return count;
+  }
+
+  int walkNode(const ImGuiTestItemNode &node, int depth, int max_depth, const OnTestItemWalkFunc &func, bool current_frame) const
+  {
+    if (max_depth >= 0 && depth >= max_depth)
+      return 0;
+    int count = 1;
+    if (func(depth, node.label, node.id, node.bb, node.parentId, node.external, node.getState(current_frame)))
+      count += walkLevel(node.children, depth + 1, max_depth, func, current_frame);
+    return count;
+  }
+
   void dumpNode(const ImGuiTestItemNode *node, int indent)
   {
     if (node == nullptr)
@@ -353,6 +425,18 @@ private:
     }
     else
     {
+      // "**" followed by more tokens also matches zero levels, because a window that is not docked has no parent in the tree.
+      if (greedy != nullptr)
+      {
+        const ImGuiTestItemNode *sameLevel = queryLevel(next + 1, level);
+        if (sameLevel != nullptr)
+        {
+          match = sameLevel;
+          next = nullptr;
+          return;
+        }
+      }
+
       for (ImGuiID id : (*level))
       {
         auto it = nodes.find(id);
@@ -482,7 +566,8 @@ void ImGuiTestEngineHook_ItemInfo(ImGuiContext *ctx, ImGuiID id, const char *lab
     if (ctx != nullptr && ctx->DebugHookIdInfoId == id)
       ImGui::DebugHookIdInfo(id, ImGuiDataType_String, label, nullptr);
 
-    ::pending->label = label;
+    // The caller can free the label after the widget call, a query runs later in the frame.
+    ::pending->label = label ? ::treeCurr->createDesc(label) : nullptr;
     // Widgets set ToggledOpen after ImGui::ItemAdd().
     ::pending->status |= flags & ImGuiItemStatusFlags_ToggledOpen;
     ::pending = nullptr;
@@ -605,8 +690,10 @@ void ImGui_TestRuntime_EndFrame()
     ImGuiWindow *window = ImGui::GetCurrentWindowRead();
     if (window != nullptr && !window->SkipItems)
     {
+      // Each viewport is an OS window and shows only its own area, so draw the cursor into the viewport that holds the pointer.
       ImVec2 mousePos = ImGui::GetMousePos();
-      ImDrawList *drawList = ImGui::GetForegroundDrawList(window);
+      ImGuiViewportP *viewport = ImGui::FindHoveredViewportFromPlatformWindowStack(mousePos);
+      ImDrawList *drawList = ImGui::GetForegroundDrawList(viewport);
 
       float s = 16.0f * ImGui::GetStyle()._MainScale;
 
@@ -674,13 +761,19 @@ void imgui_test_runtime_set_last_item_info(const ImGuiTestItemExternalInfo &ext)
   imgui_test_runtime_set_item_info(ImGui::GetItemID(), ext);
 }
 
+static const ::ImGuiTestItemNode *query_item_node(const char *path, bool *current_frame = nullptr)
+{
+  const ::ImGuiTestItemNode *node = ::treeCurr->query(path);
+  if (current_frame)
+    *current_frame = node != nullptr;
+  return node != nullptr ? node : ::treePrev->query(path);
+}
+
 bool imgui_test_runtime_query_item(const char *path, uint32_t &id, ImRect &bb, uint32_t &parent_id, const char **label,
   ImGuiTestItemExternalInfo *ext, ImGuiTestItemState *state)
 {
-  const ::ImGuiTestItemNode *node = ::treeCurr->query(path);
-  const bool currentFrame = node != nullptr;
-  if (node == nullptr)
-    node = ::treePrev->query(path);
+  bool currentFrame = false;
+  const ::ImGuiTestItemNode *node = query_item_node(path, &currentFrame);
 
   if (node != nullptr)
   {
@@ -704,6 +797,33 @@ int imgui_test_runtime_query_children(const char *path, OnTestChildItemInfoFound
   if (count < 0)
     count = ::treePrev->queryChildren(path, func, /*current_frame*/ false);
   return count;
+}
+
+int imgui_test_runtime_walk_items(uint32_t root_id, int max_depth, const OnTestItemWalkFunc &func)
+{
+  if (::treeCurr == nullptr)
+    return -1;
+  int count = ::treeCurr->walk(root_id, max_depth, func, /*current_frame*/ true);
+  if (count < 0)
+    return ::treePrev->walk(root_id, max_depth, func, /*current_frame*/ false);
+  if (root_id == NO_PARENT)
+    count += ::treePrev->walkRootsMissingFrom(*::treeCurr, max_depth, func);
+  return count;
+}
+
+bool imgui_test_runtime_get_item_path(uint32_t id, String &out_path)
+{
+  out_path = "";
+  if (::treeCurr == nullptr)
+    return false;
+  String path;
+  if (!::treeCurr->itemPath(id, path) && !::treePrev->itemPath(id, path))
+    return false;
+  const ::ImGuiTestItemNode *resolved = query_item_node(path.c_str());
+  if (resolved == nullptr || resolved->id != id)
+    return false;
+  out_path = path;
+  return true;
 }
 
 static bool imgui_test_runtime_console_handler(const char *argv[], int argc)

@@ -1,0 +1,7 @@
+parameter: no throw
+default parameter: no throw
+vararg: no throw
+return: no throw
+typed local: no throw
+assignment: no throw
+destructuring: no throw

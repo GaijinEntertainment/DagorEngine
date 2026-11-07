@@ -1,0 +1,7 @@
+array shrinks: Array changed during serialization
+array grows: Array changed during serialization
+table is cleared: Table changed during serialization
+table grows: Table changed during serialization
+table key clears it: Table changed during serialization
+no change: no error
+not a class: Value in available classes is not a class during deserialization

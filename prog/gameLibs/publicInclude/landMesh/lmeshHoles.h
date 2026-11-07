@@ -33,7 +33,7 @@ public:
   bool check(const Point3 &posXYZ) const;
   uint32_t count() const { return holes.size(); }
   bool empty() const { return holes.empty(); }
-  bool approximateCheckBBox(const BBox2 &bbox) { return accumulatedHoleBbox & bbox; }
+  bool approximateCheckBBox(const BBox2 &bbox) const { return accumulatedHoleBbox & bbox; }
 
 private:
   dag::Vector<HoleData> holes;
@@ -56,8 +56,9 @@ public:
   void clearAndAddHoles(const Tab<HoleArgs> &holes);
   void clearHoles();
   bool check(const Point2 &posXZ) const;
-  bool approximateCheckBBox(const BBox2 &bbox);
+  bool approximateCheckBBox(const BBox2 &bbox) const;
   BBox2 getBbox() const { return emptyHolesRegion ? BBox2{} : holesRegion; }
+  uint32_t getRewriteCount() const { return rewriteCount; }
   // Written by a rewrite; shared across off-thread checks, never across dacoll::traceht_hmap, which takes it too (not reentrant).
   OSReadWriteLock &rewriteLock() const { return rewriteMutex; }
 
@@ -69,6 +70,7 @@ private:
   mutable OSReadWriteLock rewriteMutex;
   uint16_t holeCellsCount;
   bool emptyHolesRegion = true;
+  uint32_t rewriteCount = 0;
   BBox2 holesRegion;  // Undefined if `emptyHolesRegion` is true
   Point2 cellSizeInv; // Ditto
   dag::Vector<LandMeshHolesCell> cells;
@@ -101,7 +103,7 @@ inline bool LandMeshHolesManager::check(const Point2 &posXZ) const
   return !cell.empty() && cell.check(posXZ, cellsNeedValidHeight.test(ci, false) ? &hmapHandler : nullptr);
 }
 
-inline bool LandMeshHolesManager::approximateCheckBBox(const BBox2 &bbox)
+inline bool LandMeshHolesManager::approximateCheckBBox(const BBox2 &bbox) const
 {
   if (emptyHolesRegion || !(holesRegion & bbox))
     return false;
@@ -115,7 +117,7 @@ inline bool LandMeshHolesManager::approximateCheckBBox(const BBox2 &bbox)
   {
     for (int i = minCell.x; i <= maxCell.x; i++)
     {
-      auto &cell = cells[j * holeCellsCount + i];
+      const auto &cell = cells[j * holeCellsCount + i];
       if (cell.approximateCheckBBox(bbox))
         return true;
     }

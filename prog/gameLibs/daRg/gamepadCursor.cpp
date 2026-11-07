@@ -183,7 +183,7 @@ eastl::optional<Point2> GamepadCursor::scroll(const HumanInput::IGenJoystick *jo
 {
   using namespace HumanInput;
 
-  if (!joy)
+  if (!joy || scrollHeld)
     return {};
 
   float axisValueX = float(joy->getAxisPosRaw(config.joystickScrollAxisH)) / JOY_XINPUT_MAX_AXIS_VAL;
@@ -196,6 +196,36 @@ eastl::optional<Point2> GamepadCursor::scroll(const HumanInput::IGenJoystick *jo
   Point2 delta = Point2(axisValueX, axisValueY) * scrollStep;
 
   return delta;
+}
+
+
+void GamepadCursor::updateScrollHold(const HumanInput::IGenJoystick *joy)
+{
+  using namespace HumanInput;
+
+  if (config.joystickScrollMoveThreshold <= 0 || !joy)
+  {
+    scrollHoldJoy = joy;
+    scrollHeld = false;
+    return;
+  }
+
+  Point2 axes(float(joy->getAxisPosRaw(config.joystickScrollAxisH)) / JOY_XINPUT_MAX_AXIS_VAL,
+    float(joy->getAxisPosRaw(config.joystickScrollAxisV)) / JOY_XINPUT_MAX_AXIS_VAL);
+
+  if (scrollHoldPending || joy != scrollHoldJoy)
+  {
+    scrollHoldPending = false;
+    scrollHoldJoy = joy;
+    scrollHoldAxes = axes;
+    scrollHeld = true;
+  }
+  else if (scrollHeld)
+  {
+    Point2 moved = axes - scrollHoldAxes;
+    if (::max(fabsf(moved.x), fabsf(moved.y)) > config.joystickScrollMoveThreshold)
+      scrollHeld = false;
+  }
 }
 
 
@@ -216,6 +246,22 @@ Point2 GamepadCursor::stick(const HumanInput::IGenJoystick *joy, int axis_h, int
   if (!apply_dead_zone(joy, ::max(config.gamepadCursorDeadZone, min_dead_zone), axis_h, ax, ay))
     return Point2(0, 0);
   return Point2(ax, ay);
+}
+
+
+bool GamepadCursor::moveBy(const Point2 &delta)
+{
+  // whole pixels, as the stick moves it
+  const float dx = delta.x + dxCup, dy = delta.y + dyCup;
+  dxCup = dx - (int)dx;
+  dyCup = dy - (int)dy;
+  const Point2 prevPos = pos;
+  pos =
+    clamp(pos + Point2((int)dx, (int)dy), Point2(0, 0), Point2(StdGuiRender::screen_width() - 1, StdGuiRender::screen_height() - 1));
+  if (pos == prevPos)
+    return false;
+  targetPos = pos;
+  return true;
 }
 
 

@@ -69,6 +69,8 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
 
   INIT_WEIGHT_FOR_AO()
 
+  if (shader == rendinst_grass_alpha_split && rendinst_render_pass == rendinst_render_pass_impostor_voxel) { dont_render; }
+
   if (compatibility_mode == compatibility_mode_on)
   {
     hlsl {
@@ -83,6 +85,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
   else
   {
     USE_COMBINED_WIND(vs)
+    USE_TREE_WIND_ANIM_FADE(vs)
   }
 
   texture tex = material.texture.diffuse;
@@ -186,7 +189,8 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_to_shadow ||
                             rendinst_render_pass == rendinst_render_pass_depth);
   bool need_tree_burning_for_leaves = !need_burnt_grass && (shader == rendinst_tree_colored || shader == rendinst_tree_colored_alpha_split) &&
-    atest == atestOn && instancing_type == tm_vb && rendinst_render_pass != rendinst_render_pass_impostor_color;
+    atest == atestOn && instancing_type == tm_vb && rendinst_render_pass != rendinst_render_pass_impostor_color &&
+    rendinst_render_pass != rendinst_render_pass_impostor_voxel;
   bool need_tree_burning_for_trunk = !need_burnt_grass && (shader == rendinst_tree_colored || shader == rendinst_tree_colored_alpha_split) &&
     atest == atestOff && instancing_type == tm_vb && rendinst_render_pass == rendinst_render_pass_normal;
   bool need_tree_burning = need_tree_burning_for_leaves || need_tree_burning_for_trunk;
@@ -361,6 +365,9 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
       if (fast_grass_self_shadow_samples != off)
       {
         USE_FAST_GRASS_SHADOW(vs)
+        hlsl(vs) {
+          #define FAST_GRASS_SELF_SHADOW 1
+        }
       }
 
       hlsl(ps)
@@ -392,7 +399,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     }
 
 
-    if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
+    if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo && rendinst_render_pass != rendinst_render_pass_impostor_voxel)
     {
       INIT_APPLY_TREE_WIND()
       USE_APPLY_TREE_WIND()
@@ -435,34 +442,45 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         APPLY_ROTATION_PALETTE
 
         VegetationInteractionInput vegInput = (VegetationInteractionInput)0;
-        ##if (is_pivoted == yes && rendinst_render_pass != rendinst_render_pass_impostor_color)
+        ##if (is_pivoted == yes || atest == atestOn) && rendinst_render_pass != rendinst_render_pass_impostor_color
+          float2 windAnimFade = tree_wind_anim_fade;
+          if (is_dagdp_draw())
+            windAnimFade = dagdp_wind_anim_fade;
+        ##endif
+        float3 prevWorldPos = worldPos;
+        ##if (is_pivoted == yes && rendinst_render_pass != rendinst_render_pass_impostor_color && rendinst_render_pass != rendinst_render_pass_impostor_voxel)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
-          float3 prevWorldPos = worldPos;
           ##if (instancing_type == tm_vb && rendinst_render_pass == rendinst_render_pass_normal)
             float3 prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos;
             LOAD_PREV_WORLD_TM(worldLocalX, worldLocalY, worldLocalZ, worldLocalPos, prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos)
             prevWorldPos = localPos.x * prevWorldTmX + localPos.y * prevWorldTmY + localPos.z * prevWorldTmZ + prevWorldTmPos;
           ##endif
-          float pivotWindAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * pivotWindAnimWeight, prevWorldPos, movementAmount);
+          float pivotWindAnimWeight = get_wind_anim_weight(length(world_view_pos.xyz - worldLocalPos), windAnimFade);
+          BRANCH
+          if (pivotWindAnimWeight > 0)
+            applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * pivotWindAnimWeight, prevWorldPos, movementAmount);
           #ifdef TREE_BURNING_VSOUTPUT
             ##if need_tree_burning_for_leaves
               output.leavesPivotLength = float4(Data.localBranchPivotPos[0], Data.branchDirExtent[0].w);
             ##endif
           #endif
-          float3 currWorldPos = worldPos;
           vegInput.hData = Data;
         ##endif
+        float3 currWorldPos = worldPos;
 
         ##if (atest == atestOn)
           float distToInstance = length(world_view_pos.xyz - worldLocalPos.xyz);
           float dissolveVal = 1;
           float dissolveDist = -0.0001;
-          ##if rendinst_render_pass != rendinst_render_pass_impostor_color
-          float windAnimWeight = saturate(tree_wind_anim_fade_params.x * distToInstance + tree_wind_anim_fade_params.y);
-          float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
-          worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,dissolveVal * windAnimWeight,1);
-          movementAmount = max3(tree_wind_params.z*windVcol.x, tree_wind_params.y*windVcol.z, movementAmount);
+          ##if rendinst_render_pass != rendinst_render_pass_impostor_color && rendinst_render_pass != rendinst_render_pass_impostor_voxel
+          float windAnimWeight = get_wind_anim_weight(distToInstance, windAnimFade);
+          BRANCH
+          if (windAnimWeight > 0)
+          {
+            float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
+            worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,dissolveVal * windAnimWeight,1);
+            movementAmount = max3(tree_wind_params.z*windVcol.x, tree_wind_params.y*windVcol.z, movementAmount);
+          }
           ##endif
         ##endif
         float3 pointToEye = world_view_pos-worldPos;
@@ -471,7 +489,17 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         vegInput.worldPos = worldPos;
         vegInput.localPos = localPos;
         vegInput.height = physBbox.y * length(worldLocalY);
-        float3 vegetationInteractionOffset = apply_vegetation_interactions(vegInput);
+        float3 vegetationInteractionOffset = 0;
+        // daGdp grass keeps its color seed in .w, so only the other daGdp instances carry RI_INSTANCE_EXTRA__* bits there.
+        uint instanceExtraFlags = 0;
+        ##if instancing_type == tm_vb && shader != rendinst_grass_alpha_split
+          BRANCH
+          if (is_dagdp_draw())
+            instanceExtraFlags = asuint(per_instance_data[vbInd + 3].w);
+        ##endif
+        BRANCH
+        if (!(instanceExtraFlags & RI_INSTANCE_EXTRA__NO_OBSTACLES))
+          vegetationInteractionOffset = apply_vegetation_interactions(vegInput);
         worldPos += vegetationInteractionOffset;
 
         output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
@@ -481,7 +509,11 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         #endif
         ##if rendinst_render_pass != rendinst_render_pass_depth
           #if COLOR_NEEDED
-            output.colorMul = get_random_color(worldLocalPos, paletteId).xyz;
+            #if RENDINST_IMPOSTOR_VOXEL
+              output.colorMul = 0;
+            #else
+              output.colorMul = get_random_color(worldLocalPos, paletteId).xyz;
+            #endif
           #endif
           #if GRASS_COLORING
             float grassHeight;
@@ -499,11 +531,11 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
             float smoothnessfade = 1.0 - saturate((dist - smoothnessfadeParams.x) * smoothnessfadeParams.y);
             ao = lerp(1, ao, smoothnessfade);
             // output.normal.a *= ao; // disabled for now because it gives a better match with fast_grass
-            ##if fast_grass_self_shadow_samples != off
+            #if FAST_GRASS_SELF_SHADOW
               output.ellipsoidNormal.w = computeSelfShadow(worldPos, 1, grassChannel, grassHeight, 0.0);
-            ##else
+            #else
               output.ellipsoidNormal.w = 1;
-            ##endif
+            #endif
           #endif
         ##endif
         output.pointToEye = pointToEye.xyzz;
@@ -553,8 +585,15 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
 
   endmacro
 
-  if (rendinst_render_pass == rendinst_render_pass_impostor_color)
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color || rendinst_render_pass == rendinst_render_pass_impostor_voxel)
   {
+    if (shader != rendinst_grass_alpha_split && is_colored == yes && atest == atestOn
+      && rendinst_render_pass == rendinst_render_pass_impostor_voxel)
+    {
+      hlsl {
+        #define  COLOR_NEEDED 1
+      }
+    }
     if (is_pivoted == yes)
     {
       USE_PIVOT_PAINTER()
@@ -565,10 +604,13 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     USE_PIXEL_TANGENT_SPACE()
     USE_WEIGHT_FOR_AO()
     FILL_CURRENT_GBUFFER(true, true)
-    USE_RENDINST_IMPOSTOR_SHADOW()
+    if (rendinst_render_pass != rendinst_render_pass_impostor_voxel)
+    {
+      USE_RENDINST_IMPOSTOR_SHADOW()
+    }
     USE_CLIP_DISSOLVE()
     hlsl(ps) {
-      UnpackedGbuffer get_impostor_gbuffer(VsOutput input, out half alpha, out half coloring)
+      UNPACKED_GBUFFER get_impostor_gbuffer(VsOutput input, out half alpha, out half coloring)
       {
         half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
       ##if shader != rendinst_tree_colored && atest == atestOn
@@ -581,19 +623,23 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         {
           float leaves_fade = saturate(abs(DISSOLVE_ANGLE*input.pointToEye.w));
           diffuseColor.a *= clip_dissolve_func(float3(input.diffuseTexcoord.xy, leaves_fade));
+          #if RENDINST_IMPOSTOR_VOXEL
+            alpha = diffuseColor.a;
+          #endif
         }
         ##if atest == atestOff
         alpha = 1;
         ##endif
         coloring = 0;
 
-        UnpackedGbuffer gbuffer = get_current_gbuffer(input, diffuseColor.rgb);
-        half shadow = getShadow(input.pointToEye.xyz);
-        init_shadow(gbuffer, shadow);
-
-        ##if atest != atestOff
-          coloring = gbuffer.translucency;
-        ##endif
+        UNPACKED_GBUFFER gbuffer = get_current_gbuffer(input, diffuseColor.rgb);
+        #if !RENDINST_IMPOSTOR_VOXEL
+          half shadow = getShadow(input.pointToEye.xyz);
+          init_shadow(gbuffer, shadow);
+          ##if atest != atestOff
+            coloring = gbuffer.translucency;
+          ##endif
+        #endif
 
         return gbuffer;
       }
@@ -718,12 +764,15 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
 
         ##if (is_pivoted == yes)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
-          float3 unusedPrevPos;
-          float windAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, unusedPrevPos);
-
-          float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
-          worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,windAnimWeight,1);
+          float windAnimWeight = get_tree_wind_anim_weight(length(world_view_pos.xyz - worldLocalPos));
+          BRANCH
+          if (windAnimWeight > 0)
+          {
+            float3 unusedPrevPos;
+            applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, unusedPrevPos);
+            float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
+            worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,windAnimWeight,1);
+          }
 
           #ifdef TREE_BURNING_VSOUTPUT
             ##if need_tree_burning_for_leaves

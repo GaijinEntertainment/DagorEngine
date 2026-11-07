@@ -6,6 +6,7 @@ include "postfx_inc.dshl"
 include "viewVecVS.dshl"
 include "globtm.dshl"
 include "dagi_albedo_scene_common.dshl"
+include "tonemapHelpers/debug_draw_hdr_inc.dshl"
 
 macro DEPTH_OUTPUT_DX11()
   cull_mode = none;
@@ -15,8 +16,7 @@ macro DEPTH_OUTPUT_DX11()
   POSTFX_VS_TEXCOORD_VIEWVEC(1, tc, viewvec)
   (ps) {debug_world_view_pos@f3 = world_view_pos;}
   READ_WORLD_SDF(ps)
-  INIT_HDR(ps)
-  USE_HDR(ps)
+  INIT_AND_USE_DEBUG_DRAW_HDR()
 
   hlsl(ps) {
     struct Output
@@ -41,7 +41,8 @@ macro DEPTH_OUTPUT_DX11()
       //gradient = 0;
       //if anisotropic
       float gradLen = length(gradient);
-      ret.norm = gradLen > 0 ? -gradient.xzy/gradLen : -ret.rayDir;
+      // the face that the probe trace reads
+      ret.norm = gradLen > 0 && dot(gradient.xzy, ret.rayDir) >= 0 ? -gradient.xzy/gradLen : -ret.rayDir;
       return true;
     }
   }
@@ -91,43 +92,34 @@ shader dagi_world_scene_radiance_cache_debug
   compile("target_ps", "raymarcher");
 }*/
 
-shader dagi_world_scene_voxel_scene_debug
+int dagi_surface_cache_debug_type;
+
+shader dagi_world_scene_surface_cache_debug
 {
   supports global_frame;
   supports none;
-  hlsl {
-    //#define DAGI_RADIANCE_AT_SKIP_ALBEDO float3(-1,0,0)
-  }
-
   DEPTH_OUTPUT_DX11()
-
-  PROJECT_GET_WORLD_RADIANCE_AT(ps)
-
   INIT_AND_USE_GLOBTM(ps)
-  (ps) {
-  dagi_lit_voxel_scene_luma_only@i1 = dagi_lit_voxel_scene_luma_only;
-  }
+  DAGI_SURFACE_CACHE_READ(ps)
+  (ps) { dagi_surface_cache_debug_type@i1 = dagi_surface_cache_debug_type; }
 
   hlsl(ps)
   {
-    Output raymarcher(VsOutput input HW_USE_SCREEN_POS)
+    Output raymarcher(VsOutput input)
     {
-      float4 screenpos = GET_SCREEN_POS(input.pos);
-      Output output;
-
       RayMarchRes r;
       if (!debug_trace_sdf(input, 1400, r))
         discard;
-      output.color.a = 0;
-      output.color.rgb = dagi_get_radiance_at(r.worldPos, r.norm, float4(-r.rayDir, r.t));
-      if (output.color.r < 0)
-        discard;
-      FLATTEN
-      if (dagi_lit_voxel_scene_luma_only)
-        output.color.rgb = output.color.r;
-      //output.color = 0.5*(1-exp2(-0.1*steps));
-      //output.color.rgb = 1*abs(t-t2);
-      output.color.rgb = pack_hdr(output.color.rgb);
+      // not a lighting color, even at night exposure
+      float3 radiance = float3(0, 4, 0);
+      uint flags = 0, age = 0;
+      bool known = false;
+      if (dagi_surface_cache_debug_type != 2)
+        known = dagi_surface_cache_find(r.worldPos, r.norm, dagi_surface_cache_level(r.worldPos), radiance, flags, age);
+      if (!known && dagi_surface_cache_debug_type != 1)
+        dagi_surface_cache_voxel_get(r.worldPos, radiance);
+      Output output;
+      output.color = float4(pack_debug_draw_hdr(radiance), 0);
       float4 imagePos = mulPointTm(r.worldPos, globtm);
       output.depth = imagePos.z/imagePos.w;
       return output;
@@ -176,7 +168,7 @@ shader dagi_world_scene_albedo_scene_debug
       else
         output.color.rgb = albedo;
 
-      output.color.rgb = pack_hdr(output.color.rgb);
+      output.color.rgb = pack_debug_draw_hdr(output.color.rgb);
       output.depth = imagePos.z/imagePos.w;
       return output;
     }

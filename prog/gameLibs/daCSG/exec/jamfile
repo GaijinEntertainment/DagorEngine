@@ -1,0 +1,28 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daCSG/exec ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+include $(Root)/prog/gameLibs/daCSG/daCSG-options.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/daCSG/exec.lib ;
+
+Sources =
+  attributes.cpp
+  cluster.cpp
+  convexClip.cpp
+  execute.cpp
+  lowering.cpp
+;
+
+UseProgLibs +=
+  gameLibs/daCSG/mesh
+  gameLibs/daCSG/graph
+  gameLibs/daCSG/prims
+  gameLibs/daCSG/validate
+  gameLibs/daCSG/cleanup
+  gameLibs/daParallel
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

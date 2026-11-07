@@ -48,12 +48,14 @@ public:
     dag::ConstSpan<int> getShownAssetTypeIndexes() const { return allAssetsTab.getShownAssetTypeIndexes(); }
 
     void selectAsset(const DagorAsset &asset) { allAssetsTab.selectAsset(asset, true); }
+    void selectAssetFolder(const DagorAssetFolder &folder) { allAssetsTab.selectAssetFolder(folder); }
     DagorAsset *getSelectedAsset() const;
     DagorAssetFolder *getSelectedAssetFolder() const;
 
-    void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const
+    DagorAssetFolder *getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets,
+      dag::Vector<DagorAssetFolder *> &sub_folders) const
     {
-      allAssetsTab.getFilteredAssetsFromTheCurrentFolder(assets);
+      return allAssetsTab.getFilteredAssetsFromTheCurrentFolder(assets, sub_folders);
     }
 
     AllAssetsTree &getTree() { return allAssetsTab.getTree(); }
@@ -129,6 +131,7 @@ private:
   bool assetBrowserIsOpen() const override;
   void assetBrowserSetOpen(bool open) override;
   void assetBrowserOnAssetSelected(DagorAsset *asset, bool double_clicked) override;
+  void assetBrowserOnFolderSelected(const DagorAssetFolder &folder) override;
   void assetBrowserOnContextMenu(DagorAsset *asset) override;
 
   // IAssetTagsView

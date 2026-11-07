@@ -65,13 +65,11 @@ public:
   void syncShadowDataGPU();
   void updateVisibleLightShadowBuffersGPU(Sbuffer *visible_lights_data_buf, Sbuffer *visible_lights_counts_buf);
 
-  void updateOutOfFrustumCommonLightShadowsCB(const Tab<uint16_t> &visible_spot_light_ids,
-    const Tab<uint16_t> &visible_omni_light_ids);
-  void setEmptyOutOfFrustumCommonLightShadowsCB();
-  void afterResetDevice();
+  void updateCommonLightShadowsConstBufferCPU(CommonLightShadowsCBType &shadow_command_buffer, const char *buffer_name,
+    const Tab<uint16_t> &visible_spot_light_ids, const Tab<uint16_t> &visible_omni_light_ids) const;
+  void afterResetDevice() { shadowDataBufferInitialized = false; }
 
   const CommonLightShadowsCBType &getInFrustumCommonLightShadowsCB(LightBufferSlot slot) const;
-  const CommonLightShadowsCBType &getOutOfFrustumCommonLightShadowsCB() const;
 
   void setNeedSsss(bool need_ssss);
   Sbuffer *getShadowDataBuffer() const { return shadowDataBuffer.getBuf(); }
@@ -93,11 +91,6 @@ private:
   static void fillLightShadowData(LightsManagerT *lights_manager, ShadowSystem *shadow_system,
     CommonLightShadowsDataType &common_shadow_data, const Tab<uint16_t> &visible_light_ids, uint32_t base_index);
 
-  void updateCommonLightShadowsConstBufferCPU(CommonLightShadowsCBType &shadow_command_buffer, const char *buffer_name,
-    const Tab<uint16_t> &visible_spot_light_ids, const Tab<uint16_t> &visible_omni_light_ids, bool always_write_header) const;
-
-  bool lazyInitCommonLightShadowsCB(CommonLightShadowsCBType &cb, const char *buffer_name) const;
-
   OmniLightsManager *omniLightsManager;
   SpotLightsManager *spotLightsManager;
   const LightsResourcesManager *lightsResMgr;
@@ -109,9 +102,6 @@ private:
 
   eastl::bitset<SpotLightsManager::MAX_LIGHTS + OmniLightsManager::MAX_LIGHTS> dynamicLightsShadowsVolumeSet;
   mutable eastl::array<CommonLightShadowsCBType, LIGHTS_BUFFER_SLOTS> commonLightShadowsBufferCB;
-  mutable CommonLightShadowsCBType outOfFrustumCommonLightShadowsCB;
-
-  mutable bool outOfFrustumCommonLightShadowsAreEmpty = false;
   UniqueBuf spotLightSsssShadowDescBuffer;
   bool needSsss = false;
   UniqueBuf shadowDataBuffer;

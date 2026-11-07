@@ -196,7 +196,7 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
       return worldPos.y < clouds_start_alt && world_view_pos.y < clouds_start_alt;
     }
 
-    ##if clouds_use_fullres == yes
+    ##if clouds_use_fullres == yes && clouds_close_depth_tex == NULL
       #define USE_FULLRES_CLOUDS 1
     ##endif
 

@@ -327,6 +327,8 @@ TunedElement *create_tuned_visibility_array(const char *name, TunedElement *base
 
 void set_tuned_array_member_to_show_in_caption(TunedElement &array, const char *member) {}
 
+void set_tuned_element_desc(TunedElement &e, const char *desc) {}
+
 }; // namespace ScriptHelpers
 DAG_DECLARE_RELOCATABLE(ScriptHelpers::TunedArray::Elem);
 

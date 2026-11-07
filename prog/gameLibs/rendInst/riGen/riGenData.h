@@ -160,6 +160,14 @@ struct RendInstGenData
     Tab<int> riResIdxByNameId;
     SmallTab<ElemMask, MidmemAlloc> riResElemMask; // bit-per-elem mask for rendinst::MAX_LOD_COUNT lod of each riRes
     SmallTab<bbox3f, MidmemAlloc> riResBb;
+    // [0] below the crown bottom, [1] the crown; no split: [0] = riResBb, [1] empty
+    SmallTab<carray<bbox3f, 2>, MidmemAlloc> riResSplitBb;
+    static constexpr float SPLIT_BOX_WORLD_MARGIN = 0.25f;
+    static bbox3f get_split_cull_box(bbox3f world_split_bb, bbox3f_cref world_inst_bb)
+    {
+      v_bbox3_extend(world_split_bb, v_splats(SPLIT_BOX_WORLD_MARGIN));
+      return v_bbox3_get_box_intersection(world_split_bb, world_inst_bb);
+    }
     SmallTab<bbox3f, MidmemAlloc> riCollResBb;
     SmallTab<rendinst::render::RtPoolData *, MidmemAlloc> rtPoolData;
     Tab<rendinst::props::RendinstProperties> riProperties;

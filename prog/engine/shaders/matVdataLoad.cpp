@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <shaders/dag_shaderMesh.h>
+#include <shaders/dag_shaderMeshlets.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMeshTexLoadCtrl.h>
 #include <3d/fileTexFactory.h>
@@ -160,8 +161,13 @@ void ShaderMatVdata::makeTexAndMat(const DataBlock &texBlk, const DataBlock &mat
       m->mtex[slot] = texIdx >= 0 && texIdx < tex.size() ? tex[texIdx] : BAD_TEXTUREID;
     }
     mat[i] = new_shader_material(*m);
+    if (!mat[i])
+      mat[i] = new_null_material(*m);
     if (mat[i])
+    {
       mat[i]->addRef();
+      IShaderMatVdataTexLoadCtrl::on_material_created(*mat[i]);
+    }
   }
 }
 struct NamedInPlaceMemLoadCB : public InPlaceMemLoadCB
@@ -251,7 +257,10 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
     const_cast<ShaderMaterialProperties &>(hdr->mat[i]).patchNonSharedData(hdr, tex);
     mat[i] = ScriptedShaderMaterial::create(hdr->mat[i]);
     if (mat[i])
+    {
       mat[i]->addRef();
+      IShaderMatVdataTexLoadCtrl::on_material_created(*mat[i]);
+    }
   }
 
   if (matvdata::hook_on_add_vdata)
@@ -288,8 +297,13 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
   // read and create vb/ib
   Tab<uint8_t> tmp_decoder_stor;
   for (int i = 0; i < vdata.size(); i++)
+  {
     vdata[i].initGvd(name, hdr->vdata[i].vertNum, hdr->vdata[i].vertStride, hdr->vdata[i].packedIdxSize(), hdr->vdata[i].idxSize,
       flags | hdr->vdata[i].flags, zcrd, tmp_decoder_stor);
+    if (shader_meshlets::is_enabled())
+      vdata[i].initPositionChannel(name, make_span_const(hdr->vdata[i].vDecl));
+  }
+
   if (vdataFullCount && (vdata.data() + 0)->getLodIndex() != 0)
     setLodsAreSplit();
 
@@ -344,7 +358,7 @@ static inline int calc_end_ofs(int ofs, int s, int vbsz) { return (ofs + s - 1) 
 static FullFileLoadCB *reload_files_open(const char *fn, int ofs);
 
 void ShaderMatVdata::unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs, dag::Span<int> start_end_stride,
-  Tab<uint8_t> &buf_stor)
+  Tab<uint8_t> &buf_stor, shader_meshlets::VdataElemSpan meshlet_elems)
 {
   int64_t reft = profile_ref_ticks();
   ModelLoadStats &ml_stats = ShaderMatVdata::modelLoadStats[modelType <= 2 ? modelType : 0];
@@ -374,7 +388,8 @@ void ShaderMatVdata::unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs
   if (buf_byte_ofs)
   {
     for (GlobalVertexData &vd : vdata)
-      vd.unpackToSharedBuffer(*zcrd, buf[vd.getVbIdx()], buf[0], buf_byte_ofs[vd.getVbIdx()], buf_byte_ofs[0], buf_stor);
+      vd.unpackToSharedBuffer(*zcrd, buf[vd.getVbIdx()], buf[0], buf_byte_ofs[vd.getVbIdx()], buf_byte_ofs[0], buf_stor,
+        meshlet_elems.forVdataIndex(&vd - vdata.data()));
   }
   else
   {
@@ -390,7 +405,8 @@ void ShaderMatVdata::unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs
           break;
       G_ASSERTF(vd.getStride() == cur_triple[2] && cur_triple < start_end_stride.end(), "vd.getStride()=%d cur_triple=%d stride=%d",
         vd.getStride(), cur_triple - start_end_stride.data(), cur_triple[2]);
-      vd.unpackToSharedBuffer(*zcrd, buf[vd.getVbIdx()], buf[0], cur_triple[0], start_end_stride[0], buf_stor);
+      vd.unpackToSharedBuffer(*zcrd, buf[vd.getVbIdx()], buf[0], cur_triple[0], start_end_stride[0], buf_stor,
+        meshlet_elems.forVdataIndex(&vd - vdata.data()));
       G_ASSERTF(cur_triple[0] <= cur_triple[1], "overrun ofs=%d > end=%d stride=%d vbIdx=%d", cur_triple[0], cur_triple[1],
         cur_triple[2], vd.getVbIdx());
     }

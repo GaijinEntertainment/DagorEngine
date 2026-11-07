@@ -150,6 +150,7 @@ macro PROJECT_LIGHT_POINT_SCREEN_VOXEL(code) // when updating radiance from gbuf
       half3 albedo = gbuf.diffuseColor + gbuf.specularColor;
       float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light(worldPos, tc, gbuf.normal))*albedo;
       #if GI_HAS_DYNAMIC_LIGHTS
+        gbuf.diffuseColor = gbuf.albedo;
         litColor += getGiDynamicLighting(gbuf, worldPos, screenpos, tc, linearDepth);
       #endif
       return litColor;
@@ -167,6 +168,29 @@ macro PROJECT_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes
       float3 ambientWorldPos = worldPos;//fixme!
       float shadowBiasMeters = 0;//fixme: we should add bias based on distance
       return get_sun_sky_lit_color(ambientWorldPos, worldPos, worldNormal, albedo, shadowBiasMeters);
+    }
+  }
+endmacro
+
+// one light list for every daSharc write
+macro PROJECT_LIGHT_POINT_OFF_SCREEN_DYNAMIC_LIGHTS(code)
+  GI_DYNLIGHTS_MIN_PROCESSED_GBUFFER(code)
+  GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(code)
+endmacro
+
+// the surface cache relight: CSM near the view like the screen, static shadow beyond
+macro PROJECT_LIGHT_POINT_RELIGHT(code)
+  INIT_CSM_SHADOW(code)
+  BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(code)
+  SUN_LIGHT_POINT_TRACE_HIT(code)
+  PROJECT_LIGHT_POINT_OFF_SCREEN_DYNAMIC_LIGHTS(code)
+  hlsl(code) {
+    float3 project_get_direct_lit_color_at_trace_hit(float3 worldPos, float3 worldNormal, float3 albedo, float shadow_offset)
+    {
+      ProcessedGbuffer gbuf;
+      gbuf.diffuseColor = albedo;
+      gbuf.normal = worldNormal;
+      return dagi_get_sun_color(worldPos, worldNormal, shadow_offset)*albedo + getGiDynamicLighting(gbuf, worldPos, 0, 0, 0);
     }
   }
 endmacro
@@ -201,25 +225,14 @@ macro PROJECT_LIGHT_POINT_VOXELIZE(code) // when voxelizing radiance of radiance
   }
 endmacro
 
-macro PROJECT_LIGHT_POINT_OFF_SCREEN_DYNAMIC_LIGHTS(code)
-  GI_DYNLIGHTS_MIN_PROCESSED_GBUFFER(code)
-  GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(code)
-endmacro
-
 macro PROJECT_LIGHT_POINT_VOXELIZE_OFF_SCREEN_VOXEL_LIT_SCENE(code)
   PROJECT_LIGHT_POINT_OFF_SCREEN_DYNAMIC_LIGHTS(code)
   PROJECT_LIGHT_POINT_VOXELIZE(code)
 endmacro
 
-
-macro PROJECT_LIGHT_POINT_SCREEN_DYNAMIC_LIGHTS(code)
-  GI_DYNLIGHTS_MIN_PROCESSED_GBUFFER(code)
-  GI_COMMON_SCREEN_DYNAMIC_LIGHTS(code)
-endmacro
-
 macro PROJECT_LIGHT_POINT_SCREEN_VOXEL_LIT_SCENE(code)
   PACK_UNPACK_GBUFFER_BASE(code)
-  PROJECT_LIGHT_POINT_SCREEN_DYNAMIC_LIGHTS(code)
+  PROJECT_LIGHT_POINT_OFF_SCREEN_DYNAMIC_LIGHTS(code)
   PROJECT_LIGHT_POINT_SCREEN_VOXEL(code)
 endmacro
 

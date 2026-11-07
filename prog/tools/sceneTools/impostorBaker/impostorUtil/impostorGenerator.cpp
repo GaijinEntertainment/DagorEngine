@@ -99,7 +99,7 @@ void ImpostorGenerator::closeCharacterMicroDetails()
 
 ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, DagorAssetMgr *asset_manager, ILogWriter *log_writer,
   bool display, ExportImpostorsCB _callback) :
-  assetManager(asset_manager), callback(_callback), impostorBaker(log_writer, display)
+  assetManager(asset_manager), callback(_callback), impostorBaker(log_writer, app_blk, display), isStandaloneTool(display)
 {
   appBlkCopy.setFrom(&app_blk, app_blk.resolveFilename());
   context.app = this;
@@ -398,7 +398,10 @@ dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBakingFromArgs(const e
       }
       else
       {
-        impostorBaker.conlog("Baking asset <%s>, because it's requested in args", asset->getName());
+        if (hasAssetChanged(asset))
+          impostorBaker.conlog("Baking asset <%s>, because it's requested in args, and changed", asset->getName());
+        else
+          impostorBaker.conlog("Baking asset <%s>, because it's requested in args, even though it's unchanged", asset->getName());
         assetsForBaking.push_back(asset);
       }
     }
@@ -506,7 +509,8 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
 
     riDataBlock(asset, *impostorBlk, false);
     impostorBlk->setStr("builtRIHashXXH3", getBuiltRIAssetCacheXXH3(*asset));
-    assetManager->notifyAssetChanged(asset);
+    if (!isStandaloneTool)
+      assetManager->notifyAssetChanged(asset);
     return true;
   };
 
@@ -711,7 +715,11 @@ void ImpostorGenerator::gatherSourceFiles(DagorAsset *asset, eastl::set<String, 
   Tab<SimpleString> srcFiles(tmpmem);
   e->gatherSrcDataFiles(*asset, srcFiles);
   for (int i = 0; i < srcFiles.size(); ++i)
+  {
+    if (str_ends_with(srcFiles[i], ".voxcache.bin"))
+      continue;
     files.insert(String(srcFiles[i]));
+  }
 
   for (const SimpleString &srcFilePath : srcFiles)
     addProxyMatTextureSourceFiles(srcFilePath, asset->getName(), files);

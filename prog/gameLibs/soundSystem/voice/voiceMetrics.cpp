@@ -21,12 +21,12 @@ namespace voicechat::metrics
 
 static const char overlay_group[] = "Sound";
 static const char overlay_name[] = "Voice metrics";
-// constraint: imgui calls a registered window function only while the window is open and not collapsed
+// imgui calls a registered window function only while the window is open and not collapsed
 static constexpr unsigned overlay_hidden_after_ms = 500;
 static constexpr unsigned published_stale_after_ms = 1000;
 static constexpr float bar_floor_db = -60.0f;
 
-// constraint: only the main thread writes these, from the imgui draw and the console
+// only the main thread writes these, from the imgui draw and the console
 static volatile int overlay_session = 0;
 static volatile int overlay_drawn_msec = 0;
 static int overlay_opened_msec = 0;

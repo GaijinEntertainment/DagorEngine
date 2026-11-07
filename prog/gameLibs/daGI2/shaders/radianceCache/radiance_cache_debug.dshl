@@ -7,6 +7,7 @@ shader radiance_cache_indirection_draw_debug
 {
   supports global_frame;
   supports none;
+  color_write = rgb;
   (vs) {
     globtm@f44 = globtm;
   }
@@ -92,6 +93,7 @@ shader radiance_cache_probes_draw_debug
 {
   supports global_frame;
   supports none;
+  color_write = rgb;
   (vs) {
     globtm@f44 = globtm;
     radiance_cache_current_frame@i1 = radiance_cache_current_frame;

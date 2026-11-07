@@ -150,7 +150,7 @@ public:
       eventWaitCount = 1;
       float *data = NULL;
       int stride;
-      if (gpuTexture->lockimg((void **)&data, stride, 0, TEXLOCK_READ | TEXLOCK_RAWDATA))
+      if (gpuTexture->lockimg((void **)&data, stride, 0, TEXLOCK_READ))
       {
         eventWaitCount = 0;
         G_ASSERT(lastNumber <= results.size());
@@ -195,7 +195,7 @@ public:
     {
       TIME_D3D_PROFILE(copy)
       int stride;
-      if (gpuTexture->lockimg(NULL, stride, 0, TEXLOCK_READ | TEXLOCK_RAWDATA))
+      if (gpuTexture->lockimg(NULL, stride, 0, TEXLOCK_READ))
         gpuTexture->unlockimg();
       d3d::issue_event_query(event);
     }

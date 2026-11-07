@@ -4,6 +4,37 @@
 #include "treeBurningClientES.cpp.inl"
 ECS_DEF_PULL_VAR(treeBurningClient);
 #include <daECS/core/internal/performQuery.h>
+static constexpr ecs::ComponentDesc tree_burning_update_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("tree_burning_manager"), ecs::ComponentTypeInfo<TreeBurningManager>()},
+//start of 2 ro components at [1]
+  {ECS_HASH("tree_burning__fire_spread_speed"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("tree_burning__time_to_invalidate_shadows"), ecs::ComponentTypeInfo<float>()}
+};
+static void tree_burning_update_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
+  do
+    tree_burning_update_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , ECS_RW_COMP(tree_burning_update_es_comps, "tree_burning_manager", TreeBurningManager)
+    , ECS_RO_COMP(tree_burning_update_es_comps, "tree_burning__fire_spread_speed", float)
+    , ECS_RO_COMP(tree_burning_update_es_comps, "tree_burning__time_to_invalidate_shadows", float)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc tree_burning_update_es_es_desc
+(
+  "tree_burning_update_es",
+  "prog/daNetGameLibs/tree_burning/render/treeBurningClientES.cpp.inl",
+  ecs::EntitySystemOps(tree_burning_update_es_all),
+  make_span(tree_burning_update_es_comps+0, 1)/*rw*/,
+  make_span(tree_burning_update_es_comps+1, 2)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  (1<<ecs::UpdateStageInfoAct::STAGE)
+,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc tree_burning_add_fire_source_es_comps[] =
 {
 //start of 3 ro components at [0]
@@ -35,37 +66,6 @@ static ecs::EntitySystemDesc tree_burning_add_fire_source_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 );
-static constexpr ecs::ComponentDesc tree_burning_update_es_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("tree_burning_manager"), ecs::ComponentTypeInfo<TreeBurningManager>()},
-//start of 2 ro components at [1]
-  {ECS_HASH("tree_burning__fire_spread_speed"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("tree_burning__time_to_invalidate_shadows"), ecs::ComponentTypeInfo<float>()}
-};
-static void tree_burning_update_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    tree_burning_update_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(tree_burning_update_es_comps, "tree_burning_manager", TreeBurningManager)
-    , ECS_RO_COMP(tree_burning_update_es_comps, "tree_burning__fire_spread_speed", float)
-    , ECS_RO_COMP(tree_burning_update_es_comps, "tree_burning__time_to_invalidate_shadows", float)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc tree_burning_update_es_es_desc
-(
-  "tree_burning_update_es",
-  "prog/daNetGameLibs/tree_burning/render/treeBurningClientES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, tree_burning_update_es_all_events),
-  make_span(tree_burning_update_es_comps+0, 1)/*rw*/,
-  make_span(tree_burning_update_es_comps+1, 2)/*ro*/,
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
-  0
-,"render");
 //static constexpr ecs::ComponentDesc register_tree_burning_callbacks_on_level_loaded_es_comps[] ={};
 static void register_tree_burning_callbacks_on_level_loaded_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {

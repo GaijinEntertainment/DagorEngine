@@ -18,6 +18,8 @@ class RenderDynamicCube
   int cubeSize = -1;
 
 public:
+  static constexpr float RI_FAR_PLANE = 75.f;
+
   enum class RenderMode
   {
     ONLY_SKY,

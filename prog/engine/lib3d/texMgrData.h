@@ -20,6 +20,7 @@
 #include <3d/ddsxTex.h>
 #include <3d/tql.h>
 #include <EASTL/vector.h>
+#include <EASTL/vector_map.h>
 #include <startup/dag_globalSettings.h>
 
 enum class Drv3dCommand;
@@ -49,7 +50,17 @@ extern D3dResMgrDataFinal RMGR; //< main resource manager data
 extern eastl::vector<MipBiasRule> mip_bias_rules;
 extern float default_mip_bias;
 
-extern TextureIdSet anisotropy_exceptions;
+struct AnisotropyOverride
+{
+  enum Type : uint8_t
+  {
+    KEEP,
+    DIV,
+  };
+  Type type;
+  int value;
+};
+extern eastl::vector_map<int, AnisotropyOverride> anisotropy_overrides; // by texture index
 
 extern TextureFactory *default_tex_mgr_factory;
 extern TexTagInfoArray textagInfo;
@@ -831,6 +842,7 @@ namespace texmgr_internal
 {
 void add_mip_bias_rule(const char *substring, float bias);
 void apply_mip_bias_rules(BaseTexture *tex, const char *name);
+void set_texture_derived_sampler(TEXTUREID tid, d3d::SamplerInfo sampler_info);
 
 void remove_from_managed_tex_map(int id);
 

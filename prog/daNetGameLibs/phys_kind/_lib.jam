@@ -1,0 +1,2 @@
+gamePulls += framework_phys_kind_pull daNetGameLibs_phys_kind_DAS_pull_AOT ;
+UseProgLibs += daNetGameLibs/phys_kind ;

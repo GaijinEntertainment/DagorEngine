@@ -21,7 +21,7 @@ let overlay = {
     }
     {
       rendObj = ROBJ_TEXT
-      text = "Under 100 px apart at the start: A drags, pinches and rotates, B only drags; over 100 px: A pinches and rotates, B does all three (drags under 500 px)."
+      text = "Fingers 150 px apart: DRAG in B only, PINCH and ROTATE in A only."
     }
     {
       rendObj = ROBJ_TEXT
@@ -30,12 +30,12 @@ let overlay = {
     {
       rendObj = ROBJ_TEXT
       color = Color(255, 150, 150)
-      text = "On Windows use two fingers on the DualSense touchpad, or on a laptop touchpad with `touchpadAsTouch:b=yes` in settings.blk."
+      text = "On PC set `touchScreen:b=yes` and `emuTouchScreenWithMouse:b=yes` in settings.blk."
     }
     {
       rendObj = ROBJ_TEXT
       color = Color(255, 150, 150)
-      text = "Mouse: with `touchScreen:b=yes` and `emuTouchScreenWithMouse:b=yes` hold R_MOUSE_BTN, move away, hold L_MOUSE_BTN and move."
+      text = "Hold R_MOUSE_BTN for one finger, move the pointer away, hold L_MOUSE_BTN and move for the other."
     }
   ]
 }
@@ -106,7 +106,7 @@ let areas = {
   gap = sh(2)
   children = [
     mkArea("A", {}, Color(50, 110, 40))
-    mkArea("B", { gestureDragDistanceMax = 500, gesturePinchDistanceMin = 100, gestureRotateDistanceMin = 100 },
+    mkArea("B", { gestureDragDistanceMax = 500, gesturePinchDistanceMin = 200, gestureRotateDistanceMin = 200 },
       Color(40, 70, 130))
   ]
 }

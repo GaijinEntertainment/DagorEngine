@@ -24,7 +24,7 @@ static void bind_minimap_ui_behaviors(SqModules *module_mgr)
   module_mgr->addNativeModule("minimap.behaviors", tblBhv);
 }
 
-SQ_DEF_AUTO_BINDING_REGFUNC_EX(bind_minimap_ui_behaviors, sq::VM_UI_ALL);
+SQ_DEF_AUTO_BINDING_REGFUNC_EX(bind_minimap_ui_behaviors, sq::VM_UI);
 
 #include <daECS/core/componentType.h>
 ECS_DEF_PULL_VAR(minimap_ui_bhv_sq);

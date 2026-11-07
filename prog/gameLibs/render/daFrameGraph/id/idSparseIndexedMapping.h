@@ -10,7 +10,6 @@
 #include <util/dag_globDef.h>
 #include <math/dag_intrin.h>
 #include <vecmath/dag_vecMath.h>
-#include <generic/dag_zip.h>
 #include <debug/dag_assert.h>
 #include <id/idIndexedFlags.h>
 #include <id/bitSearch.h>
@@ -18,7 +17,7 @@
 
 // Basically an Id -> Value map that is supposed to have
 // very few holes in it.
-template <class EnumType, class ValueType, typename Allocator = EASTLAllocatorType>
+template <class EnumType, class ValueType, typename Allocator = EASTLAllocatorType, bool HIDEABLE = false>
 class IdSparseIndexedMapping
 {
   using SizeType = eastl::underlying_type_t<EnumType>;
@@ -26,7 +25,7 @@ class IdSparseIndexedMapping
   static constexpr size_t WORD_BITS = sizeof(WordType) * CHAR_BIT;
   static constexpr size_t SUBWORD_BITS = sizeof(float) * CHAR_BIT;
 
-  template <class OtherEnumType, class OtherValueType, typename OtherAllocator>
+  template <class OtherEnumType, class OtherValueType, typename OtherAllocator, bool OTHER_HIDEABLE>
   friend class IdSparseIndexedMapping;
 
 public:
@@ -36,9 +35,12 @@ public:
   IdSparseIndexedMapping(const Allocator &allocator = Allocator()) : capacityInWordsAndAllocator(0, allocator) {}
 
   IdSparseIndexedMapping(const IdSparseIndexedMapping &other) :
-    capacityInWordsAndAllocator(other.capacityInWordsAndAllocator), size(other.size), usedCount(other.usedCount)
+    capacityInWordsAndAllocator(other.capacityInWordsAndAllocator),
+    size(other.size),
+    usedCount(other.usedCount),
+    hiddenCount(other.hiddenCount)
   {
-    copyInitFrom(other.elements, other.usedBits);
+    copyInitFrom(other);
   }
   IdSparseIndexedMapping &operator=(const IdSparseIndexedMapping &other)
   {
@@ -50,21 +52,25 @@ public:
 
     elements = nullptr;
     usedBits = nullptr;
+    storedBits = nullptr;
     capacityInWordsAndAllocator = other.capacityInWordsAndAllocator;
     size = other.size;
     usedCount = other.usedCount;
-    copyInitFrom(other.elements, other.usedBits);
+    hiddenCount = other.hiddenCount;
+    copyInitFrom(other);
     return *this;
   }
 
   IdSparseIndexedMapping(IdSparseIndexedMapping &&other) :
     elements(eastl::exchange(other.elements, nullptr)),
     usedBits(eastl::exchange(other.usedBits, nullptr)),
+    storedBits(eastl::exchange(other.storedBits, nullptr)),
     capacityInWordsAndAllocator(eastl::exchange(other.capacityInWordsAndAllocator.first(), 0),
       // TODO: handle stateful allocators properly
       eastl::exchange(other.capacityInWordsAndAllocator.second(), Allocator{})),
     size(eastl::exchange(other.size, 0)),
-    usedCount(eastl::exchange(other.usedCount, 0))
+    usedCount(eastl::exchange(other.usedCount, 0)),
+    hiddenCount(eastl::exchange(other.hiddenCount, 0))
   {}
   IdSparseIndexedMapping &operator=(IdSparseIndexedMapping &&other)
   {
@@ -73,11 +79,13 @@ public:
     destroyAndDeallocate();
     elements = eastl::exchange(other.elements, nullptr);
     usedBits = eastl::exchange(other.usedBits, nullptr);
+    storedBits = eastl::exchange(other.storedBits, nullptr);
     capacityInWordsAndAllocator.first() = eastl::exchange(other.capacityInWordsAndAllocator.first(), 0);
     // TODO: handle stateful allocators properly
     capacityInWordsAndAllocator.second() = eastl::exchange(other.capacityInWordsAndAllocator.second(), Allocator{});
     size = eastl::exchange(other.size, 0);
     usedCount = eastl::exchange(other.usedCount, 0);
+    hiddenCount = eastl::exchange(other.hiddenCount, 0);
     return *this;
   }
 
@@ -107,6 +115,7 @@ public:
   }
 
   ValueType &get(EnumType key)
+    requires(!HIDEABLE)
   {
     if (!isMapped(key))
       emplaceAt(key);
@@ -117,10 +126,10 @@ public:
   eastl::pair<EnumType, ValueType &> appendNew(Args &&...args)
   {
     uint32_t sw = 0;
-    SizeType newIdx = size > 0 ? find<false, true>(0, sw) : 0;
+    SizeType newIdx = size > 0 ? find<false, true>(storedSubwordData(), 0, sw) : 0;
     ensureSpaceFor(newIdx);
     new (eastl::addressof(elements[newIdx].value)) ValueType(eastl::forward<Args>(args)...);
-    setUsed(newIdx, true);
+    setStored(newIdx, true);
     ++usedCount;
     return {static_cast<EnumType>(newIdx), elements[newIdx].value};
   }
@@ -133,10 +142,10 @@ public:
 
     ensureSpaceFor(idx);
 
-    if (isUsed(idx))
+    if (isStored(idx))
       return nullptr;
 
-    setUsed(idx, true);
+    setStored(idx, true);
     new (eastl::addressof(elements[idx].value)) ValueType(eastl::forward<Args>(args)...);
     ++usedCount;
     return &elements[idx].value;
@@ -146,18 +155,30 @@ public:
 
   EnumerateIterator erase(EnumType key)
   {
-    G_ASSERT_RETURN(isMapped(key), (EnumerateIterator{*this, size, 0}));
-
     const SizeType idx = eastl::to_underlying(key);
+    G_ASSERT_RETURN(idx < size && isStored(idx), (EnumerateIterator{*this, subwordData(), size, 0}));
+
     elements[idx].value.~ValueType();
 
-    setUsed(idx, false);
-    --usedCount;
+    if (isUsed(idx))
+      --usedCount;
+    else
+      --hiddenCount;
+    setStored(idx, false);
 
     // Data was mutated, so load the current subword for the search
     uint32_t sw = subwordData()[static_cast<uint32_t>(idx) / 32];
     auto result = bit_search<true, true>(subwordData(), static_cast<uint32_t>(size), static_cast<uint32_t>(idx), sw);
-    return EnumerateIterator{*this, static_cast<SizeType>(result), sw};
+    return EnumerateIterator{*this, subwordData(), static_cast<SizeType>(result), sw};
+  }
+
+  void hide(EnumType key)
+    requires HIDEABLE
+  {
+    G_ASSERT_RETURN(isMapped(key), );
+    setUsed(eastl::to_underlying(key), false);
+    --usedCount;
+    ++hiddenCount;
   }
 
   struct ConstEnumerateIterator
@@ -168,12 +189,14 @@ public:
     using pointer = const value_type *;
     using reference = const value_type &;
 
-    ConstEnumerateIterator(const IdSparseIndexedMapping &m, SizeType i, uint32_t sw) : mapping{&m}, idx{i}, currentSubword{sw} {}
+    ConstEnumerateIterator(const IdSparseIndexedMapping &m, const uint32_t *b, SizeType i, uint32_t sw) :
+      mapping{&m}, bits{b}, idx{i}, currentSubword{sw}
+    {}
 
     ConstEnumerateIterator &operator++()
     {
-      idx = static_cast<SizeType>(bit_search<true, true>(mapping->subwordData(), static_cast<uint32_t>(mapping->size),
-        static_cast<uint32_t>(idx) + 1, currentSubword));
+      idx = static_cast<SizeType>(
+        bit_search<true, true>(bits, static_cast<uint32_t>(mapping->size), static_cast<uint32_t>(idx) + 1, currentSubword));
       return *this;
     }
 
@@ -186,8 +209,8 @@ public:
 
     ConstEnumerateIterator &operator--()
     {
-      idx = static_cast<SizeType>(bit_search<true, false>(mapping->subwordData(), static_cast<uint32_t>(mapping->size),
-        static_cast<uint32_t>(idx) - 1, currentSubword));
+      idx = static_cast<SizeType>(
+        bit_search<true, false>(bits, static_cast<uint32_t>(mapping->size), static_cast<uint32_t>(idx) - 1, currentSubword));
       return *this;
     }
 
@@ -205,27 +228,29 @@ public:
 
   private:
     const IdSparseIndexedMapping *mapping;
+    const uint32_t *bits;
     SizeType idx;
     uint32_t currentSubword;
   };
 
   struct ConstEnumerateView
   {
-    ConstEnumerateView(const IdSparseIndexedMapping &m) : mapping{&m} {}
+    ConstEnumerateView(const IdSparseIndexedMapping &m, const uint32_t *b) : mapping{&m}, bits{b} {}
 
     ConstEnumerateIterator begin() const
     {
       uint32_t sw = 0;
-      auto pos = mapping->begin(sw);
-      return ConstEnumerateIterator{*mapping, pos, sw};
+      auto pos = mapping->begin(bits, sw);
+      return ConstEnumerateIterator{*mapping, bits, pos, sw};
     }
-    ConstEnumerateIterator end() const { return ConstEnumerateIterator{*mapping, mapping->end(), 0}; }
+    ConstEnumerateIterator end() const { return ConstEnumerateIterator{*mapping, bits, mapping->end(), 0}; }
 
   private:
     const IdSparseIndexedMapping *mapping;
+    const uint32_t *bits;
   };
 
-  auto enumerate() const & { return ConstEnumerateView{*this}; }
+  auto enumerate() const & { return ConstEnumerateView{*this, subwordData()}; }
 
   struct EnumerateIterator
   {
@@ -235,12 +260,14 @@ public:
     using pointer = value_type *;
     using reference = value_type &;
 
-    EnumerateIterator(IdSparseIndexedMapping &m, SizeType i, uint32_t sw) : mapping{&m}, idx{i}, currentSubword{sw} {}
+    EnumerateIterator(IdSparseIndexedMapping &m, const uint32_t *b, SizeType i, uint32_t sw) :
+      mapping{&m}, bits{b}, idx{i}, currentSubword{sw}
+    {}
 
     EnumerateIterator &operator++()
     {
-      idx = static_cast<SizeType>(bit_search<true, true>(mapping->subwordData(), static_cast<uint32_t>(mapping->size),
-        static_cast<uint32_t>(idx) + 1, currentSubword));
+      idx = static_cast<SizeType>(
+        bit_search<true, true>(bits, static_cast<uint32_t>(mapping->size), static_cast<uint32_t>(idx) + 1, currentSubword));
       return *this;
     }
 
@@ -253,8 +280,8 @@ public:
 
     EnumerateIterator &operator--()
     {
-      idx = static_cast<SizeType>(bit_search<true, false>(mapping->subwordData(), static_cast<uint32_t>(mapping->size),
-        static_cast<uint32_t>(idx) - 1, currentSubword));
+      idx = static_cast<SizeType>(
+        bit_search<true, false>(bits, static_cast<uint32_t>(mapping->size), static_cast<uint32_t>(idx) - 1, currentSubword));
       return *this;
     }
 
@@ -271,30 +298,33 @@ public:
 
   private:
     IdSparseIndexedMapping *mapping;
+    const uint32_t *bits;
     SizeType idx;
     uint32_t currentSubword;
   };
 
   struct EnumerateView
   {
-    EnumerateView(IdSparseIndexedMapping &m) : mapping{&m} {}
+    EnumerateView(IdSparseIndexedMapping &m, const uint32_t *b) : mapping{&m}, bits{b} {}
 
     EnumerateIterator begin()
     {
       uint32_t sw = 0;
-      auto pos = mapping->begin(sw);
-      return EnumerateIterator{*mapping, pos, sw};
+      auto pos = mapping->begin(bits, sw);
+      return EnumerateIterator{*mapping, bits, pos, sw};
     }
-    EnumerateIterator end() { return EnumerateIterator{*mapping, mapping->end(), 0}; }
+    EnumerateIterator end() { return EnumerateIterator{*mapping, bits, mapping->end(), 0}; }
 
   private:
     IdSparseIndexedMapping *mapping;
+    const uint32_t *bits;
   };
 
-  auto enumerate() & { return EnumerateView{*this}; }
+  auto enumerate() & { return EnumerateView{*this, subwordData()}; }
 
   template <class FlagsAllocator>
   void updateFrom(const IdSparseIndexedMapping &source, const IdIndexedFlags<EnumType, FlagsAllocator> &changes)
+    requires(!HIDEABLE)
   {
     // Step 1: Iterate destination keys, remove anything not present in source
     auto enumView = enumerate();
@@ -325,12 +355,14 @@ public:
     using pointer = const EnumType *;
     using reference = EnumType;
 
-    KeyIterator(const IdSparseIndexedMapping &m, SizeType i, uint32_t sw) : mapping{&m}, idx{i}, currentSubword{sw} {}
+    KeyIterator(const IdSparseIndexedMapping &m, const uint32_t *b, SizeType i, uint32_t sw) :
+      mapping{&m}, bits{b}, idx{i}, currentSubword{sw}
+    {}
 
     KeyIterator &operator++()
     {
-      idx = static_cast<SizeType>(bit_search<true, true>(mapping->subwordData(), static_cast<uint32_t>(mapping->size),
-        static_cast<uint32_t>(idx) + 1, currentSubword));
+      idx = static_cast<SizeType>(
+        bit_search<true, true>(bits, static_cast<uint32_t>(mapping->size), static_cast<uint32_t>(idx) + 1, currentSubword));
       return *this;
     }
 
@@ -343,8 +375,8 @@ public:
 
     KeyIterator &operator--()
     {
-      idx = static_cast<SizeType>(bit_search<true, false>(mapping->subwordData(), static_cast<uint32_t>(mapping->size),
-        static_cast<uint32_t>(idx) - 1, currentSubword));
+      idx = static_cast<SizeType>(
+        bit_search<true, false>(bits, static_cast<uint32_t>(mapping->size), static_cast<uint32_t>(idx) - 1, currentSubword));
       return *this;
     }
 
@@ -361,27 +393,29 @@ public:
 
   private:
     const IdSparseIndexedMapping *mapping;
+    const uint32_t *bits;
     SizeType idx;
     uint32_t currentSubword;
   };
 
   struct KeyView
   {
-    KeyView(const IdSparseIndexedMapping &m) : mapping{&m} {}
+    KeyView(const IdSparseIndexedMapping &m, const uint32_t *b) : mapping{&m}, bits{b} {}
 
     KeyIterator begin() const
     {
       uint32_t sw = 0;
-      auto pos = mapping->begin(sw);
-      return KeyIterator{*mapping, pos, sw};
+      auto pos = mapping->begin(bits, sw);
+      return KeyIterator{*mapping, bits, pos, sw};
     }
-    KeyIterator end() const { return KeyIterator{*mapping, mapping->end(), 0}; }
+    KeyIterator end() const { return KeyIterator{*mapping, bits, mapping->end(), 0}; }
 
   private:
     const IdSparseIndexedMapping *mapping;
+    const uint32_t *bits;
   };
 
-  auto keys() const { return KeyView{*this}; }
+  auto keys() const { return KeyView{*this, subwordData()}; }
 
   struct ValueIterator
   {
@@ -391,12 +425,14 @@ public:
     using pointer = const ValueType *;
     using reference = const ValueType &;
 
-    ValueIterator(const IdSparseIndexedMapping &m, SizeType i, uint32_t sw) : mapping{&m}, idx{i}, currentSubword{sw} {}
+    ValueIterator(const IdSparseIndexedMapping &m, const uint32_t *b, SizeType i, uint32_t sw) :
+      mapping{&m}, bits{b}, idx{i}, currentSubword{sw}
+    {}
 
     ValueIterator &operator++()
     {
-      idx = static_cast<SizeType>(bit_search<true, true>(mapping->subwordData(), static_cast<uint32_t>(mapping->size),
-        static_cast<uint32_t>(idx) + 1, currentSubword));
+      idx = static_cast<SizeType>(
+        bit_search<true, true>(bits, static_cast<uint32_t>(mapping->size), static_cast<uint32_t>(idx) + 1, currentSubword));
       return *this;
     }
 
@@ -409,8 +445,8 @@ public:
 
     ValueIterator &operator--()
     {
-      idx = static_cast<SizeType>(bit_search<true, false>(mapping->subwordData(), static_cast<uint32_t>(mapping->size),
-        static_cast<uint32_t>(idx) - 1, currentSubword));
+      idx = static_cast<SizeType>(
+        bit_search<true, false>(bits, static_cast<uint32_t>(mapping->size), static_cast<uint32_t>(idx) - 1, currentSubword));
       return *this;
     }
 
@@ -428,27 +464,84 @@ public:
 
   private:
     const IdSparseIndexedMapping *mapping;
+    const uint32_t *bits;
     SizeType idx;
     uint32_t currentSubword;
   };
 
   struct ValueView
   {
-    ValueView(const IdSparseIndexedMapping &m) : mapping{&m} {}
+    ValueView(const IdSparseIndexedMapping &m, const uint32_t *b) : mapping{&m}, bits{b} {}
 
     ValueIterator begin() const
     {
       uint32_t sw = 0;
-      auto pos = mapping->begin(sw);
-      return ValueIterator{*mapping, pos, sw};
+      auto pos = mapping->begin(bits, sw);
+      return ValueIterator{*mapping, bits, pos, sw};
     }
-    ValueIterator end() const { return ValueIterator{*mapping, mapping->end(), 0}; }
+    ValueIterator end() const { return ValueIterator{*mapping, bits, mapping->end(), 0}; }
 
   private:
     const IdSparseIndexedMapping *mapping;
+    const uint32_t *bits;
   };
 
-  auto values() const & { return ValueView{*this}; }
+  auto values() const & { return ValueView{*this, subwordData()}; }
+
+  template <class Mapping>
+  class AllView
+  {
+    using Ref = eastl::conditional_t<eastl::is_const_v<Mapping>, const ValueType &, ValueType &>;
+
+  public:
+    explicit AllView(Mapping &m) : mapping{&m} {}
+
+    bool isMapped(EnumType key) const
+    {
+      const SizeType idx = eastl::to_underlying(key);
+      return idx < mapping->size && mapping->isStored(idx);
+    }
+
+    Ref operator[](EnumType key) const
+    {
+      G_ASSERT(isMapped(key));
+      return mapping->elements[eastl::to_underlying(key)].value;
+    }
+
+    auto keys() const { return KeyView{*mapping, mapping->storedSubwordData()}; }
+    auto values() const { return ValueView{*mapping, mapping->storedSubwordData()}; }
+    auto enumerate() const { return ConstEnumerateView{*mapping, mapping->storedSubwordData()}; }
+
+    EnumType frontKey() const
+    {
+      uint32_t sw = 0;
+      return static_cast<EnumType>(mapping->begin(mapping->storedSubwordData(), sw));
+    }
+
+    EnumType backKey() const
+    {
+      uint32_t sw = 0;
+      return static_cast<EnumType>(mapping->prevUsed(mapping->storedSubwordData(), mapping->size, sw));
+    }
+
+    EnumType getNextUsed(EnumType key) const
+    {
+      G_ASSERT(isMapped(key));
+      const uint32_t *bits = mapping->storedSubwordData();
+      uint32_t sw = bits[eastl::to_underlying(key) / detail::WORD_BITS];
+      return static_cast<EnumType>(mapping->nextUsed(bits, eastl::to_underlying(key), sw));
+    }
+
+    size_t totalKeys() const { return mapping->size; }
+    size_t used() const { return mapping->storedCount(); }
+    bool empty() const { return mapping->storedCount() == 0; }
+
+  private:
+    Mapping *mapping;
+  };
+
+  auto all() const { return AllView<const IdSparseIndexedMapping>{*this}; }
+  auto all() { return AllView<IdSparseIndexedMapping>{*this}; }
 
   size_t totalKeys() const { return size; }
 
@@ -457,13 +550,13 @@ public:
   EnumType frontKey() const
   {
     uint32_t sw = 0;
-    return static_cast<EnumType>(begin(sw));
+    return static_cast<EnumType>(begin(subwordData(), sw));
   }
 
   EnumType backKey() const
   {
     uint32_t sw = 0;
-    return static_cast<EnumType>(prevUsed(size, sw));
+    return static_cast<EnumType>(prevUsed(subwordData(), size, sw));
   }
 
   ValueType &front() { return elements[eastl::to_underlying(frontKey())].value; }
@@ -474,12 +567,13 @@ public:
 
   EnumType getNextUsed(EnumType key) const
   {
-    G_ASSERT(isUsed(key));
+    G_ASSERT(isStored(eastl::to_underlying(key)));
     uint32_t sw = subwordData()[eastl::to_underlying(key) / detail::WORD_BITS];
-    return static_cast<EnumType>(nextUsed(key, sw));
+    return static_cast<EnumType>(nextUsed(subwordData(), eastl::to_underlying(key), sw));
   }
 
   void resize(SizeType new_size)
+    requires(!HIDEABLE)
   {
     compact();
     while (size < new_size)
@@ -500,54 +594,38 @@ public:
     // Don't actally deallocate the memory, same as std.
     destroy();
     memset(usedBits, 0, sizeInWords() * sizeof(WordType));
+    if constexpr (HIDEABLE)
+      memset(storedBits, 0, sizeInWords() * sizeof(WordType));
     size = 0;
     usedCount = 0;
+    hiddenCount = 0;
   }
 
-  template <class OtherValueType, typename OtherAllocator>
-  bool usedKeysSameAs(const IdSparseIndexedMapping<EnumType, OtherValueType, OtherAllocator> &other) const
+  template <class OtherValueType, typename OtherAllocator, bool OTHER_HIDEABLE>
+  bool usedKeysSameAs(const IdSparseIndexedMapping<EnumType, OtherValueType, OtherAllocator, OTHER_HIDEABLE> &other) const
   {
     if (usedCount != other.usedCount)
       return false;
 
-    // NOTE: unused words are always zero'd out.
+    if (!sameWords(usedBits, sizeInWords(), other.usedBits, other.sizeInWords()))
+      return false;
 
-    const auto ourWordCount = sizeInWords();
-    const auto otherWordCount = other.sizeInWords();
-    for (size_t i = 0; i < eastl::min(ourWordCount, otherWordCount); ++i)
-    {
-      if (!v_test_all_bits_ones(v_cmp_eqi(usedBits[i], other.usedBits[i])))
-        return false;
-    }
-
-    if (ourWordCount < otherWordCount)
-    {
-      for (size_t i = ourWordCount; i < otherWordCount; ++i)
-        if (!v_test_all_bits_zeros(other.usedBits[i]))
-          return false;
-    }
-    else
-    {
-      for (size_t i = otherWordCount; i < ourWordCount; ++i)
-        if (!v_test_all_bits_zeros(usedBits[i]))
-          return false;
-    }
+    if constexpr (HIDEABLE && OTHER_HIDEABLE)
+      return hiddenCount == other.hiddenCount && sameWords(storedBits, sizeInWords(), other.storedBits, other.sizeInWords());
 
     return true;
   }
 
   bool operator==(const IdSparseIndexedMapping &other) const
   {
-    if (usedCount != other.usedCount)
+    if (usedCount != other.usedCount || hiddenCount != other.hiddenCount)
       return false;
 
-    const auto ours = enumerate();
-    const auto theirs = other.enumerate();
-    for (auto [ours, theirs] : zip(ours, theirs))
-      if (eastl::get<0>(ours) != eastl::get<0>(theirs) || eastl::get<1>(ours) != eastl::get<1>(theirs))
-        return false;
+    if constexpr (HIDEABLE)
+      return sameWords(usedBits, sizeInWords(), other.usedBits, other.sizeInWords()) &&
+             sameElements(all().enumerate(), other.all().enumerate());
 
-    return true;
+    return sameElements(enumerate(), other.enumerate());
   }
 
   // For debugging purposes
@@ -556,7 +634,7 @@ public:
     eastl::string result;
     result.reserve(size);
     for (SizeType i = 0; i < size; ++i)
-      result += isUsed(i) ? '1' : '0';
+      result += isUsed(i) ? '1' : (isStored(i) ? 'h' : '0');
     return result;
   }
 
@@ -572,25 +650,84 @@ private:
 
   size_t sizeInWords() const { return (size + WORD_BITS - 1) / WORD_BITS; }
 
-  bool isUsed(SizeType idx) const
+  static bool testBit(const WordType *bits, SizeType idx)
   {
     uint32_t subword;
-    memcpy(&subword, &reinterpret_cast<uint32_t *>(usedBits)[idx / SUBWORD_BITS], sizeof(uint32_t));
+    memcpy(&subword, &reinterpret_cast<const uint32_t *>(bits)[idx / SUBWORD_BITS], sizeof(uint32_t));
     return (subword & (1u << (idx % SUBWORD_BITS))) != 0;
   }
 
-  void setUsed(SizeType idx, bool used)
+  static void setBit(WordType *bits, SizeType idx, bool value)
   {
     uint32_t subword;
-    memcpy(&subword, &reinterpret_cast<uint32_t *>(usedBits)[idx / SUBWORD_BITS], sizeof(uint32_t));
-    if (used)
+    memcpy(&subword, &reinterpret_cast<uint32_t *>(bits)[idx / SUBWORD_BITS], sizeof(uint32_t));
+    if (value)
       subword |= (1u << (idx % SUBWORD_BITS));
     else
       subword &= ~(1u << (idx % SUBWORD_BITS));
-    memcpy(&reinterpret_cast<uint32_t *>(usedBits)[idx / SUBWORD_BITS], &subword, sizeof(uint32_t));
+    memcpy(&reinterpret_cast<uint32_t *>(bits)[idx / SUBWORD_BITS], &subword, sizeof(uint32_t));
   }
 
+  // NOTE: unused words are always zero'd out.
+  static bool sameWords(const WordType *ours, size_t our_count, const WordType *theirs, size_t their_count)
+  {
+    for (size_t i = 0; i < eastl::min(our_count, their_count); ++i)
+      if (!v_test_all_bits_ones(v_cmp_eqi(ours[i], theirs[i])))
+        return false;
+
+    for (size_t i = their_count; i < our_count; ++i)
+      if (!v_test_all_bits_zeros(ours[i]))
+        return false;
+    for (size_t i = our_count; i < their_count; ++i)
+      if (!v_test_all_bits_zeros(theirs[i]))
+        return false;
+
+    return true;
+  }
+
+  template <class View>
+  static bool sameElements(const View &ours, const View &theirs)
+  {
+    auto a = ours.begin();
+    auto b = theirs.begin();
+    for (; a != ours.end() && b != theirs.end(); ++a, ++b)
+    {
+      const auto [aKey, aValue] = *a;
+      const auto [bKey, bValue] = *b;
+      if (aKey != bKey || aValue != bValue)
+        return false;
+    }
+    return a == ours.end() && b == theirs.end();
+  }
+
+  bool isUsed(SizeType idx) const { return testBit(usedBits, idx); }
+  void setUsed(SizeType idx, bool used) { setBit(usedBits, idx, used); }
+
+  bool isStored(SizeType idx) const
+  {
+    if constexpr (HIDEABLE)
+      return testBit(storedBits, idx);
+    else
+      return isUsed(idx);
+  }
+
+  void setStored(SizeType idx, bool stored)
+  {
+    setUsed(idx, stored);
+    if constexpr (HIDEABLE)
+      setBit(storedBits, idx, stored);
+  }
+
+  SizeType storedCount() const { return usedCount + hiddenCount; }
+
   const uint32_t *subwordData() const { return reinterpret_cast<const uint32_t *>(usedBits); }
+  const uint32_t *storedSubwordData() const
+  {
+    if constexpr (HIDEABLE)
+      return reinterpret_cast<const uint32_t *>(storedBits);
+    else
+      return subwordData();
+  }
   uint32_t subwordCount() const
   {
     constexpr SizeType spw = WORD_BITS / (sizeof(uint32_t) * CHAR_BIT);
@@ -599,21 +736,21 @@ private:
 
   // NOTE: start_idx is inclusive. If you want to exclude it, simply add or subtract 1.
   template <bool val, bool search_forward>
-  SizeType find(SizeType start_idx, uint32_t &sw) const
+  SizeType find(const uint32_t *bits, SizeType start_idx, uint32_t &sw) const
   {
-    auto result = bit_search<val, search_forward>(subwordData(), static_cast<uint32_t>(size), static_cast<uint32_t>(start_idx), sw);
+    auto result = bit_search<val, search_forward>(bits, static_cast<uint32_t>(size), static_cast<uint32_t>(start_idx), sw);
     return static_cast<SizeType>(result);
   }
 
-  SizeType nextUsed(SizeType idx, uint32_t &sw) const
+  SizeType nextUsed(const uint32_t *bits, SizeType idx, uint32_t &sw) const
   {
     G_ASSERT_RETURN(idx < size, size);
-    return find<true, true>(idx + 1, sw);
+    return find<true, true>(bits, idx + 1, sw);
   }
-  SizeType prevUsed(SizeType idx, uint32_t &sw) const
+  SizeType prevUsed(const uint32_t *bits, SizeType idx, uint32_t &sw) const
   {
     G_ASSERT_RETURN(idx != 0, 0);
-    return find<true, false>(idx - 1, sw);
+    return find<true, false>(bits, idx - 1, sw);
   }
 
   void ensureSpaceFor(size_t idx)
@@ -634,20 +771,30 @@ private:
     auto cap = capacityInWordsAndAllocator.first();
     elements = (ElementStorage *)eastl::allocate_memory(alloc, cap * WORD_BITS * sizeof(ValueType), alignof(ValueType), 0);
     usedBits = (WordType *)eastl::allocate_memory(alloc, cap * sizeof(WordType), alignof(WordType), 0);
+    if constexpr (HIDEABLE)
+      storedBits = (WordType *)eastl::allocate_memory(alloc, cap * sizeof(WordType), alignof(WordType), 0);
+  }
+
+  void deallocate(ElementStorage *elems, WordType *used, WordType *stored)
+  {
+    capacityInWordsAndAllocator.second().deallocate((void *)elems, 0);
+    capacityInWordsAndAllocator.second().deallocate((void *)used, 0);
+    if constexpr (HIDEABLE)
+      capacityInWordsAndAllocator.second().deallocate((void *)stored, 0);
   }
 
   void destroy()
   {
     uint32_t sw = 0;
-    for (SizeType i = begin(sw); i < size; i = nextUsed(i, sw))
+    const uint32_t *bits = storedSubwordData();
+    for (SizeType i = begin(bits, sw); i < size; i = nextUsed(bits, i, sw))
       elements[i].value.~ValueType();
   }
 
   void destroyAndDeallocate()
   {
     destroy();
-    capacityInWordsAndAllocator.second().deallocate((void *)elements, 0);
-    capacityInWordsAndAllocator.second().deallocate((void *)usedBits, 0);
+    deallocate(elements, usedBits, storedBits);
   }
 
   static bool tryResizeInplace(Allocator &a, void *p, size_t sz)
@@ -658,6 +805,12 @@ private:
       return false;
   }
 
+  static void copyWords(WordType *dst, const WordType *src, size_t src_bytes, size_t dst_bytes)
+  {
+    memcpy(dst, src, src_bytes);
+    memset(reinterpret_cast<uint8_t *>(dst) + src_bytes, 0, dst_bytes - src_bytes);
+  }
+
   void relocate(size_t new_cap_in_words)
   {
     if (usedBits)
@@ -665,10 +818,14 @@ private:
       auto &a = capacityInWordsAndAllocator.second();
       auto oldCapInWords = capacityInWordsAndAllocator.first();
       if (tryResizeInplace(a, (void *)elements, new_cap_in_words * WORD_BITS * sizeof(ValueType)) &&
-          tryResizeInplace(a, (void *)usedBits, new_cap_in_words * sizeof(WordType)))
+          tryResizeInplace(a, (void *)usedBits, new_cap_in_words * sizeof(WordType)) &&
+          (!HIDEABLE || tryResizeInplace(a, (void *)storedBits, new_cap_in_words * sizeof(WordType))))
       {
         memset(reinterpret_cast<uint8_t *>(usedBits) + oldCapInWords * sizeof(WordType), 0,
           (new_cap_in_words - oldCapInWords) * sizeof(WordType));
+        if constexpr (HIDEABLE)
+          memset(reinterpret_cast<uint8_t *>(storedBits) + oldCapInWords * sizeof(WordType), 0,
+            (new_cap_in_words - oldCapInWords) * sizeof(WordType));
         capacityInWordsAndAllocator.first() = new_cap_in_words;
         return;
       }
@@ -676,43 +833,49 @@ private:
 
     auto oldElements = elements;
     auto oldUsed = usedBits;
+    auto oldStored = storedBits;
     capacityInWordsAndAllocator.first() = new_cap_in_words;
     alloc();
 
     if (!oldUsed)
     {
       memset(usedBits, 0, new_cap_in_words * sizeof(WordType));
+      if constexpr (HIDEABLE)
+        memset(storedBits, 0, new_cap_in_words * sizeof(WordType));
       return;
     }
 
-    size_t bytesToCopy = sizeInWords() * sizeof(WordType);
-    memcpy(usedBits, oldUsed, bytesToCopy);
-    memset(reinterpret_cast<uint8_t *>(usedBits) + bytesToCopy, 0, new_cap_in_words * sizeof(WordType) - bytesToCopy);
+    const size_t bytesToCopy = sizeInWords() * sizeof(WordType);
+    copyWords(usedBits, oldUsed, bytesToCopy, new_cap_in_words * sizeof(WordType));
+    if constexpr (HIDEABLE)
+      copyWords(storedBits, oldStored, bytesToCopy, new_cap_in_words * sizeof(WordType));
 
     uint32_t sw = 0;
-    for (SizeType i = begin(sw); i < size; i = nextUsed(i, sw))
+    const uint32_t *bits = storedSubwordData();
+    for (SizeType i = begin(bits, sw); i < size; i = nextUsed(bits, i, sw))
     {
       new (eastl::addressof(elements[i].value)) ValueType(eastl::move(oldElements[i].value));
       oldElements[i].value.~ValueType();
     }
 
-    capacityInWordsAndAllocator.second().deallocate((void *)oldElements, 0);
-    capacityInWordsAndAllocator.second().deallocate((void *)oldUsed, 0);
+    deallocate(oldElements, oldUsed, oldStored);
   }
 
-  void copyInitFrom(ElementStorage *elems, WordType *used)
+  void copyInitFrom(const IdSparseIndexedMapping &other)
   {
-    if (!elems)
+    if (!other.elements)
       return;
 
     alloc();
     const size_t bytesToCopy = sizeInWords() * sizeof(WordType);
-    memcpy(usedBits, used, bytesToCopy);
-    memset(reinterpret_cast<uint8_t *>(usedBits) + bytesToCopy, 0,
-      capacityInWordsAndAllocator.first() * sizeof(WordType) - bytesToCopy);
+    const size_t capacityBytes = capacityInWordsAndAllocator.first() * sizeof(WordType);
+    copyWords(usedBits, other.usedBits, bytesToCopy, capacityBytes);
+    if constexpr (HIDEABLE)
+      copyWords(storedBits, other.storedBits, bytesToCopy, capacityBytes);
     uint32_t sw = 0;
-    for (SizeType i = begin(sw); i < size; i = nextUsed(i, sw))
-      new (eastl::addressof(elements[i].value)) ValueType(elems[i].value);
+    const uint32_t *bits = storedSubwordData();
+    for (SizeType i = begin(bits, sw); i < size; i = nextUsed(bits, i, sw))
+      new (eastl::addressof(elements[i].value)) ValueType(other.elements[i].value);
 
     compact();
   }
@@ -720,26 +883,31 @@ private:
   // "compact" the size on rarely called operations to speed up iteration
   void compact()
   {
-    if (size > 0 && usedCount > 0)
+    if (size > 0 && storedCount() > 0)
     {
       uint32_t sw = 0;
-      size = find<true, false>(size - 1, sw) + 1;
+      size = find<true, false>(storedSubwordData(), size - 1, sw) + 1;
     }
-    else if (usedCount == 0)
+    else if (storedCount() == 0)
       size = 0;
   }
 
-  SizeType begin(uint32_t &sw) const
+  SizeType begin(const uint32_t *bits, uint32_t &sw) const
   {
     if (!usedBits || size == 0)
       return size;
-    return static_cast<SizeType>(bit_search<true, true>(subwordData(), static_cast<uint32_t>(size), 0, sw));
+    return static_cast<SizeType>(bit_search<true, true>(bits, static_cast<uint32_t>(size), 0, sw));
   }
   SizeType end() const { return size; }
 
   ElementStorage *elements = nullptr;
   WordType *usedBits = nullptr;
+  WordType *storedBits = nullptr;
   eastl::compressed_pair<SizeType, Allocator> capacityInWordsAndAllocator;
   SizeType size = 0;
   SizeType usedCount = 0;
+  SizeType hiddenCount = 0;
 };
+
+template <class EnumType, class ValueType, typename Allocator = EASTLAllocatorType>
+using IdHideableSparseIndexedMapping = IdSparseIndexedMapping<EnumType, ValueType, Allocator, true>;

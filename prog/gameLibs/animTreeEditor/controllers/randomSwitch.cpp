@@ -33,6 +33,15 @@ void random_switch_prepare_params(dag::Vector<AnimParamData> &params, PropPanel:
   remove_param_if_default_str(params, panel, "decline_name_mask_re");
 }
 
+static dag::Vector<int> collect_weight_positions(const DataBlock &weights)
+{
+  dag::Vector<int> positions;
+  for (int i = 0; i < weights.paramCount(); ++i)
+    if (weights.getParamType(i) == DataBlock::TYPE_REAL)
+      positions.push_back(i);
+  return positions;
+}
+
 bool random_switch_has_duplicated_childs(const DataBlock &settings)
 {
   const DataBlock *weights = settings.getBlockByName("weight");
@@ -60,15 +69,15 @@ void random_switch_init_block_settings(PropPanel::ContainerPropertyControl *pane
   dag::Vector<DependentParamData> &params)
 {
   random_switch_has_duplicated_childs(*settings);
-  const DataBlock *weights = settings->getBlockByName("weight");
+  const DataBlock *weights = settings->getBlockByNameEx("weight");
   const DataBlock *maxrepeats = settings->getBlockByName("maxrepeat");
-  const char *defaultName = weights ? weights->getParamName(0) : "";
-  const float defaultWeight = weights ? weights->getReal(0) : 0.f;
+  Tab<String> names;
+  for (int i : collect_weight_positions(*weights))
+    names.emplace_back(weights->getParamName(i));
+  const char *defaultName = names.empty() ? "" : names[0].c_str();
+  const float defaultWeight = weights->getReal(defaultName, 0.f);
   const int maxRepeatValue = settings->getInt("maxrepeat", DEFAULT_MAXREPEAT);
   const int defaultMaxRepeat = maxrepeats ? maxrepeats->getInt(defaultName, maxRepeatValue) : maxRepeatValue;
-  Tab<String> names;
-  if (weights)
-    fill_param_names_without_comments(names, *weights);
 
   bool isEditable = !names.empty();
   panel->createList(PID_CTRLS_NODES_LIST, "Nodes", names, 0);
@@ -185,30 +194,33 @@ void random_switch_remove_node_from_list(PropPanel::ContainerPropertyControl *pa
     settings->removeBlock("maxrepeat");
 }
 
-void AnimTreeEditor::randomSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings)
+void AnimTreeEditor::randomSwitchFindChilds(const ChildNameIndex &child_index, AnimCtrlData &data, const DataBlock &settings)
 {
   const DataBlock *nodes = settings.getBlockByNameEx("weight");
   for (int i = 0; i < nodes->paramCount(); ++i)
     if (nodes->getParamType(i) == DataBlock::TYPE_REAL)
     {
-      int idx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, nodes->getParamName(i));
+      int idx = add_ctrl_child_idx_by_name(child_index, data, nodes->getParamName(i));
       check_ctrl_child_idx(idx, settings.getStr("name"), nodes->getParamName(i));
     }
 }
 
 const char *random_switch_get_child_name_by_idx(const DataBlock &settings, int idx)
 {
-  return settings.getBlockByNameEx("weight")->getParamName(idx);
+  const DataBlock *weights = settings.getBlockByNameEx("weight");
+  const dag::Vector<int> positions = collect_weight_positions(*weights);
+  return idx < positions.size() ? weights->getParamName(positions[idx]) : "";
 }
 
 String random_switch_get_child_prefix_name(const DataBlock &settings, int idx)
 {
   const DataBlock *weights = settings.getBlockByNameEx("weight");
+  const dag::Vector<int> positions = collect_weight_positions(*weights);
   float sum = 0.f;
-  for (int i = 0; i < weights->paramCount(); ++i)
+  for (int i : positions)
     sum += weights->getReal(i);
 
-  const float value = safediv(weights->getReal(idx), sum) * 100.f;
+  const float value = idx < positions.size() ? safediv(weights->getReal(positions[idx]), sum) * 100.f : 0.f;
 
   return String(0, "[%.0f%%] ", value);
 }
@@ -250,10 +262,7 @@ protected:
     if (!weights)
       return;
 
-    dag::Vector<int> positions;
-    for (int i = 0; i < weights->paramCount(); ++i)
-      if (!CHECK_COMMENT_PREFIX(weights->getParamName(i)))
-        positions.push_back(i);
+    dag::Vector<int> positions = collect_weight_positions(*weights);
     if (from < 0 || from >= positions.size() || to < 0 || to >= positions.size())
       return;
 

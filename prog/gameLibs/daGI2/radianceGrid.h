@@ -73,6 +73,7 @@ protected:
     dagi_irradiance_grid_spatial_filter_gather_cs, dagi_irradiance_grid_spatial_filter_apply_cs, dagi_irradiance_grid_invalidate_cs;
 
   bool validHistory = false;
+  bool fullSelection = false;
   enum class IrradianceType
   {
     DIRECT = 0,

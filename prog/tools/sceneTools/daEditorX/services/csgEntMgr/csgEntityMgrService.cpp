@@ -27,6 +27,7 @@
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/iLogWriter.h>
 #include <libTools/ObjCreator3d/objCreator3d.h>
+#include <libTools/meshCSG/meshCSG.h>
 #include <coolConsole/coolConsole.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
@@ -36,9 +37,9 @@
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <math/dag_TMatrix.h>
+#include <math/dag_mesh.h>
 #include <generic/dag_carray.h>
 #include <debug/dag_debug.h>
-#include "csgApi.h"
 #include "prefabCache.h"
 
 using namespace objgenerator; // prng
@@ -57,6 +58,13 @@ static int rendEntGeomMask = -1;
 static int collisionSubtypeMask = -1;
 static int polyTileSubTypeId = -1;
 static bool registeredNotifier = false;
+
+struct CsgCutter
+{
+  Mesh mesh;
+  TMatrix tm = TMatrix::IDENT;
+  String name;
+};
 
 class CsgEntity;
 typedef SingleEntityPool<CsgEntity> CsgEntityPool;
@@ -289,33 +297,13 @@ public:
         sp_in_tc_idx = sp_out_tc_idx;
         seg_in_tc_idx = seg_out_tc_idx;
       }
-      int tc_count = 1;
-#define GET_MAX_TC(X)                \
-  for (int i = 0; i < X.size(); i++) \
-    if (tc_count <= X[i])            \
-      tc_count = X[i] + 1;
-      GET_MAX_TC(p_out_tc_idx);
-      GET_MAX_TC(sp_out_tc_idx);
-      GET_MAX_TC(seg_out_tc_idx);
-      GET_MAX_TC(p_in_tc_idx);
-      GET_MAX_TC(sp_in_tc_idx);
-      GET_MAX_TC(seg_in_tc_idx)
-#undef GET_MAX_TC
-
-      BasicCSG *csg = make_new_csg(tc_count);
-
+      // genPrism winds opposite to engine winding
       Mesh m_outer;
       genPrism(m_outer, p, y0, floor_ht_full, 1, 0, 5, wall_tc_mul, floor_tc_mul, ceil_tc_mul, jointless_wall_m_out, p_out_tc_idx,
         sp_out_tc_idx, seg_out_tc_idx);
+      m_outer.flip_normals();
 
-      void *poly_A = csg->create_poly(NULL, m_outer, 0, true);
-      if (!poly_A)
-      {
-        DAEDITOR3.conWarning("cannot make outer CSG object");
-        del_it(csg);
-        return;
-      }
-
+      Tab<CsgCutter> cutters;
       Mesh m_inner;
       float inner_y_ofs = y0 + foundation_ofs + floor_thickness;
       genPrism(m_inner, p_inner, inner_y_ofs, floor_ht[0] - floor_thickness, 2, 3, 4, wall_inside_tc_mul, floor_tc_mul, ceil_tc_mul,
@@ -324,25 +312,10 @@ public:
       float main_ang = safe_atan2(-tm.getcol(2).z, -tm.getcol(2).x); //== to us in AV (south dir)
       for (int i = 0; i < floor_cnt; i++)
       {
-        void *poly_B = csg->create_poly(NULL, m_inner, 0, true);
-        if (!poly_B)
-        {
-          DAEDITOR3.conWarning("cannot make inner CSG object");
-          csg->delete_poly(poly_A);
-          del_it(csg);
-          return;
-        }
-
-        void *result = csg->op(BasicCSG::A_MINUS_B, poly_A, NULL, poly_B, NULL);
-        csg->delete_poly(poly_A);
-        csg->delete_poly(poly_B);
-        if (!result)
-        {
-          DAEDITOR3.conWarning("cannot subtract inner CSG object from outer one");
-          del_it(csg);
-          return;
-        }
-        poly_A = result;
+        CsgCutter &floor = cutters.push_back();
+        floor.mesh = m_inner;
+        floor.mesh.flip_normals();
+        floor.name.printf(0, "inner floor %d", i + 1);
         if (i + 1 < floor_cnt)
         {
           inner_y_ofs += floor_ht[i];
@@ -375,14 +348,17 @@ public:
       int seed = rndSeed;
       for (int i = 0; i < a->props.blockCount(); i++)
         if (a->props.getBlock(i)->getBlockNameId() == nid)
-          generateObjects(no_csg ? NULL : csg, poly_A, *a->props.getBlock(i), p, inner_ofs, y0 + foundation_ofs + floor_thickness,
+          generateObjects(no_csg ? NULL : &cutters, *a->props.getBlock(i), p, inner_ofs, y0 + foundation_ofs + floor_thickness,
             floor_ht, wall_thick, entList, *mdl, seed, main_ang);
 
-      // copy result to mesh
       m = new Mesh;
-      csg->convert(poly_A, *m);
-      csg->delete_poly(poly_A);
-      delete_csg(csg);
+      if (!cutBuilding(m_outer, cutters, floor_cnt, *m))
+      {
+        del_it(m);
+        del_it(mdl);
+        clearEntites();
+        return;
+      }
 
       // remove invisible faces and null materials
       {
@@ -748,7 +724,7 @@ public:
     for (int ei = NUMMESHTCH - 1; ei >= 0; ei--)
       if (m.tface[ei].size())
       {
-        // fill empty TC with stub vertex to avoid crash in CSG
+        // zero stubs: the cut keeps lower channels
         for (int i = 0; i < ei; i++)
           if (!m.tface[i].size())
           {
@@ -1103,9 +1079,9 @@ public:
     }
   };
 
-  static void generateObjects(BasicCSG *csg, void *&poly_A, const DataBlock &b, dag::ConstSpan<Point3> p,
-    dag::ConstSpan<Point2> inner_ofs, float y0, dag::ConstSpan<float> floor_ht, float wall_thick, Tab<IObjEntity *> &out_obj,
-    MaterialDataList &mdl, int &seed, float main_ang)
+  static void generateObjects(Tab<CsgCutter> *cutters, const DataBlock &b, dag::ConstSpan<Point3> p, dag::ConstSpan<Point2> inner_ofs,
+    float y0, dag::ConstSpan<float> floor_ht, float wall_thick, Tab<IObjEntity *> &out_obj, MaterialDataList &mdl, int &seed,
+    float main_ang)
   {
 #define FLOAT_PROP(X, DEF) float X = b.getReal(#X, DEF)
 #define BOOL_PROP(X, DEF)  bool X = b.getBool(#X, DEF)
@@ -1167,7 +1143,7 @@ public:
 
               tm[3][1] += ht_ofs;
               tm.setcol(3, tm * ofs + dir * o_ofs);
-              placeEntity(csg, poly_A, out_obj, mdl, entity, tm);
+              placeEntity(cutters, out_obj, mdl, entity, tm);
             }
 
           ht_ofs += floor_ht[k];
@@ -1176,7 +1152,7 @@ public:
     }
   }
 
-  static void placeEntity(BasicCSG *csg, void *&poly_A, Tab<IObjEntity *> &out_obj, MaterialDataList &mdl, IObjEntity *entity,
+  static void placeEntity(Tab<CsgCutter> *cutters, Tab<IObjEntity *> &out_obj, MaterialDataList &mdl, IObjEntity *entity,
     const TMatrix &tm)
   {
     if (ICompositObj *co = entity->queryInterface<ICompositObj>())
@@ -1188,7 +1164,7 @@ public:
           if (isPrefabForCSG(ce))
           {
             ce->getTm(e_tm);
-            subtractPrefab(csg, poly_A, mdl, ce, tm * e_tm);
+            addPrefabCutter(cutters, mdl, ce, tm * e_tm);
           }
           else if (IObjEntity *e = DAEDITOR3.cloneEntity(ce))
           {
@@ -1200,7 +1176,7 @@ public:
     }
     else if (isPrefabForCSG(entity))
     {
-      subtractPrefab(csg, poly_A, mdl, entity, tm);
+      addPrefabCutter(cutters, mdl, entity, tm);
     }
     else if (IObjEntity *e = DAEDITOR3.cloneEntity(entity))
     {
@@ -1217,9 +1193,9 @@ public:
       return ecs->getAsset()->props.getBool("csgCut", false);
     return false;
   }
-  static void subtractPrefab(BasicCSG *csg, void *&poly_A, MaterialDataList &mdl, IObjEntity *entity, const TMatrix &tm)
+  static void addPrefabCutter(Tab<CsgCutter> *cutters, MaterialDataList &mdl, IObjEntity *entity, const TMatrix &tm)
   {
-    if (!csg)
+    if (!cutters)
       return;
     IEntityCollisionState *ecs = entity->queryInterface<IEntityCollisionState>();
     if (!ecs)
@@ -1234,28 +1210,39 @@ public:
     prefab->addMaterials(mdl, mat_remap);
     for (int i = 0; i < prefab->mesh.size(); i++)
     {
-      Mesh m = *prefab->mesh[i];
-      m.transform(tm);
-      for (int j = 0; j < m.face.size(); j++)
-        m.face[j].mat = mat_remap[m.face[j].mat];
-
-      void *poly_B = csg->create_poly(NULL, m, 0, true);
-      if (!poly_B)
-      {
-        DAEDITOR3.conWarning("cannot make CSG object for %s", entity->getObjAssetName());
-        return;
-      }
-
-      void *result = csg->op(BasicCSG::A_MINUS_B, poly_A, NULL, poly_B, NULL);
-      csg->delete_poly(poly_B);
-      if (!result)
-      {
-        DAEDITOR3.conWarning("cannot subtract CSG object %s from outer one", entity->getObjAssetName());
-        return;
-      }
-      csg->delete_poly(poly_A);
-      poly_A = result;
+      CsgCutter &c = cutters->push_back();
+      c.mesh = *prefab->mesh[i];
+      c.tm = tm;
+      c.name = entity->getObjAssetName();
+      for (int j = 0; j < c.mesh.face.size(); j++)
+        c.mesh.face[j].mat = mat_remap[c.mesh.face[j].mat];
     }
+  }
+
+  // the floors come first in cutters
+  static bool cutBuilding(const Mesh &outer, dag::ConstSpan<CsgCutter> cutters, int floors, Mesh &out)
+  {
+    const mesh_csg::Input a[] = {{&outer, TMatrix::IDENT, "outer"}};
+    Tab<mesh_csg::Input> b;
+    for (const CsgCutter &c : cutters)
+      b.push_back(mesh_csg::Input{&c.mesh, c.tm, c.name.str()});
+    mesh_csg::Result r;
+    // a prefab cutter that is refused or fails is left out, the building keeps the other cuts
+    const bool ok = mesh_csg::subtract_in_turn(make_span_const(a, 1), b, floors, r);
+    for (const eastl::string &w : r.warnings)
+      DAEDITOR3.conNote("CSG: %s", w.c_str());
+    if (!ok)
+    {
+      DAEDITOR3.conWarning("cannot cut CSG building: %s", r.error.c_str());
+      return false;
+    }
+    for (int i = floors; i < b.size(); i++)
+      if (!r.refused[1 + i].empty())
+        DAEDITOR3.conWarning("CSG object %s is left out, the building has no cut of it: %s", b[i].name, r.refused[1 + i].c_str());
+    mesh_csg::to_engine_mesh(r, out);
+    out.flip_normals(); // genPrism winding: the caller negates normals
+    out.calc_facenorms();
+    return true;
   }
 
   static void generateObjectsPos(Tab<TMatrix> &out_pos, const Point3 &p0, const Point3 &p1, float min_ofs0, float min_ofs1,

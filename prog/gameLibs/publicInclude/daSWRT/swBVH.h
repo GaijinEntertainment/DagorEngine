@@ -5,6 +5,7 @@
 #pragma once
 
 #include <vecmath/dag_vecMath.h>
+#include <math/integer/dag_IPoint2.h>
 #include <EASTL/unique_ptr.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -25,10 +26,17 @@ class ComputeShaderElement;
 
 namespace daSWRT
 {
+// BoxesOnly: each leaf is its box (daSWRT/CLAUDE.md)
+enum class BlasMode : uint8_t
+{
+  Full,
+  BoxesOnly
+};
+
 // Self-contained, FP16-encoded BLAS chunk for one model. Produced by the thread-safe
 // RenderSWRT::buildBLAS; consumed by RenderSWRT::addBuiltModel (which must run under the
-// caller's mutex). Empty `data` marks a pure axis-aligned box -- addBuiltModel routes it
-// through the box path using `box` directly.
+// caller's mutex). Empty `data` marks a pure axis-aligned box (unless noGeometry) -- addBuiltModel
+// routes it through the box path using `box` directly.
 struct BuiltBLAS
 {
   bbox3f box = {};
@@ -36,14 +44,15 @@ struct BuiltBLAS
   // reached through each leaf's relative base, NOT at data+treeBytes: a padded producer (the collision
   // chunk splice) 8-aligns the pool, so padding can sit between the tree and the vertex payload.
   dag::Vector<uint8_t> data;
-  uint32_t treeBytes = 0; // tree-walk span in bytes (GPU traversal bound), not the vertex offset; 0 iff pure box
+  uint32_t treeBytes = 0; // tree-walk span in bytes (GPU traversal bound), not the vertex offset; 0: pure box or noGeometry
   float dimAsBoxDist = 0;
-  // Vertex format of `data` (true = 8 B fp16, false = 12 B float3). addBuiltModel asserts it matches the
-  // target RenderSWRT::blasVertsFp16, so a build made for one format cannot be registered into the other.
+  // Vertex format of `data` (true = 8 B fp16, false = 12 B float3). For a Full build addBuiltModel asserts it matches
+  // the target RenderSWRT::blasVertsFp16; a BoxesOnly build has no vertices.
   bool vertsFp16 = true;
-  // Every source face was degenerate: nothing traceable. Distinct from isBox() (empty data is the
-  // genuine-box sentinel) -- addBuiltModel returns -1 (no model) instead of registering the AABB,
-  // which would cast phantom occlusion.
+  BlasMode mode = BlasMode::Full; // BoxesOnly: data is the tree alone
+  // Every source face was degenerate, or a BoxesOnly build kept no leaf (empty data too): nothing traceable. Unlike
+  // isBox() (empty data is the genuine-box sentinel), addBuiltModel returns -1 (no model) instead of registering the
+  // AABB, which would cast phantom occlusion.
   bool noGeometry = false;
   // Every face is light transparent: the shadow walk (swTLAS.dshl, SWRT_SHADOW_SKIP_LEAF) skips the instance whole,
   // a box too. A mixed model carries it per leaf instead (QUAD_LEAF_USER_TRANSPARENT).
@@ -51,6 +60,15 @@ struct BuiltBLAS
   // A box model's leaf user value (QUAD_LEAF_USER_MASK), kept in its TLAS box leaf when RenderSWRT::tlasBoxUser.
   uint8_t boxUser = 0;
   bool isBox() const { return data.empty(); }
+  bool compactToBoxLeaves(); // BoxesOnly; no leaf left: noGeometry, false
+};
+
+// shadow maps that hold the casters near a receiver, metres (0 distance = off); the ray starts past the farther one
+struct ShadowCasterReach
+{
+  float csmDistance = 0, csmReach = 0;           // CascadeShadows::getMaxDistance (where the last cascade ends), getCasterReach
+  float staticDistance = 0, staticTopHeight = 0; // the static map holds every caster below this world y
+  float staticDepth = 10000;                     // and up to this far to the sun from the camera
 };
 } // namespace daSWRT
 
@@ -64,6 +82,8 @@ struct RenderSWRT
   // false = 12 B float3. Must match BLAS_VERT_FP16 in the shaders that read bottomBuf. Runtime, not a
   // compile constant, so one build can serve shaders of either format. Set before adding models.
   bool blasVertsFp16 = true;
+
+  daSWRT::BlasMode blasMode = daSWRT::BlasMode::Full; // locked on first append; change: clearAll, rebuild
 
   // Opt-in: buildBottomLevelStructures also derives the flat BLAS leaf table
   // (bvh_blas_leaf_table / bvh_blas_leaf_ranges) needed by geometry-driven consumers
@@ -82,16 +102,16 @@ struct RenderSWRT
   // touch any RenderSWRT state, safe to invoke from threadpool workers. For threshold
   // semantics of `dim_as_box_dist` see addBoxModel / addBuiltModel. Returns an empty
   // (isBox(), zero box) BuiltBLAS for invalid input (which, if passed to addBuiltModel,
-  // registers a zero-volume box), and a noGeometry one when every face is degenerate.
+  // registers a zero-volume box), and a noGeometry one when every face is degenerate or BoxesOnly keeps no leaf.
   static daSWRT::BuiltBLAS buildBLAS(const uint16_t *indices, int index_count, const Point3_vec4 *vertices, int vertex_count,
-    float dim_as_box_dist = 0, bool fp16_verts = true);
+    float dim_as_box_dist, bool fp16_verts, daSWRT::BlasMode mode);
   // 32-bit index entry: uint16 indices cannot address >65535 verts, so meshes above that
   // threshold must use this one (below it, prefer the 16-bit entry). Same contract as above
-  // (thread-safe; empty BuiltBLAS on invalid input, noGeometry when every face is degenerate -
+  // (thread-safe; empty BuiltBLAS on invalid input, noGeometry when every face is degenerate or BoxesOnly keeps no leaf -
   // both share the build tail), except box detection is skipped: a wide mesh cannot be an
   // 8-vert box.
   static daSWRT::BuiltBLAS buildBLAS(const uint32_t *indices, int index_count, const Point3_vec4 *vertices, int vertex_count,
-    float dim_as_box_dist = 0, bool fp16_verts = true);
+    float dim_as_box_dist, bool fp16_verts, daSWRT::BlasMode mode);
 
   // Registers a BuiltBLAS into SWRT. Small, fast: appends bytes into the internal concat
   // buffer and pushes to the tracking arrays. Not thread-safe; parallel callers must
@@ -137,19 +157,33 @@ struct RenderSWRT
   void clearAll();
 
   static uint32_t getTileBufferSizeDwords(uint32_t w, uint32_t h);
+  // the shadow target for a src_w x src_h half-res depth; quarter needs the checkerboard
+  static IPoint2 getShadowTargetSize(int src_w, int src_h, bool checkerboard, bool quarter);
+  // the quarter target holds the traced pixel's linear depth in .y, for swrt_quarter_upsample
+  static uint32_t getShadowTargetFormat(bool checkerboard, bool quarter);
   enum
   {
     NO_CHECKER_BOARD = 0
   };
-  // frame_no: real frame counter for the soft-sun jitter (separate from checkerboad_frame, which is
-  // NO_CHECKER_BOARD in non-checkerboard mode). src_w: real source (half-res depth) width.
-  void renderShadows(const Point3 &dir_to_sun, float sun_size, uint32_t frame_no, uint32_t checkerboad_frame, int src_w,
-    Sbuffer *shadow_mask_buf, BaseTexture *shadow_target, bool set_target_var);
+  // frame_no: real frame counter for the soft-sun jitter (checkerboad_frame is NO_CHECKER_BOARD without the checkerboard).
+  // src_w, src_h: real source (half-res depth) size.
+  void renderShadows(const Point3 &dir_to_sun, float sun_size, uint32_t frame_no, uint32_t checkerboad_frame, int src_w, int src_h,
+    Sbuffer *shadow_mask_buf, BaseTexture *shadow_target, bool set_target_var, const daSWRT::ShadowCasterReach &caster_reach = {},
+    const IPoint2 &full_res = {}); // the full-res size the half-res source is made from; 0 = 2 * (src_w, src_h)
   bool hasData() const { return bool(topBuf); }
+  // 0 = off; software shadow rays of receivers farther from the camera than metres see casters as boxes sooner
+  static void setShadowBoxDistRef(float metres);
+  // hard shadows; needs a checkerboard frame; size the target with getShadowTargetSize/Format, read it with swrt_shadow_sample
+  void setShadowQuarterRate(bool on) { shadowQuarter = on; }
+  // < 0 = off; software shadow rays take each BLAS leaf as its box, from the larger of the caster reach and skip_dist metres
+  static void setShadowBlasLeafBoxes(float skip_dist);
 
 protected:
+  bool shadowQuarter = false;
+
   ComputeShaderElement *checkerboard_shadows_swrt_cs = nullptr, *shadows_swrt_cs = nullptr, *mask_shadow_swrt_cs = nullptr;
-  void renderShadowFrustumTiles(int w, int h, const Point3 &dir_to_sun, float sun_size);
+  ComputeShaderElement *quarter_shadows_swrt_cs = nullptr;
+  void renderShadowFrustumTiles(int w, int h, const Point3 &dir_to_sun, float sun_size, int tile_size);
   build_bvh::TLASData *buildTopLevelStructuresInternal(build_bvh::TLASData *d, bool do_debug);
   void copyToGPUInternal(build_bvh::TLASData *d, bool do_del, bool do_debug);
   UniqueBufWithShaderVar bottomBuf;
@@ -180,6 +214,8 @@ protected:
   // the first non-box addBuiltModel so a later blasVertsFp16 flip cannot mix 8 B and 12 B payloads in one
   // bottomBuf. Reset by clearBLASSourceData.
   int8_t blasBytesVertsFp16 = -1;
+  int8_t blasBytesMode = -1;                             // blasMode, locked as blasBytesVertsFp16
+  daSWRT::BlasMode gpuBlasMode = daSWRT::BlasMode::Full; // of bottomBuf
 
   dag::Vector<int> tlasLeavesOffsets;
   dag::Vector<mat43f> matrices;

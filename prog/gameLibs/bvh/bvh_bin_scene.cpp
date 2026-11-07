@@ -3,7 +3,6 @@
 #include <bvh/bvh.h>
 #include "bvh_context.h"
 #include "bvh_tools.h"
-#include "bvh_add_instance.h"
 #include <dag/dag_vector.h>
 #include <shaders/dag_renderScene.h>
 #include <scene/dag_renderSceneMgr.h>
@@ -89,9 +88,7 @@ void update_instances(ContextId context_id)
   instanceTransform.row2 = v_make_vec4f(0, 0, 1, 0);
   Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
   for (auto objectId : context_id->binSceneObjectIds)
-    bvh::add_instance(context_id, context_id->genericInstances, objectId, instanceTransform, nullptr, false,
-      Context::Instance::AnimationUpdateMode::DO_CULLING, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-      MeshMetaAllocator::INVALID_ALLOC_ID, false);
+    bvh::add_instance(context_id, objectId, instanceTransform);
 }
 
 void on_unload_scene(ContextId context_id)

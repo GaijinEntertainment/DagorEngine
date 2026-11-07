@@ -1,5 +1,5 @@
 // `$name` gives the type method and does not see a slot of this name: for a constant table or enum,
-// and for a value read of a name that is no implicit type method (each name under the directive).
+// and for a value read of a name that is no implicit type method.
 const T = { len = 3, sub = { len = 4 } }
 enum E { len = 5, other = 6 }
 
@@ -24,14 +24,6 @@ function compared(v) { return (v && T.$len) == 3 }
 function called() { return T.$len() + T.sub.$len() + E.$len() }
 function noMethod(v) { return v && E.$other }
 function noField(v) { return v && E.$bogus }
-function forbidden(v, s, t) {
-  #forbid-implicit-type-methods
-  return $"{show(v && T.$len)} {show(s.$len)} {show(t.$len)} {show(t.$keys)}"
-}
-function forbiddenSlot(t) {
-  #forbid-implicit-type-methods
-  return t.$x
-}
 function plainSlot(t) { return t.$x }
 class Getter {
   function _get(k) {
@@ -52,8 +44,6 @@ attempt("compared", @() $"{show(compared(1))} {show(compared("a"))}")
 attempt("called", @() show(called()))
 attempt("noMethod", @() show(noMethod(1)))
 attempt("noField", @() show(noField(1)))
-attempt("forbidden", @() forbidden(1, "abc", { len = 4, x = 1 }))
-attempt("forbiddenSlot", @() show(forbiddenSlot({ x = 1 })))
 attempt("plainSlot", @() show(plainSlot({ x = 1 })))
 attempt("ofGetter", @() show(ofGetter(Getter())))
 attempt("methodOfGetter", @() show(methodOfGetter(Getter())))

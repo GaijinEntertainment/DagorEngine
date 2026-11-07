@@ -1,7 +1,6 @@
 module animchar_ui shared
 
 require ecs
-require imgui/imgui_boost
 require gameLibs.assets_import.das_includes.utility
 require gameLibs.assets_import.das_includes.dag_ui
 

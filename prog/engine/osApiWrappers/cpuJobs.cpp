@@ -527,6 +527,7 @@ static void *__cdecl job_mgr_thread(void *p)
   JobMgrCtx &ctx = *(JobMgrCtx *)p;
 
   set_current_cpujobs_thread_name(ctx.getName());
+  DaThread::disableThisThreadPriorityBoost();
   uint64_t setAffinity = ctx.affinity;
 #if _TARGET_TVOS | _TARGET_IOS | _TARGET_C3
   if (!setAffinity)
@@ -597,8 +598,10 @@ void cpujobs::init(int force_core_count, bool reserve_jobmgr_cores)
   if (force_core_count <= 0)
   {
 #if _TARGET_PC_WIN | _TARGET_XBOX
-    alignas(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX) char tmpBuf[2048];
-    DWORD bufLen = sizeof(tmpBuf), offs = 0;
+    constexpr int MAX_CORES = sizeof(decltype(dgs_main_thread_affinity)) * CHAR_BIT;
+    constexpr size_t CORE_REC_SZ = offsetof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, Processor) + sizeof(PROCESSOR_RELATIONSHIP);
+    alignas(void *) char tmpBuf[CORE_REC_SZ * MAX_CORES];
+    DWORD bufLen = sizeof(tmpBuf);
     auto inf = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *)&tmpBuf[0]; //-V641
     if (!GetLogicalProcessorInformationEx(RelationProcessorCore, inf, &bufLen)) [[unlikely]]
     {
@@ -606,33 +609,38 @@ void cpujobs::init(int force_core_count, bool reserve_jobmgr_cores)
       inf = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *)alloca(bufLen);
       G_VERIFYF(GetLogicalProcessorInformationEx(RelationProcessorCore, inf, &bufLen), "%d", GetLastError());
     }
+    auto nextCore = [&](DWORD &offs) -> const PROCESSOR_RELATIONSHIP & {
+      auto rec = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *)((char *)inf + offs);
+      offs += rec->Size;
+      return rec->Processor;
+    };
     int numCores = 0, numProcs = 0, numPerfCores = 0;
-    eastl::pair<BYTE, KAFFINITY> procRecs[128] = {};
     BYTE maxEffClass = 0;
-    for (int i = 0; offs < bufLen; i++)
+    for (DWORD offs = 0; offs < bufLen;)
     {
-      auto cinf = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *)((char *)inf + offs);
+      auto &core = nextCore(offs);
       numCores++;
-      numProcs += dag::popcount(cinf->Processor.GroupMask[0].Mask);
-      if (cinf->Processor.EfficiencyClass && i < eastl::size(procRecs))
-      {
-        procRecs[i] = eastl::make_pair(cinf->Processor.EfficiencyClass, cinf->Processor.GroupMask[0].Mask);
-        maxEffClass = max(maxEffClass, cinf->Processor.EfficiencyClass);
-      }
-      offs += cinf->Size;
+      numProcs += dag::popcount(core.GroupMask[0].Mask);
+      maxEffClass = max(maxEffClass, core.EfficiencyClass);
     }
     cpujobs_data.numLogicalCores = numProcs;
     cpujobs_data.numPhysicalCores = numCores;
+    // Main thread gets a whole core, i.e. its SMT sibling too (if any)
     dgs_main_thread_affinity = 0;
-    EA_DISABLE_VC_WARNING(4146); // unary minus operator applied to unsigned type, result still unsigned
-    for (int i = 0, n = maxEffClass ? (min)((size_t)numCores, countof(procRecs)) : 0; i < n; i++)
-      if (procRecs[i].first == maxEffClass)
-        if (++numPerfCores <= 2)
-          dgs_main_thread_affinity = /*lsb*/ procRecs[i].second & -procRecs[i].second;
-    EA_RESTORE_VC_WARNING();
+    if (maxEffClass) // i.e. hybrid CPU
+      for (DWORD offs = 0; offs < bufLen;)
+        if (auto &core = nextCore(offs); core.EfficiencyClass == maxEffClass)
+          if (++numPerfCores <= 2)
+            dgs_main_thread_affinity = core.GroupMask[0].Mask;
     cpujobs_data.numPerfCores = numPerfCores;
+    const DWORD fallbackCore = (numProcs >= 3) ? 1 : 0; // 2nd physical core, regardless of SMT
+    for (DWORD offs = 0, i = 0; offs < bufLen && !dgs_main_thread_affinity; i++)
+      if (auto &core = nextCore(offs); i == fallbackCore)
+        dgs_main_thread_affinity = core.GroupMask[0].Mask;
     if (!dgs_main_thread_affinity)
-      dgs_main_thread_affinity = (numProcs >= 3) ? 4 : 1;
+      dgs_main_thread_affinity = 1;
+    if (numProcs < 8)                                              // Too few cores to keep the SMT sibling off the workers
+      dgs_main_thread_affinity &= 0ull - dgs_main_thread_affinity; // Keep only the LSB
 
 #elif _TARGET_PC_MACOSX | _TARGET_PC_LINUX | _TARGET_ANDROID
     cpujobs_data.numLogicalCores = sysconf(_SC_NPROCESSORS_ONLN);

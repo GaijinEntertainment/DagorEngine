@@ -3,6 +3,7 @@ options no_aot
 require ecs
 require ecs.fs
 require ECSGlobalTags
+require DagorFiles
 
 
 [export, unused_argument(base_path)]
@@ -27,6 +28,9 @@ def load_imgui_daeditor(base_path : string) : bool
 
   if typeinfo builtin_module_exists(DagorEditor)
     ok = load_sub_folder(base_path, "daEditor") && ok
+    // console_commands is an optional script lib, so probe the module file it would require
+    if dd_file_exists("%gameLibs/console_commands/main/console_common.das")
+      ok = load_sub_folder(base_path, "daEditor/console_hints") && ok
     if typeinfo builtin_module_exists(DngPhysObj)
       ok = load_sub_folder(base_path, "daEditor/physobj") && ok
     if typeinfo builtin_module_exists(vehicle)

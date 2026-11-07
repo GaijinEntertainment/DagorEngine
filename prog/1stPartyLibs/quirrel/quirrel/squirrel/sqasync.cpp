@@ -127,13 +127,15 @@ struct AsyncState
     // written under inboxLock so producers see it
     bool shuttingDown;
 
+    bool tasksStopped;
+
     // Faulted Futures that settled since the previous pump-end sweep. Each
     // entry owns one strong ref on the Future instance, released at sweep
     // time (or in shutdown's final drain). VM-thread-only - no lock.
     sqvector<HSQOBJECT> unhandledCandidates;
 
     AsyncState(HSQUIRRELVM v, SQAllocContext ctx)
-        : rootVm(v), queue(ctx), inbox(ctx), shuttingDown(false), unhandledCandidates(ctx)
+        : rootVm(v), queue(ctx), inbox(ctx), shuttingDown(false), tasksStopped(false), unhandledCandidates(ctx)
     {
         sq_resetobject(&futureClass);
     }
@@ -608,7 +610,7 @@ void scheduleStep(HSQUIRRELVM v, const HSQOBJECT &taskInstance, ResumeKind kind,
                   const HSQOBJECT *faultTrace)
 {
     AsyncState *st = getAsyncState(v);
-    if (!st || st->shuttingDown) return;
+    if (!st || st->shuttingDown || st->tasksStopped) return;
 
     QueueEntry e;
     e.kind = QueueEntry::K_Resume;
@@ -647,7 +649,7 @@ void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT r
 
     AsyncState *st = getAsyncState(v);
     FutureImpl *p = getFutureFromInstance(v, taskInstance);
-    if (!st || st->shuttingDown || !p || p->lifecycle != L_Open) {
+    if (!st || st->shuttingDown || st->tasksStopped || !p || p->lifecycle != L_Open) {
         sq_release(v, &taskInstance);
         return;
     }
@@ -759,7 +761,7 @@ static void captureDiag(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &gen)
         if (sq_type(cl) == OT_CLOSURE) {
             SQFunctionProto *fp = _closure(cl)->_function;
             captureProtoString(fp->_sourcename, p->asyncSourceName);
-            captureProtoString(fp->_name, p->asyncFuncName);
+            captureProtoString(fp->GetName(), p->asyncFuncName);
             p->asyncDefLine = (SQInt32)(fp->_nlineinfos > 0 ? fp->_lineinfos->_first_line : 0);
         }
     }
@@ -770,7 +772,7 @@ static void captureDiag(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &gen)
     if (cci && sq_type(cci->_closure) == OT_CLOSURE) {
         SQFunctionProto *cfp = _closure(cci->_closure)->_function;
         captureProtoString(cfp->_sourcename, p->launchSourceName);
-        captureProtoString(cfp->_name, p->launchFuncName);
+        captureProtoString(cfp->GetName(), p->launchFuncName);
         p->launchLine = (SQInt32)cfp->GetLine(cci->_ip);
     }
 }
@@ -1127,6 +1129,13 @@ SQUIRREL_API SQBool has_pending(HSQUIRRELVM v)
         return SQTrue;
     std::lock_guard<std::mutex> lk(st->inboxLock);
     return (st->inbox.size() > 0) ? SQTrue : SQFalse;
+}
+
+
+SQUIRREL_API void stop_tasks(HSQUIRRELVM v)
+{
+    if (AsyncState *st = _ss(v)->_asyncState)
+        st->tasksStopped = true;
 }
 
 

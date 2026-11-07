@@ -6,13 +6,11 @@
 #include <dag/dag_vector.h>
 #include <EASTL/iterator.h>
 #include <perfMon/dag_statDrv.h>
-#if ENABLE_APEX
-#include "apexCollisionInstances.h"
-#endif
 #include <gamePhys/collision/physLayers.h>
 #include <phys/dag_physics.h>
 #include <EASTL/type_traits.h>
 #include <rendInst/rendInstAccess.h>
+#include <gameRes/dag_collisionResource.h>
 #include <gamePhys/collision/collisionCache.h>
 #include <gamePhys/collision/contactResultWrapper.h>
 #include <gamePhys/collision/cachedCollisionObject.h>
@@ -33,13 +31,8 @@
 namespace dacoll
 {
 
-#if ENABLE_APEX
-typedef ApexCollisionInstances CollisionInstancesType;
-#else
-typedef CollisionInstances CollisionInstancesType;
 G_STATIC_ASSERT(!eastl::is_polymorphic<CollisionInstances>::value); // Don't need it (for perfomance reasons)
-#endif
-static dag::Vector<CollisionInstancesType> ri_instances;
+static dag::Vector<CollisionInstances> ri_instances;
 static constexpr int NON_EMPTY_HEAD_INDEX = -2; // prevNotEmpty of list head: in list, but without prev (unlike NOT_IN_LIST)
 static int last_non_empty_ri_instance = NON_EMPTY_HEAD_INDEX; // Tail of list
 static int num_non_empty_ri_instances = 0;
@@ -64,6 +57,51 @@ struct PairCollisionCB
       get_phys_world()->contactTestPair(obj.body, contact.body, contactCB);
   }
 };
+
+struct ShapePairCollisionCB
+{
+  const PhysCollision &shape;
+  const TMatrix &tm;
+  WrapperContactResultCB &contactCB;
+
+  int &collMatId;
+
+  ShapePairCollisionCB(const PhysCollision &in_shape, const TMatrix &in_tm, WrapperContactResultCB &callback) :
+    shape(in_shape), tm(in_tm), contactCB(callback), collMatId(callback.collMatId)
+  {}
+
+  void onContact(const CollisionObject &contact, const rendinst::RendInstDesc &)
+  {
+    if (get_phys_world()->needsCollision(contact.body, contactCB))
+      get_phys_world()->contactTestPair(shape, tm, contact.body, contactCB);
+  }
+};
+
+// The sphere query shared by the body and the shape probes: cull by the trace cache, then test each instance found
+template <typename CB>
+static void test_collision_ri_sphere(const TMatrix &tm, const BSphere3 &sphere, CB &callback, const TraceMeshFaces *trace_cache,
+  int mat_id)
+{
+  vec4f wbsph = v_ldu_bsphere3(tm, sphere);
+
+  if (trace_cache)
+  {
+    bbox3f castBox;
+    v_bbox3_init_by_bsph(castBox, wbsph, v_splat_w(wbsph));
+    bool res = try_use_trace_cache(castBox, trace_cache);
+
+    BBox3 wbox;
+    v_stu_bbox3(wbox, castBox);
+    trace_utils::draw_trace_handle_debug_cast_result(trace_cache, wbox, res, false);
+    if (!res)
+      trace_cache = nullptr;
+  }
+
+  BSphere3 wSphere;
+  v_stu_bsphere3(wSphere, wbsph);
+  rendinst::testObjToRendInstIntersection(wSphere, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
+    true /*unlock_before_cb*/);
+}
 
 struct RIAddToWorldCB : public rendinst::RendInstCollisionCB
 {
@@ -156,25 +194,24 @@ bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<ga
   WrapperContactResultCB contactCb(out_contacts, mat_id, dacoll::get_collision_object_collapse_threshold(co));
   PairCollisionCB pairColl(co, contactCb);
   RICollisionCB<PairCollisionCB> callback(pairColl);
-  vec4f wbsph = v_ldu_bsphere3(tm, sphere);
+  test_collision_ri_sphere(tm, sphere, callback, trace_cache, mat_id);
+  return out_contacts.size() > prev_cont;
+}
 
-  if (trace_cache)
-  {
-    bbox3f castBox;
-    v_bbox3_init_by_bsph(castBox, wbsph, v_splat_w(wbsph));
-    bool res = try_use_trace_cache(castBox, trace_cache);
+bool test_collision_ri(const PhysCollision &shape, const TMatrix &tm, const BSphere3 &sphere,
+  Tab<gamephys::CollisionContactData> &out_contacts, const TraceMeshFaces *trace_cache, int mat_id)
+{
+  if (!get_phys_world())
+    return false;
 
-    BBox3 wbox;
-    v_stu_bbox3(wbox, castBox);
-    trace_utils::draw_trace_handle_debug_cast_result(trace_cache, wbox, res, false);
-    if (!res)
-      trace_cache = nullptr;
-  }
+  get_phys_world()->fetchSimRes(true);
 
-  BSphere3 wSphere;
-  v_stu_bsphere3(wSphere, wbsph);
-  rendinst::testObjToRendInstIntersection(wSphere, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
-    true /*unlock_before_cb*/);
+  int prev_cont = out_contacts.size();
+
+  WrapperContactResultCB contactCb(out_contacts, mat_id);
+  ShapePairCollisionCB pairColl(shape, tm, contactCb);
+  RICollisionCB<ShapePairCollisionCB> callback(pairColl);
+  test_collision_ri_sphere(tm, sphere, callback, trace_cache, mat_id);
   return out_contacts.size() > prev_cont;
 }
 
@@ -231,32 +268,34 @@ bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<ga
 
   WrapperRendinstContactResultCB contactCb(out_contacts, 0, mat_id, process_tree_behaviour);
   WrapperRendInstCollisionCB callback(co, contactCb, provide_coll_info, at_time);
-  vec4f wbsph = v_ldu_bsphere3(tm, sphere);
+  test_collision_ri_sphere(tm, sphere, callback, trace_cache, mat_id);
 
-  if (trace_cache)
-  {
-    bbox3f castBox;
-    v_bbox3_init_by_bsph(castBox, wbsph, v_splat_w(wbsph));
-    bool res = try_use_trace_cache(castBox, trace_cache);
+  return out_contacts.size() > prev_cont;
+}
 
-    BBox3 wbox;
-    v_stu_bbox3(wbox, castBox);
-    trace_utils::draw_trace_handle_debug_cast_result(trace_cache, wbox, res, false);
-    if (!res)
-      trace_cache = nullptr;
-  }
+bool test_collision_ri(const PhysCollision &shape, const TMatrix &tm, const BSphere3 &sphere,
+  Tab<gamephys::CollisionContactData> &out_contacts, bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache,
+  int mat_id, bool process_tree_behaviour)
+{
+  if (!get_phys_world())
+    return false;
 
-  BSphere3 wSphere;
-  v_stu_bsphere3(wSphere, wbsph);
-  rendinst::testObjToRendInstIntersection(wSphere, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
-    true /*unlock_before_cb*/);
+  get_phys_world()->fetchSimRes(true);
+
+  int prev_cont = out_contacts.size();
+
+  WrapperRendinstContactResultCB contactCb(out_contacts, 0, mat_id, process_tree_behaviour);
+  WrapperRendInstCollisionCB callback(shape, tm, contactCb, provide_coll_info, at_time);
+  test_collision_ri_sphere(tm, sphere, callback, trace_cache, mat_id);
 
   return out_contacts.size() > prev_cont;
 }
 
 struct SweepCollisionCB
 {
-  const PhysBody *castShape;
+  // one of the two: a caller's body, or a free shape the sphere and box casts build on the stack
+  const PhysBody *castBody = nullptr;
+  const PhysCollision *castShape = nullptr;
   TMatrix from;
   TMatrix to;
   int collMatId = -1;
@@ -266,9 +305,9 @@ struct SweepCollisionCB
   RIFilterCB *filterCB = nullptr;
   int contactsNum = 0;
 
-  SweepCollisionCB(const PhysBody *cast_shape, const TMatrix &from_tm, const TMatrix &to_tm, int cast_mat_id, ShapeQueryOutput &_out,
-    Tab<rendinst::RendInstDesc> *in_desc, RIFilterCB *_filterCB) :
-    castShape(cast_shape), checkMatId(cast_mat_id), desc(in_desc), filterCB(_filterCB), out(_out)
+  SweepCollisionCB(const PhysBody *cast_body, const PhysCollision *cast_shape, const TMatrix &from_tm, const TMatrix &to_tm,
+    int cast_mat_id, ShapeQueryOutput &_out, Tab<rendinst::RendInstDesc> *in_desc, RIFilterCB *_filterCB) :
+    castBody(cast_body), castShape(cast_shape), checkMatId(cast_mat_id), desc(in_desc), filterCB(_filterCB), out(_out)
   {
     from = from_tm;
     to = to_tm;
@@ -278,10 +317,17 @@ struct SweepCollisionCB
   {
     if (!get_phys_world()->needsCollision<SweepCollisionCB, void>(contact.body, *this))
       return;
-    ShapeQueryOutput prev = out;
-    out.t = 1.0f;
-    get_phys_world()->shapeQuery(castShape, from, to, make_span_const(&contact.body, 1), out);
-    if (out.t >= 1.f || (filterCB && !(*filterCB)(in_desc, out.t)))
+    // The cast ends at the best hit so far: a farther candidate loses to it below anyway. The
+    // all-hits desc list needs each candidate's own hit, so it keeps the full-length cast.
+    const ShapeQueryOutput prev = out;
+    if (desc)
+      out.t = 1.0f;
+    if (castShape)
+      get_phys_world()->shapeQuery(*castShape, from, to, make_span_const(&contact.body, 1), out);
+    else
+      get_phys_world()->shapeQuery(castBody, from, to, make_span_const(&contact.body, 1), out);
+    const bool hit = out.t < (desc ? 1.f : prev.t);
+    if (!hit || (filterCB && !(*filterCB)(in_desc, out.t)))
       out = prev;
     else
     {
@@ -303,17 +349,14 @@ struct SweepCollisionCB
   }
 };
 
-void shape_query_ri(const PhysBody *shape, const TMatrix &from, const TMatrix &to, float rad, ShapeQueryOutput &out, int cast_mat_id,
-  Tab<rendinst::RendInstDesc> *out_desc, const TraceMeshFaces *handle, RIFilterCB *filterCB)
+static void shape_query_ri_sweep(SweepCollisionCB &sweepCb, float rad, int cast_mat_id, const TraceMeshFaces *handle)
 {
   if (!get_phys_world())
     return;
-
   get_phys_world()->fetchSimRes(true);
 
-  SweepCollisionCB sweepCb(shape, from, to, cast_mat_id, out, out_desc, filterCB);
   RICollisionCB<SweepCollisionCB> callback(sweepCb);
-  Capsule capsule(from.getcol(3), to.getcol(3), rad);
+  Capsule capsule(sweepCb.from.getcol(3), sweepCb.to.getcol(3), rad);
 
   if (handle)
   {
@@ -334,12 +377,41 @@ void shape_query_ri(const PhysBody *shape, const TMatrix &from, const TMatrix &t
 #endif
 }
 
+void shape_query_ri(const PhysBody *shape, const TMatrix &from, const TMatrix &to, float rad, ShapeQueryOutput &out, int cast_mat_id,
+  Tab<rendinst::RendInstDesc> *out_desc, const TraceMeshFaces *handle, RIFilterCB *filterCB)
+{
+  SweepCollisionCB sweepCb(shape, nullptr, from, to, cast_mat_id, out, out_desc, filterCB);
+  shape_query_ri_sweep(sweepCb, rad, cast_mat_id, handle);
+}
+
+void shape_query_ri(const PhysCollision &shape, const TMatrix &from, const TMatrix &to, float rad, ShapeQueryOutput &out,
+  int cast_mat_id, Tab<rendinst::RendInstDesc> *out_desc, const TraceMeshFaces *handle, RIFilterCB *filterCB)
+{
+  SweepCollisionCB sweepCb(nullptr, &shape, from, to, cast_mat_id, out, out_desc, filterCB);
+  shape_query_ri_sweep(sweepCb, rad, cast_mat_id, handle);
+}
+
+static bool is_passable_collision(const CollisionResource &coll_res)
+{
+  if (!PhysMat::physMatCount()) // a tool or a test without PhysMat
+    return false;
+  for (const CollisionNode &node : coll_res.getAllNodes())
+    if (coll_res.checkNodeBehaviorFlags(node.nodeIndex, CollisionNode::PHYS_COLLIDABLE) &&
+        coll_res.anyNodeMaterialPasses(node,
+          [](int mat_id) { return mat_id == PHYSMAT_INVALID || PhysMat::getMaterial(mat_id).physics_collision; }))
+      return false;
+  return true;
+}
+
 void *register_collision_cb(const CollisionResource *collRes, const char *coll_name)
 {
   int cmask = EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC);
   CollisionObject obj = add_dynamic_collision_from_coll_resource(NULL, collRes, NULL, ACO_NONE, EPL_STATIC, cmask, NULL, coll_name);
   if (!obj)
     return nullptr;
+  // the template body is never in the world: its copies take its layer when they are made
+  if (is_passable_collision(*collRes))
+    obj.body->setPassableLayer();
   ri_instances.emplace_back(obj);
   return (void *)(uintptr_t)ri_instances.size();
 }
@@ -353,7 +425,7 @@ void unregister_collision_cb(void *&handle)
 
   if (ci->prevNotEmpty != CollisionInstances::NOT_IN_LIST)
   {
-    G_ASSERT((!eastl::is_same_v<CollisionInstancesType, CollisionInstances> || ci->hasPhysBodyInstances())); // APEX unlinks lazily
+    G_ASSERT(ci->hasPhysBodyInstances());
     ci->clearInstances();
     remove_empty_ri_instance_list(*ci);
   }
@@ -399,14 +471,6 @@ void clear_ri_instances()
   disabled_ri_instances.shrink_to_fit();
   flush_ri_instances();
   ri_instances_time = 0;
-}
-
-void clear_ri_apex_instances()
-{
-#if ENABLE_APEX
-  for (auto &ri : ri_instances)
-    ri.clearApexInstances();
-#endif
 }
 
 void enable_disable_ri_instance(const rendinst::RendInstDesc &desc, bool flag)
@@ -474,7 +538,7 @@ float get_ri_instances_time() { return ri_instances_time; }
 
 static size_t get_ri_instance_index(const CollisionInstances &ci)
 {
-  return (uintptr_t(&ci) - uintptr_t(ri_instances.data())) / sizeof(CollisionInstancesType);
+  return (uintptr_t(&ci) - uintptr_t(ri_instances.data())) / sizeof(CollisionInstances);
 }
 
 void push_non_empty_ri_instance_list(CollisionInstances &ci)
@@ -529,9 +593,7 @@ void update_ri_instances(float dt)
   [[maybe_unused]] int numNonEmpty = 0;
   for (int i = last_non_empty_ri_instance; i >= 0;)
   {
-#if !ENABLE_APEX // With APEX listed instance might have only PhysX instances or none (removal doesn't unlink, update() does)
     G_ASSERT(ri_instances[i].hasPhysBodyInstances());
-#endif
     int pi = ri_instances[i].prevNotEmpty;
     if (!ri_instances[i].update(ri_instances_time))
       remove_empty_ri_instance_list(ri_instances[i]);

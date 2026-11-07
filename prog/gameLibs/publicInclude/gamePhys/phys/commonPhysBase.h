@@ -816,7 +816,7 @@ public:
           int latestStateIndex = unapprovedCT.size() - 1;
           for (int i = 1; i <= missedCount; i++)
           {
-            float interpolationK = cvt(latestSequenceNumber + i, latestSequenceNumber, state.getSequenceNumber(), 0.f, 1.f);
+            float interpolationK = float(i) / sequenceDifference;
             ControlState &interpolatedState = unapprovedCT.push_back();
             interpolatedState.interpolate(unapprovedCT[latestStateIndex], state, interpolationK, latestSequenceNumber + i);
             interpolatedState.setUnitVersion(latestUnitVersion);

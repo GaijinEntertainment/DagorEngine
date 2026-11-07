@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <3d/dag_texMgr.h>
+#include "texMgrData.h"
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_tex3d.h>
 #include <3d/dag_createTex.h>
@@ -177,7 +178,7 @@ public:
 
       if (t)
       {
-        set_texture_separate_sampler(get_managed_texture_id(fn), get_sampler_info(tmd, false));
+        texmgr_internal::set_texture_derived_sampler(get_managed_texture_id(fn), get_sampler_info(tmd, false));
 
         uint8_t *data = NULL;
         int stride = 0;

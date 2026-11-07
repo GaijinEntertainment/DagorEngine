@@ -54,6 +54,7 @@ public:
   {
     CLIP_SPHERICAL,
     CLIP_CYLINDRICAL,
+    CLIP_EXTERNAL,
   };
 
 

@@ -1440,17 +1440,14 @@ static void print_usage(bool verbose)
     exe_name);
 }
 
-static int err_to_stderr(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+static void err_to_stderr(void *, LogMessage &msg)
 {
-  if (lev_tag != LOGLEVEL_ERR)
-    return 1;
-  if (ctx_file)
-    fprintf(stderr, "\n[E] %s,%d: ", ctx_file, ctx_line);
+  if (msg.ctxFile)
+    fprintf(stderr, "\n[E] %s,%d: ", msg.ctxFile, msg.ctxLine);
   else
     fprintf(stderr, "\n[E] ");
-  DagorSafeArg::mixed_fprint_fmt(stderr, fmt, arg, anum);
+  DagorSafeArg::mixed_fprint_fmt(stderr, msg.fmt, msg.arg, msg.anum);
   fprintf(stderr, "\n");
-  return 1;
 }
 
 int DagorWinMain(bool debugmode)
@@ -1475,7 +1472,7 @@ int DagorWinMain(bool debugmode)
     return -1;
   }
   signal(SIGINT, ctrl_break_handler);
-  debug_set_log_callback(&err_to_stderr);
+  debug_add_log_handler(&err_to_stderr, nullptr, {.levelMask = LOGMASK_ERR});
 
   if (strnicmp(dgs_argv[2], "-word_breaks:", 13) == 0)
   {

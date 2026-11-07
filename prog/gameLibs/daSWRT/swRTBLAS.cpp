@@ -30,10 +30,13 @@ struct BLASData
   // RenderSWRT::buildBlasLeafTables is set), so they can never disagree with the uploaded
   // snapshot. Empty ranges = tables not built, copyToGPU uploads nothing extra.
   Tab<uint32_t> leafTable, leafRanges;
+  daSWRT::BlasMode mode = daSWRT::BlasMode::Full;
   BLASData(uint32_t s) : data(s) {}
 };
 void destroy(BLASData *&data) { del_it(data); }
 }; // namespace build_bvh
+
+static ShaderVariableInfo bvh_blas_boxes_onlyVarId("bvh_blas_boxes_only", true);
 
 void RenderSWRT::clearBLASBuiltData()
 {
@@ -56,12 +59,14 @@ void RenderSWRT::clearBLASSourceData()
   blasBytes.clear();
   blasBytes.shrink_to_fit();
   blasBytesVertsFp16 = -1; // buffer emptied -- the next non-box append re-locks the format
+  blasBytesMode = -1;
 }
 void RenderSWRT::clearBLASBuffers()
 {
   bottomBuf.close();
   blasLeafTableBuf.close();
   blasLeafRangesBuf.close();
+  gpuBlasMode = daSWRT::BlasMode::Full;
 }
 
 int RenderSWRT::addBoxModel(vec4f bmin, vec4f bmax, bool light_transparent)
@@ -73,8 +78,17 @@ int RenderSWRT::addBoxModel(vec4f bmin, vec4f bmax, bool light_transparent)
   return addBuiltModel(eastl::move(b));
 }
 
+bool daSWRT::BuiltBLAS::compactToBoxLeaves()
+{
+  const int boxTreeBytes = build_bvh::compactQuadBlasToBoxLeaves(data.data(), (int)treeBytes);
+  treeBytes = max(boxTreeBytes, 0);
+  data.resize(treeBytes);
+  noGeometry = treeBytes == 0;
+  return !noGeometry;
+}
+
 // Shared build tail; idx_copy is renumbered in place by leafOrderVertexFetch, hence the
-// mutable copy owned by the callers. out arrives with box/dimAsBoxDist/vertsFp16 filled.
+// mutable copy owned by the callers. out arrives with box/dimAsBoxDist/vertsFp16/mode filled.
 static daSWRT::BuiltBLAS build_blas_impl(daSWRT::BuiltBLAS &&out, Tab<uint32_t> &idxCopy, const vec4f *verts4, int vertex_count,
   bool fp16_verts)
 {
@@ -131,14 +145,21 @@ static daSWRT::BuiltBLAS build_blas_impl(daSWRT::BuiltBLAS &&out, Tab<uint32_t> 
   // single model's tree in place and is fully model-local, so moving it to build time means
   // copyToGPU has no per-model loop and addBuiltModel can just append pre-encoded bytes.
   // It also compacts the vertex pool to blasGpuVertStride(fp16_verts) bytes/vert (8 when fp16), so trim
-  // the now-unused tail; treeBytes is unchanged (the tree structure is preserved).
-  build_bvh::reencodeQuadBlasToFP16(out.data.data(), 0, (int)out.treeBytes, bvertCount, BVH_BLAS_LEAF_SIZE, fp16_verts);
+  // the now-unused tail; Full keeps treeBytes, BoxesOnly compacts the tree and drops the vertex pool.
+  const bool boxesOnly = out.mode == daSWRT::BlasMode::BoxesOnly;
+  build_bvh::reencodeQuadBlasToFP16(out.data.data(), 0, (int)out.treeBytes, boxesOnly ? 0 : bvertCount, BVH_BLAS_LEAF_SIZE,
+    fp16_verts && !boxesOnly);
+  if (boxesOnly)
+  {
+    out.compactToBoxLeaves();
+    return out;
+  }
   out.data.resize((size_t)out.treeBytes + (size_t)bvertCount * build_bvh::blasGpuVertStride(fp16_verts));
   return out;
 }
 
 daSWRT::BuiltBLAS RenderSWRT::buildBLAS(const uint16_t *indices, int index_count, const Point3_vec4 *vertices, int vertex_count,
-  float dim_as_box_dist, bool fp16_verts)
+  float dim_as_box_dist, bool fp16_verts, daSWRT::BlasMode mode)
 {
   daSWRT::BuiltBLAS out;
   G_ASSERT((index_count % 3) == 0);
@@ -151,6 +172,7 @@ daSWRT::BuiltBLAS RenderSWRT::buildBLAS(const uint16_t *indices, int index_count
   out.box = build_bvh::calcBox(verts4, vertex_count);
   out.dimAsBoxDist = dim_as_box_dist;
   out.vertsFp16 = fp16_verts;
+  out.mode = mode;
 
   if (build_bvh::checkIfIsBox(indices, index_count, verts4, vertex_count, out.box))
     return out; // isBox() == true, box populated
@@ -167,7 +189,7 @@ daSWRT::BuiltBLAS RenderSWRT::buildBLAS(const uint16_t *indices, int index_count
 }
 
 daSWRT::BuiltBLAS RenderSWRT::buildBLAS(const uint32_t *indices, int index_count, const Point3_vec4 *vertices, int vertex_count,
-  float dim_as_box_dist, bool fp16_verts)
+  float dim_as_box_dist, bool fp16_verts, daSWRT::BlasMode mode)
 {
   daSWRT::BuiltBLAS out;
   G_ASSERT((index_count % 3) == 0);
@@ -177,6 +199,7 @@ daSWRT::BuiltBLAS RenderSWRT::buildBLAS(const uint32_t *indices, int index_count
   out.box = build_bvh::calcBox(verts4, vertex_count);
   out.dimAsBoxDist = dim_as_box_dist;
   out.vertsFp16 = fp16_verts;
+  out.mode = mode;
 
   // no box detection: this entry exists for wide (>65535 vert) meshes, which cannot be 8-vert boxes
   Tab<uint32_t> idxCopy(framemem_ptr());
@@ -190,7 +213,7 @@ int RenderSWRT::addModel(const uint16_t *indices, int index_count, const Point3_
 {
   G_ASSERT((index_count % 3) == 0);
   G_ASSERT_RETURN(vertex_count > 0 && index_count > 0, -1);
-  return addBuiltModel(buildBLAS(indices, index_count, vertices, vertex_count, dim_as_box_dist, blasVertsFp16));
+  return addBuiltModel(buildBLAS(indices, index_count, vertices, vertex_count, dim_as_box_dist, blasVertsFp16, blasMode));
 }
 
 int RenderSWRT::addBuiltModel(daSWRT::BuiltBLAS &&built)
@@ -218,20 +241,25 @@ int RenderSWRT::addBuiltModel(daSWRT::BuiltBLAS &&built)
 
   G_ASSERT((built.data.size() % 4) == 0);
   G_ASSERT(built.treeBytes > 0 && built.treeBytes <= built.data.size());
+  // one bottomBuf holds one layout
+  G_ASSERTF_RETURN(built.mode == blasMode && (blasBytes.empty() || blasBytesMode == (int)built.mode), -1,
+    "BuiltBLAS mode %d, RenderSWRT::blasMode %d, BLAS bytes appended as %d", (int)built.mode, (int)blasMode, (int)blasBytesMode);
+  const bool boxesOnly = built.mode == daSWRT::BlasMode::BoxesOnly;
   // The bytes were serialized for built.vertsFp16; the shader decodes the whole bottomBuf with one stride
   // (blasVertsFp16), so every appended model must share that format. Enforce at runtime, not just in dev:
   // a wrong-format upload would silently misread the vertex pool (wrong stride and decode).
-  G_ASSERTF_RETURN(built.vertsFp16 == blasVertsFp16, -1, "BuiltBLAS vertsFp16=%d but RenderSWRT::blasVertsFp16=%d",
+  G_ASSERTF_RETURN(boxesOnly || built.vertsFp16 == blasVertsFp16, -1, "BuiltBLAS vertsFp16=%d but RenderSWRT::blasVertsFp16=%d",
     (int)built.vertsFp16, (int)blasVertsFp16);
   // The format also freezes on the first non-box append: a later blasVertsFp16 flip would leave the
   // already-appended bytes in the old layout while the shader reads the buffer with the new stride.
-  G_ASSERTF_RETURN(blasBytes.empty() || blasBytesVertsFp16 == (int)built.vertsFp16, -1,
+  G_ASSERTF_RETURN(boxesOnly || blasBytes.empty() || blasBytesVertsFp16 == (int)built.vertsFp16, -1,
     "blasVertsFp16 flipped to %d after BLAS bytes were appended as %d", (int)built.vertsFp16, (int)blasBytesVertsFp16);
   const int offsetBytes = (int)blasBytes.size();
   G_ASSERT(offsetBytes % 4 == 0);
   const uint32_t totalBytes = (uint32_t)built.data.size();
   blasBytes.insert(blasBytes.end(), built.data.begin(), built.data.end());
   blasBytesVertsFp16 = (int8_t)built.vertsFp16; // lock the buffer's vertex format (see the guards above)
+  blasBytesMode = (int8_t)built.mode;
 
   blasDataInfo.push_back({offsetBytes / BVH_BLAS_ELEM_SIZE, built.treeBytes});
   blasDimAsBox.push_back(built.dimAsBoxDist > 0 ? clamp<int>(ceilf(built.dimAsBoxDist + 0.001f), 1, 65535) : 65535);
@@ -248,6 +276,17 @@ void RenderSWRT::copyToGPU(BLASData *d)
 {
   if (!d || d->data.empty())
     return;
+  const int boxesOnly = d->mode == daSWRT::BlasMode::BoxesOnly ? 1 : 0;
+  if (ShaderGlobal::is_var_assumed(bvh_blas_boxes_onlyVarId) &&
+      ShaderGlobal::get_interval_assumed_value(bvh_blas_boxes_onlyVarId) != boxesOnly)
+  {
+    LOGERR_ONCE("SWRT: the shader dump assumes bvh_blas_boxes_only %d, the BLAS is built with %d; no BLAS upload",
+      ShaderGlobal::get_interval_assumed_value(bvh_blas_boxes_onlyVarId), boxesOnly);
+    clearBLASBuffers();
+    return;
+  }
+  ShaderGlobal::set_int(bvh_blas_boxes_onlyVarId, boxesOnly);
+  gpuBlasMode = d->mode;
   // FP16 re-encode already happened per-model in buildBLAS, so this is a straight byte-for-byte upload.
   ensure_buf_size_and_update(bottomBuf, d->data, "bvh_bottom_structures");
   if (!d->leafRanges.empty())
@@ -275,7 +314,10 @@ build_bvh::BLASData *RenderSWRT::buildBottomLevelStructures()
     return nullptr;
   auto *ret = new build_bvh::BLASData{0};
   ret->data.assign(blasBytes.begin(), blasBytes.end());
-  if (buildBlasLeafTables)
+  if (blasBytesMode == (int8_t)daSWRT::BlasMode::BoxesOnly)
+    ret->mode = daSWRT::BlasMode::BoxesOnly;
+  G_ASSERTF(!buildBlasLeafTables || ret->mode == daSWRT::BlasMode::Full, "SWRT: the BLAS leaf tables need the leaf triangles");
+  if (buildBlasLeafTables && ret->mode == daSWRT::BlasMode::Full)
   {
     // flat leaf table for geometry-driven consumers: [ranges: model count, then per model
     // {blasStart, leafStart, leafCount, 0} ascending by blasStart] + [table: leaf body byte
@@ -308,6 +350,11 @@ build_bvh::BLASData *RenderSWRT::buildBottomLevelStructures()
     if (leafTable.empty())
       leafTable.push_back(0);
   }
-  debug("wrote BVH BLAS (quad) pre-built, %d models, %d bytes", (int)blasDataInfo.size(), (int)blasBytes.size());
+  uint32_t treeBytes = 0;
+  for (const build_bvh::BLASDataInfo &bi : blasDataInfo)
+    treeBytes += bi.size;
+  debug("wrote BVH BLAS (quad) pre-built, %d models, %d bytes: %u tree, %u vertex, %s", (int)blasDataInfo.size(),
+    (int)blasBytes.size(), treeBytes, (uint32_t)blasBytes.size() - treeBytes,
+    ret->mode == daSWRT::BlasMode::BoxesOnly ? "boxes only" : "full");
   return ret;
 }

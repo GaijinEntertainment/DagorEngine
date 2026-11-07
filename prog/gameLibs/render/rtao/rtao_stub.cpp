@@ -1,19 +1,18 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/rtao.h>
+#include <render/rtao/rtao_api.h>
 
 namespace rtao
 {
 
-void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &) {}
-void get_required_transient_texture_descriptors(denoiser::TexInfoMap &) {}
-
 void initialize(bool) {}
 void teardown() {}
 
-void render_noisy(bvh::ContextId, const TMatrix4 &, Texture *, Texture *, bool) {}
-void denoise(bool, const denoiser::TexMap &, bool) {}
-bool do_trace(bvh::ContextId, const TMatrix4 &, Texture *, const denoiser::TexMap &, bool) { return false; }
-void render(bvh::ContextId, const TMatrix4 &, bool, Texture *, const denoiser::TexMap &, bool) {}
+denoiser::ParamsHandle<FrameParams> create_frame_params(dafg::Registry registry)
+{
+  return registry.createBlob<FrameParams>("rtao_frame_params").handle();
+}
+
+void register_nodes(const NodeParams &, dag::Vector<dafg::NodeHandle> &) {}
 
 } // namespace rtao

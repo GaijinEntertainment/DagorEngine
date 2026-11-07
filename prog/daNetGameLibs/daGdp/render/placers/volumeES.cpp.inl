@@ -19,7 +19,11 @@
 #include <debug/dag_debug3d.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/renderEvent.h>
+#include <render/world/wrDispatcher.h>
+#include <render/boundsUtils.h>
 #include <ecs/render/updateStageRender.h>
+#include <landMesh/lmeshManager.h>
+#include <heightmap/heightmapHandler.h>
 #include "../riexProcessor.h"
 #include "../globalManager.h"
 #include "volume.h"
@@ -50,6 +54,9 @@ static inline void on_ri_placers_ecs_query(ecs::EntityManager &manager, Callable
 
 template <typename Callable>
 static inline void around_ri_placers_ecs_query(ecs::EntityManager &manager, Callable);
+
+template <typename Callable>
+static inline void underground_zones_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
 static inline void volume_boxes_ecs_query(ecs::EntityManager &manager, Callable);
@@ -170,7 +177,8 @@ static inline void volume_view_process_es(
     [&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_meshes) ecs::EntityId eid, float dagdp__density, float dagdp__volume_min_triangle_area,
       const ecs::string &dagdp__name, const Point3 &dagdp__volume_axis, bool dagdp__volume_axis_local, bool dagdp__volume_axis_abs,
       const Point2 &dagdp__distance_based_scale, float dagdp__distance_based_range, const Point3 &dagdp__distance_based_center,
-      int dagdp__target_mesh_lod, float dagdp__sample_range = -1, int dagdp__csm_cascade_count = -1) {
+      int dagdp__target_mesh_lod, float dagdp__sample_range = -1, int dagdp__csm_cascade_count = -1,
+      bool dagdp__discard_below_heightmap = false) {
       auto iter = rulesBuilder.placers.find(eid);
       if (iter == rulesBuilder.placers.end())
         return;
@@ -198,6 +206,7 @@ static inline void volume_view_process_es(
       item.axis = dagdp__volume_axis;
       item.axisLocal = dagdp__volume_axis_local;
       item.csmCascadeCount = dagdp__csm_cascade_count;
+      item.discardBelowHeightmap = dagdp__discard_below_heightmap;
 
       auto &variant = builder.variants.push_back();
       variant.density = density;
@@ -559,6 +568,47 @@ void gather_process(DagdpRiexGatherJob &job,
 {
   TIME_PROFILE(dagdp_volume_gather_process);
 
+  LandMeshManager *lmesh = WRDispatcher::getLandMeshManager();
+  const HeightmapHandler *hmap = lmesh ? lmesh->getHmapHandler() : nullptr;
+  const BBox3 hmapBBox = hmap ? hmap->getWorldBox() : BBox3::IDENT;
+  const HeightmapHeightCulling *culling = hmap ? hmap->heightmapHeightCulling.get() : nullptr;
+  bool isUndergroundZonesValid = false;
+  dag::Vector<BBox3, framemem_allocator> undergroundZones;
+  float heightmapGap = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("dagdp_discard_below_heightmap_gap", 0);
+
+  auto volumeDiscardBelowY = [&](bbox3f_cref box, const VolumeMappingItem &variant) {
+    // Conservative: the min over the heightmap culling cells that cover the box, so no visible instance is rejected.
+    if (!variant.discardBelowHeightmap || !culling)
+      return -FLT_MAX;
+
+    // Skip optimization near location border
+    BBox3 worldBox;
+    v_stu_bbox3(worldBox, box);
+    const BBox2 xz = BBox2::xz(worldBox);
+    if (xz[0].x < hmapBBox[0].x || xz[0].y < hmapBBox[0].z || xz[1].x > hmapBBox[1].x || xz[1].y > hmapBBox[1].z)
+      return -FLT_MAX;
+
+    // Skip optimization in underground zone
+    if (!isUndergroundZonesValid)
+    {
+      isUndergroundZonesValid = true;
+      underground_zones_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE(ecs::Tag underground_zone) const TMatrix &transform) {
+        undergroundZones.push_back(get_containing_box(transform));
+      });
+    }
+    for (const BBox3 &z : undergroundZones)
+      if (z & worldBox)
+        return -FLT_MAX;
+
+    const float size = max(xz.width().x, xz.width().y);
+    if (size <= 0.0f)
+      return -FLT_MAX;
+
+    float hMin, hMax;
+    culling->getMinMax(int(culling->getLod(size)), xz[0], size, hMin, hMax);
+    return hMin - heightmapGap;
+  };
+
   // The one way meshes reach the output, so the processor is asked for emitted volumes only, in emission order: the
   // first one asked is the resource processed this frame.
   const auto emitMeshes = [&](dag::ConstSpan<MeshIntersection> meshes, int unprocessed_res, int mesh_lod, uint32_t volume_index) {
@@ -652,6 +702,7 @@ void gather_process(DagdpRiexGatherJob &job,
     volume.axis = e.axis;
     volume.volumeType = e.volumeType;
     volume.variantIndex = e.variant->variantIndex;
+    volume.discardBelowY = volumeDiscardBelowY(e.box, *e.variant);
 
     if (!volume_placer_no_tiles)
       for (int x = e.tileMin.x; x < e.tileMax.x; ++x)
@@ -715,6 +766,7 @@ void gather_process(DagdpRiexGatherJob &job,
     volume.axis = variant.axis;
     volume.volumeType = VOLUME_TYPE_FULL;
     volume.variantIndex = variant.variantIndex;
+    volume.discardBelowY = -FLT_MAX; // no volume box to bound the terrain height
     return volumeIndex;
   };
 
@@ -836,7 +888,8 @@ ECS_TRACK(dagdp__name,
   dagdp__distance_based_range,
   dagdp__distance_based_center,
   dagdp__target_mesh_lod,
-  dagdp__sample_range)
+  dagdp__sample_range,
+  dagdp__discard_below_heightmap)
 ECS_REQUIRE(ecs::Tag dagdp_placer_on_meshes,
   const ecs::string &dagdp__name,
   float dagdp__density,
@@ -848,9 +901,11 @@ ECS_REQUIRE(ecs::Tag dagdp_placer_on_meshes,
   float dagdp__distance_based_range,
   const Point3 &dagdp__distance_based_center,
   int dagdp__target_mesh_lod)
-static void dagdp_placer_volume_changed_es(const ecs::Event &, ecs::EntityManager &manager, float dagdp__sample_range = -1)
+static void dagdp_placer_volume_changed_es(
+  const ecs::Event &, ecs::EntityManager &manager, float dagdp__sample_range = -1, bool dagdp__discard_below_heightmap = false)
 {
   G_UNUSED(dagdp__sample_range);
+  G_UNUSED(dagdp__discard_below_heightmap);
   manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
 }
 

@@ -29,6 +29,7 @@ shader dagdp_dynamic_recount
 
   hlsl(cs) {
     groupshared uint gs_data[DAGDP_DYNAMIC_RECOUNT_GROUP_SIZE];
+    groupshared uint gs_overflow_flag;
 
     void inclusive_prefix_sum_gs(uint tId, uint count)
     {
@@ -61,9 +62,13 @@ shader dagdp_dynamic_recount
       if (tId < dyn_counters_num)
         count = structuredBufferAt(dyn_counters, tId.x + DYN_COUNTERS_PREFIX);
 
+      // thread 0 overwrites the overflow flag at the end, so all threads use this snapshot
       BRANCH
       if (tId == 0)
+      {
         gs_data[0] = 0;
+        gs_overflow_flag = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_OVERFLOW_FLAG);
+      }
 
       GroupMemoryBarrierWithGroupSync();
 
@@ -84,7 +89,7 @@ shader dagdp_dynamic_recount
       GroupMemoryBarrierWithGroupSync();
 
       inclusive_prefix_sum_gs(tId, count);
-      const bool isAlreadyPlaced = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_OVERFLOW_FLAG) == 0u;
+      const bool isAlreadyPlaced = gs_overflow_flag == 0u;
 
       BRANCH
       if (tId < dyn_counters_num)

@@ -2,6 +2,7 @@ include "shader_global.dshl"
 include "frustum.dshl"
 include "globtm.dshl"
 include "smoke_tracers_inc.dshl"
+include "smoke_tracers_bounds_inc.dshl"
 hlsl {
   #include <smokeTracers.hlsli>
 }
@@ -145,9 +146,9 @@ shader cull_tracers_cs
 {
   (cs) {
     world_view_pos@f3 = world_view_pos;
-    globtm_psf@f44 = { globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3 };
     local_view_z@f3 = local_view_z;
     tracer_head_radius_coeff@f1 = tracer_head_radius_coeff;
+    smoke_tracer_turbulence_params@f4 = smoke_tracer_turbulence_params;
 
     culled_tracer_heads@uav : register(0) hlsl {
       #include <smokeTracers.hlsli>
@@ -178,6 +179,7 @@ shader cull_tracers_cs
   INIT_AND_USE_FRUSTUM_CHECK_CS()
   SMOKE_TRACER_HEAD_FUNC(cs)
 
+  SMOKE_TRACERS_BOUNDS_FUNC(cs)
   hlsl(cs) {
     float4 smoke_trace_current_time: register(c12);
     uint commandsCount: register(c13);
@@ -223,14 +225,14 @@ shader cull_tracers_cs
       smoke_tracer_head_vert_ids(id, vertCnt, vertId2, vertId1);
       uint firstVertId = firstVert%TRACER_SEGMENTS_COUNT + startVertId;
 
-      float3 p0 = tracerVerts[firstVertId].pos_dist.xyz + get_tracers_wind(tracerVerts[firstVertId].time);
-      float3 p1 = tracerVerts[vertId2].pos_dist.xyz + get_tracers_wind(tracerVerts[vertId2].time);
+      float longestTime = (tracerTime-tracerVerts[firstVertId].time);
+      float3 windDrift = get_tracers_wind(longestTime, smoke_tracer_turbulence_params);
+      float3 p0 = tracerVerts[firstVertId].pos_dist.xyz + windDrift;
+      float3 p1 = tracerVerts[vertId2].pos_dist.xyz + get_tracers_wind(tracerTime-tracerVerts[vertId2].time, smoke_tracer_turbulence_params);
 
       float3 boxMin = min(p0, p1), boxMax = max(p0,p1);
-      float longestTime = (tracerTime-tracerVerts[firstVertId].time);
       float radiusStart = tracers[id].radiusStart;
-      float currentRadius = radiusStart + 
-        (get_tracers_max_turbulence_radius(radiusStart) + get_tracers_max_wind_radius(radiusStart))*sqrt(longestTime);
+      float currentRadius = get_tracers_max_reach(radiusStart, longestTime, smoke_tracer_turbulence_params, windDrift);
 
       boxMin -= currentRadius; boxMax += currentRadius;
       if (!testBoxB(boxMin, boxMax))

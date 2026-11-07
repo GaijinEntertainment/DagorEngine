@@ -160,8 +160,8 @@ IWndProcComponent::RetCode BhvBrowser::process(void *hwnd, unsigned msg, uintptr
   return IWndProcComponent::RetCode::PROCEED_OTHER_COMPONENTS;
 }
 
-int BhvBrowser::pointingEvent(ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
-  Point2 pos, int accum_res)
+int BhvBrowser::pointingEvent(ElementTree *, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int pointer_id, int button_id, Point2 pos, int accum_res)
 {
   /*
   TODO: for touch send actual touch events instead of remapping them to mouse.

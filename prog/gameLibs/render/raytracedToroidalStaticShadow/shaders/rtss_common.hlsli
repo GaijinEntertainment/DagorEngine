@@ -9,6 +9,7 @@
 #define RTSS_SLOT_VALID       1u
 #define RTSS_SLOT_BIT         2u
 #define RTSS_JOB_BIT          1u
+#define RTSS_SLOTS_OFFSET     (RTSS_MAX_LEVELS * RTSS_LEVEL_BYTES) // in rtss_levels, after the levels
 #define RTSS_LEVEL_NEWEST_BIT  1u // the target bit when sweeping, else the current bit
 #define RTSS_LEVEL_CURRENT_BIT 2u
 #define RTSS_LEVEL_SWEEPING    4u
@@ -41,7 +42,7 @@ inline uint rtss_slot_index(int2 page, uint W) { return (uint(page.y) & (W - 1))
 inline uint rtss_rect_area(uint rect) { return (((rect >> 16) & 0xff) - (rect & 0xff)) * ((rect >> 24) - ((rect >> 8) & 0xff)); }
 
 #ifdef __cplusplus
-// the rows of the ByteAddressBuffers rtss_slots and rtss_levels, which the shaders read with rtss_slot and rtss_level_row
+// the rows of the ByteAddressBuffer rtss_levels, which the shaders read with rtss_slot and rtss_level_row
 struct RtssSlot
 {
   uint page;      // x & 0xffff | y << 16: the low 16 bits, exact within the window
@@ -72,7 +73,7 @@ static_assert(sizeof(RtssLevel) == RTSS_LEVEL_BYTES);
 #define rtss_atlas_texel rtss_globals[4].x // 1 / (S * W): one madd from atlas texels to uv
 
 #define rtss_texel(level)          (rtss_texel0 * asfloat(((level) + 127u) << 23)) // texel0 * 2^level, exact
-#define rtss_slot(i)               rtss_slots.Load4((i) * 16) // page, flags, asuint(minDepth), asuint(maxDepth)
+#define rtss_slot(i)               rtss_levels.Load4(RTSS_SLOTS_OFFSET + (i) * 16) // page, flags, asuint(minDepth), asuint(maxDepth)
 #define rtss_level_row(level, row) asfloat(rtss_levels.Load4((level) * RTSS_LEVEL_BYTES + (row) * 16)) // xform[row]
 #define rtss_level_window(level)   asuint(rtss_level_row(level, 6)) // pageOrigin, flags, asuint(invPage)
 

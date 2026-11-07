@@ -68,7 +68,7 @@ shader antialiasing
     alpha_influence_over_color@f1 = alpha_influence_over_color;
   }
 
-  if (in_cockpit == on && compatibility_mode == compatibility_mode_off)
+  if (in_cockpit == on && hmd_device == hmd_device_off && compatibility_mode == compatibility_mode_off)
   {
     if (sharpness_on_selfillum == off)
     {

@@ -769,22 +769,12 @@ namespace drv3d_metal
 
   void ShadersPreCache::unloadShaders()
   {
-    eastl::vector<CachedShader *> shaders;
-    eastl::vector<CachedPipelineState *> psos;
-    {
-      std::unique_lock<std::mutex> l(g_compiler_mutex);
-      for (auto &s : shader_compiler_cache)
-        shaders.push_back(s.second.result);
-      for (auto &p : pso_compiler_cache)
-        psos.push_back(p.second);
-      shader_compiler_cache.clear();
-      pso_compiler_cache.clear();
-    }
-    std::unique_lock<std::mutex> l(g_cache_mutex);
-    for (auto s : shaders)
-      shader_cache_objects.freeOneBlock(s);
-    for (auto p : psos)
-      pso_cache_objects.freeOneBlock(p);
+    // queued entries own a source copy and refer to shaders by hash, so they outlive the
+    // unloaded bytecode; a live async shader is queued only once, so a dropped entry is never compiled
+    std::unique_lock<std::mutex> l(g_compiler_mutex);
+    g_compiler_condition.wait(l, [this] {
+      return (shader_compiler_cache.empty() && pso_compiler_cache.empty() && !compiler_busy) || g_is_exiting;
+    });
   }
 
   void ShadersPreCache::tickCache()
@@ -1421,6 +1411,9 @@ namespace drv3d_metal
         }
 
         std::unique_lock<std::mutex> l(g_compiler_mutex);
+        compiler_busy = false;
+        if (shader_compiler_cache.empty() && pso_compiler_cache.empty())
+          g_compiler_condition.notify_all();
         g_compiler_condition.wait(l, [this] { return !shader_compiler_cache.empty() || !pso_compiler_cache.empty() || g_is_exiting; });
 
         if (!shader_compiler_cache.empty())
@@ -1443,6 +1436,8 @@ namespace drv3d_metal
         }
         else
           work_hash = 0;
+
+        compiler_busy = shader_hash || work_hash;
       }
 
       @autoreleasepool

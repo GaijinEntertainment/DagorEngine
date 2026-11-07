@@ -59,8 +59,6 @@ struct ZoneForceFieldRenderer
     const TMatrix &view_itm, const Frustum &culling_frustum, const Occlusion *occlusion, ZoneForceFieldFrameZones &gathered);
   PartitionSphere getClosestForceField(const Point3 &camera_pos) const;
 
-  void renderForceFields(Texture *downsampled_depth, const ManagedTex *render_target);
-  void apply() const;
   void fillBuffers();
 };
 

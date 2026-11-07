@@ -229,6 +229,7 @@ bool rendinst::prepareExtraVisibilityInternal(RiGenVisibility &vbase, mat44f_cre
   if (!RendInstGenData::renderResRequired || !maxExtraRiCount || RendInstGenData::isLoading)
     return false;
   TIME_PROFILE(riextra_visibility);
+  FRAMEMEM_REGION;
   RiGenExtraVisibility &visibility = vbase.riex;
   const VisibilityRenderingFlags rendering = visibility.rendering;
   visibility.sortedTransparentElems.clear();
@@ -848,7 +849,7 @@ bool rendinst::prepareExtraVisibilityInternal(RiGenVisibility &vbase, mat44f_cre
   {
     TIME_PROFILE(sortLarge);
     const float max_dist_to_sort = 500.f * 500.f * distSqMul;
-    static int min_optimization_dist2i = bitwise_cast<int, float>(MIN_OPTIMIZATION_DIST * MIN_OPTIMIZATION_DIST * distSqMul);
+    const int min_optimization_dist2i = bitwise_cast<int, float>(MIN_OPTIMIZATION_DIST * MIN_OPTIMIZATION_DIST * distSqMul);
     for (int lod = 0; lod < LARGE_LOD_CNT; ++lod)
       for (auto &poolAndCnt : visibility.riexPoolOrder)
       {

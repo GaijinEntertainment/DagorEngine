@@ -2,6 +2,10 @@
 
 #include "jsonDumpCommon.h"
 
+#include <osApiWrappers/dag_files.h>
+#include <util/dag_console.h>
+
+
 namespace dafg::jsondump
 {
 
@@ -200,6 +204,36 @@ void print_intermediate_index_source(const intermediate::IndexSource &inx_src, c
     w.String(get_name(graph, *inx_src.buffer));
   else
     w.String("");
+}
+
+
+void write_to_file(const String &raw_filename, const Buffer &buffer)
+{
+  const char *platformPrefix = "";
+#if _TARGET_C1 | _TARGET_C2
+
+#elif _TARGET_XBOX
+  platformPrefix = "D:/";
+#endif
+
+  String filename = platformPrefix + raw_filename;
+  if (!filename.suffix(".json"))
+    filename += ".json";
+
+
+  eastl::unique_ptr<void, DagorFileCloser> f(df_open(filename, DF_WRITE | DF_CREATE));
+  if (!f)
+  {
+    console::error("daFG: failed to open '%s' for writing", filename.c_str());
+    return;
+  }
+
+  int fileLen = static_cast<int>(buffer.GetSize());
+  int bytesWritten = df_write(f.get(), buffer.GetString(), fileLen);
+  if (bytesWritten == fileLen)
+    console::print_d("daFG: dump saved to '%s'", filename.c_str());
+  else
+    console::error("daFG: dump to '%s' failed, wrote %d bytes instead of %d", filename.c_str(), bytesWritten, fileLen);
 }
 
 } // namespace dafg::jsondump

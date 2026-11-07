@@ -234,6 +234,12 @@ void LightProbeSpecularCubesContainer::update(const CubeUpdater &cube_updater, c
   }
 }
 
+void LightProbeSpecularCubesContainer::retryCubeFace()
+{
+  if (renderedCubeFaces > 0)
+    --renderedCubeFaces;
+}
+
 void LightProbeSpecularCubesContainer::invalidateProbe(LightProbe *probe)
 {
   if (updateQueueBegin == updateQueueEnd)

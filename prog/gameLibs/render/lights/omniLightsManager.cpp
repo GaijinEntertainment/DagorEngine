@@ -38,8 +38,10 @@ OmniLightMaskType &operator|=(OmniLightMaskType &lhs, OmniLightMaskType rhs)
   return lhs;
 }
 
-OmniLightsManager::OmniLightsManager(const char *name) : LightsManager(name) {}
-OmniLightsManager::OmniLightsManager() : OmniLightsManager("omni") {}
+OmniLightsManager::OmniLightsManager(LightsManagerSharedStorage *shared_storage) :
+  LightsManager("omni", shared_storage, SCENE_OMNI_MANAGED_LIGHTS_FIRST_INDEX * sizeof(ManagedLight),
+    SCENE_OMNI_RENDER_LIGHTS_BYTE_OFFSET)
+{}
 
 template <>
 bool LightsManager<OmniLight, RenderOmniLight, OmniLightMaskType, MAX_SCENE_OMNI_LIGHTS>::isInvalidatingShadowsNeed(

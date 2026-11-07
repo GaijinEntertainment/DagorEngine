@@ -18,7 +18,6 @@
 #include "main/localStorage.h"
 #include "main/app.h"
 #include "net/replay.h" // load_replay_meta_info
-#include "ui/userUi.h"
 #include "ui/uiShared.h"
 #include <main/circuit.h>
 #include "main/gameLoad.h"
@@ -124,14 +123,9 @@ static SQInteger connect_to_session_sq(HSQUIRRELVM vm)
       return sq_throwerror(vm, errorMessage);
   }
 
-  Sqrat::Array host_urls = params["host_urls"];
-  int hlen = (host_urls.GetType() == OT_ARRAY) ? host_urls.Length() : 0;
-  if (!hlen)
-    return sq_throwerror(vm, "no .host_urls passed in <params> to connect_to_session()");
-
   net::ConnectParams connectParams;
-  for (int i = 0; i < hlen; ++i)
-    connectParams.serverUrls.push_back(host_urls[SQInteger(i)].GetVar<const char *>().value);
+  if (gamelauncher::append_host_urls_from_params(params, connectParams) <= 0)
+    return sq_throwerror(vm, "no .host_urls passed in <params> to connect_to_session()");
 
   Sqrat::Object sessIdObj = params.GetSlot("sessionId");
   if (sessIdObj.GetType() == OT_STRING)
@@ -162,25 +156,7 @@ static SQInteger connect_to_session_sq(HSQUIRRELVM vm)
   return 0;
 }
 
-static void reload_ui_scripts(bool hard_reload)
-{
-  bool hadOverlayScene = overlay_ui::gui_scene() != nullptr;
-  if (hadOverlayScene && hard_reload)
-    overlay_ui::shutdown_ui(false);
-
-  // USER UI VM
-  user_ui::reload_user_ui_script(hard_reload);
-
-  if (hadOverlayScene && hard_reload)
-    overlay_ui::init_ui();
-}
-
 static void reload_overlay_ui_scripts(bool hard_reload) { overlay_ui::reload_scripts(hard_reload); }
-
-static void sq_reload_ui_scripts()
-{
-  ::delayed_call([]() { reload_ui_scripts(false); });
-}
 
 static void sq_reload_overlay_ui_scripts()
 {
@@ -250,7 +226,6 @@ SQ_DEF_AUTO_BINDING_MODULE_EX(bind_app, "app", sq::VM_ALL)
     .SquirrelFunc("switch_scene_and_update", switch_scene_and_update_sq, 2, ".s") // (scene_name:string)
     .SquirrelFunc("connect_to_session", connect_to_session_sq, -2, ".t t|o")      // (conn_params:table, [ugmCtx:table|null])
     .Func("get_dir", get_dir)
-    .Func("reload_ui_scripts", sq_reload_ui_scripts)
     .Func("reload_overlay_ui_scripts", sq_reload_overlay_ui_scripts)
     .Func("hard_reload_overlay_ui_scripts", sq_hard_reload_overlay_ui_scripts)
     /**/;

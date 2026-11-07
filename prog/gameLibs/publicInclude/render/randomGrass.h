@@ -116,6 +116,8 @@ struct GrassLod
 
   float minRadius;
   float maxRadius;
+  float boundsMaxRadius;
+  float lodNoiseAmp;
 
   float fadeIn;
   float fadeOut;
@@ -261,7 +263,10 @@ protected:
 
 
   float lodFadeDelta;
+  float lodFadeNoise;
+  float lodNoiseWaveLength;
   float minFarLodRadius;
+  bool instanceLodFade;
 
   float waterLevel;
   bool shouldRender;

@@ -2,14 +2,12 @@
 #pragma once
 
 #include <cinttypes>
-#include <osApiWrappers/dag_mutex.h>
 #include <EASTL/span.h>
 #include <dag/dag_vector.h>
 #include <memory/dag_framemem.h>
 #include <3d/dag_resPtr.h>
 
 #include <render/cascadeShadows.h>
-#include <render/toroidalStaticShadows.h>
 #include <render/voxelShadows.h>
 #include <render/gpuVisibilityTest.h>
 #include <render/rendererFeatures.h>
@@ -20,7 +18,6 @@
 #include <render/cameraParams.h>
 #include "rendinstShadowCullBboxesLoader.h"
 #include <rendInst/visibilityDecl.h>
-#include <rendInst/rendInstRenderJob.h>
 #include <render/variance.h>
 
 
@@ -54,7 +51,6 @@ struct IShadowInfoProvider
   virtual const DataBlock *getLevelSettings() const = 0;
   virtual int getShadowFramesCount() const = 0;
   virtual int getTemporalShadowFramesCount() const = 0;
-  virtual bool isTimeDynamic() const = 0;
 
   // Callbacks to actually render stuff. Should be replaced with FG
   // eventually.
@@ -70,20 +66,19 @@ public:
   {
     CSM_MAX_CASCADES = 4,
     CSM_DYNAMIC_ONLY_CASCADE = 3,
-    MAX_NUM_STATIC_SHADOWS_CASCADES = 2,
   };
 
   ShadowsManager(IShadowInfoProvider &provider, ClusteredLights &lights);
+  ~ShadowsManager();
 
   void renderGroundShadows(const Point3 &origin, int displacement_subdiv, const Frustum &culling_frustum, const TMatrix4 &view_proj);
-  void renderStaticShadowsRegion(
-    const mat44f &culling_view_proj, const TMatrix4 &shadow_glob_tm, const TMatrix &view_itm, int cascade, int region);
   void renderShadowsOpaque(int shadow_cascade, bool only_dynamic, const TMatrix &itm, const Point3 &cam_pos);
 
-  RiGenVisibility *initOneStaticShadowsVisibility();
+  // also drops the riExtra collision data: pool ids are per level
   void closeAllStaticShadowsVisibility();
 
   void setShadowFrameIndex(const CameraParams &cur_frame_camera);
+  void resetShadowFrame();
   void updateCsmData(const CameraParams &cur_frame_camera);
   void combineShadows(const dafg::multiplexing::Index multiplex_index, const CameraParams &cur_frame_camera);
 
@@ -104,44 +99,37 @@ public:
   void updateShadowsQFromSunAndReinit();
   void initShadowsSettings();
 
+  // force: the old data goes too, as for a new level
   void shadowsInvalidate(bool force);
   void shadowsInvalidate(const BBox3 *boxes, uint32_t cnt);
   void shadowsInvalidate(const BBox3 &box) { shadowsInvalidate(&box, 1); }
-  void shadowsAddInvalidBBox(const BBox3 &box);
-  void shadowsInvalidateGatheredBBoxes();
   bbox3f getActiveShadowVolume() const;
 
   bool hasRIShadowOcclusion() const;
-  int gatherAndTryAddRiForShadowsVisibilityTest(mat44f_cref globtm_cull, const ViewTransformData &transform);
-  bbox3f gatherBboxesForAnimcharShadowCull(const Point3 &cam_pos,
+  int gatherAndTryAddRiForShadowsVisibilityTest(mat44f_cref globtm_cull, float texel_size);
+  void gatherBboxesForAnimcharShadowCull(const Point3 &cam_pos,
     dag::Vector<GpuVisibilityTestManager::TestObjectData, framemem_allocator> &out_bboxes,
     uint32_t usr_data) const;
 
-  float getStaticShadowsSmallestTexelSize() const;
   float getStaticShadowsBiggestTexelSize() const;
-  int getStaticShadowsCascadesCount() const;
-  void getStaticShadowsBoxViews(const BBox3 &box, ViewTransformData *out_views, int &out_cnt) const;
-  bool getStaticShadowsCascadeWorldBoxViews(int cascade_id, ViewTransformData *out_views, int &out_cnt) const;
 
   Point4 getCascadeShadowAnchor(int cascade_no) override;
   void renderCascadeShadowDepth(int cascade_no, const Point2 &znzf) override;
 
   void testAnimcharTestBboxes(const Point3 &cam_pos, int frame_no);
+  void testStaticShadowOcclusion();
   void resetShadowsVisibilityTesting();
   int getVisibilityTestAvailableSpace() const { return shadowsGpuOcclusionMgr.getAvailableSpace(); }
-  BaseTexture *getStaticShadowsTex();
-  // Sphere is inside static shadows
-  bool insideStaticShadows(const Point3 &pos, float radius) const;
-  // Sphere is inside valid static shadows.
-  // Valid means something was ever rendered to it
-  bool validStaticShadows(const Point3 &pos, float radius) const;
-  // Sphere is inside valid static shadows.
-  // Valid means something was ever rendered to it and
-  // it wasnt invalidated after that
-  bool fullyUpdatedStaticShadows(const Point3 &pos, float radius) const;
+  // data on the covered pages, maybe stale
+  bool validStaticShadows(const Point3 &pos, float cube_size) const;
+  // valid, with nothing left to build
+  bool fullyUpdatedStaticShadows(const Point3 &pos, float cube_size) const;
+  uint32_t getStaticShadowsConvergedFrames() const;
 
-  bool updateStaticShadowAround(const Point3 &pos, bool update_only_last_cascade); // Return true if some tp jobs were added
+  bool updateStaticShadowAround(const Point3 &pos); // Return true if some tp jobs were added
   void renderStaticShadows();
+  // screen_mode > 0 and atlas_level >= 0 draw debug views
+  void debugRenderStaticShadows(int screen_mode, int atlas_level);
 
   // not rendering, will be called from thread
   void prepareShadowsMatrices(
@@ -159,7 +147,6 @@ public:
   void getCascadeShadowSparseUpdateParams(
     int /*cascade_no*/, const Frustum &, float &out_min_sparse_dist, int &out_min_sparse_frame) override;
 
-  const ToroidalStaticShadows *getStaticShadows() const { return staticShadows.get(); }
   float getCsmShadowsMaxDist() const { return csmShadowsMaxDist; }
 
   ShadowsQuality getSettingsQuality() const { return settingsShadowQuality; }
@@ -189,6 +176,7 @@ public:
 
 private:
   struct StaticShadowCallback;
+  struct StaticShadows;
 
   // Lower shadow quality below this sunDir.y, to not render too many rendinsts into shadow (except on ultra)
   float shadowQualityLoweringThreshold = 0.25f;
@@ -205,6 +193,7 @@ private:
 
   ShadowsQuality shadowsQuality = ShadowsQuality::SHADOWS_HIGH;
   ShadowsQuality settingsShadowQuality = ShadowsQuality::SHADOWS_HIGH;
+  uint32_t shadowFrameBase = 0;
 
   CascadeShadows *csm = nullptr;
   CascadeShadows::ModeSettings csm_mode;
@@ -214,16 +203,9 @@ private:
 
   eastl::unique_ptr<VoxelShadows> voxelShadows;
 
-  float staticShadowMaxUpdateAmount = 0.1;
-  bool staticShadowUniformUpdate = false;
   bool worldBBoxDirty = false;
-  eastl::unique_ptr<ToroidalStaticShadows> staticShadows;
-  eastl::unique_ptr<rendinst::render::RiExtraRendererBuilder> staticShadowsRiexBuilder;
+  eastl::unique_ptr<StaticShadows> staticShadows;
   dafg::NodeHandle staticShadowRenderNode;
-  bool staticShadowsSetShaderVars = false;
-  shaders::UniqueOverrideStateId staticShadowsOverride;
-  shaders::UniqueOverrideStateId staticShadowsOverrideFlipCull;
-  bool isTimeDynamic;
 
   static constexpr float VSM_SHADOW_DISTANCE = 20000;
   static constexpr float VSM_UPDATE_THRESHOLD_SQ = sqr(VSM_SHADOW_DISTANCE * 0.1);
@@ -232,13 +214,6 @@ private:
 
   PostFxRenderer shadowsDownsample;
   PostFxRenderer combine_shadows;
-
-  struct
-  {
-    dag::Vector<BBox3> list;
-    uint64_t lastApplyTicks = 0;
-    dag::mutex lock;
-  } staticShadowInvalidBboxes;
 
   // Last cascade is dynamic only even on high and ultra
   static constexpr int CSM_STATIC_CASCADE_COUNT = 3;

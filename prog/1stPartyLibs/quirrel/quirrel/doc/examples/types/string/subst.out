@@ -1,4 +1,4 @@
 "hi {0}, you are {1}".subst("bob", 42) = hi bob, you are 42
 "{n} plus one".subst({n = 41}) = 41 plus one
 "{5}".subst("x") = {5}
-"hi".subst() throws: wrong number of parameters passed to native closure 'subst' (1 passed, at least 2 required)
+s.subst() throws: wrong number of parameters passed to native closure 'subst' (1 passed, at least 2 required)

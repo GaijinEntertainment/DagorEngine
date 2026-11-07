@@ -11,11 +11,15 @@ optimizer.
 
 ## Cause
 
-`SQVM::Execute` is a `switch` on the opcode. Clang makes from it one shared
-dispatch block: it reads the opcode, checks the range, reads the handler
-address from a jump table and jumps there. Each handler jumps back to this
-block at its end. The block is 29-36 bytes, and it runs for each bytecode
-instruction.
+With clang and gcc, `SQVM::Execute` dispatches with computed goto
+(`SQ_VM_DISPATCH` in `sqvm.cpp`): each handler ends with its own indirect
+jump through a table of label addresses. Revisions before it dispatch with a
+`switch` on the opcode, and the data below is from such a build.
+
+From the `switch`, clang makes one shared dispatch block: it reads the
+opcode, checks the range, reads the handler address from a jump table and
+jumps there. Each handler jumps back to this block at its end. The block is
+29-36 bytes, and it runs for each bytecode instruction.
 
 When the block crosses a 64-byte line, short loops (primes, life, mandel,
 closure_storm) become 8-17% slower on Raptor Lake P-cores. Probably the CPU
@@ -59,6 +63,12 @@ the same build pair showed primes 20% faster on an E-core. Windows can move a
 process between core types during a run, so an unpinned run mixes the
 results of two different CPUs.
 
+With computed goto, the handlers share no block, and layout has a smaller
+effect, but the effect stays. The spread between the four layouts on a
+Raptor Lake P-core, `switch` against computed goto: primes 15% and 3%, life
+9% and 2%, method_calls 13% and 3%, mandel 16% and 10%. Thus measure a
+build with computed goto in the same way.
+
 ## How to measure
 
 - Machine: power from the wall, the maximum performance mode, no load.
@@ -90,16 +100,25 @@ layout, but life and closure_storm become 6-9% slower.
 
 ## vmperf.py
 
-Windows only. It needs git and the jam rel build of `prog/tools/consoleSq`:
-run `jam -sConfig=rel` there after you update the tree. The tool compiles
-only the objects that include Quirrel headers, from the sources of the
-revision (`quirrel/quirrel` and `gameLibs/quirrel/quirrelHost`); all other
-code links from the jam output. The plain build of the sources that jam
-built has the same code (`.text`) as jam's csq.exe.
+Windows only. It needs git and the jam rel build of `prog/tools/consoleSq`
+with the code generation of games: run `jam -sConfig=rel -sGameCodegen=yes`
+there after you update the tree. Tools build with `-fp:precise` and SSE2, for
+data builds that do not change with the compiler, and `-fp:precise` also
+turns off strict aliasing (TBAA). Games build with `-fp:fast`, TBAA and
+SSE4, and each of these changes the code of the VM. `GameCodegen` puts
+csq.exe in `_output/csq-game-codegen/`, and the tools csq.exe stays as it
+is.
+
+The tool compiles only the objects that include Quirrel headers, from the
+sources of the revision (`quirrel/quirrel` and
+`gameLibs/quirrel/quirrelHost`); all other code links from the jam output.
+The plain build of the sources that jam built has the same code (`.text`)
+as jam's csq.exe.
 
     python vmperf.py compare                   HEAD against the working tree
     python vmperf.py compare HEAD~1 HEAD       two revisions
     python vmperf.py compare HEAD wt --bench all --rounds 5
+    python vmperf.py build HEAD~1 HEAD         build only; the machine can stay in use
     python vmperf.py show <result.json> --all  the table again, and every build
     python vmperf.py dispatch HEAD wt          where the dispatch block lies
     python vmperf.py profile HEAD wt --bench primes,life
@@ -116,6 +135,18 @@ interleaved rounds on a P-core, prints the table and writes the result to
 Do not use the machine during the run. The first round is often a few
 percent slower (heat from the build); the fastest round is kept.
 
+A shorter run: `build` the revisions first, while you use the machine; then
+the build heat also does not get into the first round. Then `compare` the
+same revisions on the workloads that the change can affect, plus one that it
+cannot affect as a control. For a change in table access, with mandel (float
+arithmetic only) as the control:
+
+    python vmperf.py build HEAD~1 HEAD
+    python vmperf.py compare HEAD~1 HEAD --bench dict,mandel --rounds 3
+
+3 rounds are enough for an effect well above the 2-3% noise band. Keep all
+four layouts: with computed goto, mandel still has a spread of 10%.
+
 The workloads are those of `../quirrel/`; `profile.nut` here takes the place
 of their timing helper (`VMPERF_INNER` calls in each of 5 reps). A workload
 that computes a different result in some build gets a warning.
@@ -127,16 +158,17 @@ How to read the table:
 - `plain build`: the build that jam makes from the same sources. One
   number, with the layout that this build got.
 - First lines: the bytes of its 64-byte line that the dispatch block takes
-  in each build. `CROSSES` marks a slow layout.
+  in each build. `CROSSES` marks a slow layout. A build with computed goto
+  has no shared block and shows `none found`.
 
 Before you trust a result, do an A/A test: `compare HEAD wt` on a clean tree
 compares two equal builds. Its deltas show the noise of this machine; on a
 Raptor Lake laptop they stay within about 1%.
 
-`dispatch` alone is the quick check when there is no time for a full run. If
-both builds have the block on the same side (both cross or both do not), a
-plain comparison is more trustworthy, but the layout of the other code still
-gives some percent. `--listing` writes the code of Execute next to each
+For two builds with a `switch` dispatch, `dispatch` alone is the quick check
+when there is no time for a full run. If both builds have the block on the
+same side (both cross or both do not), a plain comparison is more
+trustworthy, but the layout of the other code still gives some percent. `--listing` writes the code of Execute next to each
 csq.exe, with offsets from its start, to diff two builds.
 
 `profile` runs a sampling profiler (`sprof.cpp`, built on first use, no

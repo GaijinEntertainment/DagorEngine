@@ -133,6 +133,9 @@ struct FrameGenContext
   bool resetHistory;
 };
 
+using TextureHandleRO = dafg::VirtualResourceHandle<const BaseTexture, true, false>;
+using OptionalTextureHandleRO = dafg::VirtualResourceHandle<const BaseTexture, true, true>;
+
 struct AppGlue
 {
   struct SGSR2Interface
@@ -145,7 +148,7 @@ struct AppGlue
   };
 
   virtual SGSR2Interface *createSGSR2(const IPoint2 &input_resolution, const IPoint2 &output_resolution) const = 0;
-  virtual TMatrix4 getUvReprojectionToPrevFrameTmNoJitter() const = 0;
+  virtual TMatrix4 getUvReprojectionToPrevFrameTmNoJitter(const RenderView &view) const = 0;
   virtual IPoint2 getInputResolution() const = 0;
   virtual IPoint2 getOutputResolution() const = 0;
   virtual IPoint2 getDisplayResolution() const = 0;
@@ -160,24 +163,29 @@ struct AppGlue
   virtual bool pushSSAAoption() const = 0;
   // Declares the gbuffer reads of the prepare_ray_reconstruction dispatch, bound to the gbuffer
   // shader vars, and returns the albedo texture DLSS-RR takes as its diffuse albedo guide.
-  virtual eastl::optional<dafg::VirtualResourceHandle<const BaseTexture, true, false>> requestRayReconstructionGbuffer(
-    dafg::Registry registry) const
+  virtual eastl::optional<TextureHandleRO> requestRayReconstructionGbuffer(dafg::Registry registry) const
   {
     G_UNUSED(registry);
     return eastl::nullopt;
   }
-  virtual eastl::optional<dafg::VirtualResourceHandle<const BaseTexture, true, true>> requestMotionVectors(
-    dafg::Registry registry) const
+  // Declares the read of the RT reflection hit distance DLSS-RR takes as its guide, in the DLSS node itself: a read
+  // in the context node ends the lifetime of the resource before the DLSS node runs.
+  virtual eastl::optional<OptionalTextureHandleRO> requestRayReconstructionHitDist(dafg::Registry registry) const
   {
     G_UNUSED(registry);
     return eastl::nullopt;
   }
-  virtual eastl::optional<dafg::VirtualResourceHandle<const BaseTexture, true, true>> requestPrevMotionVectors(
-    dafg::Registry registry) const
+  virtual eastl::optional<OptionalTextureHandleRO> requestMotionVectors(dafg::Registry registry) const
   {
     G_UNUSED(registry);
     return eastl::nullopt;
   }
+  virtual eastl::optional<OptionalTextureHandleRO> requestPrevMotionVectors(dafg::Registry registry) const
+  {
+    G_UNUSED(registry);
+    return eastl::nullopt;
+  }
+  virtual void requestMaterialGbuffer(dafg::Registry registry) const { G_UNUSED(registry); }
 };
 
 void migrate(const char *config_name);

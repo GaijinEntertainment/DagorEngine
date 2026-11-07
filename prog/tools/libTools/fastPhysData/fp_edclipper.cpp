@@ -63,6 +63,7 @@ void FpdClipper::save(DataBlock &blk, const GeomNodeTree &tree)
   {
     case CLIP_SPHERICAL: blk.setStr("type", "spherical"); break;
     case CLIP_CYLINDRICAL: blk.setStr("type", "cylindrical"); break;
+    case CLIP_EXTERNAL: blk.setStr("type", "external"); break;
     default: logerr("BUG: unknow FastPhys clipper type %d", clipType);
   }
 
@@ -104,6 +105,8 @@ bool FpdClipper::load(const DataBlock &blk, IFpdLoad &loader)
     clipType = CLIP_SPHERICAL;
   else if (stricmp(s, "cylindrical") == 0)
     clipType = CLIP_CYLINDRICAL;
+  else if (stricmp(s, "external") == 0)
+    clipType = CLIP_EXTERNAL;
   else
   {
     logerr("unknown FastPhys clipper type '%s'", s);
@@ -229,14 +232,24 @@ void FpdClipPointsAction::exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport
 {
   // points list
   Tab<int> ptind(tmpmem);
+  Tab<FastPhys::ClippedLink> links(tmpmem);
   ptind.reserve(clipObj->pointNames.size());
 
   for (int i = 0; i < clipObj->pointNames.size(); ++i)
   {
-    int id = exp.getPointIndex(exp.getPointByName(clipObj->pointNames[i]));
+    FpdPoint *pt = exp.getPointByName(clipObj->pointNames[i]);
+    int id = exp.getPointIndex(pt);
 
     if (id < 0)
       continue;
+
+    if (FpdBone *bone = clipObj->clipType == FpdClipper::CLIP_EXTERNAL ? exp.getLinkBoneOfEnd(pt) : NULL)
+    {
+      FpdPoint *p1, *p2;
+      bone->getPoints(p1, p2, exp);
+      links.push_back(FastPhys::ClippedLink(exp.getPointIndex(p1), id, exp.getPointIndex(p2)));
+      continue;
+    }
     ptind.push_back(id);
   }
 
@@ -263,7 +276,7 @@ void FpdClipPointsAction::exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport
     lines.push_back(FastPhys::ClippedLine(id1, id2, clipObj->calcLineSegs(length(p2->getPos() - p1->getPos()))));
   }
 
-  if (!ptind.size() && !lines.size())
+  if (!ptind.size() && !lines.size() && !links.size())
     return;
 
   if (clipObj->clipType == FpdClipper::CLIP_SPHERICAL)
@@ -311,6 +324,19 @@ void FpdClipPointsAction::exportAction(mkbindump::BinDumpSaveCB &cwr, IFpdExport
 
     cwr.writeInt32e(lines.size());
     cwr.writeTabData32ex(lines);
+  }
+  else if (clipObj->clipType == FpdClipper::CLIP_EXTERNAL)
+  {
+    exp.countAction();
+    cwr.writeInt32e(FastPhys::AID_CLIP_EXTERNAL);
+
+    cwr.writeReal(clipObj->radius);
+
+    cwr.writeInt32e(ptind.size());
+    cwr.writeTabData32ex(ptind);
+
+    cwr.writeInt32e(links.size());
+    cwr.writeTabData32ex(links);
   }
   else
     G_ASSERT(false);

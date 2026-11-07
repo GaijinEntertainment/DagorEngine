@@ -305,6 +305,10 @@ public:
     das::addExtern<DAS_BIND_FUN(tilecache_ri_obstacle_remove)>(*this, lib, "tilecache_ri_obstacle_remove",
       das::SideEffects::modifyExternal, "bind_dascript::tilecache_ri_obstacle_remove");
 
+    das::addExtern<DAS_BIND_FUN(pathfinder::tilecache_ri_after_destroy_obstacles_remove)>(*this, lib,
+      "tilecache_ri_after_destroy_obstacles_remove", das::SideEffects::modifyExternal,
+      "::pathfinder::tilecache_ri_after_destroy_obstacles_remove");
+
     das::addExtern<DAS_BIND_FUN(query_navmesh_projections)>(*this, lib, "query_navmesh_projections", das::SideEffects::accessExternal,
       "bind_dascript::query_navmesh_projections");
 
@@ -350,11 +354,11 @@ public:
     das::addExtern<DAS_BIND_FUN(bind_dascript::set_corridor_target)>(*this, lib, "set_corridor_target",
       das::SideEffects::modifyArgumentAndExternal, "bind_dascript::set_corridor_target");
 
-    das::addExtern<bool (*)(dtPathCorridor &, const pathfinder::FindRequest &, bool, const pathfinder::CustomNav *),
+    das::addExtern<bool (*)(dtPathCorridor &, const pathfinder::FindRequest &, bool, const pathfinder::CustomNav *, uint32_t),
       &pathfinder::optimize_corridor_path>(*this, lib, "optimize_corridor_path", das::SideEffects::modifyArgumentAndExternal,
       "::pathfinder::optimize_corridor_path");
 
-    das::addExtern<bool (*)(dtPathCorridor &, const Point3 &, bool, const pathfinder::CustomNav *),
+    das::addExtern<bool (*)(dtPathCorridor &, const Point3 &, bool, const pathfinder::CustomNav *, uint32_t),
       &pathfinder::optimize_corridor_path>(*this, lib, "optimize_corridor_path", das::SideEffects::modifyArgumentAndExternal,
       "::pathfinder::optimize_corridor_path");
 

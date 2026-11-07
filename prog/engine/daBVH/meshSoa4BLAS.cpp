@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-// constraint: own TU, so a caller of build_mesh_blas alone links no converter
+// own TU, so a caller of build_mesh_blas alone links no converter
 
 #include <daBVH/dag_meshBLAS.h>
 #include <daBVH/dag_swBLAS_soa4Convert.h>
@@ -22,7 +22,7 @@ bool build_mesh_soa4_blas(MeshSoa4BLAS &blas, dag::ConstSpan<Point3> verts, dag:
   if (!cr.valid())
   {
     logerr("build_mesh_soa4_blas: the SoA4 conversion refused a %d byte tree", stackless.blasSize);
-    blas.tree.clear(); // constraint: buildFromStackless leaves its out buffer unspecified on failure
+    blas.tree.clear(); // buildFromStackless leaves its out buffer unspecified on failure
     return false;
   }
 

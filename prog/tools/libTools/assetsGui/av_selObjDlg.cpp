@@ -46,9 +46,17 @@ public:
   }
 
   PropPanel::IMenu &createContextMenu() { return assetBrowser.createContextMenu(); }
-  void setAssets(dag::Span<DagorAsset *> assets, DagorAsset *selected_asset) { assetBrowser.setAssets(assets, selected_asset); }
+  void setAssets(dag::Span<DagorAsset *> assets, dag::Span<DagorAssetFolder *> sub_folders, DagorAsset *selected_asset,
+    const DagorAssetMgr *asset_mgr, const DagorAssetFolder *folder)
+  {
+    assetBrowser.setAssets(assets, sub_folders, selected_asset, asset_mgr, folder);
+  }
   int getThumbnailImageSize() const { return assetBrowser.getThumbnailImageSize(); }
   void setThumbnailImageSize(int size) { assetBrowser.setThumbnailImageSize(size); }
+  bool getShowTypesWithoutThumbnailSupport() const { return assetBrowser.getShowTypesWithoutThumbnailSupport(); }
+  void setShowTypesWithoutThumbnailSupport(bool show) { assetBrowser.setShowTypesWithoutThumbnailSupport(show); }
+  bool getShowFolders() const { return assetBrowser.getShowFolders(); }
+  void setShowFolders(bool show) { assetBrowser.setShowFolders(show); }
 
 private:
   // PropPanel::ICustomControl
@@ -190,14 +198,16 @@ void SelectAssetDlg::assetBrowserFill()
 
   const int currentPage = getPanel()->getInt(AssetsGuiIds::TabPanel);
   dag::Vector<DagorAsset *> assets;
+  dag::Vector<DagorAssetFolder *> subFolders;
+  const DagorAssetFolder *folder = nullptr;
   if (currentPage == AssetsGuiIds::AllPage)
-    view->getFilteredAssetsFromTheCurrentFolder(assets);
+    folder = view->getFilteredAssetsFromTheCurrentFolder(assets, subFolders);
   else if (currentPage == AssetsGuiIds::FavoritesPage && favoritesTab)
-    favoritesTab->getFilteredAssetsFromTheCurrentFolder(assets);
+    folder = favoritesTab->getFilteredAssetsFromTheCurrentFolder(assets, subFolders);
   else if (currentPage == AssetsGuiIds::RecentlyUsedPage && recentlyUsedTab)
     recentlyUsedTab->getFilteredAssetsFromTheCurrentFolder(assets);
 
-  assetBrowserDlg->setAssets(make_span(assets), getSelectedAsset());
+  assetBrowserDlg->setAssets(make_span(assets), make_span(subFolders), getSelectedAsset(), mgr, folder);
 }
 
 bool SelectAssetDlg::assetBrowserIsOpen() const { return assetBrowserDlg && assetBrowserDlg->isVisible(); }
@@ -236,6 +246,15 @@ void SelectAssetDlg::assetBrowserOnAssetSelected(DagorAsset *asset, bool double_
 
   if (double_clicked)
     onAvAssetDblClick(const_cast<DagorAsset *>(asset), getAssetNameWithTypeIfNeeded(*asset));
+}
+
+void SelectAssetDlg::assetBrowserOnFolderSelected(const DagorAssetFolder &folder)
+{
+  const int currentPage = getPanel()->getInt(AssetsGuiIds::TabPanel);
+  if (currentPage == AssetsGuiIds::AllPage)
+    view->selectAssetFolder(folder);
+  else if (currentPage == AssetsGuiIds::FavoritesPage && favoritesTab)
+    favoritesTab->setSelectedAssetFolder(folder);
 }
 
 void SelectAssetDlg::assetBrowserOnContextMenu(DagorAsset *asset)
@@ -621,12 +640,17 @@ const DagorAsset *SelectAssetDlg::getAssetByName(const char *_name, dag::ConstSp
 void SelectAssetDlg::saveAssetBrowserSettings(DataBlock &blk) const
 {
   blk.setInt("thumbnailImageSize", assetBrowserDlg->getThumbnailImageSize());
+  blk.setBool("showTypesWithoutThumbnailSupport", assetBrowserDlg->getShowTypesWithoutThumbnailSupport());
+  blk.setBool("showFolders", assetBrowserDlg->getShowFolders());
   blk.setBool("open", assetBrowserIsOpen());
 }
 
 void SelectAssetDlg::loadAssetBrowserSettings(DataBlock &blk)
 {
   assetBrowserDlg->setThumbnailImageSize(blk.getInt("thumbnailImageSize", assetBrowserDlg->getThumbnailImageSize()));
+  assetBrowserDlg->setShowTypesWithoutThumbnailSupport(
+    blk.getBool("showTypesWithoutThumbnailSupport", assetBrowserDlg->getShowTypesWithoutThumbnailSupport()));
+  assetBrowserDlg->setShowFolders(blk.getBool("showFolders", assetBrowserDlg->getShowFolders()));
   assetBrowserOpeningRequested = blk.getBool("open", assetBrowserOpeningRequested);
 }
 

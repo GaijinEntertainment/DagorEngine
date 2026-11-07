@@ -425,8 +425,7 @@ void PhysObj::resolveCollision(float dt, dag::ConstSpan<gamephys::CollisionConta
   Tab<gamephys::SeqImpulseInfo> collisions(framemem_ptr());
   daphys::convert_contacts_to_solver_data(cogPos, orient, contacts, collisions, safeinv(mass), invMoi, contactParams);
   daphys::energy_conservation_vel_patch(collisions, vel, omega, contactParams);
-  daphys::apply_cached_contacts(cogPos, orient, vel, omega, make_span_const(currentState.cachedContacts), collisions, invMass, invMoi,
-    contactParams);
+  daphys::apply_cached_contacts(vel, omega, make_span_const(currentState.cachedContacts), collisions, invMass, invMoi, contactParams);
   daphys::resolve_contacts(orient, vel, omega, collisions, invMass, invMoi, contactParams, 10);
 
   if (warmstartingFactor > 0.f)

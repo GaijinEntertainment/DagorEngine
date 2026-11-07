@@ -168,21 +168,22 @@ struct EdgeView
 // Returns true if the proposed graph (gd.edges + the candidate at edgeViews.back()) contains
 // a cycle that violates a non-allowLoop node, after the JS-style terminal-elimination pass.
 // `excluded` is a pre-built mask matching edgeViews; entries set to true are skipped (used for
-// duplicate / single-connect handling). Mirrors graphEditor.js:1383 testForLoops.
+// duplicate / single-connect handling). Follows graphEditor.js:1383 testForLoops, but the elimination
+// runs until nothing changes, where the JS stops at 255 rounds.
 bool detect_cycle(const GraphData &gd, const eastl::vector<EdgeView> &edge_views, eastl::vector<uint8_t> excluded)
 {
   const int n = (int)gd.nodes.size();
-  eastl::vector<uint8_t> inCnt(n, 0);
-  eastl::vector<uint8_t> outCnt(n, 0);
-  eastl::vector<uint8_t> anyCnt(n, 0);
-  eastl::vector<uint8_t> terminalOrder(n, 0);
+  eastl::vector<int> inCnt(n, 0);
+  eastl::vector<int> outCnt(n, 0);
+  eastl::vector<int> anyCnt(n, 0);
+  eastl::vector<uint8_t> terminal(n, 0);
 
   auto bumpRole = [&](PinRole role, int idx, int delta) {
     switch (role)
     {
-      case PinRole::In: inCnt[idx] = (uint8_t)(inCnt[idx] + delta); break;
-      case PinRole::Out: outCnt[idx] = (uint8_t)(outCnt[idx] + delta); break;
-      case PinRole::Any: anyCnt[idx] = (uint8_t)(anyCnt[idx] + delta); break;
+      case PinRole::In: inCnt[idx] += delta; break;
+      case PinRole::Out: outCnt[idx] += delta; break;
+      case PinRole::Any: anyCnt[idx] += delta; break;
       case PinRole::Ctrl: break; // Ctrl pins do not participate in the cycle metric.
     }
   };
@@ -200,21 +201,16 @@ bool detect_cycle(const GraphData &gd, const eastl::vector<EdgeView> &edge_views
     bumpRole(rB, e.idxB, +1);
   }
 
-  uint8_t order = 1;
   bool changed = false;
   do
   {
     changed = false;
     for (int i = 0; i < n; ++i)
     {
-      if (terminalOrder[i] != 0)
-      {
-        continue;
-      }
       const int sum = anyCnt[i] + (inCnt[i] ? 1 : 0) + (outCnt[i] ? 1 : 0);
       if (sum == 1)
       {
-        terminalOrder[i] = order;
+        terminal[i] = 1;
       }
     }
 
@@ -225,7 +221,8 @@ bool detect_cycle(const GraphData &gd, const eastl::vector<EdgeView> &edge_views
         continue;
       }
       const EdgeView &e = edge_views[i];
-      if (terminalOrder[e.idxA] == order || terminalOrder[e.idxB] == order)
+      // An edge of a node marked in an earlier round is excluded already, so this sees this round's marks only.
+      if (terminal[e.idxA] || terminal[e.idxB])
       {
         excluded[i] = 1;
         changed = true;
@@ -235,17 +232,11 @@ bool detect_cycle(const GraphData &gd, const eastl::vector<EdgeView> &edge_views
         bumpRole(rB, e.idxB, -1);
       }
     }
-
-    if (order == 254)
-    {
-      break;
-    }
-    ++order;
   } while (changed);
 
   for (int i = 0; i < n; ++i)
   {
-    if (terminalOrder[i] != 0 || gd.nodes[i].allowLoop)
+    if (gd.nodes[i].allowLoop)
     {
       continue;
     }

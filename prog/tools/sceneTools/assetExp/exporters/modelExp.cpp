@@ -237,7 +237,8 @@ public:
   }
   ~ModelExporterPlugin()
   {
-    AlphaTestValidation::shutdown();
+    AlphaTestValidation::shutdown(atest_validation_ctx);
+    atest_validation_ctx = nullptr;
     riExp = dmExp = skExp = rgExp = NULL;
     riRef = dmRef = rgRef = NULL;
   }
@@ -313,7 +314,7 @@ public:
       RenderableInstanceLodsResSrc::setupMatSubst(*remap_blk);
     if (const DataBlock *b = appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByName("validateAlphaTest"))
     {
-      AlphaTestValidation::init(
+      atest_validation_ctx = AlphaTestValidation::init(
         *b, []() -> DagorAssetMgr * { return cur_asset ? &cur_asset->getMgr() : nullptr; },
         [](const char *path, IMemAlloc *mem) { return load_image(path, mem); });
     }

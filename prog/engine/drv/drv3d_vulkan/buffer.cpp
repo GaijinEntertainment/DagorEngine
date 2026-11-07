@@ -92,6 +92,8 @@ GenericBufferInterface::GenericBufferInterface(uint32_t struct_size, uint32_t el
     memFlags = BufferMemoryFlags::FRAMEMEM;
   else if (bufFlags & SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE)
     memFlags = BufferMemoryFlags::DEDICATED;
+  if (bufFlags & SBCF_BIND_UNORDERED)
+    memFlags = BufferMemoryFlags(memFlags | BufferMemoryFlags::GPU_WRITABLE);
   ref = BufferRef{Buffer::create(bufSize, getMemoryClass(), 1, memFlags)};
   afterBufferResourceAllocated();
 }
@@ -142,7 +144,11 @@ GenericBufferInterface::~GenericBufferInterface()
   ctx.dispatchCmd<CmdDestroyBuffer>({ref.buffer});
 }
 
-void GenericBufferInterface::onDeviceReset() { asyncCopyEvent.reset(); }
+void GenericBufferInterface::onDeviceReset()
+{
+  asyncCopyEvent.reset();
+  gpuWriteEvent.reset();
+}
 
 void GenericBufferInterface::afterDeviceReset()
 {
@@ -184,6 +190,7 @@ bool GenericBufferInterface::copyTo(Sbuffer *dst)
     context.copyBufferDiscardReorderable(ref, dest->ref, 0, 0, bufSize);
   else
     context.uploadBufferOrdered(ref, dest->ref, 0, 0, bufSize);
+  dest->markGpuWrite();
   return true;
 }
 
@@ -198,6 +205,7 @@ bool GenericBufferInterface::copyTo(Sbuffer *dst, uint32_t dst_offset, uint32_t 
     context.copyBufferDiscardReorderable(ref, dest->ref, src_offset, dst_offset, size_bytes);
   else
     context.uploadBufferOrdered(ref, dest->ref, src_offset, dst_offset, size_bytes);
+  dest->markGpuWrite();
   return true;
 }
 
@@ -236,6 +244,14 @@ void GenericBufferInterface::processDiscardFlag()
 
     ref = ref.discard(getMemoryClass(), uavFormat, bufFlags, dynamic_size, visible_size);
   }
+}
+
+void GenericBufferInterface::markGpuWrite()
+{
+  if (!isDMAPathAvailable())
+    return;
+  gpuWriteEvent.reset();
+  gpuWriteEvent.request(Globals::ctx.getCurrentWorkItemId());
 }
 
 void GenericBufferInterface::markAsyncCopyInProgress()

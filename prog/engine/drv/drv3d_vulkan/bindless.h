@@ -78,6 +78,7 @@ public:
   bool updateBindlessTexture(uint32_t index, Image *image, void *owner, const ImageViewState view);
   void setBindlessTexture(uint32_t index, Image *image, void *owner, const ImageViewState view);
   bool isBindlessTextureOwnedBy(uint32_t index, void *owner);
+  static VkImageLayout getImageRoLayout(Image *image);
 
   void restoreBindlessBuffer(uint32_t index, Buffer *buf);
   void evictBindlessBuffer(uint32_t index, Buffer *buf);

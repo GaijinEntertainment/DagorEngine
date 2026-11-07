@@ -42,6 +42,11 @@ class FunctionRef;
 }
 
 class ShaderMeshDataSaveCB;
+namespace shader_meshlets
+{
+struct GlobalMeshletData;
+class VdataElemSpan;
+} // namespace shader_meshlets
 
 enum
 {
@@ -127,6 +132,8 @@ public:
   int getStride() const { return vstride; }
   unsigned getFlags() const { return cflags; }
   unsigned testFlags(unsigned f) const { return cflags & f; }
+  unsigned getVCnt() const { return vCnt; }
+  unsigned getICnt() const { return iCnt; }
   unsigned getVbSize() const { return vCnt * vstride; }
   unsigned getIbElemSz() const { return testFlags(VDATA_I32) ? 4 : 2; }
   unsigned getIbSize() const { return iCnt * getIbElemSz(); }
@@ -163,15 +170,26 @@ public:
 
   void unpackToBuffers(IGenLoad &zcrd, bool update_ib_vb_only, Tab<uint8_t> &buf_stor);
   void unpackToSharedBuffer(IGenLoad &zcrd, Vbuffer *shared_vb, Ibuffer *shared_ib, int &vb_byte_pos, int &ib_byte_pos,
-    Tab<uint8_t> &buf_stor);
+    Tab<uint8_t> &buf_stor, shader_meshlets::VdataElemSpan meshlet_elems);
   void unpackToReadCb(IGenLoad &zcrd, ShaderMatVDataReadCb cb, Tab<uint8_t> &tmp_buf);
   int getVbIdx() const { return vbIdx; }
   uint32_t getVOffs() const { return vOfs; }
   uint32_t getIOffs() const { return iOfs; }
 
+  void initPositionChannel(const char *name, dag::ConstSpan<CompiledShaderChannelId> vdecl);
+  int getPositionType() const
+  {
+    return posTypeEncoded ? int(posTypeEncoded - 1) << 16 : -1;
+  } // SCTYPE_*, or -1 when position layout is unknown
+  uint32_t getPositionOffsetInBytes() const { return posOfsInBytes; }
+
+  const shader_meshlets::GlobalMeshletData *getMeshlets() const { return meshlets; }
+  void releaseMeshlets();
+
   void copyDescFrom(const GlobalVertexData &src)
   {
     vbMem = ibMem = nullptr;
+    meshlets = nullptr;
     vbIdx = 0;
 
     vstride = src.vstride;
@@ -181,6 +199,8 @@ public:
     vOfs = src.vOfs;
     iOfs = src.iOfs;
     iPackedSz = src.iPackedSz;
+    posTypeEncoded = src.posTypeEncoded;
+    posOfsInBytes = src.posOfsInBytes;
   }
 
 private:
@@ -194,10 +214,13 @@ private:
     Ibuffer *indices;
     void *ibMem;
   };
+  shader_meshlets::GlobalMeshletData *meshlets = nullptr;
   uint16_t vstride;
   uint16_t cflags; // create flags
   uint32_t vCnt : 28, vbIdx : 4, iCnt, vOfs, iOfs;
   uint32_t iPackedSz = 0;
+  uint8_t posTypeEncoded = 0; // (SCTYPE_* >> 16) + 1, and 0 means not inited
+  uint8_t posOfsInBytes = 0;
 
   // ctor/dtor
   GlobalVertexData() : vb(NULL), indices(NULL), vstride(0), cflags(0), vCnt(0), vbIdx(0), iCnt(0), vOfs(0), iOfs(0) {}
@@ -233,6 +256,11 @@ public:
   inline int getGlobVDataCount() const { return vdata.size(); }
   inline GlobalVertexData *getGlobVData(int idx) const { return const_cast<GlobalVertexData *>(&vdata[idx]); }
   inline void setGlobVData(dag::Span<GlobalVertexData> vd) { vdata = vd; }
+  // index of vd in the whole vdata block, or -1 when vd is not in it
+  int findGlobVDataIdx(const GlobalVertexData *vd) const
+  {
+    return vd >= vdata.data() && vd < vdata.data() + vdataFullCount ? int(vd - vdata.data()) : -1;
+  }
 
   void loadTexStr(IGenLoad &crd, bool sym_tex, const char *base_path = NULL);
   void loadTexIdx(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap);
@@ -244,7 +272,8 @@ public:
   void preloadTex();
   void finalizeMatRefs();
 
-  void unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs, dag::Span<int> start_end_stride, Tab<uint8_t> &buf_stor);
+  void unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs, dag::Span<int> start_end_stride, Tab<uint8_t> &buf_stor,
+    shader_meshlets::VdataElemSpan meshlet_elems);
   void unpackVData(ShaderMatVDataReadCb cb);
   void clearVdataSrc();
   bool isReloadable() const { return matVdataSrcRef.fname != nullptr; }

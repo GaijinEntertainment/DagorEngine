@@ -6,8 +6,10 @@ ECS_DEF_PULL_VAR(glassGbufferNode);
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc glass_gbuffer_renderer_es_comps[] =
 {
-//start of 1 rw components at [0]
-  {ECS_HASH("glass_gbuffer_renderer_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
+//start of 3 rw components at [0]
+  {ECS_HASH("glass_gbuffer_renderer_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("glass_late_trans_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("glass_late_trans_cockpit_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
 };
 static void glass_gbuffer_renderer_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -15,6 +17,8 @@ static void glass_gbuffer_renderer_es_all_events(const ecs::Event &__restrict ev
     glass_gbuffer_renderer_es(evt
         , components.manager()
     , ECS_RW_COMP(glass_gbuffer_renderer_es_comps, "glass_gbuffer_renderer_node", dafg::NodeHandle)
+    , ECS_RW_COMP(glass_gbuffer_renderer_es_comps, "glass_late_trans_node", dafg::NodeHandle)
+    , ECS_RW_COMP(glass_gbuffer_renderer_es_comps, "glass_late_trans_cockpit_node", dafg::NodeHandle)
     );
   while (++comp != compE);
 }
@@ -23,7 +27,7 @@ static ecs::EntitySystemDesc glass_gbuffer_renderer_es_es_desc
   "glass_gbuffer_renderer_es",
   "prog/daNetGame/render/world/glassGbufferNodeES.cpp.inl",
   ecs::EntitySystemOps(nullptr, glass_gbuffer_renderer_es_all_events),
-  make_span(glass_gbuffer_renderer_es_comps+0, 1)/*rw*/,
+  make_span(glass_gbuffer_renderer_es_comps+0, 3)/*rw*/,
   empty_span(),
   empty_span(),
   empty_span(),

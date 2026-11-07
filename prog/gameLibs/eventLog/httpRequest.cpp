@@ -32,7 +32,7 @@ void post(const char *url, const void *data, uint32_t size, const char *user_age
 {
   os_event_t event;
   os_event_create(&event);
-  make_request(url, data, size, user_agent, timeout, [&event](httprequests::RequestStatus status, int http_code, auto, auto) {
+  make_request(url, data, size, user_agent, timeout, [&event](httprequests::RequestStatus status, int http_code, auto, const auto &) {
     debug("%s finished with %d/%d", __FUNCTION__, int(status), http_code);
     os_event_set(&event);
   });
@@ -51,7 +51,7 @@ void post(const char *url, const void *data, uint32_t size, const char *user_age
 
 void post_async(const char *url, const void *data, uint32_t size, const char *user_agent, uint32_t timeout)
 {
-  make_request(url, data, size, user_agent, timeout, [](httprequests::RequestStatus status, int http_code, auto, auto) {
+  make_request(url, data, size, user_agent, timeout, [](httprequests::RequestStatus status, int http_code, auto, const auto &) {
     debug("%s finished with %d/%d", __FUNCTION__, int(status), http_code);
   });
 }

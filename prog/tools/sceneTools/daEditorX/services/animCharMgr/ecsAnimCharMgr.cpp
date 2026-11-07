@@ -3,6 +3,8 @@
 #include <de3_entityFilter.h>
 #include <de3_baseInterfaces.h>
 #include <de3_animCtrl.h>
+#include <de3_dynModel.h>
+#include <de3_dynRenderService.h>
 #include <de3_lodController.h>
 #include <de3_objEntity.h>
 #include <de3_entityPool.h>
@@ -18,6 +20,7 @@
 #include <oldEditor/de_workspace.h>
 #include <osApiWrappers/dag_direct.h>
 #include <daECS/io/blk.h>
+#include <dag/dag_vector.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animcharUpdateEvent.h>
 #include <daECS/core/entityManager.h>
@@ -25,6 +28,9 @@
 #include <daECS/core/componentTypes.h>
 #include "common.h"
 #include "virtualAnimCharEntityBase.h"
+
+#include <EASTL/algorithm.h>
+#include <EASTL/unique_ptr.h>
 
 static inline ecs::ComponentsInitializer complist_to_compinitializer(ecs::ComponentsList &&clist)
 {
@@ -34,7 +40,23 @@ static inline ecs::ComponentsInitializer complist_to_compinitializer(ecs::Compon
   return ecs::ComponentsInitializer(eastl::move(cmap));
 }
 
-static ecs::EntityId create_animchar_entity(const char *name, const DataBlock *asset_props,
+static const char *ISOLATED_TEMPLATE_NAME = "animchar_isolated_render";
+
+// The ECS Editor and the anim tree panel skip an entity with editableObj set to false, and the render world one with
+// animchar_render__enabled set to false.
+static void add_isolated_template()
+{
+  if (g_entity_mgr->getTemplateDB().getTemplateByName(ISOLATED_TEMPLATE_NAME))
+    return;
+
+  ecs::ComponentsMap map;
+  map[ECS_HASH("editableObj")] = false;              //-V601
+  map[ECS_HASH("animchar_render__enabled")] = false; //-V601
+  g_entity_mgr->addTemplate(ecs::Template(ISOLATED_TEMPLATE_NAME, eastl::move(map), ecs::Template::component_set(),
+    ecs::Template::component_set(), ecs::Template::component_set(), false));
+}
+
+static ecs::EntityId create_animchar_entity(const char *name, const DataBlock *asset_props, bool isolated,
   ecs::EntityId parentEid = ecs::INVALID_ENTITY_ID, int attSlotId = -1)
 {
   ecs::EntityId eid = ecs::INVALID_ENTITY_ID;
@@ -59,6 +81,14 @@ static ecs::EntityId create_animchar_entity(const char *name, const DataBlock *a
         ecs::load_comp_list_from_blk(*g_entity_mgr, *b, clist);
     }
 
+    String isolatedTemplateName;
+    if (isolated)
+    {
+      add_isolated_template();
+      isolatedTemplateName.printf(0, "%s+%s", template_name, ISOLATED_TEMPLATE_NAME);
+      template_name = isolatedTemplateName;
+    }
+
     GameResource *res = ::get_one_game_resource_ex(name, CharacterGameResClassId);
     const bool loaded = res && ((AnimV20::IAnimCharacter2 *)res)->getVisualResource();
     ::release_game_resource_ex(res, CharacterGameResClassId);
@@ -71,6 +101,12 @@ static ecs::EntityId create_animchar_entity(const char *name, const DataBlock *a
   }
   DAEDITOR3.popFatalHandler();
   return eid;
+}
+
+static void copy_animchar_nodes(const AnimV20::AnimcharBaseComponent &base, AnimV20::AnimcharFinalMat44 &final_wtm)
+{
+  clear_and_resize(final_wtm.nwtm, base.getNodeTree().nodeCount());
+  base.copyNodesTo(final_wtm);
 }
 
 struct AttachmentStor
@@ -86,7 +122,7 @@ using AnimCharEntityBase = VirtualAnimCharEntityBase<PoolType, AttachmentStor>;
 class VirtualAnimCharECSEntity : public AnimCharEntityBase
 {
 public:
-  VirtualAnimCharECSEntity(int cls) : AnimCharEntityBase(cls) {}
+  VirtualAnimCharECSEntity(int cls, bool _isolated = false) : AnimCharEntityBase(cls), isolated(_isolated) {}
 
   ~VirtualAnimCharECSEntity() { clear(); }
 
@@ -117,7 +153,7 @@ public:
       return;
 
     // create entity
-    eid = create_animchar_entity(name, &asset.props);
+    eid = create_animchar_entity(name, &asset.props, isolated);
     if (eid == ecs::INVALID_ENTITY_ID)
     {
       DAEDITOR3.conError("cannot load animChar: %s", name);
@@ -145,7 +181,7 @@ public:
             usedRefNids.push_back(usedAssetNames.addNameId(a->getNameTypified()));
 
           auto assetProps = a ? &a->props : nullptr;
-          ecs::EntityId attEid = create_animchar_entity(attAcNm, assetProps, eid, slot_id);
+          ecs::EntityId attEid = create_animchar_entity(attAcNm, assetProps, isolated, eid, slot_id);
           if (attEid != ecs::INVALID_ENTITY_ID)
           {
             auto attBaseComp = ECS_GET_COMPONENT(AnimV20::AnimcharBaseComponent, attEid, animchar);
@@ -296,7 +332,7 @@ public:
         usedRefNids.push_back(att.setAssetNid = usedAssetNames.addNameId(a->getNameTypified()));
 
         auto assetProps = &a->props;
-        auto attachedEid = create_animchar_entity(a->getName(), assetProps, eid, att.slotId);
+        auto attachedEid = create_animchar_entity(a->getName(), assetProps, isolated, eid, att.slotId);
         baseComp = getAnimCharBase();
         if (attachedEid != ecs::INVALID_ENTITY_ID)
         {
@@ -451,6 +487,7 @@ protected:
 
 protected:
   ecs::EntityId eid;
+  const bool isolated;
 };
 
 
@@ -607,12 +644,120 @@ public:
 };
 
 
+// An entity for the isolated render. The main view does not draw it, and the ECS update does not move it.
+class IsolatedAnimCharECSEntity : public VirtualAnimCharECSEntity
+{
+public:
+  IsolatedAnimCharECSEntity(int cls) : VirtualAnimCharECSEntity(cls, true) {}
+
+  // Gives the entity the pose that the viewport shows after a restart, at the origin, and LOD 0.
+  void setupIsolated(const DagorAsset &asset)
+  {
+    // update() loads the ref_attachment_dynamic animChars, so it needs the same guard as create_animchar_entity().
+    DAEDITOR3.setFatalHandler(false);
+    try
+    {
+      setup(asset, false);
+      if (getAnimCharBase())
+      {
+        for (int i = 0; i < 30; i++)
+          pose(TMatrix::IDENT, 0.03f);
+
+        hideEntities();
+      }
+    }
+    catch (...)
+    {
+      logerr("exception while building asset: %s", asset.getName());
+      clear();
+    }
+    DAEDITOR3.popFatalHandler();
+
+    if (!isLoaded())
+      return;
+
+    BBox3 box;
+    forEachChar([&box](AnimV20::AnimcharBaseComponent &base, AnimV20::AnimcharRendComponent &rend) {
+      AnimV20::AnimcharFinalMat44 finalWtm;
+      copy_animchar_nodes(base, finalWtm);
+      bbox3f charBox;
+      rend.calcWorldBox(charBox, finalWtm, false);
+      box += BBox3(as_point3(&charBox.bmin), as_point3(&charBox.bmax));
+      rend.getSceneInstance()->setLod(0);
+    });
+    bbox = box;
+  }
+
+  bool isLoaded() const { return getAnimCharBase() != nullptr; }
+
+  // Moves the animChar and its attachments to tm. A zero dt keeps the animation time.
+  void pose(const TMatrix &tm, float dt)
+  {
+    AnimV20::AnimcharBaseComponent *base = getAnimCharBase();
+    base->setTm(tm);
+    if (dt > 0.f)
+      base->act(dt, /*calc_anim = */ true);
+    else
+      base->recalcWtm();
+
+    // Sets the attached chars and adds the ref_attachment_dynamic animChars.
+    update(0.f);
+
+    for (const AttachmentStor &att : attStor)
+    {
+      AnimV20::AnimcharBaseComponent *attBase = ECS_GET_COMPONENT(AnimV20::AnimcharBaseComponent, att.eid, animchar);
+      mat44f attachTm;
+      if (!attBase || !base->initAttachmentTmAndNodeWtm(att.slotId, attachTm))
+        continue;
+      attBase->setTmWithOfs(attachTm, base->getWtmOfs());
+      if (dt > 0.f)
+        attBase->act(dt, /*calc_anim = */ true);
+      else
+        attBase->recalcWtm();
+    }
+  }
+
+  // Calls f for the animChar of the entity and for each of its attachments.
+  template <typename F>
+  void forEachChar(F f) const
+  {
+    auto visit = [&f](ecs::EntityId char_eid) {
+      AnimV20::AnimcharBaseComponent *base = ECS_GET_COMPONENT(AnimV20::AnimcharBaseComponent, char_eid, animchar);
+      AnimV20::AnimcharRendComponent *rend = ECS_GET_COMPONENT(AnimV20::AnimcharRendComponent, char_eid, animchar_render);
+      if (base && rend && rend->getSceneInstance())
+        f(*base, *rend);
+    };
+
+    visit(eid);
+    for (const AttachmentStor &att : attStor)
+      visit(att.eid);
+  }
+
+private:
+  void hideEntities()
+  {
+    // The animChar update and the hmap deform do not test animchar_render__enabled. The hmap deform tests animchar_bbox,
+    // which the render world does not calculate for a disabled animChar.
+    bbox3f emptyBox;
+    v_bbox3_init_empty(emptyBox);
+    auto hide = [&emptyBox](ecs::EntityId char_eid) {
+      g_entity_mgr->setOptional(char_eid, ECS_HASH("animchar__updatable"), false);
+      g_entity_mgr->setOptional(char_eid, ECS_HASH("animchar_bbox"), emptyBox);
+    };
+    hide(eid);
+    for (const AttachmentStor &att : attStor)
+      hide(att.eid);
+  }
+};
+
+
 class AnimCharECSEntityManagementService : public IEditorService,
                                            public IObjEntityMgr,
                                            public IDagorAssetChangeNotify,
                                            public ILightingChangeClient,
                                            public ILevelResListBuilder,
-                                           public IBinaryDataBuilder
+                                           public IBinaryDataBuilder,
+                                           public IDynModelIsolatedRender
 {
 public:
   AnimCharECSEntityManagementService()
@@ -657,6 +802,7 @@ public:
     RETURN_INTERFACE(huid, ILightingChangeClient);
     RETURN_INTERFACE(huid, IBinaryDataBuilder);
     RETURN_INTERFACE(huid, ILevelResListBuilder);
+    RETURN_INTERFACE(huid, IDynModelIsolatedRender);
     return NULL;
   }
 
@@ -672,15 +818,7 @@ public:
 
   IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
-    if (!aMgr)
-      aMgr = &asset.getMgr();
-    G_ASSERT(aMgr == &asset.getMgr());
-
-    if (!registeredNotifier)
-    {
-      registeredNotifier = true;
-      asset.getMgr().subscribeUpdateNotify(this, -1, animCharEntityClassId);
-    }
+    initAssetMgr(asset);
 
     if (virtual_ent)
     {
@@ -717,8 +855,16 @@ public:
   }
 
   // IDagorAssetChangeNotify interface
-  void onAssetRemoved(int asset_name_id, int asset_type) override { EDITORCORE->invalidateViewportCache(); }
-  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override { EDITORCORE->invalidateViewportCache(); }
+  void onAssetRemoved(int asset_name_id, int asset_type) override
+  {
+    eraseIsolatedEntity(asset_name_id);
+    EDITORCORE->invalidateViewportCache();
+  }
+  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
+  {
+    eraseIsolatedEntity(asset_name_id);
+    EDITORCORE->invalidateViewportCache();
+  }
 
   // IBinaryDataBuilder interface
   bool validateBuild(int target, ILogWriter &log, PropPanel::ContainerPropertyControl *params) override { return true; }
@@ -741,9 +887,102 @@ public:
         res_list.addNameId(ent[i]->assetName());
   }
 
+
+  // IDynModelIsolatedRender interface
+  bool getIsolatedRenderData(const DagorAsset &asset, BBox3 &local_box, TextureIdSet &tex_ids) override
+  {
+    IsolatedAnimCharECSEntity *ent = findOrAddIsolatedEntity(asset);
+    if (!ent)
+      return false;
+
+    bool hasGeometry = false;
+    ent->forEachChar([&](AnimV20::AnimcharBaseComponent &, AnimV20::AnimcharRendComponent &rend) {
+      const DynamicRenderableSceneResource *res = rend.getSceneInstance()->getCurSceneResource();
+      if (!res || (res->getRigidsConst().empty() && res->getSkinsCount() == 0))
+        return;
+
+      res->gatherUsedTex(tex_ids);
+      hasGeometry = true;
+    });
+    if (!hasGeometry)
+      return false;
+
+    local_box = ent->getBbox();
+    return true;
+  }
+
+  void renderIsolatedOpaque(const DagorAsset &asset, const TMatrix &tm, int per_instance_seed) override
+  {
+    IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+    if (!rs)
+      return;
+
+    IsolatedAnimCharECSEntity *ent = findOrAddIsolatedEntity(asset);
+    if (!ent)
+      return;
+
+    ent->pose(tm, 0.f);
+    ent->forEachChar([rs, &per_instance_seed](AnimV20::AnimcharBaseComponent &base, AnimV20::AnimcharRendComponent &rend) {
+      AnimV20::AnimcharFinalMat44 finalWtm;
+      copy_animchar_nodes(base, finalWtm);
+      rend.setNodes(rend.getSceneInstance(), rend.getNodeMap(), finalWtm);
+      rs->renderOneDynModelInstance(rend.getSceneInstance(), IRenderingService::STG_RENDER_DYNAMIC_OPAQUE, &per_instance_seed);
+    });
+  }
+
+  void releaseIsolatedEntity(int asset_name_id) override { eraseIsolatedEntity(asset_name_id); }
+
+  void releaseIsolatedRenderData() override { isolatedEntities.clear(); }
+
 protected:
+  void initAssetMgr(const DagorAsset &asset)
+  {
+    if (!aMgr)
+      aMgr = &asset.getMgr();
+    G_ASSERT(aMgr == &asset.getMgr());
+
+    if (!registeredNotifier)
+    {
+      registeredNotifier = true;
+      asset.getMgr().subscribeUpdateNotify(this, -1, animCharEntityClassId);
+    }
+  }
+
+  // Returns null when the asset is not an animChar or cannot be loaded.
+  IsolatedAnimCharECSEntity *findOrAddIsolatedEntity(const DagorAsset &asset)
+  {
+    if (asset.getType() != animCharEntityClassId)
+      return nullptr;
+
+    auto it = eastl::find_if(isolatedEntities.begin(), isolatedEntities.end(),
+      [&asset](const eastl::unique_ptr<IsolatedAnimCharECSEntity> &e) { return e->getAssetNameId() == asset.getNameId(); });
+    IsolatedAnimCharECSEntity *ent = it == isolatedEntities.end() ? nullptr : it->get();
+    if (!ent)
+    {
+      initAssetMgr(asset);
+
+      // Not in objPool, so the viewport, the export and the level resource list skip it.
+      ent = isolatedEntities.emplace_back(eastl::make_unique<IsolatedAnimCharECSEntity>(animCharEntityClassId)).get();
+      ent->setupIsolated(asset);
+    }
+
+    return ent->isLoaded() ? ent : nullptr;
+  }
+
+  void eraseIsolatedEntity(int asset_name_id)
+  {
+    isolatedEntities.erase(
+      eastl::remove_if(isolatedEntities.begin(), isolatedEntities.end(),
+        [asset_name_id](const eastl::unique_ptr<IsolatedAnimCharECSEntity> &e) { return e->getAssetNameId() == asset_name_id; }),
+      isolatedEntities.end());
+  }
+
   PoolType objPool;
   bool visible;
+
+  // The animChars of these entities keep their textures referenced, so the textures load while a thumbnail is being
+  // generated.
+  dag::Vector<eastl::unique_ptr<IsolatedAnimCharECSEntity>> isolatedEntities;
 };
 
 

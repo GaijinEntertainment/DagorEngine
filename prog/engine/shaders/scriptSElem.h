@@ -15,6 +15,7 @@
 #include <generic/dag_smallTab.h>
 #include <osApiWrappers/dag_rwSpinLock.h>
 #include <osApiWrappers/dag_atomic_types.h>
+#include <EASTL/bitvector.h>
 #include "shStateBlock.h"
 
 
@@ -155,7 +156,7 @@ public:
   void callFunction(int id, int out_reg, dag::ConstSpan<int> in_regs, char *regs);
 
   void resetStateBlocks();
-  void preCreateStateBlocks();
+  void preCreateStateBlocks(const eastl::bitvector<> *used_dyn_variants = nullptr);
   void resetShaderPrograms(bool delete_programs = true);
   void detachElem();
 

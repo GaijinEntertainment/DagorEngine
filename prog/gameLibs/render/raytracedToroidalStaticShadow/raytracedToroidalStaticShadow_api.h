@@ -60,9 +60,10 @@ public:
 
   // budgets, costs and raster sizes apply from the next update(), biases from the next render(); a layout change rebuilds,
   // a raster change of a level invalidates that level; a project must invalidate a level whose tracer it changes:
-  // invalidate(), or invalidateBoxes() with the world box and the bit of that level
-  void setSettings(const RaytracedToroidalStaticShadowSettings &settings);
-  const RaytracedToroidalStaticShadowSettings &getSettings() const; // as given; the scheduler clamps its own copy
+  // invalidate(), or invalidateBoxes() with the world box and the bit of that level; sunSweep follows the shader interval
+  // rtss_sun_sweep
+  void setSettings(RaytracedToroidalStaticShadowSettings settings);
+  const RaytracedToroidalStaticShadowSettings &getSettings() const; // as given but sunSweep; the scheduler clamps its own copy
 
   void setWorldBox(const BBox3 &casters_box); // a changed box invalidates all slots
   // a changed sun moves at its step over the update time since the last change, as a sun can change in steps of many frames
@@ -89,6 +90,13 @@ public:
   // the level, clamped to the coarsest, has data over box if it covers it; DIRTY data counts, a page in a depth rebuild does not;
   // false while it sweeps fast or is not live. A lookup with the coarsest level ready reads no lit gap over box
   bool isReady(const BBox3 &box, uint32_t level = ~0u) const;
+  bool isFullyRendered() const;
+  // the least distance to the sun from the camera to which every page in use with data holds its casters, FLT_MAX where the world box
+  // holds them all, 0 with none; isReady tells where a page lacks data. A move toward the sun shrinks it until a depth rebuild
+  float getCasterReach() const;
+  // the camera distance within which the coarsest level holds a receiver at full weight, short of its seam band also along the
+  // light y axis, which the anisotropic texels of a low sun shorten
+  float getFullWeightDistance() const;
   void afterDeviceReset();
 
   // pixels of a debugRenderScreen pass that a later pass reads back, up to 3 frames later, all with the sun above the horizon only;
@@ -104,8 +112,9 @@ public:
     GpuCounters gpu;
   };
   void getStats(Stats &out) const;
-  // from the gbuffer depth; 1: visibility, 2: level, 3: slot bit, 4: fallback, 5: the difference to the project reference
-  void debugRenderScreen(int mode);
+  // from the gbuffer depth; 1: visibility, 2: level, 3: slot bit, 4: fallback, 5: the difference to the project reference;
+  // counters clears and copies a buffer, which a native render pass must not hold
+  void debugRenderScreen(int mode, bool counters = true);
   void debugDrawAtlas(int level); // slot states and depth
 
 private:

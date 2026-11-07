@@ -142,6 +142,30 @@ inline bool channel_size(unsigned t, unsigned &channelSize)
   return true;
 }
 
+inline int find_vertex_channel_offset(dag::ConstSpan<CompiledShaderChannelId> vdecl, int usage, int usage_index,
+  int *out_type = nullptr, unsigned *out_size = nullptr)
+{
+  int offset = 0;
+  for (const CompiledShaderChannelId &c : vdecl)
+  {
+    if (c.streamId != 0)
+      continue;
+    unsigned size = 0;
+    if (!channel_size(c.t, size))
+      return -1;
+    if (c.vbu == usage && c.vbui == usage_index)
+    {
+      if (out_type)
+        *out_type = c.t;
+      if (out_size)
+        *out_size = size;
+      return offset;
+    }
+    offset += size;
+  }
+  return -1;
+}
+
 inline bool channel_signed(unsigned t)
 {
   switch (t)
@@ -168,6 +192,11 @@ inline bool channel_signed(unsigned t)
     case VSDT_UINT4:
     default: return false;
   }
+}
+
+inline unsigned pack_dec3n(int x, int y, int z)
+{
+  return (unsigned(x) & 0x3FF) | ((unsigned(y) & 0x3FF) << 10) | ((unsigned(z) & 0x3FF) << 20);
 }
 
 

@@ -187,6 +187,7 @@ ECS::ECS() : das::Module("ecs")
   ADD_EXTERN_NAME(getSingletonEntityHint, "getSingletonEntity", das::SideEffects::accessExternal);
   auto getSingletonEntityExt = ADD_EXTERN(getSingletonEntity, das::SideEffects::accessExternal);
   getSingletonEntityExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<0>()));
+  ADD_EXTERN(getOrCreateSingletonEntity, das::SideEffects::modifyExternal);
 
   ADD_EXTERN(is_entity_mgr_exists, das::SideEffects::accessExternal);
 

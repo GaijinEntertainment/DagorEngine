@@ -542,6 +542,35 @@ INLINE TMatrix tmatrix(const TMatrix4 &a)
   return tm;
 }
 
+INLINE TMatrix4 makeTM4(const Quat &q)
+{
+  TMatrix4 m;
+
+  if (q.x == 0 && q.y == 0 && q.z == 0 && q.w == 0)
+  {
+    m.identity();
+    return m;
+  }
+
+  m.m[0][0] = (q.x * q.x + q.w * q.w) * 2 - 1;
+  m.m[1][0] = (q.x * q.y - q.z * q.w) * 2;
+  m.m[2][0] = (q.x * q.z + q.y * q.w) * 2;
+
+  m.m[0][1] = (q.y * q.x + q.z * q.w) * 2;
+  m.m[1][1] = (q.y * q.y + q.w * q.w) * 2 - 1;
+  m.m[2][1] = (q.y * q.z - q.x * q.w) * 2;
+
+  m.m[0][2] = (q.z * q.x - q.y * q.w) * 2;
+  m.m[1][2] = (q.z * q.y + q.x * q.w) * 2;
+  m.m[2][2] = (q.z * q.z + q.w * q.w) * 2 - 1;
+
+  m.m[0][3] = m.m[1][3] = m.m[2][3] = 0;
+  m.m[3][0] = m.m[3][1] = m.m[3][2] = 0;
+  m.m[3][3] = 1;
+
+  return m;
+}
+
 struct DECLSPEC_ALIGN(16) TMatrix4_vec4 : public TMatrix4
 {
   INLINE TMatrix4_vec4() = default;

@@ -1,48 +1,35 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <render/rtr.h>
-#include <render/denoiser.h>
+#include <render/rtr/rtr_api.h>
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_rwResource.h>
-#include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_driverDesc.h>
-#include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_bindless.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <shaders/dag_shaderBlock.h>
 #include <bvh/bvh.h>
 #include <perfMon/dag_statDrv.h>
-#include <image/dag_texPixel.h>
-#include <math/dag_frustum.h>
 #include <math/integer/dag_IPoint2.h>
-#include <ioSys/dag_dataBlock.h>
-#include <EASTL/algorithm.h>
-#include <EASTL/optional.h>
+#include <EASTL/shared_ptr.h>
 #include <imgui/imgui.h>
 #include <gui/dag_imgui.h>
 #include <gui/dag_imguiUtil.h>
 #include <render/spheres_consts.hlsli>
 #include "shaders/rtr_constants.hlsli"
 
-
 namespace rtr
 {
 
-namespace TextureNames
-{
-static const char *decoded_denoised_reflection = "decoded_denoised_reflection";
-}; // namespace TextureNames
-
 static ComputeShaderElement *trace = nullptr;
-static ComputeShaderElement *decode = nullptr;
+static ComputeShaderElement *pathTrace = nullptr;
 static ComputeShaderElement *probeLocation = nullptr;
 static ComputeShaderElement *probeColor = nullptr;
 
 static DynamicShaderHelper probeDebug;
 
 static int inv_proj_tmVarId = -1;
-static int rtr_targetVarId = -1;
 static int rtr_frame_indexVarId = -1;
 static int rtr_hit_dist_paramsVarId = -1;
 static int rtr_rough_ray_lengthVarId = -1;
@@ -50,30 +37,24 @@ static int rtr_ray_limit_coeffVarId = -1;
 static int rtr_ray_limit_powerVarId = -1;
 static int rtr_water_hit_dist_paramsVarId = -1;
 static int rtr_resolutionIVarId = -1;
-static int rtr_texture_resolutionVarId = -1;
-static int rtr_uv_maxVarId = -1;
-static int rtr_bindless_slotVarId = -1;
+static int rtr_output_resolutionIVarId = -1;
 static int rtr_output_typeVarId = -1;
-static int rtr_denoisedVarId = -1;
-static int rtr_validation_textureVarId = -1;
 static int rtr_shadowVarId = -1;
-static int rtr_fom_shadowVarId = -1;
 static int rtr_res_mulVarId = -1;
 static int rtr_checkerboardVarId = -1;
 static int rtr_probe_debug_sizeVarId = -1;
 static int rtr_probes_countVarId = -1;
 static int rtr_usable_probes_countVarId = -1;
 static int rtr_probe_tresholdVarId = -1;
-static int rtr_probes_tex_slotVarId = -1;
-static int rtr_probe_locations_buf_slotVarId = -1;
+static int rtr_probesVarId = -1;
+static int rtr_probe_locationsVarId = -1;
 static int rtr_probe_sampler_slotVarId = -1;
+static int rtr_fix_probesVarId = -1;
 static int rtr_probe_randomize_raysVarId = -1;
 static int rtr_probe_debug_display_backVarId = -1;
-static int rt_nrVarId = -1;
-static int cameraFovYVarId = 1;
-static int downsampled_close_depth_texVarId = -1;
-static int denoiser_view_zVarId = -1;
-static int half_selected_depth_rtrVarId = -1;
+static int rtr_blur_radiusVarId = -1;
+static int rtr_pt_min_ray_lengthVarId = -1;
+static int rtr_pt_max_ray_lengthVarId = -1;
 
 static float water_ray_length = 5000;
 static float gloss_ray_length = 1000;
@@ -85,6 +66,10 @@ static float scatter_factor = 1;
 static float roughness_factor = 0;
 static float probe_treshold = 0.75;
 static bool use_probes = false;
+static float blur_radius = 0.03;
+
+static float pt_min_ray_length = 100;
+static float pt_max_ray_length = 400;
 
 static float al_luminance_sigma_scale = 4.0f;
 static float al_luminance_sensitivity = 3.0f;
@@ -93,45 +78,38 @@ static int max_reblur_stabilized_frame_num = 31;
 static int max_relax_stabilized_frame_num = 30;
 static int max_relax_fast_stabilized_frame_num = 6;
 
-static denoiser::ReflectionMethod output_type = denoiser::ReflectionMethod::Relax;
-
 static bool performance_mode = true;
-static bool show_validation = false;
 static bool use_anti_firefly = true;
-static bool show_probes = false;
 static bool fix_probes = false;
-static float probe_size = 0.05;
-
-static d3d::SamplerHandle linear_sampler = d3d::INVALID_SAMPLER_HANDLE;
-
-static UniqueTexWithShaderVar rtr_probes;
-static UniqueBufWithShaderVar rtr_probe_locations;
-struct BindlessProbes
-{
-  uint32_t probesTex, probesSampler, locationBuf;
-  bool allocated;
-} rtr_probes_bindless;
-
-static PostFxRenderer *validation_renderer;
-
-static BaseTexture *validation_texture_ptr = nullptr;
-static BaseTexture *tiles_ptr = nullptr;
-static BaseTexture *normal_roughness_ptr = nullptr;
-static BaseTexture *view_z_ptr = nullptr;
-static BaseTexture *half_depth_ptr = nullptr;
-static BaseTexture *half_selected_depth_rtr_ptr = nullptr;
-static BaseTexture *rtr_tex_unfiltered_ptr = nullptr;
-static BaseTexture *rtr_basetex = nullptr;
-static BaseTexture *denoised_reflection_ptr = nullptr;
-static BaseTexture *decoded_denoised_reflection_ptr = nullptr;
-static float image_debug_hmul = 1;
-
-static bvh::ContextId current_context_id = nullptr;
-static bool has_rt_shadow = false;
-static int tiles_width = 1;
-static int tiles_height = 1;
 static bool is_checkerboard = false;
-static Point4 hit_dist_params;
+static bool is_path_traced = false;
+
+static IPoint2 max_rendering_resolution = IPoint2::ZERO;
+
+using SharedNodeParams = eastl::shared_ptr<const NodeParams>;
+
+// the other output types are the values of denoiser::ReflectionMethod
+static constexpr int RTR_OUTPUT_RR = 255;
+
+#if DAGOR_DBGLEVEL > 0
+static bool blur_in_graph = false;
+static bool show_validation = false;
+static bool display_back_probes = false;
+static bool show_probes = false;
+static float probe_size = 0.05;
+static int rtr_validation_textureVarId = -1;
+static int rtr_validation_uv_scaleVarId = -1;
+static ComputeShaderElement *decode = nullptr;
+static ComputeShaderElement *blurOverlay = nullptr;
+static PostFxRenderer *validation_renderer = nullptr;
+static denoiser::DebugImage decoded_image;
+static denoiser::DebugImage validation_image;
+static denoiser::DebugImage blur_overlay_image;
+static denoiser::DebugImage probe_debug_atlas;
+static denoiser::DebugImage probe_debug_locations;
+static bool show_unfiltered = false; // the debug view shows the trace output in place of the denoised one
+static int blur_overlay = 0;         // the view of rtr_blur_debug over the frame: 0 off, 1 the lobe radius, 2 the hit distance
+#endif
 
 inline int divide_up(int x, int y) { return (x + y - 1) / y; }
 
@@ -143,12 +121,42 @@ inline int calc_tiles_width(int w, bool checkerboard)
 
 inline int calc_tiles_height(int h) { return divide_up(h, 8); }
 
-void initialize(denoiser::ReflectionMethod method, bool half_res, bool checkerboard)
+static IPoint2 probe_atlas_size(const IPoint2 &rendering_resolution)
+{
+  const IPoint2 trace = denoiser::resolution_config.rtrHalfRes ? rendering_resolution / 2 : rendering_resolution;
+  const IPoint2 grid(divide_up(trace.x, PROBE_AREA), divide_up(trace.y, PROBE_AREA));
+  return IPoint2(grid.x * PROBE_LAYER_MUL * PROBE_RESOLUTION_WITH_BORDER, grid.y * PROBE_RESOLUTION_WITH_BORDER);
+}
+
+static IPoint2 atlas_grid(const IPoint2 &atlas_size)
+{
+  return IPoint2(atlas_size.x / (PROBE_LAYER_MUL * PROBE_RESOLUTION_WITH_BORDER), atlas_size.y / PROBE_RESOLUTION_WITH_BORDER);
+}
+
+static void apply_probe_atlas_resolution()
+{
+  if (trace && max_rendering_resolution != IPoint2::ZERO)
+    dafg::set_resolution("rtr_probe_atlas", probe_atlas_size(max_rendering_resolution));
+}
+
+void set_resolution(const IPoint2 &max_rendering_resolution_)
+{
+  max_rendering_resolution = max_rendering_resolution_;
+  apply_probe_atlas_resolution();
+}
+
+void set_dynamic_resolution(const IPoint2 &rendering_resolution)
+{
+  if (!trace || max_rendering_resolution == IPoint2::ZERO)
+    return;
+  dafg::set_dynamic_resolution("rtr_probe_atlas", probe_atlas_size(min(rendering_resolution, max_rendering_resolution)));
+}
+
+void initialize(bool half_res, bool checkerboard, bool path_traced)
 {
   if (!bvh::is_available())
     return;
 
-  rtr::output_type = method;
   rtr_frame_indexVarId = get_shader_variable_id("rtr_frame_index");
   rtr_hit_dist_paramsVarId = get_shader_variable_id("rtr_hit_dist_params");
   rtr_rough_ray_lengthVarId = get_shader_variable_id("rtr_rough_ray_length");
@@ -156,36 +164,37 @@ void initialize(denoiser::ReflectionMethod method, bool half_res, bool checkerbo
   rtr_ray_limit_powerVarId = get_shader_variable_id("rtr_ray_limit_power", true);
   rtr_water_hit_dist_paramsVarId = get_shader_variable_id("rtr_water_hit_dist_params", true);
   rtr_resolutionIVarId = get_shader_variable_id("rtr_resolutionI");
-  rtr_texture_resolutionVarId = get_shader_variable_id("rtr_texture_resolution");
-  rtr_uv_maxVarId = get_shader_variable_id("rtr_uv_max");
-  rtr_targetVarId = get_shader_variable_id("rtr_target");
+  rtr_output_resolutionIVarId = get_shader_variable_id("rtr_output_resolutionI", true);
   inv_proj_tmVarId = get_shader_variable_id("inv_proj_tm");
-  rtr_bindless_slotVarId = get_shader_variable_id("rtr_bindless_slot");
   rtr_output_typeVarId = get_shader_variable_id("rtr_output_type");
-  rtr_denoisedVarId = get_shader_variable_id("rtr_denoised");
-  rtr_validation_textureVarId = get_shader_variable_id("rtr_validation_texture");
   rtr_res_mulVarId = get_shader_variable_id("rtr_res_mul");
   rtr_shadowVarId = get_shader_variable_id("rtr_shadow", true);
-  rtr_fom_shadowVarId = get_shader_variable_id("rtr_fom_shadow", true);
   rtr_checkerboardVarId = get_shader_variable_id("rtr_checkerboard", true);
   rtr_probe_debug_sizeVarId = get_shader_variable_id("rtr_probe_debug_size", true);
   rtr_probes_countVarId = get_shader_variable_id("rtr_probes_count", true);
   rtr_usable_probes_countVarId = get_shader_variable_id("rtr_usable_probes_count", true);
   rtr_probe_tresholdVarId = get_shader_variable_id("rtr_probe_treshold", true);
-  rtr_probes_tex_slotVarId = get_shader_variable_id("rtr_probes_tex_slot", true);
-  rtr_probe_locations_buf_slotVarId = get_shader_variable_id("rtr_probe_locations_buf_slot", true);
+  rtr_probesVarId = get_shader_variable_id("rtr_probes", true);
+  rtr_probe_locationsVarId = get_shader_variable_id("rtr_probe_locations", true);
   rtr_probe_sampler_slotVarId = get_shader_variable_id("rtr_probe_sampler_slot", true);
+  rtr_fix_probesVarId = get_shader_variable_id("rtr_fix_probes", true);
   rtr_probe_randomize_raysVarId = get_shader_variable_id("rtr_probe_randomize_rays", true);
   rtr_probe_debug_display_backVarId = get_shader_variable_id("rtr_probe_debug_display_back", true);
-  rt_nrVarId = get_shader_variable_id("rt_nr");
-  cameraFovYVarId = get_shader_variable_id("cameraFovY", true);
-  downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
-  denoiser_view_zVarId = get_shader_variable_id("denoiser_view_z", true);
-  half_selected_depth_rtrVarId = get_shader_variable_id("half_selected_depth_rtr", true);
+  rtr_blur_radiusVarId = get_shader_variable_id("rtr_blur_radius", true);
+  rtr_pt_min_ray_lengthVarId = get_shader_variable_id("rtr_pt_min_ray_length", true);
+  rtr_pt_max_ray_lengthVarId = get_shader_variable_id("rtr_pt_max_ray_length", true);
+#if DAGOR_DBGLEVEL > 0
+  rtr_validation_textureVarId = get_shader_variable_id("rtr_validation_texture");
+  rtr_validation_uv_scaleVarId = get_shader_variable_id("rtr_validation_uv_scale");
+#endif
   ShaderGlobal::set_int(rtr_res_mulVarId, half_res ? 2 : 1);
+  is_checkerboard = checkerboard;
 
+  is_path_traced = path_traced;
   if (!trace)
     trace = new_compute_shader("rt_reflection");
+  if (!pathTrace)
+    pathTrace = new_compute_shader("rt_reflection_pt", !is_path_traced);
 
   if (!probeColor)
     probeColor = new_compute_shader("rt_reflection_probe_color");
@@ -200,26 +209,16 @@ void initialize(denoiser::ReflectionMethod method, bool half_res, bool checkerbo
       probeLocation = new_compute_shader("rt_reflection_probe_location");
   }
 
-  denoiser::resolution_config.initRTR(half_res, checkerboard);
+  G_ASSERT(!denoiser::is_ray_reconstruction_enabled() || !checkerboard);
+  denoiser::resolution_config.initRTR(half_res);
 
-  d3d::SamplerInfo si;
-  si.mip_map_mode = d3d::MipMapMode::Point;
-  si.filter_mode = d3d::FilterMode::Linear;
-  si.address_mode_u = d3d::AddressMode::Clamp;
-  si.address_mode_v = d3d::AddressMode::Clamp;
-  linear_sampler = d3d::request_sampler(si);
-
-  if (!rtr_probes_bindless.allocated)
-  {
-    rtr_probes_bindless.probesTex = d3d::allocate_bindless_resource_range(D3DResourceType::TEX, 1);
-    rtr_probes_bindless.locationBuf = d3d::allocate_bindless_resource_range(D3DResourceType::SBUF, 1);
-    rtr_probes_bindless.allocated = true;
-  }
-
-  decoded_denoised_reflection_ptr = nullptr;
+  d3d::SamplerInfo sampler;
+  sampler.filter_mode = d3d::FilterMode::Linear;
+  const d3d::SamplerHandle smpHandle = d3d::request_sampler(sampler);
+  ShaderGlobal::set_sampler(get_shader_variable_id("rtr_probe_sampler", true), smpHandle);
+  ShaderGlobal::set_int(rtr_probe_sampler_slotVarId, d3d::register_bindless_sampler(smpHandle));
+  apply_probe_atlas_resolution();
 }
-
-void change_method(denoiser::ReflectionMethod method) { output_type = method; }
 
 template <typename T>
 static void safe_delete(T *&ptr)
@@ -236,26 +235,25 @@ void set_performance_mode(bool performance_mode_) { rtr::performance_mode = perf
 void teardown()
 {
   denoiser::resolution_config.closeRTR();
+  use_probes = false;
 
   safe_delete(trace);
-  safe_delete(decode);
+  safe_delete(pathTrace);
   safe_delete(probeColor);
   safe_delete(probeLocation);
-  safe_delete(validation_renderer);
-
-  if (rtr_probes_bindless.allocated)
-  {
-    d3d::free_bindless_resource_range(D3DResourceType::TEX, rtr_probes_bindless.probesTex, 1);
-    d3d::free_bindless_resource_range(D3DResourceType::SBUF, rtr_probes_bindless.locationBuf, 1);
-    rtr_probes_bindless.allocated = false;
-  }
-  rtr_probes.close();
-  rtr_probe_locations.close();
 
   probeDebug.close();
 
-  ShaderGlobal::set_int(rtr_bindless_slotVarId, -1);
-  decoded_denoised_reflection_ptr = nullptr;
+#if DAGOR_DBGLEVEL > 0
+  safe_delete(decode);
+  safe_delete(blurOverlay);
+  safe_delete(validation_renderer);
+  decoded_image.close();
+  validation_image.close();
+  blur_overlay_image.close();
+  probe_debug_atlas.close();
+  probe_debug_locations.close();
+#endif
 }
 
 void set_water_params()
@@ -266,12 +264,13 @@ void set_water_params()
   ShaderGlobal::set_float4(rtr_water_hit_dist_paramsVarId, waterHitDistParams);
 }
 
+static Point4 hit_dist_params() { return Point4(gloss_ray_length, distance_factor, scatter_factor, roughness_factor); }
+
 void set_rtr_hit_distance_params()
 {
   if (rtr_hit_dist_paramsVarId < 0)
     rtr_hit_dist_paramsVarId = get_shader_variable_id("rtr_hit_dist_params", true);
-  Point4 hitDistParams = Point4(gloss_ray_length, distance_factor, scatter_factor, roughness_factor);
-  ShaderGlobal::set_float4(rtr_hit_dist_paramsVarId, hitDistParams);
+  ShaderGlobal::set_float4(rtr_hit_dist_paramsVarId, hit_dist_params());
 }
 
 void set_ray_limit_params(float ray_limit_coeff_, float ray_limit_power_, float probe_treshold_, bool use_rtr_probes)
@@ -281,274 +280,327 @@ void set_ray_limit_params(float ray_limit_coeff_, float ray_limit_power_, float 
   probe_treshold = probe_treshold_;
   use_probes = ray_limit_coeff > 0 && use_rtr_probes;
   if (!use_probes)
-  {
-    ShaderGlobal::set_int(rtr_probe_locations_buf_slotVarId, -1);
-    ShaderGlobal::set_int(rtr_probes_tex_slotVarId, -1);
-    ShaderGlobal::set_int(rtr_probe_sampler_slotVarId, -1);
-  }
+    ShaderGlobal::set_int4(rtr_usable_probes_countVarId, 0, 0, 0, 0);
 }
 
 void set_use_anti_firefly(bool use_anti_firefly_) { use_anti_firefly = use_anti_firefly_; }
 
-void update_probes(IPoint2 res_size, IPoint2 resolution, bool randomize_rays)
+void set_blur_radius(float blur_radius_) { blur_radius = blur_radius_; }
+
+denoiser::ParamsHandle<FrameParams> create_frame_params(dafg::Registry registry)
+{
+  return registry.createBlob<FrameParams>("rtr_frame_params").handle();
+}
+
+static void update_probes(BaseTexture *atlas, BaseTexture *locations, const IPoint2 &resolution, bool randomize_rays)
 {
   TIME_D3D_PROFILE(rtr::update_probes);
 
-  int probeCountH = divide_up(res_size.x, PROBE_AREA);
-  int probeCountV = divide_up(res_size.y, PROBE_AREA);
-  int probeWidth = probeCountH * PROBE_LAYER_MUL * PROBE_RESOLUTION_WITH_BORDER;
-  int probeHeight = probeCountV * PROBE_RESOLUTION_WITH_BORDER;
-  int usableProbeCountH = divide_up(resolution.x, PROBE_AREA);
-  int usableProbeCountV = divide_up(resolution.y, PROBE_AREA);
+  const IPoint2 grid = atlas_grid(denoiser::texture_size(atlas));
+  const IPoint2 usable(min(divide_up(resolution.x, PROBE_AREA), grid.x), min(divide_up(resolution.y, PROBE_AREA), grid.y));
 
-  if (rtr_probes)
-  {
-    TextureInfo ti;
-    rtr_probes->getinfo(ti);
-    if (ti.w != probeWidth || ti.h != probeHeight)
-    {
-      d3d::update_bindless_resources_to_null(D3DResourceType::TEX, rtr_probes_bindless.probesTex, 1);
-      rtr_probes.close();
-    }
-  }
-
-  if (rtr_probe_locations && rtr_probe_locations->getNumElements() / 4 != probeCountH * probeCountV * PROBE_LAYER_MUL)
-  {
-    d3d::update_bindless_resources_to_null(D3DResourceType::SBUF, rtr_probes_bindless.locationBuf, 1);
-    rtr_probe_locations.close();
-  }
-
-  if (!rtr_probes)
-  {
-    rtr_probes = dag::create_tex(nullptr, probeWidth, probeHeight, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_CLEAR_ON_CREATE, 1,
-      "rtr_probes", RESTAG_RTR);
-    d3d::SamplerInfo sampler;
-    sampler.filter_mode = d3d::FilterMode::Linear;
-    auto smpHandle = d3d::request_sampler(sampler);
-    ShaderGlobal::set_sampler(get_shader_variable_id("rtr_probe_sampler"), smpHandle);
-    rtr_probes_bindless.probesSampler = d3d::register_bindless_sampler(smpHandle);
-  }
-
-  if (!rtr_probe_locations)
-    rtr_probe_locations = dag::buffers::create_ua_sr_byte_address(sizeof(Point4) / 4 * probeCountH * probeCountV * PROBE_LAYER_MUL,
-      "rtr_probe_locations", d3d::buffers::Init::Zero, RESTAG_RTR);
-
-  ShaderGlobal::set_int4(rtr_probes_countVarId, probeCountH, probeCountV, 0, 0);
-  ShaderGlobal::set_int4(rtr_usable_probes_countVarId, usableProbeCountH, usableProbeCountV, 0, 0);
+  ShaderGlobal::set_int4(rtr_probes_countVarId, grid.x, grid.y, 0, 0);
+  ShaderGlobal::set_int4(rtr_usable_probes_countVarId, usable.x, usable.y, 0, 0);
   ShaderGlobal::set_int(rtr_probe_randomize_raysVarId, randomize_rays ? 1 : 0);
+  ShaderGlobal::set_int(rtr_fix_probesVarId, fix_probes ? 1 : 0);
 
   // One thread is processing one tile
-  if (!fix_probes)
-    probeLocation->dispatch(usableProbeCountH, usableProbeCountV, 1);
+  probeLocation->dispatch(usable.x, usable.y, 1);
 
   // One group is processing one probe (PROBE_RESOLUTION * PROBE_RESOLUTION)
-  probeColor->dispatch(usableProbeCountH, usableProbeCountV, PROBE_LAYER_MUL);
+  probeColor->dispatch(usable.x, usable.y, PROBE_LAYER_MUL);
 
-  d3d::resource_barrier({rtr_probe_locations.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL});
-  ShaderGlobal::set_int(rtr_probe_locations_buf_slotVarId, rtr_probes_bindless.locationBuf);
-  d3d::update_bindless_resource(D3DResourceType::SBUF, rtr_probes_bindless.locationBuf, rtr_probe_locations.getBuf());
-
-  d3d::resource_barrier({rtr_probes.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 1});
-  ShaderGlobal::set_int(rtr_probes_tex_slotVarId, rtr_probes_bindless.probesTex);
-  ShaderGlobal::set_int(rtr_probe_sampler_slotVarId, rtr_probes_bindless.probesSampler);
-  d3d::update_bindless_resource(D3DResourceType::TEX, rtr_probes_bindless.probesTex, rtr_probes.getTex2D());
+#if DAGOR_DBGLEVEL > 0
+  if (show_probes)
+  {
+    denoiser::copy_for_debug(atlas, probe_debug_atlas, "rtr_probes_debug");
+    denoiser::copy_for_debug(locations, probe_debug_locations, "rtr_probe_locations_debug");
+  }
+#else
+  G_UNUSED(locations);
+#endif
 }
 
-static IPoint2 get_resolution()
+static void bind_params(const FrameParams &params, denoiser::ReflectionMethod method, const IPoint2 &resolution)
 {
-  return denoiser::resolution_config.rtr.isHalfRes ? denoiser::resolution_config.dynRes.halfRes
-                                                   : denoiser::resolution_config.dynRes.res;
-}
+  const int tilesWidth = calc_tiles_width(resolution.x, is_checkerboard);
+  const int tilesHeight = calc_tiles_height(resolution.y);
 
-bool prepare(bvh::ContextId context_id, bool rt_shadow, const denoiser::TexMap &textures, bool checkerboard)
-{
-  TIME_D3D_PROFILE(rtr::prepare);
+  bvh::bind_resources(params.ctxId, resolution.x);
 
-  G_ASSERT(ray_limit_coeff != 0);
-
-  current_context_id = context_id;
-  has_rt_shadow = rt_shadow;
-
-  hit_dist_params = Point4(gloss_ray_length, distance_factor, scatter_factor, roughness_factor);
-
-  auto tiles = textures.find(denoiser::ReflectionDenoiser::TextureNames::rtr_sample_tiles);
-  auto denoised_reflection = textures.find(denoiser::ReflectionDenoiser::TextureNames::rtr_tex);
-  auto reflection_value = textures.find(denoiser::ReflectionDenoiser::TextureNames::rtr_tex_unfiltered);
-  auto validation = textures.find(denoiser::ReflectionDenoiser::TextureNames::rtr_validation);
-  auto decoded_denoised_reflection = textures.find(TextureNames::decoded_denoised_reflection);
-  auto normal_roughness =
-    textures.find(denoiser::resolution_config.rtr.isHalfRes ? denoiser::TextureNames::denoiser_half_normal_roughness
-                                                            : denoiser::TextureNames::denoiser_normal_roughness);
-  auto view_z = textures.find(denoiser::resolution_config.rtr.isHalfRes ? denoiser::TextureNames::denoiser_half_view_z
-                                                                        : denoiser::TextureNames::denoiser_view_z);
-  auto half_depth = textures.find(denoiser::TextureNames::half_depth);
-  auto half_selected_depth_rtr = textures.find(denoiser::TextureNames::half_selected_depth_rtr);
-
-  G_ASSERT_RETURN(denoiser::is_ray_reconstruction_enabled() || tiles != textures.end(), false);
-  G_ASSERT_RETURN(denoiser::is_ray_reconstruction_enabled() || denoised_reflection != textures.end(), false);
-  G_ASSERT_RETURN(denoiser::is_ray_reconstruction_enabled() || normal_roughness != textures.end(), false);
-  G_ASSERT_RETURN(denoiser::is_ray_reconstruction_enabled() || view_z != textures.end(), false);
-  G_ASSERT_RETURN(denoiser::is_ray_reconstruction_enabled() || half_depth != textures.end(), false);
-  G_ASSERT_RETURN(reflection_value != textures.end(), false);
-
-  auto basetex_or_null = [&](auto name) { return name != textures.end() ? name->second : nullptr; };
-
-  validation_texture_ptr = basetex_or_null(validation);
-  tiles_ptr = basetex_or_null(tiles);
-  normal_roughness_ptr = basetex_or_null(normal_roughness);
-  view_z_ptr = basetex_or_null(view_z);
-  half_depth_ptr = basetex_or_null(half_depth);
-  half_selected_depth_rtr_ptr = basetex_or_null(half_selected_depth_rtr);
-  rtr_tex_unfiltered_ptr = basetex_or_null(reflection_value);
-  rtr_basetex = basetex_or_null(reflection_value);
-  denoised_reflection_ptr = basetex_or_null(denoised_reflection);
-  decoded_denoised_reflection_ptr = basetex_or_null(decoded_denoised_reflection);
-  image_debug_hmul = (checkerboard ? 2 : 1);
-
-  const IPoint2 &resolution = get_resolution();
-
-  tiles_width = calc_tiles_width(resolution.x, checkerboard);
-  tiles_height = calc_tiles_height(resolution.y);
-  is_checkerboard = checkerboard;
-
-  return true;
-}
-
-void bind_params()
-{
-  const IPoint2 resolution = get_resolution();
-
-  bvh::bind_resources(current_context_id, resolution.x);
-
-  Point4 waterHitDistParams = Point4(water_ray_length, distance_factor, scatter_factor, roughness_factor);
-
-  ShaderGlobal::set_texture(denoiser_view_zVarId, denoiser::is_ray_reconstruction_enabled() ? nullptr : view_z_ptr);
-  ShaderGlobal::set_texture(rtr_denoisedVarId, denoised_reflection_ptr);
-  ShaderGlobal::set_texture(rtr_targetVarId, rtr_tex_unfiltered_ptr);
   ShaderGlobal::set_int(rtr_frame_indexVarId, denoiser::get_frame_number());
   ShaderGlobal::set_float(rtr_rough_ray_lengthVarId, rough_ray_length);
-  ShaderGlobal::set_float4(rtr_hit_dist_paramsVarId, hit_dist_params);
+  ShaderGlobal::set_float4(rtr_hit_dist_paramsVarId, hit_dist_params());
   ShaderGlobal::set_float(rtr_ray_limit_coeffVarId, ray_limit_coeff);
   ShaderGlobal::set_float(rtr_ray_limit_powerVarId, ray_limit_power);
-  ShaderGlobal::set_float4(rtr_water_hit_dist_paramsVarId, waterHitDistParams);
-  ShaderGlobal::set_int4(rtr_resolutionIVarId, resolution.x, resolution.y, tiles_width, tiles_height);
-  ShaderGlobal::set_int4(rtr_texture_resolutionVarId, denoiser::resolution_config.rtr.width, denoiser::resolution_config.rtr.height, 0,
-    0);
-  Point2 uvMax = Point2(1, 1);
-  if (denoiser::resolution_config.rtr.width != resolution.x || denoiser::resolution_config.rtr.height != resolution.y)
-  {
-    // Avoid samples outside the valid area
-    uvMax.x = (resolution.x - 0.6f) / denoiser::resolution_config.rtr.width;
-    uvMax.y = (resolution.y - 0.6f) / denoiser::resolution_config.rtr.height;
-  }
-  ShaderGlobal::set_float4(rtr_uv_maxVarId, uvMax);
-  constexpr int RTR_OUTPUT_RR = 2;
-  ShaderGlobal::set_int(rtr_output_typeVarId, denoiser::is_ray_reconstruction_enabled() ? RTR_OUTPUT_RR : (int)output_type);
-  ShaderGlobal::set_texture(rt_nrVarId, normal_roughness_ptr);
-  ShaderGlobal::set_texture(downsampled_close_depth_texVarId, half_depth_ptr);
-  ShaderGlobal::set_texture(half_selected_depth_rtrVarId, half_selected_depth_rtr_ptr);
-  ShaderGlobal::set_int(rtr_shadowVarId, has_rt_shadow ? 1 : 0);
+  ShaderGlobal::set_float4(rtr_water_hit_dist_paramsVarId,
+    Point4(water_ray_length, distance_factor, scatter_factor, roughness_factor));
+  ShaderGlobal::set_int4(rtr_resolutionIVarId, resolution.x, resolution.y, tilesWidth, tilesHeight);
+  // the readers take the output size from here, the glass and the water traces write rtr_resolutionI too
+  ShaderGlobal::set_int4(rtr_output_resolutionIVarId, resolution.x, resolution.y, 0, 0);
+  ShaderGlobal::set_int(rtr_output_typeVarId, denoiser::is_ray_reconstruction_enabled() ? RTR_OUTPUT_RR : (int)method);
+  ShaderGlobal::set_int(rtr_shadowVarId, params.rtShadow ? 1 : 0);
   ShaderGlobal::set_int(rtr_checkerboardVarId, is_checkerboard ? 1 : 0);
   ShaderGlobal::set_float(rtr_probe_tresholdVarId, probe_treshold);
+  ShaderGlobal::set_float(rtr_blur_radiusVarId, blur_radius);
+  ShaderGlobal::set_float(rtr_pt_min_ray_lengthVarId, pt_min_ray_length);
+  ShaderGlobal::set_float(rtr_pt_max_ray_lengthVarId, max(pt_max_ray_length, pt_min_ray_length));
 }
 
-void unbind_params()
-{
-  bvh::unbind_resources();
+static ComputeShaderElement *current_trace() { return is_path_traced ? pathTrace : trace; }
 
-  ShaderGlobal::set_texture(denoiser_view_zVarId, nullptr);
-  ShaderGlobal::set_texture(rtr_denoisedVarId, nullptr);
-  ShaderGlobal::set_texture(rtr_targetVarId, nullptr);
-
-  ShaderGlobal::set_texture(rt_nrVarId, nullptr);
-  ShaderGlobal::set_texture(downsampled_close_depth_texVarId, nullptr);
-  ShaderGlobal::set_texture(half_selected_depth_rtrVarId, nullptr);
-}
-
-void do_update_probes(bool randomize_rays)
-{
-  G_ASSERT(use_probes);
-  const IPoint2 &resolution = get_resolution();
-  update_probes(IPoint2{denoiser::resolution_config.rtr.width, denoiser::resolution_config.rtr.height}, resolution, randomize_rays);
-}
-
-void do_trace(const TMatrix4 &proj_tm)
+static void do_trace(const NodeParams &node, const FrameParams &params, const IPoint2 &resolution)
 {
   TIME_D3D_PROFILE(rtr::trace);
 
-  if (denoiser::is_ray_reconstruction_enabled())
-  {
-    const float clear[] = {0, 0, 0, 1};
-    d3d::clear_rwtexf(rtr_basetex, clear, 0, 0);
-  }
-
-  ShaderGlobal::set_float4x4(inv_proj_tmVarId, inverse44(proj_tm));
-  trace->dispatch(tiles_width, tiles_height, 1);
-  d3d::resource_barrier(ResourceBarrierDesc(rtr_basetex, RB_NONE, 0, 0));
+  denoiser::trace_per_view(node.viewState, denoiser::TraceView{params.projTm}, params.lensView, [&](const denoiser::TraceView &view) {
+    ShaderGlobal::set_float4x4(inv_proj_tmVarId, inverse44(view.projTm));
+    current_trace()->dispatch(calc_tiles_width(resolution.x, is_checkerboard), calc_tiles_height(resolution.y), 1);
+  });
 }
 
-void denoise(const denoiser::TexMap &textures, bool use_smart_depth)
+static dafg::NodeHandle make_probe_node(const SharedNodeParams &params)
 {
-  TIME_D3D_PROFILE(rtr::denoise);
-
-  denoiser::ReflectionDenoiser denoiser_params;
-  denoiser_params.method = output_type;
-  denoiser_params.hitDistParams = hit_dist_params;
-  denoiser_params.maxStabilizedFrameNum =
-    output_type == denoiser::ReflectionMethod::Reblur ? max_reblur_stabilized_frame_num : max_relax_stabilized_frame_num;
-  denoiser_params.maxFastStabilizedFrameNum = max_relax_fast_stabilized_frame_num;
-  denoiser_params.antilagSettings = Point2(al_luminance_sigma_scale, al_luminance_sensitivity);
-  denoiser_params.halfResolution = denoiser::resolution_config.rtr.isHalfRes;
-  denoiser_params.antiFirefly = use_anti_firefly;
-  denoiser_params.performanceMode = performance_mode;
-  denoiser_params.checkerboard = is_checkerboard;
-  denoiser_params.textures = textures;
-  denoiser_params.useSmartDepth = use_smart_depth;
-
-  denoiser::denoise_reflection(denoiser_params);
+  return dafg::root().registerNode("rtr_probes", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
+    if (params->declareProbeInputs)
+      params->declareProbeInputs(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>("rtr_frame_params").handle();
+    auto resolution = denoiser::reflection_resolution(registry);
+    auto atlasHndl = registry.create("rtr_probes")
+                       .texture({TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, registry.getResolution<2>("rtr_probe_atlas")})
+                       .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                       .clear(ResourceClearValue{})
+                       .atStage(dafg::Stage::CS)
+                       .bindToShaderVar("rtr_probes")
+                       .handle();
+    registry.readTextureHistory("rtr_probes").atStage(dafg::Stage::CS).bindToShaderVar("rtr_probes_prev");
+    auto locationsHndl = registry.create("rtr_probe_locations")
+                           .texture({TEXFMT_A32B32G32R32F | TEXCF_UNORDERED,
+                             registry.getResolution<2>("rtr_probe_atlas", 1.f / PROBE_RESOLUTION_WITH_BORDER)})
+                           .withHistory(dafg::History::ClearZeroOnFirstFrame)
+                           .clear(ResourceClearValue{})
+                           .atStage(dafg::Stage::CS)
+                           .bindToShaderVar("rtr_probe_locations")
+                           .handle();
+    registry.readTextureHistory("rtr_probe_locations").atStage(dafg::Stage::CS).bindToShaderVar("rtr_probe_locations_prev");
+    return [params, frameParamsHndl, resolution, atlasHndl, locationsHndl]() {
+      const FrameParams &fp = frameParamsHndl.ref();
+      if (!use_probes || !fp.render || !fp.ctxId || !probeLocation || !probeColor)
+        return;
+      if (params->setShaderState)
+        params->setShaderState();
+      const IPoint2 res = resolution.get();
+      bind_params(fp, params->method, res);
+      update_probes(atlasHndl.get(), locationsHndl.get(), res, fp.randomizeRays);
+      bvh::unbind_resources();
+      if (params->resetShaderState)
+        params->resetShaderState();
+    };
+  });
 }
 
-void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool rt_shadow, const denoiser::TexMap &textures, bool checkerboard,
-  bool randomize_rays)
+static dafg::NodeHandle make_trace_node(const SharedNodeParams &params)
 {
-  if (!prepare(context_id, rt_shadow, textures, checkerboard))
+  return dafg::root().registerNode("rtr_trace", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
+    if (params->declareInputs)
+      params->declareInputs(registry);
+    denoiser::order_after_prepare(registry);
+    auto frameParamsHndl = registry.readBlob<FrameParams>("rtr_frame_params").handle();
+    auto denoiserParamsHndl = denoiser::create_reflection_params(registry);
+    auto unfilteredHndl = denoiser::create_reflection_trace_output(registry, "rtr_target");
+    denoiser::create_reflection_output(registry, "rtr_denoised", params->method);
+    registry.readTexture("rtr_probes").atStage(dafg::Stage::CS).bindlessShaderVar("rtr_probes_tex_slot").optional();
+    registry.readTexture("rtr_probe_locations").atStage(dafg::Stage::CS).bindlessShaderVar("rtr_probe_locations_tex_slot").optional();
+    if (!denoiser::is_ray_reconstruction_enabled())
+    {
+      // with ray reconstruction the trace shades from the gbuffer
+      const denoiser::Inputs inputs = denoiser::reflection_inputs(params->checkerboardDepth, params->smartDepth);
+      denoiser::modify_view_z_for_reflection(registry, "denoiser_view_z", inputs);
+      denoiser::read_normal_roughness(registry, "rt_nr", inputs); // the normals of the pixels the view z set selects
+      if (params->smartDepth)
+        denoiser::read_selected_depth(registry, "half_selected_depth_rtr");
+    }
+    return [params, frameParamsHndl, denoiserParamsHndl, unfilteredHndl]() {
+      const FrameParams &fp = frameParamsHndl.ref();
+      denoiser::ReflectionParams &dp = denoiserParamsHndl.ref();
+      dp.render = fp.render && fp.ctxId && current_trace() && unfilteredHndl;
+      if (!dp.render)
+        return;
+      G_ASSERT(ray_limit_coeff != 0 || params->method == denoiser::ReflectionMethod::Blur);
+
+      const bool reblur = params->method == denoiser::ReflectionMethod::Reblur;
+      dp.hitDistParams = hit_dist_params();
+      dp.blurRadius = blur_radius;
+      dp.blurMaxRoughness = probe_treshold;
+      dp.antilagSettings = Point2(al_luminance_sigma_scale, al_luminance_sensitivity);
+      dp.maxStabilizedFrameNum = reblur ? max_reblur_stabilized_frame_num : max_relax_stabilized_frame_num;
+      dp.maxFastStabilizedFrameNum = max_relax_fast_stabilized_frame_num;
+      dp.antiFirefly = use_anti_firefly;
+      dp.performanceMode = performance_mode;
+      dp.checkerboard = is_checkerboard;
+
+      if (params->setShaderState)
+        params->setShaderState();
+      const IPoint2 resolution = denoiser::texture_size(unfilteredHndl->get());
+      bind_params(fp, params->method, resolution);
+      do_trace(*params, fp, resolution);
+      bvh::unbind_resources();
+      if (params->resetShaderState)
+        params->resetShaderState();
+    };
+  });
+}
+
+#if DAGOR_DBGLEVEL > 0
+static void decode_for_debug(BaseTexture *src, bool packed)
+{
+  if (!src)
+    return;
+  if (!decode)
+    decode = new_compute_shader("rt_reflection_decode");
+
+  // the decode averages 2x2 texels of the input, a checkerboard trace holds its output packed in the left half
+  IPoint2 valid = denoiser::texture_size(src);
+  if (packed)
+    valid.x /= 2;
+  const IPoint2 size = valid / 2;
+  Texture *dst = denoiser::fit_debug_image(decoded_image, size, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, "rtr_decoded_debug");
+  if (!dst)
     return;
 
-  bind_params();
-  {
-    if (use_probes)
-      do_update_probes(randomize_rays);
+  static int rtr_reflection_decode_srcVarId = get_shader_variable_id("rtr_reflection_decode_src");
+  static int rtr_reflection_decode_dstVarId = get_shader_variable_id("rtr_reflection_decode_dst");
 
-    do_trace(proj_tm);
-  }
-  unbind_params();
+  ShaderGlobal::set_texture(rtr_reflection_decode_srcVarId, src);
+  ShaderGlobal::set_texture(rtr_reflection_decode_dstVarId, dst);
+  static int rtr_reflection_decode_sizeVarId = get_shader_variable_id("rtr_reflection_decode_size", true);
+  ShaderGlobal::set_int4(rtr_reflection_decode_sizeVarId, valid.x, valid.y, 0, 0); // the shader takes the size from here
 
-  denoise(textures, false);
+  decode->dispatchThreads(size.x, size.y, 1);
+
+  ShaderGlobal::set_texture(rtr_reflection_decode_srcVarId, nullptr);
+  ShaderGlobal::set_texture(rtr_reflection_decode_dstVarId, nullptr);
 }
 
-bool is_validation_layer_enabled() { return show_validation; }
+static void make_blur_overlay(BaseTexture *output, BaseTexture *trace)
+{
+  if (!blurOverlay)
+    blurOverlay = new_compute_shader("rtr_blur_debug");
+
+  const IPoint2 size = denoiser::texture_size(output);
+  Texture *dst = denoiser::fit_debug_image(blur_overlay_image, size, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, "rtr_blur_overlay");
+  if (!dst)
+    return;
+
+  static int rtr_blur_debug_lobeVarId = get_shader_variable_id("rtr_blur_debug_lobe");
+  static int rtr_blur_debug_traceVarId = get_shader_variable_id("rtr_blur_debug_trace");
+  static int rtr_blur_debug_dstVarId = get_shader_variable_id("rtr_blur_debug_dst");
+  static int rtr_blur_debug_sizeVarId = get_shader_variable_id("rtr_blur_debug_size");
+
+  ShaderGlobal::set_texture(rtr_blur_debug_lobeVarId, output);
+  ShaderGlobal::set_texture(rtr_blur_debug_traceVarId, trace);
+  ShaderGlobal::set_texture(rtr_blur_debug_dstVarId, dst);
+  ShaderGlobal::set_int4(rtr_blur_debug_sizeVarId, size.x, size.y, blur_overlay, int(blur_radius * size.y));
+
+  blurOverlay->dispatchThreads(size.x, size.y, 1);
+
+  ShaderGlobal::set_texture(rtr_blur_debug_lobeVarId, nullptr);
+  ShaderGlobal::set_texture(rtr_blur_debug_traceVarId, nullptr);
+  ShaderGlobal::set_texture(rtr_blur_debug_dstVarId, nullptr);
+}
+
+static dafg::NodeHandle make_debug_node(bool validation)
+{
+  return dafg::root().registerNode("rtr_debug", DAFG_PP_NODE_SRC, [validation](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    auto outputHndl = denoiser::read_reflection_output(registry);
+    auto unfilteredHndl = denoiser::read_reflection_trace_output(registry);
+    auto validationOutputHndl = validation ? denoiser::read_reflection_validation(registry) : denoiser::OutputHandle{};
+    auto frameParamsHndl = registry.readBlob<FrameParams>("rtr_frame_params").handle();
+    return [outputHndl, unfilteredHndl, validationOutputHndl, frameParamsHndl]() {
+      decoded_image.nodeRan();
+      if (!frameParamsHndl.ref().render) // a frame without a trace leaves the outputs unwritten, the window keeps its last copies
+        return;
+      if (validationOutputHndl)
+        denoiser::copy_for_debug(validationOutputHndl->get(), validation_image, "rtr_validation_debug");
+      if (blur_in_graph && blur_overlay && outputHndl && unfilteredHndl)
+        make_blur_overlay(outputHndl->get(), unfilteredHndl->get());
+      if (!imgui_window_is_visible("Render", "RTR"))
+        return;
+      if (show_unfiltered && unfilteredHndl)
+        decode_for_debug(unfilteredHndl->get(), is_checkerboard);
+      else if (outputHndl)
+        decode_for_debug(outputHndl->get(), false);
+    };
+  });
+}
+#endif
+
+void register_nodes(const NodeParams &params, dag::Vector<dafg::NodeHandle> &nodes)
+{
+  SharedNodeParams shared = eastl::make_shared<NodeParams>(params);
+  G_ASSERTF(!(use_probes && is_path_traced), "rtr: the probes and the path tracing are mutually exclusive");
+  if (use_probes)
+  {
+    apply_probe_atlas_resolution();
+    nodes.emplace_back(make_probe_node(shared));
+  }
+  nodes.emplace_back(make_trace_node(shared));
+  denoiser::ReflectionNodeParams denoiseParams;
+  denoiseParams.method = params.method;
+  denoiseParams.checkerboardDepth = params.checkerboardDepth;
+  denoiseParams.useSmartDepth = params.smartDepth;
+  denoiseParams.motionVectorsName = params.motionVectorsName;
+  denoiseParams.halfMotionVectorsName = params.halfMotionVectorsName;
+#if DAGOR_DBGLEVEL > 0
+  const bool blur = params.method == denoiser::ReflectionMethod::Blur;
+  denoiseParams.validation = is_validation_layer_enabled() && !blur;
+  blur_in_graph = blur && !denoiser::is_ray_reconstruction_enabled();
+#endif
+  nodes.emplace_back(denoiser::make_reflection_node(denoiseParams));
+  nodes.emplace_back(denoiser::make_reflection_normal_roughness_node());
+#if DAGOR_DBGLEVEL > 0
+  nodes.emplace_back(make_debug_node(denoiseParams.validation));
+#endif
+}
+
+bool is_validation_layer_enabled()
+{
+#if DAGOR_DBGLEVEL > 0
+  return show_validation && !denoiser::is_ray_reconstruction_enabled();
+#else
+  return false;
+#endif
+}
 
 void render_validation_layer()
 {
-  if (!show_validation || !validation_texture_ptr)
+#if DAGOR_DBGLEVEL > 0
+  const denoiser::DebugImage &image = blur_in_graph ? blur_overlay_image : validation_image;
+  if (!(blur_in_graph ? blur_overlay != 0 : is_validation_layer_enabled()) || !image.texture())
     return;
 
   if (!validation_renderer)
     validation_renderer = new PostFxRenderer("rtr_validation_renderer");
 
-  ShaderGlobal::set_texture(rtr_validation_textureVarId, validation_texture_ptr);
+  ShaderGlobal::set_texture(rtr_validation_textureVarId, image.texture());
+  ShaderGlobal::set_float4(rtr_validation_uv_scaleVarId, image.uvMax());
   validation_renderer->render();
   ShaderGlobal::set_texture(rtr_validation_textureVarId, nullptr);
+#endif
 }
 
 void render_probes()
 {
+#if DAGOR_DBGLEVEL > 0
   if (!show_probes)
     return;
 
   TIME_D3D_PROFILE(rtr::render_probes);
 
-  if (!rtr_probes || !rtr_probe_locations)
+  Texture *atlas = probe_debug_atlas.texture();
+  Texture *locations = probe_debug_locations.texture();
+  if (!atlas || !locations)
     return;
 
   if (!probeDebug.shader)
@@ -556,42 +608,50 @@ void render_probes()
 
   SCOPE_RESET_SHADER_BLOCKS;
 
+  ShaderGlobal::set_texture(rtr_probesVarId, atlas);
+  ShaderGlobal::set_texture(rtr_probe_locationsVarId, locations);
   ShaderGlobal::set_float(rtr_probe_debug_sizeVarId, probe_size);
+  const IPoint2 copyGrid = atlas_grid(denoiser::texture_size(atlas));
+  ShaderGlobal::set_int4(rtr_probes_countVarId, copyGrid.x, copyGrid.y, 0, 0);
 
   probeDebug.shader->setStates(0, true);
 
   IPoint4 probesToDraw = ShaderGlobal::get_int4(rtr_usable_probes_countVarId);
   d3d::draw_instanced(PRIM_TRILIST, 0, SPHERES_INDICES_TO_DRAW, probesToDraw.x * probesToDraw.y);
-}
 
+  ShaderGlobal::set_texture(rtr_probesVarId, nullptr);
+  ShaderGlobal::set_texture(rtr_probe_locationsVarId, nullptr);
+#endif
+}
 
 #if DAGOR_DBGLEVEL > 0
-
-static bool show_unfiltered = false;
-static bool display_back_probes = false;
-
-inline const char *operator*(denoiser::ReflectionMethod mode)
-{
-  switch (mode)
-  {
-    case denoiser::ReflectionMethod::Reblur: return "Reblur";
-    case denoiser::ReflectionMethod::Relax: return "Relax";
-    default: return "Unknown";
-  }
-}
-
 static void imguiWindow()
 {
-  if (!decoded_denoised_reflection_ptr)
+  if (!decoded_image.inGraph())
     return;
-
   ImGui::SliderFloat("Water ray length", &water_ray_length, 0.01f, 5000);
   ImGui::SliderFloat("Gloss ray length", &gloss_ray_length, 0.01f, 5000);
   ImGui::SliderFloat("Rough ray length", &rough_ray_length, 0.01f, 5000);
   ImGui::SliderFloat("Maximum ray limit coeff", &ray_limit_coeff, 0.01f, 5000);
   ImGui::SliderFloat("Maximum ray limit power", &ray_limit_power, 0.01f, 5);
+  if (is_path_traced)
+  {
+    ImGui::SliderFloat("PT min ray length", &pt_min_ray_length, 0.01f, 5000);
+    ImGui::SliderFloat("PT max ray length", &pt_max_ray_length, pt_min_ray_length, 5000);
+    pt_max_ray_length = max(pt_max_ray_length, pt_min_ray_length);
+  }
 
-  if (!denoiser::is_ray_reconstruction_enabled())
+  if (blur_in_graph)
+  {
+    ImGui::SliderFloat("Max blur radius", &blur_radius, 0, 0.1f);
+    ImGui::Checkbox("Show unfiltered", &show_unfiltered);
+    ImGui::Combo("Overlay", &blur_overlay, "Off\0Lobe radius\0Hit distance\0");
+    if (blur_overlay == 1)
+      ImGui::TextUnformatted("green: blur up to the max radius, yellow to red: mips, a band per mip, magenta: no ray");
+    else if (blur_overlay == 2)
+      ImGui::TextUnformatted("red 1/16 m to blue 1 km, a band per octave, white: miss, magenta: no ray");
+  }
+  else if (!denoiser::is_ray_reconstruction_enabled())
   {
     ImGui::SliderFloat("Distance factor", &distance_factor, 0, 1);
     ImGui::SliderFloat("Scatter factor", &scatter_factor, 0, 2);
@@ -600,22 +660,14 @@ static void imguiWindow()
     ImGui::SliderFloat("luminance sigma scale", &al_luminance_sigma_scale, 1, 5);
     ImGui::SliderFloat("luminance sensitivity", &al_luminance_sensitivity, 1, 5);
 
-    using RDM = denoiser::ReflectionMethod;
-    ImGui::Text("Denoiser: %s", *output_type);
+    ImGui::Checkbox("Performance mode", &performance_mode);
+    ImGui::SliderInt("Max reblur stabilized frames", &max_reblur_stabilized_frame_num, 0,
+      denoiser::ReflectionParams::REBLUR_MAX_HISTORY_FRAME_NUM);
+    ImGui::SliderInt("Max relax stabilized frames", &max_relax_stabilized_frame_num, 0,
+      denoiser::ReflectionParams::RELAX_MAX_HISTORY_FRAME_NUM);
+    ImGui::SliderInt("Max relax fast stabilized frames", &max_relax_fast_stabilized_frame_num, 0, max_relax_stabilized_frame_num);
 
-    if (output_type == RDM::Reblur)
-    {
-      ImGui::Checkbox("Performance mode", &performance_mode);
-      ImGui::SliderInt("Max reblur stabilized frames", &max_reblur_stabilized_frame_num, 0,
-        denoiser::ReflectionDenoiser::REBLUR_MAX_HISTORY_FRAME_NUM);
-    }
-    else
-    {
-      ImGui::SliderInt("Max relax stabilized frames", &max_relax_stabilized_frame_num, 0,
-        denoiser::ReflectionDenoiser::RELAX_MAX_HISTORY_FRAME_NUM);
-      ImGui::SliderInt("Max relax fast stabilized frames", &max_relax_fast_stabilized_frame_num, 0, max_relax_stabilized_frame_num);
-    }
-
+    ImGui::Checkbox("Show unfiltered", &show_unfiltered);
     ImGui::Checkbox("Show validation layer", &show_validation);
     ImGui::Checkbox("Use anti firefly", &use_anti_firefly);
   }
@@ -628,93 +680,14 @@ static void imguiWindow()
     ImGui::SliderFloat("Probe size", &probe_size, 0.01, 2);
   }
 
-  if (!denoiser::is_ray_reconstruction_enabled())
+  if (Texture *tex = decoded_image.texture())
   {
-    ImGui::Separator();
-    ImGui::Checkbox("Show unfiltered", &show_unfiltered);
-  }
-
-  auto sourcePtr = (show_unfiltered || denoiser::is_ray_reconstruction_enabled()) ? rtr_tex_unfiltered_ptr : denoised_reflection_ptr;
-  if (sourcePtr)
-  {
-    if (!decode)
-      decode = new_compute_shader("rt_reflection_decode");
-
-    static int rtr_reflection_decode_srcVarId = get_shader_variable_id("rtr_reflection_decode_src");
-    static int rtr_reflection_decode_dstVarId = get_shader_variable_id("rtr_reflection_decode_dst");
-
-    ImGui::GetWindowDrawList()->AddCallback(
-      [](const ImDrawList *, const ImDrawCmd *) {
-        if (decoded_denoised_reflection_ptr)
-        {
-          auto sourcePtr =
-            (show_unfiltered || denoiser::is_ray_reconstruction_enabled()) ? rtr_tex_unfiltered_ptr : denoised_reflection_ptr;
-          TextureInfo ti;
-          decoded_denoised_reflection_ptr->getinfo(ti);
-
-          ShaderGlobal::set_texture(rtr_reflection_decode_srcVarId, sourcePtr);
-          ShaderGlobal::set_texture(rtr_reflection_decode_dstVarId, decoded_denoised_reflection_ptr);
-
-          decode->dispatchThreads(ti.w, ti.h, 1);
-
-          ShaderGlobal::set_texture(rtr_reflection_decode_srcVarId, nullptr);
-          ShaderGlobal::set_texture(rtr_reflection_decode_dstVarId, nullptr);
-        }
-      },
-      nullptr);
-
-    ImGuiDagor::Image(decoded_denoised_reflection_ptr);
+    const Point2 uv = decoded_image.uvMax();
+    ImGuiDagor::Image(tex, decoded_image.aspect(), ImVec2(0, 0), ImVec2(uv.x, uv.y));
   }
 }
 
 REGISTER_IMGUI_WINDOW("Render", "RTR", imguiWindow);
 #endif
-
-void turn_off() { ShaderGlobal::set_int(rtr_bindless_slotVarId, -1); }
-
-void denoise_noop(const denoiser::TexMap &textures)
-{
-  denoiser::ReflectionDenoiser params;
-  params.method = output_type;
-  params.hitDistParams = hit_dist_params;
-  params.maxStabilizedFrameNum =
-    output_type == denoiser::ReflectionMethod::Reblur ? max_reblur_stabilized_frame_num : max_relax_stabilized_frame_num;
-  params.maxFastStabilizedFrameNum = max_relax_fast_stabilized_frame_num;
-  params.antilagSettings = Point2(al_luminance_sigma_scale, al_luminance_sensitivity);
-  params.halfResolution = denoiser::resolution_config.rtr.isHalfRes;
-  params.antiFirefly = use_anti_firefly;
-  params.performanceMode = performance_mode;
-  params.checkerboard = is_checkerboard;
-  params.textures = textures;
-
-  denoiser::denoise_reflection_noop(params);
-}
-
-void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &persistent_textures)
-{
-  denoiser::get_required_persistent_texture_descriptors_for_rtr(persistent_textures, output_type);
-#if DAGOR_DBGLEVEL > 0
-  const char *sourceName = denoiser::is_ray_reconstruction_enabled() ? denoiser::ReflectionDenoiser::TextureNames::rtr_tex_unfiltered
-                                                                     : denoiser::ReflectionDenoiser::TextureNames::rtr_tex;
-  auto sourceTex = persistent_textures.find(sourceName);
-  if (sourceTex == persistent_textures.end())
-  {
-    logerr("%s was not found in requested rtr textures!", sourceName);
-    return;
-  }
-  TextureInfo sourceTi = sourceTex->second;
-  auto &ti = persistent_textures[TextureNames::decoded_denoised_reflection];
-  ti.w = sourceTi.w / 2;
-  ti.h = sourceTi.h / 2;
-  ti.mipLevels = 1;
-  ti.type = D3DResourceType::TEX;
-  ti.cflg = TEXCF_UNORDERED | TEXFMT_A16B16G16R16F;
-#endif
-}
-
-void get_required_transient_texture_descriptors(denoiser::TexInfoMap &transient_textures)
-{
-  denoiser::get_required_transient_texture_descriptors_for_rtr(transient_textures, output_type);
-}
 
 } // namespace rtr

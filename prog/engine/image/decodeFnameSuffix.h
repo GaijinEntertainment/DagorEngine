@@ -15,6 +15,7 @@ Image Rasterization
 --------------------
 
 Images can be of several formats, most common TIFF, PNG, JPG and SVG.
+SVGZ (gzip-compressed SVG) is also supported, and gzipped data is detected for any SVG name.
 
 
 There can also be suffixes that allow to specify parameters of rasterization, separated with ``:``::

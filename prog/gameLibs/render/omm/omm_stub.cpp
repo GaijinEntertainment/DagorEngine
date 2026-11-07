@@ -97,7 +97,7 @@ bool init_cpu(CpuContext &) { return false; }
 void shutdown_cpu(CpuContext &) {}
 
 bool cpu_bake_alpha_stats(CpuContext &, const char *, uint32_t, uint32_t, const uint8_t *, const float *, const uint32_t *, uint32_t,
-  CpuBakeStats &stats)
+  CpuBakeStats &stats, dag::Span<OpacityState>)
 {
   stats = {};
   return false;

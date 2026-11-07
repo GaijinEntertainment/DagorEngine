@@ -21,11 +21,6 @@ extern bool level_files;
 extern bool append_files;
 extern int append_files_stage;
 extern int debug_enabled_bits;
-// NOTE: log_callback should point to a static function.
-// Also note that, when changing it via debug_set_log_callback(), the old
-// callback MIGHT still be called again if another thread was racing with the one calling
-// debug_set_log_callback().
-extern volatile debug_log_callback_t log_callback;
 
 struct Context
 {

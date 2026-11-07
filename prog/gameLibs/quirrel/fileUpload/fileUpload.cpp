@@ -12,8 +12,6 @@
 #include <osApiWrappers/dag_direct.h>
 #include <util/dag_delayedAction.h>
 #include <rapidjson/document.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/stringbuffer.h>
 
 
 namespace bindquirrel
@@ -61,68 +59,45 @@ class SendPartCallback : public httprequests::IAsyncHTTPCallback
 {
   UploadDataPtr data;
 
-  void handleResponse(const dag::ConstSpan<char> &response, Json::Value &resp)
+  void closeFile()
+  {
+    if (data->fileHandle)
+    {
+      df_close(data->fileHandle);
+      data->fileHandle = nullptr;
+    }
+  }
+
+  void continueUpload(const dag::ConstSpan<char> &response)
   {
     rapidjson::Document doc;
     doc.Parse(response.data(), response.size());
-
     if (doc.HasParseError())
     {
       logerr("Error parsing response: %s", response.data());
-      resp["msg"] = "Error parsing response";
-
-      if (data->fileHandle)
-      {
-        df_close(data->fileHandle);
-        data->fileHandle = nullptr;
-      }
-
+      closeFile();
       return;
     }
 
-    // TODO: don't write every time?
-    rapidjson::StringBuffer buf;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buf);
-    doc.Accept(writer);
-
-    if (doc.HasMember("status"))
-      resp["status"] = doc["status"].GetString();
-
-    if (resp["status"] != "OK" || !doc.HasMember("data") || !doc["data"].HasMember("state"))
+    const bool canContinue = doc.IsObject() && doc.HasMember("status") && doc["status"].IsString() &&
+                             strcmp(doc["status"].GetString(), "OK") == 0 && doc.HasMember("data") && doc["data"].HasMember("state") &&
+                             doc["data"]["state"].IsString();
+    if (!canContinue)
     {
-      resp["msg"] = doc.HasMember("msg") ? doc["msg"].GetString() : "Unknown error";
-
-      if (data->fileHandle)
-      {
-        df_close(data->fileHandle);
-        data->fileHandle = nullptr;
-      }
-
+      closeFile();
       return;
     }
 
-    auto *state = doc["data"]["state"].GetString();
-    resp["state"] = state;
-
+    const char *state = doc["data"]["state"].GetString();
     if (strcmp(state, "CONTINUE") == 0)
-    {
-      resp["received"] = doc["data"]["received"].GetInt();
       sendPart(eastl::move(data));
-    }
     else if (strcmp(state, "DONE") == 0)
-    {
       saveFile(eastl::move(data));
-    }
     else
     {
       // should never happen
       logerr("Unknown state: %s", state);
-
-      if (data->fileHandle)
-      {
-        df_close(data->fileHandle);
-        data->fileHandle = nullptr;
-      }
+      closeFile();
     }
   }
 
@@ -136,17 +111,17 @@ public:
     resp["http_status"] = (int)status;
     resp["http_code"] = http_code;
     resp["uuid"] = data->uuidStr;
+    resp["bodyText"] = eastl::string(response.data(), response.size()).c_str();
     resp["totalParts"] = data->partsTotal;
     resp["currentPart"] = data->currentPart;
 
-    // cody data if event will be sent
-    bool needToSendEvent = !data->partSentEvent.empty();
+    // continueUpload may hand `data` on, so copy what is needed after it first
     eastl::string partSentEvent = data->partSentEvent;
 
     if (status == httprequests::RequestStatus::SUCCESS)
-      handleResponse(response, resp);
+      continueUpload(response);
 
-    if (needToSendEvent)
+    if (!partSentEvent.empty())
       // Note: no need to delayed call since `sendResponseInMainThreadOnly=true`
       sqeventbus::write_event_main_thread(partSentEvent.c_str(),
         [&](auto &evdata) { evdata.obj = jsoncpp_to_quirrel(evdata.getVM(), resp); });
@@ -226,53 +201,22 @@ class SaveFileCallback : public httprequests::IAsyncHTTPCallback
 {
   UploadDataPtr data;
 
-  void handleResponse(const dag::ConstSpan<char> &response, Json::Value &resp)
-  {
-    debug("httpUpload: file %s was saved", data->fileName.c_str());
-    rapidjson::Document doc;
-    doc.Parse(response.data(), response.size());
-    if (doc.HasParseError())
-    {
-      // logerr here because it should never happen
-      logerr("Error parsing response: %s", response.data());
-      return;
-    }
-    rapidjson::StringBuffer buf;
-    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buf);
-    doc.Accept(writer);
-
-    if (doc.HasMember("status"))
-      resp["status"] = doc["status"].GetString();
-    if (!doc.HasMember("data"))
-    {
-      // no need to raise logerr here, pass it to quirrel
-      resp["msg"] = doc.HasMember("msg") ? doc["msg"].GetString() : "Unknown error";
-      return;
-    }
-    if (doc["data"].HasMember("hash"))
-      resp["hash"] = doc["data"]["hash"].GetString();
-    if (doc["data"].HasMember("uri"))
-      resp["uri"] = doc["data"]["uri"].GetString();
-    if (doc["data"].HasMember("new"))
-      resp["new"] = doc["data"]["new"].GetBool();
-  }
-
 public:
   SaveFileCallback(UploadDataPtr &&data) : data(eastl::move(data)) {}
 
   void onRequestDone(httprequests::RequestStatus status, int http_code, dag::ConstSpan<char> response,
     httprequests::StringMap const & /*resp_headers*/) override
   {
+    if (status == httprequests::RequestStatus::SUCCESS)
+      debug("httpUpload: file %s was saved", data->fileName.c_str());
+
     Json::Value resp;
     resp["http_status"] = (int)status;
     resp["http_code"] = http_code;
     resp["uuid"] = data->uuidStr;
+    resp["bodyText"] = eastl::string(response.data(), response.size()).c_str();
 
-    if (status == httprequests::RequestStatus::SUCCESS)
-      handleResponse(response, resp);
-
-    bool needToSendEvent = !data->savedFileEvent.empty();
-    if (needToSendEvent)
+    if (!data->savedFileEvent.empty())
       // Note: no need to delayed call since `sendResponseInMainThreadOnly=true`
       sqeventbus::write_event_main_thread(data->savedFileEvent.c_str(),
         [&](auto &evdata) { evdata.obj = jsoncpp_to_quirrel(evdata.getVM(), resp); });
@@ -375,11 +319,9 @@ response for sentPartEvent in eventbus data or in callback will be table
     "http_status" : integer (SUCCESS, FAILED, ABORTED)
     "http_code" : integer
     "uuid" : string
-    // if http_status is SUCCESS
-    "status" : string, optional
-    "msg" : string, optional
-    "state" : string ("CONTINUE" or "DONE")
-    "received" : integer, optional, how many parts was received. Present if state is CONTINUE
+    "totalParts" : integer
+    "currentPart" : integer
+    "bodyText" : string, the reply as the server sent it, for the script to parse
   }
 code@
 response for savedFileEvent in eventbus data or in callback will be table
@@ -388,12 +330,7 @@ response for savedFileEvent in eventbus data or in callback will be table
     "http_status" : integer (SUCCESS, FAILED, ABORTED)
     "http_code" : integer
     "uuid" : string
-    // if http_status is SUCCESS
-    "status" : string, optional
-    "msg" : string, optional
-    "hash" : string, optional, hash of the saved file
-    "uri" : string, optional, uri of the saved file
-    "new" : bool, optional, true if file was newly saved, false if file with such hash already exists
+    "bodyText" : string, the reply as the server sent it, for the script to parse
   }
 */
 ///@resetscope

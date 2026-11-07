@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <generic/dag_align.h>
 #include <generic/dag_staticTab.h>
 #include <util/dag_convar.h>
 #include <render/spheres_consts.hlsli>
@@ -50,6 +51,7 @@ CONSOLE_INT_VAL("gi", gi_radiance_grid_reset, 0, 0, 2, "0 - off, 1 - before pos 
 CONSOLE_BOOL_VAL("gi", gi_radiance_grid_update_all, false);
 CONSOLE_BOOL_VAL("gi", gi_irradiance_grid_invalidate, false);
 CONSOLE_BOOL_VAL("gi", gi_radiance_grid_update_temporal, true);
+CONSOLE_BOOL_VAL("gi", gi_radiance_grid_full_selection, false);
 CONSOLE_INT_VAL("gi", gi_irradiance_spatial_passes, 1, 0, 4);
 
 static ShaderVariableInfo dagi_rad_grid_clipmap_lt_coordVarId[DAGI_MAX_RAD_GRID_CLIPS],
@@ -660,8 +662,9 @@ void RadianceGrid::initTemporal(uint32_t batch_count, float temporal_speed)
   radiance.batchCount = batch_count;
   irradiance.batchCount = batch_count * int(irradProbeCountMul + 0.5f);
 
-  if (temporal_speed == radiance.temporalSpeed)
+  if (temporal_speed == radiance.temporalSpeed && fullSelection == gi_radiance_grid_full_selection.get())
     return;
+  fullSelection = gi_radiance_grid_full_selection.get();
 
   validHistory = false;
   const uint32_t clipProbes = radiance.clipD * radiance.clipW * radiance.clipW;
@@ -672,6 +675,17 @@ void RadianceGrid::initTemporal(uint32_t batch_count, float temporal_speed)
   // because of selection by frustum visibility and by surface proximity. Plus there're fluctuations because of
   // minimum one frame delay between selection and distribution update.
   radiance.temporalProbesBufferSize = temporal_speed * float(clipProbes) + batchStd * 4.0f;
+  constexpr int irradToRadSelectedProbeSizeRatio = 4;
+  if (fullSelection && radiance.temporalProbesBufferSize)
+  {
+    auto selectThreads = [](const Clipmap &grid, const ComputeShaderElement &select_cs) {
+      const uint32_t batchSize = dag::divide_align_up(grid.clipW * grid.clipW * grid.clipD, max(grid.batchCount, 1u));
+      const uint32_t groupSize = select_cs.getThreadGroupSizes()[0];
+      return dag::divide_align_up(batchSize, groupSize) * groupSize;
+    };
+    radiance.temporalProbesBufferSize = max(selectThreads(radiance, *dagi_radiance_grid_select_temporal_cs),
+      selectThreads(irradiance, *dagi_irradiance_grid_select_temporal_cs) * irradToRadSelectedProbeSizeRatio);
+  }
   radiance.temporalSpeed = temporal_speed;
 
   dagi_radiance_grid_selected_probes.close();
@@ -691,7 +705,6 @@ void RadianceGrid::initTemporal(uint32_t batch_count, float temporal_speed)
   else
     selectedProbesDwords = 0;
 
-  constexpr int irradToRadSelectedProbeSizeRatio = 4;
   // Same buffer is used, so less probes to select available.
   irradiance.temporalProbesBufferSize = radiance.temporalProbesBufferSize / irradToRadSelectedProbeSizeRatio;
   // We should probably introduce a separate temporal speed for irradiance, because it's completely
@@ -753,6 +766,8 @@ void RadianceGrid::invalidateFrustum(const Frustum &invalid_frustum, const BBox3
 
 void RadianceGrid::afterReset()
 {
+  if (fullSelection != gi_radiance_grid_full_selection.get())
+    initTemporal(radiance.batchCount, radiance.temporalSpeed);
   radiance.resetHistory(radiance.clipmap.size());
   irradiance.resetHistory(irradiance.clipmap.size());
   d3d::clear_rwtexf(dagi_irradiance_grid_sph0.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);

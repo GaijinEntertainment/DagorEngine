@@ -17,6 +17,7 @@ namespace daSWRT
 {
 struct BuiltBLAS;
 enum class BlasBoxEncoding : uint8_t;
+enum class BlasMode : uint8_t;
 } // namespace daSWRT
 
 // Shared friend-access point for consuming CollisionResource mesh/convex node geometry
@@ -39,7 +40,7 @@ public:
   // hit to read back, plus QUAD_LEAF_USER_TRANSPARENT for a light-transparent face: its leaf takes the W2 flag,
   // and a model whose faces all carry it (a box too) is flagged whole, so both are skipped by a shadow walk
   // built with SWRT_SHADOW_SKIP_LEAF. Unbound, a leaf keeps its node's palette index, which a hit on joined nodes cannot resolve.
-  // shortcut: one value table for all models - GPU phys mat ids need a per-model palette buffer and leaf_user given its index.
+  // one value table for all models - GPU phys mat ids need a per-model palette buffer and leaf_user given its index.
   using PhysMatLeafUser = eastl::fixed_function<sizeof(void *) * 2, uint8_t(int16_t phys_mat_id)>;
 
   // Xray GPU upload helper. Invokes cb with raw pointers valid only during the call.
@@ -64,18 +65,18 @@ public:
     ChunkSpliceInfo &out_info, const PhysMatFilter &mat_pred = {}, const PhysMatLeafUser &leaf_user = {}, bool box_user = false);
 
   // Build a SWRT BLAS from a CollisionResource into built: splice the chunks of every traceable mesh/convex node
-  // (buildSwrtChunkSpliceBLAS) and score it, or false on empty/invalid input. Touches no shared state,
-  // so workers build in parallel and register under the caller's lock with addBuiltModel, which takes fp16 verts only.
+  // (buildSwrtChunkSpliceBLAS) and score it, or false on empty/invalid input or a BoxesOnly build with no leaf. Touches no shared
+  // state, so workers build in parallel and register under the caller's lock with addBuiltModel (Full: fp16 verts only).
   // dim_as_box_min/max: distance range (metres) for the runtime "treat-as-box" shadow
   // optimization. The actual per-BLAS distance is interpolated from a voxel-rasterized box-
   // resemblance score: a near-box mesh gets `dim_as_box_min` (aggressive: collapses to AABB
   // even up close), a non-box mesh gets `dim_as_box_max` (conservative: only collapses far
   // away). Pass max==min to disable scoring and pin every mesh to a single distance. A lone
   // 8-vert axis-aligned box bypasses this entirely as a box model.
-  // leaf_user and box_user: as in buildSwrtChunkSpliceBLAS.
+  // leaf_user and box_user: as in buildSwrtChunkSpliceBLAS. mode: the target's RenderSWRT::blasMode.
   static bool buildSwrtBLAS(const CollisionResource &coll_res, const PhysMatFilter &node_filter, float dim_as_box_min,
-    float dim_as_box_max, const PhysMatLeafUser &leaf_user, bool box_user, daSWRT::BuiltBLAS &built);
-  // buildSwrtBLAS registered in swrt (fp16 verts only): the model id (>= 0), or -1. The build is re-entrant, the registration not.
+    float dim_as_box_max, const PhysMatLeafUser &leaf_user, bool box_user, daSWRT::BlasMode mode, daSWRT::BuiltBLAS &built);
+  // buildSwrtBLAS registered in swrt (Full: fp16 verts): the model id (>= 0), or -1. The build is re-entrant, the registration not.
   static int buildSwrtBLASFromCollisionResource(RenderSWRT &swrt, const CollisionResource &coll_res, const PhysMatFilter &node_filter,
     float dim_as_box_min, float dim_as_box_max, const PhysMatLeafUser &leaf_user = {});
 };

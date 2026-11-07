@@ -62,6 +62,10 @@ void update() {}
 void init_dmviewer_plugin() {}
 void init_ecsviewer_plugin() {}
 void set_dmviewer_source(const IDmViewerSource *) {}
+void mark_dmviewer_objects_changed() {}
+void mark_dmviewer_events_changed() {}
+bool is_dmviewer_plugin_active() { return false; }
+bool dmviewer_draws_collision_names() { return false; }
 void set_ecsviewer_entity_manager(ecs::EntityManager *) {}
 uint16_t get_binded_port() { return 0; }
 

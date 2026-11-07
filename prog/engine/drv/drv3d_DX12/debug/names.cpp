@@ -3,7 +3,7 @@
 #include "names.h"
 #include <device.h>
 
-#include <atomic>
+#include <osApiWrappers/dag_atomic_types.h>
 
 
 namespace drv3d_dx12::debug
@@ -11,8 +11,8 @@ namespace drv3d_dx12::debug
 
 #if DX12_NAME_OBJECTS
 
-static std::atomic_uint64_t serial{0};
-uint64_t next_pool_object_serial() { return serial++; }
+static dag::AtomicInteger<uint64_t> serial{0};
+uint64_t next_pool_object_serial() { return serial.fetch_add(1); }
 
 void name_resource(ID3D12Resource *resource, eastl::string_view name)
 {

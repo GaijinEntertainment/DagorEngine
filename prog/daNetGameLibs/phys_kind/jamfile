@@ -1,0 +1,26 @@
+ModuleDependsOnVars = PhysName ;
+
+Module = phys_kind ;
+Root    ?= ../../.. ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_phys_kind_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
+  $(Root)/prog/3rdPartyLibs/libb64/include
+;
+UseProgLibs =
+  gameLibs/gamePhys/phys/physKind
+;
+
+local AllSrcFolder_CPP = dasModules ;
+local AllSrcFolder_ES = . ;
+local AllSrcFolder_DAS = es ;
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

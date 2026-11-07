@@ -2,4 +2,4 @@ max(3, 1, 2) = 3
 max(-1.5, 2) = 2
 type(max(5, 8.0)) = float
 type(max(8, 5.0)) = integer
-max(1) throws: wrong number of parameters passed to native closure 'max' (2 passed, at least 3 required)
+max(x) throws: wrong number of parameters passed to native closure 'max' (2 passed, at least 3 required)

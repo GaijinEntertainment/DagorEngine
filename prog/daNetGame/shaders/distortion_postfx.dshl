@@ -23,8 +23,9 @@ shader distortion_postfx {
       return tex2Dlod(frame_tex, float4(uv,0,0)).rgb;
     }
     ##if antialiasing_type == tsr
+      #include <tsr_history_depth.hlsl>
       #define tsr_depth_samplerstate global_linear_mirror_sampler
-      #define SAMPLE_HAZE_SCENE_DEPTH(tc) tex2Dlod(tsr_depth, float4((tc),0,0)).x
+      #define SAMPLE_HAZE_SCENE_DEPTH(tc) decode_tsr_depth(tex2Dlod(tsr_depth, float4((tc),0,0)).x, zn_zfar)
     ##endif
   }
 

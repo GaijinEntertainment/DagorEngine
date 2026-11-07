@@ -102,11 +102,14 @@ void bind_das_events(SqModules *modules_mgr)
   if (!Sqrat::ClassType<ecs::Event>::hasClassData(vm))
     return;
 
+  // a later call finds DasEvent locked by the event classes below, with constructor and _get bound already
+  const bool firstBind = !Sqrat::ClassType<DasEvent>::hasClassData(vm);
   Sqrat::DerivedClass<DasEvent, ecs::Event> baseDasEvent(vm, "DasEvent");
-  baseDasEvent //
-    .SquirrelCtor(das_event_ctor, -1, ".o|t")
-    .SquirrelFunc("_get", dascript_evt_get, 2, "xs")
-    /**/;
+  if (firstBind)
+    baseDasEvent //
+      .SquirrelCtor(das_event_ctor, -1, ".o|t")
+      .SquirrelFunc("_get", dascript_evt_get, 2, "xs")
+      /**/;
 
   Sqrat::Table eventClasses(vm);
 

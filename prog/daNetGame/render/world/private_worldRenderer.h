@@ -48,7 +48,8 @@
 #include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
 #include <render/motionVectorAccess.h>
 #include <render/heroData.h>
-#include "satelliteRenderer.h"
+#include <render/satelliteRenderer.h>
+#include <render/dynmodelRenderer.h>
 
 #include "antiAliasingMode.h"
 #include <render/cameraParams.h>
@@ -363,7 +364,6 @@ public:
   void getSunSph0Color(float height, Color3 &oSun, Color3 &sph0); // actually, should be part of interface. todo: move to IRenderWorld
 
   void shadowsInvalidate(const BBox3 &box) override { shadowsManager.shadowsInvalidate(box); }
-  void shadowsAddInvalidBBox(const BBox3 &box) override { shadowsManager.shadowsAddInvalidBBox(box); }
   void invalidateGI(const BBox3 &world_box) override;
 
   dynamic_shadow_render::QualityParams getShadowRenderQualityParams() const override;
@@ -401,7 +401,7 @@ public:
 
   struct AntiAliasingAppGlue : public render::antialiasing::AppGlue
   {
-    TMatrix4 getUvReprojectionToPrevFrameTmNoJitter() const override { return TMatrix4::IDENT; }
+    TMatrix4 getUvReprojectionToPrevFrameTmNoJitter(const render::RenderView &) const override { return TMatrix4::IDENT; }
     IPoint2 getInputResolution() const override
     {
       if (auto *wr = get_wr())
@@ -571,6 +571,7 @@ protected:
 
   ///*
   void closeGround();
+  bool restoreLandmesh();
 
   void closeClipmap();
   void initClipmap();
@@ -620,8 +621,13 @@ protected:
     const TMatrix &view_itm,
     const Frustum &culling_frustum,
     RiGenVisibility *scene_shadow_ri_visibility);
-  void renderDynamicOpaque(
-    int shadow_cascade, const TMatrix &view_itm, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Point3 &cam_pos);
+
+  void renderDynamicOpaque(int shadow_cascade,
+    const TMatrix &view_itm,
+    const TMatrix &view_tm,
+    const TMatrix4 &proj_tm,
+    const Point3 &cam_pos,
+    dynrend::ContextId prefilled_animchar_ctx = dynrend::ContextId::Invalid);
 
   void renderRendinst(int shadow_cascade, const TMatrix &view_itm, RiGenVisibility *scene_shadow_ri_visibility);
   void renderRITreePrepass(const TMatrix &view_itm);
@@ -635,12 +641,13 @@ protected:
 
   struct DelayedRenderContext
   {
-    struct //-V730
+    struct
     {
       bool render = false;
+      int waitFrames = 0;
       const ManagedTex *texPtr = nullptr;
-      Point3 position;
-      int faceNumber;
+      Point3 position = {0, 0, 0};
+      int faceNumber = 0;
     } lightProbeData;
 
     struct
@@ -653,6 +660,7 @@ protected:
     {
       lightProbeData.render = false;
       lightProbeData.texPtr = nullptr;
+      lightProbeData.waitFrames = 0;
       depthAOAboveData.render = false;
     }
   } delayedRenderCtx;
@@ -1089,6 +1097,7 @@ private:
 
   eastl::unique_ptr<DepthAOAboveContext> depthAOAboveCtx;
   ClusteredLights lights;
+  CulledLightsPtr giLights = ClusteredLights::createCulledLights("gi");
   eastl::unique_ptr<DynamicShadowRenderExtender> shadowRenderExtender;
   PostFxRenderer debugFillGbufferShader;
   shaders::UniqueOverrideStateId specularOverride, diffuseOverride;
@@ -1136,7 +1145,7 @@ private:
   int getShadowFramesCount() const override;         // will return 8 if no temporality available
   int getTemporalShadowFramesCount() const override; // will return 1 if no temporality available
   bool timeDynamic = false;
-  bool isTimeDynamic() const override;
+  bool isTimeDynamic() const;
 
   void renderStaticSceneForShadowPass(
     int cascade, const Point3 &camera_pos, const TMatrix &view_itm, const Frustum &culling_frustum) override
@@ -1160,7 +1169,6 @@ private:
   float giHmapOffsetFromLow = 8.0, giHmapOffsetFromUp = 32 - 8.0f;
   float giIntersectedAmount = 0.125f, giNonIntersectedAmount = 0.125f;
   float giMaxUpdateHeightAboveFloor = 32.0f;
-  BBox3 giCurrentGlobalLightsBox;
   bool giGlobalLightsPrepared = false;
   RiGenVisibility *rendinst_voxelize_visibility = nullptr;
   eastl::shared_ptr<LRURendinstCollision> lruCollision;
@@ -1171,6 +1179,7 @@ private:
   void initGI();
   void closeGI();
   void resetGI();
+  void giUpdateSettings();
   void giBeforeRender();
   void renderGiCollision(const TMatrix &view_itm, const Frustum &);
   bool requiresGIUpdate() const;

@@ -42,6 +42,12 @@ FfxBoolean FFX_SSSR_AdvanceRay(FfxFloat32x3 origin, FfxFloat32x3 direction, FfxF
      // Skip tile if view space depth is below the finest surface thickness
     bool below_surface = hit_validation && FFX_BiasedComparisonOfRawDepth(position.z, surface_z);
 
+    if (below_surface)
+    {
+        if (ssr_behind_depth_hit(position))
+            return false;
+    }
+
     if (back_surface_begin_pos.w == 0 && below_surface)
         back_surface_begin_pos = FfxFloat32x4(position, 1);
 

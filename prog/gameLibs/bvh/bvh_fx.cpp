@@ -23,14 +23,6 @@ namespace bvh
 namespace fx
 {
 
-struct BillboardVertex
-{
-  Point3 position;
-  Point2 texcoord;
-};
-
-using BillboardIndex = uint16_t;
-
 static UniqueBLAS billboard_blas;
 static UniqueBLAS billboard_shadow_blas;
 static UniqueBuf billboard_vb;
@@ -43,7 +35,7 @@ static float min_screen_height = 0;
 
 void create_billboard_blases()
 {
-  const BillboardVertex vertices[] = {
+  const particles::BillboardVertex vertices[] = {
     {Point3(-1, -1, 0), Point2(0, 1)},
     {Point3(1, -1, 0), Point2(1, 1)},
     {Point3(1, 1, 0), Point2(1, 0)},
@@ -55,57 +47,9 @@ void create_billboard_blases()
     {Point3(0, -1, 1), Point2(0, 0)},
   };
 
-  const BillboardIndex indices[] = {0, 1, 2, 0, 2, 3, /**/ 4, 5, 6, 4, 6, 7};
-
-  billboard_ib = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(BillboardIndex) * countof(indices), 4),
-    "bvh_billboard_ib", d3d::buffers::Init::No, RESTAG_BVH);
-  HANDLE_LOST_DEVICE_STATE(billboard_ib, );
-  billboard_vb = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(BillboardVertex) * countof(vertices), 4),
-    "bvh_billboard_vb", d3d::buffers::Init::No, RESTAG_BVH);
-  HANDLE_LOST_DEVICE_STATE(billboard_vb, );
-
-  billboard_ib->updateData(0, sizeof(indices), indices, 0);
-  billboard_vb->updateData(0, sizeof(vertices), vertices, 0);
-
-  RaytraceGeometryDescription desc;
-  memset(&desc, 0, sizeof(desc));
-  desc.type = RaytraceGeometryDescription::Type::TRIANGLES;
-  desc.data.triangles.vertexBuffer = billboard_vb.getBuf();
-  desc.data.triangles.indexBuffer = billboard_ib.getBuf();
-  desc.data.triangles.vertexCount = countof(vertices);
-  desc.data.triangles.vertexStride = sizeof(BillboardVertex);
-  desc.data.triangles.vertexFormat = VSDT_FLOAT3;
-  desc.data.triangles.indexCount = countof(indices);
-  desc.data.triangles.indexOffset = 0;
-  desc.data.triangles.flags = RaytraceGeometryDescription::Flags::NONE;
-
-  RaytraceBuildFlags buildFlags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
-
-  billboard_blas = UniqueBLAS::create(&desc, 1, buildFlags);
-  HANDLE_LOST_DEVICE_STATE(billboard_blas, );
-
-  raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
-  buildInfo.geometryDesc = &desc;
-  buildInfo.geometryDescCount = 1;
-  buildInfo.flags = buildFlags;
-  buildInfo.scratchSpaceBuffer = alloc_scratch_buffer(billboard_blas.getBuildScratchSize(), buildInfo.scratchSpaceBufferOffsetInBytes);
-  buildInfo.scratchSpaceBufferSizeInBytes = billboard_blas.getBuildScratchSize();
-  HANDLE_LOST_DEVICE_STATE(buildInfo.scratchSpaceBuffer, );
-
-  d3d::build_bottom_acceleration_structure(billboard_blas.get(), buildInfo);
-
-  desc.data.triangles.vertexCount /= 2;
-  desc.data.triangles.indexCount /= 2;
-  desc.data.triangles.flags = RaytraceGeometryDescription::Flags::NONE;
-  billboard_shadow_blas = UniqueBLAS::create(&desc, 1, buildFlags);
-  HANDLE_LOST_DEVICE_STATE(billboard_shadow_blas, );
-
-  buildInfo.scratchSpaceBuffer =
-    alloc_scratch_buffer(billboard_shadow_blas.getBuildScratchSize(), buildInfo.scratchSpaceBufferOffsetInBytes);
-  buildInfo.scratchSpaceBufferSizeInBytes = billboard_shadow_blas.getBuildScratchSize();
-  HANDLE_LOST_DEVICE_STATE(buildInfo.scratchSpaceBuffer, );
-
-  d3d::build_bottom_acceleration_structure(billboard_shadow_blas.get(), buildInfo);
+  billboard_blas = particles::create_billboard_blas(vertices, billboard_vb, billboard_ib, "bvh_billboard_vb", "bvh_billboard_ib");
+  CHECK_LOST_DEVICE_STATE();
+  billboard_shadow_blas = particles::build_billboard_blas(billboard_vb.getBuf(), billboard_ib.getBuf(), 1);
 }
 
 static MeshMetaAllocator::AllocId get_particle_meta(ContextId context_id, TEXTUREID texture_id)
@@ -118,21 +62,8 @@ static MeshMetaAllocator::AllocId get_particle_meta(ContextId context_id, TEXTUR
   auto metaAllocId = context_id->allocateMetaRegion(1, "particle");
   LockedMetaAccess lockedMeta(*context_id, metaAllocId);
   auto &meta = lockedMeta[0];
-
-  meta.markInitialized();
-
+  particles::fill_billboard_meta(meta, MeshMeta::bvhMaterialParticle, bindless_indices_index, bindless_vertices_index);
   meta.holdAlbedoTex(context_id, texture_id);
-
-  meta.materialType = MeshMeta::bvhMaterialParticle;
-  meta.setIndexBitAndTexcoordFormat(2, VSDT_FLOAT2);
-  meta.texcoordOffset = offsetof(BillboardVertex, texcoord);
-  meta.normalOffset = 0xFFU;
-  meta.colorOffset = 0xFFU;
-  meta.vertexStride = sizeof(BillboardVertex);
-  meta.setIndexBufferIndex(bindless_indices_index);
-  meta.setVertexBufferIndex(bindless_vertices_index);
-  meta.startIndex = 0;
-  meta.startVertex = 0;
 
   context_id->particleMeta.insert({uint32_t(texture_id), {texture_id, metaAllocId}});
 

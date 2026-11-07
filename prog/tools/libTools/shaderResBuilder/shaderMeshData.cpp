@@ -20,7 +20,7 @@
 #define MAX_VERTEX_32 0x7FFFFFFF
 #define MAX_INDEX_32  0x7FFFFFFF
 
-#define MAX_VERTEX_16 65536
+#define MAX_VERTEX_16 65535 // 0xFFFF is the strip cut index, and D3D11 drops a list triangle that uses it too
 #define MAX_INDEX_16  0x7FFFFFFF
 
 static constexpr int SCALE_DISCARD_THRESHOLD = 2000;
@@ -32,15 +32,6 @@ static __forceinline uint8_t real_to_uchar(real a)
   if (a >= 1)
     return 255;
   return real2int(a * 255);
-}
-
-static unsigned real2int10(real a)
-{
-  int ret = real2int(a);
-  if (ret >= 0)
-    return ((unsigned)ret) & ((1 << 9) - 1);
-  else
-    return ((unsigned)ret & ((1 << 9) - 1)) | (1 << 9);
 }
 
 static unsigned real2uint(real a) { return real2int(a < 0 ? 0 : a); }
@@ -79,6 +70,11 @@ bool can_combine_elems(const ShaderMeshData::RElem &left, const ShaderMeshData::
     return false;
 
   return true;
+}
+
+int find_vertex_channel_offset(const GlobalVertexDataSrc &vd, int usage, int usage_index, int *out_type)
+{
+  return find_vertex_channel_offset(make_span_const(vd.vDesc), usage, usage_index, out_type);
 }
 
 static void addVertices2(Mesh &m, int sf, int numf, const ShaderChannelId *vDescSrc, int channels_count, ShaderMeshData::RElem &re,
@@ -668,7 +664,7 @@ static __forceinline int convert_vertex(uint8_t *p, Color4 val, uint32_t mod, ui
       p += 2;
       break;
     case SCTYPE_DEC3N:
-      *(unsigned int *)p = (real2int10(val[0] * 511.0)) | (real2int10(val[1] * 511.0) << 10) | (real2int10(val[2] * 511.0) << 20);
+      *(unsigned int *)p = pack_dec3n(real2int(val[0] * 511.0), real2int(val[1] * 511.0), real2int(val[2] * 511.0));
       p += 4;
       break;
     case SCTYPE_UDEC3:

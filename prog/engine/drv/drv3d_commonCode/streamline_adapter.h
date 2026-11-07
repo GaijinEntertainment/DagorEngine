@@ -191,6 +191,8 @@ public:
 
   void startFrame(uint32_t frame_id);
   bool setMarker(uint32_t frame_id, lowlatency::LatencyMarkerType marker_type);
+  // Window message id of the PCL ping, 0 when unavailable
+  uint32_t getPingMessage() const;
   bool setOptions(GpuLatency::Mode mode, unsigned frame_limit_us);
   eastl::optional<Reflex::State> getState() const;
   bool sleep(uint32_t frame_id);
@@ -288,7 +290,13 @@ public:
   Reflex *getReflexFeature() { return reflexFeature ? &reflexFeature.value() : nullptr; }
 
   void releaseDlssFeature(int viewport_id) { dlssFeatures[viewport_id].reset(); }
-  void releaseDlssGFeature(int viewport_id) { dlssGFeatures[viewport_id].reset(); }
+  // Render backend thread only: setEnabled queries the DLSS-G state, which is not thread safe.
+  void releaseDlssGFeature(int viewport_id)
+  {
+    if (dlssGFeatures[viewport_id])
+      dlssGFeatures[viewport_id]->setEnabled(0);
+    dlssGFeatures[viewport_id].reset();
+  }
   void releaseDlssNRFeature(int viewport_id) { dlssNRFeatures[viewport_id].reset(); }
   void releaseReflexFeature() { reflexFeature.reset(); }
 

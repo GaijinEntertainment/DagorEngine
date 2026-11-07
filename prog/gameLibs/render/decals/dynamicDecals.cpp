@@ -557,6 +557,10 @@ void set_planar_decals(int decals_param_set_id, dynrend::PerInstanceRenderData &
   if (planarDecalCounts[setId] == 0)
     return;
 
+  // needUpdate means the buffer does not hold the decoded decals yet; keep it hidden.
+  if (planarDecalsShaderParamsNeedUpdate[setId])
+    return;
+
   dynrend::Interval &interval = render_data.intervals.push_back();
   interval.varId = planar_decal_countVarId.get_var_id();
   interval.setValue = planarDecalCounts[setId];

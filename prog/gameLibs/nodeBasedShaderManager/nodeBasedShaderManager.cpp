@@ -91,6 +91,7 @@ void NodeBasedShaderManager::setShadervars(int variant_id)
     case NodeBasedShaderType::Fog: fog_shader_typeVarId.set_int(variant_id); break;
     case NodeBasedShaderType::EnviCover: envi_cover_shader_typeVarId.set_int(variant_id); break;
     case NodeBasedShaderType::Clouds: clouds_shader_typeVarId.set_int(variant_id); break;
+    default: logerr("Encountered unexpected variant of type %d", (int)shader); break;
   }
 
   if (permGroupActiveIdx.empty())

@@ -18,4 +18,10 @@ namespace darg
 // / non-host -> no-op.
 void set_das_async_compile_scope_hooks(void *(*open)(), void (*close)(void *));
 
+// The global daRg das compile lock (recursive): taking it resets the daRg module groups; never wait for daRg das jobs under it.
+// A host that shares its das environment with daRg holds it around its compiles and unloads there: they change that environment.
+// host_compiled: the host compiled, so its programs may use shared modules of daRg and daRg keeps them; false: daRg may drop them.
+void lock_das_compile();
+void unlock_das_compile(bool host_compiled = true);
+
 } // namespace darg

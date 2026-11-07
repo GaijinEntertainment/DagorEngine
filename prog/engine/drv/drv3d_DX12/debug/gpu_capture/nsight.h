@@ -18,16 +18,27 @@ namespace nvidia
 {
 class NSight : public GenericEventTool, public GenericNamingTool
 {
-  static bool try_connect_interface();
+  enum class Activity
+  {
+    NONE,
+    GRAPHICS_CAPTURE,
+  };
 
-  NSight() = default;
+  Activity activity = Activity::NONE;
+
+  static bool try_connect_interface();
+  static Activity try_initialize_activity();
+
+  NSight(Activity a) : activity{a} {}
 
 public:
+  static bool inject(const Configuration &config);
+
   void configure();
   void beginCapture(const wchar_t *name);
   void endCapture();
   void onPresent();
-  void captureFrames(const wchar_t *, int);
+  void captureFrames(const wchar_t *, int count);
   constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **, HLSLVendorExtensions &) { return false; };
 
   template <typename T>
@@ -44,8 +55,12 @@ public:
       logdbg("DX12: ...nothing found");
       return false;
     }
-    logdbg("DX12: ...found, using fallback event and marker reporting...");
-    target = NSight{};
+    auto a = try_initialize_activity();
+    if (Activity::NONE == a)
+    {
+      logdbg("DX12: ...found, using fallback event and marker reporting...");
+    }
+    target = NSight{a};
     return true;
   }
 };

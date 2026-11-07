@@ -12,12 +12,11 @@
 #include <debug/dag_debug3d.h>
 #include <gameDebugRender/primitivesCache.h>
 #include <gameDebugRender/primitives2dCache.h>
-
-static WinCritSec render_data_render_cs;
+#include "primitivesRenderCs.h"
 
 void game_dbg::render_primitives(Primitives2dCacheStorage &primitives_2d_cache_storage)
 {
-  WinAutoLock lock(render_data_render_cs);
+  WinAutoLock lock(game_dbg::primitives_render_cs);
 
   StdGuiRender::start_render();
 
@@ -44,7 +43,7 @@ void game_dbg::render_primitives(Primitives2dCacheStorage &primitives_2d_cache_s
 
 void game_dbg::render_primitives(PrimitivesCacheStorage &primitives_cache_storage)
 {
-  WinAutoLock lock(render_data_render_cs);
+  WinAutoLock lock(game_dbg::primitives_render_cs);
 
   StdGuiRender::start_render();
 

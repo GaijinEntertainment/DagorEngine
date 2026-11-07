@@ -5,6 +5,7 @@
 #pragma once
 
 #include <math/dag_color.h>
+#include <math/dag_Point4.h>
 #include <render/occlusion/occlusionMaskApplier.h>
 
 
@@ -14,15 +15,19 @@ struct Index;
 }
 
 struct CameraParams;
+struct ViewportEllipse;
+class TMatrix4;
 namespace camera_in_camera
 {
 void setup(const bool has_feature);
 bool is_frame_after_deactivation();
 int get_frame_number();
 bool activate_view();
-void update_transforms(const CameraParams &main_view, const CameraParams &cockpit_view, const CameraParams &prev_cockpit_view,
-  const CameraParams &lens_view);
+void update_transforms(const CameraParams &main_view, const CameraParams &lens_view, const ViewportEllipse &cur_lens_ellipse,
+  const ViewportEllipse &prev_lens_ellipse);
 OcclusionMaskApplier::NearPlaneWithHoleTaskData get_near_plane_masking_task(const CameraParams &main_view);
+Point4 get_lens_cull_viewport_uv();
+TMatrix4 crop_to_lens_cull_viewport(const TMatrix4 &globtm);
 bool is_lens_render_active();
 bool is_lens_only_zoom_enabled();
 bool is_main_view(const dafg::multiplexing::Index &);

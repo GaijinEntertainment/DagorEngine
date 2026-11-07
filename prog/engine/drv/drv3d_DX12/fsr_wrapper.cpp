@@ -45,55 +45,70 @@ bool FsrWrapper::fsrInit()
 
 bool FsrWrapper::fsrCreateFeature(const ContextArgs &args)
 {
+  if (!pImpl)
+    return false;
   pImpl->teardownUpscaling();
   return pImpl->initUpscaling(args);
 }
 
 bool FsrWrapper::fsrShutdown()
 {
-  pImpl->teardownUpscaling();
+  teardownUpscaling();
   pImpl.reset();
   return true;
 }
 
-void FsrWrapper::teardownUpscaling() { pImpl->teardownUpscaling(); }
+void FsrWrapper::teardownUpscaling()
+{
+  if (pImpl)
+    pImpl->teardownUpscaling();
+}
 
 bool FsrWrapper::evaluateFsr(void *command_list, const FsrParamsDx12 &params)
 {
-  return pImpl->doApplyUpscaling(to_platform_args(params), command_list);
+  return pImpl && pImpl->doApplyUpscaling(to_platform_args(params), command_list);
 }
 
 Point2 FsrWrapper::getNextJitter(uint32_t render_width, uint32_t output_width)
 {
-  return pImpl->getNextJitter(render_width, output_width);
+  return pImpl ? pImpl->getNextJitter(render_width, output_width) : Point2::ZERO;
 }
 
 IPoint2 FsrWrapper::getFsrRenderResolution(UpscalingMode mode, const IPoint2 &target_resolution) const
 {
-  return pImpl->getRenderingResolution(mode, target_resolution);
+  return pImpl ? pImpl->getRenderingResolution(mode, target_resolution) : target_resolution;
 }
 
-FsrWrapper::UpscalingMode FsrWrapper::getUpscalingMode() const { return pImpl->getUpscalingMode(); }
+FsrWrapper::UpscalingMode FsrWrapper::getUpscalingMode() const { return pImpl ? pImpl->getUpscalingMode() : UpscalingMode::Off; }
 
-bool FsrWrapper::isLoaded() const { return pImpl->isLoaded(); }
+bool FsrWrapper::isLoaded() const { return pImpl && pImpl->isLoaded(); }
 
-bool FsrWrapper::isUpscalingSupported() const { return pImpl->isUpscalingSupported(); }
+bool FsrWrapper::isUpscalingSupported() const { return pImpl && pImpl->isUpscalingSupported(); }
 
-bool FsrWrapper::isFrameGenerationSupported() const { return pImpl->isFrameGenerationSupported(); }
+bool FsrWrapper::isFrameGenerationSupported() const { return pImpl && pImpl->isFrameGenerationSupported(); }
 
-String FsrWrapper::getVersion() const { return pImpl->getVersionString(); }
+String FsrWrapper::getVersion() const { return pImpl ? pImpl->getVersionString() : String{}; }
 
-bool FsrWrapper::isFrameGenerationEnabled() const { return pImpl->isFrameGenerationActive(); }
+bool FsrWrapper::isFrameGenerationEnabled() const { return pImpl && pImpl->isFrameGenerationActive(); }
 
-bool FsrWrapper::isFrameGenerationSuppressed() const { return pImpl->isFrameGenerationSuppressed(); }
+bool FsrWrapper::isFrameGenerationSuppressed() const { return pImpl && pImpl->isFrameGenerationSuppressed(); }
 
-void FsrWrapper::enableFrameGeneration(bool enable) { pImpl->enableFrameGeneration(enable); }
+void FsrWrapper::enableFrameGeneration(bool enable)
+{
+  if (pImpl)
+    pImpl->enableFrameGeneration(enable);
+}
 
-void FsrWrapper::suppressFrameGeneration(bool suppress) { pImpl->suppressFrameGeneration(suppress); }
+void FsrWrapper::suppressFrameGeneration(bool suppress)
+{
+  if (pImpl)
+    pImpl->suppressFrameGeneration(suppress);
+}
 
 void FsrWrapper::doScheduleGeneratedFrames(const amd::FSR::FrameGenPlatformArgs &args, void *command_list)
 {
-  pImpl->doScheduleGeneratedFrames(args, command_list);
+  if (pImpl)
+    pImpl->doScheduleGeneratedFrames(args, command_list);
 }
 
 int FsrWrapper::getPresentedFrameCount() { return pImpl ? pImpl->getPresentedFrameCount() : 1; }
@@ -101,7 +116,7 @@ int FsrWrapper::getPresentedFrameCount() { return pImpl ? pImpl->getPresentedFra
 uint64_t FsrWrapper::getMemoryUsage() const
 {
 #if _TARGET_PC_WIN && _TARGET_64BIT && !_M_ARM64
-  return pImpl->getMemorySize();
+  return pImpl ? pImpl->getMemorySize() : 0;
 #else
   return 0;
 #endif

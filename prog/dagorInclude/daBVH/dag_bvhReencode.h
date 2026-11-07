@@ -53,4 +53,7 @@ void reencodeBoxNodeToFP16(uint8_t *nodeData);
 // The same through an affine map q -> [-1,1]: the box becomes the AABB of the mapped box, rounded outward.
 void reencodeBoxNodeToFP16(uint8_t *nodeData, mat44f_cref to_norm);
 
+// in place; new size, or -1: malformed
+int compactQuadBlasToBoxLeaves(uint8_t *tree, int tree_bytes);
+
 } // namespace build_bvh

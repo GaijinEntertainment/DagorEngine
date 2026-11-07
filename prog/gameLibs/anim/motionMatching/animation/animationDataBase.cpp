@@ -98,7 +98,7 @@ void AnimationDataBase::requestResources(const char *, const ecs::resource_reque
     for (int i = 0, n = clipsBlock->blockCount(); i < n; i++)
     {
       const char *clip_name = clipsBlock->getBlock(i)->getBlockName();
-      // constraint: missing requested res fails entity creation
+      // missing requested res fails entity creation
       if (get_resource_type_id(clip_name) != Anim2DataGameResClassId)
         continue;
       res_cb(clip_name, Anim2DataGameResClassId);

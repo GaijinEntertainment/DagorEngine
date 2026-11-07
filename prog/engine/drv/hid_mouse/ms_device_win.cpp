@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <drv/hid/dag_hiGlobals.h>
+#include <drv/hid/dag_hiJoystick.h>
 #include "ms_device_win.h"
 #include <generic/dag_tab.h>
 #include <debug/dag_fatal.h>
@@ -25,12 +26,6 @@
 #include <workCycle/threadedWindow.h>
 #include <tpcshrd.h>
 #include <hidusage.h>
-#include <hidsdi.h>
-#include <math/dag_Point2.h>
-#include <math/dag_mathUtils.h>
-#include <EASTL/fixed_vector.h>
-#include <EASTL/vector.h>
-#pragma comment(lib, "hid.lib")
 #endif
 
 #if _TARGET_PC_WIN && WINVER < 0x0601
@@ -118,132 +113,10 @@ BOOL(WINAPI *RegisterTouchWindow)(__in HWND hwnd, __in ULONG ulFlags) = NULL;
 
 static const int linux_wrap_edge_distance = 5;
 static bool touchscreen_present = false;
+// above the ids of WM_TOUCH (dwID + 1) and of the mouse emulation (1 and 2)
+static hid::TouchpadTouchSender pad_touchpad{0x10000};
 
 using namespace HumanInput;
-
-#if _TARGET_PC_WIN
-static constexpr USAGE DIGITIZER_CONTACT_ID = 0x51;
-static constexpr USAGE DIGITIZER_CONTACT_COUNT = 0x54;
-static constexpr ULONG HID_UNIT_SYSTEM_ENGLISH_LINEAR = 3;
-static constexpr intptr_t TOUCHPAD_TOUCH_ID_BASE = 0x10000;
-static constexpr UINT RAW_INPUT_MAX_SIZE = 1024;
-
-namespace
-{
-struct TouchpadContact
-{
-  intptr_t id;
-  Point2 mm;
-};
-using TouchpadFrame = eastl::fixed_vector<TouchpadContact, 10, false>;
-
-struct TouchpadAxis
-{
-  float lo = 0, hi = 1, mm = 0;
-};
-
-struct Touchpad
-{
-  HANDLE device = nullptr;
-  eastl::vector<uint8_t> preparsed;
-  eastl::fixed_vector<USHORT, 10, false> fingers;
-  TouchpadAxis x, y;
-  ULONG pending = 0;
-  TouchpadFrame frame;
-  Point2 origin, anchor;
-};
-} // namespace
-
-static Touchpad touchpad;
-
-static void send_touchpad_frame(PointingRawState &state, IGenPointing *drv, IGenPointingClient *cli, const TouchpadFrame &frame)
-{
-  for (intptr_t id : touch_id_tbl)
-    if (id >= TOUCHPAD_TOUCH_ID_BASE &&
-        eastl::none_of(frame.begin(), frame.end(), [id](const TouchpadContact &c) { return c.id == id; }))
-      hid::gpcm_TouchEnded(state, drv, cli, 0, 0, id, /*no_move*/ true);
-  if (!frame.empty() &&
-      eastl::none_of(eastl::begin(touch_id_tbl), eastl::end(touch_id_tbl), [](intptr_t id) { return id >= TOUCHPAD_TOUCH_ID_BASE; }))
-  {
-    touchpad.origin = frame[0].mm;
-    touchpad.anchor = Point2(state.mouse.x, state.mouse.y);
-  }
-  for (const TouchpadContact &c : frame)
-  {
-    Point2 pos = touchpad.anchor + (c.mm - touchpad.origin) * (win32_system_dpi / 25.4f);
-    if (resolveTouch(c.id) < 0)
-      hid::gpcm_TouchBegan(state, drv, cli, pos.x, pos.y, c.id, PointingRawState::Touch::TS_touchPad);
-    hid::gpcm_TouchMoved(state, drv, cli, pos.x, pos.y, c.id);
-  }
-}
-
-static void init_touchpad(HANDLE device)
-{
-  touchpad = Touchpad();
-  touchpad.device = device;
-  UINT size = 0;
-  if (GetRawInputDeviceInfoW(device, RIDI_PREPARSEDDATA, nullptr, &size) != 0 || !size)
-    return;
-  touchpad.preparsed.resize(size);
-  auto pp = (PHIDP_PREPARSED_DATA)touchpad.preparsed.data();
-  HIDP_CAPS caps;
-  if (GetRawInputDeviceInfoW(device, RIDI_PREPARSEDDATA, pp, &size) == (UINT)-1 || HidP_GetCaps(pp, &caps) != HIDP_STATUS_SUCCESS)
-    return;
-  USHORT count = caps.NumberInputValueCaps;
-  eastl::vector<HIDP_VALUE_CAPS> values(count);
-  if (HidP_GetValueCaps(HidP_Input, values.data(), &count, pp) != HIDP_STATUS_SUCCESS)
-    return;
-  values.resize(count);
-  for (const HIDP_VALUE_CAPS &v : values)
-  {
-    USAGE usage = v.IsRange ? v.Range.UsageMin : v.NotRange.Usage;
-    if (v.UsagePage != HID_USAGE_PAGE_GENERIC || (usage != HID_USAGE_GENERIC_X && usage != HID_USAGE_GENERIC_Y))
-      continue;
-    float inchOrCm = (v.Units & 0xF) == HID_UNIT_SYSTEM_ENGLISH_LINEAR ? 25.4f : 10.f;
-    float mm = (v.PhysicalMax - v.PhysicalMin) * powf(10.f, int(v.UnitsExp & 7) - int(v.UnitsExp & 8)) * inchOrCm;
-    (usage == HID_USAGE_GENERIC_X ? touchpad.x : touchpad.y) = {float(v.LogicalMin), float(v.LogicalMax), mm};
-    if (!touchpad.fingers.full() &&
-        eastl::find(touchpad.fingers.begin(), touchpad.fingers.end(), v.LinkCollection) == touchpad.fingers.end())
-      touchpad.fingers.push_back(v.LinkCollection);
-  }
-  debug("Mouse: precision touchpad %p with %d contacts, %.1fx%.1f mm", device, (int)touchpad.fingers.size(), touchpad.x.mm,
-    touchpad.y.mm);
-}
-
-static void read_touchpad_report(CHAR *report, ULONG len, PointingRawState &state, IGenPointing *drv, IGenPointingClient *cli)
-{
-  Touchpad &t = touchpad;
-  auto pp = (PHIDP_PREPARSED_DATA)t.preparsed.data();
-  auto value = [&](USAGE page, USHORT collection, USAGE usage) {
-    ULONG v = 0;
-    HidP_GetUsageValue(HidP_Input, page, collection, usage, &v, pp, report, len);
-    return v;
-  };
-  // constraint: in PTP hybrid mode later reports of a frame carry count 0
-  if (ULONG count = value(HID_USAGE_PAGE_DIGITIZER, 0, DIGITIZER_CONTACT_COUNT))
-  {
-    t.pending = eastl::min<ULONG>(count, t.frame.max_size());
-    t.frame.clear();
-  }
-  if (!t.pending)
-    return;
-  for (USHORT c : t.fingers)
-  {
-    if (!t.pending)
-      break;
-    t.pending--;
-    USAGE usages[8];
-    ULONG n = countof(usages);
-    if (HidP_GetUsages(HidP_Input, HID_USAGE_PAGE_DIGITIZER, c, usages, &n, pp, report, len) == HIDP_STATUS_SUCCESS &&
-        eastl::find(usages, usages + n, HID_USAGE_DIGITIZER_TIP_SWITCH) != usages + n)
-      t.frame.push_back({TOUCHPAD_TOUCH_ID_BASE + (intptr_t)value(HID_USAGE_PAGE_DIGITIZER, c, DIGITIZER_CONTACT_ID),
-        Point2(cvt(value(HID_USAGE_PAGE_GENERIC, c, HID_USAGE_GENERIC_X), t.x.lo, t.x.hi, 0, t.x.mm),
-          cvt(value(HID_USAGE_PAGE_GENERIC, c, HID_USAGE_GENERIC_Y), t.y.lo, t.y.hi, 0, t.y.mm))});
-  }
-  if (!t.pending)
-    send_touchpad_frame(state, drv, cli, t.frame);
-}
-#endif
 
 static RECT rectFromClip(const GenericMouseDevice::ClipRect &cp)
 {
@@ -349,10 +222,6 @@ WinMouseDevice::WinMouseDevice()
   }
   else
     debug("Mouse: rawinput disabled");
-
-  RAWINPUTDEVICE touchpadRid = {HID_USAGE_PAGE_DIGITIZER, HID_USAGE_DIGITIZER_TOUCH_PAD, 0, (HWND)win32_get_main_wnd()};
-  if (stg_pnt.touchpadAsTouch && dgs_inpdev_rawinput_mouse_inited && !RegisterRawInputDevices(&touchpadRid, 1, sizeof(touchpadRid)))
-    logerr("Mouse: precision touchpad RegisterRawInputDevices() failed hr=%08X", GetLastError());
 
   int value = GetSystemMetrics(SM_DIGITIZER);
   if (value & NID_READY)
@@ -474,6 +343,19 @@ void WinMouseDevice::update()
 #endif
 }
 
+// main thread, under global_cls_drv_update_cs: the touch pad of the pad that the composite reads
+void WinMouseDevice::updatePadTouchpad()
+{
+  JoystickTouchpadFrame frames[IGenJoystick::TOUCHPAD_FRAME_CAPACITY];
+  IGenJoystick *joy = stg_pnt.touchPadTouches && global_cls_drv_joy && global_cls_drv_joy->getDeviceCount() > 0
+                        ? global_cls_drv_joy->getDevice(0)
+                        : nullptr;
+  const int count = joy ? max(joy->fetchTouchpadFrames(make_span(frames)), 0) : 0;
+  int w = 1, h = 1;
+  d3d::get_screen_size(w, h);
+  pad_touchpad.send(state, this, client, make_span_const(frames, count), Point2(state.mouse.x, state.mouse.y), float(h));
+}
+
 void WinMouseDevice::fetchLastState()
 {
   // First of all coordinates are important, the rest can be added later if needed
@@ -509,11 +391,10 @@ IWndProcComponent::RetCode WinMouseDevice::process(void *hwnd, unsigned msg, uin
     if (!dgs_inpdev_rawinput_mouse_inited)
       return PROCEED_OTHER_COMPONENTS;
 
-    alignas(RAWINPUT) uint8_t riBuf[RAW_INPUT_MAX_SIZE];
-    RAWINPUT &ri = *reinterpret_cast<RAWINPUT *>(riBuf);
+    RAWINPUT ri{};
     if (msg == WM_INPUT)
     {
-      UINT dwSize = sizeof(riBuf);
+      UINT dwSize = sizeof(ri);
       // ri.data.mouse = (0, 0) if left-upper point of screen (NOT WINDOW) and (65536, 65536) if it's right-bottom
       if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &ri, &dwSize, sizeof(ri.header)) == (UINT)-1)
       {
@@ -528,13 +409,6 @@ IWndProcComponent::RetCode WinMouseDevice::process(void *hwnd, unsigned msg, uin
 
     if (ri.header.dwType != RIM_TYPEMOUSE)
     {
-      if (ri.header.dwType == RIM_TYPEHID && stg_pnt.touchpadAsTouch)
-      {
-        if (touchpad.device != ri.header.hDevice)
-          init_touchpad(ri.header.hDevice);
-        for (DWORD i = 0; i < ri.data.hid.dwCount && !touchpad.fingers.empty(); i++)
-          read_touchpad_report((CHAR *)ri.data.hid.bRawData + i * ri.data.hid.dwSizeHid, ri.data.hid.dwSizeHid, state, this, client);
-      }
       DEBUG_TRACE_INPDEV("WM:mouse: skip type %d", ri.header.dwType);
       return PROCEED_OTHER_COMPONENTS;
     }
@@ -543,6 +417,7 @@ IWndProcComponent::RetCode WinMouseDevice::process(void *hwnd, unsigned msg, uin
       DEBUG_TRACE_INPDEV("WM:mouse: skip touch screen event", ri.header.dwType);
       return PROCEED_OTHER_COMPONENTS;
     }
+    raw_state_pnt.mouse.moveInjected = state.mouse.moveInjected = !ri.header.hDevice;
 
     if ((ri.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) == MOUSE_MOVE_ABSOLUTE)
     {
@@ -777,7 +652,6 @@ IWndProcComponent::RetCode WinMouseDevice::process(void *hwnd, unsigned msg, uin
     for (intptr_t id : touch_id_tbl)
       hid::gpcm_TouchEnded(state, this, client, 0, 0, id, /*no_move*/ true);
     touch_started[0] = touch_started[1] = false;
-    touchpad.pending = 0;
     return PROCEED_OTHER_COMPONENTS;
   }
   else if (msg == WM_SETFOCUS)

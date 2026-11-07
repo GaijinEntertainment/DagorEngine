@@ -38,19 +38,19 @@ void verify_planar_graph(const CutFaceGraph &graph);
 
 inline void dbg_draw_point(const DestrContext &ctx, const CutFaceGraph &graph, const PlaneBasis &basis, int v0, E3DCOLOR col)
 {
-  ctx.dbgDraw.drawPoint(basis.unProject(graph.verts[v0], ctx.dbgDraw.withHeight ? graph.vertsH[v0] : 0.f), col);
+  ctx.dbgDraw.drawPoint(basis.unProject(graph.verts[v0], ctx.dbgDraw.heightScale * graph.vertsH[v0]), col);
 }
 
 inline void dbg_draw_line(const DestrContext &ctx, const CutFaceGraph &graph, const PlaneBasis &basis, int v0, int v1, E3DCOLOR col)
 {
-  ctx.dbgDraw.drawLine(basis.unProject(graph.verts[v0], ctx.dbgDraw.withHeight ? graph.vertsH[v0] : 0.f),
-    basis.unProject(graph.verts[v1], ctx.dbgDraw.withHeight ? graph.vertsH[v1] : 0.f), col);
+  ctx.dbgDraw.drawLine(basis.unProject(graph.verts[v0], ctx.dbgDraw.heightScale * graph.vertsH[v0]),
+    basis.unProject(graph.verts[v1], ctx.dbgDraw.heightScale * graph.vertsH[v1]), col);
 }
 
 inline void dbg_draw_arrow(const DestrContext &ctx, const CutFaceGraph &graph, const PlaneBasis &basis, int v0, int v1, E3DCOLOR col)
 {
-  ctx.dbgDraw.drawArrow(basis.unProject(graph.verts[v0], ctx.dbgDraw.withHeight ? graph.vertsH[v0] : 0.f),
-    basis.unProject(graph.verts[v1], ctx.dbgDraw.withHeight ? graph.vertsH[v1] : 0.f), col);
+  ctx.dbgDraw.drawArrow(basis.unProject(graph.verts[v0], ctx.dbgDraw.heightScale * graph.vertsH[v0]),
+    basis.unProject(graph.verts[v1], ctx.dbgDraw.heightScale * graph.vertsH[v1]), col);
 }
 
 } // namespace frx

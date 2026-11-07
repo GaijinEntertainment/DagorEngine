@@ -9,6 +9,7 @@
 #include <render/daFrameGraph/daFG.h>
 #include <render/cameraParams.h>
 #include <render/world/frameGraphHelpers.h>
+#include <render/denoiser/denoiser_api.h>
 #include <shaders/dag_computeShaders.h>
 
 bool DeepLearningSuperSampling::isFrameGenerationEnabled() const { return frameGenerationNode.valid(); }
@@ -100,10 +101,7 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
                                  : eastl::nullopt;
 
     auto hitDistHndl =
-      render::antialiasing::is_ray_reconstruction_enabled()
-        ? eastl::make_optional(
-            registry.read("rtr_tex_unfiltered").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle())
-        : eastl::nullopt;
+      render::antialiasing::is_ray_reconstruction_enabled() ? denoiser::read_reflection_output(registry) : denoiser::OutputHandle{};
 
     auto ssssGuideHndl = render::antialiasing::is_ray_reconstruction_enabled()
                            ? eastl::make_optional(registry.readTexture("ssss_rr_guide")

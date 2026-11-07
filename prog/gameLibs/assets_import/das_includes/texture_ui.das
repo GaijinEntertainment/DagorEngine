@@ -9,6 +9,7 @@ require AssetsImport
 require DagorDataBlock
 require stddlg
 require gameLibs.assets_import.das_includes.utility
+require gameLibs.assets_import.das_includes.dag_ui
 
 def texture_viewer()
 
@@ -16,23 +17,10 @@ def texture_viewer()
     var selected_tex_idx = 0
 
   get_all_assets("tex") <| $(importedTextures)
-    let assetCount = length(importedTextures)
-    if (assetCount == 0)
+    if empty(importedTextures)
       imgui::Text("No imported textures.")
       return
-
-    let selectedName = importedTextures[selected_tex_idx]
-    if imgui::BeginCombo("##select texture", selectedName)
-      for name, idx in importedTextures, iter_range(importedTextures)
-        let isSelected = selected_tex_idx == idx
-        if imgui::Selectable(name, isSelected)
-          selected_tex_idx = idx
-      imgui::EndCombo()
-    imgui::SameLine()
-
-    if imgui::Button("Edit")
-      pass
-
+    asset_combo("##select texture", importedTextures, selected_tex_idx)
 
   if imgui::Button("add new texture")
     let assetPath = get_dlg_open_file("", "png|jpg|tga|tif")

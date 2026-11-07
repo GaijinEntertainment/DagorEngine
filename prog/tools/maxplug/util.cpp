@@ -15,6 +15,9 @@
 #include <dummy.h>
 
 #include <vector>
+#include <array>
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <sstream>
@@ -24,6 +27,7 @@
 #include <locale>
 #include <unordered_set>
 #include <filesystem>
+#include <format>
 
 #include "dagor.h"
 #include "enumnode.h"
@@ -214,20 +218,72 @@ INLINE int real2int(float x)
   return bitwise_cast<int, float>(x) - magic;
 }
 
-
-class TopologyAdapter
+static void log_and_message_box(HWND owner, const wchar_t *text, const wchar_t *title, UINT type)
 {
-public:
-  Mesh *mesh;
+  DagorLogWindow::LogLevel level = DagorLogWindow::LogLevel::Note;
+  if ((type & MB_ICONMASK) == MB_ICONERROR)
+    level = DagorLogWindow::LogLevel::Error;
+  else if ((type & MB_ICONMASK) == MB_ICONWARNING)
+    level = DagorLogWindow::LogLevel::Warning;
+  DagorLogWindow::addToLog(level, L"%s: %s\r\n", title, text);
 
-  TopologyAdapter(Mesh *in_mesh) { mesh = in_mesh; }
-  virtual ~TopologyAdapter() = default;
-  virtual unsigned int getNumVerts() = 0;
-  virtual void setNumVerts(unsigned int num_verts) = 0;
-  virtual unsigned int getIndex(unsigned int face_no, unsigned int index_no) = 0;
-  virtual void setIndex(unsigned int face_no, unsigned int index_no, unsigned int index) = 0;
-  virtual void copyVertex(unsigned int from, unsigned int to) = 0;
-  virtual bool countRemovedVertices() { return false; }
+  if (!are_prompts_suppressed())
+    MessageBox(owner, text, title, type);
+}
+
+class MeshRestore : public RestoreObj
+{
+  TriObject *tri;
+  Mesh undoMesh, redoMesh;
+
+  void set(const Mesh &m)
+  {
+    tri->GetMesh() = m;
+    tri->GetMesh().InvalidateGeomCache();
+    tri->GetMesh().InvalidateTopologyCache();
+    tri->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+  }
+
+public:
+  explicit MeshRestore(TriObject *t) : tri(t), undoMesh(t->GetMesh()) {}
+
+  void Restore(int is_undo) override
+  {
+    if (is_undo)
+      redoMesh = tri->GetMesh();
+    set(undoMesh);
+  }
+  void Redo() override { set(redoMesh); }
+  int Size() override { return sizeof(*this); }
+  TSTR Description() override { return L"mesh"; }
+};
+
+class MeshSelRestore : public RestoreObj
+{
+  TriObject *tri;
+  bool vert;
+  BitArray undoSel, redoSel;
+
+  BitArray &sel() { return vert ? mesh_vert_sel(tri->GetMesh()) : mesh_face_sel(tri->GetMesh()); }
+
+  void set(const BitArray &s)
+  {
+    sel() = s;
+    tri->NotifyDependents(FOREVER, PART_SELECT, REFMSG_CHANGE);
+  }
+
+public:
+  MeshSelRestore(TriObject *t, bool v) : tri(t), vert(v), undoSel(sel()) {}
+
+  void Restore(int is_undo) override
+  {
+    if (is_undo)
+      redoSel = sel();
+    set(undoSel);
+  }
+  void Redo() override { set(redoSel); }
+  int Size() override { return sizeof(*this); }
+  TSTR Description() override { return L"mesh selection"; }
 };
 
 
@@ -263,7 +319,7 @@ public:
 
   // splines & smooth
   HWND splinesAndSmoothRoll;
-  char mesh_smoothtu, use_smooth_grps, turn_edge, smooth_selected;
+  char mesh_smoothtu, use_smooth_grps, smooth_selected;
   ControlPtr<ICustEdit> egrassht, egrasstile, egrassg, egrasssegs, egrasssteps, epjs_maxseglen, epjs_optseglen, epjs_optang, edaround,
     edsharp, edsmthiterations;
   float grass_ht, grass_tile, grass_g, pjspl_maxseglen, pjspl_optseglen, pjspl_optang;
@@ -287,6 +343,8 @@ protected:
   bool editableMeshFound;
   unsigned int degenerateFacesRemovedNum;
   unsigned int isolatedVerticesRemovedNum;
+  unsigned int meshesWithModifiersSkippedNum;
+  unsigned int changedMeshesNum;
   ToolTipExtender tooltip;
 
 public:
@@ -312,8 +370,8 @@ public:
   void convertSpacesRecursive(INode *node);
   void selectFloorFaces();
   void removeDegenerates();
+  void removeMeshDegenerates(INode *node, TriObject *triObject, bool keep_verts);
   void removeDegeneratesRecursive(INode *node);
-  void removeIsolatedVertices(TopologyAdapter &adapter);
   bool isDegenerate(Mesh *mesh, unsigned int face_no, const Matrix3 &otm);
 
   // uv utils
@@ -330,7 +388,7 @@ public:
 
   // splines & smooth
   void mesh_smooth();
-  void smooth_mesh(INode *node, Mesh &msh);
+  bool smooth_mesh(Mesh &msh);
   void make_grass();
   void project_spline();
 
@@ -897,7 +955,7 @@ BOOL DagUtil::materials_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam
           {
             TSTR msg;
             msg.printf(_T("Failed to write '%s'."), ENUMERATE_MATERIALS_FILENAME);
-            MessageBox(dagorUtilRoll, msg, _T("Enumerate materials"), MB_ICONERROR);
+            log_and_message_box(dagorUtilRoll, msg, L"Enumerate materials", MB_ICONERROR);
           }
           break;
         }
@@ -912,7 +970,7 @@ BOOL DagUtil::materials_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam
           {
             TSTR msg;
             msg.printf(_T("Failed to write '%s'."), CONVERT_MATERIALS_FILENAME);
-            MessageBox(dagorUtilRoll, msg, _T("Convert materials"), MB_ICONERROR);
+            log_and_message_box(dagorUtilRoll, msg, L"Convert materials", MB_ICONERROR);
           }
           break;
         }
@@ -1238,6 +1296,8 @@ DagUtil::DagUtil()
   editableMeshFound = false;
   degenerateFacesRemovedNum = 0;
   isolatedVerticesRemovedNum = 0;
+  meshesWithModifiersSkippedNum = 0;
+  changedMeshesNum = 0;
 
   // uv utils
   uvUtilsRoll = NULL;
@@ -1273,7 +1333,6 @@ DagUtil::DagUtil()
   pjspl_maxseglen = 1;
   pjspl_optang = 2;
   pjspl_optseglen = 1;
-  turn_edge = 0;
   smooth_selected = 0;
   iterations = 1;
   sharpness = 1;
@@ -2718,8 +2777,8 @@ bool DagUtil::paste_tch_buf(Mesh &m, MappingInfo &mi, int c)
   m.setMapSupport(c);
   m.setNumMapVerts(c, mi.tvert.Count());
   m.setNumMapFaces(c, mi.tface.Count());
-  memcpy(m.mapVerts(c), &mi.tvert[0], sizeof(UVVert) * mi.tvert.Count());
-  memcpy(m.mapFaces(c), &mi.tface[0], sizeof(TVFace) * mi.tface.Count());
+  memcpy(m.mapVerts(c), mi.tvert.data(), sizeof(UVVert) * mi.tvert.Count());
+  memcpy(m.mapFaces(c), mi.tface.data(), sizeof(TVFace) * mi.tface.Count());
   return true;
 }
 
@@ -2734,6 +2793,8 @@ bool DagUtil::copy_tch1(Mesh &m, TCCOPY tc, int src, int dst, int mapa, bool sel
   {
     if (!m.mapSupport(src))
       return false;
+    if (dst == src)
+      return true;
     m.setMapSupport(dst);
     m.setNumMapVerts(dst, m.getNumMapVerts(src));
     m.setNumMapFaces(dst, m.getNumFaces());
@@ -2778,8 +2839,8 @@ bool DagUtil::copy_tch1(Mesh &m, TCCOPY tc, int src, int dst, int mapa, bool sel
 
     m.setNumMapVerts(src, dstvrts.Count());
     m.setNumMapFaces(src, dstfcs.Count());
-    memcpy(m.mapFaces(src), &dstfcs[0], sizeof(TVFace) * m.getNumFaces());
-    memcpy(m.mapVerts(src), &dstvrts[0], sizeof(Point3) * dstvrts.Count());
+    memcpy(m.mapFaces(src), dstfcs.data(), sizeof(TVFace) * m.getNumFaces());
+    memcpy(m.mapVerts(src), dstvrts.data(), sizeof(Point3) * dstvrts.Count());
     return true;
   }
   else
@@ -2790,7 +2851,7 @@ bool DagUtil::copy_tch1(Mesh &m, TCCOPY tc, int src, int dst, int mapa, bool sel
     Tab<char> sv;
     int nv = m.getNumMapVerts(src);
     sv.SetCount(nv);
-    memset(&sv[0], 0, nv);
+    memset(sv.data(), 0, nv);
     int nf = m.numFaces;
     TVFace *tf = m.mapFaces(src);
     int i;
@@ -2898,76 +2959,6 @@ void DagUtil::convertSpaces()
 }
 
 
-void DagUtil::removeIsolatedVertices(TopologyAdapter &adapter)
-{
-  std::vector<bool> isReferencedArray(adapter.getNumVerts(), false);
-  std::vector<unsigned int> newIndicesArray(adapter.getNumVerts());
-  for (unsigned int faceNo = 0; faceNo < adapter.mesh->getNumFaces(); faceNo++)
-  {
-    isReferencedArray[adapter.getIndex(faceNo, 0)] = true;
-    isReferencedArray[adapter.getIndex(faceNo, 1)] = true;
-    isReferencedArray[adapter.getIndex(faceNo, 2)] = true;
-  }
-  unsigned int currentVertex = 0, vertexNo;
-  for (vertexNo = 0; vertexNo < adapter.getNumVerts(); vertexNo++)
-  {
-    adapter.copyVertex(vertexNo, currentVertex);
-    newIndicesArray[vertexNo] = currentVertex;
-    if (isReferencedArray[vertexNo])
-      currentVertex++;
-  }
-  adapter.setNumVerts(currentVertex);
-  if (adapter.countRemovedVertices())
-    isolatedVerticesRemovedNum += vertexNo - currentVertex;
-
-  for (unsigned int faceNo = 0; faceNo < adapter.mesh->getNumFaces(); faceNo++)
-  {
-    adapter.setIndex(faceNo, 0, newIndicesArray[adapter.getIndex(faceNo, 0)]);
-    adapter.setIndex(faceNo, 1, newIndicesArray[adapter.getIndex(faceNo, 1)]);
-    adapter.setIndex(faceNo, 2, newIndicesArray[adapter.getIndex(faceNo, 2)]);
-  }
-}
-
-
-class GeometryTopologyAdapter : public TopologyAdapter
-{
-public:
-  GeometryTopologyAdapter(Mesh *in_mesh) : TopologyAdapter(in_mesh) {}
-
-  unsigned int getNumVerts() override { return mesh->getNumVerts(); }
-
-  void setNumVerts(unsigned int num_verts) override { mesh->setNumVerts(num_verts, TRUE, TRUE); }
-
-  unsigned int getIndex(unsigned int face_no, unsigned int index_no) override { return mesh->faces[face_no].v[index_no]; }
-
-  void setIndex(unsigned int face_no, unsigned int index_no, unsigned int index) override { mesh->faces[face_no].v[index_no] = index; }
-
-  void copyVertex(unsigned int from, unsigned int to) override { mesh->verts[to] = mesh->verts[from]; }
-
-  bool countRemovedVertices() override { return true; }
-};
-
-
-class ColorTopologyAdapter : public TopologyAdapter
-{
-public:
-  ColorTopologyAdapter(Mesh *in_mesh) : TopologyAdapter(in_mesh) {}
-
-  unsigned int getNumVerts() override { return mesh->getNumVertCol(); }
-
-  void setNumVerts(unsigned int num_verts) override { mesh->setNumVertCol(num_verts, TRUE); }
-
-  unsigned int getIndex(unsigned int face_no, unsigned int index_no) override { return mesh->vcFace[face_no].t[index_no]; }
-
-  void setIndex(unsigned int face_no, unsigned int index_no, unsigned int index) override
-  {
-    mesh->vcFace[face_no].t[index_no] = index;
-  }
-
-  void copyVertex(unsigned int from, unsigned int to) override { mesh->vertCol[to] = mesh->vertCol[from]; }
-};
-
-
 bool DagUtil::isDegenerate(Mesh *mesh, unsigned int face_no, const Matrix3 &otm)
 {
   Point3 vertex1 = mesh->verts[mesh->faces[face_no].v[0]] * otm;
@@ -2997,87 +2988,98 @@ bool DagUtil::isDegenerate(Mesh *mesh, unsigned int face_no, const Matrix3 &otm)
 }
 
 
+static bool has_iso_map_verts(Mesh &mesh)
+{
+  for (int mp = -NUM_HIDDENMAPS; mp < mesh.getNumMaps(); ++mp)
+    if (mesh.mapSupport(mp) && mesh.GetIsoMapVerts(mp).NumberSet())
+      return true;
+  return false;
+}
+
+
+void DagUtil::removeMeshDegenerates(INode *node, TriObject *triObject, bool keep_verts)
+{
+  editableMeshFound = true;
+  Mesh *mesh = &triObject->GetMesh();
+
+  TimeValue time = ip->GetTime();
+
+  Matrix3 otm;
+  otm = get_scaled_object_tm(node, time);
+  otm = otm * Inverse(get_scaled_stretch_node_tm(node, time));
+  otm *= static_cast<float>(GetSystemUnitScale(UNITS_METERS));
+
+  BitArray degenerate(mesh->getNumFaces());
+  degenerate.ClearAll();
+  for (unsigned int faceNo = 0; faceNo < mesh->getNumFaces(); faceNo++)
+    if (isDegenerate(mesh, faceNo, otm))
+      degenerate.Set(faceNo);
+
+  if (!degenerate.NumberSet() && (keep_verts || !mesh->GetIsoVerts().NumberSet()) && !has_iso_map_verts(*mesh))
+    return;
+
+  theHold.Put(new MeshRestore(triObject));
+  changedMeshesNum++;
+
+  degenerateFacesRemovedNum += degenerate.NumberSet();
+  mesh->DeleteFaceSet(degenerate);
+
+  if (!keep_verts)
+  {
+    const int numVerts = mesh->getNumVerts();
+    mesh->DeleteIsoVerts();
+    isolatedVerticesRemovedNum += numVerts - mesh->getNumVerts();
+  }
+  mesh->DeleteIsoMapVerts();
+
+  mesh->InvalidateGeomCache();
+  mesh->InvalidateTopologyCache();
+
+  triObject->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+  triObject->NotifyDependents(FOREVER, 0, REFMSG_SUBANIM_STRUCTURE_CHANGED);
+
+  node->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+  node->NotifyDependents(FOREVER, 0, REFMSG_SUBANIM_STRUCTURE_CHANGED);
+}
+
+
+static TriObject *skinned_editable_mesh(Object *obj)
+{
+  bool hasSkin = false;
+  while (obj && obj->SuperClassID() == GEN_DERIVOB_CLASS_ID)
+  {
+    IDerivedObject *derived = static_cast<IDerivedObject *>(obj);
+    for (int i = 0; i < derived->NumModifiers(); ++i)
+    {
+      if (derived->GetModifier(i)->ClassID() != SKIN_CLASSID)
+        return nullptr;
+      hasSkin = true;
+    }
+    obj = derived->GetObjRef();
+  }
+  return hasSkin && obj && obj->IsSubClassOf(Class_ID(TRIOBJ_CLASS_ID, 0)) ? static_cast<TriObject *>(obj) : nullptr;
+}
+
+
 void DagUtil::removeDegeneratesRecursive(INode *node)
 {
   if (!node)
     return;
 
-  ObjectState state = node->EvalWorldState(0);
-  if (state.obj && !node->IsNodeHidden())
+  const Class_ID triObjectClassId(TRIOBJ_CLASS_ID, 0);
+  Object *obj = node->GetObjectRef();
+  if (obj && !node->IsNodeHidden())
   {
-    TriObject *triObject = (TriObject *)state.obj->ConvertToType(0, Class_ID(TRIOBJ_CLASS_ID, 0));
-
-    if (triObject && triObject == state.obj)
+    if (obj->IsSubClassOf(triObjectClassId))
+      removeMeshDegenerates(node, static_cast<TriObject *>(obj), false);
+    else if (TriObject *skinnedMesh = skinned_editable_mesh(obj))
+      removeMeshDegenerates(node, skinnedMesh, true);
+    else if (obj->FindBaseObject()->IsSubClassOf(triObjectClassId))
     {
-      editableMeshFound = true;
-      Mesh *mesh = &triObject->GetMesh();
-
-      TimeValue time = GetCOREInterface()->GetTime();
-
-      Matrix3 otm;
-      otm = get_scaled_object_tm(node, time);
-      otm = otm * Inverse(get_scaled_stretch_node_tm(node, time));
-      otm *= static_cast<float>(GetSystemUnitScale(UNITS_METERS));
-
-      // Remove degenerate faces.
-
-      for (unsigned int faceNo = 0; faceNo < mesh->getNumFaces(); faceNo++)
-      {
-        if (isDegenerate(mesh, faceNo, otm))
-        {
-          degenerateFacesRemovedNum++;
-          for (unsigned int faceToCopyNo = faceNo + 1; faceToCopyNo < mesh->getNumFaces(); faceToCopyNo++)
-          {
-            mesh->faces[faceToCopyNo - 1] = mesh->faces[faceToCopyNo];
-            if (mesh->vcFace)
-              mesh->vcFace[faceToCopyNo - 1] = mesh->vcFace[faceToCopyNo];
-
-            for (int ch = 0; ch < MAX_MESHMAPS; ++ch)
-            {
-              if (!mesh->mapSupport(ch))
-                continue;
-              TVFace *tf = mesh->mapFaces(ch);
-              if (!tf)
-                continue;
-              tf[faceToCopyNo - 1] = tf[faceToCopyNo];
-            }
-          }
-          mesh->setNumFaces(mesh->getNumFaces() - 1, TRUE, TRUE);
-          faceNo--;
-        }
-      }
-
-
-      // Remove isolated vertices.
-
-      {
-        GeometryTopologyAdapter gta(mesh);
-        removeIsolatedVertices(gta);
-      }
-
-      if (mesh->vertCol)
-      {
-        ColorTopologyAdapter cta(mesh);
-        removeIsolatedVertices(cta);
-      }
-
-
-      // Updates.
-
-      mesh->InvalidateGeomCache();
-      mesh->InvalidateTopologyCache();
-
-      triObject->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
-      triObject->NotifyDependents(FOREVER, 0, REFMSG_SUBANIM_STRUCTURE_CHANGED);
-
-      node->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
-      node->NotifyDependents(FOREVER, 0, REFMSG_SUBANIM_STRUCTURE_CHANGED);
+      meshesWithModifiersSkippedNum++;
+      explogWarning(L"Remove degenerates: '%s' has modifiers on its editable mesh, skipped\r\n", node->GetName());
     }
-
-    if (triObject && triObject != state.obj)
-      triObject->DeleteMe();
   }
-
 
   for (int childNo = 0; childNo < node->NumberOfChildren(); childNo++)
     removeDegeneratesRecursive(node->GetChildNode(childNo));
@@ -3090,19 +3092,29 @@ void DagUtil::removeDegenerates()
   editableMeshFound = false;
   degenerateFacesRemovedNum = 0;
   isolatedVerticesRemovedNum = 0;
+  meshesWithModifiersSkippedNum = 0;
+  changedMeshesNum = 0;
+  theHold.Begin();
   removeDegeneratesRecursive(ip->GetRootNode());
+  if (changedMeshesNum)
+    theHold.Accept(L"Remove degenerates");
+  else
+    theHold.Cancel();
   TimeValue time = ip->GetTime();
   ip->RedrawViews(time);
 
-  if (!editableMeshFound)
+  if (!editableMeshFound && !meshesWithModifiersSkippedNum)
   {
-    MessageBox(dagorUtilRoll, _T("No editable mesh found."), _T("Remove degenerates"), MB_ICONWARNING);
+    log_and_message_box(dagorUtilRoll, L"No editable mesh found.", L"Remove degenerates", MB_ICONWARNING);
+    return;
   }
-  {
-    TCHAR str[1000];
-    _stprintf(str, _T("%d faces and %d vertices removed."), degenerateFacesRemovedNum, isolatedVerticesRemovedNum);
-    MessageBox(dagorUtilRoll, str, _T("Remove degenerates"), MB_OK);
-  }
+
+  std::wstring msg = std::format(L"{} faces and {} vertices removed.", degenerateFacesRemovedNum, isolatedVerticesRemovedNum);
+  if (meshesWithModifiersSkippedNum)
+    msg += std::format(L" {} editable mesh(es) with modifiers skipped, see the log.", meshesWithModifiersSkippedNum);
+  log_and_message_box(dagorUtilRoll, msg.c_str(), L"Remove degenerates", MB_OK);
+  if (meshesWithModifiersSkippedNum && !are_prompts_suppressed())
+    DagorLogWindow::show();
 }
 
 
@@ -3224,6 +3236,8 @@ void DagUtil::paste_tch()
   }
   TimeValue time = ip->GetTime();
   int n = ip->GetSelNodeCount();
+  bool pasted = false;
+  theHold.Begin();
   for (int i = 0; i < n; ++i)
   {
     INode *node = ip->GetSelNode(i);
@@ -3235,6 +3249,7 @@ void DagUtil::paste_tch()
     if (!o->IsSubClassOf(Class_ID(TRIOBJ_CLASS_ID, 0)))
       continue;
     node->InvalidateWS();
+    theHold.Put(new MeshRestore((TriObject *)o));
     if (tc_dstch >= 0)
     {
       if (!paste_tch_buf(((TriObject *)o)->mesh, chanelbuf[tc_srcch], tc_dstch))
@@ -3248,6 +3263,7 @@ void DagUtil::paste_tch()
         TSTR s;
         s.printf(_T("Map chanel %d was pasted into map chanel %d"), tc_srcch, tc_dstch);
         ip->DisplayTempPrompt(s);
+        pasted = true;
       }
     }
     else
@@ -3268,12 +3284,34 @@ void DagUtil::paste_tch()
         TSTR s;
         s.printf(_T("Some map chanels were pasted"));
         ip->DisplayTempPrompt(s);
+        pasted = true;
       }
     }
     node->InvalidateWS();
     break;
   }
+  if (pasted)
+    theHold.Accept(L"Paste map channels");
+  else
+    theHold.Cancel();
   ip->RedrawViews(time);
+}
+
+static const wchar_t *tc_undo_name(TCCOPY tc)
+{
+  switch (tc)
+  {
+    case CTC_COPY: return L"Copy map channel";
+    case CTC_MOVE: return L"Move map channel";
+    case CTC_SWAP: return L"Swap map channels";
+    case CTC_FLIPU: return L"Flip map U";
+    case CTC_FLIPV: return L"Flip map V";
+    case CTC_XCHG: return L"Swap map U and V";
+    case CTC_MUL: return L"Multiply map UV";
+    case CTC_ADD: return L"Add to map UV";
+    case CTC_KILL: return L"Kill map channel";
+    default: return L"UV Utils";
+  }
 }
 
 void DagUtil::copy_tch(TCCOPY tc)
@@ -3300,11 +3338,16 @@ void DagUtil::copy_tch(TCCOPY tc)
   TimeValue time = ip->GetTime();
   int n = ip->GetSelNodeCount();
   bool result = n ? true : false;
+  const bool changesMesh = tc != CTC_INFO;
+  bool changed = false;
   if (tc == CTC_INFO)
   {
     for (int i = 0; i < MAX_MESHMAPS; ++i)
       tcinfo[i].numv = -1;
   }
+  std::unordered_set<Object *> handled;
+  if (changesMesh)
+    theHold.Begin();
   for (int i = 0; i < n; ++i)
   {
     INode *node = ip->GetSelNode(i);
@@ -3319,8 +3362,21 @@ void DagUtil::copy_tch(TCCOPY tc)
       continue;
     }
     node->InvalidateWS();
-    result = (copy_tch1(((TriObject *)o)->mesh, tc, tc_srcch, tc_dstch, tc_mapach, bool(tc_facesel != 0)) && result);
+    if (changesMesh && !handled.insert(o).second)
+      continue;
+    if (changesMesh)
+      theHold.Put(new MeshRestore((TriObject *)o));
+    const bool done = copy_tch1(((TriObject *)o)->mesh, tc, tc_srcch, tc_dstch, tc_mapach, bool(tc_facesel != 0));
+    changed = changed || done;
+    result = done && result;
     node->InvalidateWS();
+  }
+  if (changesMesh)
+  {
+    if (changed)
+      theHold.Accept(tc_undo_name(tc));
+    else
+      theHold.Cancel();
   }
   ip->RedrawViews(time);
   if (result)
@@ -3340,7 +3396,7 @@ void DagUtil::copy_tch(TCCOPY tc)
           s.printf(_T("#%d: %d verts\r\n"), i, tcinfo[i].numv);
           buf += s;
         }
-      MessageBox(uvUtilsRoll, buf, _T("TC Info"), MB_OK);
+      log_and_message_box(uvUtilsRoll, buf, L"TC Info", MB_OK);
     }
   }
   else
@@ -3373,6 +3429,8 @@ void DagUtil::select_face(bool vert)
     return;
   }
   Mesh &m = ((TriObject *)o)->mesh;
+  theHold.Begin();
+  theHold.Put(new MeshSelRestore((TriObject *)o, vert));
   if (vert)
   {
     mesh_vert_sel(m).ClearAll();
@@ -3385,6 +3443,7 @@ void DagUtil::select_face(bool vert)
     if (sel_fid >= 0 && sel_fid < m.numFaces)
       mesh_face_sel(m).Set(sel_fid);
   }
+  theHold.Accept(vert ? L"Select vertex" : L"Select face");
   node->InvalidateWS();
   ip->RedrawViews(time);
 }
@@ -3528,7 +3587,7 @@ void DagUtil::maxtures2materials(Mesh &m, INode *node)
   }
   int oldsize = m.getNumMapVerts(1);
   m.setNumMapVerts(1, oldsize + tverts.Count(), 1);
-  memcpy(m.mapVerts(1) + oldsize, &tverts[0], tverts.Count() * sizeof(UVVert));
+  memcpy(m.mapVerts(1) + oldsize, tverts.data(), tverts.Count() * sizeof(UVVert));
 }
 
 void DagUtil::maxtures2materials()
@@ -3733,26 +3792,6 @@ static inline Point3 get_pt(Point3 &v1, Point3 &v2, Point3 &nrm1, Point3 &nrm2, 
   return Point3(((ax * wh + bx) * wh + cx) * wh + dx, ((ay * wh + by) * wh + cy) * wh + dy, ((az * wh + bz) * wh + cz) * wh + dz);
 }
 
-static inline void neighbedge(Face &f, DWORD a, int &hh1, int &hh2)
-{
-  DWORD *v = f.getAllVerts();
-  if (a == v[0])
-  {
-    hh1 = 0;
-    hh2 = 2;
-  }
-  else if (a == v[1])
-  {
-    hh1 = 0;
-    hh2 = 1;
-  }
-  else
-  {
-    hh1 = 1;
-    hh2 = 2;
-  }
-}
-
 static int whichEdge(Face &f, DWORD a, DWORD b)
 {
   DWORD *v = f.getAllVerts();
@@ -3778,194 +3817,192 @@ static int whichEdge(Face &f, DWORD a, DWORD b)
   return -1;
 }
 
-static inline int is_partof_selquad(Mesh &m, AdjEdgeList &ae, int vv1, int vv2, int fc1, int &fc2, int &v1, int &v2, int &v3, int &v4,
-  int &he, int &he2, int &dved)
+enum class EdgeMark : uint8_t
 {
-  for (he = 0; he < 3; ++he)
-    if (!m.faces[fc1].getEdgeVis(he))
-      break;
-  if (he == 3)
-    return 0;
-  {
-    int he1;
-    for (he1 = he + 1; he1 < 3; ++he1)
-      if (!m.faces[fc1].getEdgeVis(he1))
-        break;
-    if (he1 < 3)
+  None,
+  Divided,
+  Kept
+};
+
+enum class SidePair
+{
+  First,
+  Second
+};
+
+static SidePair other_pair(SidePair pair) { return pair == SidePair::First ? SidePair::Second : SidePair::First; }
+
+static int hidden_edge(const Face &f)
+{
+  int hidden = -1;
+  for (int e = 0; e < 3; ++e)
+    if (!f.getEdgeVis(e))
     {
-      mesh_face_sel(m).Clear(fc1);
-      return 0;
+      if (hidden != -1)
+        return -1;
+      hidden = e;
     }
-    he1 = whichEdge(m.faces[fc1], vv1, vv2);
-    if (he1 == he)
-    {
-      mesh_face_sel(m).Clear(fc1);
-      return 0;
-    }
-  }
-  v1 = m.faces[fc1].v[(he == 0) ? 2 : (he - 1)];
-  v2 = m.faces[fc1].v[he];
-  v3 = m.faces[fc1].v[(he == 2) ? 0 : (he + 1)];
-  dved = ae.FindEdge(v2, v3);
-  fc2 = ae.edges[dved].f[0];
-  if (fc2 == fc1)
-    fc2 = ae.edges[dved].f[1];
-  he2 = -1;
-  if (fc2 == UNDEFINED)
-  {
-    mesh_face_sel(m).Clear(fc1);
-    mesh_face_sel(m).Clear(fc2);
-    return 0;
-  }
-  else
-  {
-    he2 = whichEdge(m.faces[fc2], v2, v3);
-    if (he2 == -1)
-    {
-      mesh_face_sel(m).Clear(fc1);
-      mesh_face_sel(m).Clear(fc2);
-      return 0;
-    }
-    m.faces[fc2].setEdgeVisFlags(EDGE_VIS, EDGE_VIS, EDGE_VIS);
-    m.faces[fc2].setEdgeVis(he2, EDGE_INVIS);
-    mesh_face_sel(m).Set(fc2);
-  }
-  for (v4 = 0; v4 < 3; ++v4)
-    if (m.faces[fc2].v[v4] != v2 && m.faces[fc2].v[v4] != v3)
-    {
-      v4 = m.faces[fc2].v[v4];
-      break;
-    }
-  return 1;
+  return hidden;
 }
 
-static Tab<int> *recurse_fcsquads;
-static Tab<int> *recurse_fcs;
-static Tab<int> *recurse_dvEdges;
-static Mesh *recurse_m;
-static AdjEdgeList *recurse_ae;
-
-static void _recurse(int eds[4], int vedb1, int vedb2)
+struct Quad
 {
-  for (int k = 0; k < 4; ++k)
-  {
-    int ed1[2], ed2[2];
-    {
-      int meee = eds[k];
-      int vv1 = recurse_ae->edges[meee].v[0];
-      int vv2 = recurse_ae->edges[meee].v[1];
-      int fc1;
-      {
-        int f1 = recurse_ae->edges[meee].f[0];
-        int f2 = recurse_ae->edges[meee].f[1];
-        if (f2 == UNDEFINED || f1 == UNDEFINED)
-          continue;
-        if (!mesh_face_sel(*recurse_m)[f1] || !mesh_face_sel(*recurse_m)[f2])
-          continue;
-        if ((*recurse_fcs)[f1] && (*recurse_fcs)[f2])
-          continue;
-        if ((*recurse_fcs)[f1])
-          fc1 = f2;
-        else
-          fc1 = f1;
-      }
+  DWORD face;
+  DWORD mate;
+  int diagonal;
+  std::array<DWORD, 4> corners;
+};
 
-      if ((recurse_m->faces[fc1].flags & VIS_MASK) == EDGE_ALL)
-      {
-        mesh_face_sel(*recurse_m).Clear(fc1);
-        continue;
-      }
-      int he, he2, me;
-      int fc2;
-      int v1, v2, v3, v4;
-      if (!is_partof_selquad(*recurse_m, *recurse_ae, vv1, vv2, fc1, fc2, v1, v2, v3, v4, he, he2, me))
-        continue;
-      int s = -1;
-      {
-        ed1[0] = (he == 2) ? 1 : ((he == 1) ? 0 : 2);
-        int hh1, hh2;
-        neighbedge(recurse_m->faces[fc2], v2, hh1, hh2);
-        ed2[0] = (hh1 == he2) ? hh2 : hh1;
-        {
-          int k;
-          for (k = 0; k < 3; ++k)
-            if (k != he && k != ed1[0])
-              break;
-          ed1[1] = k;
-        }
-        {
-          int k;
-          for (k = 0; k < 3; ++k)
-            if (k != he2 && k != ed2[0])
-              break;
-          ed2[1] = k;
-        }
-        int e;
-        e = ed1[1];
-        ed1[1] = ed2[1];
-        ed2[1] = e;
-        ed1[0] = recurse_ae->FindEdge(recurse_m->faces[fc1].v[ed1[0] % 3], recurse_m->faces[fc1].v[(ed1[0] + 1) % 3]);
-        ed1[1] = recurse_ae->FindEdge(recurse_m->faces[fc2].v[ed1[1] % 3], recurse_m->faces[fc2].v[(ed1[1] + 1) % 3]);
-        ed2[0] = recurse_ae->FindEdge(recurse_m->faces[fc2].v[ed2[0] % 3], recurse_m->faces[fc2].v[(ed2[0] + 1) % 3]);
-        ed2[1] = recurse_ae->FindEdge(recurse_m->faces[fc1].v[ed2[1] % 3], recurse_m->faces[fc1].v[(ed2[1] + 1) % 3]);
-        if ((*recurse_dvEdges)[ed1[0]] == 1)
-          s = 0;
-        else if ((*recurse_dvEdges)[ed1[0]] == -1)
-          s = 1;
-        else if ((*recurse_dvEdges)[ed2[1]] == 1)
-          s = 1;
-        else if ((*recurse_dvEdges)[ed2[1]] == -1)
-          s = 0;
-        else if ((*recurse_dvEdges)[ed1[1]] == 1)
-          s = 0;
-        else if ((*recurse_dvEdges)[ed1[1]] == -1)
-          s = 1;
-        else if ((*recurse_dvEdges)[ed2[0]] == 1)
-          s = 1;
-        else if ((*recurse_dvEdges)[ed2[0]] == -1)
-          s = 0;
-        else
-          continue;
-      }
-      if (!s)
-      {
-        (*recurse_dvEdges)[ed1[0]] = 1;
-        (*recurse_dvEdges)[ed1[1]] = 1;
-        (*recurse_dvEdges)[ed2[0]] = -1;
-        (*recurse_dvEdges)[ed2[1]] = -1;
-      }
-      else
-      {
-        (*recurse_dvEdges)[ed2[0]] = 1;
-        (*recurse_dvEdges)[ed2[1]] = 1;
-        (*recurse_dvEdges)[ed1[0]] = -1;
-        (*recurse_dvEdges)[ed1[1]] = -1;
-      }
-      (*recurse_fcsquads)[fc1] = fc2;
-      (*recurse_fcsquads)[fc2] = fc1;
-      (*recurse_fcs)[fc1] = 1;
-      (*recurse_fcs)[fc2] = 1;
-    }
+class QuadWalk
+{
+public:
+  QuadWalk(Mesh &mesh, AdjEdgeList &adjEdges, bool selectedOnly) :
+    edgeMarks(adjEdges.edges.Count(), EdgeMark::None),
+    mates(mesh.getNumFaces(), UNDEFINED),
+    m(mesh),
+    ae(adjEdges),
+    candidates(mesh_face_sel(mesh))
+  {
+    if (!selectedOnly)
+      candidates.SetAll();
+  }
+
+  void mark_first_region(bool swapUV);
+
+  std::vector<EdgeMark> edgeMarks;
+  std::vector<DWORD> mates;
+
+private:
+  using Sides = std::array<int, 4>;
+
+  std::optional<Quad> take_quad(DWORD face);
+  DWORD face_across(int side) const;
+  Sides sides_of(const Quad &quad) const;
+  SidePair pair_from_uv(const Quad &quad, bool swapUV) const;
+  std::optional<SidePair> pair_from_marks(const Sides &sides) const;
+  void mark(const Quad &quad, const Sides &sides, SidePair pair);
+  bool has_mate(DWORD face) const { return mates[face] != UNDEFINED; }
+
+  Mesh &m;
+  AdjEdgeList &ae;
+  BitArray candidates;
+  std::vector<int> toVisit;
+};
+
+void QuadWalk::mark_first_region(bool swapUV)
+{
+  for (int face = 0; face < m.getNumFaces(); ++face)
+  {
+    if (!candidates[face])
+      continue;
+    if (const std::optional<Quad> seed = take_quad(face))
     {
-      int eds[4];
-      eds[0] = ed1[0];
-      eds[1] = ed1[1];
-      eds[2] = ed2[0];
-      eds[3] = ed2[1];
-      _recurse(eds, vedb1, vedb2);
+      mark(*seed, sides_of(*seed), pair_from_uv(*seed, swapUV));
+      break;
     }
+  }
+  while (!toVisit.empty())
+  {
+    const DWORD face = face_across(toVisit.back());
+    toVisit.pop_back();
+    if (face == UNDEFINED)
+      continue;
+    const std::optional<Quad> quad = take_quad(face);
+    if (!quad)
+      continue;
+    const Sides sides = sides_of(*quad);
+    if (const std::optional<SidePair> pair = pair_from_marks(sides))
+      mark(*quad, sides, *pair);
   }
 }
 
-static void recurse(Tab<int> &fcsquads, Tab<int> &fcs, Tab<int> &dvEdges, Mesh &m, int eds[4], AdjEdgeList &ae, int vedb1, int vedb2,
-  char trne)
+std::optional<Quad> QuadWalk::take_quad(DWORD face)
 {
-  recurse_fcsquads = &fcsquads;
-  recurse_fcs = &fcs;
-  recurse_dvEdges = &dvEdges;
-  recurse_m = &m;
-  recurse_ae = &ae;
-  _recurse(eds, vedb1, vedb2);
+  Face &f = m.faces[face];
+  const int diagonal = hidden_edge(f);
+  if (diagonal == -1)
+  {
+    candidates.Clear(face);
+    return std::nullopt;
+  }
+
+  const DWORD start = f.v[diagonal];
+  const DWORD end = f.v[(diagonal + 1) % 3];
+  const DWORD apex = f.v[(diagonal + 2) % 3];
+  const MEdge &diagonalEdge = ae.edges[ae.FindEdge(start, end)];
+  const DWORD mate = diagonalEdge.f[0] == face ? diagonalEdge.f[1] : diagonalEdge.f[0];
+  if (mate == UNDEFINED || has_mate(mate))
+  {
+    candidates.Clear(face);
+    return std::nullopt;
+  }
+  Face &mateFace = m.faces[mate];
+  const int mateDiagonal = whichEdge(mateFace, start, end);
+  if (mateDiagonal == -1)
+  {
+    candidates.Clear(face);
+    candidates.Clear(mate);
+    return std::nullopt;
+  }
+
+  mateFace.setEdgeVisFlags(EDGE_VIS, EDGE_VIS, EDGE_VIS);
+  mateFace.setEdgeVis(mateDiagonal, EDGE_INVIS);
+  candidates.Set(mate);
+  const DWORD mateApex = mateFace.v[(mateDiagonal + 2) % 3];
+  return Quad{face, mate, diagonal, {start, apex, end, mateApex}};
+}
+
+DWORD QuadWalk::face_across(int side) const
+{
+  const MEdge &edge = ae.edges[side];
+  const DWORD f0 = edge.f[0], f1 = edge.f[1];
+  if (f0 == UNDEFINED || f1 == UNDEFINED || !candidates[f0] || !candidates[f1] || (has_mate(f0) && has_mate(f1)))
+    return UNDEFINED;
+  return has_mate(f0) ? f1 : f0;
+}
+
+QuadWalk::Sides QuadWalk::sides_of(const Quad &quad) const
+{
+  const std::array<DWORD, 4> &c = quad.corners;
+  return Sides{ae.FindEdge(c[0], c[1]), ae.FindEdge(c[2], c[3]), ae.FindEdge(c[3], c[0]), ae.FindEdge(c[1], c[2])};
+}
+
+SidePair QuadWalk::pair_from_uv(const Quad &quad, bool swapUV) const
+{
+  const TVFace &tf = m.tvFace[quad.face];
+  const int uvStart = tf.t[quad.diagonal], uvEnd = tf.t[(quad.diagonal + 1) % 3], uvApex = tf.t[(quad.diagonal + 2) % 3];
+  if (uvStart < 0 || uvEnd < 0 || uvApex < 0)
+    return SidePair::First;
+  const SidePair pairAlongU =
+    fabs(m.tVerts[uvStart].x - m.tVerts[uvApex].x) > fabs(m.tVerts[uvApex].x - m.tVerts[uvEnd].x) ? SidePair::First : SidePair::Second;
+  return swapUV ? other_pair(pairAlongU) : pairAlongU;
+}
+
+std::optional<SidePair> QuadWalk::pair_from_marks(const Sides &sides) const
+{
+  static constexpr int perimeterOrder[] = {0, 3, 1, 2};
+  for (int i : perimeterOrder)
+  {
+    const EdgeMark mark = edgeMarks[sides[i]];
+    if (mark == EdgeMark::None)
+      continue;
+    const SidePair pair = i < 2 ? SidePair::First : SidePair::Second;
+    return mark == EdgeMark::Divided ? pair : other_pair(pair);
+  }
+  return std::nullopt;
+}
+
+void QuadWalk::mark(const Quad &quad, const Sides &sides, SidePair pair)
+{
+  const int divided = pair == SidePair::First ? 0 : 2;
+  const int kept = 2 - divided;
+  edgeMarks[sides[divided]] = EdgeMark::Divided;
+  edgeMarks[sides[divided + 1]] = EdgeMark::Divided;
+  edgeMarks[sides[kept]] = EdgeMark::Kept;
+  edgeMarks[sides[kept + 1]] = EdgeMark::Kept;
+  mates[quad.face] = quad.mate;
+  mates[quad.mate] = quad.face;
+  toVisit.insert(toVisit.end(), sides.rbegin(), sides.rend());
 }
 
 #define MESHSMOOTHMAPS_SUPPORT 8
@@ -4161,158 +4198,17 @@ struct TQuad
 };
 
 
-void DagUtil::smooth_mesh(INode *node, Mesh &m)
+static bool can_smooth_mesh(const Mesh &m) { return m.getNumTVerts() && m.getNumMaps() <= MESHSMOOTHMAPS_SUPPORT; }
+
+bool DagUtil::smooth_mesh(Mesh &m)
 {
   Mesh &mesh = m;
-  if (!m.getNumTVerts())
-    return;
-
-  if (m.getNumMaps() > MESHSMOOTHMAPS_SUPPORT)
-    return;
+  if (!can_smooth_mesh(m))
+    return false;
   BitArray presel = mesh_face_sel(m);
-  if (!smooth_selected)
-    mesh_face_sel(m).SetAll();
   AdjEdgeList ae(mesh);
-  Tab<int> divEdges;
-  divEdges.Resize(ae.edges.Count());
-  divEdges.SetCount(ae.edges.Count());
-  memset(&divEdges[0], 0, ae.edges.Count() * 4);
-  Tab<int> fcsPassed;
-  fcsPassed.Resize(m.getNumFaces());
-  fcsPassed.SetCount(m.getNumFaces());
-  memset(&fcsPassed[0], 0, m.getNumFaces() * 4);
-  Tab<int> fcsquads;
-  fcsquads.Resize(m.getNumFaces());
-  fcsquads.SetCount(m.getNumFaces());
-  memset(&fcsquads[0], 0xFF, m.getNumFaces() * 4);
-  {
-    for (int f1 = 0; f1 < m.getNumFaces(); ++f1)
-    {
-      if (!mesh_face_sel(m)[f1])
-        continue;
-      if ((mesh.faces[f1].flags & VIS_MASK) == EDGE_ALL)
-      {
-        mesh_face_sel(m).Clear(f1);
-        continue;
-      }
-      int he, he1;
-      for (he = 0; he < 3; ++he)
-        if (!mesh.faces[f1].getEdgeVis(he))
-          break;
-      for (he1 = he + 1; he1 < 3; ++he1)
-        if (!mesh.faces[f1].getEdgeVis(he1))
-          break;
-      if (he1 < 3)
-      {
-        mesh_face_sel(m).Clear(f1);
-        continue;
-      }
-      int v2, v3, v4;
-      v2 = mesh.faces[f1].v[he];
-      v3 = mesh.faces[f1].v[(he == 2) ? 0 : (he + 1)];
-      int me = ae.FindEdge(v2, v3);
-      int f2 = ae.edges[me].f[0];
-      if (f2 == f1)
-        f2 = ae.edges[me].f[1];
-      int he2 = -1;
-      if (f2 == UNDEFINED)
-      {
-        mesh_face_sel(m).Clear(f1);
-        mesh_face_sel(m).Clear(f2);
-        continue;
-      }
-      else
-      {
-        he2 = whichEdge(mesh.faces[f2], v2, v3);
-        if (he2 == -1)
-        {
-          mesh_face_sel(m).Clear(f1);
-          mesh_face_sel(m).Clear(f2);
-          continue;
-        }
-        m.faces[f2].setEdgeVisFlags(EDGE_VIS, EDGE_VIS, EDGE_VIS);
-        m.faces[f2].setEdgeVis(he2, EDGE_INVIS);
-        mesh_face_sel(m).Set(f2);
-      }
-      for (v4 = 0; v4 < 3; ++v4)
-        if (mesh.faces[f2].v[v4] != v2 && mesh.faces[f2].v[v4] != v3)
-        {
-          v4 = mesh.faces[f2].v[v4];
-          break;
-        }
-      int ed1[2], ed2[2], s = 0;
-      {
-        ed1[0] = (he == 2) ? 1 : ((he == 1) ? 0 : 2);
-        int hh1, hh2;
-        neighbedge(mesh.faces[f2], v2, hh1, hh2);
-        ed2[0] = (hh1 == he2) ? hh2 : hh1;
-        {
-          int k;
-          for (k = 0; k < 3; ++k)
-            if (k != he && k != ed1[0])
-              break;
-          ed1[1] = k;
-        }
-        {
-          int k;
-          for (k = 0; k < 3; ++k)
-            if (k != he2 && k != ed2[0])
-              break;
-          ed2[1] = k;
-        }
-        {
-          int tt1 = m.tvFace[f1].t[(ed1[0] + 1) % 3], tt2 = m.tvFace[f1].t[ed1[0]];
-          int tt3 = m.tvFace[f1].t[(ed1[1] + 1) % 3], tt4 = m.tvFace[f1].t[ed1[1]];
-          if (tt1 >= 0 && tt2 >= 0 && tt3 >= 0 && tt4 >= 0)
-          {
-            Point3 t1 = m.tVerts[tt1] - m.tVerts[tt2];
-            Point3 t2 = m.tVerts[tt3] - m.tVerts[tt4];
-            if (fabs(t1.x) > fabs(t2.x))
-              s = 0;
-            else
-              s = 1;
-          }
-          else
-            s = mesh_smoothtu;
-        }
-        int e;
-        e = ed1[1];
-        ed1[1] = ed2[1];
-        ed2[1] = e;
-        ed1[0] = ae.FindEdge(m.faces[f1].v[ed1[0] % 3], m.faces[f1].v[(ed1[0] + 1) % 3]);
-        ed1[1] = ae.FindEdge(m.faces[f2].v[ed1[1] % 3], m.faces[f2].v[(ed1[1] + 1) % 3]);
-        ed2[0] = ae.FindEdge(m.faces[f2].v[ed2[0] % 3], m.faces[f2].v[(ed2[0] + 1) % 3]);
-        ed2[1] = ae.FindEdge(m.faces[f1].v[ed2[1] % 3], m.faces[f1].v[(ed2[1] + 1) % 3]);
-      }
-      if (mesh_smoothtu)
-        s = !s;
-      if (!s)
-      {
-        divEdges[ed1[0]] = 1;
-        divEdges[ed1[1]] = 1;
-        divEdges[ed2[0]] = -1;
-        divEdges[ed2[1]] = -1;
-      }
-      else
-      {
-        divEdges[ed2[0]] = 1;
-        divEdges[ed2[1]] = 1;
-        divEdges[ed1[0]] = -1;
-        divEdges[ed1[1]] = -1;
-      }
-      fcsPassed[f1] = 1;
-      fcsPassed[f2] = 1;
-      int eds[4];
-      eds[0] = ed1[0];
-      eds[1] = ed1[1];
-      eds[2] = ed2[0];
-      eds[3] = ed2[1];
-      fcsquads[f1] = f2;
-      fcsquads[f2] = f1;
-      recurse(fcsquads, fcsPassed, divEdges, m, eds, ae, v2, v3, turn_edge);
-      break;
-    }
-  }
+  QuadWalk walk(m, ae, smooth_selected);
+  walk.mark_first_region(mesh_smoothtu);
   Tab<DivideE *> ded;
   Tab<Point3> normals;
   Tab<Point3> addverts, addtverts[MESHSMOOTHMAPS_SUPPORT];
@@ -4324,9 +4220,9 @@ void DagUtil::smooth_mesh(INode *node, Mesh &m)
   }
   calc_sm_normals(normals, mesh, use_smooth_grps, 1);
   int i;
-  for (i = 0; i < divEdges.Count(); ++i)
+  for (i = 0; i < int(walk.edgeMarks.size()); ++i)
   {
-    if (divEdges[i] != 1)
+    if (walk.edgeMarks[i] != EdgeMark::Divided)
       continue;
     DivideE *de = new DivideE;
     int rc = ded.Append(1, &de);
@@ -4368,7 +4264,7 @@ void DagUtil::smooth_mesh(INode *node, Mesh &m)
   Tab<Face> newfcs;
   newfcs.Resize(m.numFaces);
   newfcs.SetCount(m.numFaces);
-  memcpy(&newfcs[0], m.faces, m.numFaces * sizeof(Face));
+  memcpy(newfcs.data(), m.faces, m.numFaces * sizeof(Face));
   Tab<TVFace> newtvfcs[MESHSMOOTHMAPS_SUPPORT];
   {
     for (int mi = 0; mi < m.getNumMaps(); ++mi)
@@ -4376,17 +4272,17 @@ void DagUtil::smooth_mesh(INode *node, Mesh &m)
       {
         newtvfcs[mi].Resize(m.numFaces);
         newtvfcs[mi].SetCount(m.numFaces);
-        memcpy(&newtvfcs[mi][0], m.mapFaces(mi), m.numFaces * sizeof(TVFace));
+        memcpy(newtvfcs[mi].data(), m.mapFaces(mi), m.numFaces * sizeof(TVFace));
       }
   }
 
   Tab<int> fcsedg[2];
   fcsedg[0].Resize(m.getNumFaces());
   fcsedg[0].SetCount(m.getNumFaces());
-  memset(&fcsedg[0][0], 0xff, m.getNumFaces() * 4);
+  memset(fcsedg[0].data(), 0xff, m.getNumFaces() * 4);
   fcsedg[1].Resize(m.getNumFaces());
   fcsedg[1].SetCount(m.getNumFaces());
-  memset(&fcsedg[1][0], 0xff, m.getNumFaces() * 4);
+  memset(fcsedg[1].data(), 0xff, m.getNumFaces() * 4);
   for (i = 0; i < ded.Count(); ++i)
   {
     MEdge &me = ae.edges[ded[i]->ed];
@@ -4408,8 +4304,9 @@ void DagUtil::smooth_mesh(INode *node, Mesh &m)
   Tab<int> fcsdivd;
   fcsdivd.Resize(m.getNumFaces());
   fcsdivd.SetCount(m.getNumFaces());
-  memset(&fcsdivd[0], 0, m.getNumFaces() * 4);
-  mesh_face_sel(m) = presel;
+  memset(fcsdivd.data(), 0, m.getNumFaces() * 4);
+  if (!ded.Count())
+    return false;
   BitArray newfacesel;
   newfacesel = presel;
 
@@ -4426,9 +4323,9 @@ void DagUtil::smooth_mesh(INode *node, Mesh &m)
         continue;
       if (fcsdivd[fc1])
         continue;
-      if (fcsquads[fc1] != -1)
+      if (walk.mates[fc1] != UNDEFINED)
       {
-        int fc2 = fcsquads[fc1];
+        int fc2 = walk.mates[fc1];
         fcsdivd[fc1] = 1;
         fcsdivd[fc2] = 1;
         int ii2 = fcsedg[0][fc2];
@@ -4667,12 +4564,12 @@ void DagUtil::smooth_mesh(INode *node, Mesh &m)
   }
   ded.SetCount(0);
   m.setNumFaces(newfcs.Count());
-  memcpy(m.faces, &newfcs[0], newfcs.Count() * sizeof(Face));
+  memcpy(m.faces, newfcs.data(), newfcs.Count() * sizeof(Face));
   {
     for (int mi = 0; mi < m.getNumMaps(); ++mi)
       if (m.mapSupport(mi))
       {
-        memcpy(m.mapFaces(mi), &newtvfcs[mi][0], newtvfcs[mi].Count() * sizeof(TVFace));
+        memcpy(m.mapFaces(mi), newtvfcs[mi].data(), newtvfcs[mi].Count() * sizeof(TVFace));
       }
   }
   mesh_face_sel(m) = newfacesel;
@@ -4692,6 +4589,7 @@ void DagUtil::smooth_mesh(INode *node, Mesh &m)
         }
       }
   }
+  return true;
 }
 
 void DagUtil::mesh_smooth()
@@ -4699,24 +4597,50 @@ void DagUtil::mesh_smooth()
   update_vars();
   TimeValue time = ip->GetTime();
   int nc = ip->GetSelNodeCount();
+  bool smoothed = false;
+  int skipped = 0;
+  std::unordered_set<TriObject *> handled;
+  theHold.Begin();
   for (int nn = 0; nn < nc; ++nn)
   {
     INode *node = ip->GetSelNode(nn);
     if (!node)
       continue;
-    Object *meshobj = node->EvalWorldState(time).obj;
-    TriObject *to = (TriObject *)meshobj->ConvertToType(time, Class_ID(TRIOBJ_CLASS_ID, 0));
-    if (!to)
-      continue;
-    if (to != meshobj)
+    Object *obj = node->GetObjectRef();
+    if (!obj || !obj->IsSubClassOf(Class_ID(TRIOBJ_CLASS_ID, 0)))
     {
-      to->DeleteMe();
+      explogWarning(L"Smooth: '%s' is not an editable mesh with no modifiers, skipped\r\n", node->GetName());
+      skipped++;
       continue;
     }
+    TriObject *to = static_cast<TriObject *>(obj);
     Mesh &mesh = to->mesh;
-    smooth_mesh(node, mesh);
+    if (!can_smooth_mesh(mesh))
+    {
+      explogWarning(L"Smooth: '%s' has no texture vertices or more than %d map channels, skipped\r\n", node->GetName(),
+        MESHSMOOTHMAPS_SUPPORT);
+      skipped++;
+      continue;
+    }
+    if (!handled.insert(to).second)
+      continue;
+    theHold.Put(new MeshRestore(to));
+    if (!smooth_mesh(mesh))
+      continue;
     mesh.InvalidateGeomCache();
-    node->InvalidateWS();
+    mesh.InvalidateTopologyCache();
+    to->NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+    smoothed = true;
+  }
+  if (smoothed)
+    theHold.Accept(L"Smooth");
+  else
+    theHold.Cancel();
+  if (skipped)
+  {
+    ip->DisplayTempPrompt(std::format(L"Smooth: {} selected node(s) skipped, see the log", skipped).c_str());
+    if (!are_prompts_suppressed())
+      DagorLogWindow::show();
   }
   ip->RedrawViews(time);
 }

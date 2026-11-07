@@ -19,6 +19,7 @@
 #include <math/dag_bounds3.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_math3d.h>
+#include <math/dag_check_nan.h>
 #include <util/dag_console.h>
 #include <util/dag_convar.h>
 #include <debug/dag_debug3d.h>
@@ -256,7 +257,7 @@ bool is_valid_bounding_radius(const GridObjComponent &grid_obj, float radius, bo
 {
   constexpr float MAX_VALID_BOUNDING_RADIUS_MIN = 64.f;
   constexpr float MAX_VALID_BOUNDING_RADIUS_REL = 2.f;
-  return !isnan(radius) &&
+  return !check_nan(radius) &&
          (is_big_object || radius <= max(MAX_VALID_BOUNDING_RADIUS_MIN,
                                        grid_obj.ownerGrid ? grid_obj.ownerGrid->getCellSize() * MAX_VALID_BOUNDING_RADIUS_REL : 0.f));
 }

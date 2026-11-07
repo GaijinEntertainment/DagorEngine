@@ -14,11 +14,9 @@ space and what happens to an all-white-space or empty `str`.
 
 Takes no arguments. This method and [string.strip](sym:string.strip) call
 the same C++ implementation with the same behavior; `"  hi  ".strip()` gives
-the same result as `strip("  hi  ")`. They differ only in how the VM's
-introspection describes them: the module function is registered with
-`pure fastcall` in its declaration string, while this method is registered
-through a type-mask table that carries neither attribute, so its badges are
-empty even though the underlying computation is also pure.
+the same result as `strip("  hi  ")`. Both are `pure`. They differ only in
+`fastcall`: the module function has it in its declaration string, while this
+method is registered through a type-mask table that has no `fastcall` field.
 
 ## Example
 

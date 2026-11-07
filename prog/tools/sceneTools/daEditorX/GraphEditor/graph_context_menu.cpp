@@ -316,7 +316,7 @@ void GraphContextMenu::openForEdges(const GraphData &gd, const eastl::vector<int
 void GraphContextMenu::openForBackground(bool auto_update_on)
 {
   beginMenu("Graph context menu", /*has_checkable_rows=*/true);
-  addRow(PropPanel::ROOT_MENU_ITEM, "Add node", "Space", Entry{Action::AddNode}, /*enabled=*/false);
+  addRow(PropPanel::ROOT_MENU_ITEM, "Add node", command_hint(CANVAS_ADD_NODE_AT_PIN), Entry{Action::AddNodeAtPoint});
   menu->addSeparator(PropPanel::ROOT_MENU_ITEM);
   // The design draws no mark, but a toggle that does not show its state leaves the user guessing.
   const unsigned autoUpdateRow =

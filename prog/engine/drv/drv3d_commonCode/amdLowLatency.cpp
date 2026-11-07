@@ -27,7 +27,7 @@ public:
       modes = {Mode::Off, Mode::On};
     else
     {
-      logdbg("AMD AntiLag2 initialization failed: %l", hr);
+      logdbg("AMD AntiLag2 initialization failed: 0x%08X", hr);
       modes = {Mode::Off};
     }
   }
@@ -67,7 +67,7 @@ public:
     if (modes.size() == 1)
       return;
 
-    maxFps = frame_limit_us ? round(1.0f / frame_limit_us) : 0;
+    maxFps = frame_limit_us ? round(1e6f / frame_limit_us) : 0;
 
     switch (mode)
     {
@@ -79,6 +79,7 @@ public:
 
   void sleep(uint32_t) override
   {
+    // Update with enable=false is the only call that turns Anti-Lag 2 off in the driver
     if (modes.size() == 1)
       return;
 

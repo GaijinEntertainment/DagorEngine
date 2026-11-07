@@ -27,6 +27,7 @@
 #include <math/dag_convexHullComputer.h>
 #include <libTools/collision/vhacdMeshChecker.h>
 #include <libTools/collision/exportCollisionNodeType.h>
+#include <libTools/collision/collResSliverCheck.h>
 #include <ioSys/dag_oodleIo.h>
 #include <ioSys/dag_btagCompr.h>
 #include <scene/dag_physMat.h>
@@ -51,6 +52,7 @@ static bool jolt_degenerate_fail_export = false;
 
 static float degenerate_tri_area_threshold_sq = 5e-12f;
 static bool report_inverted_mesh_tm = false;
+static bool repair_sliver_caps_always = false;
 // Resolved at plugin init. Listed as a source dep of every collision asset: an isTransparent
 // node is checked against this file, so a physmat edit must re-run the export.
 static String physmat_path;
@@ -186,9 +188,13 @@ static void collision_object_setup(const Tab<GeomMeshHelperDagObject> &dag_objec
     {
       collision_object.mesh.verts.push_back(vert * refDagObject.wtm);
     }
+
+    const bool mirrored = refDagObject.wtm.det() < 0.f;
     for (auto const &face : refDagObject.mesh.faces)
     {
-      collision_object.mesh.faces.push_back({face.v[0] + idxOffset, face.v[1] + idxOffset, face.v[2] + idxOffset});
+      const int v1 = mirrored ? face.v[2] : face.v[1];
+      const int v2 = mirrored ? face.v[1] : face.v[2];
+      collision_object.mesh.faces.push_back({face.v[0] + idxOffset, v1 + idxOffset, v2 + idxOffset});
     }
   }
 }
@@ -502,8 +508,9 @@ public:
   unsigned __stdcall getGameResClassId() const override { return 0xACE50000; }
   unsigned __stdcall getGameResVersion() const override
   {
-    // 6: the v3 stream; 11 keeps the version the precooked products had
-    return 6 * 12 + 11 + (def_collidable ? 1 : 0) + 2 * (!preferZstdPacking ? 0 : (allowOodlePacking ? 2 : 1 + 6));
+    const int base_ver = 9; // the v3 stream with support for repair_sliver_caps_always
+    return (def_collidable ? 1 : 0) + (!preferZstdPacking ? 0 : (allowOodlePacking ? 2 : 4)) + (repair_sliver_caps_always ? 6 : 0) +
+           base_ver * 12;
   }
 
   void __stdcall onRegister() override {}
@@ -974,6 +981,17 @@ public:
 
   bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
+    // constraint: an asset that passes -checkSlivers with the old repair builds byte-equal, unless repairSliverCapsAlways
+    bool has_slivers = false; // stays false with repair_caps, so repairSliverCapsAlways gives one pass
+    const bool ok = exportCollision(a, cwr, log, /*repair_caps*/ repair_sliver_caps_always, has_slivers);
+    if (!has_slivers)
+      return ok;
+    logwarn("%s: sliver faces after the old repair, rebuild with the cap repair", a.getName());
+    return exportCollision(a, cwr, log, /*repair_caps*/ true, has_slivers);
+  }
+
+  bool exportCollision(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log, bool repair_caps, bool &has_slivers)
+  {
     bool collapse_nodes = a.props.getBool("collapseNodes", a.props.getBool("collapseAndOptimize", false));
     phmatNames.reset(); // this asset's material ids start at 0
 
@@ -1015,7 +1033,7 @@ public:
         const TMatrix &nTm = coll.authoredTm[n.nodeIndex];
         const float maxTmScale = coll.nodeMaxTmScale(n.nodeIndex);
         const float weld_eps = a.props.getReal("meshVertWeldEps", 1e-3f) * safeinv(maxTmScale);
-        unsigned zeroarea_faces_cnt = 0;
+        unsigned zeroarea_faces_cnt = 0, sliver_caps_cnt = 0;
         m.kill_unused_verts(weld_eps * weld_eps);
         // Strip only topological degenerates (duplicate-index faces, e.g. from a coincident-cell weld merge):
         // those have a zero-length edge the collapse loop cannot repair and must go. Pass threshold 0 so
@@ -1023,7 +1041,7 @@ public:
         // (merge two verts) instead of deleted outright -- deletion would skip the watertight-preserving path.
         m.kill_bad_faces(0.f);
         // Resolve degenerate triangles by edge collapse (merge two verts) rather than face deletion, so a
-        // watertight mesh stays watertight where deleting the triangle would punch a hole. Two criteria:
+        // watertight mesh stays watertight where deleting the triangle would punch a hole. Three criteria:
         //   1. Jolt-degenerate: (2*area)^2 <= 1e-12 (Jolt Vec3::IsNearZero default). Such a triangle fails
         //      MeshShape creation and fatals the load, so it is resolved for every node (no maxTmScale gate).
         //      Judged in the frame the shipped chunk holds: a collapseNodes asset bakes the node tm
@@ -1031,38 +1049,197 @@ public:
         //      a separate shape transform, and no process rebuilds either at load.
         //   2. Sliver cleanup: the configurable, looser degenerativeTriAreaThresholdSq (default 5e-12),
         //      kept gated to un-scaled nodes -- a quality tunable, not a Jolt requirement.
+        //   3. Cap (repair_caps): apex height over the longest edge under sliver_min_height; its normal is float32 noise.
         // Each collapse merges the shortest edge's two verts to their midpoint, snapped back onto the vert21
         // grid (post-weld pass) so the runtime reproduces the result exactly. The collapsed triangle and its
         // neighbour across that edge gain a duplicate index; kill_bad_faces drops them. Iterate: moving a
-        // vert can flatten another triangle.
-        constexpr float jolt_degenerate_cross_sq = 1e-12f; // matches Jolt/Geometry/IndexedTriangle.h IsDegenerate
+        // vert can flatten another triangle. With repair_caps, a flagged face with no edge under 10 * weld_eps is a cap: its long edge
+        // flips, or its apex collapses into an end, or its chain straightens; none of them deletes a face that has area.
         // Precompute the vert21 grid frame once per node: a collapse below snaps the merged vertex back onto
         // it, and det()+inverse(node tm) are node-constant, so they must not be recomputed per collapse.
         const Vert21Grid vert21Grid(grid_tm ? *grid_tm : nTm, vert21_box ? *vert21_box : BBox3());
+        // the margin over the -checkSlivers limit covers the runtime vert21 decode rounding, one cell diagonal above a 30 m cube
+        const float sliver_min_height =
+          max<float>(CollResSliverStats::H_MIN * 1.25, CollResSliverStats::H_MIN + length(vert21Grid.dec));
+        // the frame of the shipped chunk (see 1. above)
+        auto frame_pt = [&](uint32_t vi) { return collapse_nodes ? nTm * m.vert[vi] : m.vert[vi]; };
+        auto face_ok = [&](uint32_t ia, uint32_t ib, uint32_t ic) {
+          const Point3 w0 = frame_pt(ia), w1 = frame_pt(ib), w2 = frame_pt(ic), e10 = w1 - w0, e20 = w2 - w0;
+          const float crossSqJolt = lengthSq(e10 % e20);
+          if (crossSqJolt <= CollResSliverStats::JOLT_CROSS_SQ)
+            return false;
+          // only a collapsed asset judges in another frame, so only it pays the second cross product
+          if (maxTmScale <= 1.0f && (collapse_nodes ? lengthSq((m.vert[ib] - m.vert[ia]) % (m.vert[ic] - m.vert[ia])) : crossSqJolt) <
+                                      degenerate_tri_area_threshold_sq)
+            return false;
+          if (!repair_caps)
+            return true;
+          const float longestSq = max(max(lengthSq(e10), lengthSq(w2 - w1)), lengthSq(e20));
+          return crossSqJolt >= sliver_min_height * sliver_min_height * longestSq;
+        };
+        // the weld distance in the frame of frame_pt, node-local unless the asset collapses its nodes
+        const float frame_weld_sq = sqr(collapse_nodes ? weld_eps * maxTmScale : weld_eps);
+        auto dead = [](const Face &g) { return g.v[0] == g.v[1] || g.v[1] == g.v[2] || g.v[0] == g.v[2]; };
+        auto normal = [&](uint32_t i0, uint32_t i1, uint32_t i2) {
+          return normalize((frame_pt(i1) - frame_pt(i0)) % (frame_pt(i2) - frame_pt(i0)));
+        };
+        // a cap's corners in the frame of frame_pt, its squared edge lengths, and k, where its longest edge k -> k + 1 starts
+        struct CapFrame
+        {
+          Point3 w[3];
+          float len[3];
+          int k;
+        };
+        auto cap_frame = [&](const Face &f) {
+          CapFrame c;
+          for (int i = 0; i < 3; i++)
+            c.w[i] = frame_pt(f.v[i]);
+          for (int i = 0; i < 3; i++)
+            c.len[i] = lengthSq(c.w[i] - c.w[(i + 1) % 3]);
+          c.k = c.len[1] > c.len[0] ? (c.len[2] > c.len[1] ? 2 : 1) : (c.len[2] > c.len[0] ? 2 : 0);
+          return c;
+        };
+        // Flips the cap's long edge a-b with the face across it, b-a-d in the opposite winding, when d is off the line: the faces
+        // a-d-c and d-b-c keep every vert in place, so nothing can bounce between lines and the mesh stays closed.
+        auto flip_cap = [&](unsigned fi) {
+          const Face f = m.face[fi];
+          const CapFrame c = cap_frame(f);
+          const uint32_t va = f.v[c.k], vb = f.v[(c.k + 1) % 3], vc = f.v[(c.k + 2) % 3];
+          const Point3 lineDir = normalize(c.w[(c.k + 1) % 3] - c.w[c.k]);
+          for (unsigned j = 0; j < m.face.size(); j++)
+          {
+            const Face &g = m.face[j];
+            int e = -1;
+            for (int q = 0; q < 3; q++)
+              if (g.v[q] == vb && g.v[(q + 1) % 3] == va)
+                e = q;
+            if (e < 0)
+              continue;
+            const uint32_t vd = g.v[(e + 2) % 3];
+            const Point3 d = frame_pt(vd) - c.w[c.k];
+            if (vd == vc || lengthSq(d - lineDir * (d * lineDir)) <= frame_weld_sq)
+              continue; // a twin cap, or a needle: straighten_chain handles that
+            const Point3 across = normal(vb, va, vd);
+            const bool keepsFacing = normal(va, vd, vc) * across >= 0.9f && normal(vd, vb, vc) * across >= 0.9f;
+            if (!keepsFacing || !face_ok(va, vd, vc) || !face_ok(vd, vb, vc))
+              continue;
+            m.face[fi].v[0] = va, m.face[fi].v[1] = vd, m.face[fi].v[2] = vc;
+            m.face[j].v[0] = vd, m.face[j].v[1] = vb, m.face[j].v[2] = vc;
+            return true;
+          }
+          return false;
+        };
+        // Slides the cap apex along its long edge into the nearer end; refused when a face of its fan turns or fails face_ok.
+        // A collapse keeps the mesh closed, and the apex sits on that line, so a planar fan keeps its surface.
+        auto collapse_cap = [&](unsigned fi) {
+          const Face f = m.face[fi];
+          const CapFrame c = cap_frame(f);
+          const uint32_t vc = f.v[(c.k + 2) % 3];
+          const uint32_t to = c.len[(c.k + 2) % 3] <= c.len[(c.k + 1) % 3] ? f.v[c.k] : f.v[(c.k + 1) % 3];
+          for (const Face &g : m.face)
+          {
+            const int ci = g.v[0] == vc ? 0 : g.v[1] == vc ? 1 : g.v[2] == vc ? 2 : -1;
+            if (ci < 0 || dead(g) || g.v[0] == to || g.v[1] == to || g.v[2] == to)
+              continue;
+            uint32_t nv[3] = {g.v[0], g.v[1], g.v[2]};
+            nv[ci] = to;
+            if (!face_ok(nv[0], nv[1], nv[2]) || normal(nv[0], nv[1], nv[2]) * normal(g.v[0], g.v[1], g.v[2]) < 0.999f)
+              return false;
+          }
+          for (Face &g : m.face)
+            for (int e = 0; e < 3; e++)
+              if (g.v[e] == vc)
+                g.v[e] = to;
+          return true;
+        };
+        // A cap is one face of a strip of needles along a line: the verts within the weld distance of its long edge line,
+        // reached through faces with two such verts, move onto that line. The faces of those verts only have no area then
+        // and go, and a real face splits at a chain vert inside its edge on the line, so the mesh stays closed.
+        auto straighten_chain = [&](unsigned fi) {
+          const Face f = m.face[fi];
+          const CapFrame cf = cap_frame(f);
+          const uint32_t va = f.v[cf.k], vb = f.v[(cf.k + 1) % 3];
+          const Point3 lineAt = cf.w[cf.k], lineDir = normalize(cf.w[(cf.k + 1) % 3] - cf.w[cf.k]);
+          dag::Vector<uint32_t> chain = {f.v[0], f.v[1], f.v[2]};
+          auto in = [&](uint32_t x) { return eastl::find(chain.begin(), chain.end(), x) != chain.end(); };
+          for (bool grew = true; grew;)
+          {
+            grew = false;
+            for (const Face &g : m.face)
+            {
+              if (dead(g) || in(g.v[0]) + in(g.v[1]) + in(g.v[2]) != 2)
+                continue;
+              const uint32_t x = !in(g.v[0]) ? g.v[0] : !in(g.v[1]) ? g.v[1] : g.v[2];
+              const Point3 d = frame_pt(x) - lineAt;
+              if (lengthSq(d - lineDir * (d * lineDir)) <= frame_weld_sq)
+                chain.push_back(x), grew = true;
+            }
+          }
+          const Point3 a = m.vert[va], ab = m.vert[vb] - a;
+          const float abSq = lengthSq(ab);
+          for (uint32_t x : chain)
+            if (x != va && x != vb)
+            {
+              const Point3 onLine = a + ab * (((m.vert[x] - a) * ab) / abSq);
+              m.vert[x] = vert21_box ? vert21Grid.snap(onLine) : onLine;
+            }
+          for (Face &g : m.face)
+            if (in(g.v[0]) && in(g.v[1]) && in(g.v[2]))
+              g.v[2] = g.v[0]; // a duplicate index: kill_bad_faces below drops it
+          auto along = [&](uint32_t x) { return ((m.vert[x] - a) * ab) / abSq; };
+          for (unsigned j = 0; j < m.face.size(); j++) // the halves appended here are tested too
+            for (int e = 0; e < 3; e++)
+            {
+              const uint32_t v0 = m.face[j].v[e], v1 = m.face[j].v[(e + 1) % 3];
+              if (dead(m.face[j]) || !in(v0) || !in(v1))
+                continue;
+              const float t0 = min(along(v0), along(v1)), t1 = max(along(v0), along(v1)), eps = 1e-6f * (t1 - t0);
+              auto c = eastl::find_if(chain.begin(), chain.end(), [&](uint32_t x) {
+                const float tx = along(x);
+                return x != v0 && x != v1 && tx > t0 + eps && tx < t1 - eps;
+              });
+              if (c == chain.end())
+                continue;
+              Face half = m.face[j];
+              half.v[e] = *c;                // (c, v1, x)
+              m.face[j].v[(e + 1) % 3] = *c; // (v0, c, x)
+              m.face.push_back(half);
+              e = -1; // the shortened edge can hold another chain vert
+            }
+        };
+        // a repaired cap can leave another one
+        constexpr int MAX_SLIVER_ROUNDS = 32;
+        const unsigned maxCapRepairs = srcIndices.size() / 3 + 16;
+        int rounds = 0;
         for (bool more = true; more;)
         {
+          if (repair_caps && (++rounds > MAX_SLIVER_ROUNDS || sliver_caps_cnt > maxCapRepairs))
+          {
+            logwarn("%s: %snode \"%s\" sliver repair stopped after %d rounds and %d cap repairs, face=%d->%d", a.getName(), label,
+              coll.nodeName(n.nodeIndex), rounds - 1, sliver_caps_cnt, (int)srcIndices.size() / 3, m.face.size());
+            break;
+          }
           more = false;
-          for (unsigned i = 0; i < m.face.size(); i++)
+          // straighten_chain appends faces; the next round tests them
+          for (unsigned i = 0, faceCnt = m.face.size(); i < faceCnt && sliver_caps_cnt <= maxCapRepairs; i++)
           {
             const uint32_t ia = m.face[i].v[0], ib = m.face[i].v[1], ic = m.face[i].v[2];
-            if (ia == ib || ib == ic || ia == ic)
+            if (dead(m.face[i]))
               continue; // duplicate-index face from a prior collapse; kill_bad_faces will drop it
-            const float crossSqLocal = lengthSq((m.vert[ib] - m.vert[ia]) % (m.vert[ic] - m.vert[ia]));
-            // Only a collapsed asset judges resource-local, so only it pays the three tm products.
-            float crossSqJolt = crossSqLocal;
-            if (collapse_nodes)
-            {
-              const Point3 w0 = nTm * m.vert[ia], w1 = nTm * m.vert[ib], w2 = nTm * m.vert[ic];
-              crossSqJolt = lengthSq((w1 - w0) % (w2 - w0));
-            }
-            const bool joltDegen = crossSqJolt <= jolt_degenerate_cross_sq;
-            const bool sliver = maxTmScale <= 1.0f && crossSqLocal < degenerate_tri_area_threshold_sq;
-            if (!joltDegen && !sliver)
+            if (face_ok(ia, ib, ic))
               continue;
             const uint32_t ends[3][2] = {{ia, ib}, {ib, ic}, {ic, ia}};
             const float elen[3] = {
               lengthSq(m.vert[ia] - m.vert[ib]), lengthSq(m.vert[ib] - m.vert[ic]), lengthSq(m.vert[ic] - m.vert[ia])};
             const int se = (elen[0] <= elen[1] && elen[0] <= elen[2]) ? 0 : (elen[1] <= elen[2] ? 1 : 2);
+            if (repair_caps && elen[se] > sqr(10 * weld_eps))
+            {
+              if (!flip_cap(i) && !collapse_cap(i))
+                straighten_chain(i);
+              sliver_caps_cnt++;
+              more = true;
+              continue;
+            }
             const uint32_t keep = min(ends[se][0], ends[se][1]), drop = max(ends[se][0], ends[se][1]);
             Point3 merged = (m.vert[keep] + m.vert[drop]) * 0.5f;
             if (vert21_box)
@@ -1080,7 +1257,8 @@ public:
         }
         if (m.face.size() * 3 != srcIndices.size())
           m.kill_unused_verts(-1);
-        if (m.vert.size() == srcVerts.size() && m.face.size() * 3 == srcIndices.size())
+        // a cap repair can keep both counts but change the faces
+        if (m.vert.size() == srcVerts.size() && m.face.size() * 3 == srcIndices.size() && !sliver_caps_cnt)
           return NodeAction::KEEP;
         if (m.vert.size() < 3 || m.face.size() < 1)
         {
@@ -1101,10 +1279,11 @@ public:
             debug("  mv[%d]=%+g,%+g,%+g", i, m.vert[i].x, m.vert[i].y, m.vert[i].z);
           return (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_REMOVE) ? NodeAction::DROP : NodeAction::KEEP;
         }
-        if (zeroarea_faces_cnt)
-          logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g (%d degenerate tris edge-collapsed)",
+        if (zeroarea_faces_cnt || sliver_caps_cnt)
+          logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g (%d degenerate tris edge-collapsed, %d "
+                  "sliver caps repaired)",
             a.getName(), label, coll.nodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3,
-            m.face.size(), weld_eps, zeroarea_faces_cnt);
+            m.face.size(), weld_eps, zeroarea_faces_cnt, sliver_caps_cnt);
         else
           logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g", a.getName(), label,
             coll.nodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3, m.face.size(), weld_eps);
@@ -1389,6 +1568,15 @@ public:
         log.addMessage(log.ERROR, "%s: the written collision stream loads as an empty resource", a.getName());
         return false;
       }
+      CollResSliverStats st;
+      check_collres_slivers(back, st, a.getName(), /*print_faces*/ false);
+      if (st.bad && !repair_caps)
+      {
+        has_slivers = true;
+        return false;
+      }
+      if (st.bad)
+        log.addMessage(log.WARNING, "%s: %d sliver faces remain after the cap repair", a.getName(), st.bad);
       mkbindump::BinDumpSaveCB bcwr(mcwr.getSize() + 16, mcwr);
       if (!back.write(bcwr.getRawWriter(), mat_name) || bcwr.getSize() != mcwr.getSize() ||
           !mcwr.getRawWriter().getMem()->cmpEq(bcwr.getRawWriter().getMem()))
@@ -1475,6 +1663,7 @@ public:
     degenerate_tri_area_threshold_sq = collisionBlk->getReal("degenerativeTriAreaThresholdSq", 5e-12f);
     report_inverted_mesh_tm = collisionBlk->getBool("errorOnInvertedMesh", false);
     jolt_degenerate_fail_export = collisionBlk->getBool("joltDegenerativeTriFailExport", false);
+    repair_sliver_caps_always = collisionBlk->getBool("repairSliverCapsAlways", false);
 
     physmat_path = make_eff_app_relative_path(appblk.getBlockByNameEx("game")->getStr("physmat", "game/config/physmat.blk"));
     if (!dd_file_exist(physmat_path))

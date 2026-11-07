@@ -1,4 +1,6 @@
 
+include "debug_gbuffer_tex.dshl"
+
 macro USE_CLIPMAP_VS(VS_INPUT_M, VS_OUTPUT_M, use_worldpos_from_input)
   hlsl(vs)
   {
@@ -70,11 +72,12 @@ endmacro
 
 
 macro USE_CLIPMAP_PS(VS_OUTPUT, use_worldpos_from_input)
+  INIT_AND_USE_DBG_GBUFF_TEX()
   hlsl(ps)
   {
     GLOBAL_UAV_FEEDBACK
 
-    FORCE_EARLY_DEPTH_STENCIL
+    USE_EARLY_DEPTH_STENCIL
     void calc_clipmap_ps(VS_OUTPUT input, inout UnpackedGbuffer result)
     {
       #ifdef VOXELIZE_DISCARD_PRIM
@@ -152,6 +155,11 @@ macro USE_CLIPMAP_PS(VS_OUTPUT, use_worldpos_from_input)
         ##if last_clip_tex != NULL
           clipmapColor.rgb = puddle>0 ? float3(1000, 1000, 1000) : clipmapColor.rgb;
           SET_LAND_SELFILLUM_PARAMS(clipmapColor.rgb, result, realWorldPos, emission, detailNo)
+          ##if debug_mode_enabled == yes
+            #include "debug_gbuffer_tex_constants.hlsli"
+            if (gbuff_dbg_mode == GBUFF_DBG_MODE_WORLD_TEXEL_DENSITY)
+              init_worldTexelDensity(result, calc_clipmap_world_texel_density());
+          ##endif
         ##endif
       #endif
     }

@@ -8,6 +8,8 @@
 #include <rendInst/rendInstGenRender.h>
 #include <rendInst/rendInstFx.h>
 #include <rendInst/rendInstCollision.h>
+#include <rendInst/rendInstDebris.h>
+#include <rendInst/ccExtra.h>
 #include "../../../rendInst/riGen/riGenData.h"
 #include <rendInst/riexSync.h>
 #include <EASTL/hash_set.h>
@@ -78,7 +80,6 @@ CONSOLE_BOOL_VAL("ridestr", ri_debug_collision, false);
 
 static const Point3 RI_DESTROY_BBOX_MARGIN_UP = Point3(0, 0.05, 0);
 
-static rendinstdestr::remove_physx_collision_object_callback rem_physx_collision_obj_cb = NULL;
 static rendinstdestr::create_apex_actors_callback create_apex_actors_at_point_cb = NULL;
 static rendinstdestr::apex_force_remove_actor_callback apex_force_remove_actor_cb = NULL;
 static rendinstdestr::on_destr_changed_callback on_changed_destr_cb = NULL;
@@ -118,7 +119,13 @@ static constexpr int RI_DESTR_COLLISION_NO_SESSION = -1;
 static BBox3 ri_destr_collision_queue[RI_DESTR_COLLISION_MAX_QUEUE_CAPACITY];
 static int ri_destr_collision_queue_count = RI_DESTR_COLLISION_DISABLED; // DISABLED = feature off, NO_SESSION = enabled but inactive,
                                                                          // 0+ = active queue
-static FixedBlockAllocator cco_alloc(eastl::max(sizeof(RendinstImpulseThresholdData), sizeof(TreeRendinstImpulseThresholdData)), 32);
+static FixedBlockAllocator cco_alloc(eastl::max(sizeof(RendinstImpulseThresholdData), sizeof(TreeRendinstImpulseThresholdData)),
+#if _TARGET_PC
+  128
+#else
+  16
+#endif
+);
 static Tab<CachedCollisionObjectInfo *> cached_collision_objects(midmem);
 // Kept separate from cached_collision_objects: that list is looked up by desc alone from
 // several unrelated systems (projectile impact, mech walker vision) that assume any entry found
@@ -179,37 +186,18 @@ PhysMat::MatID rendinstdestr::get_destructable_physmat_for_ri(const rendinst::Re
   return matId;
 }
 
-void rendinstdestr::fill_destr_obj_params(destructables::DestructableCreationParams &params, const DestrObjProps *obj)
-{
-  static const DestrObjProps default_obj;
-  if (!obj)
-    obj = &default_obj;
-  params.timeToLive = obj->timeToLive;
-  params.inactiveTimeBeforeSink = obj->inactiveTimeBeforeSink;
-  params.timeToKinematic = obj->timeToKinematic;
-  params.timeToSinkUnderground = obj->timeToSinkUnderground;
-  params.timeToStartDisintegration = obj->timeToStartDisintegration;
-  params.disintegrationDuration = obj->disintegrationDuration;
-  params.disintegrationScale = obj->disintegrationScale;
-  params.keepAlive = obj->keepAlive;
-  params.interactiveDebris = obj->interactiveDebris;
-}
-
-
 rendinstdestr::DestrSettings &rendinstdestr::get_mutable_destr_settings() { return destrSettings; }
 
 const rendinstdestr::DestrSettings &rendinstdestr::get_destr_settings() { return destrSettings; }
 
 void rendinstdestr::init_ex(rendinstdestr::on_destr_changed_callback on_destr_cb, ri_tree_sound_cb tree_sound_cb,
   get_camera_pos get_current_camera_pos_, get_current_time_callback get_current_time_cb, bool enable_branch_destruction,
-  remove_physx_collision_object_callback remove_physx_obj_cb, create_apex_actors_callback create_apex_actors_cb,
-  apex_force_remove_actor_callback apex_remove_actor_cb)
+  create_apex_actors_callback create_apex_actors_cb, apex_force_remove_actor_callback apex_remove_actor_cb)
 {
   on_changed_destr_cb = on_destr_cb;
   netsync::init_sync(true, true);
   g_deferred_ri_destr_list.isEnabled = true;
   rendinst::enable_apex = false;
-  rem_physx_collision_obj_cb = remove_physx_obj_cb;
   create_apex_actors_at_point_cb = create_apex_actors_cb;
   apex_force_remove_actor_cb = apex_remove_actor_cb;
   get_current_camera_pos = get_current_camera_pos_;
@@ -227,7 +215,6 @@ void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, b
   g_deferred_ri_destr_list.isEnabled = true;
   rendinst::enable_apex = false;
 
-  rem_physx_collision_obj_cb = nullptr;
   create_apex_actors_at_point_cb = nullptr;
   apex_force_remove_actor_cb = nullptr;
   get_current_camera_pos = get_camera_pos_cb;
@@ -513,7 +500,8 @@ static void findRendinstNeighbors(rendinst::RendInstDesc desc, int destroy_neigh
 
 
 void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreationParams &params, const rendinst::RendInstDesc &desc,
-  const DynamicPhysObjectData *po_data, const TMatrix &tm, rendinst::DestrOptionFlags flags)
+  const rendinst::RendInstDesc &restorable_desc, const DynamicPhysObjectData *po_data, const TMatrix &tm,
+  rendinst::DestrOptionFlags flags)
 {
   params.physObjData = po_data;
   params.tm = tm;
@@ -525,12 +513,83 @@ void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreat
     params.hashVal = riexHandle != rendinst::RIEX_HANDLE_NULL ? rendinst::get_riextra_instance_seed(riexHandle) : 0;
   // for compatibility reasons riGen keeps the built-in lifetime, presets apply to riExtra only
   const rendinstdestr::RiDestrProps *props = desc.isRiExtra() ? rendinstdestr::get_ri_destr_props(desc) : nullptr;
-  fill_destr_obj_params(params, props ? props->destrObj : nullptr);
+  params.destrObjProps = props ? props->destrObj : nullptr;
+  params.destrAnim = props ? props->destrAnim : nullptr;
+  if (rendinst::isRIGenExtraDestroyedPhysNetSynced(desc.pool) && desc.isRiExtra())
+  {
+    const int pool = rendinstdestr::get_destr_settings().isNetClient ? riexsync::get_server_ri_pool_id(desc.pool, -1) : desc.pool;
+    if (pool < 0)
+      logerr("net synced rendinst destroyed on client, while pool is not synced");
+    else if (!restorable_desc.isValid())
+      logerr("net synced rendinst pool %d has no restorable desc", desc.pool);
+    else
+      // bits: [0..14 pool] [14..32 desc] [32..56 offs/8]
+      params.netSyncKey = uint64_t(pool) | (uint64_t(-restorable_desc.cellIdx) << 14u) | (uint64_t(restorable_desc.offs >> 3u) << 32u);
+  }
   params.isDestroyedByExplosion = bool(flags & rendinst::DestrOptionFlag::DestroyedByExplosion);
   if (const auto physMatId = get_destructable_physmat_for_ri(desc); physMatId != PHYSMAT_INVALID)
     params.riPhysMatId = physMatId;
 }
 
+
+void rendinstdestr::for_each_nearby_ri(const RiNearbyGroupsProps *nearby_groups, RiNearbyGroupsProps::Actions required_actions,
+  const rendinst::RendInstBufferData &owner, dag::FunctionRef<void(rendinst::riex_handle_t, RiNearbyGroupsProps::Actions) const> cb)
+{
+  G_ASSERT_RETURN(owner.desc.isRiExtra(), );
+  if (!nearby_groups)
+    return;
+  const auto groupMatches = [&](const RiNearbyGroupsProps::Group &group) {
+    return (group.actions.mask() & required_actions.mask()) == required_actions.mask();
+  };
+  if (eastl::none_of(nearby_groups->groups.begin(), nearby_groups->groups.end(), groupMatches))
+    return;
+  const bbox3f ownerBox = rendinst::riex_get_lbb(owner.desc.pool);
+  mat44f ownerItm;
+  v_mat44_inverse43(ownerItm, owner.tm);
+  struct Match
+  {
+    rendinst::riex_handle_t handle;
+    RiNearbyGroupsProps::Actions actions;
+  };
+  dag::Vector<Match, framemem_allocator> matches;
+  {
+    Tab<rendinst::riex_handle_t> handles(framemem_ptr());
+    rendinst::ScopedRIExtraReadLock lock;
+    for (const RiNearbyGroupsProps::Group &group : nearby_groups->groups)
+    {
+      if (!groupMatches(group))
+        continue;
+      const vec3f extent = v_ldu_p3(&group.extent.x);
+      bbox3f localBox;
+      localBox.bmin = v_sub(ownerBox.bmin, extent);
+      localBox.bmax = v_add(ownerBox.bmax, extent);
+      for (uint32_t i = group.poolsBegin; i < group.poolsEnd; i++)
+      {
+        rendinst::getRiGenExtraInstances(handles, nearby_groups->pools[i]);
+        for (const rendinst::riex_handle_t handle : handles)
+        {
+          mat44f tm;
+          rendinst::getRIGenExtra44NoLock(handle, tm);
+          if (v_bbox3_test_pt_inside(localBox, v_mat44_mul_vec3p(ownerItm, tm.col3)))
+            matches.push_back({handle, group.actions});
+        }
+      }
+    }
+  }
+  for (const Match &match : matches)
+    cb(match.handle, match.actions);
+}
+
+static void set_inner_surfaces_visible(const rendinst::RendInstBufferData &owner, bool visible)
+{
+  const rendinstdestr::RiDestrProps *props = rendinstdestr::get_ri_destr_props(owner.desc);
+  if (!props)
+    return;
+  rendinstdestr::for_each_nearby_ri(props->nearbyGroups, {.reveal = 1}, owner,
+    [&](rendinst::riex_handle_t handle, rendinstdestr::RiNearbyGroupsProps::Actions) {
+      rendinst::setRIGenExtraRenderVisible(handle, visible);
+    });
+}
 
 static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc desc, bool add_restorable, const Point3 &pos,
   const Point3 &impulse, float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr_effects,
@@ -544,14 +603,6 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
 
   G_ASSERT(desc.layer >= 0);
   G_ASSERTF(lengthSq(impulse) < sqr(MAX_RI_DESTROY_IMPULSE), "Bad destroy rendInst impulse %@", impulse);
-
-#if ENABLE_APEX
-  if (rendinst::enable_apex && rem_physx_collision_obj_cb)
-  {
-    TIME_PROFILE(destroyRI_rem_physx_collision_obj_cb);
-    rem_physx_collision_obj_cb(desc);
-  }
-#endif
 
   rendinst::RendInstBufferData riBuffer;
   G_VERIFY(rendinst::fillRendInstBufferData(desc, riBuffer)); // should never fail, as RI is checked to exist
@@ -609,6 +660,8 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   // if not destroyed - call restored cb to rollback previous call
   if (!outRiRemoved)
     rendinstdestr::netsync::call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_RESTORED);
+  else if (desc.isRiExtra())
+    set_inner_surfaces_visible(riBuffer, true);
 
   if (outRiRemoved && create_destr_effects)
     rendinst::playRIGenDestrEffect(riBuffer, rendinstdestr::ri_effect_cb, pos != Point3::ZERO ? &pos : nullptr);
@@ -655,7 +708,9 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     rendinstdestr::call_on_rendinst_destroyed_cb(desc.getRiExtraHandle(), mainTm, bbox, fullBBox);
 
   destructables::id_t destrId = destructables::INVALID_ID;
-  if (!isDestructableCreated && poData && create_destr_effects && rendinstdestr::get_destr_settings().createDestr) //-V560
+  if (!isDestructableCreated && poData && create_destr_effects &&
+      (rendinstdestr::get_destr_settings().createDestr ||
+        (desc.isRiExtra() && rendinst::isRIGenExtraDestroyedPhysNetSynced(desc.pool)))) //-V560
   {
     // Queue nearby RI collision loading so debris can collide with standing rendinsts
     {
@@ -667,7 +722,7 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
 
     destructables::DestructableCreationParams params;
     params.hashVal = riexInstanceSeed;
-    rendinstdestr::fill_ri_destructable_params(params, desc, poData, mainTm, flags);
+    rendinstdestr::fill_ri_destructable_params(params, desc, offsetedDesc, poData, mainTm, flags);
     gamephys::DestructableObject *destr = nullptr;
     mat44f tm44;
     v_mat44_make_from_43cu_unsafe(tm44, mainTm.array);
@@ -717,6 +772,14 @@ rendinst::RendInstDesc rendinstdestr::destroyRendinst(rendinst::RendInstDesc des
   return ret;
 }
 
+rendinst::riex_handle_t rendinstdestr::restore_rendinst(const rendinst::RendInstBufferData &buffer)
+{
+  const rendinst::riex_handle_t handle = rendinst::restoreRendInst(buffer, true);
+  if (handle != rendinst::RIEX_HANDLE_NULL)
+    set_inner_surfaces_visible(buffer, false);
+  return handle;
+}
+
 void rendinstdestr::destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, bool create_destr_effects,
   const Point3 &impulse, const Point3 &impulse_pos, rendinst::DestrOptionFlags flags)
 {
@@ -726,19 +789,22 @@ void rendinstdestr::destroyRiExtra(rendinst::riex_handle_t riex_handle, const TM
   G_ASSERT(!isDestructableTmNaN);
   rendinst::RendInstDesc desc(riex_handle);
   const DynamicPhysObjectData *poData = rendinst::getRIGenDestroyedPhysRes(desc);
+  const rendinst::RendInstDesc restorableDesc = rendinst::get_restorable_desc(desc);
 
   if (ri_effect_cb && create_destr_effects)
     if (rendinst::RendInstBufferData buffer; rendinst::fillRendInstBufferData(desc, buffer))
       rendinst::playRIGenDestrEffect(buffer, ri_effect_cb, /* coll point */ nullptr);
 
-  if (poData != nullptr && rendinstdestr::get_destr_settings().createDestr && !isDestructableTmNaN)
+  if (poData != nullptr &&
+      (rendinstdestr::get_destr_settings().createDestr || rendinst::isRIGenExtraDestroyedPhysNetSynced(desc.pool)) &&
+      !isDestructableTmNaN)
   {
     // Queue nearby RI collision loading so debris can collide with standing rendinsts
     if (ri_destr_collision_queue_count >= 0)
       queue_ri_collision_for_debris(tm44, rendinst::riex_get_lbb(rendinst::handle_to_ri_type(riex_handle)));
 
     destructables::DestructableCreationParams params;
-    fill_ri_destructable_params(params, rendinst::RendInstDesc(riex_handle), poData, transform, flags);
+    fill_ri_destructable_params(params, desc, restorableDesc, poData, transform, flags);
 
     gamephys::DestructableObject *destr = nullptr;
     destructables::addDestructable(&destr, eastl::move(params), phys_world);

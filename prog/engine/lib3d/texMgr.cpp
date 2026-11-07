@@ -14,6 +14,7 @@
 #include <memory/dag_framemem.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
+#include <debug/dag_streamingLog.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_tex3d.h>
@@ -361,7 +362,53 @@ void add_anisotropy_exception(TEXTUREID id)
   TEX_REC_AUTO_LOCK();
   int idx = RMGR.toIndex(id);
   if (idx >= 0)
-    anisotropy_exceptions.add((TEXTUREID)idx);
+    anisotropy_overrides[idx] = {AnisotropyOverride::KEEP, 0};
+}
+
+static int apply_anisotropy_override(int idx, int anisotropic_max) // under rec_lock
+{
+  auto it = anisotropy_overrides.find(idx);
+  if (it == anisotropy_overrides.end())
+    return anisotropic_max;
+  switch (it->second.type)
+  {
+    case AnisotropyOverride::KEEP: return int(RMGR.texSamplerInfo[idx].anisotropic_max);
+    case AnisotropyOverride::DIV: return max(1, anisotropic_max / it->second.value);
+  }
+  return anisotropic_max;
+}
+
+void set_texture_anisotropy_div(TEXTUREID id, int div)
+{
+  TEX_REC_AUTO_LOCK();
+  int idx = RMGR.toIndex(id);
+  if (idx < 0)
+    return;
+  auto it = anisotropy_overrides.find(idx);
+  if (it != anisotropy_overrides.end() && it->second.type == AnisotropyOverride::KEEP)
+    return;
+  if (div > 1)
+    anisotropy_overrides[idx] = {AnisotropyOverride::DIV, div};
+  else
+    anisotropy_overrides.erase(idx);
+  TextureMetaData tmd;
+  tmd.decodeData(RMGR.getName(idx));
+  int anisotropic_max = apply_anisotropy_override(idx, tmd.calcAnisotropy(::dgs_tex_anisotropy));
+  if (RMGR.texSamplerInfo[idx].anisotropic_max == anisotropic_max)
+    return;
+  d3d::SamplerInfo info = RMGR.texSamplerInfo[idx];
+  info.anisotropic_max = anisotropic_max;
+  set_texture_separate_sampler(id, info);
+}
+
+void texmgr_internal::set_texture_derived_sampler(TEXTUREID tid, d3d::SamplerInfo sampler_info)
+{
+  TEX_REC_AUTO_LOCK();
+  int idx = RMGR.toIndex(tid);
+  if (idx < 0)
+    return;
+  sampler_info.anisotropic_max = apply_anisotropy_override(idx, int(sampler_info.anisotropic_max));
+  set_texture_separate_sampler(tid, sampler_info);
 }
 
 void reset_anisotropy(const char *tex_name_filter)
@@ -377,11 +424,9 @@ void reset_anisotropy(const char *tex_name_filter)
         continue;
       if (isFilterValid && strstr(name, tex_name_filter) == nullptr)
         continue;
-      if (anisotropy_exceptions.has((TEXTUREID)i))
-        continue;
       TextureMetaData tmd;
       tmd.decodeData(name);
-      RMGR.texSamplerInfo[i].anisotropic_max = tmd.calcAnisotropy(::dgs_tex_anisotropy);
+      RMGR.texSamplerInfo[i].anisotropic_max = apply_anisotropy_override(i, tmd.calcAnisotropy(::dgs_tex_anisotropy));
       set_texture_separate_sampler(RMGR.toId(i), RMGR.texSamplerInfo[i]);
     }
 }
@@ -390,7 +435,7 @@ static void (*lod_bias_change_cb)() = nullptr;
 
 void set_add_lod_bias_cb(void (*cb)())
 {
-  G_ASSERT(lod_bias_change_cb == nullptr);
+  G_ASSERT(!cb || !lod_bias_change_cb);
   lod_bias_change_cb = cb;
 }
 
@@ -560,6 +605,7 @@ bool texmgr_internal::D3dResMgrDataFinal::scheduleReading(int idx, TextureFactor
       if (!RMGR.startReading(idx, l))
         return false;
       RMGR_DUMP_TEX_STATE(idx);
+      STREAMING_LOG("tex load %s ql=%d lev %d->%d", getName(idx), ql, resQS[idx].getLdLev(), l);
 
       TEXTUREID bt_tid = RMGR.pairedBaseTexId[idx];
       if (bt_tid != BAD_TEXTUREID)
@@ -649,6 +695,7 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
   if (should_skip_reading)
   {
     RMGR_TRACE("%d: skip_reading(rd_lev=%d): %s", idx, rd_lev, getName(idx));
+    STREAMING_LOG("tex load-skip %s rd=%d ld=%d rc=%d", getName(idx), rd_lev, resQS[idx].getLdLev(), getRefCount(idx));
     resQS[idx].setRdLev(rd_lev = resQS[idx].getLdLev()); // skip reading, leave state as is
     completion_cb(idx);
     return TexLoadRes::OK;
@@ -736,7 +783,10 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
   }
 
   if (ret != TexLoadRes::OK)
+  {
+    STREAMING_LOG("tex load-fail %s rd=%d ld=%d ret=%d", getName(idx), rd_lev, resQS[idx].getLdLev(), (int)ret);
     resQS[idx].setRdLev(rd_lev = resQS[idx].getLdLev()); // failed to read, leave state as is
+  }
 
   if (t)
   {
@@ -753,6 +803,8 @@ void texmgr_internal::D3dResMgrDataFinal::finishReading(int idx)
 {
   uint8_t rd_lev = resQS[idx].getRdLev();
   G_ASSERTF_RETURN(rd_lev != 0, , "rdLev=%d ldLev=%d (%d: %s)", rd_lev, resQS[idx].getLdLev(), idx, RMGR.getName(idx));
+  if (rd_lev != resQS[idx].getLdLev())
+    STREAMING_LOG("tex loaded %s lev %d->%d", getName(idx), resQS[idx].getLdLev(), rd_lev);
   TEXTUREID bt_tid = RMGR.pairedBaseTexId[idx];
   if (bt_tid != BAD_TEXTUREID)
   {
@@ -771,6 +823,7 @@ void texmgr_internal::D3dResMgrDataFinal::cancelReading(int idx)
 {
   G_ASSERTF_RETURN(resQS[idx].isReading(), , "rdLev=%d ldLev=%d (%d: %s)", //
     resQS[idx].getRdLev(), resQS[idx].getLdLev(), idx, RMGR.getName(idx));
+  STREAMING_LOG("tex load-cancel %s rd=%d ld=%d", getName(idx), resQS[idx].getRdLev(), resQS[idx].getLdLev());
   TEXTUREID bt_tid = RMGR.pairedBaseTexId[idx];
   if (bt_tid != BAD_TEXTUREID && RMGR.isValidID(bt_tid, nullptr))
   {

@@ -154,6 +154,8 @@ private:
     }
     pendCmnt.clear();
   }
+
+  bool deleteParam(DataBlock &blk, char *pname, const char *expected_value);
 };
 
 
@@ -295,10 +297,10 @@ bool DataBlockParser::skipWhite(bool allow_crlf, bool track_newline_after_param,
 
 struct TempString
 {
-  static constexpr int SSO_SIZE = 32 - 3; // sizeof(bool) + sizeof(unt16_t)
+  static constexpr int SSO_SIZE = 32 - 5; // sizeof(bool) + sizeof(uint32_t)
   bool SSOflag = true;
   char buf[SSO_SIZE];
-  uint16_t len = 0;
+  uint32_t len = 0;
   String str; // can be unioned with buf
   TempString() { buf[0] = 0; }
   bool isSSO() const { return SSOflag; }
@@ -327,7 +329,7 @@ struct TempString
   {
     if (isSSO())
     {
-      if (len - at - n > 0)
+      if (at + n < len)
         memmove(data() + at, data() + at + n, len - at - n);
     }
     else
@@ -600,6 +602,52 @@ static int get_array_idx(char *name)
     return 0;
   *p = '\0';
   return atoi(p + 1) - 1;
+}
+
+bool DataBlockParser::deleteParam(DataBlock &blk, char *pname, const char *expected_value)
+{
+  int idx = get_array_idx(pname);
+  int ordinal = idx + 1;
+  int nameId = blk.getNameId(pname);
+
+  if (nameId >= 0)
+    for (int i = 0; i < blk.paramCount(); ++i)
+    {
+      if (blk.getParamNameId(i) != nameId)
+        continue;
+
+      if (idx != 0)
+      {
+        --idx;
+        continue;
+      }
+
+      if (expected_value && *expected_value)
+      {
+        const int paramType = blk.getParamType(i);
+        if (paramType != DataBlock::TYPE_STRING)
+          SYNTAX_ERROR(String(0, "cannot delete param '%s' (ordinal %d): expected string value '%s', got type %s", pname, ordinal,
+            expected_value, dblk::resolve_type(paramType)));
+
+        const char *value = blk.getStr(i);
+        if (strcmp(value, expected_value) != 0)
+          SYNTAX_ERROR(String(0, "cannot delete param %s (ordinal %d): expected string value '%s', got '%s'", pname, ordinal,
+            expected_value, value));
+      }
+
+      blk.removeParam(i);
+      return true;
+    }
+
+  const char *line_end = curLineP;
+  while (*line_end && *line_end != '\r' && *line_end != '\n')
+    ++line_end;
+
+  const String line_text = String::mk_sub_str(curLineP, line_end);
+  blk.issue_error_parsing(fileName, curLine, String(0, "cannot find param %s (ordinal %d) for deletion", pname, ordinal),
+    line_text.c_str());
+
+  return true;
 }
 
 static void makeFullPathFromRelative(String &path, const char *base_filename)
@@ -1329,27 +1377,8 @@ bool DataBlockParser::parse(DataBlock &blk, int depth)
       }
       else if (strncmp(name, "@delete:", 8) == 0)
       {
-        char *pname = name.data() + 8;
-        int idx = get_array_idx(pname), ord = idx + 1;
-        int nid = blk.getNameId(pname);
-        if (nid >= 0)
-          for (int i = 0, ie = blk.paramCount(); i < ie; i++)
-            if (blk.getParamNameId(i) == nid)
-            {
-              if (idx == 0)
-              {
-                blk.removeParam(i);
-                nid = -2;
-                break;
-              }
-              else
-                idx--;
-            }
-        if (nid != -2)
-        {
-          logerr("cannot find param %s (ordinal %d) for deletion in file %s", pname, ord, blk.resolveFilename(true));
-        }
-        (void)ord;
+        if (!deleteParam(blk, name.data() + 8, type == DataBlock::TYPE_STRING ? value.c_str() : nullptr))
+          return false;
       }
       else if (strncmp(name, "@delete-all:", 12) == 0)
       {
@@ -1429,25 +1458,8 @@ bool DataBlockParser::parse(DataBlock &blk, int depth)
       }
       else if (strncmp(name, "@delete:", 8) == 0)
       {
-        char *pname = name.data() + 8;
-        int idx = get_array_idx(pname), ord = idx + 1;
-        int nid = blk.getNameId(pname);
-        if (nid >= 0)
-          for (int i = 0, ie = blk.paramCount(); i < ie; i++)
-            if (blk.getParamNameId(i) == nid)
-            {
-              if (idx == 0)
-              {
-                blk.removeParam(i);
-                nid = -2;
-                break;
-              }
-              else
-                idx--;
-            }
-        if (nid != -2)
-          logerr("cannot find param %s (ordinal %d) for deletion in file %s", pname, ord, blk.resolveFilename(true));
-        (void)ord;
+        if (!deleteParam(blk, name.data() + 8, value.c_str()))
+          return false;
       }
       wasNewlineAfterStatement = false;
       lastStatement = 0;
@@ -1534,7 +1546,18 @@ bool DataBlockParser::parse(DataBlock &blk, int depth)
           const VirtualRomFsData *getTargetVromFs() const override { return df_get_vromfs_for_file_ptr(fp); }
         };
         VromfsInPlaceMemLoadCB crd(&buffer[pos], len, h);
-        inc_blk.loadFromStream(crd, valueStr, fnotify, len);
+        if (!inc_blk.loadFromStream(crd, valueStr, fnotify, len))
+        {
+          // user data loads go past bad includes
+          const bool goOnAfterFailure = !robustParsing && !DataBlock::fatalOnMissingFile && DataBlock::fatalOnLoadFailed;
+          if (!goOnAfterFailure)
+          {
+            df_close(h);
+            blkRef->issue_error_parsing(cachedFileName, include_curLine, String(0, "error loading include file '%s'", valueStr), " ");
+            return false;
+          }
+          inc_blk.reset();
+        }
         erase_items(buffer, pos, len + 2);
 
         DynamicMemGeneralSaveCB cwr(framemem_ptr(), len * 2, 4 << 10);

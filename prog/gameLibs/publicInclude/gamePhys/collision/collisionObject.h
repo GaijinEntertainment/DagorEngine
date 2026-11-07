@@ -15,43 +15,14 @@ struct CollisionObjectUserData : public PhysObjectUserData
   MAKE_PHYS_OBJ_TYPE(CollisionObjectUserData, _MAKE4C('CLOB'));
 };
 
-namespace physx
-{
-class PxRigidActor;
-}
-struct CollisionObject;
-
-struct CollisionObjectBullet
+struct CollisionObject
 {
   PhysBody *body = nullptr;
-  CollisionObjectBullet() = default;
-  CollisionObjectBullet(PhysBody *b, physx::PxRigidActor *physx_obj) : body(b)
-  {
-    G_ASSERT(!physx_obj);
-    G_UNUSED(physx_obj);
-  }
-  CollisionObjectBullet(CollisionObject);
+
+  CollisionObject() = default;
+  explicit CollisionObject(PhysBody *b) : body(b) {}
+
   explicit operator bool() const { return body != nullptr; }
   bool isValid() const { return body; }
   void clear_ptrs() { body = nullptr; }
 };
-
-struct CollisionObject
-{
-  PhysBody *body = nullptr;
-  physx::PxRigidActor *physxObject = nullptr;
-
-  CollisionObject() = default;
-  CollisionObject(PhysBody *b, physx::PxRigidActor *p) : body(b), physxObject(p) {}
-  /*imlicit*/ CollisionObject(CollisionObjectBullet cob) : body(cob.body) {}
-
-  explicit operator bool() const { return body != nullptr; }
-  bool isValid() const { return body; }
-  void clear_ptrs()
-  {
-    body = nullptr;
-    physxObject = nullptr;
-  }
-};
-
-inline CollisionObjectBullet::CollisionObjectBullet(CollisionObject co) : body(co.body) { G_ASSERT(!co.physxObject); }

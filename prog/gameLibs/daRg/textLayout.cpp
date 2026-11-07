@@ -2,6 +2,7 @@
 
 #include "textLayout.h"
 #include "dargDebugUtils.h"
+#include "textUtil.h"
 
 #include <daRg/dag_layout.h>
 
@@ -726,18 +727,29 @@ Point2 FormattedText::calcEmbeddedComponentSize(const Sqrat::Object &comp, float
 }
 
 
+int FormatParams::monoWidthFor(int font_id, int font_ht) const
+{
+  if (monoWidthStr.empty() || (font_id == defFontId && font_ht == defFontHt))
+    return monoWidth;
+  return darg::font_mono_width_from_str(font_id, font_ht, monoWidthStr.c_str(), monoWidthStr.length());
+}
+
+
 static void resolve_block_font(const TextBlock *block, const FormatParams &params, StdGuiFontContext &fontCtx, float &ascent,
   float &descent)
 {
-  fontCtx.font = StdGuiRender::get_font(block->fontId);
+  int fontId = block->fontId;
+  fontCtx.font = StdGuiRender::get_font(fontId);
   if (!fontCtx.font)
   {
     logerr("Invalid fontId=%d in text block '%s'", block->fontId, block->text.c_str());
-    fontCtx.font = StdGuiRender::get_font(params.defFontId);
+    fontId = params.defFontId;
+    fontCtx.font = StdGuiRender::get_font(fontId);
   }
   if (!fontCtx.font)
     DAG_FATAL("Fonts are broken: block fontId=%d defFontId=%d", block->fontId, params.defFontId);
   fontCtx.fontHt = block->fontHt;
+  fontCtx.monoW = params.monoWidthFor(fontId, block->fontHt);
 
   ascent = StdGuiRender::get_font_ascent(fontCtx);
   descent = StdGuiRender::get_font_descent(fontCtx);
@@ -795,7 +807,8 @@ void FormattedText::format(const FormatParams &params)
   // block->size; wrap-only changes (maxWidth, spacing/indent) preserve it.
   const bool shapeInputsChanged =
     lastFormatParamsForCurText.defFontId != params.defFontId || lastFormatParamsForCurText.defFontHt != params.defFontHt ||
-    lastFormatParamsForCurText.spacing != params.spacing || lastFormatParamsForCurText.monoWidth != params.monoWidth;
+    lastFormatParamsForCurText.spacing != params.spacing || lastFormatParamsForCurText.monoWidth != params.monoWidth ||
+    lastFormatParamsForCurText.monoWidthStr != params.monoWidthStr;
   if (shapeInputsChanged)
     for (TextBlock *block : blocks)
       block->hasValidShape = false;
@@ -828,7 +841,6 @@ void FormattedText::format(const FormatParams &params)
 
   StdGuiFontContext fontCtx;
   fontCtx.spacing = params.spacing;
-  fontCtx.monoW = params.monoWidth;
 
   const bool allowWrap = (preformattedFlags & FMT_NO_WRAP) == 0;
   const bool breakLongWords = allowWrap && params.maxWidth > 0 && params.breakLongWords;
@@ -993,6 +1005,56 @@ void FormattedText::format(const FormatParams &params)
       debug("(%d) [%s]", block->type, block->text.c_str());
   }
 #endif
+}
+
+
+LineClamp FormattedText::clampLine(const TextLine &line, float max_w, const wchar_t *suffix, int suffix_len) const
+{
+  const FormatParams &params = lastFormatParamsForCurText;
+
+  StdGuiFontContext fontCtx;
+  fontCtx.spacing = params.spacing;
+  fontCtx.monoW = params.monoWidth;
+  fontCtx.font = StdGuiRender::get_font(params.defFontId);
+  fontCtx.fontHt = params.defFontHt;
+  G_ASSERT_RETURN(fontCtx.font, {});
+
+  const float suffixW = StdGuiRender::get_str_bbox_u(suffix, suffix_len, fontCtx).right();
+  const float availW = max_w - suffixW;
+  auto blockRight = [&](int i) { return line.blocks[i]->position.x + line.blocks[i]->size.x; };
+
+  LineClamp res;
+  const int nBlocks = line.blocks.size();
+  while (res.numBlocks < nBlocks && blockRight(res.numBlocks) <= availW)
+    ++res.numBlocks;
+
+  if (res.numBlocks < nBlocks && line.blocks[res.numBlocks]->type == TextBlock::TBT_TEXT)
+  {
+    const TextBlock *block = line.blocks[res.numBlocks];
+    float ascent, descent;
+    resolve_block_font(block, params, fontCtx, ascent, descent);
+    const float blockAvailW = availW - block->position.x;
+    const int bytes = fit_prefix_len(block, fontCtx, blockAvailW);
+    const float cutW = StdGuiRender::get_str_bbox(block->text.c_str(), bytes, fontCtx).right();
+    if (cutW <= blockAvailW)
+    {
+      res.cutBytes = bytes;
+      res.suffixX = block->position.x + cutW;
+    }
+  }
+
+  if (!res.cutBytes)
+  {
+    while (res.numBlocks > 0 && line.blocks[res.numBlocks - 1]->type == TextBlock::TBT_SPACE)
+      --res.numBlocks;
+    if (res.numBlocks > 0)
+      res.suffixX = blockRight(res.numBlocks - 1);
+    else if (nBlocks > 0)
+      res.suffixX = line.blocks[0]->position.x;
+  }
+
+  res.width = res.suffixX + suffixW;
+  return res;
 }
 
 

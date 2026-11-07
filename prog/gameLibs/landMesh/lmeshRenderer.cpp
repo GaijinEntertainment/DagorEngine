@@ -62,11 +62,11 @@ static const char *rtypes_block_name[LandMeshRenderer::RENDER_TYPES_COUNT] = {
   "land_mesh_render_depth", // RENDER_ONE_SHADER //feedback, heightmap, vsm - uses only one shader for all landmeshes and
                             // landmesh_combined
   "land_mesh_prepare_clipmap",
+  "land_mesh_water_decals",
 };
 
 static DynamicShaderHelper bboxShader;
 const int BOX_VERTEXES_COUNT = 6 * 6;
-static const float BOTTOM_ZBIAS = -1e-6f;
 
 static const int MAX_CR_SURVEYS = 1;
 static bool useConditionalRendering = true;
@@ -190,6 +190,7 @@ void LandMeshRenderer::MirroredCellState::startRender(RenderPassCtx &pass_ctx)
 {
   set_ps_const1_opt(lmesh_ps_const__mirror_scale, 1.f, 1.f);
   pass_ctx.mirrorMask = 0;
+  pass_ctx.clampSampler = d3d::request_sampler({.address_mode_u = d3d::AddressMode::Clamp, .address_mode_v = d3d::AddressMode::Clamp});
 }
 
 void LandMeshRenderer::MirroredCellState::setPosConsts(bool render_at_0) const
@@ -473,9 +474,8 @@ shaders::OverrideStateId LandMeshRenderer::setStateFlipCull(bool flip_cull)
   return setOverride(state);
 }
 
-shaders::OverrideStateId LandMeshRenderer::setStateDepthBias(StateDepthBias depth_bias)
+shaders::OverrideStateId LandMeshRenderer::setStateDepthBias()
 {
-  G_UNREFERENCED(depth_bias);
   shaders::OverrideState state;
   state.set(shaders::OverrideState::Z_BIAS);
   state.zBias = 0;
@@ -837,47 +837,37 @@ void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, const Render
     }
   }
 
-  // Single CB unifying the four prior shapes. Policy flags:
-  //  - setStatesFlag      : call mat->setStates(0, true) (skipped for ONE_SHADER no-states path)
-  //  - applyDepthBiasFlag : adjust depth bias per BOTTOM_ABOVE/BELOW (off for ONE_SHADER, on for FULL and DEPTH)
-  //  - skipBottom         : in DEPTH path, BELOW returns false and ABOVE skips bias adjust (pass_ctx decision)
+  // Policy flags:
+  //  - setStatesFlag : call mat->setStates(0, true) (skipped for ONE_SHADER no-states path)
+  //  - skipBottom    : in DEPTH path under an external bias, BELOW materials are culled (pass_ctx decision)
   struct RosdCB : landmesh::IRosdSetStatesCB
   {
-    LandMeshRenderer *renderer;
-    mutable shaders::OverrideStateId prevStateId;
-    bool setStatesFlag, applyDepthBiasFlag, skipBottom;
+    bool setStatesFlag, skipBottom;
 
-    RosdCB(LandMeshRenderer *r, bool set_states, bool apply_depth_bias, bool skip_bottom) :
-      renderer(r),
-      prevStateId(shaders::overrides::get_current()),
-      setStatesFlag(set_states),
-      applyDepthBiasFlag(apply_depth_bias),
-      skipBottom(skip_bottom)
-    {}
+    RosdCB(bool set_states, bool skip_bottom) : setStatesFlag(set_states), skipBottom(skip_bottom) {}
 
     virtual bool applyMat(ShaderElement *mat, int bottom_type) const override
     {
       if (setStatesFlag && !mat->setStates(0, true))
         return false;
-      if (applyDepthBiasFlag && VariableMap::isGlobVariablePresent(var::bottom))
-      {
-        if (skipBottom)
-          return bottom_type != BOTTOM_BELOW; // BELOW: cull; ABOVE: keep but skip bias adjust
-        renderer->resetOverride(prevStateId);
-        renderer->setStateDepthBias(bottom_type == BOTTOM_BELOW ? STATE_DEPTH_BIAS_BOTTOM : STATE_DEPTH_BIAS_ZERO);
-      }
-      return true;
+      return !skipBottom || bottom_type != BOTTOM_BELOW;
     }
   };
 
+  // The zero bias override is set once, before the first setStates: a per-material switch after it
+  // reached the next material only, and a reset in between dropped the external override bits.
+  // The DEPTH pass sets it (or keeps the external bias) in renderCulledImpl.
   shaders::OverrideStateId prevStateId = shaders::overrides::get_current();
   if (rtype == RENDER_ONE_SHADER)
-    landmesh::renderOptSceneData(optScn[lodNo], RosdCB(this, /*setStates*/ force_set_states, /*depthBias*/ false, false));
+    landmesh::renderOptSceneData(optScn[lodNo], RosdCB(/*setStates*/ force_set_states, /*skipBottom*/ false));
   else if (rtype == RENDER_DEPTH)
-    landmesh::renderOptSceneData(optScn[lodNo],
-      RosdCB(this, /*setStates*/ force_set_states, /*depthBias*/ true, pass_ctx.skipBottomRendering));
+    landmesh::renderOptSceneData(optScn[lodNo], RosdCB(/*setStates*/ force_set_states, pass_ctx.skipBottomRendering));
   else
-    landmesh::renderOptSceneData(optScn[lodNo], RosdCB(this, /*setStates*/ true, /*depthBias*/ true, /*skipBottom*/ false));
+  {
+    if (VariableMap::isGlobVariablePresent(var::bottom))
+      setStateDepthBias();
+    landmesh::renderOptSceneData(optScn[lodNo], RosdCB(/*setStates*/ true, /*skipBottom*/ false));
+  }
   resetOverride(prevStateId);
 }
 
@@ -1332,7 +1322,7 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, RenderPassCtx &pass
     // todo: split in two passes
     shaders::OverrideStateId prevStateId;
     if (VariableMap::isGlobVariablePresent(var::bottom))
-      prevStateId = setStateDepthBias(STATE_DEPTH_BIAS_ZERO);
+      prevStateId = setStateDepthBias();
     bool *isCombinedBig;
     ShaderMesh *combinedm = provider.getCellCombinedShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY, &isCombinedBig);
     GlobalVertexData *vertexData = NULL;
@@ -1373,12 +1363,6 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, RenderPassCtx &pass
         vertexData = re.vertexData;
         vertexData->setToDriver();
       }
-      if (VariableMap::isGlobVariablePresent(var::bottom))
-      {
-        resetOverride(prevStateId);
-        prevStateId =
-          setStateDepthBias(curState.landBottom[lodNo][ei] == BOTTOM_BELOW ? STATE_DEPTH_BIAS_BOTTOM : STATE_DEPTH_BIAS_ZERO);
-      }
       d3d_err(re.drawIndTriList());
     }
     resetOverride(prevStateId);
@@ -1389,7 +1373,7 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, RenderPassCtx &pass
   {
     mirroredCell.setDetMapTc();
     curState.set(rtype == RENDER_GRASS_MASK, vtex->getLandClassesLoaded(), false,
-      rtype == RENDER_GRASS_MASK ? vtex->getPhysmatIdsBuf() : NULL);
+      rtype == RENDER_GRASS_MASK ? vtex->getPhysmatIdsBuf() : NULL, pass_ctx.clampSampler);
   }
 
 
@@ -1796,9 +1780,10 @@ void LandMeshRenderer::renderCulledImpl(LandMeshManager &provider, RenderType rt
     ShaderMesh *landm = provider.getCellLandShaderMesh(culledData.centerCell.x, culledData.centerCell.y, 0);
     if (!landm)
       landm = provider.getCellLandShaderMesh(provider.getCellOrigin().x, provider.getCellOrigin().y, 0);
-    landm->getAllElems()[0].e->setStates(0, true);
+    if (landm && !landm->getAllElems().empty())
+      landm->getAllElems()[0].e->setStates(0, true);
     if (VariableMap::isGlobVariablePresent(var::bottom) && !passCtx.skipBottomRendering)
-      prevStateId = setStateDepthBias(STATE_DEPTH_BIAS_ZERO);
+      prevStateId = setStateDepthBias();
   }
 
 #if DAGOR_DBGLEVEL > 0
@@ -2105,7 +2090,6 @@ bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandM
         mirroredCell.setPosConsts(false);
         CellState &curState = cellStates[mirroredCell.cellX + mirroredCell.cellY * provider.getNumCellsX()];
         mirroredCell.setDetMapTc();
-        curState.set(false, vtex->getLandClassesLoaded(), true);
 
         if (!desc.decalsCompatibilityMode)
         {

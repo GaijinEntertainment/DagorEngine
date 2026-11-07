@@ -7,7 +7,7 @@ summary: The `#` directives that turn a language feature on or off.
 
 A line starting with `#` is a compiler directive. The directive is an
 identifier-like word, with an optional `default:` prefix, that turns a
-language feature on or off for the rest of the current unit. It is not a
+language feature on or off for the whole file. It is not a
 comment (see [Lexical structure](page:language/lexical)). It is also not an
 `#if`-style preprocessor: there is no expression, no macro and no condition.
 
@@ -29,23 +29,21 @@ bytecode optimizer.
 `#strict` and `#relaxed` change only root-table access and `delete`. They
 do not change `switch` or any other feature.
 
-## Scope
+## Placement and scope
 
-Without `default:`, a directive applies from the line where it is written to
-the end of the block that contains it (a function body or a bare `{ }`). The
-old value comes back when that block ends. At the top level, the block is
-the rest of the file.
+Directives go at the top of a file, before the imports and before all other
+statements. Only comments and the module docstring can come before them. A
+directive applies to the whole file, and to every function in it. A
+directive in a different place is a compile error. Only `#pos`, described
+below, can be anywhere:
 
-Two directive pairs do not follow that rule: `#disable-optimizer` /
-`#enable-optimizer` and `#forbid-implicit-type-methods` /
-`#allow-implicit-type-methods`. The compiler resolves them while it generates
-code for the enclosing function, not while it parses the block that declares
-them.
-Their effect lasts until that function ends (or the file ends, at the top
-level), even when the directive is inside a nested `{ }` that has already
-closed.
+```nut
+import "math"
+#allow-switch-statement
+// directives must be at the top of the file, before imports
+```
 
-{{example:language/directives-scope}}
+When two directives change the same feature, the last one wins.
 
 ## default:
 
@@ -121,8 +119,8 @@ down a suspected optimizer bug.
 
 ## #pos
 
-`#pos:<line>:<column>` is not in the list above. It does not accept
-`default:` and it cannot be turned off. It sets the compiler's line and
+`#pos:<line>:<column>` is not in the list above. It can be anywhere in a
+file, it does not accept `default:` and it cannot be turned off. It sets the compiler's line and
 column counters to the given position. Every error and every
 [`__LINE__`](page:language/lexical) after it is reported against that
 position, not against the line count of the real file. Tools that generate

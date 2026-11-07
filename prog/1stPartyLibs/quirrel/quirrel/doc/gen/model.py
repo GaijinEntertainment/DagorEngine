@@ -377,8 +377,7 @@ class Page:
 
 class Site:
     def __init__(self, containers, symbols, meta, pages, keywords=None, operators=None,
-                 intro=None, capi=(), capi_docs=None, metamethods=None, bench=None,
-                 vm_bench=None):
+                 intro=None, capi=(), capi_docs=None, metamethods=None, bench=None):
         self.containers = containers
         self.symbols = symbols
         self.meta = meta
@@ -397,7 +396,6 @@ class Site:
         # Measured elsewhere and committed, so the page can state numbers this build
         # cannot produce. None when nobody has run the harness.
         self.bench = bench
-        self.vm_bench = vm_bench
         self.by_ref = {s.ref: s for s in symbols}
         self.xrefs = self._build_xrefs()
 
@@ -595,11 +593,10 @@ def load(meta_path=None):
         with open(capi_doc_path, encoding="utf-8") as f:
             capi_docs = json.load(f)["functions"]
 
-    # The two benchmark side-cars are written by bench/, on Windows, where the
-    # prebuilt interpreters are. A missing one only costs its table, so the site
+    # The benchmark side-car is written by bench/, on Windows, where the
+    # prebuilt interpreters are. A missing one only costs its charts, so the site
     # builds on a machine that has never run a benchmark.
     bench = load_json(os.path.join(CONTENT, "_bench.json"))
-    vm_bench = load_json(os.path.join(CONTENT, "_vm_bench.json"))
 
     return Site(containers, symbols, meta, pages, keywords, operators, intro, capi, capi_docs,
-                metamethods, bench, vm_bench)
+                metamethods, bench)

@@ -69,24 +69,21 @@ struct JobInfo //-V730
   {}
 };
 
-#if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 101400
-class ESJob final : public cpujobs::IJob // workaround for 'error: aligned deallocation function of type 'void (void *,
-                                         // std::align_val_t) noexcept' is only available on macOS 10.14 or newer'
-#else
-class alignas(128) ESJob final : public cpujobs::IJob // align on 2 cache lines to avoid false sharing on setting 'done' within
-                                                      // threadpool
-#endif
+// align on 2 cache lines to avoid false sharing on setting 'done' within threadpool
+class alignas(128) ESJob final : public cpujobs::IJob
 {
   JobInfo *__restrict parent = 0; // same lifetime as thread
   uint32_t workerId = 0;
 
 public:
-  ESJob(JobInfo *parent_, uint32_t id) : parent(parent_), workerId(id) {}
+  ESJob(JobInfo *parent_, uint32_t id, da_profiler::desc_id_t job_desc) : parent(parent_), workerId(id)
+  {
+    IJob::jobNameProfDesc = job_desc;
+  }
 
   static inline void perform_fun( // ESJob *job,
     JobInfo *__restrict info, const uint32_t *__restrict startsPtr, uint32_t worker_id)
   {
-    // debug("start job %d us", get_time_usec(baset));
     const uint32_t totalSize = info->totalSize;
     if (info->work_started.load(dag::memory_order_relaxed) >= totalSize)
       return;
@@ -107,11 +104,9 @@ public:
       if (totalCount <= 0)
         break;
       // if we are here, query is valid pointer
-      // debug("%d:we start at %d do %d out of %d",threadId, totalStart, totalCount, query.totalSize);
       const uint32_t *__restrict starts = startsPtr + currentChunk;
       for (; totalStart >= starts[1]; currentChunk++, starts++) // we first need to find chunk where unfinished work starts
         ;
-      // debug("%d:current chunk is %d, which starts at %d has size of %d",threadId, currentChunk, *starts, starts[1]-starts[0]);
 
       const Query &__restrict query = info->query;
       G_FAST_ASSERT(currentChunk < query.chunksCount());
@@ -122,7 +117,6 @@ public:
         const int chunkStartsAt = *starts;
         const int chunkStart = totalStart - chunkStartsAt;
         const int chunkWork = min((int)(starts[1]) - totalStart, workLeft);
-        // debug("%d:perform on chunk %d c_i %d c_size %d",threadId, currentChunk, chunkStart, chunkWork);
 
         G_FAST_ASSERT(currentChunk < query.chunksCount() &&
                       uint32_t(chunkStart) + uint32_t(chunkWork) <= info->query.chunkEntitiesCnt[currentChunk]);
@@ -160,13 +154,13 @@ public:
   }
 };
 
-static constexpr int num_jobs_to_wake_up_all = 2; // it is faster to wake up 2 thread workers one-by-one, than wake up all
+static constexpr int NUM_JOBS_TO_WAKE_UP_ALL = 2; // it is faster to wake up 2 thread workers one-by-one, than wake up all
+static constexpr int SPINS_BEFORE_BARRIER = SPINS_BEFORE_SLEEP / 16; // empty attempts, then wait as from main
 
 static __forceinline void parallel_for(int num_jobs, EntityManager &mgr, const query_cb_t &fun, const Query &pQuery, void *user_data,
   int min_quant, threadpool::JobPriority tpprio)
 {
   TIME_PROFILE(ecs_parallel_for_query);
-  // debug("start working on %p[%d] == %d(%d)", &pQuery, chunk, cnt);
   alignas(ESJob) char jobStorage[MAX_ES_JOBS * sizeof(ESJob)];
   ESJob *jobs = (ESJob *)jobStorage;
   JobInfo info(mgr, pQuery, fun, user_data, min_quant);
@@ -181,37 +175,41 @@ static __forceinline void parallel_for(int num_jobs, EntityManager &mgr, const q
   info.starts[chunksCount] = info.totalSize = querySize; // we have to copy querySize to info.totalSize. &query will die before thread
                                                          // exits
 
-  num_jobs = min(num_jobs, (int)MAX_ES_JOBS);
-  // debug("num_jobs = %d", num_jobs);
   uint32_t queue_pos = 0;
-  auto wakeOnAdd = num_jobs <= num_jobs_to_wake_up_all ? threadpool::AddFlags::WakeOnAdd : threadpool::AddFlags::None;
+  auto wakeOnAdd = num_jobs <= NUM_JOBS_TO_WAKE_UP_ALL ? threadpool::AddFlags::WakeOnAdd : threadpool::AddFlags::None;
+  // Only main thread (high prio) works on the query itself, so one more job takes that share otherwise
+  const bool drainHighPrio = tpprio != threadpool::PRIO_HIGH;
+  num_jobs = min(num_jobs + (drainHighPrio ? 1 : 0), (int)MAX_ES_JOBS);
+  da_profiler::desc_id_t jobDesc = 0;
+#if TIME_PROFILER_ENABLED
+  static da_profiler::desc_id_t job_desc = 0;
+  jobDesc = interlocked_relaxed_load(job_desc);
+  if (!jobDesc)
+    interlocked_relaxed_store(job_desc, jobDesc = ::da_profiler::add_description(nullptr, 0, 0, "ESJob"));
+#endif
+  for (int i = 0, firstWorkerId = drainHighPrio ? 0 : 1; i < num_jobs; ++i)
   {
-    // TIME_PROFILE(add);
-    for (int i = 0; i < num_jobs; ++i)
-    {
-      ESJob *j = new (jobs + i, _NEW_INPLACE) ESJob(&info, i + 1);
+    ESJob *j = new (jobs + i, _NEW_INPLACE) ESJob(&info, firstWorkerId + i, jobDesc);
+    if (i + 1 < num_jobs || !drainHighPrio) // the last one is added after the wake up below
       threadpool::add(j, tpprio, queue_pos, wakeOnAdd | threadpool::AddFlags::IgnoreNotDone); // job->done == 1 for sure
-    }
   }
   if (wakeOnAdd == threadpool::AddFlags::None)
-  {
-    // TIME_PROFILE(wake);
     threadpool::wake_up_all();
-  }
-  // debug("jobs added start is %d (%d)",
-  //   info.work_started.load(std::memory_order_acquire), cnt);
-  {
-    // TIME_PROFILE(active_wait);
+  if (!drainHighPrio) // from main thread the goal is latency: work on the query, then wait for the own jobs
     ESJob::perform_fun(&info, info.starts.data(), 0);
+  else // elsewhere it is occupancy: perform the pending high prio jobs rather than idle next to them, and the own ones
+  {
+    threadpool::add(&jobs[num_jobs - 1], tpprio, queue_pos, threadpool::AddFlags::IgnoreNotDone);
+    for (int spins = SPINS_BEFORE_BARRIER; spins > 0 && !interlocked_acquire_load(jobs[num_jobs - 1].done);)
+      if (!threadpool::perform_pending_job(threadpool::PRIO_HIGH) && !threadpool::perform_pending_job(tpprio, queue_pos))
+      {
+        cpu_yield();
+        --spins;
+      }
   }
-  // todo: we can use just active wait, instead of barrier active wait, if we are running from non main thread
-  // it reflects the following assumption, when we run from main thread our primary goal is to reduce latency, if we run from other
-  // threads - our goal is to increase occupancy
-  threadpool::barrier_active_wait_for_job(&jobs[num_jobs - 1], tpprio, queue_pos); // make sure we have captured all jobs
-  // debug("all work scheduled %d done = (%d)",
-  //   info.work_started.load(std::memory_order_acquire), cnt);
+  threadpool::barrier_active_wait_for_job(&jobs[num_jobs - 1], tpprio, queue_pos);
   TIME_PROFILE_WAIT_DEV("ecs_pfor_wait");
-  for (int i = 0; i < num_jobs; ++i) // ensure all other jobs are also finished
+  for (int i = 0; i < num_jobs; ++i) // all of them must finish, the jobs and the info are on this stack
     threadpool::wait(&jobs[i]);
 }
 
@@ -224,22 +222,17 @@ void EntityManager::updateCurrentUpdateMaxJobs()
 
 bool EntityManager::performMTQuery(const Query &pQuery, const query_cb_t &fun, void *user_data, int min_quant)
 {
-  const bool isMainThread = is_main_thread();
-  const int numJobs = min<int>(maxNumJobs - (isMainThread ? 0 : 1), // actually we want to check if we are running from thread pool
-                                                                    // worker thread!
-                                                                    // but if we are running from thread, than it is likely we are in
-                                                                    // worker thread
-    (min_quant > 1 ? int(pQuery.totalSize + min_quant - 1) / min_quant : int(pQuery.totalSize)) - 1); // there is no point in starting
-                                                                                                      // more jobs than work for them,
-                                                                                                      // plus we also have main thread
+  // Not from main it is likely a worker, which takes a slot of the pool itself, so one job less. No point in more
+  // jobs than there is work for them either
+  const bool fromMain = is_main_thread();
+  const int numJobs = min<int>(maxNumJobs - (fromMain ? 0 : 1),
+    (min_quant > 1 ? int(pQuery.totalSize + min_quant - 1) / min_quant : int(pQuery.totalSize)) - 1);
   if (numJobs <= 0)
     return false;
   setConstrainedMTMode(true);
-  // debug("start for %d jobs %d quant do: %d", numJobs, min_quant, pQuery.totalSize);
-  threadpool::JobPriority tpprio = isMainThread ? threadpool::PRIO_HIGH : threadpool::PRIO_NORMAL; // Note: this probably need to be
-                                                                                                   // configured per ES
+  // Only main gets high prio, it waits for the query right away. Note: this probably need to be configured per ES
+  threadpool::JobPriority tpprio = fromMain ? threadpool::PRIO_HIGH : threadpool::PRIO_NORMAL;
   parallel_for(numJobs, *this, fun, pQuery, user_data, min_quant, tpprio);
-  // debug("done");
   setConstrainedMTMode(false);
   return true;
 }

@@ -139,10 +139,15 @@ void fail_omm_entry(ContextId context_id, OmmCacheEntry &entry, OmmFailure failu
 void publish_omm_debug_result(const Mesh &mesh, OmmCacheEntry &entry, uint64_t object_id, uint32_t geometry_index, int slot_id,
   bool in_delayed_sync_window, TEXTUREID label_tex_id = BAD_TEXTUREID);
 
-// The grass variant: grass owns no OmmCacheEntry, thus it hands over the result and the bake source
-// directly. The same before-clear contract applies.
-void publish_failed_grass_omm_debug_result(render::omm::BakeResult &result, const render::omm::DebugBakeSource &source,
-  const char *label, const char *fail_reason);
+// The grass variant of start_omm_bake: float2 UVs, 16-bit indices and the alpha in the red channel (bvhMaterialAlphaInRed).
+// input gives the buffers, the texcoord offset and stride, the index count and offset; this sets the rest and the Baking state.
+bool start_grass_omm_bake(ContextId context_id, GrassOmmBake &bake, render::omm::BakeInput input);
+
+void discard_grass_omm_bake(ContextId context_id, GrassOmmBake &bake);
+
+// The mapping of the geometry keeps its initial zero BLAS address, thus the geometry stays out of the BVH.
+// With retainOmmBakeResults it moves the result to the viewer, thus it must come before the release of the result.
+void fail_grass_omm_bake(GrassOmmBake &bake, const char *label, const char *reason);
 
 const char *omm_failure_text(OmmFailure failure);
 
@@ -154,8 +159,7 @@ String describe_missing_omm(ContextId context_id, const Mesh &mesh, const OmmBak
 
 void discard_inactive_omm_bakes(ContextId context_id) DAG_TS_REQUIRES_SHARED(context_id->objectsLock);
 
-// Allocates and stages the OMM acceleration structure for a bake that no OmmCacheEntry owns: the two
-// grass paths, whose geometry is outside the mesh pipeline.
+// Allocates and stages the OMM acceleration structure of a finished bake. It returns None also on a lost device, with nothing staged.
 OmmFailure build_grass_omm_array(render::omm::BakeResult &result, const render::omm::BakeStats &stats, UniqueOMM &out_omm,
   OmmBuildInfos &build_infos, OmmBuildResults &build_results);
 

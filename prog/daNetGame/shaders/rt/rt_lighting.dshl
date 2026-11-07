@@ -16,6 +16,9 @@ interval rtr_shadow: off < 1, on;
 int glass_rtr_shadow = 1;
 interval glass_rtr_shadow: off < 1, on;
 
+int rt_lighting_ao_hacks = 1;
+float rt_lighting_ao_hack_length = 1;
+
 macro INIT_DAGI_IN_RT(stage)
   if (gi_quality == only_ao)
   {
@@ -62,7 +65,10 @@ macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows,
   INIT_RT_SURFACE_PARAMS(stage)
   INIT_SKY_DIFFUSE_BASE(stage)
   INIT_ENVI_SPECULAR_BASE(stage)
-  INIT_DAGI_IN_RT(stage)
+  if (lighting_use_dagi)
+  {
+    INIT_DAGI_IN_RT(stage)
+  }
   INIT_ENVI_SPECULAR_SAMPLE(stage)
 
   if (!lighting_use_rt_shadows)
@@ -91,6 +97,8 @@ macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows,
   DO_INIT_FOM_SHADOWS_BINDLESS(stage)
   (stage) {
     clouds_shadow_influence@f1 = clouds_shadow_influence;
+    rt_lighting_ao_hacks@i1 = rt_lighting_ao_hacks;
+    rt_lighting_ao_hack_length@f1 = rt_lighting_ao_hack_length;
   }
 endmacro
 
@@ -113,7 +121,10 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
   SQ_CLOUDS_SHADOW(stage)
   USE_FOM_SHADOWS(stage)
 
-  USE_DAGI_IN_RT(stage)
+  if (lighting_use_dagi)
+  {
+    USE_DAGI_IN_RT(stage)
+  }
   GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(stage)
 
   hlsl(stage)
@@ -174,7 +185,7 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
       ##endif
     }
 
-    half3 light_hit_surface(SurfaceParams surface, half3 surfaceToCamera, float w, float ray_length, float ray_max, uint trace_extra_flags = 0)
+    half3 light_hit_surface(SurfaceParams surface, half3 surfaceToCamera, float w, float ray_length, float ray_max, float ray_smoothness, bool mark_occluder, uint trace_extra_flags = 0)
     {
       half3 normalh = (half3)surface.normal;
 
@@ -192,7 +203,7 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
 
       ##if lighting_use_rt_shadows
         float3 offsetPos = applyAdaptiveRayOffset(surface.position, surface.normal);
-        half shadow = is_obstructed(bvhMain, offsetPos, toSun, 0, ray_max, w, bvhGroupAll & ~bvhGroupGrass, trace_extra_flags) ? 0 : 1;
+        half shadow = is_obstructed(bvhMain, offsetPos, toSun, 0, ray_max, w, bvhGroupAll & ~bvhGroupGrass, trace_extra_flags, mark_occluder) ? 0 : 1;
       ##else
         half shadow = getStaticShadow(worldPos.xyz);
         shadow *= get_csm_shadow(-surface.position).x;
@@ -210,6 +221,11 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
       litPixel += calc_dynamic_lights(surface, worldPos, diffuseColor);
       litPixel += surface.emission;
       float3 ambient = calc_environment_ambient_unoccluded_lighting(worldPos, normalh, linearRoughness, surface.surfaceToCamera, ray_length);
+      FLATTEN if (rt_lighting_ao_hacks)
+      {
+        ambient *= pow2(ray_smoothness); // Hack to reduce light leaking coming from GI
+        ambient *= saturate(ray_length / rt_lighting_ao_hack_length); // Hack approximating RTAO by the length of the ray shot here
+      }
       litPixel += ambient * diffuseColor;
 
       float3 specularReflection = 0;

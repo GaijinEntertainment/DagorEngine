@@ -23,6 +23,8 @@ compile errors. Write `flags = flags & mask` instead.
 `+ - * /` and `%` work on `int` and `float`. Division of two `int` truncates
 toward zero. An `int` mixed with a `float` gives a `float`. `%` keeps the
 sign of the left operand, like C; it is not the mathematical modulo.
+Another operand type throws, `null` too: write `(x ?? 0) + 1` for an `x`
+that can be `null`.
 
 `+` also concatenates: if either side is a string, it converts the other side
 to a string, so `1 + "2"` is `"12"` and not an error. Prefer `$"...{...}"`
@@ -137,11 +139,13 @@ local binding is not a container that can hold new slots.
 
 ## Compound assignment and increment/decrement
 
-`+= -= *= /= %=` read the current value, combine it, and write it back, so
-(like plain `=`) they need the slot to exist already. `++` and `--` work as
-in C. As a statement the two forms do the same thing. As an expression the
-prefix form yields the value after the step and the postfix form yields the
-value before it.
+`+= -= *= /= %=` read the current value, combine it, and write it back,
+so (like plain `=`) they need the slot to exist already.
+`++` and `--` work as in C. As a statement the two forms do the same thing.
+As an expression, the prefix form yields the value after the step
+and the postfix form yields the value before it.
+For a value that is not a number, `++` acts as `+= 1` and `--` as `-= 1`:
+`_add(1)` and `_sub(1)` on an instance, "1" appended and an error on a string.
 
 {{example:language/operators-compound}}
 

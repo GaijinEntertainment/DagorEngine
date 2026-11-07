@@ -89,7 +89,7 @@ enum class PipelineStageFlag : uint32_t
   PixelShading = 1u << 6,
   // Late depth/stencil tests
   LateFragmentTests = 1u << 7,
-  // RT output, blending, etc. Also, surprisingly, d3d::clearview.
+  // RT output, blending, etc.
   OutputMerging = 1u << 8,
 
   // Compute shader
@@ -100,11 +100,13 @@ enum class PipelineStageFlag : uint32_t
 
   // Any clear that operates on an arbitrary resource.
   // Note that d3d::clearview is NOT part of this stage,
-  // it is part of the OutputMerging stage.
+  // it is part of the ClearView stage.
   Clear = 1u << 14,
 
   // HW MSAA resolve
   Resolve = 1u << 15,
+
+  ClearView = 1u << 16,
 
   // All commands
   All = 1u << 31,
@@ -155,9 +157,10 @@ enum class AccessFlag : uint32_t
   ResolveRead = 1u << 16,
   ResolveWrite = 1u << 17,
 
-  // special clear access to handle API wrapper disparity
-  // ex: UAV, RTV or DSV write on DX, transfer write on vk
+  // clear_rwtex*, zero_rwbufi
   ClearWrite = 1u << 18,
+  // clear_rt
+  ClearTargetWrite = 1u << 19,
 
   // VRS rate texture (RO)
   ShadingRate = 1u << 23

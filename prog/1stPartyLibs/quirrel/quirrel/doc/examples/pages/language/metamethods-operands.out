@@ -1,4 +1,4 @@
 Meters(10) + 2
 Meters(10) - 2
 int on the left: arith op - between 'integer' and 'instance'
-Meters(10) + 2
+literal on the left: arith op + between 'integer' and 'instance'

@@ -50,7 +50,8 @@ macro USE_DYNAMIC_THERMAL_SIGNATURE()
         result.smoothness += THERMAL_TWEAK_SMOOTHNESS_OFFSET;
         result.metalness += THERMAL_TWEAK_METALNESS_OFFSET;
         #ifdef THERMAL_TWEAK_SKINNED_ALBEDO_MUL
-          init_albedo(result, THERMAL_TWEAK_SKINNED_ALBEDO_MUL * diffuse_color);
+          if (get_thermal_tweak_skinned() != 0)
+            init_albedo(result, THERMAL_TWEAK_SKINNED_ALBEDO_MUL * diffuse_color);
         #endif
       }
     }

@@ -1,1 +1,49 @@
+include "swBVH.dshl"
+include "heightmap_max_grid.dshl"
+
+int testgi_swrt_reflections = 0;
+interval testgi_swrt_reflections : off < 1, on;
+
+// with the SWRT scene the reflection rays the screen missed trace it and the heightmap, else daGI2's SDF trace;
+// ray queries would need SM 6.5, the SSR shader is 6.0
+macro DAGI_ALTERNATE_REFLECTIONS_TRACE(code)
+  if (testgi_swrt_reflections == on)
+  {
+    hlsl(code) {
+      #define BVH_TLAS_DECODE_REFLECTION 1
+    }
+    INIT_SW_BVH_RAYTRACING(code)
+    USE_SW_BVH_RAYTRACING(code)
+    INIT_AND_USE_HEIGHTMAP_MAX_GRID(code)
+    hlsl(code) {
+      bool dagi_alternate_reflections_trace(uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, float maxT, bool start_on_ray,
+        bool start_off_surface, out float t, out float3 worldPos, out float3 hitNorm)
+      {
+        float3 origin = world_view_pos.xyz + (start_off_surface ? cameraToPoint : cameraToPoint + normal*0.05);
+        float2 bc = 0;
+        int complex;
+        bool hit = rayTLAS(origin, rayDir, rcp(rayDir), maxT, t, hitNorm, bc, complex);
+        #if HAS_HEIGHTMAP_MAX_GRID_TRACE
+          float tGround;
+          bool backFace;
+          if (heightmap_max_grid_trace(origin, rayDir, hit ? t : maxT, false, tGround, backFace))
+          {
+            t = tGround;
+            hitNorm = heightmap_max_grid_get_normal(origin + rayDir*t);
+            hit = true;
+          }
+        #endif
+        worldPos = origin + rayDir*t;
+        hitNorm = hit ? hitNorm : -rayDir;
+        hitNorm = dot(hitNorm, rayDir) > 0 ? -hitNorm : hitNorm;
+        return hit;
+      }
+    }
+  }
+  else
+  {
+    DAGI_ALTERNATE_REFLECTIONS_SDF_TRACE(code)
+  }
+endmacro
+
 include "dagi_alternate_reflections.dshl"

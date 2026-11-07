@@ -5,4 +5,5 @@ println("\"hello\".indexof(\"l\", 3) =", "hello".indexof("l", 3))
 let r = "hello".indexof("z")
 println("\"hello\".indexof(\"z\") == null =", r == null)
 
-try { "hello".indexof("") } catch (e) println("\"hello\".indexof(\"\") throws:", e)
+let s = "hello"
+try { s.indexof("") } catch (e) println("s.indexof(\"\") throws:", e)

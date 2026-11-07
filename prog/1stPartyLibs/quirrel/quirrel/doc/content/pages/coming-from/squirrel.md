@@ -50,6 +50,10 @@ These compile and run. Test a ported file; a build alone does not find them.
   see [modules](page:language/modules).
 - **`const` and `enum` are local too**, unless they are declared `global const` or
   `global enum`.
+- **A class is read-only once it locks.** Squirrel still lets `A.m <- function() { }`
+  add or replace a method after the first instance; Quirrel throws. The class
+  locks at its first instance, when another class inherits it, or on
+  [lock](sym:types.Class.lock).
 - **`switch` is off by default.** Without `#allow-switch-statement` the words
   `switch`, `case` and `default` are ordinary identifiers, so the block fails to
   parse.

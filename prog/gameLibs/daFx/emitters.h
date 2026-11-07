@@ -14,7 +14,6 @@ struct EmitterState
 
   unsigned int batchSize;
   int cyclesCount;
-  int cyclesCountRef;
   float lifeLimit;
   float globalLifeLimit;
 
@@ -53,19 +52,6 @@ inline void set_emitter_emission_rate(EmitterState &state, float tick_rate)
 {
   state.localTickRate = tick_rate;
   state.totalTickRate = state.localTickRate;
-}
-
-inline void reset_emitter_state(EmitterState &state)
-{
-  set_emitter_emission_rate(state, 1.f);
-  state.cyclesCount = state.cyclesCountRef;
-  state.spawnTick = state.spawnTickRef;
-  state.shrinkTick = state.shrinkTickRef;
-  state.globalLifeLimit = state.globalLifeLimitRef;
-  state.garbageTick = 0;
-  state.generation = 0;
-  state.lastEmittedPosValid = false;
-  state.timeStamps.get_container().clear();
 }
 
 void create_emitter_state(EmitterState &state, const EmitterData &data, unsigned int elem_limit, float emission_factor);

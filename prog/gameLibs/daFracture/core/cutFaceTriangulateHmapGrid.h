@@ -371,8 +371,8 @@ DAGOR_NOINLINE static void heightmap_fill_stripes(const DestrContext &ctx, const
       addVertHmap(lerp(p0, p1, float(s) / float(segs)));
     spanVertCnt[m] = int(H.size()) - spanVertStart[m];
     if (DAGOR_UNLIKELY(ctx.dbgDraw.drawBoundaryFill))
-      ctx.dbgDraw.drawLine(basis.unProject(p0, ctx.dbgDraw.withHeight ? graph.vertsH[H[lv[m].node]] : 0.f),
-        basis.unProject(p1, ctx.dbgDraw.withHeight ? graph.vertsH[H[lv[m + 1].node]] : 0.f), E3DCOLOR_MAKE(255, 0, 255, 255));
+      ctx.dbgDraw.drawLine(basis.unProject(p0, ctx.dbgDraw.heightScale * graph.vertsH[H[lv[m].node]]),
+        basis.unProject(p1, ctx.dbgDraw.heightScale * graph.vertsH[H[lv[m + 1].node]]), E3DCOLOR_MAKE(255, 0, 255, 255));
   }
 
   dag::Vector<int, framemem_allocator> edgeCol, mIdx;
@@ -549,8 +549,8 @@ DAGOR_NOINLINE static void heightmap_fill_stripes(const DestrContext &ctx, const
 
   if (DAGOR_UNLIKELY(ctx.dbgDraw.drawBoundaryFill))
     for (int i = 0; i < RN; i++)
-      ctx.dbgDraw.drawArrow(basis.unProject(P[ring[i]], ctx.dbgDraw.withHeight ? graph.vertsH[H[ring[i]]] : 0.f),
-        basis.unProject(P[ring[(i + 1) % RN]], ctx.dbgDraw.withHeight ? graph.vertsH[H[ring[(i + 1) % RN]]] : 0.f),
+      ctx.dbgDraw.drawArrow(basis.unProject(P[ring[i]], ctx.dbgDraw.heightScale * graph.vertsH[H[ring[i]]]),
+        basis.unProject(P[ring[(i + 1) % RN]], ctx.dbgDraw.heightScale * graph.vertsH[H[ring[(i + 1) % RN]]]),
         E3DCOLOR_MAKE(0, 255, 255, 255));
 }
 

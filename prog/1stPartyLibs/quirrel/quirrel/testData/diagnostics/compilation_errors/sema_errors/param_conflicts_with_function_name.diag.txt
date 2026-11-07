@@ -1,0 +1,8 @@
+ERROR: Parameter name 'f' conflicts with function name
+testData/diagnostics/compilation_errors/sema_errors/param_conflicts_with_function_name.nut:2:11
+
+// EXPECT_ERROR: "conflicts with function name"
+function f(f) { return 1 }
+           ^
+
+

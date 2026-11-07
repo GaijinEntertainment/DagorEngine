@@ -12,6 +12,7 @@
 #include "controllers/hub.h"
 #include "controllers/linearPoly.h"
 #include "controllers/footLockerIK.h"
+#include "controllers/legLocker.h"
 #include "controllers/nodesFromAttachement.h"
 #include "controllers/effFromAttachment.h"
 #include "controllers/attachNode.h"
@@ -72,6 +73,7 @@ enum IrqType
 };
 
 bool is_include_node_mask(const NodeMaskData &data) { return data.type == NodeMaskType::INCLUDE; };
+static bool is_file_include_ctrl(const AnimCtrlData &data) { return data.type == ctrl_type_include; }
 
 struct ExeptionField
 {
@@ -106,13 +108,13 @@ AnimTreeEditor::~AnimTreeEditor() = default;
 AnimTreeEditor::AnimTreeEditor(IAnimTreeEditorHost &host) :
   host{host},
   childsDialog(controllersData, blendNodesData, statesData, includePaths),
-  ctrlTreeEventHandler(controllersData, includePaths, childsDialog),
-  ctrlListSettingsEventHandler(controllersData, blendNodesData),
+  ctrlTreeEventHandler(controllersData, includePaths, childsDialog, host),
+  ctrlListSettingsEventHandler(controllersData),
   resetRandomSwitchListEventHandler(controllersData),
-  blendNodeTreeEventHandler(blendNodesData, includePaths),
+  blendNodeTreeEventHandler(blendNodesData, includePaths, host),
   nodeMaskTreeEventHandler(nodeMasksData, includePaths),
   animStatesTreeEventHandler(statesData, controllersData, includePaths, childsDialog),
-  stateListSettingsEventHandler(statesData, controllersData, blendNodesData, includePaths)
+  stateListSettingsEventHandler(statesData, controllersData, includePaths)
 {}
 
 void AnimTreeEditor::begin(DagorAsset &asset)
@@ -160,11 +162,55 @@ void AnimTreeEditor::clearData()
   childsDialog.hide();
 }
 
+bool AnimTreeEditor::focusNodeByName(const char *name)
+{
+  PropPanel::ContainerPropertyControl *panel = host.getMainPanel();
+  PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  AnimCtrlData *ctrlData = eastl::find_if(controllersData.begin(), controllersData.end(),
+    [ctrlsTree, name](const AnimCtrlData &data) { return ctrlsTree->getCaption(data.handle) == name; });
+  if (ctrlData != controllersData.end())
+  {
+    focus_selected_node(this, panel, ctrlData->handle, PID_ANIM_BLEND_CTRLS_GROUP, PID_ANIM_BLEND_CTRLS_GROUP,
+      PID_ANIM_BLEND_CTRLS_TREE);
+    return true;
+  }
+
+  PropPanel::ContainerPropertyControl *nodesTree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  BlendNodeData *nodeData = eastl::find_if(blendNodesData.begin(), blendNodesData.end(),
+    [nodesTree, name](const BlendNodeData &data) { return nodesTree->getCaption(data.handle) == name; });
+  if (nodeData != blendNodesData.end())
+  {
+    focus_selected_node(this, panel, nodeData->handle, PID_ANIM_BLEND_NODES_GROUP, PID_ANIM_BLEND_NODES_GROUP,
+      PID_ANIM_BLEND_NODES_TREE);
+    return true;
+  }
+  return false;
+}
+
+bool AnimTreeEditor::hasNodeMask(const char *name)
+{
+  PropPanel::ContainerPropertyControl *masksTree = host.getMainPanel()->getById(PID_NODE_MASKS_TREE)->getContainer();
+  return eastl::find_if(nodeMasksData.begin(), nodeMasksData.end(), [masksTree, name](const NodeMaskData &data) {
+    return data.type == NodeMaskType::MASK && masksTree->getCaption(data.handle) == name;
+  }) != nodeMasksData.end();
+}
+
+bool AnimTreeEditor::hasController(const char *name)
+{
+  PropPanel::ContainerPropertyControl *ctrlsTree = host.getMainPanel()->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  return eastl::find_if(controllersData.begin(), controllersData.end(), [ctrlsTree, name](const AnimCtrlData &data) {
+    return !is_include_ctrl(data) && ctrlsTree->getCaption(data.handle) == name;
+  }) != controllersData.end();
+}
+
 void AnimTreeEditor::fillMainPanel(PropPanel::ContainerPropertyControl &panel, const char *dyn_model_caption)
 {
   panel.setEventHandler(this);
-  panel.createStatic(PID_SELECT_DYN_MODEL_STATIC, "Selected dynModel");
-  panel.createButton(PID_SELECT_DYN_MODEL, dyn_model_caption);
+  if (dyn_model_caption)
+  {
+    panel.createStatic(PID_SELECT_DYN_MODEL_STATIC, "Selected dynModel");
+    panel.createButton(PID_SELECT_DYN_MODEL, dyn_model_caption);
+  }
   panel.createButton(PID_VALIDATE_DEPENDENT_NODES, "Validate dependent nodes");
   clearData();
   fillTreePanels(&panel);
@@ -373,6 +419,14 @@ static void remove_block_by_name(DataBlock *props, const String &name)
       break;
     }
   }
+}
+
+static DataBlock *get_state_desc_props(DataBlock &props, const String &full_path)
+{
+  DataBlock *stateDescProps = props.getBlockByName("stateDesc");
+  if (!stateDescProps)
+    logerr("Can't find stateDesc block in blk with path:<%s>", full_path);
+  return stateDescProps;
 }
 
 static void remove_animate_and_proc_block(DataBlock *props, const String &name)
@@ -767,8 +821,10 @@ static bool check_include_duplication_in_blk(const DataBlock &props, const Strin
     if (includeNid == props.getParamNameId(i) && props.getStr(i) == path)
       return true;
 
-  if (props.blockExists("AnimBlendCtrl"))
-    return check_include_duplication_in_blk(*props.getBlockByName("AnimBlendCtrl"), path);
+  const int ctrlNid = props.getNameId("AnimBlendCtrl");
+  for (int i = 0; i < props.blockCount(); ++i)
+    if (props.getBlock(i)->getBlockNameId() == ctrlNid && check_include_duplication_in_blk(*props.getBlock(i), path))
+      return true;
 
   return false;
 }
@@ -1187,9 +1243,10 @@ void AnimTreeEditor::fillTreePanels(PropPanel::ContainerPropertyControl *panel)
     create_by_default_if_not_created(AnimStatesType::POST_BLEND_CTRL_ORDER, "postBlendCtrlOrder", initAnimStateData->handle);
   }
 
-  fillCtrlsChilds(panel);
-  fillStatesChilds(panel);
-  fillInitAnimStateChilds(panel);
+  const ChildNameIndex childNameIndex(panel, controllersData, blendNodesData);
+  fillCtrlsChilds(panel, childNameIndex);
+  fillStatesChilds(panel, childNameIndex);
+  fillInitAnimStateChilds(panel, childNameIndex);
 
   DataBlock::parseIncludesAsParams = curParseIncludesAsParams;
 
@@ -1288,7 +1345,7 @@ static void set_anim_blend_dependent_defaults(const BlendNodeType type, PropPane
     case BlendNodeType::SINGLE: single_set_dependent_defaults(params, panel, mgr); break;
     case BlendNodeType::CONTINUOUS: continuous_set_dependent_defaults(params, panel, mgr); break;
     case BlendNodeType::STILL: still_set_dependent_defaults(params, panel); break;
-    case BlendNodeType::PARAMETRIC: parametric_set_dependent_defaults(params, panel); break;
+    case BlendNodeType::PARAMETRIC: set_key_dependent_defaults(params, panel); break;
 
     default: break;
   }
@@ -1417,7 +1474,8 @@ void AnimTreeEditor::fillAnimBlendSettings(PropPanel::ContainerPropertyControl *
           resetRandomSwitchListDropHandler.reorderHandler.reset(new ResetRandomSwitchReorderHandler(*this, host.getMainPanel()));
         }
       }
-      group->createButton(PID_NODES_SETTINGS_PLAY_ANIMATION, "Play animation");
+      if (host.canPlayAnimation())
+        group->createButton(PID_NODES_SETTINGS_PLAY_ANIMATION, "Play animation");
       host.setSelectedA2dName(group->getText(PID_NODES_PARAMS_FIELD));
       group->createButton(PID_NODES_SETTINGS_SAVE, "Save", isEditButtonEnabled);
     }
@@ -1450,6 +1508,7 @@ static void fill_ctrls_params_settings(PropPanel::ContainerPropertyControl *pane
     case ctrl_type_alignNode: align_node_init_panel(params, panel, field_idx); break;
     case ctrl_type_scaleNode: scale_node_init_panel(params, panel, field_idx); break;
     case ctrl_type_footLockerIK: foot_locker_ik_init_panel(params, panel, field_idx); break;
+    case ctrl_type_leg_locker: leg_locker_init_panel(params, panel, field_idx); break;
     case ctrl_type_alignEx: align_ex_init_panel(params, panel, field_idx); break;
     case ctrl_type_setMotionMatchingTag: set_motion_matching_tag_init_panel(params, panel, field_idx); break;
     case ctrl_type_paramFromNode: param_from_node_init_panel(params, panel, field_idx); break;
@@ -1482,78 +1541,84 @@ static void fill_ctrls_params_settings(PropPanel::ContainerPropertyControl *pane
   }
 }
 
-void AnimTreeEditor::findCtrlsChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings)
+void AnimTreeEditor::findCtrlsChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index, AnimCtrlData &data,
+  const DataBlock &settings)
 {
   switch (data.type)
   {
     case ctrl_type_paramSwitch:
-    case ctrl_type_paramSwitchS: paramSwitchFindChilds(panel, data, settings); break;
-    case ctrl_type_hub: hubFindChilds(panel, data, settings); break;
-    case ctrl_type_linearPoly: linearPolyFindChilds(panel, data, settings); break;
-    case ctrl_type_randomSwitch: randomSwitchFindChilds(panel, data, settings); break;
-    case ctrl_type_alias: aliasFindChilds(panel, data, settings); break;
+    case ctrl_type_paramSwitchS: paramSwitchFindChilds(panel, child_index, data, settings); break;
+    case ctrl_type_hub: hubFindChilds(child_index, data, settings); break;
+    case ctrl_type_linearPoly: linearPolyFindChilds(child_index, data, settings); break;
+    case ctrl_type_randomSwitch: randomSwitchFindChilds(child_index, data, settings); break;
+    case ctrl_type_alias: aliasFindChilds(child_index, data, settings); break;
     case ctrl_type_animateAndProcNode:
     {
       const DataBlock *animBlk = settings.getBlockByName("animateNode");
       if (animBlk)
-        animateNodeFindChilds(panel, data, *animBlk);
+        animateNodeFindChilds(child_index, data, *animBlk);
       break;
     }
-    case ctrl_type_animateNode: animateNodeFindChilds(panel, data, settings); break;
+    case ctrl_type_animateNode: animateNodeFindChilds(child_index, data, settings); break;
 
     default: break;
   }
 }
 
-void AnimTreeEditor::fillCtrlsChilds(PropPanel::ContainerPropertyControl *panel)
+void AnimTreeEditor::fillCtrlsChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index)
 {
   PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
-  fillCtrlsChildsBody(panel, ctrlsTree->getRootLeaf(), ctrl_type_include);
+  fillCtrlsChildsBody(panel, child_index, ctrlsTree->getRootLeaf(), ctrl_type_include);
   for (AnimCtrlData &ctrl : controllersData)
     if (is_include_ctrl(ctrl))
-      fillCtrlsChildsBody(panel, ctrl.handle, ctrl.type);
+      fillCtrlsChildsBody(panel, child_index, ctrl.handle, ctrl.type);
 }
 
-void AnimTreeEditor::fillCtrlsChildsBody(PropPanel::ContainerPropertyControl *panel, TLeafHandle handle, CtrlType type)
+void AnimTreeEditor::fillCtrlsChildsBody(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index,
+  TLeafHandle handle, CtrlType type)
 {
+  if (type != ctrl_type_include)
+    return;
+
   PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
   String fullPath;
   DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, ctrlsTree, handle, fullPath, /*only_includes*/ true);
-  if (type == ctrl_type_include && props.blockExists("AnimBlendCtrl"))
-    if (const DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, props, ctrlsTree, handle))
+  dag::Vector<DataBlock *> ctrlBlocks;
+  get_ctrl_blocks(controllersData, props, ctrlsTree, handle, ctrlBlocks);
+  // Leafs of all AnimBlendCtrl blocks follow each other in the tree, so leafIdx goes on through the blocks
+  int leafIdx = 0;
+  for (const DataBlock *ctrlsProps : ctrlBlocks)
+    for (int blkIdx = 0; blkIdx < ctrlsProps->blockCount(); ++blkIdx, ++leafIdx)
     {
-      for (int blkIdx = 0, leafIdx = 0; blkIdx < ctrlsProps->blockCount(); ++blkIdx, ++leafIdx)
+      TLeafHandle leaf = ctrlsTree->getChildLeaf(handle, leafIdx);
+      AnimCtrlData *leafData = find_data_by_handle(controllersData, leaf);
+      // If get include leaf we need skip it, but not skip block
+      if (leafData != controllersData.end() && is_include_ctrl(*leafData))
       {
-        TLeafHandle leaf = ctrlsTree->getChildLeaf(handle, leafIdx);
-        AnimCtrlData *leafData = find_data_by_handle(controllersData, leaf);
-        // If get include leaf we need skip it, but not skip block
-        if (leafData != controllersData.end() && is_include_ctrl(*leafData))
-        {
-          --blkIdx;
-          continue;
-        }
-
-        const DataBlock *settings = ctrlsProps->getBlock(blkIdx);
-        const char *nameField = settings->getStr("name", nullptr);
-        if (!nameField)
-          if (const DataBlock *animBlk = settings->getBlockByName("animateNode"))
-            nameField = animBlk->getStr("name", nullptr);
-        // In props we can catch blocks with comments and we skip it
-        if (!nameField)
-        {
-          --leafIdx;
-          continue;
-        }
-        // We should have same hierarchy with leafs and blocks exclude cases above
-        if (ctrlsTree->getCaption(leaf) != nameField)
-        {
-          logerr("Fields order in ctrls tree doesn't match order in blk with path:<%s> \nGet:<%s>, but expect:<%s>", fullPath,
-            ctrlsTree->getCaption(leaf), nameField);
-          return;
-        }
-
-        findCtrlsChilds(panel, *leafData, *settings);
+        --blkIdx;
+        continue;
       }
+
+      const DataBlock *settings = ctrlsProps->getBlock(blkIdx);
+      const char *nameField = settings->getStr("name", nullptr);
+      if (!nameField)
+        if (const DataBlock *animBlk = settings->getBlockByName("animateNode"))
+          nameField = animBlk->getStr("name", nullptr);
+      // In props we can catch blocks with comments and we skip it
+      if (!nameField)
+      {
+        --leafIdx;
+        continue;
+      }
+      // We should have same hierarchy with leafs and blocks exclude cases above
+      if (ctrlsTree->getCaption(leaf) != nameField)
+      {
+        logerr("Fields order in ctrls tree doesn't match order in blk with path:<%s> \nGet:<%s>, but expect:<%s>", fullPath,
+          ctrlsTree->getCaption(leaf), nameField);
+        return;
+      }
+
+      findCtrlsChilds(panel, child_index, *leafData, *settings);
     }
 }
 
@@ -1583,26 +1648,23 @@ DataBlock *AnimTreeEditor::findCtrlSettings(PropPanel::ContainerPropertyControl 
   const bool isProcChild = parent_data != controllersData.end() && parent_data->type == ctrl_type_animateAndProcNode;
   TLeafHandle navLeaf = isProcChild ? tree->getParentLeaf(parent) : parent;
   out_props = get_props_from_include_leaf(includePaths, *curAsset, tree, navLeaf, full_path, only_includes);
-  DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, out_props, tree, navLeaf);
-  if (!ctrlsProps)
-    return nullptr;
   if (isProcChild)
   {
-    DataBlock *animAndProcBlk = find_animate_and_proc_block(ctrlsProps, tree->getCaption(parent));
+    DataBlock *animAndProcBlk = find_ctrl_animate_and_proc_block(controllersData, out_props, tree, navLeaf, tree->getCaption(parent));
     if (!animAndProcBlk)
       return nullptr;
     return find_block_by_name(animAndProcBlk, tree->getCaption(leaf), /*should_exist*/ false);
   }
   if (type == ctrl_type_animateAndProcNode)
-    return find_animate_and_proc_block(ctrlsProps, tree->getCaption(leaf));
-  return find_block_by_name(ctrlsProps, tree->getCaption(leaf), /*should_exist*/ false);
+    return find_ctrl_animate_and_proc_block(controllersData, out_props, tree, navLeaf, tree->getCaption(leaf));
+  return find_ctrl_settings(controllersData, out_props, tree, navLeaf, tree->getCaption(leaf), /*should_exist*/ false);
 }
 
 void AnimTreeEditor::fillCtrlsSettings(PropPanel::ContainerPropertyControl *panel)
 {
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
   PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
-  const int lastCtrlsPid = !ctrlParams.empty() ? ctrlParams.back().pid : PID_CTRLS_PARAMS_FIELD;
+  const int lastCtrlsPid = get_last_ctrl_field_pid(ctrlParams);
   G_ASSERTF(lastCtrlsPid < PID_CTRLS_PARAMS_FIELD_SIZE, "Previous controller have more params than reserved");
   group->saveState(ctrlsSettingsPanelState);
   remove_ctrls_fields(group, lastCtrlsPid);
@@ -1677,6 +1739,7 @@ void AnimTreeEditor::fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl
     case ctrl_type_hub: hub_init_block_settings(panel, settings); break;
     case ctrl_type_linearPoly: linear_poly_init_block_settings(panel, settings); break;
     case ctrl_type_footLockerIK: foot_locker_ik_init_block_settings(panel, settings); break;
+    case ctrl_type_leg_locker: leg_locker_init_block_settings(panel, settings); break;
     case ctrl_type_nodesFromAttachement: nodes_from_attachement_init_block_settings(panel, settings); break;
     case ctrl_type_effFromAttachment: eff_from_attachment_init_block_settings(panel, settings, ctrlDependentParams); break;
     case ctrl_type_attachNode: attach_node_init_block_settings(panel, settings, ctrlDependentParams); break;
@@ -1778,6 +1841,7 @@ void AnimTreeEditor::setSelectedCtrlNodeListSettings(PropPanel::ContainerPropert
       case ctrl_type_hub: hub_set_selected_node_list_settings(panel, settings); break;
       case ctrl_type_linearPoly: linear_poly_set_selected_node_list_settings(panel, settings); break;
       case ctrl_type_footLockerIK: foot_locker_ik_set_selected_node_list_settings(panel, settings); break;
+      case ctrl_type_leg_locker: leg_locker_set_selected_node_list_settings(panel, settings); break;
       case ctrl_type_nodesFromAttachement: nodes_from_attachement_set_selected_node_list_settings(panel, settings); break;
       case ctrl_type_effFromAttachment:
         eff_from_attachment_set_selected_node_list_settings(panel, settings, ctrlDependentParams, ctrlParams);
@@ -1896,6 +1960,7 @@ void AnimTreeEditor::removeNodeCtrlList(PropPanel::ContainerPropertyControl *pan
       case ctrl_type_hub: hub_remove_node_from_list(panel, settings); break;
       case ctrl_type_linearPoly: linear_poly_remove_node_from_list(panel, settings); break;
       case ctrl_type_footLockerIK: foot_locker_ik_remove_node_from_list(panel, settings); break;
+      case ctrl_type_leg_locker: leg_locker_remove_node_from_list(panel, settings); break;
       case ctrl_type_nodesFromAttachement: nodes_from_attachement_remove_node_from_list(panel, settings); break;
       case ctrl_type_effFromAttachment: eff_from_attachment_remove_node_from_list(panel, settings); break;
       case ctrl_type_attachNode: attach_node_remove_node_from_list(panel, settings); break;
@@ -1941,7 +2006,7 @@ void AnimTreeEditor::removeNodeCtrlList(PropPanel::ContainerPropertyControl *pan
     paramSwitchRefreshMorphTimesCombo(panel);
 }
 
-void AnimTreeEditor::fillStatesChilds(PropPanel::ContainerPropertyControl *panel)
+void AnimTreeEditor::fillStatesChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index)
 {
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
   AnimStatesData *stateDescData = eastl::find_if(statesData.begin(), statesData.end(),
@@ -1952,9 +2017,12 @@ void AnimTreeEditor::fillStatesChilds(PropPanel::ContainerPropertyControl *panel
     return;
 
   DataBlock *stateDesc = props.addBlock("stateDesc");
-  for (int blkIdx = 0, leafIdx = 0; blkIdx < stateDesc->blockCount(); ++blkIdx, ++leafIdx)
+  for (int blkIdx = 0, leafIdx = 0; blkIdx < stateDesc->blockCount(); ++blkIdx)
   {
-    TLeafHandle leaf = tree->getChildLeaf(stateDescData->handle, leafIdx);
+    const DataBlock *settings = stateDesc->getBlock(blkIdx);
+    if (get_state_desc_cbox_enum_value(settings->getBlockName()) == AnimStatesType::UNSET)
+      continue;
+    TLeafHandle leaf = tree->getChildLeaf(stateDescData->handle, leafIdx++);
     AnimStatesData *leafData = find_data_by_handle(statesData, leaf);
     if (leafData == statesData.end())
     {
@@ -1962,7 +2030,6 @@ void AnimTreeEditor::fillStatesChilds(PropPanel::ContainerPropertyControl *panel
       return;
     }
 
-    const DataBlock *settings = stateDesc->getBlock(blkIdx);
     const char *nameField = nullptr;
     String morphCaption;
     if (leafData->type == AnimStatesType::MORPH)
@@ -1993,14 +2060,13 @@ void AnimTreeEditor::fillStatesChilds(PropPanel::ContainerPropertyControl *panel
       if (!childName)
         continue;
 
-      int idx = leafData->childs.emplace_back(
-        find_state_child_idx_by_name(panel, leafData->handle, controllersData, blendNodesData, childName));
+      int idx = leafData->childs.emplace_back(find_state_child_idx_by_name(child_index, leafData->handle, childName));
       check_state_child_idx(idx, nameField, childName);
     }
   }
 }
 
-void AnimTreeEditor::fillInitAnimStateChilds(PropPanel::ContainerPropertyControl *panel)
+void AnimTreeEditor::fillInitAnimStateChilds(PropPanel::ContainerPropertyControl *panel, const ChildNameIndex &child_index)
 {
   AnimStatesData *initAnimStateData = eastl::find_if(statesData.begin(), statesData.end(),
     [](const AnimStatesData &data) { return data.type == AnimStatesType::INIT_ANIM_STATE; });
@@ -2018,8 +2084,8 @@ void AnimTreeEditor::fillInitAnimStateChilds(PropPanel::ContainerPropertyControl
     if (postBlendCtrlOrder->getParamNameId(i) == nameNid)
     {
       const char *childName = postBlendCtrlOrder->getStr(i);
-      int idx = postBlendCtrlOrderData->childs.emplace_back(
-        find_child_idx_by_name(panel, postBlendCtrlOrderData->handle, controllersData, blendNodesData, childName));
+      int idx =
+        postBlendCtrlOrderData->childs.emplace_back(find_child_idx_by_name(child_index, postBlendCtrlOrderData->handle, childName));
       check_init_anim_state_child_idx(idx, "postBlendCtrlOrder", childName);
     }
   }
@@ -2029,10 +2095,9 @@ void AnimTreeEditor::fillInitAnimStateChilds(PropPanel::ContainerPropertyControl
   {
     const char *fifo3Name = initFifo3->getParamName(i);
     const char *fifo3Value = initFifo3->getStr(i);
-    int idxName = initFifo3Data->childs.emplace_back(
-      find_child_idx_by_name(panel, initFifo3Data->handle, controllersData, blendNodesData, fifo3Name));
-    int idxValue = initFifo3Data->childs.emplace_back(
-      find_init_fifo3_child_idx_by_name(panel, initFifo3Data->handle, controllersData, blendNodesData, fifo3Value));
+    int idxName = initFifo3Data->childs.emplace_back(find_child_idx_by_name(child_index, initFifo3Data->handle, fifo3Name));
+    int idxValue =
+      initFifo3Data->childs.emplace_back(find_init_fifo3_child_idx_by_name(child_index, initFifo3Data->handle, fifo3Value));
     check_fifo3_ctrl_child_idx(idxName, fifo3Name);
     check_init_anim_state_child_idx(idxValue, "fifo3", fifo3Value);
   }
@@ -2100,6 +2165,7 @@ static IListReorderHandler *get_ctrl_reorder_handler(PropPanel::ContainerPropert
     case ctrl_type_effFromAttachment: return eff_from_attachment_get_reorder_handler(editor, controllers, panel);
     case ctrl_type_nodesFromAttachement: return nodes_from_attachement_get_reorder_handler(editor, controllers, panel);
     case ctrl_type_footLockerIK: return foot_locker_ik_get_reorder_handler(editor, controllers, panel);
+    case ctrl_type_leg_locker: return leg_locker_get_reorder_handler(editor, controllers, panel);
     case ctrl_type_twoBonesIK: return two_bones_ik_get_reorder_handler(editor, controllers, panel);
     case ctrl_type_legsIK: return legs_ik_get_reorder_handler(editor, controllers, panel);
     case ctrl_type_multiChainFABRIK: return multi_chain_fabrik_get_reorder_handler(editor, controllers, panel);
@@ -2372,15 +2438,8 @@ void AnimTreeEditor::saveControllerSettings(PropPanel::ContainerPropertyControl 
     }
     else
     {
-      // In this case we save inner include and it can have parent as include or inner include
-      AnimCtrlData *parentData = find_data_by_handle(controllersData, parent);
-      if ((parentData != controllersData.end() && parentData->type == ctrl_type_include) || parent == tree->getRootLeaf())
-      {
-        DataBlock *ctrlsBlk = props.addBlock("AnimBlendCtrl");
-        save_include_change(tree, leaf, includePaths, *ctrlsBlk, *curAsset, selName, newFullPath);
-      }
-      else
-        save_include_change(tree, leaf, includePaths, props, *curAsset, selName, newFullPath);
+      DataBlock *ctrlsBlk = get_inner_include_block(controllersData, includePaths, props, tree, parent, selName);
+      save_include_change(tree, leaf, includePaths, *ctrlsBlk, *curAsset, selName, newFullPath);
 
       const bool curParseIncludesAsParams = DataBlock::parseIncludesAsParams;
       DataBlock::parseIncludesAsParams = true;
@@ -2414,7 +2473,8 @@ void AnimTreeEditor::saveControllerSettings(PropPanel::ContainerPropertyControl 
             settings->removeBlock(i);
         if (oldType == ctrl_type_animateAndProcNode)
         {
-          selectedData->childs.clear();
+          // the save below indexes childs per list entry
+          selectedData->childs.assign(names.size(), AnimCtrlData::NOT_FOUND_CHILD);
           remove_childs_data_by_leaf(tree, controllersData, leaf);
           for (int i = tree->getChildCount(leaf) - 1; i >= 0; --i)
             tree->removeLeaf(tree->getChildLeaf(leaf, i));
@@ -2471,7 +2531,8 @@ void AnimTreeEditor::saveControllerSettings(PropPanel::ContainerPropertyControl 
         if (type == PARAM_SWITCH_TYPE_ENUM_GEN)
         {
           selectedData->childs.clear();
-          paramSwitchFindChilds(panel, *selectedData, *settings, /*find_enum_gen_parent*/ false);
+          const ChildNameIndex childNameIndex(panel, controllersData, blendNodesData);
+          paramSwitchFindChilds(panel, childNameIndex, *selectedData, *settings, /*find_enum_gen_parent*/ false);
         }
       }
       // Early return for skip rewrite props with old values in saveProps if name changed
@@ -2507,6 +2568,7 @@ void AnimTreeEditor::saveControllerParamsSettings(PropPanel::ContainerPropertyCo
     case ctrl_type_alignNode: align_node_prepare_params(params, panel); break;
     case ctrl_type_scaleNode: scale_node_prepare_params(params, panel); break;
     case ctrl_type_footLockerIK: foot_locker_ik_prepare_params(params, panel); break;
+    case ctrl_type_leg_locker: leg_locker_prepare_params(params, panel); break;
     case ctrl_type_alignEx: align_ex_prepare_params(params, panel); break;
     case ctrl_type_paramFromNode: param_from_node_prepare_params(params, panel); break;
     case ctrl_type_matFromNode: mat_from_node_prepare_params(params, panel); break;
@@ -2545,6 +2607,7 @@ void AnimTreeEditor::saveControllerBlocksSettings(PropPanel::ContainerPropertyCo
     case ctrl_type_linearPoly: linearPolySaveBlockSettings(panel, settings, data); break;
     case ctrl_type_randomSwitch: randomSwitchSaveBlockSettings(panel, settings, data); break;
     case ctrl_type_footLockerIK: foot_locker_ik_save_block_settings(panel, settings); break;
+    case ctrl_type_leg_locker: leg_locker_save_block_settings(panel, settings); break;
     case ctrl_type_nodesFromAttachement: nodes_from_attachement_save_block_settings(panel, settings); break;
     case ctrl_type_effFromAttachment: eff_from_attachment_save_block_settings(panel, settings); break;
     case ctrl_type_attachNode: attach_node_save_block_settings(panel, settings); break;
@@ -2594,7 +2657,7 @@ void AnimTreeEditor::addIncludeLeaf(PropPanel::ContainerPropertyControl *panel, 
   if (main_pid == PID_ANIM_BLEND_CTRLS_TREE)
     ctrlsInclude = main_parent;
   else
-    ctrlsInclude = find_include_leaf_by_name(ctrlsTree, make_span_const(controllersData), parent_name, is_include_ctrl);
+    ctrlsInclude = find_include_leaf_by_name(ctrlsTree, make_span_const(controllersData), parent_name, is_file_include_ctrl);
 
   TLeafHandle nodesLeaf = nodesTree->createTreeLeaf(nodesInclude, "new_include", FOLDER_ICON);
   addBlendNode(nodesLeaf, BlendNodeType::INCLUDE);
@@ -2776,12 +2839,10 @@ void AnimTreeEditor::removeNodeFromAnimStatesTree(PropPanel::ContainerPropertyCo
 
   if (data->type == AnimStatesType::ENUM || data->type == AnimStatesType::ENUM_ITEM)
   {
-    const int initAnimStateId = props.getNameId("initAnimState");
-    const int enumId = props.getNameId("enum");
-    if (initAnimStateId != -1 && enumId != -1)
+    DataBlock *initAnimStateProps = props.getBlockByName("initAnimState");
+    DataBlock *enumBlock = initAnimStateProps ? initAnimStateProps->getBlockByName("enum") : nullptr;
+    if (enumBlock)
     {
-      DataBlock *initAnimStateProps = props.getBlockByNameId(initAnimStateId);
-      DataBlock *enumBlock = initAnimStateProps->getBlockByNameId(enumId);
       const String name = tree->getCaption(leaf);
       if (data->type == AnimStatesType::ENUM_ITEM)
       {
@@ -2809,7 +2870,9 @@ void AnimTreeEditor::removeNodeFromAnimStatesTree(PropPanel::ContainerPropertyCo
   else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE ||
            data->type == AnimStatesType::MORPH)
   {
-    DataBlock *stateDescProps = props.getBlockByName("stateDesc");
+    DataBlock *stateDescProps = get_state_desc_props(props, fullPath);
+    if (!stateDescProps)
+      return;
     if (data->type == AnimStatesType::MORPH)
     {
       DataBlock *settings = find_morph_block_by_name(stateDescProps, tree->getCaption(data->handle));
@@ -2869,9 +2932,8 @@ void AnimTreeEditor::saveSettingsAnimStatesTree(PropPanel::ContainerPropertyCont
       {
         copy = props.getBlockByName("initAnimState");
         // Enum block located in initAnimState block and need update after change include
-        AnimStatesData *enumRoot = eastl::find_if(statesData.begin(), statesData.end(),
-          [](const AnimStatesData &data) { return data.type == AnimStatesType::ENUM_ROOT; });
-        enumRoot->fileName = newFileName.c_str();
+        if (AnimStatesData *enumRoot = find_data_by_type(statesData, AnimStatesType::ENUM_ROOT))
+          enumRoot->fileName = newFileName.c_str();
       }
       else if (data->type == AnimStatesType::ROOT_PROPS)
       {
@@ -2978,15 +3040,25 @@ void AnimTreeEditor::saveSettingsAnimStatesTree(PropPanel::ContainerPropertyCont
     saveProps(props, fullPath);
     tree->setCaption(leaf, name);
     PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
-    for (AnimCtrlData *data : ctrlsForUpdate)
+    if (!ctrlsForUpdate.empty())
     {
-      TLeafHandle includeLeaf = ctrlsTree->getParentLeaf(data->handle);
-      String fullPath;
-      DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, ctrlsTree, includeLeaf, fullPath, /*only_includes*/ true);
-      DataBlock *ctrlProps = get_props_from_include_leaf_ctrl_node(controllersData, props, ctrlsTree, includeLeaf);
-      DataBlock *settings = find_block_by_name(ctrlProps, ctrlsTree->getCaption(data->handle));
-      data->childs.clear();
-      paramSwitchFindChilds(panel, *data, *settings, /*find_enum_gen_parent*/ false);
+      const ChildNameIndex childNameIndex(panel, controllersData, blendNodesData);
+      for (AnimCtrlData *data : ctrlsForUpdate)
+      {
+        TLeafHandle includeLeaf = ctrlsTree->getParentLeaf(data->handle);
+        String fullPath;
+        DataBlock props =
+          get_props_from_include_leaf(includePaths, *curAsset, ctrlsTree, includeLeaf, fullPath, /*only_includes*/ true);
+        const String ctrlName = ctrlsTree->getCaption(data->handle);
+        DataBlock *settings = find_ctrl_settings(controllersData, props, ctrlsTree, includeLeaf, ctrlName, /*should_exist*/ false);
+        if (!settings)
+        {
+          logerr("Can't find paramSwitch controller <%s> in <%s> for update childs", ctrlName, fullPath);
+          continue;
+        }
+        data->childs.clear();
+        paramSwitchFindChilds(panel, childNameIndex, *data, *settings, /*find_enum_gen_parent*/ false);
+      }
     }
     if (ctrlsTree->getSelLeaf())
       paramSwitchRefreshMorphTimesCombo(panel);
@@ -3049,13 +3121,13 @@ void AnimTreeEditor::saveSettingsAnimStatesTree(PropPanel::ContainerPropertyCont
     }
     saveProps(props, fullPath);
   }
-  else if (data->type == AnimStatesType::INIT_FIFO3)
+  else if (data->type == AnimStatesType::INIT_FIFO3 && panel->getInt(PID_STATES_NODES_LIST) >= 0)
   {
     DataBlock *settings = props.addBlock("initAnimState")->addBlock("fifo3");
     initFifo3SaveBlockSettings(panel, *settings, *data);
     saveProps(props, fullPath);
   }
-  else if (data->type == AnimStatesType::POST_BLEND_CTRL_ORDER)
+  else if (data->type == AnimStatesType::POST_BLEND_CTRL_ORDER && panel->getInt(PID_STATES_NODES_LIST) >= 0)
   {
     DataBlock *settings = props.addBlock("initAnimState")->addBlock("postBlendCtrlOrder");
     postBlendCtrlOrderSaveBlockSettings(panel, *settings, *data);
@@ -3103,14 +3175,9 @@ void AnimTreeEditor::updateStateFields(PropPanel::ContainerPropertyControl *pane
     update_dependent_param_value_by_pid(panel, stateDependentParams, *param, PID_STATES_STATE_NODE_MIN_TIME_SCALE);
   else if (param->name == "maxTimeScale")
     update_dependent_param_value_by_pid(panel, stateDependentParams, *param, PID_STATES_STATE_NODE_MAX_TIME_SCALE);
-  else if (param->name == "name" || param->name == "nodeMask")
-  {
-    PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
-    TLeafHandle leaf = tree->getSelLeaf();
-    AnimStatesData *data = find_data_by_handle(statesData, leaf);
-    if (data != statesData.end() && data->type == AnimStatesType::CHAN)
-      chan_update_dependent_fields(*param, stateParams, panel);
-  }
+  else if ((param->name == "name" || param->name == "nodeMask") &&
+           get_state_desc_cbox_enum_value(panel->getInt(PID_STATES_STATE_DESC_TYPE_COMBO_SELECT)) == AnimStatesType::CHAN)
+    chan_update_dependent_fields(*param, stateParams, panel);
 }
 
 void AnimTreeEditor::updateStateDependentStatus(PropPanel::ContainerPropertyControl *panel, int pid)
@@ -3213,8 +3280,7 @@ void AnimTreeEditor::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyC
     group->createEditBox(PID_ANIM_STATES_NAME_FIELD, "Field name", tree->getCaption(leaf));
     if (data->type == AnimStatesType::ENUM_ITEM)
     {
-      DataBlock *initAnimStateProps = props.getBlockByName("initAnimState");
-      DataBlock *enumRootProps = initAnimStateProps->getBlockByName("enum");
+      DataBlock *enumRootProps = props.addBlock("initAnimState")->addBlock("enum");
       DataBlock *enumProps = enumRootProps->addBlock(tree->getCaption(tree->getParentLeaf(leaf)));
       DataBlock *enumItemProps = enumProps->addBlock(tree->getCaption(leaf));
       Tab<String> names;
@@ -3290,7 +3356,9 @@ void AnimTreeEditor::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyC
            data->type == AnimStatesType::MORPH)
   {
     int fieldIdx = PID_STATES_PARAMS_FIELD;
-    DataBlock *stateProps = props.getBlockByName("stateDesc");
+    DataBlock *stateProps = get_state_desc_props(props, fullPath);
+    if (!stateProps)
+      return;
     DataBlock *settings = data->type == AnimStatesType::MORPH
                             ? find_morph_block_by_name(stateProps, tree->getCaption(leaf))
                             : find_block_by_name(stateProps, tree->getCaption(leaf), /*should_exist*/ false);
@@ -3298,7 +3366,9 @@ void AnimTreeEditor::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyC
     if (!settings)
     {
       props = getPropsAnimStates(panel, *data, fullPath, /*only_includes*/ true);
-      stateProps = props.getBlockByName("stateDesc");
+      stateProps = get_state_desc_props(props, fullPath);
+      if (!stateProps)
+        return;
       settings = data->type == AnimStatesType::MORPH ? find_morph_block_by_name(stateProps, tree->getCaption(leaf))
                                                      : find_block_by_name(stateProps, tree->getCaption(leaf));
       isEditable = false;
@@ -3358,7 +3428,9 @@ void AnimTreeEditor::changeStateDescType(PropPanel::ContainerPropertyControl *pa
   stateDependentParams.clear();
 
   int fieldIdx = PID_STATES_PARAMS_FIELD;
-  DataBlock *stateDescProps = props.getBlockByName("stateDesc");
+  DataBlock *stateDescProps = get_state_desc_props(props, fullPath);
+  if (!stateDescProps)
+    return;
   fill_states_params_settings(group, type, fieldIdx, stateParams, *stateDescProps);
 
   // Before fill block settings we need check new and old types, if they different use emptyBlock for fill
@@ -3373,6 +3445,12 @@ void AnimTreeEditor::changeStateDescType(PropPanel::ContainerPropertyControl *pa
     if (oldType == type)
       blocksSettings = settings;
     fill_values_if_exists(group, blocksSettings, stateParams);
+    if (type == AnimStatesType::CHAN)
+    {
+      if (!blocksSettings->paramExists("nodeMask"))
+        set_str_param_by_name_if_default(stateParams, panel, "nodeMask", blocksSettings->getStr("name", ""));
+      chan_set_dependent_defaults(stateParams, panel);
+    }
   }
   group->createButton(PID_STATES_SETTINGS_SAVE, "Save");
 }
@@ -3427,12 +3505,16 @@ void AnimTreeEditor::setSelectedStateNodeListSettings(PropPanel::ContainerProper
 
   if (data->type == AnimStatesType::STATE)
   {
-    DataBlock *stateProps = props.getBlockByName("stateDesc");
+    DataBlock *stateProps = get_state_desc_props(props, fullPath);
+    if (!stateProps)
+      return;
     DataBlock *settings = find_block_by_name(stateProps, tree->getCaption(leaf), /*should_exist*/ false);
     if (!settings)
     {
       props = getPropsAnimStates(panel, *data, fullPath, /*only_includes*/ true);
-      stateProps = props.getBlockByName("stateDesc");
+      stateProps = get_state_desc_props(props, fullPath);
+      if (!stateProps)
+        return;
       settings = find_block_by_name(stateProps, tree->getCaption(leaf));
     }
     if (settings)
@@ -3442,12 +3524,12 @@ void AnimTreeEditor::setSelectedStateNodeListSettings(PropPanel::ContainerProper
   }
   else if (data->type == AnimStatesType::ENUM_ITEM)
   {
-    DataBlock *enumRootProps = props.getBlockByName("initAnimState")->getBlockByName("enum");
+    DataBlock *enumRootProps = props.addBlock("initAnimState")->addBlock("enum");
     DataBlock *enumProps = enumRootProps->addBlock(tree->getCaption(tree->getParentLeaf(leaf)));
     DataBlock *enumItemProps = enumProps->addBlock(tree->getCaption(leaf));
 
     int selectedIdx = panel->getInt(PID_STATES_NODES_LIST);
-    const bool isControlEnabled = selectedIdx >= 0;
+    const bool isControlEnabled = selectedIdx >= 0 && selectedIdx < enumItemProps->paramCount();
     panel->setText(PID_STATES_ENUM_PARAM_SWITCH_NAME, isControlEnabled ? enumItemProps->getParamName(selectedIdx) : "");
     panel->setEnabledById(PID_STATES_ENUM_PARAM_SWITCH_NAME, isControlEnabled);
     updateEnumItemValueCombo(panel);
@@ -3623,7 +3705,7 @@ void AnimTreeEditor::removeNodeStateList(PropPanel::ContainerPropertyControl *pa
       saveProps(props, fullPath);
     }
 
-    if (data->childs.size())
+    if (removeIdx < data->childs.size())
       data->childs.erase(data->childs.begin() + removeIdx);
     panel->removeString(PID_STATES_NODES_LIST, removeIdx);
     dag::ConstSpan<String> names = panel->getStrings(PID_STATES_NODES_LIST);
@@ -3692,7 +3774,7 @@ void AnimTreeEditor::updateEnumItemValueCombo(PropPanel::ContainerPropertyContro
     DataBlock *enumProps = enumRootProps->addBlock(tree->getCaption(tree->getParentLeaf(leaf)));
     DataBlock *enumItemProps = enumProps->addBlock(tree->getCaption(leaf));
     const int selectedIdx = panel->getInt(PID_STATES_NODES_LIST);
-    const bool isActive = selectedIdx >= 0;
+    const bool isActive = selectedIdx >= 0 && selectedIdx < enumItemProps->paramCount();
     const char *selectionValue = "";
     Tab<String> childValuesNames;
     childValuesNames.emplace_back("##");
@@ -3764,30 +3846,29 @@ void AnimTreeEditor::addNodeToCtrlTree(PropPanel::ContainerPropertyControl *pane
   if (fullPath.empty())
     return;
 
-  if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, props, tree, includeLeaf))
+  DataBlock *newBlockParent = nullptr;
+  TLeafHandle newLeafParent = includeLeaf;
+  const char *newTypeName = "null";
+  CtrlType newType = ctrl_type_null;
+  if (animAndProcLeaf)
   {
-    DataBlock *newBlockParent = ctrlsProps;
-    TLeafHandle newLeafParent = includeLeaf;
-    const char *newTypeName = "null";
-    CtrlType newType = ctrl_type_null;
-    if (animAndProcLeaf)
-    {
-      DataBlock *animAndProcBlk = find_animate_and_proc_block(ctrlsProps, tree->getCaption(animAndProcLeaf));
-      if (!animAndProcBlk)
-        return;
-      newBlockParent = animAndProcBlk;
-      newLeafParent = animAndProcLeaf;
-      newTypeName = proc_ctrl_type[0].c_str();
-      newType = static_cast<CtrlType>(lup(newTypeName, ctrl_type, ctrl_type_not_found));
-    }
-    DataBlock *settings = newBlockParent->addNewBlock(newTypeName);
-    settings->setStr("name", "new_node");
-    TLeafHandle newLeaf = tree->createTreeLeaf(newLeafParent, "new_node", get_ctrl_icon_name(newType));
-    addController(newLeaf, newType);
-    saveProps(props, fullPath);
-    tree->setSelLeaf(newLeaf);
-    fillCtrlsSettings(panel);
+    newBlockParent = find_ctrl_animate_and_proc_block(controllersData, props, tree, includeLeaf, tree->getCaption(animAndProcLeaf));
+    if (!newBlockParent)
+      return;
+    newLeafParent = animAndProcLeaf;
+    newTypeName = proc_ctrl_type[0].c_str();
+    newType = static_cast<CtrlType>(lup(newTypeName, ctrl_type, ctrl_type_not_found));
   }
+  else
+    newBlockParent = get_ctrl_block_to_add(controllersData, props, tree, includeLeaf);
+
+  DataBlock *settings = newBlockParent->addNewBlock(newTypeName);
+  settings->setStr("name", "new_node");
+  TLeafHandle newLeaf = tree->createTreeLeaf(newLeafParent, "new_node", get_ctrl_icon_name(newType));
+  addController(newLeaf, newType);
+  saveProps(props, fullPath);
+  tree->setSelLeaf(newLeaf);
+  fillCtrlsSettings(panel);
 }
 
 void AnimTreeEditor::addIncludeToCtrlTree(PropPanel::ContainerPropertyControl *panel, int type_pid)
@@ -3828,6 +3909,19 @@ void AnimTreeEditor::addIncludeToCtrlTree(PropPanel::ContainerPropertyControl *p
   fillCtrlsSettings(panel);
 }
 
+// removeBlock by name removes all AnimBlendCtrl blocks, so remove only this one by index
+static void remove_empty_ctrl_block(DataBlock &props, const DataBlock *ctrls_blk)
+{
+  if (ctrls_blk == &props || !ctrls_blk->isEmpty())
+    return;
+  for (int i = 0; i < props.blockCount(); ++i)
+    if (props.getBlock(i) == ctrls_blk)
+    {
+      props.removeBlock(i);
+      return;
+    }
+}
+
 void AnimTreeEditor::removeNodeFromCtrlsTree(PropPanel::ContainerPropertyControl *panel)
 {
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
@@ -3859,34 +3953,29 @@ void AnimTreeEditor::removeNodeFromCtrlsTree(PropPanel::ContainerPropertyControl
   }
   else if (selectedData->type == ctrl_type_inner_include)
   {
-    if ((parentData != controllersData.end() && parentData->type == ctrl_type_include) || parent == tree->getRootLeaf())
-    {
-      DataBlock *ctrlsBlk = props.addBlock("AnimBlendCtrl");
-      remove_include_tree_node(tree, controllersData, includePaths, *ctrlsBlk, leaf);
-    }
-    else
-      remove_include_tree_node(tree, controllersData, includePaths, props, leaf);
+    DataBlock *ctrlsBlk = get_inner_include_block(controllersData, includePaths, props, tree, parent, tree->getCaption(leaf));
+    remove_include_tree_node(tree, controllersData, includePaths, *ctrlsBlk, leaf);
+    remove_empty_ctrl_block(props, ctrlsBlk);
   }
-  else if (DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, props, tree, includeLeaf))
+  else if (isProcChild)
   {
-    if (isProcChild)
-    {
-      if (DataBlock *animAndProcBlk = find_animate_and_proc_block(ctrlsProps, tree->getCaption(parent)))
-        remove_block_by_name(animAndProcBlk, tree->getCaption(leaf));
-    }
-    else
+    if (DataBlock *animAndProcBlk =
+          find_ctrl_animate_and_proc_block(controllersData, props, tree, includeLeaf, tree->getCaption(parent)))
+      remove_block_by_name(animAndProcBlk, tree->getCaption(leaf));
+    tree->removeLeaf(leaf);
+  }
+  else
+  {
+    if (DataBlock *ctrlsProps = find_ctrl_owner_block(controllersData, props, tree, includeLeaf, tree->getCaption(leaf)))
     {
       if (selectedData->type == ctrl_type_animateAndProcNode)
-      {
         remove_animate_and_proc_block(ctrlsProps, tree->getCaption(leaf));
-        remove_childs_data_by_leaf(tree, controllersData, leaf);
-      }
       else
         remove_block_by_name(ctrlsProps, tree->getCaption(leaf));
-
-      if (ctrlsProps->isEmpty())
-        props.removeBlock("AnimBlendCtrl");
+      remove_empty_ctrl_block(props, ctrlsProps);
     }
+    if (selectedData->type == ctrl_type_animateAndProcNode)
+      remove_childs_data_by_leaf(tree, controllersData, leaf);
     tree->removeLeaf(leaf);
   }
 
@@ -3917,7 +4006,7 @@ void AnimTreeEditor::changeCtrlType(PropPanel::ContainerPropertyControl *panel)
   if (fullPath.empty())
     return;
   const CtrlType type = get_selected_ctrl_type(panel, isProcChild);
-  const int lastCtrlsPid = !ctrlParams.empty() ? ctrlParams.back().pid : PID_CTRLS_PARAMS_FIELD;
+  const int lastCtrlsPid = get_last_ctrl_field_pid(ctrlParams);
   G_ASSERTF(lastCtrlsPid < PID_CTRLS_PARAMS_FIELD_SIZE, "Previous controller have more params than reserved");
   const bool breakIfNotFound = true;
   remove_fields(panel, PID_CTRLS_PARAMS_FIELD, lastCtrlsPid + 1, !breakIfNotFound);
@@ -4136,7 +4225,7 @@ void AnimTreeEditor::removeNodeFromNodeMasksTree(PropPanel::ContainerPropertyCon
     remove_include_tree_node(tree, nodeMasksData, includePaths, props, leaf);
     if (remove_include_leaf_nodes(panel, blendNodesData, selName))
       selectedChangedAnimNodesTree(panel);
-    if (remove_include_leaf(panel, PID_ANIM_BLEND_CTRLS_TREE, controllersData, selName, is_include_ctrl))
+    if (remove_include_leaf(panel, PID_ANIM_BLEND_CTRLS_TREE, controllersData, selName, is_file_include_ctrl))
       fillCtrlsSettings(panel);
     if (remove_include_states_tree(panel, statesData, selName))
       selectedChangedAnimStatesTree(panel);
@@ -4222,7 +4311,7 @@ void AnimTreeEditor::saveSettingsNodeMasksTree(PropPanel::ContainerPropertyContr
     auto [nodeLeaf, updateSelectedNodes] = change_include_leaf_nodes(panel, blendNodesData, selName, fileName.c_str());
     change_include_leaf(tree, nodeMasksData, fileName.c_str(), leaf);
     auto [ctrlLeaf, updateSelectedCtrls] =
-      change_include_leaf(panel, controllersData, selName, fileName.c_str(), PID_ANIM_BLEND_CTRLS_TREE, is_include_ctrl);
+      change_include_leaf(panel, controllersData, selName, fileName.c_str(), PID_ANIM_BLEND_CTRLS_TREE, is_file_include_ctrl);
     bool updateSelectedStates = remove_include_states_tree(panel, statesData, selName);
     saveIncludeChange(panel, tree, leaf, props, selName, newFullPath, {nodeLeaf, leaf, ctrlLeaf});
     if (updateSelectedNodes)
@@ -4576,7 +4665,7 @@ void AnimTreeEditor::reorderResetRandomSwitchList(PropPanel::ContainerPropertyCo
     if (!CHECK_COMMENT_PREFIX(resetBlock->getBlock(i)->getBlockName()))
       positions.push_back(i);
   }
-  move_block_blk(*resetBlock, positions[from], positions[to]);
+  move_block_at_positions(*resetBlock, positions, from, to);
   saveProps(props, fullPath);
 }
 
@@ -4622,7 +4711,7 @@ void AnimTreeEditor::removeNodeFromAnimNodesTree(PropPanel::ContainerPropertyCon
     remove_include_node(tree, includePaths, props, leaf);
     if (remove_include_leaf(panel, PID_NODE_MASKS_TREE, nodeMasksData, selName, is_include_node_mask))
       selectedChangedNodeMasksTree(panel);
-    if (remove_include_leaf(panel, PID_ANIM_BLEND_CTRLS_TREE, controllersData, selName, is_include_ctrl))
+    if (remove_include_leaf(panel, PID_ANIM_BLEND_CTRLS_TREE, controllersData, selName, is_file_include_ctrl))
       fillCtrlsSettings(panel);
     if (remove_include_states_tree(panel, statesData, selName))
       selectedChangedAnimStatesTree(panel);
@@ -4811,7 +4900,7 @@ void AnimTreeEditor::saveSettingsAnimNodesTree(PropPanel::ContainerPropertyContr
     auto [maskLeaf, updateSelectedMasks] =
       change_include_leaf(panel, nodeMasksData, selName, fileName.c_str(), PID_NODE_MASKS_TREE, is_include_node_mask);
     auto [ctrlLeaf, updateSelectedCtrls] =
-      change_include_leaf(panel, controllersData, selName, fileName.c_str(), PID_ANIM_BLEND_CTRLS_TREE, is_include_ctrl);
+      change_include_leaf(panel, controllersData, selName, fileName.c_str(), PID_ANIM_BLEND_CTRLS_TREE, is_file_include_ctrl);
     bool updateSelectedStates = remove_include_states_tree(panel, statesData, selName);
     saveIncludeChange(panel, tree, leaf, props, selName, newFullPath, {leaf, maskLeaf, ctrlLeaf});
     if (updateSelectedMasks)
@@ -5007,9 +5096,10 @@ void AnimTreeEditor::validateDependentNodes(PropPanel::ContainerPropertyControl 
   for (AnimCtrlData &data : controllersData)
     data.childs.clear();
 
-  fillCtrlsChilds(panel);
-  fillStatesChilds(panel);
-  fillInitAnimStateChilds(panel);
+  const ChildNameIndex childNameIndex(panel, controllersData, blendNodesData);
+  fillCtrlsChilds(panel, childNameIndex);
+  fillStatesChilds(panel, childNameIndex);
+  fillInitAnimStateChilds(panel, childNameIndex);
 
   bool hasNotFoundNodes = false;
   for (const AnimStatesData &data : statesData)
@@ -5195,8 +5285,8 @@ static TLeafHandle find_enum_handle_by_name(PropPanel::ContainerPropertyControl 
 }
 
 static void update_dependent_states_tree_child_names(PropPanel::ContainerPropertyControl *tree, dag::ConstSpan<AnimStatesData> states,
-  dag::ConstSpan<int> dependent_states, DataBlock *state_desc, DataBlock *init_anim_state, const char *name, const String &old_name,
-  dag::Vector<int> &dependent_enum_items)
+  dag::ConstSpan<int> dependent_states, DataBlock *state_desc, const String &state_desc_path, DataBlock *init_anim_state,
+  const char *name, const String &old_name, dag::Vector<int> &dependent_enum_items)
 {
   for (int idx : dependent_states)
   {
@@ -5204,9 +5294,13 @@ static void update_dependent_states_tree_child_names(PropPanel::ContainerPropert
     {
       case AnimStatesType::STATE:
       {
-        G_ASSERTF(state_desc, "Try update dependent state name but state_desc block is nullptr");
-        DataBlock *settings = find_block_by_name(state_desc, tree->getCaption(states[idx].handle));
-        state_update_child_name(*settings, name, old_name);
+        const String stateName = tree->getCaption(states[idx].handle);
+        DataBlock *settings = state_desc ? find_block_by_name(state_desc, stateName, /*should_exist*/ false) : nullptr;
+        if (settings)
+          state_update_child_name(*settings, name, old_name);
+        else
+          logerr("Can't find %s <%s> in blk with path:<%s>, update its child name <%s> to <%s> manually",
+            state_desc ? "state" : "stateDesc block for state", stateName, state_desc_path, old_name, name);
         break;
       }
       case AnimStatesType::ENUM:
@@ -5214,7 +5308,13 @@ static void update_dependent_states_tree_child_names(PropPanel::ContainerPropert
         G_ASSERTF(init_anim_state, "Try update dependent enum name but initAnimState block is nullptr");
         DataBlock *enumRoot = init_anim_state->addBlock("enum");
         dag::Vector<int> dependentItemsIdxs;
-        DataBlock *settings = find_block_by_block_name(enumRoot, tree->getCaption(states[idx].handle));
+        const String enumName = tree->getCaption(states[idx].handle);
+        DataBlock *settings = find_block_by_block_name(enumRoot, enumName, /*should_exist*/ false);
+        if (!settings)
+        {
+          logerr("Can't find enum <%s> in initAnimState block, update its child name <%s> to <%s> manually", enumName, old_name, name);
+          break;
+        }
         enum_update_child_name(*settings, name, old_name, dependentItemsIdxs);
         for (int itemIdx : dependentItemsIdxs)
         {
@@ -5330,8 +5430,8 @@ void AnimTreeEditor::proccesDependentNodes(PropPanel::ContainerPropertyControl *
     DataBlock props = getPropsAnimStates(panel, *stateDescData, fullPath);
     DataBlock *stateDesc = props.getBlockByName("stateDesc");
     DataBlock *initAnimState = props.addBlock("initAnimState");
-    update_dependent_states_tree_child_names(statesTree, statesData, result.dependentStates, stateDesc, initAnimState, name, old_name,
-      dependentEnumItems);
+    update_dependent_states_tree_child_names(statesTree, statesData, result.dependentStates, stateDesc, fullPath, initAnimState, name,
+      old_name, dependentEnumItems);
     saveProps(props, fullPath);
   }
   else
@@ -5345,15 +5445,15 @@ void AnimTreeEditor::proccesDependentNodes(PropPanel::ContainerPropertyControl *
     if (stateDescData)
     {
       stateDescProps = getPropsAnimStates(panel, *stateDescData, stateDescFullPath);
-      stateDesc = stateDescProps.addBlock("stateDesc");
+      stateDesc = stateDescProps.getBlockByName("stateDesc");
     }
     if (initAnimStateData)
     {
       initAnimStateProps = getPropsAnimStates(panel, *initAnimStateData, fullPathInitAnimState);
       initAnimState = initAnimStateProps.addBlock("initAnimState");
     }
-    update_dependent_states_tree_child_names(statesTree, statesData, result.dependentStates, stateDesc, initAnimState, name, old_name,
-      dependentEnumItems);
+    update_dependent_states_tree_child_names(statesTree, statesData, result.dependentStates, stateDesc, stateDescFullPath,
+      initAnimState, name, old_name, dependentEnumItems);
     if (stateDescData)
       saveProps(stateDescProps, stateDescFullPath);
     if (initAnimStateData)

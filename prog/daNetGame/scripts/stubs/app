@@ -38,7 +38,6 @@ return {
     }
   }
   reinit_localization = @(value) assert(type(value)=="string")
-  reload_ui_scripts = @() null
   reload_overlay_ui_scripts = @() null
   hard_reload_overlay_ui_scripts = @() null
   get_matching_invite_data = @() null

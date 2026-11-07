@@ -157,16 +157,17 @@ template void DispatchRequestBase::setBlobArg<DispatchRequestBase::ArgType::Coun
 template void DispatchRequestBase::setBlobArg<DispatchRequestBase::ArgType::MaxCount>(VirtualResourceRequestBase, TypeErasedProjector);
 
 template <DispatchRequestBase::ArgType arg_type>
-void DispatchRequestBase::setAutoResolutionArg(AutoResTypeNameId resolution, float multiplier, TypeErasedProjector projector)
+void DispatchRequestBase::setAutoResolutionArg(AutoResTypeNameId resolution, float multiplier, bool round_up,
+  TypeErasedProjector projector)
 {
-  set_arg<arg_type>(registry->nodes[nodeId], DispatchAutoResolutionArg{resolution, multiplier, projector});
+  set_arg<arg_type>(registry->nodes[nodeId], DispatchAutoResolutionArg{resolution, round_up, multiplier, projector});
 }
 
-template void DispatchRequestBase::setAutoResolutionArg<DispatchRequestBase::ArgType::X>(AutoResTypeNameId, float,
+template void DispatchRequestBase::setAutoResolutionArg<DispatchRequestBase::ArgType::X>(AutoResTypeNameId, float, bool,
   TypeErasedProjector);
-template void DispatchRequestBase::setAutoResolutionArg<DispatchRequestBase::ArgType::Y>(AutoResTypeNameId, float,
+template void DispatchRequestBase::setAutoResolutionArg<DispatchRequestBase::ArgType::Y>(AutoResTypeNameId, float, bool,
   TypeErasedProjector);
-template void DispatchRequestBase::setAutoResolutionArg<DispatchRequestBase::ArgType::Z>(AutoResTypeNameId, float,
+template void DispatchRequestBase::setAutoResolutionArg<DispatchRequestBase::ArgType::Z>(AutoResTypeNameId, float, bool,
   TypeErasedProjector);
 
 template <DispatchRequestBase::ArgType arg_type>

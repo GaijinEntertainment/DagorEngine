@@ -1,5 +1,5 @@
 format("%s = %d (0x%02X)", "answer", 42, 42) = answer = 42 (0x2A)
 format("%d", 3.9) = 3
 format("%d %d", 1, 2, 3) = 1 2
-format("%d %d", 1) throws: not enough parameters for the given format string
-format("%*d", 5, 1) throws: invalid format
+format("%d %d", x) throws: not enough parameters for the given format string
+format("%*d", 5, x) throws: invalid format

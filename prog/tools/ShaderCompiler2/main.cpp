@@ -518,6 +518,7 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
     blk.removeParam("packShader");
     blk.removeParam("compileCppStcode");         // This will be added back in with possible override
     blk.removeParam("cppStcodeDynamicBranches"); // same here
+    blk.removeParam("devIgnoreShaderAmountLimit");
 
     const int compNameId = blk.getNameId("Compile");
     for (int i = 0; i < blk.blockCount(); i++)
@@ -552,6 +553,8 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
     if (shc::config().sortGlobalConstsByOffset)
       blk.addBool("sortGlobalConstsByOffset", true);
 #endif
+    if (shc::config().hlslDefines.length())
+      blk.addStr("hlslDefines", shc::config().hlslDefines.c_str());
     blk.saveToTextStream(*hasher);
     get_computed_hash(hasher, blkHash.data(), blkHash.size());
     destory_hash_computer_cb(hasher);
@@ -676,6 +679,12 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
       compAction = CompilerAction::LINK_ONLY;
     else if (compAction == CompilerAction::COMPILE_ONLY)
       compAction = CompilerAction::COMPILE_AND_LINK;
+  }
+
+  if ((compAction == CompilerAction::COMPILE_AND_LINK || compAction == CompilerAction::COMPILE_ONLY) && shc::config().relinkOnly)
+  {
+    sh_debug(SHLOG_FATAL, "Specified -relinkOnly flag but shader recompilation is required due to outdated sources");
+    return;
   }
 
   if (compAction != CompilerAction::NOTHING)
@@ -1531,6 +1540,8 @@ int DagorWinMain(bool debugmode)
     }
   }
 
+  globalConfigRW.forceRelink &= !shc::config().singleCompilationShName;
+
   if (shc::config().dependencyDumpMode && globalConfigRW.numProcesses > 0)
   {
     sh_fprintf_only_in_parent(stderr, "[WARNING] Dependency dump mode forced single-process compilation.\n");
@@ -1885,7 +1896,9 @@ int DagorWinMain(bool debugmode)
         if (blk_av)
           globalConfigRW.assumedVarsConfig = blk_av;
 
-        const int inTargetShaderAmountLimit = blk.getInt("shaderAmountLimit", INT_MAX);
+        int inTargetShaderAmountLimit = blk.getInt("shaderAmountLimit", INT_MAX);
+        if (blk.getBool("devIgnoreShaderAmountLimit", false))
+          inTargetShaderAmountLimit = INT_MAX;
 
         ShaderCompilerStat::reset();
 

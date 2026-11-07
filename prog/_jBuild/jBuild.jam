@@ -1310,7 +1310,7 @@ rule AotCompileDAS
   for dest in $(dest_all) { MakeDirectory $(dest_all) : $(dest:D) ; }
   if $(ForceDasAotRebuild) = yes { ALWAYS $(dest_all) ; }
   input_files on $(dest_all) = $(cmd) ;
-  dll_path_opt on $(dest_all) = $(dll_path_opt) ;
+  dll_path_opt on $(dest_all) = $(dll_path_opt) -module-cache $(_Output)/$(DAS_AOT_COMPILER:D=).dascache ;
   aot_compile_das $(dest_all) : $(src_all) ;
   return $(dest_all) ;
 }
@@ -1362,7 +1362,7 @@ actions quietly exec_scripted_command
 rule MakeDasAotPullObj # ( obj_list : target )
 {
   local jamvar = [ Make_DAS_pull_AOT $(2) ] ;
-  local obj_path = $(jamvar)$(_OBJ_SUFFIX) ;
+  local obj_path = $(jamvar)$($(2)__DasPullSuffix:E=)$(_OBJ_SUFFIX) ;
   if $($(2)__TargetType) = lib {
     local list = ;
     for o in $(1) { list += [ StrToCIdent $(o:D=:S=) ] ; }

@@ -362,7 +362,7 @@ void screencap::schedule_screenshot(bool with_gui, int sequence_number, const ch
 
 #ifdef CAPTURE_SCREENSHOT_FRAMES
   pending_delay = 3;
-  PIX_GPU_CAPTURE_NEXT_FRAMES(D3D12XBOX_PIX_CAPTURE_API, L"", 2);
+  GPU_CAPTURE_NEXT_FRAMES(D3D12XBOX_PIX_CAPTURE_API, L"", 2);
 #endif
 }
 

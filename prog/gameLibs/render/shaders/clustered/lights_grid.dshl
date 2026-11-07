@@ -222,7 +222,7 @@ shader precalculate_grid_lights_data_cs
     }
 
 
-    [numthreads(256, 1, 1)]
+    [numthreads(CLUSTERED_LIGHTS_GRID_PRECALCULATE_GROUP_SIZE, 1, 1)]
     void precalculate_grid_lights_data_cs(uint3 dtId : SV_DispatchThreadID)
     {
       uint totalOmni = (uint)omniLightsCount;
@@ -473,7 +473,7 @@ shader clustered_lights_fill_items_spheres_cs
 ##endif
     }
 
-    [numthreads(16, 16, 1)]
+    [numthreads(CLUSTERED_LIGHTS_GRID_CLUSTERS_GROUP_SIZE_X, CLUSTERED_LIGHTS_GRID_CLUSTERS_GROUP_SIZE_Y, 1)]
     void clustered_lights_fill_items_spheres_cs(uint3 dtId : SV_DispatchThreadID)
     {
       uint clusterX = dtId.x;
@@ -630,7 +630,7 @@ shader clustered_lights_cull_spots_cs
       return planeOut == 0;
     }
 
-    [numthreads(16, 16, 1)]
+    [numthreads(CLUSTERED_LIGHTS_GRID_CLUSTERS_GROUP_SIZE_X, CLUSTERED_LIGHTS_GRID_CLUSTERS_GROUP_SIZE_Y, 1)]
     void clustered_lights_cull_spots_cs(uint3 dtId : SV_DispatchThreadID)
     {
       uint clusterX = dtId.x;

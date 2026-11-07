@@ -1,0 +1,36 @@
+as a swapped stable sort, 0: ok true
+as a swapped stable sort, 1: ok true
+as a swapped stable sort, 2: ok true
+as a swapped stable sort, 3: ok true
+as a swapped stable sort, 31: ok true
+as a swapped stable sort, 32: ok true
+as a swapped stable sort, 33: ok true
+as a swapped stable sort, 64: ok true
+as a swapped stable sort, 65: ok true
+as a swapped stable sort, 100: ok true
+as a swapped stable sort, 1000: ok true
+ties keep their order, unlike reverse: ok b,d,a,c; reverse: d,b,c,a
+strings: ok c,b,a,a
+string keys: ok banana,pear,kiwi,fig
+bool keys: ok b,d,a,c
+nullable keys: ok c,a,e,b,d
+index param: ok 9,3,5
+array param: ok 3,5,9
+comparator ignored with two arguments: ok 3,2,1
+comparator calls: ok true
+_cmp calls: ok true
+no calls for one element or none: ok 0
+two elements: ok 2,1 2,1 a,b a,b calls 2
+comparator throws: error: boom
+non-numeric comparator result: error: numeric value expected as return value of the compare function
+incomparable elements: ok comparison between '1' (type='integer') and 'a' (type='string'); same as the swapped comparator: true
+key throws, array unchanged: ok nine: 5,3,9,1
+incomparable keys, array unchanged: ok true: 5,3,9,1
+wrong param count: error: wrong number of parameters passed to '(sort_reversed.nut:135)' testData/exec/sort_reversed.nut:135 (4 passed, 5 required)
+immutable array: error: Cannot modify immutable object
+immutable array, key: error: Cannot modify immutable object
+comparator resizes the array: error: array resized during sort operation
+key resizes the array: error: array resized during sort operation
+key _cmp resizes the array: error: array resized during sort operation
+append during a merge: ok array resized during sort operation len 1001 nulls 0
+pop during a merge: ok array resized during sort operation len 999 nulls 0

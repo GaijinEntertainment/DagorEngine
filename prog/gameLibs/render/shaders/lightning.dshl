@@ -1,3 +1,6 @@
+include "clouds2/cloud_volume_mask.dshl"
+include "vr_reprojection.dshl"
+
 float lightning_current_bottom = 0.0;
 float lightning_step_size = 1;
 
@@ -87,6 +90,13 @@ macro LIGHTNING_VS()
 endmacro
 
 macro LIGHTNING_PS()
+  if (cloud_volume != NULL)
+  {
+    CLOUD_VOLUME_MASK()
+    USE_SCREENPOS_TO_TC()
+    INIT_BOUNDING_VIEW_REPROJECTION_PS()
+    USE_BOUNDING_VIEW_REPROJECTION_PS()
+  }
   hlsl(ps) {
     float4 lightning_bolt_ps(VsOutput input) : SV_Target0
     {
@@ -99,6 +109,13 @@ macro LIGHTNING_PS()
       diffuseColor.rgb *= pow4(fadeinVal);
       if (floor(worldPos.y * lightning_bolt_params.z) < lightning_bolt_params.x)
         diffuseColor = float4(0.0f, 0.0f, 0.0f, 0.0f);
+      ##if cloud_volume != NULL
+        float2 cloudsTc = screen_pos_to_tc(input.pos.xy);
+        ##if use_bounding_vr_reprojection == on
+          cloudsTc = vr_bounding_view_reproject_tc(cloudsTc, input.pos.z);
+        ##endif
+        diffuseColor *= pow2(get_screen_cloud_volume_mask(cloudsTc, input.pos.w));
+      ##endif
       return float4(pack_hdr(diffuseColor.rgb), diffuseColor.a);
     }
   }

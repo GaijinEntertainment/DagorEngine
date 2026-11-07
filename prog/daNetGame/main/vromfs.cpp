@@ -11,6 +11,7 @@
 #include <util/dag_simpleString.h>
 #include <util/dag_string.h>
 #include <util/dag_baseDef.h>
+#include <util/dag_hash.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/bitvector.h>
@@ -136,7 +137,8 @@ static inline dag::ConstSpan<uint8_t> *get_name_buf(dag::ConstSpan<uint8_t> &sto
   return nullptr;
 }
 
-VirtualRomFsData *mount_vrom(const char *name, const char *mnt_path, bool is_pack, bool is_optional, ReqVromSign req_sign)
+VirtualRomFsData *mount_vrom(
+  const char *name, const char *mnt_path, bool is_pack, bool is_optional, ReqVromSign req_sign, bool keep_file)
 {
   G_ASSERT_RETURN(name && *name, nullptr);
 
@@ -144,8 +146,8 @@ VirtualRomFsData *mount_vrom(const char *name, const char *mnt_path, bool is_pac
   syncvroms::LoadedSyncVrom loadedVrom;
   String eff_path(get_eff_vrom_fpath(name));
   const auto signCheckCb = req_sign == ReqVromSign::Yes ? vromfs_sig_check : nullptr;
-  if (is_pack)
-    newData = ::open_vromfs_pack(eff_path, midmem, DF_IGNORE_MISSING);
+  if (is_pack) // the updater overwrites cache copies while mounted
+    newData = ::open_vromfs_pack(eff_path, midmem, DF_IGNORE_MISSING, keep_file && strcmp(eff_path, name) == 0);
   else
   {
     loadedVrom = syncvroms::load_vromfs_dump(eff_path.c_str(), VromfsCompression{signCheckCb, dd_get_fname(eff_path.c_str())}, true);
@@ -157,7 +159,7 @@ VirtualRomFsData *mount_vrom(const char *name, const char *mnt_path, bool is_pac
   if (!newData && strcmp(eff_path, name) != 0)
   {
     if (is_pack)
-      newData = ::open_vromfs_pack(name, midmem, DF_IGNORE_MISSING);
+      newData = ::open_vromfs_pack(name, midmem, DF_IGNORE_MISSING, keep_file);
     else
     {
       loadedVrom = syncvroms::load_vromfs_dump(name, VromfsCompression{signCheckCb, dd_get_fname(name)}, true);
@@ -250,7 +252,7 @@ void apply_vrom_list_difference(const DataBlock &blk, dag::ConstSpan<VromLoadInf
       continue;
     }
 
-    VirtualRomFsData *vrom = mount_vrom(vi.path, vi.mount, vi.isPack, vi.optional, vi.reqSign);
+    VirtualRomFsData *vrom = mount_vrom(vi.path, vi.mount, vi.isPack, vi.optional, vi.reqSign, vi.keepFile);
     if ((mounted_vi = mnt_vromfs.find_as(vi.path, eastl::less<>())) != mnt_vromfs.end())
     {
       mounted_vi->stripPrefixes = vi.stripPrefixes;
@@ -538,6 +540,17 @@ void unregister_all_virtual_vrom()
   decltype(mnt_single_file)().swap(mnt_single_file);
 }
 
+#if _TARGET_PC
+static uint32_t get_game_dir_hash()
+{
+  eastl::string gameDir{folders::get_game_dir().c_str()};
+#if _TARGET_PC_WIN
+  gameDir.make_lower();
+#endif
+  return str_hash_fnv1a(gameDir.c_str());
+}
+#endif
+
 const eastl::string &updater::binarycache::get_cache_folder()
 {
   static eastl::unique_ptr<eastl::string> cacheFolder;
@@ -546,6 +559,11 @@ const eastl::string &updater::binarycache::get_cache_folder()
     return *cacheFolder;
 
   cacheFolder.reset(new eastl::string{eastl::string::CtorSprintf{}, "%s%cupdate", folders::get_downloads_dir().c_str(), PATH_DELIM});
+#if _TARGET_PC
+  // older builds share it between installs
+  binarycache::purge(*cacheFolder);
+  cacheFolder->append_sprintf("_%08x", get_game_dir_hash());
+#endif
   *cacheFolder = fs::normalize_path(cacheFolder->c_str());
 
   debug("Init cache folder: %s", cacheFolder->c_str());
@@ -571,4 +589,41 @@ const eastl::string &updater::binarycache::get_remote_folder()
 }
 
 
+const eastl::string &updater::binarycache::get_res_patch_folder()
+{
+  static const eastl::string resPatchFolder = [] {
+    eastl::string folder{get_cache_folder()};
+    folder.pop_back(); // the PATH_DELIM of normalize_path()
+    folder = fs::normalize_path((folder + "_respatch").c_str());
+    debug("Init res patch folder: %s", folder.c_str());
+    return folder;
+  }();
+  return resPatchFolder;
+}
+
+
 updater::Version updater::binarycache::get_cache_version() { return get_cache_version(binarycache::get_cache_folder().c_str()); }
+
+
+bool is_res_patch_download_enabled()
+{
+#if _TARGET_XBOX | _TARGET_C1 | _TARGET_C2
+  constexpr bool defEnabled = true;
+#else
+  constexpr bool defEnabled = false;
+#endif
+  return ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("downloadResPatch", defEnabled);
+}
+
+
+const char *get_actual_res_patch_folder()
+{
+  if (!is_res_patch_download_enabled() || mounted_vroms_version <= get_game_build_version())
+    return nullptr;
+
+  const eastl::string &folder = updater::binarycache::get_res_patch_folder();
+  if (updater::binarycache::get_cache_version(folder.c_str()) != mounted_vroms_version ||
+      !dd_dir_exists(String::mk_str_cat(folder.c_str(), ::dgs_get_settings()->getStr("addonsPatchRoot", "patch"))))
+    return nullptr;
+  return folder.c_str();
+}

@@ -1,0 +1,25 @@
+WARNING: w348 (discarded-nodiscard) The result of 'mkSquad' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard.nut:16:0
+
+mkSquad(4)                    //warning:discarded-nodiscard
+^---------
+armorAt(1)                    //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'armorAt' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard.nut:17:0
+
+mkSquad(4)                    //warning:discarded-nodiscard
+armorAt(1)                    //warning:discarded-nodiscard
+^---------
+clampAmmo(45)                 //warning:discarded-nodiscard
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'clampAmmo' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_discarded_nodiscard.nut:18:0
+
+armorAt(1)                    //warning:discarded-nodiscard
+clampAmmo(45)                 //warning:discarded-nodiscard
+^------------
+
+

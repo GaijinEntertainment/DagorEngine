@@ -27,15 +27,6 @@ UseProgLibs +=
   gameLibs/fftWater
 ;
 
-if $(UseApex) = yes {
-  CPPopt += -DENABLE_APEX ;
-  UseProgLibs += gameLibs/apex ;
-  UseProgLibs += 3rdPartyLibs/physx ;
-  UseProgLibs += 3rdPartyLibs/apex/common ;
-  UseProgLibs += 3rdPartyLibs/apex/module/destructible ;
-  Sources += apexCollisionInstances.cpp ;
-}
-
 if $(PlatformSpec) in gcc clang {
   local xclang = - ;
   if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }

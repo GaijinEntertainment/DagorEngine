@@ -43,6 +43,7 @@
 #include <main/gameLoad.h>
 #include "main/level.h"
 #include "sound/dngSound.h"
+#include "sound/propagation/dngSoundPropagation.h"
 
 #define DNGSND_IS_MAIN_THREAD G_ASSERT(is_main_thread())
 
@@ -271,6 +272,9 @@ void init()
 
     com_initialize();
 
+    // before sndsys::init: the blob layer asks its backend at init whether it stands
+    install_propagation(sndblk);
+
     if (sndsys::init(sndblk))
     {
       sndsys::dsp::init(sndblk);
@@ -311,7 +315,13 @@ void init()
       if (g_occlusion_suppress_value > 1.f)
         sndsys::occlusion_gpu::set_external_factor(occlusion_gpu_external_factor);
     }
+    else
+      uninstall_propagation(); // the layer's close never reaches a backend it did not init, and the next init would assert
   }
+
+  // a sound-only restart never replays EventLevelLoaded
+  if (is_level_loaded())
+    sndsys::occlusion_gpu::level_loaded();
 
   sound::ActionProps::register_props_class();
 

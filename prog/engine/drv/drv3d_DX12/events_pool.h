@@ -1,11 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <atomic>
 #include <debug/dag_assert.h>
-#include <eastl/array.h>
+#include <EASTL/array.h>
 #include <math/dag_intrin.h>
 #include <new>
+#include <osApiWrappers/dag_atomic_types.h>
 #include <util/dag_compilerDefs.h>
 #include <windows.h>
 
@@ -19,7 +19,7 @@ class EventsPool
   // Atomic writes don't invalidate readonly fields' cache lines.
   alignas(std::hardware_constructive_interference_size)
     // If the Nth bit in mask is set then the Nth slot is available.
-    std::atomic<uint16_t> freeSlotMask = DEFAULT_FREE_SLOT_MASK;
+    dag::AtomicInteger<uint16_t> freeSlotMask = DEFAULT_FREE_SLOT_MASK;
 
 public:
   class Event
@@ -54,11 +54,11 @@ private:
 
 inline EventsPool::Event EventsPool::acquireEvent()
 {
-  for (auto observedMask = freeSlotMask.load(std::memory_order_acquire); DAGOR_LIKELY(observedMask != 0);)
+  for (auto observedMask = freeSlotMask.load(dag::memory_order_acquire); DAGOR_LIKELY(observedMask != 0);)
   {
     const int8_t slotIndex = __ctz_unsafe(observedMask);
-    if (freeSlotMask.compare_exchange_weak(observedMask, observedMask ^ (1u << slotIndex), std::memory_order_acquire,
-          std::memory_order_relaxed))
+    if (freeSlotMask.compare_exchange_weak(observedMask, observedMask ^ (1u << slotIndex), dag::memory_order_acquire,
+          dag::memory_order_relaxed))
     {
       if (DAGOR_UNLIKELY(!slots[slotIndex]))
       {
@@ -79,13 +79,13 @@ inline EventsPool::Event::~Event()
   }
   else
   {
-    eventsPool->freeSlotMask.fetch_or(1u << slotIndex, std::memory_order_release);
+    eventsPool->freeSlotMask.fetch_or(1u << slotIndex, dag::memory_order_release);
   }
 }
 
 inline EventsPool::~EventsPool()
 {
-  G_ASSERT(freeSlotMask.load(std::memory_order_relaxed) == DEFAULT_FREE_SLOT_MASK);
+  G_ASSERT(freeSlotMask.load(dag::memory_order_relaxed) == DEFAULT_FREE_SLOT_MASK);
   for (auto &handle : slots)
   {
     if (handle)

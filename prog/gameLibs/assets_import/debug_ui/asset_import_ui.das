@@ -5,7 +5,6 @@ require imgui
 require imgui/imgui_boost
 require daslib/safe_addr
 require daslib/static_let
-require gameLibs.assets_import.main.import_rendinst_common
 require gameLibs.assets_import.main.asset_manager_events
 require gameLibs.assets_import.das_includes.rendinst_ui
 require gameLibs.assets_import.das_includes.texture_ui

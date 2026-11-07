@@ -25,7 +25,7 @@ def gather_files_to_check(path, relative="", cwd=None):
   files2check=[]
   for root,dirs,files in os.walk(path):
     dirs[:] = [d for d in dirs if d not in ["zbugs"]]
-    files[:] = [f for f in files if not f in ["images_advanced.ui.nut","svg.ui.nut","input.ui.nut","robj_shader.ui.nut","nu_pogodi.ui.nut", "all_ui.ui.nut"] and f.endswith(".nut")]
+    files[:] = [f for f in files if not f in ["images_advanced.ui.nut","svg.ui.nut","input.ui.nut","nu_pogodi.ui.nut", "all_ui.ui.nut"] and f.endswith(".nut")]
     for file in files:
       path = os.path.join(root,file).replace("\\","/")
       files2check.append({"rel":os.path.relpath(path, relative), "direct":path, "cwd":cwd})
@@ -46,7 +46,7 @@ MULTI_FRAME_TESTS = {
   "samples_prog/benchmarks/test_virtual_list_horiz.ui.nut": {"limit_updates": 200000, "act_rate": 1000},
   "samples_prog/benchmarks/test_virtual_list_keepfocus.ui.nut": {"limit_updates": 200000, "act_rate": 1000},
   "samples_prog/benchmarks/test_virtual_list_padding.ui.nut": {"limit_updates": 200000, "act_rate": 1000},
-  "samples_prog/benchmarks/test_touch_pad_gestures.ui.nut": {"limit_updates": 200000, "act_rate": 1000},
+  "samples_prog/benchmarks/test_das_shared_reload.ui.nut": {"limit_updates": 200000, "act_rate": 1000},
 }
 
 def check(file_info):

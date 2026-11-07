@@ -68,6 +68,9 @@ public:
   void changeItemImage(TLeafHandle item, IconId new_id);
   void changeItemStateImage(TLeafHandle item, IconId new_id);
 
+  // The color is used for the label text. E3DCOLOR(0) uses the default text color.
+  void setColor(TLeafHandle item, E3DCOLOR color);
+
   String getItemName(TLeafHandle item) const;
   void *getItemData(TLeafHandle item) const;
   TreeNode *getItemNode(TLeafHandle item);

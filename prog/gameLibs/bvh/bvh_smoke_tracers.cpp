@@ -19,14 +19,6 @@ namespace bvh
 namespace smoke_tracers
 {
 
-struct BillboardVertex
-{
-  Point3 position;
-  Point2 texcoord;
-};
-
-using BillboardIndex = uint16_t;
-
 struct BillboardGeometry
 {
   UniqueBLAS blas;
@@ -63,14 +55,6 @@ struct BVHConnection : public bvh::BVHConnection
 
   void onInstanceCountReadback(int instance_count) override { lastInstanceCount = instance_count; }
 
-  bool prepare() override
-  {
-    if (!bvh::BVHConnection::prepare())
-      return false;
-
-    return true;
-  }
-
   void teardown() override
   {
     bvh::BVHConnection::teardown();
@@ -89,7 +73,7 @@ void init()
   billboards.generateCs = new_compute_shader("bvh_smoke_tracers_cs", true);
 
   // Two crossed planes (XZ and YZ) along the trail Z direction.
-  const BillboardVertex vertices[] = {
+  const particles::BillboardVertex vertices[] = {
     {Point3(-1, 0, -1), Point2(0, 1)},
     {Point3(1, 0, -1), Point2(1, 1)},
     {Point3(1, 0, 1), Point2(1, 0)},
@@ -101,45 +85,8 @@ void init()
     {Point3(0, -1, 1), Point2(0, 0)},
   };
 
-  const BillboardIndex indices[] = {0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7};
-
-  billboards.ib = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(BillboardIndex) * countof(indices), 4),
-    "bvh_smoke_tracer_ib", d3d::buffers::Init::No, RESTAG_BVH);
-  HANDLE_LOST_DEVICE_STATE(billboards.ib, );
-  billboards.vb = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(BillboardVertex) * countof(vertices), 4),
-    "bvh_smoke_tracer_vb", d3d::buffers::Init::No, RESTAG_BVH);
-  HANDLE_LOST_DEVICE_STATE(billboards.vb, );
-
-  billboards.ib->updateData(0, sizeof(indices), indices, 0);
-  billboards.vb->updateData(0, sizeof(vertices), vertices, 0);
-
-  RaytraceGeometryDescription desc;
-  memset(&desc, 0, sizeof(desc));
-  desc.type = RaytraceGeometryDescription::Type::TRIANGLES;
-  desc.data.triangles.vertexBuffer = billboards.vb.getBuf();
-  desc.data.triangles.indexBuffer = billboards.ib.getBuf();
-  desc.data.triangles.vertexCount = countof(vertices);
-  desc.data.triangles.vertexStride = sizeof(BillboardVertex);
-  desc.data.triangles.vertexFormat = VSDT_FLOAT3;
-  desc.data.triangles.indexCount = countof(indices);
-  desc.data.triangles.indexOffset = 0;
-  desc.data.triangles.flags = RaytraceGeometryDescription::Flags::NONE;
-
-  const RaytraceBuildFlags buildFlags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
-
-  billboards.blas = UniqueBLAS::create(&desc, 1, buildFlags);
-  HANDLE_LOST_DEVICE_STATE(billboards.blas, );
-
-  raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
-  buildInfo.geometryDesc = &desc;
-  buildInfo.geometryDescCount = 1;
-  buildInfo.flags = buildFlags;
-  buildInfo.scratchSpaceBuffer =
-    alloc_scratch_buffer(billboards.blas.getBuildScratchSize(), buildInfo.scratchSpaceBufferOffsetInBytes);
-  buildInfo.scratchSpaceBufferSizeInBytes = billboards.blas.getBuildScratchSize();
-  HANDLE_LOST_DEVICE_STATE(buildInfo.scratchSpaceBuffer, );
-
-  d3d::build_bottom_acceleration_structure(billboards.blas.get(), buildInfo);
+  billboards.blas =
+    particles::create_billboard_blas(vertices, billboards.vb, billboards.ib, "bvh_smoke_tracer_vb", "bvh_smoke_tracer_ib");
 }
 
 void teardown()
@@ -175,20 +122,8 @@ void init(ContextId context_id)
 
   smokeTracersBvhConnection.metaAllocId = context_id->allocateMetaRegion(1, "smokeTracer");
   LockedMetaAccess lockedMeta(*context_id, smokeTracersBvhConnection.metaAllocId);
-  auto &meta = lockedMeta[0];
-
-  meta.markInitialized();
-  meta.albedoTextureIndex = MeshMeta::INVALID_TEXTURE;
-  meta.materialType = MeshMeta::bvhMaterialSmokeTracer;
-  meta.setIndexBitAndTexcoordFormat(2, VSDT_FLOAT2);
-  meta.texcoordOffset = offsetof(BillboardVertex, texcoord);
-  meta.normalOffset = 0xFFU;
-  meta.colorOffset = 0xFFU;
-  meta.vertexStride = sizeof(BillboardVertex);
-  meta.setIndexBufferIndex(billboards.bindlessIndicesIndex);
-  meta.setVertexBufferIndex(billboards.bindlessVerticesIndex);
-  meta.startIndex = 0;
-  meta.startVertex = 0;
+  particles::fill_billboard_meta(lockedMeta[0], MeshMeta::bvhMaterialSmokeTracer, billboards.bindlessIndicesIndex,
+    billboards.bindlessVerticesIndex);
 }
 
 void teardown(ContextId context_id)

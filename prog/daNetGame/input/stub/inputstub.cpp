@@ -34,6 +34,7 @@ void controls::check_system_keys() {}
 
 void uiinput::mask_dainput_buttons(dag::ConstSpan<darg::HotkeyButton>, bool, int) {}
 void uiinput::mask_dainput_pointers(int, int) {}
+bool uiinput::is_mouse_used_by_ui() { return false; }
 void uiinput::update_joystick_input() {}
 void uiinput::call_dainput(eastl::function<void()> &&f) { f(); }
 void uiinput::flush_dainput_calls() {}

@@ -49,8 +49,16 @@ class DeviceContext //-V553
   {
     WorkerThread(uint64_t affinity) :
       // use higher priority insead of dedicated affinity, as we don't have system to reserve core properly
-      DaThread("Vulkan Worker", 4096 << 10, cpujobs::DEFAULT_THREAD_PRIORITY + 1, affinity)
+      DaThread("Vulkan Worker", 4096 << 10, workerPriority(), affinity)
     {}
+    static int workerPriority()
+    {
+#if _TARGET_PC_WIN
+      return MAIN_THREAD_PRIORITY;
+#else
+      return cpujobs::DEFAULT_THREAD_PRIORITY + 1;
+#endif
+    }
     // calls device.processCommandPipe() until termination is requested
     void execute() override;
   };

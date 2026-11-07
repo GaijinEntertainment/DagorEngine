@@ -92,12 +92,20 @@ macro USE_STATIC_SHADOW_BASE_NUM(code, num_cascades)
   }
 endmacro
 
+macro USE_STATIC_SHADOW_RTSS_CONFIGURED(code)
+  if (rtss_sun_sweep == off)
+  {
+    hlsl(code) { #define RTSS_SUN_SWEEP 0 }
+  }
+  USE_STATIC_SHADOW_RTSS(code)
+endmacro
+
 macro USE_STATIC_SHADOW_BASE(code)
   if (!DEFINED(skip_use_static_shadow))
   {
     if (force_rtss_shadows == on)
     {
-      USE_STATIC_SHADOW_RTSS(code)
+      USE_STATIC_SHADOW_RTSS_CONFIGURED(code)
     }
     else if (static_shadows_cascades == two)
     {
@@ -135,7 +143,7 @@ macro USE_STATIC_SHADOW_ONE_CASCADE(code)
   hlsl(code) { #define HAS_STATIC_SHADOW 1}
   if (force_rtss_shadows == on)
   {
-    USE_STATIC_SHADOW_RTSS(code)
+    USE_STATIC_SHADOW_RTSS_CONFIGURED(code)
   }
   else
   {

@@ -1,0 +1,9 @@
+ERROR: Foreach variable name 'f' conflicts with function name
+testData/diagnostics/compilation_errors/sema_errors/foreach_var_conflicts_with_function_name.nut:3:11
+
+function f() {
+  foreach (f in [1])
+           ^
+    println(1)
+
+

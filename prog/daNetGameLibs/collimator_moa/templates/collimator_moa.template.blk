@@ -6,3 +6,27 @@ collimator_moa_fg{
 
   "collimator_moa_render__lens_render_node:dafg::NodeHandle"{}
 }
+
+
+//how to set up the collimator tube rivalry parameters
+//1. add _use:t="collimator_moa_tube_rivalry" to a MOA collimator scope template
+//   the scope must have collres
+//2. aim fully through the collimator (darkening reaches its value at full aim)
+//3. press F3 (wireframe mode)
+//4. in the entity inspector, adjust gunmod__collimator_moa_tube_rivalry_visible_angle
+//   the "shadow" HOLE must be the same size as the visible hole in the geometry
+//   (default 0 = whole lens is dark = not tuned)
+//5. set gunmod__collimator_moa_tube_rivalry_darkening to ~0.8 (or to taste)
+//6. copy both values into the scope template
+collimator_moa_tube_rivalry{
+  gunmod__collimator_moa_tube_rivalry_darkening:r=1.0
+  gunmod__collimator_moa_tube_rivalry_visible_angle:r=0
+}
+
+collimator_tube_rivalry_nodes{
+  _singleton:b=yes
+  _tags:t="render"
+
+  dafg_camera_registrator__name:t="collimator_tube_rivalry"
+  "collimator_tube_rivalry_registrator:tag"{}
+}

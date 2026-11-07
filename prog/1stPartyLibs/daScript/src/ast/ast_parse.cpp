@@ -893,7 +893,6 @@ namespace das {
         // a policy mismatch is repaired by the writeback, so it is not builtin drift
         bool policyMismatch = serializer_read->policyMismatch;
         serializer_read->policyMismatch = false;
-        if ( policyMismatch ) serializer_read->builtinHashDrift = false;
         if ( !serializer_read->quietCache ) {
             if ( policyMismatch ) {
                 logs << "ser: compile policies changed at '" << fileName << "' - the record was written by a compile with different policies\n";
@@ -915,12 +914,7 @@ namespace das {
         // storage could not backpatch) or an out-of-range one keeps the legacy cutoff.
         // overflow-safe bound: payload_size is stream data - a wrapped sum must not pass
         if ( payload_size != 0 && uint64_t(payload_size) <= uint64_t(serializer_read->buffer->buffer.size() - payload_start) ) {
-            // two resume flavors: a builtin cumulative-hash mismatch is environment drift
-            // (a lazily populated builtin like dasbind), deterministic per process - a
-            // rewrite would change nothing and just churn. EVERYTHING else (a throwing
-            // failure, a mangled module name, a missing module) is repaired by the
-            // writeback, so the next run reads clean
-            if ( !serializer_read->builtinHashDrift ) serializer_read->resumedCorrupt ++;
+            serializer_read->resumedCorrupt ++;
             serializer_read->buffer->bufferPos = payload_start + size_t(payload_size);
             serializer_read->failed = false;            // per-record failure; the stream is still aligned
             // the throwing failure flavor sets seenNewModule too - clear it, or every later

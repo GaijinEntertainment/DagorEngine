@@ -1,0 +1,14 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daPCG/material ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = gameLibs/daPCG/material.lib ;
+
+Sources =
+  material.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

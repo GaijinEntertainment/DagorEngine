@@ -36,8 +36,10 @@ void resolve(const RenderResources &res, ao_common::FrameState &frame_state, ao_
   const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos, SubFrameSample sub_sample, bool is_main_view, int width,
   int height);
 
+// max_raw_value tells the maximum value raw_tex encodes (PI/2 for GTAO and just 1 for SSAO). So we multiply by it after the spatial
+// filter.
 void spatiotemporal_filter(const FilterResources &res, BaseTexture *raw_tex, BaseTexture *prev_tex, BaseTexture *spatial_tex,
-  int width, int height);
+  int width, int height, float max_raw_value);
 
 } // namespace gtao_pass
 

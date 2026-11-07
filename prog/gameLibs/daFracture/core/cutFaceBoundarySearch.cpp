@@ -452,9 +452,13 @@ DAGOR_NOINLINE dag::Vector<BoundaryLoop, framemem_allocator> boundary_loops_sear
       int parentId = bound.parentId;
       while (parentId != -1)
       {
-        parentId = boundaries[parentId].parentId;
+        auto &b = boundaries[parentId];
+        parentId = b.parentId;
         if (FRX_CHECK_FAILURE(iterGuard++ >= int(boundaries.size())))
-          bound.parentId = -1;
+        {
+          b.parentId = -1;
+          break;
+        }
       }
     }
     for (auto &bound : boundaries)

@@ -2006,6 +2006,156 @@ TEST_CASE("Runtime deduces RP_TA_LOAD_CLEAR for render pass with node with clear
   d3di = g_interfaceTableCopy;
 }
 
+TEST_CASE("A no-effect node between two nodes of a render pass does not split it", "[no-effect nodes][render pass]")
+{
+  static eastl::string trace;
+  trace.clear();
+  const int betweenMode = GENERATE(0, 1, 2);
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle firstHandle = dafg::register_node("first", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("color_tex").texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_RTARGET, .resolution = IPoint2{4, 4}});
+    registry.create("depth_tex").texture({.creationFlags = TEXFMT_DEPTH32 | TEXCF_RTARGET, .resolution = IPoint2{4, 4}});
+    registry.requestRenderPass().color({"color_tex"});
+    return [] { trace += "f"; };
+  });
+
+  dafg::NodeHandle betweenHandle;
+  if (betweenMode != 0)
+    betweenHandle = dafg::register_node("between", DAFG_PP_NODE_SRC, [betweenMode](dafg::Registry registry) {
+      registry.orderMeAfter("first");
+      registry.orderMeBefore("last");
+      if (betweenMode == 2)
+        registry.requestRenderPass().color({"color_tex"}).depth("depth_tex");
+    });
+
+  dafg::NodeHandle lastHandle = dafg::register_node("last", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.orderMeAfter("first");
+    registry.requestRenderPass().color({"color_tex"});
+    return [] { trace += "l"; };
+  });
+
+  d3di.begin_render_pass = [](d3d::RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets) {
+    trace += "[";
+    g_interfaceTableCopy.begin_render_pass(rp, area, targets);
+  };
+  d3di.end_render_pass = []() {
+    trace += "]";
+    g_interfaceTableCopy.end_render_pass();
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  INFO("mode " << betweenMode << " trace " << trace.c_str());
+  CHECK((trace == "[fl]"));
+}
+
+TEST_CASE("A no-effect node does not bind its shader vars", "[no-effect nodes][shader vars]")
+{
+  static constexpr const char *SHVAR = "fg_no_effect_binding_test_var";
+
+  TestRuntime testRuntime{};
+  shader_vars_mock::set(SHVAR, -1);
+
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    auto handle = registry.create("value").blob<int>().handle();
+    return [handle] { handle.ref() = 7; };
+  });
+
+  auto noEffectHandle = dafg::register_node("no_effect", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.orderMeBefore("checker");
+    registry.read("value").blob<int>().bindToShaderVar(SHVAR);
+  });
+
+  static int checkedValue;
+  checkedValue = 0;
+  auto checkerHandle = dafg::register_node("checker", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("value").blob<int>();
+    return [] { checkedValue = ShaderGlobal::get_int(VariableMap::getVariableId(SHVAR)); };
+  });
+
+  testRuntime.executeGraph();
+
+  CHECK(checkedValue == -1);
+}
+
+TEST_CASE("A reader that loses its side effects does not take a barrier away from the next reader",
+  "[no-effect nodes][barriers][incremental]")
+{
+  static eastl::string trace;
+  static bool firstReaderHasSuccessor;
+  firstReaderHasSuccessor = GENERATE(false, true);
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8, .resolution = IPoint2{4, 4}})
+      .atStage(dafg::Stage::TRANSFER)
+      .useAs(dafg::Usage::COPY);
+    return [] { trace += "p"; };
+  });
+
+  dafg::NodeHandle copyReaderHandle = dafg::register_node("copy_reader", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.setPriority(1);
+    registry.read("tex").texture().atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::COPY);
+    return [] { trace += "c"; };
+  });
+
+  dafg::NodeHandle secondReaderHandle = dafg::register_node("second_reader", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.setPriority(3);
+    if (firstReaderHasSuccessor)
+      registry.orderMeAfter("first_reader");
+    registry.read("tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+    return [] { trace += "2"; };
+  });
+
+  const auto registerFirstReader = [](bool has_effect) {
+    return dafg::register_node("first_reader", DAFG_PP_NODE_SRC, [has_effect](dafg::Registry registry) {
+      registry.executionHas(has_effect ? dafg::SideEffects::External : dafg::SideEffects::None);
+      registry.setPriority(2);
+      registry.read("tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+      return [] { trace += "1"; };
+    });
+  };
+  dafg::NodeHandle firstReaderHandle = registerFirstReader(true);
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    desc.enumerateTextureBarriers([](BaseTexture *, ResourceBarrier rb, unsigned, unsigned) {
+      if (rb & RB_RO_SRV)
+        trace += "b";
+    });
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  trace.clear();
+  testRuntime.executeGraph();
+  CHECK((trace == "pcb12"));
+
+  firstReaderHandle = registerFirstReader(false);
+
+  trace.clear();
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  INFO("first reader has a successor: " << firstReaderHasSuccessor);
+  CHECK((trace == "pcb2"));
+}
+
 TEST_CASE("Untracked buffer is synced entirely by daFG via enhanced barriers", "[untracked resources]")
 {
   static int activateBufferCount;
@@ -2133,6 +2283,7 @@ TEST_CASE("Untracked buffer UAV-UAV hazard is synchronized via enhanced barriers
 
   d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
     legacyBarrierCount++;
+    desc.enumerateBufferBarriers([](Sbuffer *, ResourceBarrier barrier) { CHECK((barrier & RB_FLUSH_UAV) != 0); });
     g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
   };
 
@@ -2149,7 +2300,7 @@ TEST_CASE("Untracked buffer UAV-UAV hazard is synchronized via enhanced barriers
   }
   else
   {
-    CHECK(legacyBarrierCount == 0);
+    CHECK(legacyBarrierCount == 1);
     CHECK(activationBarrierCount == 0);
     CHECK(hazardBarrierCount == 0);
     CHECK(releaseBarrierCount == 0);
@@ -2296,6 +2447,8 @@ TEST_CASE("Untracked texture UAV-UAV hazard is synchronized via enhanced barrier
 
   d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
     legacyBarrierCount++;
+    desc.enumerateTextureBarriers(
+      [](BaseTexture *, ResourceBarrier barrier, unsigned, unsigned) { CHECK((barrier & RB_FLUSH_UAV) != 0); });
     g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
   };
 
@@ -2312,7 +2465,7 @@ TEST_CASE("Untracked texture UAV-UAV hazard is synchronized via enhanced barrier
   }
   else
   {
-    CHECK(legacyBarrierCount == 0);
+    CHECK(legacyBarrierCount == 1);
     CHECK(activationBarrierCount == 0);
     CHECK(hazardBarrierCount == 0);
     CHECK(releaseBarrierCount == 0);
@@ -3310,7 +3463,7 @@ TEST_CASE("Evil renderpass recreation", "[render pass]")
 }
 
 
-static int ignore_log_errors(int, const char *, const void *, int, const char *, int) { return 1; }
+static void ignore_log_errors(void *, LogMessage &msg) { msg.flags |= LOGMSG_STOP_HANDLERS; }
 
 TEST_CASE("A node ordered after itself still executes", "[cycle]")
 {
@@ -3334,13 +3487,115 @@ TEST_CASE("A node ordered after itself still executes", "[cycle]")
   });
 
   {
-    const auto previousLogCallback = debug_set_log_callback(&ignore_log_errors);
+    ScopedLogHandler ignoreLogErrors(&ignore_log_errors, nullptr, {.levelMask = LOGMASK_ALL, .order = LOGORDER_FILTER});
     testRuntime.executeGraph();
-    debug_set_log_callback(previousLogCallback);
   }
 
   CHECK(selfRuns == 1);
   CHECK(readerRuns == 1);
+}
+
+TEST_CASE("A rename cycle left by a removed node disables the cycle", "[cycle][resource renaming]")
+{
+  TestRuntime testRuntime{};
+  int sinkRuns = 0;
+  int bystanderRuns = 0;
+
+  auto otherCreatorHandle = dafg::register_node("other_creator", DAFG_PP_NODE_SRC,
+    [](dafg::Registry registry) { registry.create("other").blob<uint32_t>(2u); });
+  // The creator of the chain also renames, so only the renamed name may mark a cycle
+  auto creatorHandle = dafg::register_node("creator", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.create("initial").blob<uint32_t>(1u);
+    registry.renameBlob<uint32_t>("other", "other_done");
+  });
+  const auto registerStart = [] {
+    return (dafg::root() / "ns").registerNode("start", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.root().renameBlob<uint32_t>("initial", "x");
+    });
+  };
+  auto startHandle = registerStart();
+  auto endHandle = (dafg::root() / "ns").registerNode("end", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.renameBlob<uint32_t>("x", "x_done");
+  });
+  auto backHandle = dafg::register_node("back", DAFG_PP_NODE_SRC,
+    [](dafg::Registry registry) { (registry.root() / "ns").renameBlob<uint32_t>("x_done", "x"); });
+  auto sinkHandle = dafg::register_node("sink", DAFG_PP_NODE_SRC, [&sinkRuns](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    auto xHandle = registry.readBlob<uint32_t>("x").handle();
+    return [xHandle, &sinkRuns] {
+      CHECK(xHandle.ref() == 1u);
+      ++sinkRuns;
+    };
+  });
+  auto bystanderHandle = dafg::register_node("bystander", DAFG_PP_NODE_SRC, [&bystanderRuns](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    return [&bystanderRuns] { ++bystanderRuns; };
+  });
+
+  testRuntime.executeGraph();
+  CHECK(sinkRuns == 1);
+  CHECK(bystanderRuns == 1);
+
+  // Without /ns/x the request of /ns/end for x falls back to /x, which /back renames out of /ns/x_done
+  startHandle = {};
+  {
+    ScopedLogHandler ignoreLogErrors(&ignore_log_errors, nullptr, {.levelMask = LOGMASK_ALL, .order = LOGORDER_FILTER});
+    testRuntime.executeGraph();
+  }
+  CHECK(sinkRuns == 1);
+  CHECK(bystanderRuns == 2);
+
+  startHandle = registerStart();
+  testRuntime.executeGraph();
+  CHECK(sinkRuns == 2);
+  CHECK(bystanderRuns == 3);
+}
+
+TEST_CASE("Removing a duplicate introducer keeps the created data of the other one", "[resource redefinition]")
+{
+  TestRuntime testRuntime{};
+  int readerRuns = 0;
+  int bystanderRuns = 0;
+
+  auto creatorHandle =
+    dafg::register_node("creator", DAFG_PP_NODE_SRC, [](dafg::Registry registry) { registry.create("res").blob<uint32_t>(7u); });
+  auto otherHandle = dafg::register_node("other_creator", DAFG_PP_NODE_SRC,
+    [](dafg::Registry registry) { registry.create("other").blob<uint32_t>(1u); });
+  const bool duplicateRenames = GENERATE(false, true);
+  const bool duplicateRedeclared = GENERATE(false, true);
+  auto duplicateHandle = dafg::register_node("duplicate", DAFG_PP_NODE_SRC, [duplicateRenames](dafg::Registry registry) {
+    if (duplicateRenames)
+      registry.renameBlob<uint32_t>("other", "res");
+    else
+      registry.create("res").blob<uint32_t>(9u);
+  });
+  auto readerHandle = dafg::register_node("reader", DAFG_PP_NODE_SRC, [&readerRuns](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    auto resHandle = registry.readBlob<uint32_t>("res").handle();
+    return [resHandle, &readerRuns] {
+      CHECK(resHandle.ref() == 7u);
+      ++readerRuns;
+    };
+  });
+  auto bystanderHandle = dafg::register_node("bystander", DAFG_PP_NODE_SRC, [&bystanderRuns](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    return [&bystanderRuns] { ++bystanderRuns; };
+  });
+
+  {
+    ScopedLogHandler ignoreLogErrors(&ignore_log_errors, nullptr, {.levelMask = LOGMASK_ALL, .order = LOGORDER_FILTER});
+    testRuntime.executeGraph();
+  }
+  CHECK(readerRuns == 0);
+  CHECK(bystanderRuns == 1);
+
+  if (duplicateRedeclared)
+    duplicateHandle = dafg::register_node("duplicate", DAFG_PP_NODE_SRC, [](dafg::Registry) {});
+  else
+    duplicateHandle = {};
+  testRuntime.executeGraph();
+  CHECK(readerRuns == 1);
+  CHECK(bystanderRuns == 2);
 }
 
 TEST_CASE("texture changing creation info witout changing size", "[resource redefinition]")
@@ -3718,6 +3973,56 @@ TEST_CASE("bad resolution appears", "[autoresolution]")
 
 
   d3di = g_interfaceTableCopy;
+}
+
+TEST_CASE("setResolution drops an applied dynamic resolution", "[autoresolution]")
+{
+  if (!d3d::get_driver_desc().caps.hasResourceHeaps)
+    SKIP("Driver does not support resource heaps");
+
+  const IPoint2 staticRes = {1920, 1080};
+  const IPoint2 dynamicRes = {1280, 720};
+
+  static IPoint2 expectedRes;
+
+  TestRuntime testRuntime{};
+
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.createTexture2d("texture", {.creationFlags = TEXFMT_R8G8B8A8, .resolution = registry.getResolution<2>("resolution")})
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .atStage(dafg::Stage::PS);
+  });
+
+  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    const auto textureHandle = registry.readTexture("texture").useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS).handle();
+    const auto resolution = registry.getResolution<2>("resolution");
+
+    return [textureHandle, resolution] {
+      TextureInfo ti;
+      textureHandle.get()->getinfo(ti);
+      CHECK((resolution.get() == expectedRes));
+      CHECK((IPoint2{ti.w, ti.h} == expectedRes));
+    };
+  });
+
+  // Run every step on each frame of the window, so that both texture copies are checked
+  expectedRes = staticRes;
+  dafg::root().setResolution("resolution", staticRes);
+  for (int i = 0; i < dafg::SCHEDULE_FRAME_WINDOW; ++i)
+    testRuntime.executeGraph();
+
+  expectedRes = dynamicRes;
+  dafg::root().setDynamicResolution("resolution", dynamicRes);
+  for (int i = 0; i < dafg::SCHEDULE_FRAME_WINDOW; ++i)
+    testRuntime.executeGraph();
+
+  // Same static value, so the textures are not placed again and must be resized
+  expectedRes = staticRes;
+  dafg::root().setResolution("resolution", staticRes);
+  for (int i = 0; i < dafg::SCHEDULE_FRAME_WINDOW; ++i)
+    testRuntime.executeGraph();
 }
 
 TEST_CASE("Request vrs for renderpass", "[render pass]")

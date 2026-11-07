@@ -785,7 +785,8 @@ void clear_tex_slots()
   }
 }
 
-void start_fx_interframe_jobs() { dafx::start_async_interframe_jobs(g_dafx_ctx); }
+// No wake: the defrag job is not urgent, a later wake (e.g. in WorldRenderer::update) picks it up
+void start_fx_interframe_jobs() { dafx::start_async_interframe_jobs(g_dafx_ctx, /*tp_wake_up*/ false); }
 
 static bool renderTransBase(FxRenderGroup group, dafx::CullingId cull_id)
 {
@@ -1004,7 +1005,7 @@ void start_fx_managers_update_job(float dt)
     fx_managers_update_job.prepareJob(dt)->doJob();
 }
 
-void start_dafx_update(float dt)
+void start_dafx_update(float dt, bool tp_wake_up)
 {
   if (!get_dafx_context())
     return;
@@ -1015,7 +1016,7 @@ void start_dafx_update(float dt)
   g_accum_dt = 0.0f;
   dt *= dafx::get_config(g_dafx_ctx).time_scale;
   dafx::set_global_value(g_dafx_ctx, "dt", &dt, 4);
-  dafx::start_update(g_dafx_ctx, dt);
+  dafx::start_update(g_dafx_ctx, dt, /*update_gpu*/ true, tp_wake_up);
 }
 
 void wait_fx_managers_update_job_done()
@@ -1266,6 +1267,12 @@ void rifx_composite::startEffect(int type, const TMatrix &fx_tm, AcesEffect **lo
 }
 
 void rifx_composite::stopEffect(AcesEffect *fx_handle) { acesfx::stop_effect(fx_handle); }
+
+void rifx_composite::unlockEffect(AcesEffect *fx_handle)
+{
+  if (fx_handle)
+    fx_handle->unlock();
+}
 
 
 ECS_TAG(render)

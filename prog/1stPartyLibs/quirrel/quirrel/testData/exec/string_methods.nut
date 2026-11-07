@@ -1,4 +1,5 @@
 let s = "Hello, World!"
+let notNumber = "abc" // not a constant, so the call throws at runtime and does not fail the compile
 let Exception = class{
   e = null
   constructor(e){
@@ -20,7 +21,7 @@ function test(func, expected_res, name = null){
 try{
   test(@() s.len(), 13, "s.len()")
   test(@() "123".tointeger(), 123, "'123'.tointeger()")
-  test(@() "abc".tointeger(), Exception("cannot convert the string to integer"), "'abc'.tointeger()")
+  test(@() notNumber.tointeger(), Exception("cannot convert the string to integer"), "notNumber.tointeger()")
   test(@() "12.34".tofloat(), 12.34, "'12.34'.tofloat()")
   test(@() s.tostring(), "Hello, World!", "s.tostring()")
   test(@() s.hash(), s.hash(), "s.hash()")

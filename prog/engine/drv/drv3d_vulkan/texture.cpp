@@ -892,14 +892,15 @@ Texture *BaseTex::wrapVKImage(VkImage tex_res, ResourceBarrier current_state, in
   }
   if ((flg & TEXCF_UNORDERED) != 0)
     vkUsage |= VK_IMAGE_USAGE_STORAGE_BIT;
+  VkImageCreateFlags vkFlags = 0;
   if ((dagorFormat.isSrgbCapableFormatType() && FormatStore::needMutableFormatForCreateFlags(flg)) || (flg & TEXCF_UNORDERED) != 0)
-    vkUsage |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+    vkFlags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
   TextureInterfaceBase *tex =
     allocate_texture(width, height, layers, mips, layers > 1 ? D3DResourceType::ARRTEX : D3DResourceType::TEX, flg, name);
 
   Image::Description::TrimmedCreateInfo ici;
-  ici.flags = 0;
+  ici.flags = vkFlags;
   ici.imageType = VK_IMAGE_TYPE_2D;
   ici.extent = VkExtent3D{uint32_t(width), uint32_t(height), 1};
   ici.mipLevels = mips;

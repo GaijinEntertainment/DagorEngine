@@ -30,7 +30,36 @@ static void init_atypes(DagorAssetMgr &mgr)
   }
 }
 
-static void enum_a2d_refs(DagorAsset &a, Tab<IDagorAssetRefProvider::Ref> &refs)
+// parse blocks a2dOverride{ <a2d>:t="<replacement_a2d>"; }
+static bool build_a2d_overrides(const DataBlock &props, DataBlock &overrides, ILogWriter *log)
+{
+  bool ok = true;
+  int nid = props.getNameId("a2dOverride");
+  for (int i = 0; i < props.blockCount(); i++)
+    if (props.getBlock(i)->getBlockNameId() == nid)
+    {
+      const DataBlock &b = *props.getBlock(i);
+      for (int j = 0; j < b.paramCount(); j++)
+        if (b.getParamType(j) == DataBlock::TYPE_STRING)
+          overrides.setStr(DagorAsset::fpath2asset(b.getParamName(j)), DagorAsset::fpath2asset(b.getStr(j)));
+        else
+        {
+          ok = false;
+          if (log)
+            log->addMessage(ILogWriter::ERROR, "a2dOverride %s: the replacement must be a string param", b.getParamName(j));
+        }
+      for (int j = 0; j < b.blockCount(); j++)
+      {
+        ok = false;
+        if (log)
+          log->addMessage(ILogWriter::ERROR, "a2dOverride holds block %s, only string params are allowed",
+            b.getBlock(j)->getBlockName());
+      }
+    }
+  return ok;
+}
+
+static void enum_a2d_refs(DagorAsset &a, const DataBlock &overrides, Tab<IDagorAssetRefProvider::Ref> &refs)
 {
   init_atypes(a.getMgr());
 
@@ -40,7 +69,8 @@ static void enum_a2d_refs(DagorAsset &a, Tab<IDagorAssetRefProvider::Ref> &refs)
   for (int i = 0; i < a.props.blockCount(); i++)
     if (a.props.getBlock(i)->getBlockNameId() == nid)
     {
-      String a2d_name(DagorAsset::fpath2asset(a.props.getBlock(i)->getStr("a2d", "")));
+      String src_a2d_name(DagorAsset::fpath2asset(a.props.getBlock(i)->getStr("a2d", "")));
+      const char *a2d_name = overrides.getStr(src_a2d_name, src_a2d_name);
       DagorAsset *ra = a.getMgr().findAsset(a2d_name, a2d_atype);
 
       if (ra)
@@ -120,10 +150,11 @@ public:
 
   bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
+    DataBlock overrides;
+    bool err = !build_a2d_overrides(a.props, overrides, &log);
     Tab<IDagorAssetRefProvider::Ref> refList;
-    enum_a2d_refs(a, refList);
+    enum_a2d_refs(a, overrides, refList);
     DataBlock blk;
-    bool err = false;
 
     blk = a.props;
     if (const char *skel_nm = a.props.getStr("skeleton", NULL))
@@ -243,33 +274,60 @@ public:
         }
     }
 
+    FastNameMap leafA2dNames;
+
     int nid = blk.getNameId("AnimBlendNodeLeaf");
     for (int i = 0; i < blk.blockCount(); i++)
       if (blk.getBlock(i)->getBlockNameId() == nid)
       {
-        String a2d_name(DagorAsset::fpath2asset(blk.getBlock(i)->getStr("a2d", "")));
+        String src_a2d_name(DagorAsset::fpath2asset(blk.getBlock(i)->getStr("a2d", "")));
+        const char *a2d_name = overrides.getStr(src_a2d_name, src_a2d_name);
+        leafA2dNames.addNameId(src_a2d_name);
         int a_nid = a.getMgr().getAssetNameId(a2d_name);
 
         int found = -1;
+        DagorAsset *ref_a = nullptr;
         if (a_nid != -1)
           for (int j = 0; j < refList.size(); j++)
             if (refList[j].getAsset() && refList[j].getAsset()->getNameId() == a_nid)
             {
               found = j;
+              ref_a = refList[j].getAsset();
               break;
             }
 
-        if (found != -1)
-        {
-          blk.getBlock(i)->removeParam("a2d");
-          blk.getBlock(i)->addInt("a2d_id", found);
-        }
-        else
+        if (!ref_a)
         {
           err = true;
-          log.addMessage(log.ERROR, "cannot find a2d: %s", a2d_name);
+          if (strcmp(src_a2d_name, a2d_name) == 0)
+            log.addMessage(log.ERROR, "cannot find a2d: %s", a2d_name);
+          else
+            log.addMessage(log.ERROR, "cannot find a2d: %s (a2dOverride for %s)", a2d_name, src_a2d_name);
+          continue;
         }
+
+        // the runtime asserts when a leaf and its anim disagree on additive, so a replacement must match the original
+        if (strcmp(src_a2d_name, a2d_name) != 0)
+          if (DagorAsset *src_a = a.getMgr().findAsset(src_a2d_name, a2d_atype))
+            if (src_a->props.getBool("makeAdditive", false) != ref_a->props.getBool("makeAdditive", false))
+            {
+              err = true;
+              log.addMessage(log.ERROR, "a2dOverride %s:t=\"%s\": makeAdditive differs from the a2d it replaces", src_a2d_name,
+                a2d_name);
+            }
+
+        blk.getBlock(i)->removeParam("a2d");
+        blk.getBlock(i)->addInt("a2d_id", found);
       }
+
+    for (int i = 0; i < overrides.paramCount(); i++)
+      if (leafA2dNames.getNameId(overrides.getParamName(i)) < 0)
+      {
+        err = true;
+        log.addMessage(log.ERROR, "a2dOverride %s:t=\"%s\" matches no AnimBlendNodeLeaf a2d", overrides.getParamName(i),
+          overrides.getStr(i));
+      }
+    blk.removeBlock("a2dOverride");
 
     if (err)
       return false;
@@ -325,7 +383,12 @@ public:
   void __stdcall onRegister() override {}
   void __stdcall onUnregister() override {}
 
-  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override { return enum_a2d_refs(a, refs); }
+  void __stdcall getAssetRefs(DagorAsset &a, Tab<Ref> &refs) override
+  {
+    DataBlock overrides;
+    build_a2d_overrides(a.props, overrides, nullptr);
+    enum_a2d_refs(a, overrides, refs);
+  }
 };
 END_DABUILD_PLUGIN_NAMESPACE(animTree)
 

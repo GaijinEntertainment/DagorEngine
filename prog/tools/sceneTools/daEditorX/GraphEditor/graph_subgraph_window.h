@@ -59,8 +59,6 @@ public:
 
   GraphTab &getTab() const { return *tab; }
   const eastl::string &getStem() const { return stem; }
-  // Its graph went to another file: a Save as.
-  void setStem(const char *file_stem) { stem = file_stem; }
   const SubgraphWindowLayout &getLayout() const { return layout; }
   // The window it was opened from; null: the root canvas.
   SubgraphWindow *getParent() const { return parent; }

@@ -1,0 +1,7 @@
+inline const: ERROR: Identifier 'T' is not a compile-time constant
+const declaration: ERROR: Identifier 'T' is not a compile-time constant
+const call argument: ERROR: Identifier 'T' is not a compile-time constant
+foreach variable: ERROR: Identifier 'K' is not a compile-time constant
+catch variable: ERROR: Identifier 'E' is not a compile-time constant
+import: ERROR: Identifier 'sqrt' is not a compile-time constant
+plain read: 101

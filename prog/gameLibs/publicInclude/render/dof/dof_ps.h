@@ -12,6 +12,12 @@
 #include <generic/dag_carray.h>
 #include <render/dof/dofProperties.h>
 #include <drv/3d/dag_texFlags.h>
+#include <3d/dag_resPtr.h>
+#include <shaders/dag_computeShaders.h>
+#include <math/integer/dag_IPoint2.h>
+#include <EASTL/unique_ptr.h>
+
+class Point4;
 
 struct DepthOfFieldTargets
 {
@@ -60,6 +66,7 @@ public:
   //  Unlike far CoC/DOF, nearest has no limit and grows to infinity.
   void setMinCheckDistance(float dist) { minCheckDist = dist; }
   float getMinCheckDistance() const { return minCheckDist; }
+  float getMaxDofAmount() const; // maximum amount for setFarDof/setNearDof functions
   void setOn(bool on_);
   bool isOn() const { return on; }
   void setSimplifiedRendering(bool sr) { useSimplifiedRendering = sr; }
@@ -67,6 +74,8 @@ public:
   void setCocAccumulation(bool acc) { useCoCAccumulation = acc; }
   bool isCocAccumulationEnabled() const { return useCoCAccumulation; }
   void setLinearBlend(bool use_linear_blend) { useLinearBlend = use_linear_blend; }
+  void setTiledGather(bool tiled) { useTiledGather = tiled; }
+  bool isTiledGather() const { return useTiledGather; }
   int getWidth() const { return width; }
   int getHeight() const { return height; }
   void releaseRTs();
@@ -83,6 +92,9 @@ protected:
   bool prepareFrame(BaseTexture *frame, float zn, float zf, float &fov_scale, bool &has_near_dof, bool &has_far_dof);
   void renderLayers(const DepthOfFieldTargets &targets, BaseTexture *frame, BaseTexture *close_depth, float zn, float zf,
     float fov_scale, bool has_near_dof, bool has_far_dof);
+  bool prepareTiles(const DepthOfFieldTargets &targets, bool has_near_dof, bool has_far_dof);
+  void renderGather(const DepthOfFieldTargets &targets, int iteration, const Point4 *taps, int taps_count, bool tiled,
+    bool has_near_dof, bool has_far_dof);
 
   bool useLinearBlend;
   bool useSimplifiedRendering = false;
@@ -97,10 +109,16 @@ protected:
   ResizableRTarget::Ptr dof_far_layer, dof_near_layer;
   carray<ResizableTex, DepthOfFieldTargets::COC_COUNT> dof_coc;
   ResizableTex dof_coc_history;
+  eastl::unique_ptr<ComputeShaderElement> dofClassifyTiles, dofBuildTilesList, dofGatherCs;
+  UniqueBuf dof_tiles_mask, dof_tiles_list, dof_tiles_args;
+  IPoint2 tilesCount = {0, 0};
+  int tilesListCapacity = 0;
+  bool useTiledGather = false;
   DOFProperties cFocus, nFocus;
   float bokehShapeKernelSize = 4, bokehShapeApertureBlades = 6;
   bool performedNearDof = false, performedFarDof = false;
   float minCheckDist = 0.08f;
+  float lastFovScale = 1.0f; // squared fov_scale of the last perform()
   bool on = true;
   d3d::SamplerHandle clampSampler = d3d::INVALID_SAMPLER_HANDLE;
   d3d::SamplerHandle clampPointSampler = d3d::INVALID_SAMPLER_HANDLE;

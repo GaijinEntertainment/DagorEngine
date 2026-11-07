@@ -166,7 +166,11 @@ declare_struct("FxDistanceScale", 2,
 declare_struct("FxColorCurveOpt", 5,
 [
   { name="enabled", type="bool", defVal=0 },
-  { name="mask", type="E3DCOLOR", defVal=Color4(0, 0, 0, 255) },
+  { name="mask", type="E3DCOLOR", defVal=Color4(0, 0, 0, 255),
+    desc="\n".join([
+      "Channels that follow the curve: R, G, B and A (opacity).",
+      "With premult_alpha, A alone can leave the particle visible; include RGB.",
+    ]) },
   { name="use_part_idx_as_key", type="bool", defVal=0 },
   { name="use_threshold", type="bool", defVal=0 },
   { name="curve", type="cubic_curve" },
@@ -175,7 +179,11 @@ declare_struct("FxColorCurveOpt", 5,
 declare_struct("FxMaskedCurveOpt", 2,
 [
   { name="enabled", type="bool", defVal=0 },
-  { name="mask", type="E3DCOLOR", defVal=Color4(255, 255, 255, 255) },
+  { name="mask", type="E3DCOLOR", defVal=Color4(255, 255, 255, 255),
+    desc="\n".join([
+      "Channels that follow the curve: R, G, B and A (opacity).",
+      "With premult_alpha, A alone can leave the particle visible; include RGB.",
+    ]) },
   { name="curve", type="cubic_curve" },
 ]);
 
@@ -203,8 +211,16 @@ declare_struct("FxColor", 6,
   { name="enabled", type="bool", defVal=0 },
   { name="allow_game_override", type="bool", defVal=0 },
   { name="gamma_correction", type="bool", defVal=0 },
-  { name="col_min", type="E3DCOLOR", defVal=Color4(128, 128, 128, 255) },
-  { name="col_max", type="E3DCOLOR", defVal=Color4(128, 128, 128, 255) },
+  { name="col_min", type="E3DCOLOR", defVal=Color4(128, 128, 128, 255),
+    desc="\n".join([
+      "Base particle color; its alpha scales the particle opacity.",
+      "With color_remap it changes the remapped color only when apply_base_color is on.",
+    ]) },
+  { name="col_max", type="E3DCOLOR", defVal=Color4(128, 128, 128, 255),
+    desc="\n".join([
+      "Base particle color; its alpha scales the particle opacity.",
+      "With color_remap it changes the remapped color only when apply_base_color is on.",
+    ]) },
   { name="grad_over_part_life", type="FxValueGradOpt" },
   { name="curve_over_part_life", type="FxColorCurveOpt" },
   { name="curve_over_part_idx", type="FxMaskedCurveOpt" },
@@ -390,7 +406,7 @@ declare_struct("FxPlacement", 3,
   { name="align_normals_offset", type="real", defVal=-1 },
 ]);
 
-declare_struct("FxTextureAnim", 3,
+declare_struct("FxTextureAnim", 4,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="animated_flipbook", type="bool", defVal=0 },
@@ -398,6 +414,8 @@ declare_struct("FxTextureAnim", 3,
   { name="speed_max", type="real", defVal=1 },
 
   { name="motion_vectors", type="bool", defVal=0 },
+  { name="motion_vectors_channels", type="list", list=["rg", "ba"],
+    desc="tex_1 channels of the motion vectors. ba allows a normal map in rg of the same texture." },
   { name="motion_vectors_min_quality", type="list", list=["low", "medium", "high"] },
   { name="motion_vectors_strength", type="real", defVal=0.01 },
 
@@ -422,12 +440,19 @@ declare_struct("FxColorRemapDyanmic", 1,
 declare_struct("FxColorRemap", 3,
 [
   { name="enabled", type="bool", defVal=0 },
-  { name="apply_base_color", type="bool", defVal=1 },
+  { name="apply_base_color", type="bool", defVal=1,
+    desc="\n".join([
+      "Multiplies the remapped color by the particle color",
+      "(col_min/col_max, color curves, gradient, fades).",
+      "When off, color curves and fades change only alpha,",
+      "so with premult_alpha a fade can leave the particle visible.",
+    ]) },
   { name="grad", type="gradient_box" },
   { name="dynamic", type="FxColorRemapDyanmic" },
 
   { name="second_mask_enabled", type="bool", defVal=0 },
-  { name="second_mask_apply_base_color", type="bool", defVal=0 },
+  { name="second_mask_apply_base_color", type="bool", defVal=0,
+    desc="Same as apply_base_color, for the second mask layer (texture green channel)." },
 ]);
 
 declare_struct("FxTexture", 4,
@@ -455,8 +480,19 @@ declare_struct("FxTexture", 4,
 declare_struct("FxEmission", 1,
 [
   { name="enabled", type="bool", defVal=0 },
-  { name="value", type="real", defVal=0 },
-  { name="mask", type="E3DCOLOR", defVal=Color4(255, 255, 255, 0) },
+  { name="value", type="real", defVal=0,
+    desc="\n".join([
+      "Emission strength, multiplied by the mask and the curve. With color_remap,",
+      "0 to 1 blends from lit to self-lit, above 1 is self-lit and brighter.",
+      "The glow is multiplied by alpha, so with color_remap from 1 up, alpha 0 hides the particle.",
+    ]) },
+  { name="mask", type="E3DCOLOR", defVal=Color4(255, 255, 255, 0),
+    desc="\n".join([
+      "With color_remap: R is the strength for the remapped layer,",
+      "G for the second mask layer, B is not used.",
+      "Without color_remap: glow per color channel.",
+      "A is not used.",
+    ]) },
   { name="over_part_life", type="FxValueCurveOpt" },
 ]);
 
@@ -467,39 +503,43 @@ declare_struct("FxThermalEmission", 2,
   { name="over_part_life", type="FxValueCurveOpt" },
 ]);
 
-declare_struct("FxAdvancedTranslucency", 1,
-[
-  { name="enabled", type="bool", defVal=0 },
-  { name="tranclucency_color_mul", type="Point3", defVal=Point3(2.5, 2, 1) },
-  { name="weigh_translucency_by_view_light_degree", type="bool", defVal = 0 },
-  { name="use_alpha_as_translucency", type="bool", defVal=0 },
-  { name="alpha_for_translucent_min", type="real", defVal=0 },
-  { name="alpha_for_translucent_max", type="real", defVal=1 },
-  { name="min_translucency_value", type="real", defVal=0 },
-  { name="max_translucency_value", type="real", defVal=1 },
-  { name="use_normal_as_translucency", type="bool", defVal=0 },
-  { name="use_viewvector_for_normal_based_translucency", type="bool", defVal=0 },
-  { name="invert_accepted_degrees", type="bool", defVal=0 },
-  { name="from_degree", type="real", defVal=0 },
-  { name="to_degree", type="real", defVal=90 },
-]);
-
-declare_struct("FxTranslucency", 1,
+declare_struct("FxTranslucency", 2,
 [
   { name="translucency_val", type="real", defVal=0 },
-  { name="advanced_translucency", type="FxAdvancedTranslucency" },
 ]);
 
-declare_struct("FxLighting", 6,
+declare_struct("FxScatterLighting", 1,
 [
-  { name="type", type="list", list=["none", "uniform", "view_disc", "sphere", "normal_map"] },
+  { name="opacity_src_remapped", type="bool", defVal=0 },
+  { name="opacity_src_is_thickness", type="bool", defVal=0 },
+  { name="opacity_src_mask", type="E3DCOLOR", defVal=Color4(0, 0, 0, 255) },
+  { name="max_opacity", type="real", defVal=0.95 },
+  { name="rim_intensity", type="real", defVal=1 },
+  { name="rim_opacity", type="real", defVal=0.42 },
+  { name="rim_width", type="real", defVal=0.35 },
+  { name="rim_backlit", type="real", defVal=1 },
+  { name="sun_backlit_boost", type="real", defVal=1 },
+  { name="sun_self_shadow", type="real", defVal=0.5 },
+  { name="sun_shadow_fill", type="real", defVal=0.5 },
+  { name="sun_thin_fade", type="real", defVal=1 },
+  { name="ambient_self_shadow", type="real", defVal=0.5 },
+  { name="scale_opacity_with_radius", type="bool", defVal=0 },
+  { name="alpha_from_opacity", type="bool", defVal=0 },
+]);
+
+declare_struct("FxLighting", 9,
+[
+  { name="type", type="list", list=["none", "uniform", "view_disc", "sphere", "normal_map", "scatter"] },
   { name="sphere_normal_radius", type="real", defVal=1 },
   { name="sphere_normal_power", type="real", defVal=1 },
   { name="normal_softness", type="real", defVal=0 },
-  { name="specular_enabled", type="bool", defVal=0 },
   { name="specular_power", type="real", defVal=1 },
   { name="specular_strength", type="real", defVal=1 },
+  { name="direction_ambient_min", type="real", defVal=0.5 },
+  { name="specular_enabled", type="bool", defVal=0 },
   { name="external_lights_enabled", type="bool", defVal=0 },
+  { name="use_direction_ambient", type="bool", defVal=0 },
+  { name="scatter_lighting", type="FxScatterLighting" },
   { name="translucency", type="FxTranslucency" },
 ]);
 
@@ -541,7 +581,15 @@ declare_struct("FxRenderShape", 2,
 
 declare_struct("FxBlending", 1,
 [
-  { name="type", type="list", list=["alpha_blend", "premult_alpha", "additive"] },
+  { name="type", type="list", list=["alpha_blend", "premult_alpha", "additive"],
+    desc="\n".join([
+      "alpha_blend: alpha is opacity, alpha 0 hides the particle.",
+      "additive: adds light, never darkens, black is invisible.",
+      "premult_alpha: alpha 1 covers like alpha_blend, alpha 0 adds like additive;",
+      "               to hide the particle, bring both its color and alpha to 0.",
+      "",
+      "Note: some shaders cut pixels by alpha alone, which hides the particle at low alpha in any blend mode.",
+    ]) },
 ]);
 
 declare_struct("FxRenderGroup", 5,

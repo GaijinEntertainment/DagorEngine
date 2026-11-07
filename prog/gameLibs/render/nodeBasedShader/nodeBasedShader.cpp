@@ -11,6 +11,7 @@
 #include <drv/3d/dag_shader.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_lock.h>
+#include "nodeBasedTextures.h"
 
 void NodeBasedShader::dispatch(int xdim, int ydim, int zdim) const
 {
@@ -20,6 +21,7 @@ void NodeBasedShader::dispatch(int xdim, int ydim, int zdim) const
     return;
   }
 
+  node_based_texture_slot::bindSlots(shaderManager->getType());
   shaderManager->setShadervars(variantId);
   computeShader->dispatch(xdim, ydim, zdim);
 }

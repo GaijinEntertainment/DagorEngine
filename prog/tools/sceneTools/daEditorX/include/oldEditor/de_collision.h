@@ -27,7 +27,7 @@ class IDagorEdCustomCollider
 public:
   // traces p + dir * [0, maxt), an empty interval answering false; a hit writes its t into maxt and, when
   // norm is not null, the hit normal
-  // constraint: the HeightMap collider's near-vertical arm and the rendinst service's vertical
+  // the HeightMap collider's near-vertical arm and the rendinst service's vertical
   // branch read and write maxt as a world-unit drop, not as the parameter t of a non-unit dir
   virtual bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) = 0;
   virtual const char *getColliderName() const = 0;

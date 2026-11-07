@@ -135,10 +135,10 @@ static void on_movie_end()
     for (int i = 0; i < jdrv->getDeviceCount(); i++)
       if (jdrv->getDevice(i))
         jdrv->getDevice(i)->doRumble(0.0, 0.0);
-  if (joy)
-  {
-    joy->setClient(oldJoyClient);
-  }
+  if (oldJoyClient)
+    if (HumanInput::IGenJoystick *defJoy = jdrv ? jdrv->getDefaultJoystick() : nullptr)
+      defJoy->setClient(oldJoyClient);
+  oldJoyClient = nullptr;
 #if _TARGET_PC | _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX
   if (kbd)
   {

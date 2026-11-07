@@ -94,11 +94,11 @@ dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
                              UpdateStageInfoRender::RENDER_MAIN |
                              (wr.hasMotionVectors ? UpdateStageInfoRender::RENDER_MOTION_VECS : 0);
 
-      dynrend::ContextId asyncAnimcharCtx = dynrend::ContextId::Invalid;
+      dynrend::ContextId prefilledAnimcharCtx = dynrend::ContextId::Invalid;
       if (async_animchars_main.get() && !debugTriangle)
       {
         camera.jobsMgr->waitAsyncAnimcharMainRender();
-        asyncAnimcharCtx = camera.jobsMgr->getAsyncAnimcharMainRenderCtx();
+        prefilledAnimcharCtx = camera.jobsMgr->getAsyncAnimcharMainRenderCtx();
       }
 
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
@@ -114,7 +114,7 @@ dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
         Occlusion *occlusion = camera.jobsMgr->getOcclusion();
         g_entity_mgr->broadcastEventImmediate(UpdateStageInfoRender(hints, camera.jitterFrustum, camera.viewItm, camera.viewTm,
           camera.jitterProjTm, camera.viewItm.getcol(3), camera.negRoundedCamPos, camera.negRemainderCamPos, occlusion, RENDER_MAIN,
-          asyncAnimcharCtx, strmCtxHndl.ref()));
+          prefilledAnimcharCtx, strmCtxHndl.ref()));
       }
       if (!debugTriangle)
         debug_mesh::deactivate_mesh_coloring_master_override();

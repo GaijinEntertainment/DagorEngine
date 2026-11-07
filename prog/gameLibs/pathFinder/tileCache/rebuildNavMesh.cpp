@@ -3,6 +3,7 @@
 #include <pathFinder/pathFinder.h>
 #include <DetourCommon.h>
 #include <math/dag_mathUtils.h>
+#include <math/dag_check_nan.h>
 #include <DetourNavMesh.h>
 
 #include <regExp/regExp.h>
@@ -698,7 +699,7 @@ static bool resolve_rebuild_settings(NavMeshType nav_mesh_type, RebuildNavMeshSe
   const float rebuildTileSize = settings.tileSize * settings.cellSize;
   const float tileSizeTolerance =
     1e-4f * max(1.0f, max(fabsf(rebuildTileSize), max(fabsf(settings.tileWidth), fabsf(settings.tileHeight))));
-  if (settings.tileSize <= 0 || settings.cellSize <= 0.0f || !isfinite(rebuildTileSize) ||
+  if (settings.tileSize <= 0 || settings.cellSize <= 0.0f || !check_finite(rebuildTileSize) ||
       fabsf(rebuildTileSize - settings.tileWidth) > tileSizeTolerance ||
       fabsf(rebuildTileSize - settings.tileHeight) > tileSizeTolerance)
   {

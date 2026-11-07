@@ -62,11 +62,12 @@ def anim_tree_ui(event : ImGuiStage)
       // runs is when animchar is viewed we can assume that all animchar entities that exists are
       // of interest to the user. So just add all those animchars to view buttons too unless they
       // are already present there.
-      query() <| $ [es] (var animchar aka attach_animchar : AnimcharBaseComponent&)
-        if attach_animchar.animGraph == null || attach_animchar.animState == null
+      // editableObj false marks the hidden entities of the asset thumbnails.
+      query() <| $ [es] (var animchar aka attach_animchar : AnimcharBaseComponent&; editableObj : bool = true)
+        if attach_animchar.animGraph == null || attach_animchar.animState == null || !editableObj
           return
 
-        let exists = find_index_if(chars) <| $ (element)
+        let exists = find_index_if(chars) <| $(element)
           return element._0 == unsafe(addr(attach_animchar))
         if exists == -1
           chars |> emplace((unsafe(addr(attach_animchar)), attach_animchar |> animchar_getResName))

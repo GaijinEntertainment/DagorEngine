@@ -4,6 +4,7 @@
 // #include <frustumCulling/frustumPlanes.h>
 #include "screenProbes/screenprobes_indirect.hlsli"
 #include <generic/dag_carray.h>
+#include <generic/dag_functionRef.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include "giFrameInfo.h"
@@ -28,12 +29,14 @@ struct ScreenSpaceProbes
   void create_indirect();
   void calc_probe_pos();
   void trace_probe_radiance(float quality, bool angle_filtering);
-  void calc_probe_radiance(float quality, bool angle_filtering);
+  void patch_probe_radiance();
+  void calc_probe_radiance(float quality, bool angle_filtering, dag::FunctionRef<void()> relight_hits);
   void calc_probe_irradiance();
   DaGIFrameInfo prevFrameInfo;
 
   void calcProbesPlacement(const DPoint3 &world_view_pos, const TMatrix &viewItm, const TMatrix4 &proj, float zn, float zf);
-  void relightProbes(float quality, bool angle_filtering);
+  // relight_hits lights the hits the trace missed; then the texels that missed are traced again, before the filter
+  void relightProbes(float quality, bool angle_filtering, dag::FunctionRef<void()> relight_hits = {});
   void initDebug();
   void drawDebugRadianceProbes(int debug_type = 0);
 
@@ -59,7 +62,7 @@ protected:
   UniqueBufWithShaderVar linked_list_additional_screenspace_probes;
   UniqueBufWithShaderVar tileClassificator;
   eastl::unique_ptr<ComputeShaderElement> calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs,
-    calc_screenspace_irradiance_cs, calc_screenspace_irradiance_sph3_cs, filter_screenspace_radiance_cs,
+    patch_screenspace_radiance_cs, calc_screenspace_irradiance_cs, calc_screenspace_irradiance_sph3_cs, filter_screenspace_radiance_cs,
     temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace_radiance_cs;
   eastl::unique_ptr<ComputeShaderElement> clear_additional_screenspace_probes_count_cs, initial_probes_placement_cs,
     additional_probes_placement_cs, rearrange_additional_probes_placement_cs, dagi_probes_back_color_cs;

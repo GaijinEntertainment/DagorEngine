@@ -317,7 +317,7 @@ void ShaderMaterialsSaver::writeMatVdata(mkbindump::BinDumpSaveCB &cwr, ShaderTe
       if (vdata[i]->numf < 6)
         vd_hdr[i].flags &= ~VDATA_PACKED_IB;
 
-      G_ASSERTF(vdata[i]->numv <= 65536 || !vdata[i]->iData.size() || vdata[i]->baseVertSegCount,
+      G_ASSERTF(vdata[i]->numv <= 65535 || !vdata[i]->iData.size() || vdata[i]->baseVertSegCount,
         "vdata[%d]->numv=%d idata=%d idata32=%d baseVertSegCount=%d", i, vdata[i]->numv, vdata[i]->iData.size(),
         vdata[i]->iData32.size(), vdata[i]->baseVertSegCount);
       G_ASSERTF(

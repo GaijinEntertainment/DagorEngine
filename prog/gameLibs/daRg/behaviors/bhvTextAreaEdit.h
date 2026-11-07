@@ -34,8 +34,8 @@ public:
 
   virtual int kbdEvent(ElementTree *, Element *, InputEvent /*event*/, int /*key_idx*/, bool /*repeat*/, wchar_t /*wc*/,
     int /*accum_res*/);
-  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent /*event*/, int /*pointer_id*/,
-    int /*btn_idx*/, Point2 /*pos*/, int /*accum_res*/);
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, TouchSource /*touch_src*/, InputEvent /*event*/,
+    int /*pointer_id*/, int /*btn_idx*/, Point2 /*pos*/, int /*accum_res*/);
   virtual int joystickBtnEvent(ElementTree *, Element *, const HumanInput::IGenJoystick *, InputEvent /*event*/, int /*key_idx*/,
     int /*device_number*/, const HumanInput::ButtonBits & /*buttons*/, int /*accum_res*/);
   virtual bool willHandleClick(Element *) override { return true; }

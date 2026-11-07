@@ -24,8 +24,8 @@ public:
   virtual int getInputParametersCount() const { return 0; }
   virtual bool isInputParameterOptional(int) const { return true; }
 
-  virtual int getRegCount(TShaderRegType tp) const { return tp == TSHADER_REG_TYPE_INPUT ? 1 : 1; }
-  virtual bool isRegOptional(TShaderRegType tp, int reg) const { return tp == TSHADER_REG_TYPE_INPUT ? reg == 1 : false; }
+  virtual int getRegCount(TShaderRegType) const { return 1; }
+  virtual bool isRegOptional(TShaderRegType, int) const { return false; }
 
   virtual bool process(TextureGenerator &gen, TextureRegManager &regs, const TextureGenNodeData &data, int)
   {
@@ -55,37 +55,40 @@ public:
 
     int regMin = regs.createTexture(String(128, "autolevels_min"), TEXFMT_A32B32G32R32F, 2, 2, 1);
     int regMax = regs.createTexture(String(128, "autolevels_max"), TEXFMT_A32B32G32R32F, 2, 2, 1);
-    G_ASSERT(regMin >= 0);
-    G_ASSERT(regMax >= 0);
+    const int minMax[] = {regMin, regMax};
+    if (!regs.keepAllOrNone(make_span_const(minMax)))
+      return false;
 
     BaseTexture *texMin = regs.getTexture(regMin);
     BaseTexture *texMax = regs.getTexture(regMax);
 
+    bool ok;
     {
       DataBlock paramsMin;
       paramsMin.setStr("function", "min");
       D3dResource *outMin = (D3dResource *)texMin;
-      tex_convolution->processAll(gen, regs,
+      ok = tex_convolution->processAll(gen, regs,
         TextureGenNodeData(2, 2, NO_BLENDING, false, paramsMin, inputs, make_span_const(&outMin, 1), NULL));
 
       DataBlock paramsMax;
       paramsMax.setStr("function", "max");
       D3dResource *outMax = (D3dResource *)texMax;
-      tex_convolution->processAll(gen, regs,
-        TextureGenNodeData(2, 2, NO_BLENDING, false, paramsMax, inputs, make_span_const(&outMax, 1), NULL));
+      ok = ok && tex_convolution->processAll(gen, regs,
+                   TextureGenNodeData(2, 2, NO_BLENDING, false, paramsMax, inputs, make_span_const(&outMax, 1), NULL));
     }
 
+    if (ok)
     {
       DataBlock params;
       carray<TextureInput, 3> in = {inputs[0], {texMin, false}, {texMax, false}};
 
-      autolevels_final_shader->processAll(gen, regs, TextureGenNodeData(w, h, NO_BLENDING, false, params, in, outputs, NULL));
+      ok = autolevels_final_shader->processAll(gen, regs, TextureGenNodeData(w, h, NO_BLENDING, false, params, in, outputs, NULL));
     }
 
     regs.textureUsed(regMin);
     regs.textureUsed(regMax);
 
-    return true;
+    return ok;
   }
 } texgen_autolevels;
 

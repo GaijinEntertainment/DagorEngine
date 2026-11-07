@@ -5,11 +5,11 @@
 
 namespace HumanInput
 {
-namespace sonypad
+namespace dspad
 {
 
 // Steam Input launched this process and remaps a pad of this vendor into a virtual Xbox controller
 bool steam_input_remaps_vendor(uint16_t vid);
 
-} // namespace sonypad
+} // namespace dspad
 } // namespace HumanInput

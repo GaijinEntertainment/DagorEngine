@@ -23,7 +23,6 @@ CarDrivelineElement::CarDrivelineElement(CarDriveline *dl)
 {
   // Init member variables
   parent = NULL;
-  child[0] = child[1] = NULL;
   driveline = dl;
 
   inertia = 0.01f;
@@ -55,19 +54,18 @@ void CarDrivelineElement::resetData() { rotV = rotA = 0; }
 
 CarDrivelineElement *CarDrivelineElement::getChild(int n)
 {
-  G_ASSERT(n == 0 || n == 1);
+  G_ASSERT(n >= 0 && n < MAX_CHILDREN);
   return child[n];
 }
 
 void CarDrivelineElement::addChild(CarDrivelineElement *comp)
 {
-  if (!child[0])
-    child[0] = comp;
-  else if (!child[1])
-    child[1] = comp;
-  else
-    // DAG_FATAL("component already has 2 children");
-    G_ASSERT(!"component already has 2 children");
+  int freeSlot = 0;
+  while (freeSlot < MAX_CHILDREN && child[freeSlot])
+    freeSlot++;
+  // DAG_FATAL("component already has %d children", MAX_CHILDREN);
+  G_ASSERTF_RETURN(freeSlot < MAX_CHILDREN, , "component already has %d children", MAX_CHILDREN);
+  child[freeSlot] = comp;
 
   // Declare us as parent of the child
   comp->setParent(this);
@@ -82,26 +80,21 @@ void CarDrivelineElement::addChild(CarDrivelineElement *comp)
 void CarDrivelineElement::calcEffInertia()
 {
   effectiveInertiaDownStream = inertia * cumulativeRatio * cumulativeRatio;
-  if (child[0])
-  {
-    child[0]->calcEffInertia();
-    effectiveInertiaDownStream += child[0]->getEffInertia();
-  }
-  if (child[1])
-  {
-    child[1]->calcEffInertia();
-    effectiveInertiaDownStream += child[1]->getEffInertia();
-  }
+  for (CarDrivelineElement *c : child)
+    if (c)
+    {
+      c->calcEffInertia();
+      effectiveInertiaDownStream += c->getEffInertia();
+    }
 }
 
 // Calculate the cumulative ratio for this component and entire tree
 void CarDrivelineElement::calcFullRatio()
 {
   cumulativeRatio = ratio;
-  if (child[0])
-    child[0]->calcFullRatio();
-  if (child[1])
-    child[1]->calcFullRatio();
+  for (CarDrivelineElement *c : child)
+    if (c)
+      c->calcFullRatio();
 
   // Take ratio if child[0] only, since only singular links are supported
   // (like engine->gear->driveshaft)
@@ -114,18 +107,13 @@ void CarDrivelineElement::calcFullRatio()
 void CarDrivelineElement::calcReactionForces()
 {
   tReaction = tBraking = 0;
-  if (child[0])
-  {
-    child[0]->calcReactionForces();
-    tReaction += child[0]->getReactionTorque();
-    tBraking += child[0]->getBrakingTorque();
-  }
-  if (child[1])
-  {
-    child[1]->calcReactionForces();
-    tReaction += child[1]->getReactionTorque();
-    tBraking += child[1]->getBrakingTorque();
-  }
+  for (CarDrivelineElement *c : child)
+    if (c)
+    {
+      c->calcReactionForces();
+      tReaction += c->getReactionTorque();
+      tBraking += c->getBrakingTorque();
+    }
   // Multiply by the inverse ratio for upstream
   tReaction *= invRatio;
   tBraking *= invRatio;
@@ -135,15 +123,17 @@ void CarDrivelineElement::calcReactionForces()
 // following the tree downward
 float CarDrivelineElement::calcRotVel()
 {
-  float r;
+  float r = 0;
+  int childCount = 0;
+  for (CarDrivelineElement *c : child) // Average velocity of the children (diffs probably)
+    if (c)
+    {
+      r += c->calcRotVel();
+      childCount++;
+    }
 
-  if (child[0])
-  {
-    if (child[1]) // Average velocity of both children (diff probably)
-      r = (child[0]->calcRotVel() + child[1]->calcRotVel()) / 2;
-    else
-      r = child[0]->calcRotVel();
-  }
+  if (childCount > 0)
+    r /= childCount;
   else
   {
     // Leaf; must be a wheel. The leaf defines the actual velocity
@@ -177,7 +167,8 @@ CarDriveline::CarDriveline(CarDynamicsModel *_car)
   autoClutch = false;
   preClutchInertia = postClutchInertia = totalInertia = 0;
   prepostLocked = true;
-  centerDiffPowerRatio = 0.5f;
+  const float twoDiffShares[] = {0.5f, 0.5f};
+  setFixedDiffTorqueShares(twoDiffShares, countof(twoDiffShares));
   centerDiffTorque = 0;
 
   //  gid_clutch_app = Stat3D::addGraphic("clutch_app", "clutch_app", E3DCOLOR(255,0,0), 1.1, -0.1);
@@ -204,16 +195,31 @@ bool CarDriveline::load(const DataBlock *blk)
 
 void CarDriveline::loadCenterDiff(const DataBlock &blk)
 {
-  centerDiff.load(blk);
-  centerDiffPowerRatio = centerDiff.fixedRatio;
-  centerDiffTorque = 0;
+  PhysCarCenterDiffParams params;
+  params.load(blk);
+  loadCenterDiff(params);
 }
 
 void CarDriveline::loadCenterDiff(const PhysCarCenterDiffParams &src)
 {
   centerDiff = src;
-  centerDiffPowerRatio = centerDiff.fixedRatio;
+  const float twoDiffShares[] = {centerDiff.fixedRatio, 1.f - centerDiff.fixedRatio};
+  setFixedDiffTorqueShares(twoDiffShares, countof(twoDiffShares));
   centerDiffTorque = 0;
+}
+
+void CarDriveline::setFixedDiffTorqueShares(const float *shares, int count)
+{
+  G_ASSERT_RETURN(count > 0 && count <= MAX_DRIVELINE_DIFFS, );
+  float sum = 0.f;
+  for (int i = 0; i < count; ++i)
+    sum += max(shares[i], 0.f);
+  for (int i = 0; i < MAX_DRIVELINE_DIFFS; ++i)
+  {
+    const float share = i < count ? max(shares[i], 0.f) : 0.f;
+    fixedDiffTorqueShares[i] = sum > 0.f ? share / sum : (i < count ? 1.f / count : 0.f);
+    diffTorqueShares[i] = fixedDiffTorqueShares[i];
+  }
 }
 
 void CarDriveline::resetData()
@@ -348,7 +354,7 @@ void CarDriveline::calcForces(float dt)
   } // else it will get locked again when velocity reversal happens
     // of the engine vs. rest of the drivetrain (=gearbox in angular velocity)
 
-  G_ASSERT(car->getDiffCount() == 1 || car->getDiffCount() == 2);
+  G_ASSERT(car->getDiffCount() >= 1);
 
   if (isClutchLocked())
     centerDiffTorque = root->getEngineTorque() * root->getFullRatio();
@@ -368,9 +374,7 @@ void CarDriveline::calcForces(float dt)
     CarDifferential *diff = car->getDiff(iDiff);
     G_ASSERT(diff);
 
-    float powerMul = 1.0f;
-    if (car->getDiffCount() == 2)
-      powerMul = (iDiff == 0) ? (centerDiffPowerRatio) : (1.0f - centerDiffPowerRatio);
+    const float powerMul = car->getDiffCount() > 1 ? diffTorqueShares[iDiff] : 1.0f;
 
     float appliedDiffTorque = centerDiffTorque * powerMul;
     if (!isClutchLocked() && appliedDiffTorque * sign(root->getFullRatio()) < 0.f)
@@ -392,7 +396,7 @@ void CarDriveline::calcForces(float dt)
 // Calculate the accelerations of all the parts in the driveline
 void CarDriveline::calcAcc()
 {
-  G_ASSERT(car->getDiffCount() == 1 || car->getDiffCount() == 2);
+  G_ASSERT(car->getDiffCount() >= 1);
 
   float gearBoxAcc = 0;
 
@@ -415,12 +419,7 @@ void CarDriveline::calcAcc()
       acc *= comp->getRatio();
     }
 
-    if (car->getDiffCount() == 1)
-      gearBoxAcc = acc;
-    else if (iDiff == 0) // front
-      gearBoxAcc = acc * centerDiffPowerRatio;
-    else
-      gearBoxAcc += acc * (1.0f - centerDiffPowerRatio);
+    gearBoxAcc += car->getDiffCount() > 1 ? acc * diffTorqueShares[iDiff] : acc;
   }
 
   float acc = gearBoxAcc;
@@ -471,52 +470,64 @@ void CarDriveline::integrate(float dt)
   //  Stat3D::setGraphicValue(gid_eng_rpm, root->getRotVel()*60/2/PI);
   //  Stat3D::setGraphicValue(gid_diff_rpm, deltaVel*60/2/PI);
 
-  if (car->getDiffCount() != 2)
+  const int diffCount = car->getDiffCount();
+  if (diffCount < 2)
     return;
 
   if (centerDiff.type == PhysCarCenterDiffParams::VISCOUS)
   {
     // viscous diff
     if (fabs(centerDiffTorque) < 1)
-      centerDiffPowerRatio = centerDiff.fixedRatio;
+    {
+      for (int i = 0; i < diffCount; i++)
+        diffTorqueShares[i] = fixedDiffTorqueShares[i];
+    }
     else
     {
-      centerDiffPowerRatio =
-        centerDiff.fixedRatio - (car->getDiff(0)->getRotVel() - car->getDiff(1)->getRotVel()) * centerDiff.viscousK / centerDiffTorque;
+      float meanRotVel = 0.f;
+      for (int i = 0; i < diffCount; i++)
+        meanRotVel += car->getDiff(i)->getRotVel() / diffCount;
 
-      if (centerDiffPowerRatio < 0)
-        centerDiffPowerRatio = 0;
-      else if (centerDiffPowerRatio > 1)
-        centerDiffPowerRatio = 1;
+      float sharesSum = 0.f;
+      for (int i = 0; i < diffCount; i++)
+      {
+        const float velDelta = car->getDiff(i)->getRotVel() - meanRotVel;
+        diffTorqueShares[i] = saturate(fixedDiffTorqueShares[i] - 2.f * velDelta * centerDiff.viscousK / centerDiffTorque);
+        sharesSum += diffTorqueShares[i];
+      }
+      for (int i = 0; i < diffCount; i++)
+        diffTorqueShares[i] = sharesSum > 0.f ? diffTorqueShares[i] / sharesSum : fixedDiffTorqueShares[i];
     }
   }
-  else if (centerDiff.type == PhysCarCenterDiffParams::ELSD)
+  else if (centerDiff.type == PhysCarCenterDiffParams::ELSD && diffCount == 2)
   {
     // eLSD using feedback torques
     float t0 = fabs(car->getDiff(0)->wheel[0]->getFeedbackTorque()) + fabs(car->getDiff(0)->wheel[1]->getFeedbackTorque());
     float t1 = fabs(car->getDiff(1)->wheel[0]->getFeedbackTorque()) + fabs(car->getDiff(1)->wheel[1]->getFeedbackTorque());
 
-    centerDiffPowerRatio = centerDiff.fixedRatio - ((t0 > 0.1 || t1 > 0.1) ? (t1 - t0) / (t1 + t0) : 0);
-    float m0 = centerDiffPowerRatio - 0.5;
+    float share0 = fixedDiffTorqueShares[0] - ((t0 > 0.1 || t1 > 0.1) ? (t1 - t0) / (t1 + t0) : 0);
+    float m0 = share0 - 0.5;
     if (centerDiffTorque > 0)
     {
       if (m0 < -centerDiff.powerRatio)
-        centerDiffPowerRatio = 0.5 - centerDiff.powerRatio;
+        share0 = 0.5 - centerDiff.powerRatio;
       else if (m0 > centerDiff.powerRatio)
-        centerDiffPowerRatio = 0.5 + centerDiff.powerRatio;
+        share0 = 0.5 + centerDiff.powerRatio;
     }
     else
     {
       if (m0 < -centerDiff.coastRatio)
-        centerDiffPowerRatio = 0.5 - centerDiff.coastRatio;
+        share0 = 0.5 - centerDiff.coastRatio;
       else if (m0 > centerDiff.coastRatio)
-        centerDiffPowerRatio = 0.5 + centerDiff.coastRatio;
+        share0 = 0.5 + centerDiff.coastRatio;
     }
+    diffTorqueShares[0] = share0;
+    diffTorqueShares[1] = 1.f - share0;
   }
   /*
   debug("F/R diff: %.3f (%.3f %.3f) R=%.3f",
     (car->getDiff(0)->getRotVel()-car->getDiff(1)->getRotVel())*30/PI,
     car->getDiff(0)->getRotVel()*30/PI, car->getDiff(1)->getRotVel()*30/PI,
-    centerDiffPowerRatio);
+    diffTorqueShares[0]);
   */
 }

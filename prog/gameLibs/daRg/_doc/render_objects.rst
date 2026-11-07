@@ -98,8 +98,11 @@ Properties:
 * ``fxColor`` — Color, effect color (default 0x78787878).
 * ``fxFactor`` — int, effect factor (default 48).
 * ``fxOffsX`` / ``fxOffsY`` — int, effect offsets (default 0).
-* ``overflowX`` — enum TOVERFLOW_* (e.g., ``TOVERFLOW_CLIP``).
-* ``ellipsis`` — bool, append ellipsis on overflow (default true).
+* ``textOverflow`` - ``TOVERFLOW_CLIP`` (default) draws all the text and the
+  element box clips it. ``TOVERFLOW_ELLIPSIS`` cuts the end of a text that is
+  wider than the box by character and ends it with an ellipsis. Alignment only
+  places the text. A text input is never cut. In both modes a text is drawn up
+  to about 8190 px only, the limit of its glyph cache.
 * ``spacing`` — int, extra character spacing (default 0).
 * ``monoWidth`` — number, fixed character width.
 * ``password`` — null/bool/char; masks text with given char or "*".
@@ -123,14 +126,16 @@ Note: Text rendering differs slightly in size compared to ``ROBJ_TEXT`` for the 
 ROBJ_TEXTAREA
 -------------
 Multi-line editable text area with scrolling and cursor rendering. Shares the
-``ROBJ_TEXT`` font, color, effect, spacing and ``monoWidth`` properties, but not
-its horizontal-overflow controls: ``overflowX`` and ``ellipsis`` have no effect
-here. The ellipsis is shown by default on vertical overflow and hidden via
-``preformatted = FMT_HIDE_ELLIPSIS``. Additional properties:
+``ROBJ_TEXT`` font, color, effect, spacing, ``monoWidth`` and ``textOverflow``
+properties. Additional properties:
 
-* ``overflowY`` — enum TOVERFLOW_* for vertical overflow (default ``TOVERFLOW_CLIP``).
-* ``lowLineCount`` — int, minimum line count for alignment (default 0).
-* ``lowLineCountAlign`` — enum alignment when there are few lines (default ``PLACE_DEFAULT``).
+* ``textOverflow`` - ``TOVERFLOW_CLIP`` (default) draws all the lines and the
+  element box clips them. ``TOVERFLOW_ELLIPSIS`` shows only whole lines, but at
+  least the first one; when lines are hidden, the last shown line ends with an
+  ellipsis and is cut by character when it does not fit with it, and so is
+  each line that is wider than the box (``FMT_NO_WRAP``,
+  ``breakLongWords = false``). The ellipsis uses the element font and color.
+  An editable text area is never cut.
 * ``spacing`` — int, extra character spacing.
 * ``breakLongWords`` — bool, break a word that is wider than the text area
   across lines, at any character (default true; set false to let it overflow).
@@ -141,7 +146,6 @@ here. The ellipsis is shown by default on vertical overflow and hidden via
   * ``FMT_NO_WRAP`` - disable auto wrapping of lines.
   * ``FMT_KEEP_SPACES`` - don't merge multiple spaces into one.
   * ``FMT_IGNORE_TAGS`` - keep tags as-is instead of interpreting them.
-  * ``FMT_HIDE_ELLIPSIS`` - do not render ellipsis for overflowed text.
   * ``FMT_AS_IS`` - all of the above combined (equivalent to ``true``).
 
 ROBJ_BOX

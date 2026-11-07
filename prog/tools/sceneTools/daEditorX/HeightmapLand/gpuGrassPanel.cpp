@@ -36,6 +36,14 @@ void removeDecalType(GPUGrassDecal &decal, const char *name, DataBlock *blk)
   DataBlock *decalBlk = decalsBlk->getBlockByName(decal.name.c_str());
   decalBlk->removeParam(name);
 }
+
+String getDecalIdsText(const GPUGrassDecal &decal)
+{
+  String text;
+  for (int id : decal.ids)
+    text.aprintf(0, text.empty() ? "%d" : ", %d", id);
+  return text;
+}
 } // namespace
 void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, PropPanel::ContainerPropertyControl &panel)
 {
@@ -107,7 +115,7 @@ void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, P
     int basePID = PID_GPU_GRASS_DECAL_START + i * (int)GPUGrassDecalPID::COUNT;
     PropPanel::ContainerPropertyControl *decalPanel =
       grassPanel->createGroup(basePID + (int)GPUGrassDecalPID::NAME, decal.name.c_str());
-    decalPanel->createEditInt(basePID + (int)GPUGrassDecalPID::ID, "Id", decal.id);
+    decalPanel->createEditBox(basePID + (int)GPUGrassDecalPID::ID, "Ids", getDecalIdsText(decal));
     decalPanel->createButton(basePID + (int)GPUGrassDecalPID::ADD_TYPE, "Add...", decal.channels.size() < MAX_TYPES_PER_CHANNEL);
     decalPanel->createButton(basePID + (int)GPUGrassDecalPID::REMOVE_TYPE, "Remove...", !decal.channels.empty(), false);
     int j = 0;
@@ -251,17 +259,7 @@ void GPUGrassPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *pa
     G_ASSERT_RETURN(decalsBlk, );
     DataBlock *decalBlk = decalsBlk->getBlockByName(decal.name.c_str());
     G_ASSERT_RETURN(decalBlk, );
-    if (basePid == (int)GPUGrassDecalPID::ID)
-    {
-      int id = panel->getInt(pcb_id);
-      if (srv->findDecalId(id))
-        id = decal.id;
-      if (id >= GRASS_MAX_CHANNELS)
-        id = decal.id;
-      panel->setInt(pcb_id, id);
-      decalBlk->setInt("id", id);
-    }
-    else if (basePid >= (int)GPUGrassDecalPID::TYPES_START && basePid <= (int)GPUGrassDecalPID::TYPES_END)
+    if (basePid >= (int)GPUGrassDecalPID::TYPES_START && basePid <= (int)GPUGrassDecalPID::TYPES_END)
     {
       int basePid2 = basePid - (int)GPUGrassDecalPID::TYPES_START;
       G_ASSERT_RETURN(basePid2 < decal.channels.size(), );
@@ -270,9 +268,54 @@ void GPUGrassPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *pa
       if (val < 1.0)
         panel->setFloat(pcb_id, val = 1.0);
       decalBlk->setReal(pair.first.c_str(), pair.second = val);
+      reload();
     }
+  }
+}
+
+void GPUGrassPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+{
+  if (pcb_id < PID_GPU_GRASS_DECAL_START || pcb_id > PID_GPU_GRASS_DECAL_END)
+    return;
+  int basePid = pcb_id - PID_GPU_GRASS_DECAL_START;
+  int index = basePid / (int)GPUGrassDecalPID::COUNT;
+  if (basePid - index * (int)GPUGrassDecalPID::COUNT != (int)GPUGrassDecalPID::ID)
+    return;
+  G_ASSERT_RETURN(index < srv->getDecalCount(), );
+  GPUGrassDecal &decal = srv->getDecal(index);
+  DataBlock *decalsBlk = blk->getBlockByName("decals");
+  G_ASSERT_RETURN(decalsBlk, );
+  DataBlock *decalBlk = decalsBlk->getBlockByName(decal.name.c_str());
+  G_ASSERT_RETURN(decalBlk, );
+
+  eastl::vector<int> ids;
+  SimpleString text = panel->getText(pcb_id);
+  for (const char *p = text.c_str();;)
+  {
+    while (*p == ' ' || *p == ',')
+      ++p;
+    if (!*p)
+      break;
+    char *end = nullptr;
+    long id = strtol(p, &end, 10);
+    bool usedByOtherDecal = eastl::find(decal.ids.begin(), decal.ids.end(), id) == decal.ids.end() && srv->findDecalId(id);
+    if (end == p || id < 0 || id >= GRASS_MAX_CHANNELS || usedByOtherDecal || eastl::find(ids.begin(), ids.end(), id) != ids.end())
+    {
+      ids.clear();
+      break;
+    }
+    ids.push_back(id);
+    p = end;
+  }
+  if (!ids.empty() && ids != decal.ids)
+  {
+    decal.ids = ids;
+    decalBlk->removeParam("id");
+    for (int id : ids)
+      decalBlk->addInt("id", id);
     reload();
   }
+  panel->setText(pcb_id, getDecalIdsText(srv->getDecal(index)));
 }
 
 void GPUGrassPanel::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel,
@@ -521,7 +564,8 @@ void GPUGrassPanel::addGrassDecal(const GPUGrassDecal &decal)
   DataBlock *decals = blk->getBlockByName("decals");
   G_ASSERT_RETURN(decals, );
   DataBlock *decalBlk = decals->addBlock(decal.name.c_str());
-  decalBlk->addInt("id", decal.id);
+  for (int id : decal.ids)
+    decalBlk->addInt("id", id);
   for (const auto &channel : decal.channels)
     decalBlk->addReal(channel.first.c_str(), channel.second);
 }

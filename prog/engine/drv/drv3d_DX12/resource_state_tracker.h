@@ -5,6 +5,7 @@
 #include "d3d12_utils.h"
 #include "debug/names.h"
 #include "driver.h"
+#include "external_issues.h"
 #include "format_store.h"
 #include "image_global_subresource_id.h"
 #include "pipeline.h"
@@ -479,12 +480,11 @@ inline D3D12_RESOURCE_STATES translate_buffer_barrier_to_state(ResourceBarrier b
 
   if (RB_NONE != (RB_RO_INDIRECT_BUFFER & barrier))
   {
-#if _TARGET_PC_WIN
-    // attempt to fix a nvidia bug with uav -> indirect arg transition not properly working
-    return D3D12_RESOURCE_STATE_COMMON;
-#else
+    if (issues::external::core::broken_uav_to_indirect_arg_transition())
+    {
+      return D3D12_RESOURCE_STATE_COMMON;
+    }
     result |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-#endif
   }
 
   if (RB_NONE != (RB_RO_COPY_SOURCE & barrier))
@@ -2117,13 +2117,12 @@ public:
   // assumes base has no write states
   static D3D12_RESOURCE_STATES combine_with_static_states(BufferGlobalId buffer, D3D12_RESOURCE_STATES base)
   {
-#if _TARGET_PC_WIN
     // do not override common when the buffer may be used as indirect arg buffer, otherwise this disables a intentional flush to common
-    if (D3D12_RESOURCE_STATE_COMMON == base && buffer.isUsedAsIndirectBuffer())
+    if (D3D12_RESOURCE_STATE_COMMON == base && buffer.isUsedAsIndirectBuffer() &&
+        issues::external::core::broken_uav_to_indirect_arg_transition())
     {
       return D3D12_RESOURCE_STATE_COMMON;
     }
-#endif
     if (buffer.isUsedAsVertexOrConstBuffer())
     {
       base |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
@@ -5399,7 +5398,19 @@ public:
           {
             toBeCleared |= D3D12_CLEAR_FLAG_STENCIL;
           }
-          cmd.clearDepthStencilView(view, toBeCleared, value.asDepth, value.asStencil, 0, nullptr);
+          if ((toBeCleared & D3D12_CLEAR_FLAG_DEPTH) && tex->shouldPerformSlowDepthClear(value.asDepth))
+          {
+            cmd.setResourceHeap(descriptors.getActiveHandle(), descriptors.getBindlessGpuAddress());
+            if (auto clearPipeline = pipeMan.getClearPipeline(device_obj, tex->getFormat().asDxGiFormat<false>()))
+            {
+              const Extent2D dstExtent = tex->getMipExtents2D(view_state.getMipBase());
+              D3D12_RECT dstRect{0, 0, static_cast<LONG>(dstExtent.width), static_cast<LONG>(dstExtent.height)};
+              cmd.clearDepthExecute(pipeMan.getClearSignature(), clearPipeline, value.asDepth, view, dstRect);
+              toBeCleared &= ~D3D12_CLEAR_FLAG_DEPTH;
+            }
+          }
+          if (toBeCleared != 0)
+            cmd.clearDepthStencilView(view, toBeCleared, value.asDepth, value.asStencil, 0, nullptr);
         }
         break;
       case ResourceActivationAction::DISCARD_AS_UAV:

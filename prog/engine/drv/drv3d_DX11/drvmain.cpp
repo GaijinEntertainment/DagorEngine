@@ -29,6 +29,7 @@
 #include "driver_state.h"
 #include "predicates.h"
 #include "../drv3d_commonCode/drv_utils.h"
+#include "../drv3d_commonCode/flipStallNudge.h"
 #include <3d/gpuLatency.h>
 #include <drv/3d/dag_info.h>
 
@@ -314,6 +315,7 @@ bool flush_cs_all(bool should_flush_buffers, bool async)
   if (dagor_d3d_force_driver_reset)
     return false;
 
+  check_dispatch_uav_formats(rs, async);
   rs.currentFrameDip++;
   return true;
 }
@@ -638,24 +640,30 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       // so if frequency changes inside frame, we really don't care about it
       // meaning that profiling work only if frequency is stable enough
       // thus we can update it sparsely without issues
+      // The GPU profiler calls it without GPU ownership, while a tool worker thread can hold it.
+      ContextAutoLock contextLock;
       if (timestampDisjointQuery <= 0)
         timestampDisjointQuery = create_query(D3D11_QUERY_TIMESTAMP_DISJOINT);
       if (!timestampDisjointQueryPending)
       {
-        ContextAutoLock contextLock;
         dx_context->Begin(all_queries[timestampDisjointQuery].query);
         dx_context->End(all_queries[timestampDisjointQuery].query);
         timestampDisjointQueryPending = true;
       }
 
       D3D11_QUERY_DATA_TIMESTAMP_DISJOINT data;
-      ContextAutoLock contextLock;
       if (timestampFrequency == 0)
       {
-        while (dx_context->GetData(all_queries[timestampDisjointQuery].query, &data, sizeof(data), 0) != S_OK)
+        HRESULT hr;
+        // A lost device never returns the data; the frequency stays 0 then.
+        while ((hr = dx_context->GetData(all_queries[timestampDisjointQuery].query, &data, sizeof(data), 0)) == S_FALSE &&
+               dx_device->GetDeviceRemovedReason() == S_OK)
           ; // VOID
-        timestampFrequency = data.Frequency;
-        timestampDisjointQueryPending = false;
+        if (hr == S_OK)
+        {
+          timestampFrequency = data.Frequency;
+          timestampDisjointQueryPending = false;
+        }
       }
       else
       {
@@ -993,7 +1001,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       return 1;
     }
 
-    case Drv3dCommand::PIX_GPU_BEGIN_CAPTURE:
+    case Drv3dCommand::GPU_BEGIN_CAPTURE:
     {
       if (docAPI)
       {
@@ -1003,14 +1011,14 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       return 0;
     }
 
-    case Drv3dCommand::PIX_GPU_END_CAPTURE:
+    case Drv3dCommand::GPU_END_CAPTURE:
     {
       if (docAPI)
         docAPI->EndFrameCapture(nullptr, nullptr);
       return 0;
     }
 
-    case Drv3dCommand::PIX_GPU_CAPTURE_NEXT_FRAMES:
+    case Drv3dCommand::GPU_CAPTURE_NEXT_FRAMES:
     {
       if (docAPI)
       {
@@ -1163,7 +1171,7 @@ static SwapchainWaitResult wait_on_swapchain(HANDLE waitable_object, DWORD timeo
   TIME_PROFILE(wait_on_swapchain__present_dx11);
   DWORD result = WAIT_OBJECT_0;
   if (waitable_object)
-    result = WaitForSingleObjectEx(waitable_object, timeout, FALSE);
+    result = wait_with_flip_nudge(waitable_object, timeout, "frame latency");
 
   if (DAGOR_LIKELY(result == WAIT_OBJECT_0))
   {
@@ -1209,6 +1217,8 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
   frontEndFrameCallbacks.clear();
 
   CHECK_MAIN_THREAD();
+
+  flip_nudge_on_frame(main_window_hwnd);
 
   auto *lowLatencyModule = GpuLatency::getInstance();
   if (lowLatencyModule)
@@ -1292,9 +1302,11 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
     }
   }
 
-  if (DAGOR_UNLIKELY(occluded_window != (presentHr == DXGI_STATUS_OCCLUDED)))
+  occluded_window = (presentHr == DXGI_STATUS_OCCLUDED);
+  static bool lastPresentOccluded = false;
+  if (DAGOR_UNLIKELY(lastPresentOccluded != occluded_window))
   {
-    occluded_window = (presentHr == DXGI_STATUS_OCCLUDED);
+    lastPresentOccluded = occluded_window;
     log_present_state(occluded_window ? "window occluded" : "window visible again");
   }
 
@@ -1376,7 +1388,7 @@ void d3d::begin_frame(uint32_t frame_id, bool allow_wait)
   if (lowLatencyModule)
   {
     lowLatencyModule->startFrame(frame_id);
-    if (allow_wait && lowLatencyModule->isEnabled())
+    if (allow_wait)
       lowLatencyModule->sleep(frame_id);
   }
 }
@@ -1774,10 +1786,14 @@ bool d3d::get_event_query_status(d3d::EventQuery *query, bool flush)
     return ready;
   }
   int pQuery = (int)(intptr_t)query;
-  if (pQuery <= 0 || !all_queries[pQuery].query)
+  // A caller without GPU ownership can race create_query growing the pool.
+  all_queries.lock();
+  ID3D11Query *d3dQuery = uint32_t(pQuery) < uint32_t(all_queries.size()) ? all_queries[pQuery].query : nullptr;
+  all_queries.unlock();
+  if (!d3dQuery)
     return true;
   ContextAutoLock contextLock;
-  HRESULT hr = dx_context->GetData(all_queries[pQuery].query, NULL, 0, flush ? 0 : D3D11_ASYNC_GETDATA_DONOTFLUSH);
+  HRESULT hr = dx_context->GetData(d3dQuery, NULL, 0, flush ? 0 : D3D11_ASYNC_GETDATA_DONOTFLUSH);
   return hr != S_FALSE;
 }
 

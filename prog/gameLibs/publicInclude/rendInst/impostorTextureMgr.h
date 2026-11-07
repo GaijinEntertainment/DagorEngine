@@ -84,7 +84,7 @@ public:
   void render_slice_billboard(uint32_t sliceId, const TMatrix &view_to_content, RenderableInstanceLodsResource *res,
     rendinst::RenderPass render_pass, int block_id, int lod = -1);
   void render_slice_voxels(const TMatrix &view_to_model, float width, float height, float zn, float zf,
-    RenderableInstanceLodsResource *res, rendinst::RenderPass render_pass, int block_id, int lod = 0);
+    RenderableInstanceLodsResource *res, rendinst::RenderPass render_pass, int block_id, int lod, const char *only_shader_name);
   void generate_mask_billboard(uint32_t sliceId, RenderableInstanceLodsResource *res, DeferredRenderTarget *rt, Texture *mask_tex,
     int lod = -1);
   void generate_mask_octahedral(uint32_t h, uint32_t v, const GenerationData &gen_data, RenderableInstanceLodsResource *res,

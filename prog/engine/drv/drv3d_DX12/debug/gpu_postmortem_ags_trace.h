@@ -36,7 +36,7 @@ public:
   constexpr void endCommandBuffer(D3DGraphicsCommandList *) {}
   void beginEvent(D3DGraphicsCommandList *, eastl::span<const char>, const eastl::string &);
   void endEvent(D3DGraphicsCommandList *, const eastl::string &);
-  constexpr void marker(D3DGraphicsCommandList *, eastl::span<const char>) {}
+  void marker(D3DGraphicsCommandList *, eastl::span<const char>);
   void onDeviceRemoved(D3DDevice *, HRESULT, call_stack::Reporter &);
   constexpr bool sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
   constexpr void onDeviceShutdown() {}

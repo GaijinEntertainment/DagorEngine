@@ -79,6 +79,7 @@ struct BufferProcessor
   virtual bool isOneTimeOnly() const = 0;
   virtual bool isReady(const ProcessArgs &) const { return true; }
   virtual bool isGeneratingSecondaryVertices() const { return false; }
+  virtual bool readsSourceVertices() const { return true; }
   virtual uint32_t getOutputPositionFormat(uint32_t input_format) const { return input_format; }
   virtual bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const = 0;
@@ -111,7 +112,6 @@ struct AHSProcessor
 
   eastl::unique_ptr<ComputeShaderElement> shader;
   UniqueBVHBuffer output;
-  int ringCursor = 0;
 };
 
 struct SkinnedVertexProcessor : public BufferProcessor
@@ -173,7 +173,6 @@ struct SkinnedVertexProcessorBatched : public BufferProcessor
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const override;
 
-  void begin() const override;
   void end(bool is_prototype_building = false) const override;
 
 private:
@@ -205,7 +204,6 @@ struct TreeVertexProcessor : public BufferProcessor
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const override;
 
-  void begin() const override;
   void end(bool is_prototype_buidling) const override;
 
 private:
@@ -304,6 +302,7 @@ struct SplineGenVertexProcessor : public BufferProcessor
   SplineGenVertexProcessor() : BufferProcessor("bvh_process_splinegen_vertices") {}
 
   bool isOneTimeOnly() const override { return false; }
+  bool readsSourceVertices() const override { return false; }
   uint32_t getOutputPositionFormat(uint32_t) const override { return VSDT_FLOAT3; }
 
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,

@@ -204,7 +204,7 @@ public:
   VFN_1(FunctionId::LogWarning, logWarning, TYPE_STRING)
   VFN_1(FunctionId::LogError, logError, TYPE_STRING)
   VFN_0(FunctionId::ClearLog, clearLog)
-  FN_0(FunctionId::GetLogLines, TYPE_STRING_TAB, getLogLines)
+  FN_0(FunctionId::GetLogLines, TYPE_TSTR_TAB_BV, getLogLines)
   FN_0(FunctionId::HasWarningOrError, TYPE_BOOL, hasWarningOrError)
   END_FUNCTION_MAP
 
@@ -215,18 +215,14 @@ public:
   void logError(const TCHAR *message) { log(DagorLogWindow::LogLevel::Error, message); }
   void clearLog() { DagorLogWindow::clearLog(); }
 
-  Tab<TCHAR *> *getLogLines()
+  Tab<WStr *> getLogLines()
   {
-    const std::vector<TSTR> lines = DagorLogWindow::getLogLines();
+    lines = DagorLogWindow::getLogLines();
 
-    Tab<TCHAR *> *resultLines = new Tab<TCHAR *>();
-    for (int i = 0; i < lines.size(); ++i)
-    {
-      const TSTR &line = lines[i];
-      TCHAR *resultLine = new TCHAR[line.length() + 1];
-      memcpy(resultLine, line.data(), (line.length() + 1) * sizeof(TCHAR));
-      resultLines->Append(1, &resultLine);
-    }
+    Tab<WStr *> resultLines;
+    resultLines.SetCount(int(lines.size()));
+    for (int i = 0; i < resultLines.Count(); ++i)
+      resultLines[i] = &lines[i];
 
     return resultLines;
   }
@@ -234,6 +230,8 @@ public:
   bool hasWarningOrError() { return DagorLogWindow::getHasWarningOrError(); }
 
 private:
+  std::vector<WStr> lines;
+
   void log(DagorLogWindow::LogLevel level, const TCHAR *message)
   {
     TSTR str(message);
@@ -258,7 +256,7 @@ static DagorLogStaticInterface theDagorLogStaticInterface(
   DagorLogStaticInterface::FunctionId::LogError, _T("logError"), -1, TYPE_VOID, FP_NO_REDRAW, 1,
     _T("message"), -1, TYPE_STRING,
   DagorLogStaticInterface::FunctionId::ClearLog, _T("clearLog"), -1, TYPE_VOID, FP_NO_REDRAW, 0,
-  DagorLogStaticInterface::FunctionId::GetLogLines, _T("getLogLines"), -1, TYPE_STRING_TAB, FP_NO_REDRAW, 0,
+  DagorLogStaticInterface::FunctionId::GetLogLines, _T("getLogLines"), -1, TYPE_TSTR_TAB_BV, FP_NO_REDRAW, 0,
   DagorLogStaticInterface::FunctionId::HasWarningOrError, _T("hasWarningOrError"), -1, TYPE_BOOL, FP_NO_REDRAW, 0,
 
   p_end

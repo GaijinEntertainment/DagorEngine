@@ -273,8 +273,8 @@ void BhvDragAndDrop::callDragModeHandler(IGuiScene *scene, Element *elem, bool m
 }
 
 
-int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id,
-  int button_id, Point2 pointer_pos, int accum_res)
+int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, TouchSource /*touch_src*/, InputEvent event,
+  int pointer_id, int button_id, Point2 pointer_pos, int accum_res)
 {
   int result = 0;
 
@@ -341,8 +341,9 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
 
           SQInteger nparams = 0, nfreevars = 0;
           G_VERIFY(get_closure_info(f, &nparams, &nfreevars));
+          Sqrat::Object dropData = elem->props.getObject(elem->csk->dropData);
           if (nparams == 2)
-            f(elem->props.getObject(elem->csk->dropData));
+            etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<Sqrat::Object>(f, dropData));
           else if (nparams == 3)
           {
             MouseClickEventData evt;
@@ -361,7 +362,7 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
               evt.altKey = (modifiers & HumanInput::KeyboardRawState::ALT_BITS) != 0;
             }
 
-            f(elem->props.getObject(elem->csk->dropData), evt);
+            etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<Sqrat::Object, MouseClickEventData>(f, dropData, evt));
           }
           else
           {

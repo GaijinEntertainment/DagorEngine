@@ -14,12 +14,23 @@ enum BitWiseOP {
     BW_USHIFTR = 6
 };
 
+enum CmpRel {
+    CMP_REL_LESS = 1,
+    CMP_REL_EQUAL = 2,
+    CMP_REL_GREATER = 4
+};
+
+// The VM uses the value of an operator as the set of relations in which it is true
 enum CmpOP {
-    CMP_G = 0,
-    CMP_GE = 2,
-    CMP_L = 3,
-    CMP_LE = 4,
-    CMP_3W = 5
+    CMP_G = CMP_REL_GREATER,
+    CMP_GE = CMP_REL_GREATER | CMP_REL_EQUAL,
+    CMP_L = CMP_REL_LESS,
+    CMP_LE = CMP_REL_LESS | CMP_REL_EQUAL,
+    CMP_3W = CMP_REL_LESS | CMP_REL_GREATER
+};
+
+enum AddImmOP {
+    ADDI_SUB = 1
 };
 
 enum NewObjectType {
@@ -170,41 +181,5 @@ typedef sqvector<SQInstruction> SQInstructionVec;
 #define OP_GET_FLAG_NO_ERROR            0x02
 #define OP_GET_FLAG_KEEP_VAL            0x04 //< only used with OP_GET_FLAG_NO_ERROR
 #define OP_GET_FLAG_TYPE_METHODS_ONLY   0x08
-
-inline int sq_opcode_length(int op) {
-    return (op == _OP_SET_LITERAL || op == _OP_GET_LITERAL) ? 2 : 1;
-}
-
-inline bool sq_is_pure_op(int op) {
-    return
-        op != _OP_SETOUTER &&
-        op != _OP_GETOUTER &&
-        op != _OP_SET_LITERAL &&
-        op != _OP_SET &&
-        op != _OP_SETI &&
-        op != _OP_SETK &&
-        op != _OP_CLOSURE &&
-        op != _OP_TAILCALL &&
-        op != _OP_CALL &&
-        op != _OP_FASTCALL &&
-        op != _OP_NULLCALL &&
-        op != _OP_PREPCALL &&
-        op != _OP_PREPCALLK &&
-        op != _OP_NEWOBJ &&
-        op != _OP_APPENDARRAY &&
-        op != _OP_SPREAD &&
-        op != _OP_NEWSLOT &&
-        op != _OP_NEWSLOTK &&
-        op != _OP_NEWSLOTA &&
-        op != _OP_DELETE &&
-        op != _OP_YIELD &&
-        op != _OP_RESUME &&
-        op != _OP_CLONE &&
-        op != _OP_PUSHTRAP &&
-        op != _OP_POPTRAP &&
-        op != _OP_THROW &&
-        op != _OP_CLOSE &&
-        op != _OP_GETBASE;
-}
 
 #endif // _SQOPCODES_H_

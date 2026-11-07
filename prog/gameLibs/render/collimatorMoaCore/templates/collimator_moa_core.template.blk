@@ -70,6 +70,25 @@ collimator_moa_image{
 
   "collimator_moa_image__shapes:array" {}
   collimator_moa_image__valid:b = no
+  collimator_moa_image__color:p4 = 1, 0, 0, 1
+  collimator_moa_image__border_min:r = 0.3
+  collimator_moa_image__border_scale:r = 0.8
+
+  collimator_moa_image__use_noise:b = no
+  collimator_moa_image__noise_min_intensity:r = 0.01
+
+  collimator_moa_image__light_noise_thinness:r = 0.001
+  collimator_moa_image__light_noise_intensity_scale:r = 15.0
+
+  collimator_moa_image__static_noise_uv_scale:r = 2.0
+  collimator_moa_image__static_noise_add:r = 0.1
+  collimator_moa_image__static_noise_scale:r = 0.6
+
+  collimator_moa_image__dynamic_noise_uv_scale:r = 17.0
+  collimator_moa_image__dynamic_noise_sub_scale:r = 0.56
+  collimator_moa_image__dynamic_noise_scale:r = 40.0
+  collimator_moa_image__dynamic_noise_add:r = -0.112
+  collimator_moa_image__dynamic_noise_speed:p2 = 0.1, 0.27
 }
 
 scope_collimator_moa{
@@ -77,29 +96,12 @@ scope_collimator_moa{
 
   gunmod__collimator_moa_img_template:t=""
   gunmod__collimator_moa_parallax_plane_dist:r = 10.0
-  gunmod__collimator_moa_reticle_offset_y:r=0
-
-  gunmod__collimator_moa_color:p4 = 1, 0 , 0, 1
-  gunmod__collimator_moa_border_min:r = 0.3
-  gunmod__collimator_moa_border_scale:r = 0.8
-
-  gunmod__collimator_moa_use_noise:b=no
-  gunmod__collimator_moa_noise_min_intensity:r=0.01
-
-  gunmod__collimator_moa_light_noise_thinness:r=0.001
-  gunmod__collimator_moa_light_noise_intensity_scale:r=15.0
-
-  gunmod__collimator_moa_static_noise_uv_scale:r=2.0
-  gunmod__collimator_moa_static_noise_add:r=0.1
-  gunmod__collimator_moa_static_noise_scale:r=0.6
-
-  gunmod__collimator_moa_dynamic_noise_uv_scale:r=17.0
-  gunmod__collimator_moa_dynamic_noise_sub_scale:r=0.56
-  gunmod__collimator_moa_dynamic_noise_scale:r=40.0
-  gunmod__collimator_moa_dynamic_noise_add:r=-0.112
-  gunmod__collimator_moa_dynamic_noise_speed:p2=0.1, 0.27
 
   "gunmod__collimator_moa_img_eid:eid"{}
+
+  gunmod__collimator_moa_local_forward:p3 = 0, -1, 0
+  gunmod__collimator_moa_local_right:p3 = -1, 0, 0
+  gunmod__collimator_moa_lens_axis:p3 = 0, 0, 0
 }
 
 collimator_moa_render{
@@ -110,6 +112,9 @@ collimator_moa_render{
   collimator_moa_render__active_shapes_count:i = 0
   collimator_moa_render__shapes_buf_reg_count:i = 0
   "collimator_moa_render__current_shapes_buf:UniqueBufWithShaderVar"{}
+
+  "collimator_moa_render__lens_shader:ShadersECS"{}
+  collimator_moa_render__lens_shader_name:t = "dynamic_collimator_moa"
 
   "collimator_moa_render__gun_mod_eid:eid"{}
   "collimator_moa_render__rigid_id:i"{}

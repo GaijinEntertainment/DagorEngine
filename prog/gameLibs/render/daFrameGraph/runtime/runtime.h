@@ -72,6 +72,8 @@ public:
   const NameResolver &getNameResolver() const { return nameResolver; }
   intermediate::Graph &getIntermediateGraph() { return intermediateGraph; }
   sd::NodeStateDeltas &getNodeStateDeltas() { return perNodeStateDeltas; }
+  const BarrierScheduler::EventsCollection &getResourceEvents() const { return allResourceEvents; }
+  const Layout &getResourceLayout() const { return resourceScheduler.currentLayout(); }
   visualization::IVisualizationManager *getVisualizerPtr() { return fgVisManager.get(); }
   DependencyData &getDependencyData() { return dependencyDataCalculator.depData; }
   void updateExternalState(ExternalState state) { nodeExec->externalState = state; }

@@ -64,6 +64,7 @@ PhysMats {
   }
   bushes{
     bf_class:t = "bushes"
+    physics_collision:b = no // vehicles pass through, see the PASSABLE layer of Jolt
     softCollision{
       physViscosity:r=2.5
     }

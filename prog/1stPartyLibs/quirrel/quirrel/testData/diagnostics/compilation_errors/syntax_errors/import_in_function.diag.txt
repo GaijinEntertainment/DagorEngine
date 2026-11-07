@@ -1,0 +1,9 @@
+ERROR: import statements must be at the top of the file, after directives
+testData/diagnostics/compilation_errors/syntax_errors/import_in_function.nut:3:2
+
+function foo() {
+  import "math" as m
+  ^-----
+  return m
+
+

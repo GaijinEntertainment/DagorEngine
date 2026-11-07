@@ -1,20 +1,30 @@
 include "shader_global.dshl"
 texture prev_frame_tex;
 texture prev_downsampled_far_depth_tex;
+texture prev_downsampled_close_depth_tex;
 
 define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code, use_bindless)
   INIT_PREV_PRE_EXPOSURE(code)
   USE_PREV_PRE_EXPOSURE(code)
+  INIT_BRUNETON_FOG(code)
+  BASE_USE_BRUNETON_FOG(code)
   (code) {
     prev_frame_tex@smp2d = prev_frame_tex;
     prev_downsampled_far_depth_tex@smp2d = prev_downsampled_far_depth_tex;
+    prev_downsampled_close_depth_tex@smp2d = prev_downsampled_close_depth_tex;
     screen_pos_to_lowres_texcoord@f2 = float4(0.5 * lowres_tex_size.z, 0.5 * lowres_tex_size.w, 0., 0.);
   }
   hlsl(code) {
     #define HAS_PREV_FRAME_RADIANCE 1
+    // the fog's in-scattering is not surface radiance; dividing by the transmittance is unstable
     half3 sample_prev_frame_radiance_unsafe(float2 uv)
     {
-      return prev_pre_exposure_decode(tex2Dlod(prev_frame_tex, float4(uv,0,0)).xyz);
+      half3 radiance = prev_pre_exposure_decode(tex2Dlod(prev_frame_tex, float4(uv,0,0)).xyz);
+      float4 raw = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, uv);
+      float w = linearize_z(max(max(raw.x, raw.y), max(raw.z, raw.w)), sp_prev_zn_zfar.zw);
+      half3 transmittance, inscatter;
+      get_fog(-sp_getPrevViewVecOptimized(uv) * w, transmittance, inscatter);
+      return max(radiance - inscatter, 1e-9);
     }
 
     float3 calc_relative_pos(float2 uv, float w)

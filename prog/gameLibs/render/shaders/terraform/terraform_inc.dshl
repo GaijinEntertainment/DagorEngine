@@ -42,7 +42,7 @@ macro USE_TFORM_COMMON(code)
       terraform_min_physics_error@f1 = (terraform_min_physics_error);
       terraform_hmap_saved@smp2d = terraform_hmap_saved;
     }
-    hlsl {
+    hlsl(code) {
       #define tform_heightmap_scale heightmap_scale
       #define tform_world_to_hmap_low world_to_hmap_low
     }

@@ -264,7 +264,7 @@ function getTemplateInfo(templName: string|null): table {
       continue
     descsAdd.extend(getTemplateCompsDescs(templ, addedTempls, addedComps, valued))
   }
-  descsAdd.sort(@(a,b) a.name <=> b.name)
+  descsAdd.sortby(@(a) a.name)
   descs.extend(descsAdd)
 
   foreach(tpl_name in tpls) {

@@ -66,6 +66,8 @@
 
   #if MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT
     PARAM_INTERPOLATION float3 life_radius: TEXCOORD2;
+  #elif MODFX_SCATTER_LIGHTING
+    PARAM_INTERPOLATION float2 life_radius: TEXCOORD2;
   #else
     PARAM_INTERPOLATION float life_radius : TEXCOORD2;
   #endif
@@ -86,7 +88,7 @@
     float fake_brightness : TEXCOORD16;
   #endif
 
-  #if MODFX_USE_GI
+  #if MODFX_USE_GI || MODFX_DIRECTIONAL_AMBIENT
     float3 ambient    : TEXCOORD12;
   #endif
 
@@ -340,7 +342,10 @@
     BRANCH
     if (enabled && (motionVecs.quality_mask & gdata.quality))
     {
-      mvAB = float4(decode_motion_vecs(tex2D(g_tex_1, tc.xy).xy), decode_motion_vecs(tex2D(g_tex_1, tc.zw).xy));
+      bool in_ba = FLAG_ENABLED(parent_data.flags, MODFX_RFLAG_MOTION_VECTORS_BA);
+      float4 mvA = tex2D(g_tex_1, tc.xy);
+      float4 mvB = tex2D(g_tex_1, tc.zw);
+      mvAB = float4(decode_motion_vecs(in_ba ? mvA.zw : mvA.xy), decode_motion_vecs(in_ba ? mvB.zw : mvB.xy));
       mvAB *= float2(-frame_blend, 1.0 - frame_blend).xxyy * motionVecs.motion_vectors_strength;
     }
   #endif

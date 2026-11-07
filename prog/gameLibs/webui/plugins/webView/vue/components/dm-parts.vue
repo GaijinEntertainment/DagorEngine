@@ -21,7 +21,7 @@ function getHPColor(rel_hp) {
 
 function toggleDrawPart(part) {
   part.draw = !part.draw;
-  coreService.sendCommand('drawPart', { part: part.name, draw: part.draw });
+  coreService.sendCommand('dmViewer.drawPart', { part: part.name, draw: part.draw });
 }
 
 function runEffect(part_no, expl) {
@@ -29,7 +29,7 @@ function runEffect(part_no, expl) {
 }
 
 function hitPart(part_name, once = false) {
-  coreService.sendCommand('hitPart', { part: part_name, once: once });
+  coreService.sendCommand('dmViewer.hitPart', { part: part_name, once: once });
 }
 
 </script>

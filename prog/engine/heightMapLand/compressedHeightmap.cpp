@@ -71,6 +71,10 @@ bool CompressedHeightmap::updateHierHeightRangeBlocksForPoint(unsigned px, unsig
   HeightRangeBlock *hrb = getHtRangeBlocksLevData(htRangeBlocksLevels - 1);
   unsigned hrb_stride = getHtRangeBlocksLevStride(htRangeBlocksLevels - 1);
   unsigned step = getW() >> htRangeBlocksLevels;
+  // the grid can stop short of the map (w / hrb_subsz not a power of two), and the last node holds just its step
+  // pixels: a pixel past that belongs to no node, and a node index past the grid would write the next row
+  if (px / step > getW() / step - 1 || py / step > getH() / step - 1)
+    return false;
   unsigned bx = px / step, bx0 = bx > 0 && (px % step) == 0 ? bx - 1 : bx, bx1 = bx + 1;
   unsigned by = py / step, by0 = by > 0 && (py % step) == 0 ? by - 1 : by, by1 = by + 1;
   bool changed = false;
@@ -121,8 +125,10 @@ bool CompressedHeightmap::recomputeHierHeightRangeBlocksForRect(unsigned rx, uns
     ry--, rh++;
 
   unsigned last_bx = getW() / step - 1, last_by = getH() / step - 1;
-  unsigned bx0 = rx / step, bx1 = (rx + rw + step - 1) / step;
-  unsigned by0 = ry / step, by1 = (ry + rh + step - 1) / step;
+  unsigned bx0 = rx / step, bx1 = min((rx + rw + step - 1) / step, last_bx + 1); // the pixels past the grid belong to no node
+  unsigned by0 = ry / step, by1 = min((ry + rh + step - 1) / step, last_by + 1);
+  if (bx0 >= bx1 || by0 >= by1)
+    return false;
   bool updated = false;
   for (unsigned y = by0; y < by1; y++)
     for (unsigned x = bx0; x < bx1; x++)

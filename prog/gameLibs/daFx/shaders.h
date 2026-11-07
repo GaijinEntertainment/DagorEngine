@@ -5,6 +5,7 @@
 #include "buffers.h"
 #include <EASTL/sort.h>
 #include <EASTL/hash_map.h>
+#include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_DynamicShaderHelper.h>
@@ -53,9 +54,9 @@ int update_cpu_simulation(Context &ctx, const eastl::vector<int> &workers, int s
 void update_gpu_emission(Context &ctx, const eastl::vector<int> &workers, bool gpu_fetch);
 void update_gpu_simulation(Context &ctx, const eastl::vector<int> &workers, bool gpu_fetch);
 
-inline uint32_t get_render_tag(Shaders &dst, const eastl::string &tag, uint32_t max_tags)
+inline uint32_t get_render_tag(Shaders &dst, eastl::string_view tag, uint32_t max_tags)
 {
-  RenderTagMap::iterator it = dst.renderTagMap.find(tag);
+  RenderTagMap::iterator it = dst.renderTagMap.find_as(tag);
   return it != dst.renderTagMap.end() ? it->second : max_tags;
 }
 inline const eastl::string &get_render_tag_by_id(Shaders &dst, uint tag)

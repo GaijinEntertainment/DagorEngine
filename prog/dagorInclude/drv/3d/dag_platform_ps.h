@@ -22,19 +22,11 @@ bool enable_vsync(bool enable);
 
 namespace ps
 {
-// Texture creation
-Texture *create_raw_tex();
-void update_raw_tex(Texture *tex, void *gnm_texture);
-
 // direct access to gpu heaps
 void *alloc_mem_block(bool onion, uint32_t size, uint32_t alignment);
 void free_mem_block(void *addr);
 
 // Debug:
-//! record frame to /hostapp/captured (only for specially compiled driver)
-//-1=stop  0=query state >0=count  returns true if in progress
-bool record_frame(int control);
-
 // to catch specific point of frame in debugger. id is an arbitrary value
 void debug_point(int id = 0);
 void set_verbose_mode(bool ena);          // enable verbose debug messages (auto-disabled on any submit)
@@ -42,8 +34,5 @@ void set_fill_gpu_blocks(bool ena);       // fill freed/uninitialized gpu memory
 void submit_and_stall(bool locked_state); // force gpu pipeline flush
 void submit_background();
 void freeze_frame(); // repeat current frame on present
-
-// returns Gnm::Texture pointer
-void *get_raw_texture_descriptor(Texture *tex);
 } // namespace ps
 }; // namespace d3d

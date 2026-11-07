@@ -52,10 +52,8 @@ public:
     psParams.setReal("strength", data.params.getReal("strength", 2.f));
     psParams.setReal("octaves", (float)clamp(data.params.getInt("octaves", 2), 1, 8));
 
-    heightmap_occlusion_ps->processAll(gen, regs,
+    return heightmap_occlusion_ps->processAll(gen, regs,
       TextureGenNodeData(data.nodeW, data.nodeH, NO_BLENDING, false, psParams, data.inputs, data.outputs, nullptr));
-
-    return true;
   }
 } texgen_heightmap_occlusion;
 

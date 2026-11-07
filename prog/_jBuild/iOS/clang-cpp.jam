@@ -44,6 +44,7 @@ rule ProcessCompileTarget
   $(Target)__ASM_OPT = -I$(AddIncludes) $(ASMopt) ;
   $(Target)__SWIFT_OPT = ;
   if $(Config) in rel irel { $(Target)__SWIFT_OPT += -O ; }
+  if $(CheckOnly) != yes { $(Target)__SWIFT_OPT += -g ; }
 }
 
 

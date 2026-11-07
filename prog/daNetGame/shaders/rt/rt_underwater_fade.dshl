@@ -45,7 +45,7 @@ macro USE_BVH_WATER_FADE_BASE(stage)
   USE_BVH_WATER_LEVEL(stage)
   USE_CALC_WORLD_POS(stage)
   hlsl(stage) {
-    half calc_underwater_fade(float w, uint2 dtid, float2 inv_resolution, float3 view_pos)
+    half calc_underwater_fade(float w, uint2 dtid, float2 inv_resolution, float3 view_pos, bool is_dynamic)
     {
       float3 worldPos = calc_world_pos(dtid, w, inv_resolution, view_pos);
       float3 pointToEye = view_pos - worldPos;
@@ -68,7 +68,7 @@ macro USE_BVH_WATER_FADE_RTR(stage)
   USE_CALC_WORLD_POS(stage)
   USE_BVH_WATER_FADE_RTR_MATH(stage)
   hlsl(stage) {
-    half calc_underwater_fade(float w, uint2 dtid, float2 inv_resolution, float3 view_pos)
+    half calc_underwater_fade(float w, uint2 dtid, float2 inv_resolution, float3 view_pos, bool is_dynamic)
     {
       float3 worldPos = calc_world_pos(dtid, w, inv_resolution, view_pos);
       float waterLevel = get_water_level(worldPos);

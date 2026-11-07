@@ -24,6 +24,7 @@
 #include <heightmap/heightmapHandler.h>
 #include <util/dag_hierBitMap2d.h>
 #include <util/dag_console.h>
+#include <util/dag_finally.h>
 #include <math/dag_bezierPrec.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_math2d.h>
@@ -152,8 +153,10 @@ class NavQueryFilter : public dtQueryFilter
 {
 public:
   explicit NavQueryFilter(const dtNavMesh *nav_mesh, const NavParams &nav_params, const CustomNav *custom_nav,
-    float max_jump_up_height = FLT_MAX, bool for_optimize = false, const ska::flat_hash_map<dtPolyRef, float> &cost_addition = {}) :
+    uint32_t custom_nav_mask = 0, float max_jump_up_height = FLT_MAX, bool for_optimize = false,
+    const ska::flat_hash_map<dtPolyRef, float> &cost_addition = {}) :
     customNav(custom_nav),
+    customNavUsageMask(custom_nav_mask),
     navMesh(nav_mesh),
     navParams(nav_params),
     maxJumpUpHeight(max_jump_up_height),
@@ -171,10 +174,10 @@ public:
     setReopenTotalThreshold(nav_params.reopen_total_threshold);
   }
 
-  explicit NavQueryFilter(int nav_mesh_idx, const CustomNav *custom_nav, float max_jump_up_height = FLT_MAX, bool for_optimize = false,
-    const ska::flat_hash_map<dtPolyRef, float> &cost_addition = {}) :
-    NavQueryFilter(get_nav_mesh_ptr(nav_mesh_idx), get_nav_params(nav_mesh_idx), custom_nav, max_jump_up_height, for_optimize,
-      cost_addition)
+  explicit NavQueryFilter(int nav_mesh_idx, const CustomNav *custom_nav, uint32_t custom_nav_mask = 0,
+    float max_jump_up_height = FLT_MAX, bool for_optimize = false, const ska::flat_hash_map<dtPolyRef, float> &cost_addition = {}) :
+    NavQueryFilter(get_nav_mesh_ptr(nav_mesh_idx), get_nav_params(nav_mesh_idx), custom_nav, custom_nav_mask, max_jump_up_height,
+      for_optimize, cost_addition)
   {}
 
   template <typename AreaCosts>
@@ -233,9 +236,9 @@ public:
       uint32_t curTileId = navMesh->decodePolyIdTile(curRef);
       uint32_t nextTileId = navMesh->decodePolyIdTile(nextRef);
       bool optimize = forOptimize;
-      float w = customNav->getWeight(curTileId, p1, p2, normDir, len, invLen, optimize);
+      float w = customNav->getWeight(curTileId, p1, p2, normDir, len, invLen, customNavUsageMask, optimize);
       if ((curTileId != nextTileId) && nextTileId)
-        w = max(w, customNav->getWeight(nextTileId, p1, p2, normDir, len, invLen, optimize));
+        w = max(w, customNav->getWeight(nextTileId, p1, p2, normDir, len, invLen, customNavUsageMask, optimize));
       // When using nav meshes with not-all-1 weights with corridor.optimizePathTopology
       // it's important to understand that local area search of optimizePathTopology
       // is basically A* that is limited by the number of iterations and collected polygons,
@@ -256,6 +259,7 @@ public:
 
 private:
   const CustomNav *customNav;
+  uint32_t customNavUsageMask;
   const dtNavMesh *navMesh;
   const NavParams &navParams;
   float maxJumpUpHeight;
@@ -930,6 +934,9 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
 
   clear_nav_mesh(nav_mesh_idx);
 
+  // constraint: tiles added with flags 0 point into navDataLocal, so any exit before the move below must drop the navmesh
+  Finally dropNavMeshOnFailure([&] { clear_nav_mesh(nav_mesh_idx); });
+
   if (!create_nav_mesh(nav_mesh_idx))
     return false;
   nmData.navMeshType = type;
@@ -1097,6 +1104,7 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
 
   nmData.navData = eastl::move(navDataLocal);
   nmData.navDataSize = (int)navDataSize;
+  dropNavMeshOnFailure.release();
 
   return true;
 }
@@ -1460,18 +1468,18 @@ FindPathResult find_path_ex(int nav_mesh_idx, Tab<Point3> &path, FindRequest &re
   NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
   const NavParams &navParams = get_nav_params(nav_mesh_idx);
   FindPathResult res = FPR_FAILED;
-  clear_and_shrink(path);
+  path.clear();
   if (nmData.navQuery)
   {
     dtPolyRef polys[max_path_size];
-    NavQueryFilter filter(nmData.navMesh, navParams, custom_nav, req.maxJumpUpHeight);
+    NavQueryFilter filter(nmData.navMesh, navParams, custom_nav, 0, req.maxJumpUpHeight);
     filter.setIncludeFlags(req.includeFlags);
     filter.setExcludeFlags(req.excludeFlags);
     filter.setAreasCost(req.areasCost);
     res = find_poly_path(nmData.navQuery, req, navParams, polys, filter, max_path_size);
     if (res > FPR_FAILED)
     {
-      NavQueryFilter filter(nmData.navMesh, navParams, custom_nav);
+      NavQueryFilter filter(nmData.navMesh, navParams, custom_nav, 0);
       filter.setIncludeFlags(POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
       filter.setExcludeFlags(0);
       filter.setAreasCost(req.areasCost);
@@ -2310,12 +2318,13 @@ void renderDebugReset() { clear_and_shrink(navDebugBoxes); }
 
 void init_path_corridor(dtPathCorridor &corridor) { corridor.init(max_path_size); }
 
-inline NavQueryFilter init_request_filter(int nav_mesh_idx, const CorridorInput &inp, const CustomNav *custom_nav, FindRequest &req)
+inline NavQueryFilter init_request_filter(int nav_mesh_idx, const CorridorInput &inp, const CustomNav *custom_nav,
+  uint32_t custom_nav_mask, FindRequest &req)
 {
   // the costs are only needed by the filter, the request itself is queried through it
   req = {
     inp.start, inp.target, inp.includeFlags, inp.excludeFlags, inp.extents, inp.maxJumpUpHeight, 0, inp.startPoly, inp.targetPoly};
-  NavQueryFilter filter(nav_mesh_idx, custom_nav, req.maxJumpUpHeight, false, inp.costAddition);
+  NavQueryFilter filter(nav_mesh_idx, custom_nav, custom_nav_mask, req.maxJumpUpHeight, false, inp.costAddition);
   filter.setIncludeFlags(req.includeFlags);
   filter.setExcludeFlags(req.excludeFlags);
   filter.setAreasCost(inp.areasCost);
@@ -2323,19 +2332,21 @@ inline NavQueryFilter init_request_filter(int nav_mesh_idx, const CorridorInput 
   return filter;
 }
 
-inline NavQueryFilter init_request_filter(const CorridorInput &inp, const CustomNav *custom_nav, FindRequest &req)
+inline NavQueryFilter init_request_filter(const CorridorInput &inp, const CustomNav *custom_nav, uint32_t custom_nav_mask,
+  FindRequest &req)
 {
-  return init_request_filter(NM_MAIN, inp, custom_nav, req);
+  return init_request_filter(NM_MAIN, inp, custom_nav, custom_nav_mask, req);
 }
 
-FindPathResult set_path_corridor_ex(int nav_mesh_idx, dtPathCorridor &corridor, const CorridorInput &inp, const CustomNav *custom_nav)
+FindPathResult set_path_corridor_ex(int nav_mesh_idx, dtPathCorridor &corridor, const CorridorInput &inp, const CustomNav *custom_nav,
+  uint32_t custom_nav_mask)
 {
   NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
   if (!nmData.navQuery)
     return FPR_FAILED;
   dtPolyRef polys[max_path_size];
   FindRequest req;
-  NavQueryFilter filter = init_request_filter(nav_mesh_idx, inp, custom_nav, req);
+  NavQueryFilter filter = init_request_filter(nav_mesh_idx, inp, custom_nav, custom_nav_mask, req);
   FindPathResult fpr;
   fpr = find_poly_path(nmData.navQuery, req, get_nav_params(nav_mesh_idx), polys, filter, max_path_size);
 
@@ -2349,17 +2360,17 @@ FindPathResult set_path_corridor_ex(int nav_mesh_idx, dtPathCorridor &corridor, 
 
 FindPathResult set_path_corridor(dtPathCorridor &corridor, const CorridorInput &inp, const CustomNav *custom_nav)
 {
-  return set_path_corridor_ex(NM_MAIN, corridor, inp, custom_nav);
+  return set_path_corridor_ex(NM_MAIN, corridor, inp, custom_nav, 0);
 }
 
 FindPathResult set_curved_path_corridor(dtPathCorridor &corridor, const CorridorInput &inp, float max_deflection_angle,
-  float min_curved_pathlen_sq_threshold, const CustomNav *custom_nav)
+  float min_curved_pathlen_sq_threshold, const CustomNav *custom_nav, uint32_t custom_nav_mask)
 {
   if (!navQuery)
     return FPR_FAILED;
   dtPolyRef polys[max_path_size];
   FindRequest req;
-  NavQueryFilter filter = init_request_filter(inp, custom_nav, req);
+  NavQueryFilter filter = init_request_filter(inp, custom_nav, custom_nav_mask, req);
   FindPathResult fpr;
   const NavParams &navParams = get_nav_params(NM_MAIN);
   if (lengthSq(req.end - req.start) > min_curved_pathlen_sq_threshold)
@@ -2572,7 +2583,7 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     out_to = end;
     dtPolyRef refs[2];
     corridor.moveOverOffmeshConnection(connRef, refs, &start.x, &end.x, navQuery);
-    clear_and_shrink(corners);
+    corners.clear();
     insert_item_at(corners, 0, end);
     return SHOULD_CLIMB_LADDER;
   }
@@ -2646,7 +2657,7 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     else if (start.y - end.y > MIN_JUMP_THRESHOLD)
       overConnection = false;
 
-    clear_and_shrink(corners);
+    corners.clear();
     insert_item_at(corners, 0, end);
     if (curRef == endRef) // we're over final polygon - prune
     {
@@ -2698,11 +2709,12 @@ bool set_corridor_target(dtPathCorridor &corridor, const Point3 &target, dag::Co
   return corridor.moveTargetPosition(&target.x, navQuery, &filter);
 }
 
-bool optimize_corridor_path(dtPathCorridor &corridor, const FindRequest &req, bool inc_jump, const CustomNav *custom_nav)
+bool optimize_corridor_path(dtPathCorridor &corridor, const FindRequest &req, bool inc_jump, const CustomNav *custom_nav,
+  uint32_t custom_nav_mask)
 {
   if (!navQuery || corridor.getPathCount() < 1)
     return false;
-  NavQueryFilter filter(NM_MAIN, custom_nav, req.maxJumpUpHeight, true);
+  NavQueryFilter filter(NM_MAIN, custom_nav, custom_nav_mask, req.maxJumpUpHeight, true);
   const int incFlags = POLYFLAGS_WALK | (inc_jump ? POLYFLAG_JUMP : 0);
   filter.setIncludeFlags(incFlags);
   filter.setExcludeFlags(POLYFLAG_OBSTACLE | POLYFLAG_BLOCKED);
@@ -2721,18 +2733,19 @@ bool optimize_corridor_path(dtPathCorridor &corridor, const FindRequest &req, bo
     {
       CorridorInput inp = {
         start, target, auxReq.extents, incFlags, 0, auxReq.maxJumpUpHeight, req.startPoly, req.endPoly, req.areasCost};
-      return set_path_corridor(corridor, inp, custom_nav);
+      return set_path_corridor_ex(NM_MAIN, corridor, inp, custom_nav, custom_nav_mask);
     }
   }
   return false;
 }
 
-bool optimize_corridor_path(dtPathCorridor &corridor, const Point3 &extents, bool inc_jump, const CustomNav *custom_nav)
+bool optimize_corridor_path(dtPathCorridor &corridor, const Point3 &extents, bool inc_jump, const CustomNav *custom_nav,
+  uint32_t custom_nav_mask)
 {
   FindRequest req;
   req.extents = extents;
   req.maxJumpUpHeight = FLT_MAX;
-  return optimize_corridor_path(corridor, req, inc_jump, custom_nav);
+  return optimize_corridor_path(corridor, req, inc_jump, custom_nav, custom_nav_mask);
 }
 
 bool is_corridor_valid(dtPathCorridor &corridor, const CustomNav *custom_nav)

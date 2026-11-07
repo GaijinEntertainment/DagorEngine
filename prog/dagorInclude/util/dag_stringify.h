@@ -78,6 +78,7 @@ inline const char *to_string(d3d::AccessFlag flag)
     case d3d::AccessFlag::ResolveRead: return "ResolveRead";
     case d3d::AccessFlag::ResolveWrite: return "ResolveWrite";
     case d3d::AccessFlag::ClearWrite: return "ClearWrite";
+    case d3d::AccessFlag::ClearTargetWrite: return "ClearTargetWrite";
     case d3d::AccessFlag::ShadingRate: return "ShadingRate";
     default: return "Unknown";
   }

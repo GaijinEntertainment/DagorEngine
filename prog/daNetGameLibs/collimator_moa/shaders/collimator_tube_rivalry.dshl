@@ -1,0 +1,163 @@
+include "dynamic_simple_inc.dshl"
+
+texture collimator_tube_rivalry_mask;
+float collimator_tube_rivalry_visible_angle_rad = 0.1745;
+float collimator_tube_rivalry_length = 0.01;
+float collimator_tube_rivalry_darkening = 0.7;
+float4 collimator_tube_rivalry_lens_forward = (0, 0, 1, 0);
+
+macro COLLIMATOR_TUBE_RIVALRY_LENS_VS()
+  channel float3 pos=pos;
+  channel color8 norm=norm unsigned_pack;
+  channel short2 tc[0]=tc[0] mul_4k;
+
+  USE_FLOAT_POS_PACKING()
+
+  (vs) {
+    globtm@f44 = globtm;
+
+    world_local_x@f3 = world_local_x;
+    world_local_y@f3 = world_local_y;
+    world_local_z@f3 = world_local_z;
+    world_local_pos@f3 = world_local_pos;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 eyeToPoint : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos : POSITION;
+    };
+
+    VsOutput collimator_tube_rivalry_lens_vs(VsInput input)
+    {
+      VsOutput output;
+      input.pos.xyz = unpack_pos(input.pos);
+      output.pos = mulPointTm(input.pos, globtm);
+      output.eyeToPoint = input.pos.x * world_local_x
+                        + input.pos.y * world_local_y
+                        + input.pos.z * world_local_z
+                        + world_local_pos;
+      return output;
+    }
+  }
+  compile("target_vs", "collimator_tube_rivalry_lens_vs");
+endmacro
+
+macro COLLIMATOR_TUBE_RIVALRY_EFFECT()
+  (ps) {
+    lens_forward@f3 = collimator_tube_rivalry_lens_forward;
+    eye_to_lens_origin@f3 = world_local_pos;
+    tube_length@f1 = collimator_tube_rivalry_length;
+    visible_angle_rad@f1 = collimator_tube_rivalry_visible_angle_rad;
+    rivalry_darkening@f1 = collimator_tube_rivalry_darkening;
+  }
+
+  hlsl(ps) {
+    #include <collimatorMoaCore/moa_math.hlsli>
+
+    static const float BORDER_ALPHA_EPS = 0.01;
+
+    float calc_rivalry_effect(float3 eye_to_point)
+    {
+      float3 lensForward = lens_forward;
+      float3 eyeToPlaneOrigin = eye_to_lens_origin + lensForward * tube_length;
+      float3 eyeToPlanePoint = intersect_plane(eye_to_point, normalize(eye_to_point), eyeToPlaneOrigin, lensForward);
+      float3 lensOriginToPlanePoint = eyeToPlanePoint - eye_to_lens_origin;
+
+      float angle = acos(saturate(dot(normalize(lensOriginToPlanePoint), lensForward)));
+      float k1 = -log(BORDER_ALPHA_EPS);
+      float power = 8;
+      float alpha = 1 - exp(-k1 * pow(angle / visible_angle_rad, power));
+      return rivalry_darkening * alpha;
+    }
+  }
+endmacro
+
+shader collimator_tube_rivalry_mask
+{
+  supports global_frame;
+
+  COLLIMATOR_TUBE_RIVALRY_LENS_VS()
+
+  z_write = false;
+
+  hlsl(ps) {
+    float4 collimator_tube_rivalry_mask_ps(VsOutput input) : SV_Target0
+    {
+      return 1;
+    }
+  }
+  compile("target_ps", "collimator_tube_rivalry_mask_ps");
+}
+
+shader collimator_tube_rivalry_cut_depth
+{
+  supports global_frame;
+
+  COLLIMATOR_TUBE_RIVALRY_LENS_VS()
+
+  z_write = true;
+
+  (ps) { collimator_tube_rivalry_mask@tex2d = collimator_tube_rivalry_mask; }
+
+  COLLIMATOR_TUBE_RIVALRY_EFFECT()
+
+  hlsl(ps) {
+    float4 collimator_tube_rivalry_cut_depth_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screenPos = GET_SCREEN_POS(input.pos);
+
+      float rivalryEffect = calc_rivalry_effect(input.eyeToPoint);
+      if (rivalryEffect >= 0.99)
+        discard;
+
+      if (texelFetch(collimator_tube_rivalry_mask, int2(screenPos.xy), 0).r < 0.5)
+        discard;
+
+      return 0;
+    }
+  }
+  compile("target_ps", "collimator_tube_rivalry_cut_depth_ps");
+}
+
+shader collimator_tube_rivalry
+{
+  supports global_frame;
+
+  COLLIMATOR_TUBE_RIVALRY_LENS_VS()
+
+  z_write = false;
+  blend_src = sa;
+  blend_dst = isa;
+  blend_src[1] = 1;
+  blend_dst[1] = 1;
+
+  COLLIMATOR_TUBE_RIVALRY_EFFECT()
+
+  hlsl(ps) {
+    struct PsOutput
+    {
+      float4 color : SV_Target0;
+      float reactive : SV_Target1;
+    };
+
+    PsOutput collimator_tube_rivalry_ps(VsOutput input)
+    {
+      float darkening = calc_rivalry_effect(input.eyeToPoint);
+
+      PsOutput output;
+      output.color = float4(0, 0, 0, darkening);
+      output.reactive = output.color.a;
+      return output;
+    }
+  }
+  compile("target_ps", "collimator_tube_rivalry_ps");
+}

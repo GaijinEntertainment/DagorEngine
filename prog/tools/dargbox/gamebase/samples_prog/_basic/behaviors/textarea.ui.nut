@@ -1,9 +1,5 @@
 from "%darg/ui_imports.nut" import *
 from "math" import max
-/*
-  KNOWN ISSUES:
-    - ellipsis should be done by character by default (or may be even always)
-*/
 
 let cursors = require("samples_prog/_cursors.nut")
 
@@ -19,9 +15,8 @@ let colored_text = "\n".concat(
 
 function sText(txt, params={}) {
   return {
-    ellipsis = true
     color = Color(198,198,128)
-    textOverflowX = TOVERFLOW_CHAR
+    textOverflow = TOVERFLOW_ELLIPSIS
     text=txt
   }.__update(params, {rendObj = ROBJ_TEXT})
 }
@@ -30,7 +25,7 @@ function textarea(txt, params={}) {
   return {
     rendObj = ROBJ_TEXTAREA
     color = Color(198,198,128)
-    textOverflowY = TOVERFLOW_LINE
+    textOverflow = TOVERFLOW_ELLIPSIS
     text = txt
     behavior = Behaviors.TextArea
   }.__update(params, {rendObj = ROBJ_TEXTAREA})
@@ -44,7 +39,7 @@ let textAreaFrameState = Watched({
 function textAreaContainer(txt, params={}) {
   let ta = {
     rendObj = ROBJ_TEXTAREA
-    textOverflowY = TOVERFLOW_LINE
+    textOverflow = TOVERFLOW_ELLIPSIS
     halign = ALIGN_LEFT
     text = txt
     behavior = [Behaviors.TextArea, Behaviors.WheelScroll]
@@ -123,7 +118,7 @@ return {
         }
         sText("Scrollable by wheel text area with split by line")
         {rendObj = ROBJ_FRAME size = const [hdpx(707),hdpx(90)] padding=hdpx(5)
-           children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] textOverflowY = TOVERFLOW_CLIP }
+           children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] textOverflow = TOVERFLOW_CLIP }
         }
         sText("Resizable and Scrollable by wheel text area with split by line")
         textAreaContainer(text)
@@ -140,8 +135,7 @@ return {
           - text = //miltilined text
           - halign = ALIGN_TOP(default) | ALIGN_RIGHT | ALIGN_CENTER
           - valign = ALIGN_TOP(default) | ALIGN_BOTTOM | ALIGN_CENTER
-          - textOverflowY = TOVERFLOW_LINE | TOVERFLOW_CLIP //truncate text by lines on vertical overflow or just clip text
-          - ellipsis: shown by default on truncation; hide with preformatted = FMT_HIDE_ELLIPSIS
+          - textOverflow = TOVERFLOW_CLIP | TOVERFLOW_ELLIPSIS //just clip text, or show only whole lines (at least the first one) and end each cut with an ellipsis
           - lineSpacing // extra spacing between lines
           - parSpacing  //spacing between paragraphs
           - indent //indent on new lines
@@ -149,10 +143,6 @@ return {
           - color //color
           - padding //padding of textarea. Can be padding = 100 | sh(2), padding=10 - [top, right, bottom, left]
           - monoWidth //monowidth output. can be character or size monWidth='W' or monowidth=20
-
-          <color=#ff5555>known issues </color>:
-          - textOverflowY - works only as TOVERFLOW_LINES
-
           "
         }
         {

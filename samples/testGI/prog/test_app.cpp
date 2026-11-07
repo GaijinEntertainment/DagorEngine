@@ -104,12 +104,12 @@
 #include <daSkies2/daSkiesToBlk.h>
 #include "de3_gui.h"
 #include <render/giVerifierCapture.h>
+#include <math/dag_half.h>
 #include "de3_gui_dialogs.h"
 #include "de3_hmapTex.h"
 #include <render/motionVectorAccess.h>
 #include <render/spheres_consts.hlsli>
 #include <render/scopeRenderTarget.h>
-#include <shaders/dag_shaderMatData.h>
 #include <render/debugTexOverlay.h>
 #include <render/cameraPositions.h>
 #include <shaders/dag_DynamicShaderHelper.h>
@@ -133,9 +133,6 @@
 #include <generic/dag_enumerate.h>
 
 #include <bvh/bvh.h>
-#include <bvh/bvh_processors.h>
-#include <render/denoiser.h>
-#include <render/rtsm.h>
 
 #include "de3_benchmark.h"
 #include "lruCollision.h"
@@ -151,7 +148,6 @@
 
 #include <EASTL/optional.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/unordered_map.h>
 
 extern "C" const size_t PS4_USER_MALLOC_MEM_SIZE = 1ULL << 30; // 1GB
 
@@ -207,6 +203,7 @@ typedef StrmSceneHolder scene_type_t;
   VAR(upscale_half_res_depth_tex_samplerstate)         \
   VAR(prev_downsampled_normals_samplerstate)           \
   VAR(sphere_time)                                     \
+  VAR(test_spheres)                                    \
   VAR(dagi_sp_has_exposure_assume)                     \
   VAR(lmesh_height_tex)                                \
   VAR(lmesh_height_tex_samplerstate)                   \
@@ -289,10 +286,6 @@ static void init_webui(const DataBlock *debug_block)
   }
 }
 
-void add_dynrend_resource_to_bvh(bvh::ContextId context_id, const DynamicRenderableSceneLodsResource *resource, uint64_t bvhId);
-void add_dynrend_instance_to_bvh(bvh::ContextId context_id, const DynamicRenderableSceneInstance *resource, uint64_t bvh_id, int count,
-  const Point3 &view_pos, float cull_radius);
-
 void set_test_tm(int inst, TMatrix &tm) { tm.setcol(3, Point3(20 + (inst / 10) * 14, 0, 20 + (inst % 10) * 14)); }
 
 static const int gbuf_rt = 3;
@@ -313,6 +306,11 @@ CONSOLE_BOOL_VAL("render", debug_hmap_trace, false); // traced heightfield into 
 CONSOLE_BOOL_VAL("render", trees, true);
 CONSOLE_FLOAT_VAL_MINMAX("render", swrt_rebuild_around, -0.001, -0.001, 1024);
 CONSOLE_BOOL_VAL("render", swrt_shadow_use_checkerboard, true);
+CONSOLE_FLOAT_VAL_MINMAX("render", swrt_box_dist_ref, 0.f, 0.f, 1000.f);
+CONSOLE_BOOL_VAL("render", swrt_shadow_quarter, false);
+CONSOLE_FLOAT_VAL_MINMAX("render", swrt_blas_leaf_skip_dist, -1.f, -1.f, 100.f);
+CONSOLE_BOOL_VAL("render", swrt_blas_boxes_only, false); // the shadows then take leaf boxes
+CONSOLE_BOOL_VAL("render", swrt_reflections, true);
 
 CONSOLE_INT_VAL("render", rerender_hmap, 0, 0, 16384);
 CONSOLE_BOOL_VAL("render", save_rerendered_hmap, true);
@@ -436,19 +434,17 @@ static bool screenshotRequested = false;
 static String screenshotFilename;
 static bool verifyCaptureRequested = false; // app.save_verify_capture: giVerifier replay input
 static String verifyCaptureDir;
-
-namespace bvh
-{
-void add_mesh(ContextId context_id, uint64_t mesh_id, const MeshInfo &info)
-{
-  ObjectInfo obj;
-  obj.isAnimated = false;
-  obj.meshes.push_back(info);
-  add_object(context_id, mesh_id, obj);
-}
-} // namespace bvh
+static bool exrRequested = false; // app.save_exr: the linear frame the giVerifier replay is compared with
+static String exrFilename;
 
 static constexpr RaytracedToroidalStaticShadowSettings RTSS_DEFAULTS{};
+
+struct TestGiSsr : ScreenSpaceReflections
+{
+  using ScreenSpaceReflections::ScreenSpaceReflections;
+  // render() leaves ssr_target unbound for the resolve
+  TEXTUREID target() const { return ssrTarget->getTexId(); }
+};
 
 class DemoGameScene final : public DagorGameScene, public ICascadeShadowsClient
 {
@@ -456,8 +452,8 @@ public:
   RenderSWRT swrt;
   eastl::unique_ptr<RaytracedToroidalStaticShadow> rtss;
   BBox3 rtssWorldBox;
-  double rtssLastTime = DBL_MAX; // constraint: real_time comes from a wrapping int of microseconds, so it can step back
-  Point3 rtssLastCamPos = Point3(0, 0, 0), cameraMoveVel = Point3(0, 0, 0);
+  double rtssLastTime = DBL_MAX; // real_time comes from a wrapping int of microseconds, so it can step back
+  Point3 rtssLastCamPos = Point3(0, 0, 0), cameraMoveVel = Point3(0, 0, 0), rtssViewPos = Point3(0, 0, 0);
   uint32_t rtssLruRevision = 0, rtssHwMask = 0;
   int rtssFramesSinceJob = 0;
   CascadeShadows *csm = nullptr;
@@ -522,7 +518,7 @@ public:
     {
       if (sun_panel.animate)
         sun_panel.time += dt * 24.f / (sun_panel.day_minutes * 60.f);
-      // constraint: julian_day is linear in a day past the month end and in a time below 0, but its day is unsigned
+      // julian_day is linear in a day past the month end and in a time below 0, but its day is unsigned
       const int days = max(int(floorf((sun_panel.time + skipMinutes / 60.f) / 24.f)), 1 - sun_panel.day);
       sun_panel.day += days;
       sun_panel.time += skipMinutes / 60.f - days * 24.f;
@@ -559,6 +555,7 @@ public:
     ShaderGlobal::set_float4(from_sun_directionVarId, -dir_to_sun.x, -dir_to_sun.y, -dir_to_sun.z, 0);
   }
   eastl::unique_ptr<ClusteredLights> clusteredLights;
+  CulledLightsPtr giLights = ClusteredLights::createCulledLights("gi");
   eastl::unique_ptr<DeferredRenderTarget> target;
   carray<UniqueTex, 2> farDownsampledDepth, downsampledNormals, downsampled_close_depth_tex;
   UniqueTex downsampled_checkerboard_depth_tex;
@@ -568,7 +565,7 @@ public:
   UniqueTexWithShaderVar frame, prevFrame;
   UniqueTex taaHistory[2];
   PostFxRenderer postfx;
-  eastl::unique_ptr<ScreenSpaceReflections> ssr;
+  eastl::unique_ptr<TestGiSsr> ssr;
   eastl::unique_ptr<SSAORenderer> ssao;
   eastl::unique_ptr<GTAORenderer> gtao;
   DebugTexOverlay debugTexOverlay;
@@ -611,7 +608,7 @@ public:
 
   UniqueTex swrt_shadow_target;
   UniqueBuf swrt_shadow_mask;
-  void swRTShadows(const Point3 &dir_to_sun, float sun_size)
+  void swRTShadows(const Point3 &dir_to_sun, float sun_size, const Point3 &camera_pos)
   {
     if (!swrt.hasData())
     {
@@ -625,24 +622,41 @@ public:
     if (swrt_shadow_target)
       swrt_shadow_target.getTex2D()->getinfo(ti, 0);
 
-    // src is the half-res depth width; the checkerboard target is ceil(src/2) so its last column
-    // still maps to the last source column (shader maps dtId.x -> 2*dtId.x + parity).
     const bool checkerboard = swrt_shadow_use_checkerboard && !reference;
-    const int srcW = target->getWidth() >> 1;
-    const int halfW = checkerboard ? (srcW + 1) / 2 : srcW, halfH = target->getHeight() >> 1;
-    if (halfW != ti.w || halfH != ti.h)
+    const bool quarter = checkerboard && swrt_shadow_quarter;
+    const int srcW = target->getWidth() >> 1, srcH = target->getHeight() >> 1;
+    const IPoint2 size = RenderSWRT::getShadowTargetSize(srcW, srcH, checkerboard, quarter);
+    const uint32_t fmt = RenderSWRT::getShadowTargetFormat(checkerboard, quarter);
+    if (size.x != ti.w || size.y != ti.h || (ti.cflg & TEXFMT_MASK) != fmt)
     {
       swrt_shadow_target.close();
-      swrt_shadow_target = dag::create_tex(NULL, halfW, halfH, TEXFMT_R8 | TEXCF_RTARGET | TEXCF_UNORDERED, 1, "swrt_shadow_target");
+      swrt_shadow_target = dag::create_tex(NULL, size.x, size.y, fmt | TEXCF_RTARGET | TEXCF_UNORDERED, 1, "swrt_shadow_target");
     }
-    if (bvhCtx != bvh::InvalidContextId)
-      bvh::bind_resources(bvhCtx, target->getWidth()); // swrt hw rt mode traces the context's main TLAS (render meshes, RTSM only)
-    // constraint: the SWRT early-out copies combined_shadows, which holds the rtss term that view 5 checks
+    // the SWRT early-out copies combined_shadows, which holds the rtss term that view 5 checks
     ShaderGlobal::set_int(rtss_referenceVarId, reference ? 1 : 0);
     if (reference)
       ShaderGlobal::set_texture(combined_shadows.getVarId(), get_white_on_demand());
-    swrt.renderShadows(dir_to_sun, reference ? 0.f : sun_size, shadow_frame, checkerboard ? shadow_frame : 0, srcW,
-      swrt_shadow_mask.getBuf(), swrt_shadow_target.getTex2D(), true);
+    // rtss view 5 compares against the reference, which traces every caster
+    daSWRT::ShadowCasterReach reach;
+    if (!reference)
+    {
+      reach.csmDistance = csm->getMaxDistance();
+      reach.csmReach = csm->getCasterReach();
+      // an rtss page with no data yet reads lit, and its HW traced levels hold only the near collision casters
+      if (!rtssWorldBox.isempty() && rtssHwMask == 0 && rtss->isReady(BBox3(camera_pos, 2 * rtss->getDistance())))
+      {
+        const float fromView = length(camera_pos - rtssViewPos); // the pages follow the view of the last update, frozen or baking
+        reach.staticDistance = max(rtss->getFullWeightDistance() - fromView, 0.f);
+        reach.staticTopHeight = rtssWorldBox[1].y;
+        reach.staticDepth = max(rtss->getCasterReach() - fromView, 0.f);
+      }
+    }
+    swrt.setShadowBoxDistRef(reference ? 0.f : swrt_box_dist_ref.get());
+    swrt.setShadowQuarterRate(quarter);
+    const float leafSkip = swrt_blas_leaf_skip_dist.get();
+    swrt.setShadowBlasLeafBoxes(reference ? -1.f : swrt.blasMode == daSWRT::BlasMode::BoxesOnly ? max(leafSkip, 0.f) : leafSkip);
+    swrt.renderShadows(dir_to_sun, reference ? 0.f : sun_size, shadow_frame, checkerboard ? shadow_frame : 0, srcW, srcH,
+      swrt_shadow_mask.getBuf(), swrt_shadow_target.getTex2D(), true, reach);
     if (reference)
       combined_shadows.setVar();
   }
@@ -663,7 +677,7 @@ public:
       daGI2->afterReset();
     mediaVolumes.afterReset();
     rtss->afterDeviceReset();
-    giHmapMaxGrid.close(); // constraint: the grid owner closes it after a device reset (heightmapMaxGrid.h)
+    giHmapMaxGrid.close(); // the grid owner closes it after a device reset (heightmapMaxGrid.h)
   }
 
   void invalidateGI()
@@ -701,7 +715,7 @@ public:
   }
 
   static constexpr int HYBRID_HW_RASTER_LEVELS = 2;
-  // constraint: the collision TLAS streams only within its radius, so the coarse levels trace SWRT
+  // the collision TLAS streams only within its radius, so the coarse levels trace SWRT
   uint32_t rtssHwLevelMask() const
   {
     const bool hwRecipe = rtss_panel.recipe == RTSS_HWRT || rtss_panel.recipe == RTSS_HYBRID_HW;
@@ -711,7 +725,7 @@ public:
   RaytracedToroidalStaticShadowSettings rtssSettings(uint32_t hw) const
   {
     RaytracedToroidalStaticShadowSettings settings = rtss_panel;
-    // constraint: atan2 sees a wrapped travel as a short step, so a frame whose day travel can pass 60 deg gives no rate
+    // atan2 sees a wrapped travel as a short step, so a frame whose day travel can pass 60 deg gives no rate
     const float dayStep = sunAnimDt * dayRate();
     settings.sunJumpDeg = dayStep <= PI / 3 ? RadToDeg(1.5f * dayStep) : 0.f;
     for (int k = 0; k < settings.levels; ++k)
@@ -732,7 +746,7 @@ public:
     }
     return settings;
   }
-  // constraint: the collision TLAS carries no terrain, so the gi trace and the rtss complete it with this window
+  // the collision TLAS carries no terrain, so the gi trace and the rtss complete it with this window
   BBox2 hmapGridWindow; // the terrain the trace holds, empty while the grid is closed
   void updateHmapMaxGrid(const Point3 &pos)
   {
@@ -748,9 +762,9 @@ public:
       hmapGridWindow = BBox2(lt, lt + Point2(cells, cells) * cell);
     }
     else
-      giHmapMaxGrid.close(); // constraint: a level turned off keeps no terrain in the grid
+      giHmapMaxGrid.close(); // a level turned off keeps no terrain in the grid
     if ((ready != wasReady) | hmap_max_grid_cells.pullValueChange() | hmap_max_grid_cell_size.pullValueChange())
-      rtss->invalidate(); // constraint: the pages hold the terrain of the grid they were built with
+      rtss->invalidate(); // the pages hold the terrain of the grid they were built with
   }
   int rtssCasters = -1;
   void updateRtss(const Point3 &cam_pos, double real_time)
@@ -778,7 +792,7 @@ public:
     const int casters = (land_panel.trees && trees.get() && test) | land_panel.lmesh << 1 |
                         (land_panel.collision && rasterize_gbuf_collision) << 2 | land_panel.spheres << 3;
     if (const int old = eastl::exchange(rtssCasters, casters); old >= 0 && old != casters)
-      rtss->invalidate(); // constraint: the raster pages draw the casters of these toggles
+      rtss->invalidate(); // the raster pages draw the casters of these toggles
     rtss->setSun(dir_to_sun);
     buildRtss(cam_pos, camVel, dt);
   }
@@ -787,13 +801,14 @@ public:
     const uint32_t hw = hw_allowed ? rtssHwLevelMask() : 0;
     rtss->setSettings(rtssSettings(hw));
     if (hw != rtssHwMask)
-      rtss->invalidate(); // constraint: the library does not see the tracers
+      rtss->invalidate(); // the library does not see the tracers
     rtssHwMask = hw;
     return hw;
   }
   void buildRtss(const Point3 &pos, const Point3 &vel, float dt)
   {
     rtss->update(dpoint3(pos), vel, dt);
+    rtssViewPos = pos;
     const Geometry geom = geometry();
     precullRtssRegions(*rtss, geom, pos, rtssCulls);
     RtssRasterCallback cb(*rtss, geom, pos, rtssCulls);
@@ -965,7 +980,7 @@ public:
     ssr.reset();
     if (rq == REFLECTIONS_OFF)
       return;
-    ssr.reset(new ScreenSpaceReflections(w / 2, h / 2, 1, TEXFMT_A16B16G16R16F, SSRQuality::Compute));
+    ssr.reset(new TestGiSsr(w / 2, h / 2, 1, TEXFMT_A16B16G16R16F, SSRQuality::Compute));
     ShaderGlobal::set_int(get_shader_variable_id("ssr_alternate_reflections", true), rq == REFLECTIONS_ALL ? 1 : 0);
     ShaderGlobal::set_int(get_shader_variable_id("ssr_quality", true), rq == REFLECTIONS_ALL ? 3 : 0);
   }
@@ -1095,34 +1110,7 @@ public:
       snapdragonSuperResolutionRender.SetViewport(w, h);
     }
     clusteredLights->changeResolution(w, h);
-
-    initRtsmDenoiser(w, h);
   }
-
-  // rtsm/denoiser state does not survive a device reset: this is the recovery too
-  void initRtsmDenoiser(int w, int h)
-  {
-    if (!isRtsmEnabled() || !w || !h)
-      return;
-    rtsm::teardown();
-    denoiser::teardown();
-
-    denoiser::initialize(w, h, false, false);
-    rtsm::initialize(rtsm::RenderMode::Hard, false);
-
-    denoiser::TexInfoMap textures;
-
-    ::denoiser::get_required_persistent_texture_descriptors(textures, false, false, false);
-    ::rtsm::get_required_persistent_texture_descriptors(textures);
-    ::rtsm::get_required_transient_texture_descriptors(textures);
-
-    for (auto &tex : textures)
-      rt_textures[tex.first] =
-        dag::create_tex(nullptr, tex.second.w, tex.second.h, tex.second.cflg | TEXCF_CLEAR_ON_CREATE, tex.second.mipLevels, tex.first);
-    rtsmResW = w;
-    rtsmResH = h;
-  }
-  int rtsmResW = 0, rtsmResH = 0;
 
   DepthAround depthAround;
   HeightmapShadows hmapShadows;
@@ -1247,8 +1235,6 @@ public:
 
   eastl::unique_ptr<SkiesData, SkiesDataDeleter> refl_pov_data, main_pov_data, cube_pov_data;
 
-  eastl::unordered_map<const char *, UniqueTex> rt_textures;
-
   ~DemoGameScene()
   {
     del_it(occlusion_map);
@@ -1371,8 +1357,10 @@ public:
       file_panel.load = false;
     }
 
-    if (!exit_button_pressed && !de3_imgui_act(::dagor_game_act_time))
+    if (!exit_button_pressed && !de3_imgui_act(::dagor_game_act_time) && IFreeCameraDriver::isActive)
       curCamera->act();
+    if (!IFreeCameraDriver::isActive)
+      HumanInput::raw_state_pnt.resetDelta();
     const bool panorama = render_panel.render_type == PANORAMA;
     de3_imgui_enable_obj(&render_panel.sky_quality, !panorama);
     de3_imgui_enable_obj(&render_panel.direct_quality, !panorama);
@@ -1478,7 +1466,8 @@ public:
       TMatrix4 noJitterProj;
       d3d::calcproj(p, noJitterProj);
       d3d::calcglobtm(view, noJitterProj, noJitterGlobTm);
-      Point2 jitteredOfs = get_taa_jitter(taaFrame, taaParams);
+      // the replay traces pixel centers: a frame saved for it, or captured, takes no jitter
+      Point2 jitteredOfs = exrRequested || verifyCaptureRequested ? Point2(0, 0) : get_taa_jitter(taaFrame, taaParams);
       p.ox += jitteredOfs.x * (2.0f / w);
       p.oy += -jitteredOfs.y * (2.0f / h);
       static TMatrix4 prevNoJitterGlobTm = noJitterGlobTm;
@@ -1568,10 +1557,12 @@ public:
     if (hwRtGi || rtssHwLevelMask())
       bvh::bind_resources(bvhCtx, w); // the collision TLAS and its normals pool ride the regular bind
 
+    if (swrt.hasData() && swrt.blasMode != swrtBlasMode())
+      buildSwrt();
     updateHmapMaxGrid(itm.getcol(3));
     updateRtss(itm.getcol(3), realTime);
     // todo: clamp itm.getcol(3) with shrinked sceneBox - there is nothing interesting outside scene
-    updateSSGIPos(itm.getcol(3)); // constraint: after updateRtss, which moves the rtss to the camera
+    updateSSGIPos(itm.getcol(3)); // after updateRtss, which moves the rtss to the camera
     auto ru = gi_panel.update_radiance && giUpdatePosFrameCounter == 0 ? DaGI::RadianceUpdate::On : DaGI::RadianceUpdate::Off;
     daGI2->beforeRender(sw, sh, w, h, itm, projTm, p.zn, p.zf, ru);
     // media volumes own the tree canopy density: append the instances a box touches, and bake
@@ -1599,10 +1590,17 @@ public:
     };
     if (mediaVolumes.bakePending(bakeMediaType)) // the bake wave settled: refill for the new bricks
       daGI2->invalidateInitialMedia();
+    // DNG's GI light box, read by daSharc
+    const bool useGiLights = clusteredLights->initialized() && daGI2->sdfClipNeedsLitColor(0);
+    if (useGiLights)
     {
-      bool lightsInsideFrustum = true;
+      alignas(16) TMatrix4 globtm = dagi_lights_globtm(daGI2->getCurrentSettings().sdf, itm.getcol(3));
+      clusteredLights->cullOutOfFrustumLights(*giLights, (mat44f_cref)globtm, SpotLightMaskType::SPOT_LIGHT_MASK_GI,
+        OmniLightMaskType::OMNI_LIGHT_MASK_GI);
+    }
+    {
       daGI2->updatePosition(
-        [&](int sdf_clip, const BBox3 &box, float voxelSize, uintptr_t &) {
+        [&](int, const BBox3 &box, float voxelSize, uintptr_t &) {
           BBox3 sceneBox = box;
           sceneBox[0] -= Point3(voxelSize, voxelSize, voxelSize); // we increase by maximum written + 1 where we rounding due to
                                                                   // rasterization
@@ -1623,20 +1621,6 @@ public:
           const bool intersectLevel = loadedLevelBox & box & rasterize_sdf_level;
           if (handles.empty() && !intersectLevel)
             return UpdateGiQualityStatus::NOTHING;
-
-          if (clusteredLights->initialized())
-          {
-            if (daGI2->sdfClipHasVoxelsLitSceneClip(sdf_clip))
-            {
-              alignas(16) TMatrix4 globtm = matrix_ortho_off_center_lh(box[0].x, box[1].x, box[1].y, box[0].y, box[0].z, box[1].z);
-              clusteredLights->cullOutOfFrustumLights((mat44f_cref)globtm, SpotLightMaskType::SPOT_LIGHT_MASK_GI,
-                OmniLightMaskType::OMNI_LIGHT_MASK_GI);
-              clusteredLights->setOutOfFrustumLightsToShader();
-            }
-            else
-              clusteredLights->setEmptyOutOfFrustumLights();
-            lightsInsideFrustum = false;
-          }
 
           Point3 voxelize_box0 = sceneBox[0];
           Point3 voxelize_box_sz = max(Point3(1e-6f, 1e-6f, 1e-6f), sceneBox.width());
@@ -1686,18 +1670,22 @@ public:
           return UpdateGiQualityStatus::RENDERED;
         },
         [&](const BBox3 &region, float voxelSize) { mediaVolumes.setRegionInstances(region, voxelSize, gatherMediaInstances); });
-      if (!lightsInsideFrustum)
+      if (useGiLights)
         clusteredLights->setInsideOfFrustumLightsToShader();
     }
     // gather the closest source instances for the media volume debug trace (gi_media_vols_debug)
     mediaVolumes.debugPrepare(itm.getcol(3), gatherMediaInstances);
 
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
-    render(geom, frameView, geometryView, itm, p, hwRtGi, w);
+    render(geom, frameView, geometryView, itm, p);
 
     frameView.bind();
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
+    if (useGiLights)
+      clusteredLights->setOutOfFrustumLightsToShader(*giLights);
     daGI2->afterFrameRendered(DaGI::FrameData(DaGI::FrameHasAll));
+    if (useGiLights)
+      clusteredLights->setInsideOfFrustumLightsToShader();
     frameView.bind();
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{frame.getTex2D(), 0, 0}});
     renderWater(frameView);
@@ -1751,9 +1739,14 @@ public:
       const String dumpName(df_get_real_name(dgs_get_settings()->getStr("ri_collisions", "ri_collisions.bin")));
       const String levelName(df_get_real_name(dgs_get_settings()->getStr("level", "")));
       bool ok = gi_verify::save_capture(dir, itm, p, target->getWidth(), target->getHeight(), dir_to_sun, dumpName, levelName,
-        &gi_verify::write_env_exr);
+        &gi_verify::write_env_exr, dag::ConstSpan<Point4>(test_spheres, land_panel.spheres ? test_spheres_count : 0));
       console::print_d("save_verify_capture: %s -> %s", ok ? "saved" : "FAILED", dir);
       verifyCaptureDir.clear();
+    }
+    if (exrRequested)
+    {
+      exrRequested = false;
+      saveFrameExr(exrFilename);
     }
 
     if (show_gbuffer == DebugGbufferMode::None)
@@ -1829,12 +1822,56 @@ public:
     }
   }
 
+  // the frame before postfx, divided by this frame's pre_exposure; r11g11b10f has no half readback, so it is decoded here
+  void saveFrameExr(const char *path)
+  {
+    TextureInfo ti;
+    frame.getTex2D()->getinfo(ti, 0);
+    int stride = 0;
+    uint8_t *ptr = nullptr;
+    if (!frame.getTex2D()->lockimg((void **)&ptr, stride, 0, TEXLOCK_READ) || !ptr)
+    {
+      console::print_d("save_exr: lockimg failed");
+      return;
+    }
+    const bool half4 = (ti.cflg & TEXFMT_MASK) == TEXFMT_A16B16G16R16F;
+    const float invPreExposure = 1.f / ShaderGlobal::get_float(get_shader_variable_id("pre_exposure"));
+    Tab<uint16_t> rgba(ti.w * ti.h * 4);
+    for (int y = 0; y < ti.h; ++y)
+      for (int x = 0; x < ti.w; ++x)
+      {
+        uint16_t *dst = &rgba[(y * ti.w + x) * 4];
+        float rgb[3];
+        auto decode = [](uint16_t h) { return bitwise_cast<float, uint32_t>(half_to_float_uint32_t_ref(h)); };
+        if (half4)
+        {
+          const uint16_t *src = (const uint16_t *)(ptr + y * stride + x * 8);
+          for (int c = 0; c < 3; ++c)
+            rgb[c] = decode(src[c]);
+        }
+        else
+        {
+          // an r11g11b10f field is a half with the mantissa truncated: the shift restores the half's layout
+          const uint32_t v = *(const uint32_t *)(ptr + y * stride + x * 4);
+          rgb[0] = decode((v & 0x7ff) << 4);
+          rgb[1] = decode(((v >> 11) & 0x7ff) << 4);
+          rgb[2] = decode(((v >> 22) & 0x3ff) << 5);
+        }
+        for (int c = 0; c < 3; ++c)
+          dst[c] = float_to_half(rgb[c] * invPreExposure);
+      }
+    frame.getTex2D()->unlockimg();
+    const bool ok = gi_verify::write_env_exr(path, rgba.data(), ti.w, ti.h);
+    console::print_d("save_exr: %s %s", ok ? "saved" : "FAILED", path);
+  }
+
   void giQualitySet()
   {
     ShaderGlobal::set_int(get_shader_variable_id("gi_quality"), (int)gi_panel.gi_mode);
     auto s = daGI2->getNextSettings();
-    s.voxelScene.sdfResScale = 0.5;
-    s.voxelScene.onlyLuma = false;
+    s.surfaceCache = {uint32_t(surface_cache_panel.entriesK) << 10, surface_cache_panel.cellSize,
+      float(surface_cache_panel.voxelScale), uint8_t(surface_cache_panel.voxelsFirstClip), uint16_t(surface_cache_panel.feedGroups),
+      uint16_t(surface_cache_panel.relightThreads), uint16_t(surface_cache_panel.voxelRemeanFrames)};
     s.albedoScene.clips = albedo_scene_panel.clips;
     s.radianceGrid.clips = radiance_grid_panel.clips;
     s.radianceGrid.w = radiance_grid_panel.texWidth;
@@ -1846,8 +1883,7 @@ public:
       s.radianceGrid.w = 0;
       s.screenProbes.tileSize = 0;
       s.volumetricGI.tileSize = 0;
-      s.voxelScene.onlyLuma = true;
-      // s.voxelScene.sdfResScale = 0;
+      s.surfaceCache.entries = 0;
     }
     else if (gi_panel.gi_mode == SIMPLE_COLORED)
     {
@@ -1882,11 +1918,17 @@ public:
     if (gi_panel.gi_mode != ENVI_PROBE)
       daGI2->setSettings(s);
   }
+  // the reference traces the exact casters
+  static daSWRT::BlasMode swrtBlasMode()
+  {
+    return swrt_blas_boxes_only && !reference ? daSWRT::BlasMode::BoxesOnly : daSWRT::BlasMode::Full;
+  }
   int buildSwrt()
   {
     const LevelCollision &level = lruColl.level;
     swrt.init();
-    // constraint: no SWRT_SHADOW_SKIP_LEAF here, so the glass faces are carved out
+    swrt.blasMode = swrtBlasMode();
+    // no SWRT_SHADOW_SKIP_LEAF here, so the glass faces are carved out
     auto opaque = [&](int16_t mat_id) { return !level.isLightTransparent(mat_id); };
     const int trees = build_level_swrt_models(swrt, level, modelIndex, opaque);
     swrt.copyToGPUAndDestroy(swrt.buildBottomLevelStructures());
@@ -2240,6 +2282,9 @@ public:
   }
   DynamicShaderHelper drawSpheres;
   float current_sphere_time = 0;
+  static constexpr int DANCING_SPHERES = 6, TEST_SPHERES = 3; // the shader's boundary and its test_spheres array size
+  static inline int test_spheres_count = 0;
+  static inline Point4 test_spheres[TEST_SPHERES]; // center, radius: the shader draws and the replay capture traces them
   static void renderDynamicSpheres(const Geometry &geom, const RenderView &view)
   {
     if (!geom.spheres)
@@ -2250,9 +2295,12 @@ public:
       drawSpheres.init("draw_debug_dynamic_spheres", NULL, 0, "draw_debug_dynamic_spheres");
     view.bind();
     ShaderGlobal::set_float(sphere_timeVarId, geom.sphereTime);
+    // every frame, not once in the command: a shader reload drops array globals, the capture keeps the C++ list
+    if (test_spheres_count > 0)
+      ShaderGlobal::set_float4_array(test_spheresVarId, test_spheres, test_spheres_count);
     drawSpheres.shader->setStates(0, true);
     d3d::setvsrc_ex(0, NULL, 0, 0);
-    d3d::draw_instanced(PRIM_TRILIST, 0, SPHERES_INDICES_TO_DRAW, 6);
+    d3d::draw_instanced(PRIM_TRILIST, 0, SPHERES_INDICES_TO_DRAW, DANCING_SPHERES + test_spheres_count);
   }
 
   static bool renderTreesCulled(const Geometry &geom, const RenderView &view)
@@ -2282,9 +2330,9 @@ public:
       return false;
     const HeightmapHandler *hmap = binScene->getHeightmap();
     float minHt, maxHt;
-    if ((hmap && hmap->isMirror()) || !binScene->getMinMax(minHt, maxHt))
+    if ((hmap && hmap->isMainHmap()) || !binScene->getMinMax(minHt, maxHt))
       return false;
-    // constraint: land casters lie in the height range of the land, a short part of the long page prism
+    // land casters lie in the height range of the land, a short part of the long page prism
     mat44f inv;
     v_mat44_inverse(inv, view.culling);
     Point3 corner[8];
@@ -2314,7 +2362,7 @@ public:
         land += Point2::xz(lerp(p, q, lo));
         land += Point2::xz(lerp(p, q, hi));
       }
-    // constraint: the trace holds terrain only inside both the heightmap and the window of the max grid
+    // the trace holds terrain only inside both the heightmap and the window of the max grid
     if (land.isempty() || (hmap && hmap->worldBox2 & land[0] && hmap->worldBox2 & land[1] && geom.hmapGridWindow & land[0] &&
                             geom.hmapGridWindow & land[1]))
       return false;
@@ -2628,7 +2676,7 @@ public:
   }
 
   void render(const Geometry &geom, const RenderView &frame_view, const RenderView &geometry_view, const TMatrix &itm,
-    const Driver3dPerspective &persp, bool hw_rt_gi, int output_width)
+    const Driver3dPerspective &persp)
   {
     TIME_D3D_PROFILE(render)
     const TMatrix &view = frame_view.view;
@@ -2690,7 +2738,7 @@ public:
     {
       static int shadow_frame;
       ShaderGlobal::set_int(shadow_frameVarId, (shadow_frame++) & ((1 << 23) - 1));
-      swRTShadows(dir_to_sun, 0.0093f / 4);
+      swRTShadows(dir_to_sun, 0.0093f / 4, itm.getcol(3));
     }
     if (gi_panel.ssao && ssao)
     {
@@ -2703,48 +2751,20 @@ public:
     if (!gi_panel.ssao && !gi_panel.gtao)
       ShaderGlobal::set_texture(get_shader_variable_id("ssao_tex"), BAD_TEXTUREID);
 
+    // the reflection trace walks the BLAS triangles, which a boxes only BLAS does not keep
+    const bool swrtReflections = swrt_reflections && swrt.hasData() && swrt.blasMode != daSWRT::BlasMode::BoxesOnly;
+    ShaderGlobal::set_int(get_shader_variable_id("testgi_swrt_reflections", true), swrtReflections ? 1 : 0);
     if (ssr)
       ssr->render(view, projTm);
-    if (!ssr || gi_panel.reflections == REFLECTIONS_OFF)
-    {
-      ShaderGlobal::set_texture(get_shader_variable_id("ssr_target"), BAD_TEXTUREID);
-    }
+    ShaderGlobal::set_texture(get_shader_variable_id("ssr_target"), ssr ? ssr->target() : BAD_TEXTUREID);
 
-    if (rtsmIsOn)
-    {
-      denoiser::TexMap textures;
-      for (auto &[name, tex] : rt_textures)
-        textures[name] = tex.getTex2D();
-
-      ShaderGlobal::set_float4(get_shader_variable_id("sun_dir_for_shadows", true), -dir_to_sun);
-
-
-      ::denoiser::FrameParams denoiserParams;
-      denoiserParams.textures = textures;
-      denoiserParams.viewPos = itm.getcol(3);
-      denoiserParams.prevViewPos = previousCamera.has_value() ? previousCamera->position : denoiserParams.viewPos;
-      denoiserParams.viewDir = itm.getcol(2);
-      denoiserParams.prevViewDir = previousCamera.has_value() ? previousCamera->viewInverse.getcol(2) : denoiserParams.viewDir;
-      denoiserParams.viewItm = itm;
-      denoiserParams.projTm = projTm;
-      denoiserParams.prevViewItm = previousCamera.has_value() ? previousCamera->viewInverse : denoiserParams.viewItm;
-      denoiserParams.prevProjTm = previousCamera.has_value() ? previousCamera->projectionNoJitter : projTm;
-      denoiserParams.jitter = Point2(0.0f, 0.0f);
-      denoiserParams.prevJitter = Point2(0.0f, 0.0f);
-      denoiserParams.motionMultiplier = Point3::ONE;
-
-      int w, h;
-      d3d::get_render_target_size(w, h, nullptr);
-      denoiserParams.dynRes = ::denoiser::DynamicResolutionParams{{w, h}, {w, h}, {w / 2, h / 2}, {w / 2, h / 2}};
-
-      denoiser::prepare(denoiserParams);
-      rtsm::render(bvhCtx, itm.getcol(3), -dir_to_sun, projTm, textures);
-    }
-
-    // swrt/rtsm above unbind; the GI relight below traces the collision TLAS
-    if (hw_rt_gi && bvhCtx != bvh::InvalidContextId)
-      bvh::bind_resources(bvhCtx, output_width);
+    // daSharc relights read the GI light box, as in DNG
+    const bool useGiLights = clusteredLights->initialized() && daGI2->sdfClipNeedsLitColor(0);
+    if (useGiLights)
+      clusteredLights->setOutOfFrustumLightsToShader(*giLights);
     daGI2->beforeFrameLit(gi_panel.dynamic_gi_quality);
+    if (useGiLights)
+      clusteredLights->setInsideOfFrustumLightsToShader();
 
     ShaderGlobal::set_int(get_shader_variable_id("deferred_lighting_mode"), gi_panel.onscreen_mode);
     {
@@ -2886,15 +2906,15 @@ public:
       curCamera->getInvViewMatrix(itm);
       pos = itm.getcol(3);
     }
-    // constraint: the probe bake reads the rtss, so it is built around pos first
+    // the probe bake reads the rtss, so it is built around pos first
     updateHmapMaxGrid(pos);
     if (!freeze)
     {
-      const uint32_t hw = applyRtssSettings(!first); // constraint: the collision TLAS gathers around the camera, not the fixed pos
+      const uint32_t hw = applyRtssSettings(!first); // the collision TLAS gathers around the camera, not the fixed pos
       if (hw)
         bvh::bind_resources(bvhCtx, target->getWidth());
       rtss->setSun(dir_to_sun);
-      for (int i = 0; i < 8 && (i == 0 || !rtss->isReady(BBox3(pos, 64.f), 0)); ++i) // constraint: the first update moves it to pos
+      for (int i = 0; i < 8 && (i == 0 || !rtss->isReady(BBox3(pos, 64.f), 0)); ++i) // the first update moves it to pos
         buildRtss(pos, Point3(0, 0, 0), 0.f);
     }
     if (first)
@@ -3024,6 +3044,13 @@ protected:
       DECLARE_INT_SLIDER(radiance_grid_panel, clips, 2, 4, 3), DECLARE_INT_SLIDER(radiance_grid_panel, texWidth, 16, 64, 32),
 
       DECLARE_INT_SLIDER(albedo_scene_panel, clips, 2, 4, 3),
+      DECLARE_INT_COMBOBOX(surface_cache_panel, entriesK, 384, 16, 64, 128, 256, 384, 512, 1024),
+      DECLARE_FLOAT_SLIDER(surface_cache_panel, cellSize, 0.1, 2., 0.25, 0.05),
+      DECLARE_INT_COMBOBOX(surface_cache_panel, voxelScale, 2, 1, 2, 4),
+      DECLARE_INT_SLIDER(surface_cache_panel, voxelsFirstClip, 0, 8, 1),
+      DECLARE_INT_COMBOBOX(surface_cache_panel, feedGroups, 1024, 256, 384, 512, 1024, 2048, 4096),
+      DECLARE_INT_COMBOBOX(surface_cache_panel, relightThreads, 8192, 1024, 2048, 4096, 8192),
+      DECLARE_INT_COMBOBOX(surface_cache_panel, voxelRemeanFrames, 256, 256, 512, 1024, 2048),
 
       DECLARE_INT_SLIDER(volumetric_gi, slices, 8, 64, 16), DECLARE_INT_SLIDER(volumetric_gi, tileSize, 0, 256, 64),
       DECLARE_FLOAT_SLIDER(volumetric_gi, zLogMul, 1., 16, 6, 0.01),
@@ -3331,6 +3358,11 @@ protected:
   {
     int clips = 2;
   } albedo_scene_panel;
+  struct
+  {
+    int entriesK = 384, voxelsFirstClip = 1, voxelScale = 2, feedGroups = 1024, relightThreads = 8192, voxelRemeanFrames = 256;
+    float cellSize = 0.25;
+  } surface_cache_panel;
 
   struct
   {
@@ -3407,12 +3439,6 @@ protected:
     {
       daGI2->invalidateBox(treesWorldBox());
       treesMediaClearPending = false;
-    }
-
-    if (test && bvhCtx)
-    {
-      testId = ++bvhIdGen;
-      add_dynrend_resource_to_bvh(bvhCtx, test->getLodsResource(), testId);
     }
   }
 
@@ -3529,7 +3555,6 @@ protected:
           owner->binScene = scn;
           ddsx::tex_pack2_perform_delayed_data_loading();
           owner->onSceneLoaded();
-          owner->addBvhMeshes(scn);
         });
       }
       virtual void releaseJob() { delete this; }
@@ -3538,51 +3563,11 @@ protected:
     cpujobs::add_job(loading_job_mgr_id, new LoadJob(level_bindump_fn, hmap_fn, this, cell, hMin, hMax));
   }
 
-  // one context: the collision TLAS the GI traces, plus the RTSM meshes when on
+  // one context: the collision TLAS the GI traces
   bvh::ContextId bvhCtx = bvh::InvalidContextId;
-  eastl::vector<uint64_t> bvhMeshes;
-  uint64_t bvhIdGen = 0;
   bool bvhLruConnected = false;
   float bvhLruRadius = 0;
   uint32_t bvhBuildCount = 0;
-  uint64_t bvhMeshBase = 0;
-  uint64_t bvhMeshCount = 0;
-  uint64_t testId = 0;
-
-  struct ElemCallback : public RenderScene::ElemCallback
-  {
-    bvh::ContextId bvhCtx;
-    uint64_t *bvhIdGen;
-
-    void on_elem_found(const Data &data) override
-    {
-      G_ASSERT(data.normalFormat == -1 || data.normalFormat == VSDT_E3DCOLOR);
-      G_ASSERT(data.colorFormat == -1 || data.colorFormat == VSDT_E3DCOLOR);
-
-      uint64_t id = ++(*bvhIdGen);
-
-      bvh::MeshInfo meshInfo;
-      meshInfo.indices = data.indices;
-      meshInfo.indexCount = data.indexCount;
-      meshInfo.startIndex = data.startIndex;
-      meshInfo.vertices = data.vertices;
-      meshInfo.vertexCount = data.vertexCount;
-      meshInfo.startVertex = data.startVertex;
-      meshInfo.vertexSize = data.vertexStride;
-      meshInfo.positionOffset = data.positionOffset;
-      meshInfo.positionFormat = data.positionFormat;
-      meshInfo.texcoordOffset = data.texcoordOffset;
-      meshInfo.texcoordFormat = data.texcoordFormat;
-      meshInfo.normalOffset = data.normalOffset;
-      meshInfo.colorOffset = bvh::MeshInfo::invalidOffset; // The sponza shader doesn't use vertex colors
-      meshInfo.posMul = Point4::ONE;
-      meshInfo.posAdd = Point4::ZERO;
-      meshInfo.albedoTextureId = data.albedoTextureId;
-      if (data.albedoTextureId != BAD_TEXTUREID)
-        meshInfo.vertexProcessor = &bvh::ProcessorInstances::getBakeTextureToVerticesProcessor();
-      bvh::add_mesh(bvhCtx, id, meshInfo);
-    }
-  } elemCallback;
 
   bool isRtEnabled() const
   {
@@ -3590,22 +3575,13 @@ protected:
       return false;
     return dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableBVH", false);
   }
-  bool rtsmIsOn = false;
-  bool isRtsmEnabled()
-  {
-    rtsmIsOn = false;
-    if (!isRtEnabled())
-      return false;
-    return rtsmIsOn = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableRTSM", false);
-  }
 
   void initBvh()
   {
     if (!isRtEnabled())
       return;
     bvh::init();
-    const bvh::Features features = isRtsmEnabled() ? static_cast<bvh::Features>(bvh::ForGI | bvh::LruCollision) : bvh::LruCollision;
-    bvhCtx = bvh::create_context("GI", features, static_cast<bvh::Features>(0));
+    bvhCtx = bvh::create_context("GI", bvh::LruCollision, static_cast<bvh::Features>(0));
   }
 
 public:
@@ -3618,66 +3594,22 @@ public:
     bvh::teardown(for_device_reset, true);
     bvhLruConnected = false;
     bvhLruRadius = 0;
-    if (for_device_reset)
-      bvhIdGen = bvhMeshBase = bvhMeshCount = testId = 0;
-    else
-    {
-      rt_textures.clear();
-      if (rtsmIsOn)
-        rtsm::teardown();
-      denoiser::teardown();
-    }
   }
   void reinitBvhAfterReset()
   {
-    initBvh();
-    initRtsmDenoiser(rtsmResW, rtsmResH);
-    // the collision streamer reconnects lazily; only the RTSM meshes need re-adding
-    if (bvhCtx == bvh::InvalidContextId || !rtsmIsOn)
-      return;
-    if (binScene)
-      addBvhMeshes(binScene);
-    if (test)
-    {
-      testId = ++bvhIdGen;
-      add_dynrend_resource_to_bvh(bvhCtx, test->getLodsResource(), testId);
-    }
+    initBvh(); // the collision streamer reconnects lazily
   }
 
 protected:
-  void addBvhMeshes(scene_type_t *bin_scene)
-  {
-    // rendering meshes serve RTSM only
-    if (bvhCtx && rtsmIsOn)
-    {
-      d3d::GpuAutoLock gpu_al;
-      elemCallback.bvhCtx = bvhCtx;
-      elemCallback.bvhIdGen = &bvhIdGen;
-
-      bvhMeshBase = bvhIdGen + 1;
-
-      RenderSceneManager &sm = bin_scene->getRsm();
-      for (RenderScene *scene : sm.getScenes())
-      {
-        if (!scene)
-          continue;
-
-        scene->foreachElem(elemCallback);
-      }
-
-      bvhMeshCount = bvhIdGen - bvhMeshBase + 1;
-    }
-  }
-
   bool hwRtAvailable() const
   {
-    // constraint: the HW shader variants exist only in the dx12 dump
+    // the HW shader variants exist only in the dx12 dump
 #if _TARGET_PC
     const bool inDump = d3d::get_driver_code().is(d3d::dx12);
 #else
     constexpr bool inDump = false;
 #endif
-    // constraint: with no resident collision (still gathering, or no collision dump) a collision trace resolves to sky
+    // with no resident collision (still gathering, or no collision dump) a collision trace resolves to sky
     return inDump && bvh::get_lru_collision_stats(bvhCtx).residentInstances > 0;
   }
 
@@ -3731,28 +3663,6 @@ protected:
     bvh::start_frame();
     updateCollisionBvhStreaming();
     bvh::process_meshes(bvhCtx);
-
-    if (rtsmIsOn)
-    {
-      // RTSM meshes re-emitted per frame; collision proxies must not cast rt shadows
-      bvh::update_instances(bvhCtx, Point3::ZERO, Point3::ZERO, Point3(0, -1, 0), TMatrix::IDENT, TMatrix4::IDENT, Frustum(),
-        Frustum(), nullptr, nullptr, nullptr, {}, threadpool::PRIO_HIGH);
-
-      mat43f instanceTransform;
-      instanceTransform.row0 = v_make_vec4f(1, 0, 0, 0);
-      instanceTransform.row1 = v_make_vec4f(0, 1, 0, 0);
-      instanceTransform.row2 = v_make_vec4f(0, 0, 1, 0);
-
-      for (int meshIx = 0; meshIx < bvhMeshCount; ++meshIx)
-        bvh::add_instance(bvhCtx, bvhMeshBase + meshIx, instanceTransform);
-
-      if (test)
-      {
-        // re-emitted per frame, not streamed: not bound to the collision window
-        constexpr float rtsmDynCullRadius = 10000.f;
-        add_dynrend_instance_to_bvh(bvhCtx, test, testId, testCount, viewPos, rtsmDynCullRadius);
-      }
-    }
 
     // every frame: the collision streaming window advances inside build
     bvh::build(bvhCtx, itm, TMatrix4::IDENT, viewPos, Point3::ZERO);
@@ -3862,6 +3772,11 @@ bool TestConsole::processCommand(const char *argv[], int argc)
   int found = 0;
   CONSOLE_CHECK_NAME("app", "quit", 1, 1) { quit_game(0); }
   CONSOLE_CHECK_NAME("app", "exit", 1, 1) { quit_game(0); }
+  CONSOLE_CHECK_NAME("app", "camera_input", 1, 2)
+  {
+    IFreeCameraDriver::isActive = argc > 1 ? console::to_bool(argv[1]) : !IFreeCameraDriver::isActive;
+    console::print_d("camera mouse and keyboard input %s", IFreeCameraDriver::isActive ? "on" : "off");
+  }
   CONSOLE_CHECK_NAME("app", "screenshot", 1, 2)
   {
     screenshotRequested = true;
@@ -3873,6 +3788,12 @@ bool TestConsole::processCommand(const char *argv[], int argc)
     verifyCaptureRequested = true;
     verifyCaptureDir = argc > 1 ? argv[1] : "";
     console::print_d("save_verify_capture: will capture this frame");
+  }
+  CONSOLE_CHECK_NAME("app", "save_exr", 2, 2)
+  {
+    exrRequested = true;
+    exrFilename = argv[1];
+    console::print_d("save_exr: will capture this frame");
   }
   CONSOLE_CHECK_NAME("profiler", "events", 1, 2)
   {
@@ -3932,6 +3853,36 @@ bool TestConsole::processCommand(const char *argv[], int argc)
     TMatrix camTm;
     if (load_camera_position("cameraPositions.blk", argc > 1 ? argv[1] : "slot0", camTm))
       ((DemoGameScene *)dagor_get_current_game_scene())->curCamera->setInvViewMatrix(camTm);
+  }
+  // app.test_spheres [camera slot [distance=5] [radius=0.6] [drop=0.8]]: three metal spheres across the slot's view,
+  // along the horizontal forward (the slot's own forward when it looks straight down), their centers `drop` meters under the eye;
+  // without a slot (or with one that does not load) the command turns them off.
+  // They draw while the land panel's spheres toggle is on, and the verify capture carries them only then
+  CONSOLE_CHECK_NAME("app", "test_spheres", 1, 5)
+  {
+    TMatrix camTm;
+    if (argc < 2 || !load_camera_position("cameraPositions.blk", argv[1], camTm))
+    {
+      DemoGameScene::test_spheres_count = 0;
+      console::print_d("test_spheres: off%s%s", argc < 2 ? "" : ", no camera slot ", argc < 2 ? "" : argv[1]);
+    }
+    else
+    {
+      const float dist = argc > 2 ? atof(argv[2]) : 5.f, radius = argc > 3 ? atof(argv[3]) : 0.6f;
+      const float drop = argc > 4 ? atof(argv[4]) : 0.8f;
+      const Point3 level = Point3(camTm.getcol(2).x, 0, camTm.getcol(2).z);
+      const bool vertical = lengthSq(level) < 1e-6f; // a slot that looks straight down: its own forward and right place the row
+      const Point3 forward = vertical ? camTm.getcol(2) : normalize(level);
+      const Point3 right = vertical ? camTm.getcol(0) : normalize(Point3(forward.z, 0, -forward.x));
+      const Point3 center = camTm.getcol(3) + forward * dist - Point3(0, drop, 0);
+      for (int i = 0; i < DemoGameScene::TEST_SPHERES; ++i)
+      {
+        const Point3 c = center + right * ((i - 1) * radius * 3);
+        DemoGameScene::test_spheres[i] = Point4(c.x, c.y, c.z, radius);
+      }
+      DemoGameScene::test_spheres_count = DemoGameScene::TEST_SPHERES;
+      console::print_d("test_spheres: at %g %g %g, radius %g", center.x, center.y, center.z, radius);
+    }
   }
   CONSOLE_CHECK_NAME("camera", "pos", 1, 4)
   {
@@ -4121,145 +4072,6 @@ void game_demo_init()
   dagor_set_game_act_rate(blk.getInt("actRate", -60));
   init_webui(NULL);
   dagor_select_game_scene(new DemoGameScene);
-}
-
-inline uint64_t make_mesh_id(uint32_t res_id, uint32_t lod_id, uint32_t elem_id)
-{
-  return (uint64_t(res_id) << 32) | lod_id << 28 | elem_id;
-}
-inline uint64_t make_elem_id(uint32_t mesh_no, uint32_t elem_id) { return mesh_no << 14 | elem_id; }
-
-void add_dynrend_resource_to_bvh(bvh::ContextId context_id, const DynamicRenderableSceneLodsResource *resource, uint64_t bvh_id)
-{
-  d3d::GpuAutoLock gpu_al;
-
-  BSphere3 bounding;
-  bounding = resource->getLocalBoundingBox();
-
-  Point4 posMul, posAdd;
-  if (resource->isBoundPackUsed())
-  {
-    posMul = *((Point4 *)resource->bpC255);
-    posAdd = *((Point4 *)resource->bpC254);
-  }
-  else
-  {
-    posMul = Point4(1.f, 1.f, 1.f, 0.0f);
-    posAdd = Point4(0.f, 0.f, 0.f, 0.0f);
-  }
-
-  for (auto [lodIx, lod] : enumerate(make_span_const(resource->lods)))
-  {
-    auto rigidCount = lod.scene->getRigidsConst().size();
-    auto lodIxLocal = lodIx;
-
-    lod.scene->getMeshes(
-      [&](const ShaderMesh *mesh, int node_id, float radius, int rigid_no) {
-        G_UNUSED(node_id);
-        G_UNUSED(radius);
-        auto elems = mesh->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
-        for (auto [elemIx, elem] : enumerate(elems))
-        {
-          auto elemId = make_elem_id(rigid_no, elemIx);
-          auto meshId = make_mesh_id(bvh_id, lodIxLocal, elemIx);
-
-          bool hasIndices;
-          if (!elem.vertexData->isRenderable(hasIndices))
-            continue;
-
-          bvh::ChannelParser parser;
-          if (!elem.mat->enum_channels(parser, parser.flags))
-            return;
-
-          if (parser.positionFormat == -1)
-            return;
-
-          G_ASSERT(parser.normalFormat == -1 || parser.normalFormat == VSDT_E3DCOLOR);
-          G_ASSERT(parser.colorFormat == -1 || parser.colorFormat == VSDT_E3DCOLOR);
-
-          bool isTree = strncmp(elem.mat->getShaderClassName(), "tree_", 5) == 0;
-
-          bool hasAlphaTest = isTree;
-          TEXTUREID alphaTextureId = BAD_TEXTUREID;
-
-          ShaderMatData shaderData;
-          elem.mat->getMatData(shaderData);
-
-          bool isTwoSided = shaderData.matflags & (SHFLG_2SIDED | SHFLG_REAL2SIDED);
-
-          auto ib = hasIndices ? elem.vertexData->getIB() : nullptr;
-          auto vb = elem.vertexData->getVB();
-
-          bvh::MeshInfo meshInfo{};
-          meshInfo.indices = ib;
-          meshInfo.indexCount = elem.numf * 3;
-          meshInfo.startIndex = elem.si;
-          meshInfo.vertices = vb;
-          meshInfo.vertexCount = elem.numv;
-          meshInfo.vertexSize = elem.vertexData->getStride();
-          meshInfo.baseVertex = elem.baseVertex;
-          meshInfo.startVertex = elem.sv;
-          meshInfo.positionFormat = parser.positionFormat;
-          meshInfo.positionOffset = parser.positionOffset;
-          meshInfo.indicesOffset = parser.indicesOffset;
-          meshInfo.weightsOffset = parser.weightsOffset;
-          meshInfo.normalOffset = parser.normalOffset;
-          meshInfo.colorOffset = parser.colorFormat == VSDT_E3DCOLOR ? parser.colorOffset : bvh::MeshInfo::invalidOffset;
-          meshInfo.texcoordFormat = parser.texcoordFormat;
-          meshInfo.texcoordOffset = parser.texcoordOffset;
-          meshInfo.secTexcoordOffset = parser.secTexcoordOffset;
-          meshInfo.albedoTextureId = elem.mat->get_texture(0);
-          meshInfo.normalTextureId = elem.mat->get_texture(2);
-          meshInfo.alphaTextureId = alphaTextureId;
-          meshInfo.alphaTest = hasAlphaTest;
-          meshInfo.vertexProcessor = nullptr;
-          meshInfo.posMul = posMul;
-          meshInfo.posAdd = posAdd;
-          meshInfo.boundingSphere = bounding;
-          meshInfo.isInterior = false;
-
-          bvh::add_mesh(context_id, meshId, meshInfo);
-        }
-      },
-      [&](const ShaderSkinnedMesh *, int, int) { G_ASSERTF(0, "Skinned parts are not yet supported."); });
-  }
-}
-
-void add_dynrend_instance_to_bvh(bvh::ContextId context_id, const DynamicRenderableSceneInstance *resource, uint64_t bvh_id, int count,
-  const Point3 &view_pos, float cull_radius)
-{
-  resource->getCurSceneResource()->getMeshes(
-    [&](const ShaderMesh *mesh, int node_id, float radius, int rigid_no) {
-      auto elems = mesh->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
-
-      if (elems.empty())
-        return;
-
-      for (int treeIx = 0; treeIx < count; ++treeIx)
-      {
-        TMatrix tm = TMatrix::IDENT;
-        set_test_tm(treeIx, tm);
-
-        if ((view_pos - tm.getcol(3)).lengthSq() > sqr(cull_radius))
-          continue;
-
-        mat44f tm44;
-        mat43f tm43;
-        v_mat44_make_from_43cu(tm44, tm.array);
-        v_mat44_transpose_to_mat43(tm43, tm44);
-
-        for (auto [elemIx, elem] : enumerate(elems))
-        {
-          bool hasIndices;
-          if (!elem.vertexData->isRenderable(hasIndices))
-            continue;
-
-          auto meshId = make_mesh_id(bvh_id, resource->getCurrentLodNo(), make_elem_id(rigid_no, elemIx));
-          bvh::add_instance(context_id, meshId, tm43);
-        }
-      }
-    },
-    [&](const ShaderSkinnedMesh *, int, int) { G_ASSERTF(0, "Skinned parts are not yet supported."); });
 }
 
 // pack textures lose their content with the device and nothing in this sample

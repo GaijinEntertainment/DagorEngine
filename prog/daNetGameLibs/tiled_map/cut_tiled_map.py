@@ -15,6 +15,7 @@ _REPO_DIR = _SCRIPT_DIR.parents[2]             # .../dagor  (daNetGameLibs -> pr
 sys.path.insert(0, str(_REPO_DIR / '_buildtools' / 'tools'))
 
 import datablock as datablock
+from gen_tiled_map import convertTifToDdsx, runTool, ddsConverter, ddsxCvt
 
 DAGOR_DIR = str(_REPO_DIR)
 
@@ -40,9 +41,9 @@ avif_out_format = [
 def resizeBaseImage(filename, tileWidth):
   print(f"[INFO] Resizing base image {filename} to {tileWidth}x{tileWidth}")
   p = subprocess.Popen([nconvert, "-quiet", "-overwrite"] +
-    avif_out_format +
+    tiff_out_format +
     ["-resize", f"{tileWidth}", f"{tileWidth}"] +
-    ["-o", os.path.join(outPath, "combined"), filename],
+    ["-o", os.path.join(outPath, "combined.tif"), filename],
     stdout=subprocess.DEVNULL)
   try:
     p.wait()
@@ -94,23 +95,26 @@ def splitTile(tuple):
 
 
 def postProcessAllLevels(tuple):
-  file, outPath, tileWidth = tuple
+  file, outPath, tileWidth, formats, ddsConverterPath, ddsxCvtPath = tuple
   name = os.path.splitext(file)[0]
+  tifPath = os.path.join(outPath, file)
   print(f"[INFO] Postprocessing {file}")
 
-  p = subprocess.Popen([nconvert, "-quiet", "-overwrite"] +
-    avif_out_format +
-    ["-D"] + # delete original file
-    ["-resize", f"{tileWidth}", f"{tileWidth}"] +
-    ["-o", os.path.join(outPath, name), os.path.join(outPath, file)],
-    stdout=subprocess.DEVNULL)
-
-  try:
-    p.wait()
-  except KeyboardInterrupt:
-    print("[INFO] Terminating...")
-    p.send_signal(signal.SIGINT)
-    exit(1)
+  resize = ["-resize", f"{tileWidth}", f"{tileWidth}"]
+  ok = True
+  if "avif" in formats:
+    ok = runTool([nconvert, "-quiet", "-overwrite"] + avif_out_format + resize + ["-o", os.path.join(outPath, name), tifPath])
+  if "ddsx" in formats:
+    resizedTifPath = os.path.join(outPath, f"{name}_resized.tif")
+    ddsxOk = runTool([nconvert, "-quiet", "-overwrite"] + tiff_out_format + resize + ["-o", resizedTifPath, tifPath],
+      outputPath=resizedTifPath)
+    ddsxOk = ddsxOk and convertTifToDdsx(resizedTifPath, outPath, name, ddsConverterPath, ddsxCvtPath)
+    if os.path.exists(resizedTifPath):
+      os.remove(resizedTifPath)
+    ok = ddsxOk and ok
+  if ok:
+    os.remove(tifPath)
+  return ok
 
 
 def main():
@@ -123,9 +127,18 @@ def main():
   parser.add_argument("image", type=str, help="Path to the input image file")
   parser.add_argument("--fog", action="store_true", help="Save to the fog folder")
   parser.add_argument("--nconvert", type=str, help="Path to nconvert.exe", default=nconvert)
+  parser.add_argument("--format", choices=["avif", "ddsx", "both"], default="avif",
+    help="Tile output format. ddsx tiles are BC1 (BC3 with alpha) for the PC target, the game prefers them when combined.ddsx exists")
+  parser.add_argument("--ddsConverter", type=str, help="Path to ddsConverter-dev.exe", default=ddsConverter)
+  parser.add_argument("--ddsxCvt", type=str, help="Path to ddsxCvt.exe", default=ddsxCvt)
 
   args = parser.parse_args()
   nconvert = args.nconvert
+  formats = ["avif", "ddsx"] if args.format == "both" else [args.format]
+  for tool in ([args.ddsConverter, args.ddsxCvt] if "ddsx" in formats else []):
+    if not os.path.exists(tool):
+      print(f"[ERROR] Tool not found: {tool}")
+      exit(1)
 
   scenePath = os.path.join(DAGOR_DIR, args.game, "prog", "gameBase", args.scene)
   if not os.path.exists(scenePath):
@@ -191,7 +204,8 @@ def main():
         result.extend(splitTile((tile, i+1)))
     splittedTiles = result
 
-  postProcessAllLevelsArgs = [(f, outPath, tileWidth) for f in os.listdir(outPath) if os.path.isfile(os.path.join(outPath, f)) and f.endswith(".tif")]
+  postProcessAllLevelsArgs = [(f, outPath, tileWidth, formats, args.ddsConverter, args.ddsxCvt)
+    for f in os.listdir(outPath) if os.path.isfile(os.path.join(outPath, f)) and f.endswith(".tif")]
   print(f"[INFO] Found {len(postProcessAllLevelsArgs)} files for post processing")
 
   pool = Pool(threads)
@@ -208,6 +222,11 @@ def main():
     print("[INFO] Finished")
     pool.close()
     pool.join()
+
+  failedCount = result.get().count(False)
+  if failedCount > 0:
+    print(f"[ERROR] {failedCount} tiles failed to convert, their .tif files are kept in {outPath}")
+    exit(1)
 
 if __name__ == "__main__":
   main()

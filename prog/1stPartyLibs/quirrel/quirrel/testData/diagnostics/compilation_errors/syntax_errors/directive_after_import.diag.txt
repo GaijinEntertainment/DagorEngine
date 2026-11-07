@@ -1,0 +1,8 @@
+ERROR: directives must be at the top of the file, before imports
+testData/diagnostics/compilation_errors/syntax_errors/directive_after_import.nut:3:0
+
+import "math"
+#allow-switch-statement
+^----------------------
+
+

@@ -6,6 +6,8 @@
 
 #include <math/dag_TMatrix.h>
 #include <math/dag_Point3.h>
+#include <math/dag_Point4.h>
+#include <generic/dag_span.h>
 
 struct Driver3dPerspective;
 
@@ -15,8 +17,10 @@ namespace gi_verify
 // capture.blk plus its side files: the canonical gbuffer planes decoded from
 // the currently-bound gbuffer through the gi_verify_capture shader, the
 // environment as a lat-long EXR, and the daGI2 albedo voxel scene. The
-// gbuffer, envi_probe_specular, daGI2 albedo bindings and sun_light_color are
-// read from their standard shader vars (common to every game); the caller
+// gbuffer, envi_probe_specular and daGI2 albedo bindings are read from their
+// standard shader vars (common to every game), the sun colour from sun_color_0
+// where the shader dump declares it as a global variable and from
+// sun_light_color otherwise; the caller
 // supplies the view, resolution, sun direction and the collision/level paths
 // that the replay reads the source geometry from. source_dump is required -
 // it is the geometry the replay traces, so an empty one fails the capture. dir_to_sun need not be
@@ -34,9 +38,10 @@ namespace gi_verify
 // succeeded. A component the game does not have is not a failure - passing no
 // EnvWriter skips the environment, and a game with no daGI2 albedo scene
 // bound captures without one; both record valid:b=no in the blk and the
-// replay falls back to its own material where the capture cannot answer. Each component also carries its own "valid" flag in the blk
-// and logs on failure, so a caller can tell which part failed; a caller that only checks the bool can still trust it to mean the
-// capture is replayable.
+// replay falls back to its own material where the capture cannot answer. Each component written as its own file
+// (the gbuffer, the environment, the albedo scene) also carries a "valid" flag in the blk and logs on failure,
+// so a caller can tell which part failed; an empty collision dump path fails the capture with a log and no flag.
+// A caller that only checks the bool can still trust it to mean the capture is replayable.
 //
 // The files (including capture.blk) are written in place, not atomically: a
 // crash mid-write can leave a partial capture. This is a developer debug
@@ -54,6 +59,9 @@ using EnvWriter = bool (*)(const char *path, const uint16_t *rgba16f, int w, int
 // so a game that passes it must also link engine/image and tinyexr.
 bool write_env_exr(const char *path, const uint16_t *rgba16f, int w, int h);
 
+// extra_spheres (world space center, radius in meters): the extraGeometry block, spheres the game drew that the dump lacks;
+// the replay draws each as a scaled instance of one icosphere model
 bool save_capture(const char *dir, const TMatrix &view_itm, const Driver3dPerspective &persp, int width, int height,
-  const Point3 &dir_to_sun, const char *source_dump, const char *level_bin, EnvWriter env_writer);
+  const Point3 &dir_to_sun, const char *source_dump, const char *level_bin, EnvWriter env_writer,
+  dag::ConstSpan<Point4> extra_spheres = {});
 } // namespace gi_verify

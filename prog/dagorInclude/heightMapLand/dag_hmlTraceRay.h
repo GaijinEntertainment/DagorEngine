@@ -284,6 +284,131 @@ inline bool trace_ray_midpoint_heightmap(const HM &heightmap, const Point3 &pt_,
   return wasHit;
 }
 
+// The cell walk over a height range grid of node_count x node_count nodes of node_step cells (the handler's
+// getHeightmapRangeGrid). HM also provides
+//   void getHeightmapRangeNode(int nx, int ny, float &min_y, float &max_y): a node's height range in world units, over
+//     its cells and the shared edge row and column of the next node, except the last node of a grid that stops short
+//     of the map edge, which holds no shared edge.
+// A node whose range the ray's height band over it misses is skipped whole. The cell walk runs on through adjacent
+// walked nodes and restarts at the entry of the first one after a skip; a node's walk takes the cells entered before
+// its exit, each with its whole band, so the body sees the cells of heightmap_walk_cells in its order and tests them
+// against the ray's own origin and bound: a hit is the one the plain walk finds. Returns like heightmap_walk_cells.
+template <class HM, typename Body>
+inline int heightmap_walk_range_nodes(const HM &heightmap, const Point3 &pt, const Point3 &dir, const real &mint, int node_step,
+  int node_count, float cell_size, Body body)
+{
+  const float nodeSize = node_step * cell_size;
+  WooRay2dInf nodeRay;
+  nodeRay.init(Point2::xz(pt), Point2::xz(dir), Point2(nodeSize, nodeSize));
+  float nodeExit = 0.f;
+  WooRay2dInf cellRay;
+  Point3 cellPt = pt;
+  float cellBase = 0.f, cellNextT = 0.f; // the cell walk's own frame: it starts at cellBase along the ray
+  bool cellActive = false;
+  int cellSteps = hml_cell_walk_limit(dir, mint, cell_size);
+  for (int steps = hml_cell_walk_limit(dir, mint, nodeSize); steps > 0; --steps)
+  {
+    const IPoint2 node = nodeRay.currentCell();
+    const float nodeEnter = nodeExit;
+    nodeRay.nextCell(nodeExit);
+    bool last = false;
+    if (nodeExit >= mint)
+    {
+      nodeExit = mint;
+      last = true;
+    }
+    const int sizeX = heightmap.getHeightmapSizeX(), sizeY = heightmap.getHeightmapSizeY();
+    bool walk = node.x >= 0 && node.y >= 0 && node.x * node_step < sizeX && node.y * node_step < sizeY;
+    // a node past the grid has no range; neither does the last node of a grid that stops short of the map edge
+    // cover the shared edge its cells reach, so that one is walked too
+    if (walk && node.x < node_count && node.y < node_count && (node.x + 1 < node_count || (node.x + 1) * node_step >= sizeX) &&
+        (node.y + 1 < node_count || (node.y + 1) * node_step >= sizeY))
+    {
+      float minY, maxY;
+      heightmap.getHeightmapRangeNode(node.x, node.y, minY, maxY);
+      const float y0 = pt.y + dir.y * nodeEnter, y1 = pt.y + dir.y * nodeExit;
+      walk = minY <= max(y0, y1) && maxY >= min(y0, y1);
+    }
+    if (!walk)
+      cellActive = false;
+    else
+    {
+      if (!cellActive)
+      {
+        cellBase = nodeEnter;
+        cellPt = pt + dir * nodeEnter;
+        cellRay.init(Point2::xz(cellPt), Point2::xz(dir), Point2(cell_size, cell_size));
+        cellNextT = 0.f;
+        cellActive = true;
+      }
+      for (;;)
+      {
+        if (cellBase + cellNextT >= min(mint, nodeExit)) // the current cell starts past the node, or past the bound
+          break;
+        if (--cellSteps < 0)
+          return 0;
+        const IPoint2 cell = cellRay.currentCell();
+        const float t0 = cellNextT;
+        cellRay.nextCell(cellNextT);
+        const float t1 = min(cellNextT, mint - cellBase); // the walk is 2D and the bound is 3D
+        if (uint32_t(cell.x) < uint32_t(heightmap.getHeightmapSizeX()) && uint32_t(cell.y) < uint32_t(heightmap.getHeightmapSizeY()))
+        {
+          const float y0 = cellPt.y + dir.y * t0, y1 = cellPt.y + dir.y * t1;
+          if (body(cell, min(y0, y1), max(y0, y1)))
+            return 1;
+        }
+        if (cellBase + cellNextT >= mint) // the bound, maybe shrunk by the body, ends the walk
+          return -1;
+      }
+    }
+    if (last || nodeExit >= mint)
+      return -1;
+  }
+  return 0;
+}
+
+// trace_ray_midpoint_heightmap over the height range grid: the same hit, fewer cells visited above the terrain
+template <class HM>
+inline bool trace_ray_midpoint_heightmap_range_grid(const HM &heightmap, const Point3 &pt_, const Point3 &dir, real &mint_,
+  Point3 *normal, bool cull, int node_step, int node_count)
+{
+  float rayTBoxMin, mint = mint_;
+  vec3f rayStart = v_ldu_p3_safe(&pt_.x), rayDir = v_ldu_p3_safe(&dir.x);
+  if (!heightmap_clip_ray(heightmap, rayStart, rayDir, mint, rayTBoxMin))
+    return false;
+  const Point3 pt = pt_ + dir * rayTBoxMin - heightmap.getHeightmapOffset();
+  const vec3f ptv = v_ldu_p3_safe(&pt.x);
+  const real cellSize = heightmap.getHeightmapCellSize();
+
+  bool wasHit = false;
+  heightmap_walk_range_nodes(heightmap, pt, dir, mint, node_step, node_count, cellSize,
+    [&](const IPoint2 &cell, float rayMinY, float rayMaxY) DAGOR_FORCE_INLINE_LAMBDA {
+      wasHit |= trace_heightmap_cell(heightmap, cell, cellSize, rayMinY, rayMaxY, ptv, rayDir, mint, normal, cull);
+      return false;
+    });
+  if (wasHit)
+    mint_ = mint + rayTBoxMin;
+  return wasHit;
+}
+
+// ray_hit_midpoint_heightmap over the height range grid
+template <class HM>
+inline bool ray_hit_midpoint_heightmap_range_grid(const HM &heightmap, const Point3 &pt_, const Point3 &dir, real mint, int node_step,
+  int node_count)
+{
+  float rayTBoxMin;
+  vec3f rayStart = v_ldu_p3_safe(&pt_.x), rayDir = v_ldu_p3_safe(&dir.x);
+  if (!heightmap_clip_ray(heightmap, rayStart, rayDir, mint, rayTBoxMin))
+    return false;
+  const Point3 pt = pt_ + dir * rayTBoxMin - heightmap.getHeightmapOffset();
+  const vec3f ptv = v_ldu_p3_safe(&pt.x);
+  const real cellSize = heightmap.getHeightmapCellSize();
+  return heightmap_walk_range_nodes(heightmap, pt, dir, mint, node_step, node_count, cellSize,
+           [&](const IPoint2 &cell, float rayMinY, float rayMaxY) DAGOR_FORCE_INLINE_LAMBDA {
+             return trace_heightmap_cell(heightmap, cell, cellSize, rayMinY, rayMaxY, ptv, rayDir, mint, nullptr, true);
+           }) > 0;
+}
+
 // cb(t, facing) gets every crossing of the surface in cell order; t runs from pt_ along dir and rises by cell, not strictly.
 // Both sides answer, hence no cull flag; facing is +1 where the ray goes into the ground. Returns the number of cb calls.
 template <class HM, typename CrossingCb>

@@ -4,6 +4,7 @@
 #include "waterEffects.h"
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
+#include <render/compressedRtOverrideFlag.h>
 
 #include <render/cameraParams.h>
 #include <render/world/frameGraphHelpers.h>
@@ -17,8 +18,8 @@ dafg::NodeHandle makeWaterEffectsPrepareNode()
     registry.multiplex(dafg::multiplexing::Mode::None);
     registry.setPriority(dafg::PRIO_AS_LATE_AS_POSSIBLE);
     const auto mainViewRes = registry.getResolution<2>("main_view");
-    registry.createTexture2d("wfx_hmap", {TEXFMT_R16F | TEXCF_RTARGET, mainViewRes});
-    registry.createTexture2d("wfx_normals", {TEXFMT_R8G8 | TEXCF_RTARGET, mainViewRes});
+    registry.createTexture2d("wfx_hmap", {TEXFMT_R16F | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, mainViewRes});
+    registry.createTexture2d("wfx_normals", {TEXFMT_R8G8 | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, mainViewRes});
   });
 }
 
@@ -59,7 +60,7 @@ dafg::NodeHandle makeWaterEffectsNode(WaterEffects &water_effects)
         return;
 
       ClusteredLights &lights = WRDispatcher::getClusteredLights();
-      if (lights.hasClusteredLights() && hasAnyDynamicLightsHndl.ref())
+      if (hasAnyDynamicLightsHndl.ref())
         lights.setInsideOfFrustumLightsToShader();
 
       BaseTexture *waterHeightmap = waterHeightmapHndl.get();

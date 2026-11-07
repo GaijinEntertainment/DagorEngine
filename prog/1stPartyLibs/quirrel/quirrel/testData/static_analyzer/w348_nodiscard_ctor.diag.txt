@@ -1,0 +1,17 @@
+WARNING: w348 (discarded-nodiscard) The result of 'Squad' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_nodiscard_ctor.nut:9:0
+
+Squad(4)                      //warning:discarded-nodiscard
+^-------
+Free(4)
+
+
+WARNING: w348 (discarded-nodiscard) The result of 'Unit' is discarded, but it is a nodiscard function.
+testData/static_analyzer/w348_nodiscard_ctor.nut:11:0
+
+Free(4)
+Unit(4)                       //warning:discarded-nodiscard
+^------
+let _squad = Squad(4)
+
+

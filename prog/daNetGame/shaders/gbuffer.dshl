@@ -207,6 +207,8 @@ hlsl(code) {
     {result.reactive = reactive;}
   void init_glass(inout UnpackedGbuffer result)
     {}
+  void init_debug_info(inout UnpackedGbuffer result, float debug_info)
+    {}
   void init_envi_cover_overwrite(inout UnpackedGbuffer result, uint overwrite_bit)
     {result.enviCoverOverwrite = overwrite_bit;}
 #endif

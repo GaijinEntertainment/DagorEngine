@@ -66,6 +66,12 @@ public:
     G_UNUSED(pcb_id);
     G_UNUSED(panel);
   }
+
+  virtual void onHover(int pcb_id, ContainerPropertyControl *panel)
+  {
+    G_UNUSED(pcb_id);
+    G_UNUSED(panel);
+  }
 };
 
 } // namespace PropPanel

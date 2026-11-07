@@ -1,0 +1,24 @@
+jolt_vehicle_base{
+  _use:t="phys_kind_base"
+  phys_kind__external:b=yes
+  jolt_vehicle{}
+  jolt_vehicle__motorcycle:b=no
+  jolt_vehicle__halfSize:p3=2.0,0.3,0.9
+  jolt_vehicle__wheelRadius:r=0.35
+  // min and max length (m), frequency (Hz), damping ratio
+  jolt_vehicle__suspension:p4=0.1,0.35,1.6,0.5
+  jolt_vehicle__maxSteerDeg:r=30
+  jolt_vehicle__upright:b=yes // no: free pitch, roll and lean
+  _replicated:t="jolt_vehicle__upright"
+}
+
+jolt_motorcycle_base{
+  _use:t="jolt_vehicle_base"
+  jolt_vehicle__motorcycle:b=yes
+  jolt_vehicle__halfSize:p3=0.4,0.3,0.2
+  jolt_vehicle__mass:r=300
+  jolt_vehicle__wheelRadius:r=0.31
+  jolt_vehicle__maxPitchRollDeg:r=60
+  jolt_vehicle__maxTorque:r=300
+  jolt_vehicle__differentialRatio:r=4.825
+}

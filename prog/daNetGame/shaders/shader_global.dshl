@@ -316,15 +316,6 @@ macro USING_ATEST_1_AND(code)
   }
 endmacro
 
-macro SET_ATEST_IS_ON_DEFINE()
-  if (atest == atestOn)
-  {
-    hlsl{
-      #define ATEST_IS_ON 1
-    }
-  }
-endmacro
-
 hlsl {
 
 // warning X3571: pow(f, e) will not work for negative f, use abs(f) or conditionally handle negative values if you expect them

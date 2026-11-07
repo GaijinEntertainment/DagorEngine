@@ -42,18 +42,12 @@ bool Layout::size_spec_from_obj(const Sqrat::Object &obj, SizeSpec &res, const c
   SQObjectType tp = obj.GetType();
   if (tp == OT_USERPOINTER)
   {
-    SizeSpec::Mode mode = script_cast_from_userpointer<SizeSpec::Mode>(obj);
-    G_ASSERT(mode == SizeSpec::CONTENT);
-    res.reset(mode);
-  }
-  else if (tp == OT_USERDATA)
-  {
-    SizeSpec *ss = NULL;
-    HSQOBJECT hObj = obj.GetObject();
-    if (SQ_SUCCEEDED(sq_obj_getuserdata(&hObj, (SQUserPointer *)&ss, nullptr)))
+    if (!decode_size_spec(script_cast_to_userpointer(obj), res))
     {
-      G_ASSERT(ss);
-      res = *ss;
+      res.reset();
+      if (err_msg)
+        *err_msg = "Unexpected user pointer in size field. Expected flex(), pw(), SIZE_TO_CONTENT etc";
+      return false;
     }
   }
   else if (tp & SQOBJECT_NUMERIC)
@@ -71,7 +65,7 @@ bool Layout::size_spec_from_obj(const Sqrat::Object &obj, SizeSpec &res, const c
     res.mode = SizeSpec::PIXELS;
     res.value = 0;
     if (err_msg)
-      *err_msg = "Unsupported size field type. Expected numeric, user pointer, user data";
+      *err_msg = "Unsupported size field type. Expected numeric or user pointer";
     return false;
   }
   return true;
@@ -138,34 +132,9 @@ bool Layout::read_size(const Sqrat::Object &size_obj, SizeSpec res[2], const cha
     res[1].reset(SizeSpec::CONTENT);
     return true;
   }
-  else if (tp == OT_USERPOINTER)
-  {
-    SizeSpec::Mode mode = script_cast_from_userpointer<SizeSpec::Mode>(size_obj);
-    G_ASSERT(mode == SizeSpec::CONTENT);
-    res[0].reset(mode);
-    res[1].reset(mode);
-    return true;
-  }
-  else if (tp == OT_USERDATA)
-  {
-    SizeSpec *ss = NULL;
-    HSQOBJECT hObj = size_obj.GetObject();
-    if (SQ_SUCCEEDED(sq_obj_getuserdata(&hObj, (SQUserPointer *)&ss, nullptr)) && ss)
-    {
-      res[0] = *ss;
-      res[1] = *ss;
-      return true;
-    }
-    else
-    {
-      if (err_msg)
-        *err_msg = "Failed to get size field userdata";
-      return false;
-    }
-  }
   else if (tp == OT_ARRAY)
     return size_spec_from_array(size_obj, res, err_msg);
-  else if (tp & SQOBJECT_NUMERIC)
+  else if (tp == OT_USERPOINTER || (tp & SQOBJECT_NUMERIC))
   {
     SizeSpec ss;
     if (!size_spec_from_obj(size_obj, ss, err_msg))
@@ -177,7 +146,7 @@ bool Layout::read_size(const Sqrat::Object &size_obj, SizeSpec res[2], const cha
   else
   {
     if (err_msg)
-      *err_msg = "Unexpected 'size' field type. Expected array, user pointer or userdata";
+      *err_msg = "Unexpected 'size' field type. Expected array, numeric or user pointer";
     return false;
   }
 }

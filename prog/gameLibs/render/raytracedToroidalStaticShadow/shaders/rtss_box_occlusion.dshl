@@ -1,0 +1,89 @@
+include "shader_global.dshl"
+include "rtss_lookup.dshl"
+
+buffer ri_bboxes_buf;
+
+// GpuVisibilityTestManager over the rtss: a box is visible unless static casters hide it
+shader rtss_box_occlusion_cs
+{
+  INIT_RTSS(cs)
+  USE_RTSS(cs)
+  (cs) { immediate_dword_count = 1; }
+  (cs) {
+    ri_bboxes_buf@buf = ri_bboxes_buf hlsl {
+      StructuredBuffer<float4> ri_bboxes_buf@buf;
+    }
+    bbox_visibility@uav : register(1) hlsl {
+      RWStructuredBuffer<uint> bbox_visibility@uav;
+    }
+  }
+  hlsl(cs) {
+    #define RTSS_BOX_MAX_TEXELS 16
+    #define RTSS_BOX_HIDDEN     0
+    #define RTSS_BOX_LIT        1
+    #define RTSS_BOX_NO_DATA    2 // a page is missing, or the texels are too fine
+
+    // hidden: each texel under the bounds has a caster nearer the sun
+    uint rtss_box_test(uint level, uint bit, float3 center, float3 extent)
+    {
+      float4 r0 = rtss_level_row(level, bit * 3), r1 = rtss_level_row(level, bit * 3 + 1), r2 = rtss_level_row(level, bit * 3 + 2);
+      float3 c = rtss_to_ls(level, bit, float4(center, 1));
+      float3 e = float3(dot(abs(r0.xyz), extent), dot(abs(r1.xyz), extent), dot(abs(r2.xyz), extent));
+      float texel = rtss_texel(level);
+      int2 lo = int2(floor((c.xy - e.xy) / texel)), hi = int2(floor((c.xy + e.xy) / texel));
+      if (any(hi - lo >= RTSS_BOX_MAX_TEXELS))
+        return RTSS_BOX_NO_DATA;
+      int P = rtss_params_i.w, S = rtss_params_i.z;
+      uint W = uint(rtss_params_i.y);
+      int2 origin = int2(rtss_level_window(level).xy);
+      float nearZ = c.z - e.z - rtss_bias.x * texel;
+      uint result = RTSS_BOX_HIDDEN;
+      LOOP
+      for (int y = lo.y; y <= hi.y; ++y)
+      {
+        LOOP
+        for (int x = lo.x; x <= hi.x; ++x)
+        {
+          int2 pageRel = int2(floor(float2(x, y) / P));
+          int2 page = origin + pageRel;
+          uint2 slot = uint2(page) & (W - 1);
+          uint4 s = rtss_slot((level * W + slot.y) * W + slot.x);
+          if ((s.y & RTSS_SLOT_VALID) == 0 || s.x != rtss_pack_page(page))
+            return RTSS_BOX_NO_DATA;
+          if (rtss_slot_bit(s.y) != bit)
+          {
+            result = RTSS_BOX_NO_DATA; // a sweep: a lit texel still decides
+            continue;
+          }
+          float2 depth = asfloat(s.zw);
+          float z = rtss_atlas[uint3(slot * uint(S) + uint2(int2(x, y) - pageRel * P + ((S - P) >> 1)), level)];
+          if (z >= RTSS_MISS || depth.x + z * (depth.y - depth.x) >= nearZ)
+            return RTSS_BOX_LIT;
+        }
+      }
+      return result;
+    }
+
+    [numthreads(64, 1, 1)]
+    void rtss_box_occlusion(uint id : SV_DispatchThreadID)
+    {
+      if (id >= get_immediate_dword_0())
+        return;
+      float3 bmin = ri_bboxes_buf[id * 2].xyz, bmax = ri_bboxes_buf[id * 2 + 1].xyz;
+      float3 center = (bmin + bmax) * 0.5 - rtss_origin, extent = (bmax - bmin) * 0.5;
+      uint result = RTSS_BOX_NO_DATA;
+      LOOP
+      for (uint level = 0; level < uint(rtss_params_i.x) && result == RTSS_BOX_NO_DATA && rtss_params.y == 0; ++level)
+      {
+        uint flags = rtss_level_window(level).z;
+        uint bit = flags & RTSS_LEVEL_NEWEST_BIT;
+        result = rtss_box_test(level, bit, center, extent);
+        if (result == RTSS_BOX_NO_DATA && (flags & RTSS_LEVEL_SWEEPING))
+          result = rtss_box_test(level, bit ^ 1, center, extent);
+      }
+      if (result != RTSS_BOX_HIDDEN)
+        InterlockedOr(structuredBufferAt(bbox_visibility, id / 32), 1u << (id & 31));
+    }
+  }
+  compile("target_cs", "rtss_box_occlusion");
+}

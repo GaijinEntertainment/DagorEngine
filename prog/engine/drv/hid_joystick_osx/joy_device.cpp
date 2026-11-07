@@ -202,7 +202,22 @@ HidJoystickDevice::HidJoystickDevice(IOHIDDeviceRef dev) : buttons(inimem), axes
         a.elem = elem;
         a.dv = 1.0f / float(MAX_AXIS_VAL - MIN_AXIS_VAL);
         a.v0 = -a.dv * float(MIN_AXIS_VAL);
-        a.maxLogVal = IOHIDElementGetPhysicalMax(elem);
+        a.minVal = (int)IOHIDElementGetLogicalMin(elem);
+        a.maxVal = (int)IOHIDElementGetLogicalMax(elem);
+        a.rawMask = 0;
+        const int bits = (int)IOHIDElementGetReportSize(elem);
+        if (a.minVal == -1 && a.maxVal == 0 && bits > 0 && bits < 32)
+        {
+          // IOKit reads an unsigned Logical Maximum with the top bit of its field set as -1; take the field bits as unsigned
+          a.rawMask = (1u << bits) - 1;
+          a.minVal = 0;
+          a.maxVal = (int)a.rawMask;
+        }
+        else if (a.minVal == -1 && a.maxVal == 0)
+          a.maxVal = a.minVal; // a wider field does not fit the int bounds; hold the axis at rest
+        if (a.maxVal <= a.minVal)
+          debug("axis %X:%X stays at rest: logical %d..%d, physical %d..%d, %d bits", epu, eu, (int)IOHIDElementGetLogicalMin(elem),
+            (int)IOHIDElementGetLogicalMax(elem), (int)IOHIDElementGetPhysicalMin(elem), (int)IOHIDElementGetPhysicalMax(elem), bits);
         a.signedVal = signed_val ? 32000 : 0;
 
         a.v0 = 0;
@@ -226,6 +241,7 @@ HidJoystickDevice::HidJoystickDevice(IOHIDDeviceRef dev) : buttons(inimem), axes
     if (add_stor_idx)
     {
       clear_and_resize(axesValStor, add_stor_idx);
+      mem_set_0(axesValStor);
       for (int i = 0; i < axes.size(); i++)
         if ((uintptr_t)axes[i].valStorage < add_stor_idx)
           axes[i].valStorage = &axesValStor[(uintptr_t)axes[i].valStorage];
@@ -287,17 +303,27 @@ bool HidJoystickDevice::updateState(int dt_msec, bool def)
 
   for (int i = 0; i < axes.size(); i++)
   {
-    IOHIDValueRef valueRef;
-    if (IOHIDDeviceGetValue(device, axes[i].elem, &valueRef) == kIOReturnSuccess)
+    const AxisData &a = axes[i];
+    if (a.maxVal <= a.minVal)
     {
-      int v = IOHIDValueGetScaledValue(valueRef, kIOHIDValueScaleTypePhysical);
-      if (axes[i].signedVal)
-        v = v * MAX_AXIS_VAL * 2 / axes[i].maxLogVal - MAX_AXIS_VAL;
-      else
-        v = v * MAX_AXIS_VAL / axes[i].maxLogVal;
-      if (*axes[i].valStorage != v)
+      *a.valStorage = 0;
+      continue;
+    }
+    IOHIDValueRef valueRef;
+    if (IOHIDDeviceGetValue(device, a.elem, &valueRef) == kIOReturnSuccess)
+    {
+      // a zero timestamp means no input report yet: the value is the cleared store, not a position
+      if (IOHIDValueGetTimeStamp(valueRef) == 0)
+        continue;
+      int64_t raw = IOHIDValueGetIntegerValue(valueRef);
+      if (a.rawMask)
+        raw &= a.rawMask;
+      const int64_t vmin = a.signedVal ? MIN_AXIS_VAL : 0;
+      int v =
+        (int)clamp<int64_t>((raw - a.minVal) * (MAX_AXIS_VAL - vmin) / (a.maxVal - int64_t(a.minVal)) + vmin, vmin, MAX_AXIS_VAL);
+      if (*a.valStorage != v)
         changed = true;
-      *axes[i].valStorage = v;
+      *a.valStorage = v;
     }
   }
 

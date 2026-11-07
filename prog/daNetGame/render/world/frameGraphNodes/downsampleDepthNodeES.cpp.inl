@@ -3,6 +3,7 @@
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <render/daFrameGraph/daFG.h>
+#include <render/compressedRtOverrideFlag.h>
 
 #include <render/downsampleDepth.h>
 #include <perfMon/dag_statDrv.h>
@@ -44,13 +45,14 @@ eastl::array<dafg::NodeHandle, 4> makeDownsampleDepthNodes(const DownsampleNodeP
 
     const auto halfMainViewResolution = registry.getResolution<2>("main_view", 0.5f);
 
-    auto checkerboardDepthOptHndl = params.needCheckerboard
-                                      ? eastl::make_optional(registry.create("checkerboard_depth")
-                                                               .texture({TEXFMT_R32F | TEXCF_RTARGET, halfMainViewResolution})
-                                                               .atStage(dafg::Stage::PS_OR_CS)
-                                                               .useAs(dafg::Usage::COLOR_ATTACHMENT)
-                                                               .handle())
-                                      : eastl::nullopt;
+    auto checkerboardDepthOptHndl =
+      params.needCheckerboard
+        ? eastl::make_optional(registry.create("checkerboard_depth")
+                                 .texture({TEXFMT_R32F | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, halfMainViewResolution})
+                                 .atStage(dafg::Stage::PS_OR_CS)
+                                 .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                                 .handle())
+        : eastl::nullopt;
 
     if (params.needCheckerboard)
     {
@@ -90,13 +92,14 @@ eastl::array<dafg::NodeHandle, 4> makeDownsampleDepthNodes(const DownsampleNodeP
 
     // history is only needed for SSR/GI above onlyAO
     auto createHalfresNormals = [&](const char *name) {
-      return params.needNormals ? eastl::make_optional(registry.create(name)
-                                                         .texture({TEXCF_RTARGET | esramFlags, halfMainViewResolution})
-                                                         .withHistory(dafg::History::DiscardOnFirstFrame)
-                                                         .atStage(dafg::Stage::PS_OR_CS)
-                                                         .useAs(dafg::Usage::COLOR_ATTACHMENT)
-                                                         .handle())
-                                : eastl::nullopt;
+      return params.needNormals
+               ? eastl::make_optional(registry.create(name)
+                                        .texture({TEXCF_RTARGET | esramFlags | COMPRESSED_RT_OVERRIDE_FLAG, halfMainViewResolution})
+                                        .withHistory(dafg::History::DiscardOnFirstFrame)
+                                        .atStage(dafg::Stage::PS_OR_CS)
+                                        .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                                        .handle())
+               : eastl::nullopt;
     };
     auto downsampledNormalsOptHndl = createHalfresNormals("downsampled_normals");
     auto downsampledFarNormalsOptHndl = createHalfresNormals("downsampled_far_normals");
@@ -127,13 +130,14 @@ eastl::array<dafg::NodeHandle, 4> makeDownsampleDepthNodes(const DownsampleNodeP
     }
 
     auto downsampledMotionVectorsOptHndl =
-      params.needMotionVectors ? eastl::make_optional(registry.create("downsampled_motion_vectors_tex")
-                                                        .texture({TEXFMT_A16B16G16R16F | TEXCF_RTARGET, halfMainViewResolution})
-                                                        .withHistory(dafg::History::DiscardOnFirstFrame)
-                                                        .atStage(dafg::Stage::PS_OR_CS)
-                                                        .useAs(dafg::Usage::COLOR_ATTACHMENT)
-                                                        .handle())
-                               : eastl::nullopt;
+      params.needMotionVectors
+        ? eastl::make_optional(registry.create("downsampled_motion_vectors_tex")
+                                 .texture({TEXFMT_A16B16G16R16F | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG, halfMainViewResolution})
+                                 .withHistory(dafg::History::DiscardOnFirstFrame)
+                                 .atStage(dafg::Stage::PS_OR_CS)
+                                 .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                                 .handle())
+        : eastl::nullopt;
     if (params.needMotionVectors)
     {
       registry.read("motion_vecs").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("motion_gbuf");

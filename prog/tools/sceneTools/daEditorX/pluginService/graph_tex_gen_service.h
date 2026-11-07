@@ -5,7 +5,7 @@
 #include <util/dag_string.h>
 #include <3d/dag_texMgr.h>
 
-#include <EASTL/hash_set.h>
+#include <EASTL/hash_map.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 
@@ -13,16 +13,16 @@ class BaseTexture;
 class DataBlock;
 struct GraphData;
 
+// A compiled name (node block, register, shader variant) to the text a texgen message shows instead.
+using CompiledNameLabels = eastl::hash_map<eastl::string, eastl::string>;
+
 // Plugin-supplied graph-to-BLK compiler. Installed into the texgen service via
 // `setGraphCompiler`. The service calls `compile()` on its worker thread when the
 // graph has been marked dirty via `markGraphDirty()`. The implementation must:
 //   1. Take its own lock around source-of-truth graph state.
 //   2. Commit the produced BLKs into `graphData->mainGraphBlk` /
 //      `graphData->shaderListBlk` under THAT SAME lock, before returning.
-// The service does NOT hold any plugin lock while invoking compile() and does
-// not write to graphData's BLKs itself -- otherwise the worker's stateLock and
-// the plugin's mutation lock would both guard the same memory under different
-// names, which is not a guard at all.
+// The service does NOT hold any plugin lock while invoking compile().
 //
 // Returns false on compile failure (e.g. iteration-limit hit); in that case the
 // implementation must leave `graphData->mainGraphBlk` / `shaderListBlk`
@@ -37,8 +37,9 @@ struct IGraphCompiler
   // Copy the last-compiled mainGraphBlk / shaderListBlk into caller-owned blocks under the
   // implementation's graph lock. The worker calls this right after compile() (while the compiler is
   // still alive) so the slow dsc2 pass assembles from a private snapshot and never reads graphData's
-  // BLKs lock-free -- a main-thread graph load can wipe them under that same lock.
-  virtual void copyCompiledGraph(DataBlock &main_graph_blk, DataBlock &shader_list_blk) = 0;
+  // BLKs lock-free -- a main-thread graph load can wipe them under that same lock. `labels` describe
+  // the node blocks and registers of the same compile.
+  virtual void copyCompiledGraph(DataBlock &main_graph_blk, DataBlock &shader_list_blk, CompiledNameLabels &labels) = 0;
 };
 
 struct SelectedTextureState
@@ -55,6 +56,14 @@ struct SelectedTextureState
   float maxHistValue = 0.0f;
 };
 
+// The errors / warnings the texgen logger got the last time one node ran.
+struct TexGenNodeMessages
+{
+  eastl::string nodeName; // the node's block name in the compiled main graph
+  eastl::string text;     // one message per line
+  bool hasErrors = false;
+};
+
 // One-call snapshot of the live pipeline counters rendered by the GraphTab status bar.
 // Copied under the service's state lock so the UI thread never reads torn state from the
 // texgen worker.
@@ -63,22 +72,34 @@ struct TexGenPipelineStatus
   uint64_t memUsedCurrent = 0; // bytes; TextureRegManager's current texture allocation
   uint64_t memUsedMax = 0;     // bytes; TextureRegManager's high-water mark for this session
   uint64_t gpuMemTotal = 0;    // bytes; dedicated GPU memory, 0 when the driver can't report it
-  int commandsDone = 0;        // texgen commands attempted so far in the in-flight pass; 0 when idle
-  int commandsTotal = 0;       // command count of the last started pass; 0 before the first pass
+  int nodesDone = 0;           // graph nodes the in-flight pass has finished; 0 when idle
+  int nodesTotal = 0;          // graph nodes of the last started pass, never below nodesDone; 0 before the first pass
   int outputsCount = 0;        // final outputs tracked by the last started pass (preview-final excluded)
-  bool generating = false;     // true while the worker has pending work (compile / generate / save)
+  bool generating = false;     // true while the worker has work it can do now (compile / generate / save)
 
   // Outcome of the last build, for the status bar's single severity-colored message. Two stages:
   //   graphCompileFailed  -- stage 1 (graph -> BLK compile) returned false (unresolved topo / cycle).
-  //   hasErrors/hasWarnings -- stage 2 (texture generation) errors / warnings, from the texgen logger.
+  //   graphCompileWarned  -- stage 1 succeeded with a message, which lastWarning then holds.
+  //   hasErrors/hasWarnings -- stage 2 (shader compile, texture generation) errors / warnings that still hold.
   //   generationCompleted -- a stage-2 pass reached its success branch.
-  // Panel priority: graphCompileFailed > hasErrors > hasWarnings > (generationCompleted -> info).
+  // Panel priority: graphCompileFailed > hasErrors > hasWarnings > passHeldByAutoupdate > (generationCompleted -> info).
   bool graphCompileFailed = false;
+  bool graphCompileWarned = false;
   bool hasErrors = false;
   bool hasWarnings = false;
   bool generationCompleted = false;
+  bool passHeldByAutoupdate = false; // a pass waits for auto-update or Reload inputs; until then the outputs do not match the graph
   eastl::string lastError;
   eastl::string lastWarning;
+  // Block names of the nodes that logged lastError / lastWarning; empty for a compile message or one logged outside a node.
+  eastl::string lastErrorNode;
+  eastl::string lastWarningNode;
+  // Stage 2 only, one entry per node; a pass that skips a node keeps its entry while a final reads the node.
+  eastl::vector<TexGenNodeMessages> nodeMessages;
+  // GraphData::mainGraphStamp of the compile whose blocks nodeMessages and last*Node name: the one the last pass ran,
+  // which a later compile waiting for its pass does not change.
+  uint32_t nodeMessagesStamp = 0;
+  bool compilePending = false; // an edit waits for its compile, so an open subgraph window may differ from the last compile
 };
 
 struct IGraphTexGenService
@@ -86,14 +107,15 @@ struct IGraphTexGenService
   static constexpr unsigned HUID = 0x7A3E91D2u; // ITexGenService
 
   virtual void initTexGen(const char *default_shader_path, const char *default_texgen_path) = 0;
+  // Safe to call again; the service destructor calls it too.
   virtual void shutdownTexGen() = 0;
   virtual void tickTexGeneration() = 0;
 
   // Plug in the graph data the plugin has loaded. Pass nullptr to put the service in idle state.
-  // The service holds onto the pointer (no copy); the caller (plugin) owns the lifetime. The
-  // service also mutates `gd->mainGraphBlk` for setPreviewFinal, so it must be the same instance
-  // for the lifetime of a loaded graph. Calling with a new pointer (or after the BLK content
-  // changes) triggers regeneration.
+  // The service holds onto the pointer (no copy); the caller (plugin) owns the lifetime. The worker
+  // rewrites `gd->mainGraphBlk` at the start of each pass (the preview final among others), so it must
+  // be the same instance for the lifetime of a loaded graph. After a new graph, markGraphDirty compiles it; its pass
+  // waits for auto-update, as an edit's does.
   virtual void setGraphData(GraphData *gd) = 0;
 
   // Install / remove the plugin's graph compiler. The service does not take
@@ -110,12 +132,13 @@ struct IGraphTexGenService
   // there is nothing to say, so a fixed graph clears the bar.
   virtual void setGraphCompileOutcome(bool failed, const char *msg) = 0;
 
-  // Mark the graph as needing recompile + regenerate. Returns instantly -- the
-  // texgen worker thread runs the compile asynchronously. Coalesces naturally:
+  // Mark the graph as needing recompile + regenerate; the regenerate waits for auto-update.
+  // Returns instantly -- the texgen worker thread runs the compile asynchronously. Coalesces naturally:
   // rapid-fire marks before the worker picks up the dirty bit collapse into a
   // single compile pass.
   virtual void markGraphDirty() = 0;
 
+  // Compiles (which reads the default shaders again), drops every cache and generates, also with auto-update off.
   virtual void requestForceRebuild() = 0;
   // Soft regeneration: schedule one regen pass while bypassing the autoupdate gate, but
   // without forceRebuild's pipeline reset (no regcache::clear / texGenReg.close /
@@ -137,7 +160,6 @@ struct IGraphTexGenService
   // when the worker thread regenerates the preview, so a reference would be a use-after-free
   // hazard. Callers receive a snapshot copied under stateLock.
   virtual SelectedTextureState getSelectedTextureState() const = 0;
-  virtual const eastl::hash_set<eastl::string> &getFinalStrings() const = 0;
   virtual bool readSelectedTexturePixel(int x, int y, Color4 &out) const = 0;
   // Promote an intermediate texture register (e.g. an output pin's customTextureName) to a final
   // for the next generation cycle, so its texture survives long enough to be previewed. Pass empty
@@ -145,15 +167,20 @@ struct IGraphTexGenService
   // automatically when the next pipeline cycle completes -- callers don't need to poll.
   virtual void setPreviewFinal(const char *tex_name) = 0;
 
-  // Compilation feedback. Errors / warnings (current state, last messages) are exposed through
+  // Compilation feedback. The errors / warnings that still hold are exposed through
   // getPipelineStatus() below; every error / warning is also echoed to the editor console.
+  // True while the worker has work it can do now; a regeneration that waits for autoupdate is not pending.
   virtual bool isGenerationPending() const = 0;
 
   // Status-bar counters (memory usage, generation progress, outputs count), snapshotted
   // atomically under the service's state lock. Cheap; intended to be polled every UI frame.
   virtual TexGenPipelineStatus getPipelineStatus() const = 0;
+  // TexGenPipelineStatus::nodeMessagesStamp alone, cheap.
+  virtual uint32_t getNodeMessagesStamp() const = 0;
 
-  // Save
+  // Save. A save waits for the generation in progress or waiting, also one that auto-update holds back; with no
+  // finished generation of the current graph, or when setGraphData binds another graph or none first, it is dropped
+  // with a console error, and isSaving() turns false.
   virtual void saveTextures(const char *mask = nullptr) = 0;
   virtual bool isSaving() const = 0;
 };

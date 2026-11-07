@@ -57,6 +57,12 @@
 #include <phys/dag_physics.h>
 #include <phys/dag_physSysInst.h>
 #include <phys/dag_physDebug.h>
+#include <math/dag_geomTree.h>
+#include <ioSys/dag_memIo.h>
+#include <startup/dag_globalSettings.h>
+#if _TARGET_PC_WIN
+#include <libTools/dagFileRW/nodeTreeBuilder.h>
+#endif
 
 #if _TARGET_PC_WIN
 #include <startup/dag_winMain.inc.cpp>
@@ -162,7 +168,10 @@ struct RbCarControl
     //__car->addWheelTorque(3, gas );
     for (int i = 0; i < 4; i++)
       __car->setWheelBrakeTorque(i, brake);
+
+    update_motorbike(gas, steer, brake);
   }
+  void update_motorbike(float gas, float steer, float brake);
 } __car_ctrl = {0, 0, 0, 0, 0, 0.0, 0.0, 0.0, 40.0, 1000.0, 1000.0};
 
 class SampleWheelForces : public IPhysVehicle::ICalcWheelContactForces
@@ -255,6 +264,173 @@ static const float CAR_SPRING_K = 19500;
 static const float CAR_SPRING_B_BUMP = 1000;
 static const float CAR_SPRING_B_REBOUND = 50;
 
+#if USE_JOLT_PHYSICS
+static IPhysMotorcycle *__bike = nullptr;
+static PhysBody *__bike_body = nullptr;
+static GeomNodeTreeUniquePtr __bike_pose;
+
+// the chassis body and the vehicle from a filled desc, for both bikes; on failure it logs and leaves no bike
+static bool create_motorbike(const IPhysMotorcycle::Desc &desc, const TMatrix &chassis_tm)
+{
+  PhysBoxCollision chassisColl(desc.boxSize.x, desc.boxSize.y, desc.boxSize.z);
+  PhysBodyCreationData pbcd;
+  pbcd.centerOfMassOffset = desc.comOffset;
+  pbcd.momentOfInertia = desc.inertia;
+  __bike_body = new PhysBody(physWorld, desc.mass, &chassisColl, chassis_tm, pbcd);
+  __bike = IPhysMotorcycle::createJolt(__bike_body, desc);
+  if (!__bike)
+  {
+    logerr("motorbike: createJolt() rejected the chassis");
+    del_it(__bike_body);
+  }
+  return __bike != nullptr;
+}
+
+// With settings motorbike { skeleton:t=<lod00.dag>; desc:t=<blk with a motorcycle block> } the bike comes from loadDesc() and
+// poses a copy of that skeleton; the DAG reader is a tools library, linked on Windows only
+static bool construct_motorbike_from_skeleton(const TMatrix &model_tm)
+{
+#if _TARGET_PC_WIN
+  const DataBlock &cfg = *dgs_get_settings()->getBlockByNameEx("motorbike");
+  const char *skeletonFn = cfg.getStr("skeleton", nullptr), *descFn = cfg.getStr("desc", nullptr);
+  if (!skeletonFn || !descFn)
+    return false;
+  GeomNodeTreeBuilder builder;
+  DataBlock descBlk;
+  if (!builder.loadFromDag(skeletonFn) || !descBlk.load(descFn))
+  {
+    logerr("motorbike: cannot load skeleton <%s> or desc <%s>", skeletonFn, descFn);
+    return false;
+  }
+  DynamicMemGeneralSaveCB dump(tmpmem, 0, 64 << 10);
+  builder.saveDump(dump, _MAKE4C('PC'), false, false);
+  InPlaceMemLoadCB crd(dump.data(), (int)dump.size());
+  GeomNodeTreeUniquePtr skeleton(GeomNodeTree::load(crd));
+  IPhysMotorcycle::Desc desc;
+  if (!skeleton || !IPhysMotorcycle::loadDesc(*descBlk.getBlockByNameEx("motorcycle"), *skeleton, desc) ||
+      !create_motorbike(desc, model_tm * desc.chassisInModel))
+    return false;
+  __bike_pose.reset(GeomNodeTree::make(*skeleton));
+  return true;
+#else
+  G_UNUSED(model_tm);
+  return false;
+#endif
+}
+
+static void sync_motorbike_nodes()
+{
+  if (!__bike || !__bike_pose)
+    return;
+  __bike->syncNodes(*__bike_pose);
+  TMatrix chassisTm;
+  __bike_body->getTm(chassisTm);
+  __bike_pose->setRootTmScalar(chassisTm * inverse(__bike->getBikeGeometrySetup().chassisInModel));
+  __bike_pose->invalidateWtm();
+  __bike_pose->calcWtm();
+}
+
+static void draw_motorbike_skeleton()
+{
+  if (!__bike_pose)
+    return;
+  ::begin_draw_cached_debug_lines();
+  for (unsigned i = 1; i < __bike_pose->nodeCount(); i++)
+  {
+    dag::Index16 node(i);
+    TMatrix wtm;
+    __bike_pose->getNodeWtmRelScalar(node, wtm);
+    const Point3 pos = wtm.getcol(3);
+    ::draw_cached_debug_line(__bike_pose->getNodeWposRelScalar(__bike_pose->getParentNodeIdx(node)), pos, E3DCOLOR(160, 160, 160));
+    ::draw_cached_debug_line(pos, pos + normalize(wtm.getcol(0)) * 0.25f, E3DCOLOR(255, 0, 0));
+    ::draw_cached_debug_line(pos, pos + normalize(wtm.getcol(1)) * 0.25f, E3DCOLOR(0, 255, 0));
+    ::draw_cached_debug_line(pos, pos + normalize(wtm.getcol(2)) * 0.25f, E3DCOLOR(0, 0, 255));
+  }
+  ::end_draw_cached_debug_lines();
+}
+
+void constructMotorbike(const TMatrix &bike_tm)
+{
+  if (construct_motorbike_from_skeleton(bike_tm))
+    return;
+
+  // Measured on outer_space/combat_suits/motorbike/motorcycle_a, in chassis space (+X forward, +Y up, +Z left), meters.
+  // The chassis origin is the collision box center, 0.65 above and 0.2 behind the model origin on the ground.
+  const Point3 chassis_size(1.3f, 0.6f, 0.4f);         // main mass only, so wheels and handlebars touch first
+  const Point3 steering_axis(-0.4669f, 0.8843f, 0.0f); // tilted back by the 27.8 deg caster
+  const Point3 front_hub(0.9567f, -0.3066f, 0.0f), rear_hub(-0.4723f, -0.3146f, 0.0f);
+  // the spring frequencies are tuned so the bike settles at mid travel, in its modeled pose;
+  // Jolt sizes the spring from the effective mass at each wheel
+  const float rest_length = 0.29f, half_travel = 0.1f;
+
+  IPhysMotorcycle::Desc desc;
+  desc.mass = 240.0f;
+  desc.boxSize = chassis_size;
+  // bike with rider: COM about 0.6 above ground at mid wheelbase; the inertia (roll, yaw, pitch, kg*m^2) is set explicitly,
+  // since the narrow box alone gives a roll inertia too small for the lean controller, which then throws the bike
+  desc.comOffset = Point3(0.2f, -0.05f, 0.0f);
+  desc.inertia = Point3(30.0f, 60.0f, 80.0f);
+  IPhysMotorcycle::Settings &s = desc.settings;
+
+  s.frontWheel.suspensionDirection = -steering_axis; // the fork slides along the steering axis
+  s.frontWheel.steeringAxis = steering_axis;
+  s.frontWheel.position = front_hub - s.frontWheel.suspensionDirection * rest_length;
+  s.frontWheel.radius = 0.337f;
+  s.frontWheel.width = 0.081f;
+  s.frontWheel.suspensionMinLength = rest_length - half_travel;
+  s.frontWheel.suspensionMaxLength = rest_length + half_travel;
+  s.frontWheel.suspensionFrequency = 1.95f;
+  s.frontWheel.maxBrakeTorque = 500.0f;
+  s.frontWheel.maxSteerAngleDeg = 30.0f;
+
+  s.rearWheel.position = rear_hub - s.rearWheel.suspensionDirection * rest_length;
+  s.rearWheel.radius = 0.337f;
+  s.rearWheel.width = 0.081f;
+  s.rearWheel.suspensionMinLength = rest_length - half_travel;
+  s.rearWheel.suspensionMaxLength = rest_length + half_travel;
+  s.rearWheel.suspensionFrequency = 1.49f;
+  s.rearWheel.maxBrakeTorque = 250.0f;
+
+  s.engine.maxTorque = 90.0f;
+  s.engine.minRPM = 1000.0f;
+  s.engine.maxRPM = 10000.0f;
+
+  // From: https://www.blocklayer.com/rpm-gear-bikes
+  desc.gearRatios = {2.27f, 1.63f, 1.3f, 1.09f, 0.96f, 0.88f};
+  desc.reverseGearRatios = {-4.0f};
+  s.transmission.shiftDownRPM = 2000.0f;
+  s.transmission.shiftUpRPM = 8000.0f;
+  s.transmission.clutchStrength = 2.0f;
+
+  // Combining primary and final drive (back divided by front sprockets) from: https://www.blocklayer.com/rpm-gear-bikes
+  s.differentialRatio = 1.93f * 40.0f / 16.0f;
+  s.maxPitchRollAngleDeg = 45.0f; // below the 48 degree pitch at which this bike balances on its rear wheel
+
+  create_motorbike(desc, bike_tm); // X forward, as the car next to it
+}
+
+void RbCarControl::update_motorbike(float gas, float steer, float brake)
+{
+  if (!__bike)
+    return;
+
+  if (steer != 0.0f || gas != 0.0f || brake != 0.0f)
+    __bike->activate();
+
+  // when leaned, don't use the brakes fully or the bike will spin out
+  float brakeInput = brake / maxBrake;
+  if (brakeInput > 0.0f)
+    brakeInput *= sqr(1.0f - __bike->getAbsSinLeanAngle());
+
+  __bike->setDriverInput(gas / maxGas, steer / maxSteer, brakeInput);
+}
+#else
+void constructMotorbike(const TMatrix &) {}
+void RbCarControl::update_motorbike(float, float, float) {}
+static void sync_motorbike_nodes() {}
+static void draw_motorbike_skeleton() {}
+#endif
+
 #if USE_BULLET_PHYSICS || USE_JOLT_PHYSICS
 
 IPhysVehicle *constructCar(const TMatrix &car_tm, float mass, float wheel_mass, const Point3 &dim, float mc_ofs, const Point3 &spr_ofs,
@@ -331,6 +507,10 @@ void placeRayCar()
   car->setWheelSteering(1, -4.5);
 
   __car = car;
+
+  tm.identity();
+  tm.setcol(3, Point3(25, -17, 12));
+  constructMotorbike(tm);
 }
 #endif
 
@@ -895,7 +1075,7 @@ static void loadPhysTestScene(const char *filename)
     physResource = PhysicsResource::loadResource(crd, 0);
   }
 
-  physSystem = new PhysSystemInstance(physResource, physWorld, &TMatrix::IDENT, nullptr);
+  physSystem = new PhysSystemInstance(physResource, physWorld, TMatrix::IDENT, nullptr);
 
 #if ALLOW_DYNMODEL_RENDER
   const RoNameMapEx &nameMap = lods->getNames().node;
@@ -963,6 +1143,17 @@ static void closePhysics()
 
   del_it(physSystem);
   physResource = NULL;
+
+#if ALLOW_PHYS_CAR && USE_JOLT_PHYSICS
+  // the motorcycle constraint and step listener must be unregistered before the phys world dies
+  if (__bike)
+  {
+    __bike->destroyVehicle();
+    __bike = nullptr;
+  }
+  del_it(__bike_body);
+  __bike_pose.reset();
+#endif
 
   del_it(physWorld);
 
@@ -1063,6 +1254,9 @@ public:
           }
           simTime += ::get_time_usec(reft);
         }
+#if ALLOW_PHYS_CAR
+      sync_motorbike_nodes(); // outside the 1 s start delay, so the skeleton is drawn at the bike from the first frame
+#endif
     }
   }
 
@@ -1166,6 +1360,9 @@ public:
           physdbg::RenderFlag::CONSTRAINT_REFSYS |
           /*physdbg::RenderFlag::BODY_BBOX|physdbg::RenderFlag::BODY_CENTER|*/ physdbg::RenderFlag::CONTACT_POINTS,
         &::grs_cur_view.pos, 100);
+#if ALLOW_PHYS_CAR
+    draw_motorbike_skeleton();
+#endif
 
     avgSimCnt += simCnt;
     avgSimTime += simTime;

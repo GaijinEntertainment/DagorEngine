@@ -148,7 +148,7 @@ extern RIOcclusionData *createOcclusionData();
 extern void iterateOcclusionData(RIOcclusionData &od, const mat44f *&mat, const IPoint2 *&indices, uint32_t &cnt); // indices.x is
                                                                                                                    // index in mat
                                                                                                                    // array
-extern void prepareOcclusionData(mat44f_cref globtm, vec4f vpos, RIOcclusionData &, int max_ri_to_add, bool walls);
+extern void prepareOcclusionData(mat44f_cref globtm, vec4f vpos, RIOcclusionData &, int max_ri_to_add);
 
 void updateRIGen(float dt, bbox3f *movedDebrisBbox = nullptr);
 
@@ -168,11 +168,10 @@ extern bool rendinstSecondaryLayer; // should be set only once before init
 extern bool tmInst12x32bit;
 
 void set_billboards_vertical(bool is_vertical);
-void setDynamicDistMul(float mul, float ofs = 0.f, float impostors_far_dist_additional_mul = 1.f);
+void setDynamicDistMul(float mul, float ofs = 0.f);
 void resetDynamicDistMul(); // level init: dynamic pair back to identity without touching the impostors far mul
 // all the per frame inputs in one call: one recompute instead of one per setter
-void setPerFrameDistMuls(float mul, float ofs, float min_cull_mul, float lods_shift_mul = 1.f,
-  float impostors_far_dist_additional_mul = 1.f);
+void setPerFrameDistMuls(float mul, float ofs, float min_cull_mul, float lods_shift_mul = 1.f);
 void setImpostorsDistAddMul(float impostors_dist_additional_mul);
 void setImpostorsFarDistAddMul(float impostors_far_dist_additional_mul);
 void setImpostorsMinRange(float impostors_min_range);

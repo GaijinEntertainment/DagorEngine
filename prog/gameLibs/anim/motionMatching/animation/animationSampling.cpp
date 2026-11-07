@@ -20,15 +20,15 @@ void sample_animation(float t, const AnimationClip &clip, NodeTSRFixedArray &nod
 {
   AnimV20Math::PrsAnimSampler<AnimV20Math::OneShotConfig> sampler(clip.animation, t);
 
-  for (const AnimationClip::Point3Channel &translation : clip.channelTranslation)
+  for (const AnimationClip::NodeChannel &translation : clip.channelTranslation)
   {
     nodes[translation.second.index()].set_translation(sampler.samplePosTrack(translation.first));
   }
-  for (const AnimationClip::QuaternionChannel &rotation : clip.channelRotation)
+  for (const AnimationClip::NodeChannel &rotation : clip.channelRotation)
   {
     nodes[rotation.second.index()].set_rotation(sampler.sampleRotTrack(rotation.first));
   }
-  for (const AnimationClip::Point3Channel &scale : clip.channelScale)
+  for (const AnimationClip::NodeChannel &scale : clip.channelScale)
   {
     nodes[scale.second.index()].set_scale(sampler.sampleSclTrack(scale.first));
   }
@@ -71,6 +71,8 @@ void update_tree(const NodeTSRFixedArray &nodes, GeomNodeTree &tree)
 
 vec3f extract_center_of_mass(const AnimationDataBase &data_base, const GeomNodeTree &tree)
 {
+  if (data_base.nodeCenterOfMasses.empty())
+    return v_zero();
   vec3f ret = v_zero();
   vec4f centerOfMassW = v_zero();
   for (const auto &itr : data_base.nodeCenterOfMasses)

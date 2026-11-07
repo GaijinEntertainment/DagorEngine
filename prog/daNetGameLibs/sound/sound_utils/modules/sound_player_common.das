@@ -103,13 +103,6 @@ def get_option_object(opts : Array; tags : Object) : Object const?
   return null
 
 
-def get_path_by_name(paths : Object; path_name : string)
-  let path = paths[path_name] ?as Object
-  return path != null ? path : get_ecs_object(paths, "default")
-
-def get_path_by_desc_nullable(desc : Object; paths : Object)
-  return get_path_by_name(paths, desc.path ?? "")
-
 def is_valid(obj : Object)
   return has(obj, "name") || has(obj, WATCHED_SOUND_KEY) || has(obj, OTHER_SOUND_KEY) || has(obj, "path")
 
@@ -160,20 +153,6 @@ def get_name(desc : Object; is_watched_sound : bool)
 def play_desc_path(desc : Object;
                    path : string;
                    is_watched_sound : bool;
-                   id : uint;
-                   pos : float3;
-                   var group : SoundEventGroup&;
-                   max_instances = 0)
-  reject_sound(group, id)
-  if !empty(path) && is_valid(desc)
-    let name = get_name(desc, is_watched_sound)
-    if !empty(name)
-      return play_name_path_impl(name, path, id, pos, group, desc.delay ?? 0., max_instances)
-  return invalid_sound_event_handle()
-
-def play_desc_path(desc : Object;
-                   path : string;
-                   is_watched_sound : bool;
                    pos : float3;
                    is_abandon : bool = true;
                    max_instances = 0)
@@ -200,28 +179,19 @@ def apply_watched_prefix(path : string; is_watched_sound : bool) : string
   return path
 
 
+def private build_final_path_str(path : string; is_watched : bool; name : string) : string
+  let fullPath = apply_watched_prefix(path, is_watched)
+  return empty(name) ? fullPath : "{fullPath}/{name}"
+
+
 def make_final_path_str(paths, tags : Object; is_watched : bool; name = "") : string
-  return build_string() <| $(var str)
-    var path = ""
-    if get_option_path(paths, tags, is_watched, path)
-      if should_apply_watched_prefix(path)
-        str |> write(get_watched_sound_event_folder(is_watched))
-      str |> write(path)
-      if !empty(name)
-        str |> write("/")
-        str |> write(name)
+  var path = ""
+  return get_option_path(paths, tags, is_watched, path) ? build_final_path_str(path, is_watched, name) : ""
 
 
 def make_final_path_str(paths : Object; path_id : int; is_watched : bool; name = "") : string
-  return build_string() <| $(var str)
-    var path = ""
-    if get_option_path(paths, path_id, is_watched, path)
-      if should_apply_watched_prefix(path)
-        str |> write(get_watched_sound_event_folder(is_watched))
-      str |> write(path)
-      if !empty(name)
-        str |> write("/")
-        str |> write(name)
+  var path = ""
+  return get_option_path(paths, path_id, is_watched, path) ? build_final_path_str(path, is_watched, name) : ""
 
 
 def play_path(path_obj : Object;
@@ -235,7 +205,7 @@ def play_path(path_obj : Object;
   var path = ""
   if get_option_path(path_obj, tags, is_watched_sound, path)
     let name = apply_watched_prefix_name_path(path, is_watched_sound)
-    path = "{prefix}{path}"
+    path = empty(prefix) ? path : "{prefix}{path}"
     return play_name_path(name, path, pos, is_abandon, delay, max_instances)
   return invalid_sound_event_handle()
 
@@ -263,12 +233,9 @@ def play_path(path_obj : Object;
               prefix = "";
               max_instances = 0)
   reject_sound(group, id)
-  var path = ""
-  if get_option_path(path_obj, tags, is_watched_sound, path)
-    let name = apply_watched_prefix_name_path(path, is_watched_sound)
-    path = "{prefix}{path}"
-    return play_name_path(name, path, id, pos, group, delay, max_instances)
-  return invalid_sound_event_handle()
+  let handle = play_path(path_obj, tags, is_watched_sound, pos, false, delay, prefix, max_instances)
+  add_sound(group, id, handle)
+  return handle
 
 
 def play_path(path_id : string;
@@ -296,11 +263,9 @@ def play_path(path_id : string;
               prefix = "";
               max_instances = 0)
   reject_sound(group, id)
-  let path = get_desc(paths, path_id)
-  if path != null
-    return play_path(*path, tags, is_watched_sound, pos, id, group, 0., prefix, max_instances)
-  sound_debug("no path '{path_id}' exists")
-  return invalid_sound_event_handle()
+  let handle = play_path(path_id, paths, tags, is_watched_sound, pos, false, prefix, max_instances)
+  add_sound(group, id, handle)
+  return handle
 
 
 def play(desc_id : string;
@@ -334,35 +299,9 @@ def play(desc_id : string;
          var group : SoundEventGroup&;
          max_instances = 0)
   reject_sound(group, id)
-  let desc = get_desc(descs, desc_id)
-  if desc != null
-    if is_valid(*desc, tags)
-      var path = ""
-      if get_option_path(path_obj, tags, is_watched_sound, path)
-        let name = get_name(*desc, is_watched_sound)
-        if !empty(name)
-          return play_name_path(name, apply_watched_prefix(path, is_watched_sound), id, pos, group, desc?.delay ?? 0., max_instances)
-    return invalid_sound_event_handle()
-  sound_debug("no desc '{desc_id}' exists")
-  return invalid_sound_event_handle()
-
-
-def play_desc(desc_obj : Object;
-              path_obj : Object;
-              tags : Object;
-              is_watched_sound : bool;
-              pos : float3;
-              id : uint;
-              var group : SoundEventGroup&;
-              max_instances = 0)
-  reject_sound(group, id)
-  if is_valid(desc_obj, tags)
-    var path = ""
-    if get_option_path(path_obj, tags, is_watched_sound, path)
-      let name = get_name(desc_obj, is_watched_sound)
-      if !empty(name)
-        return play_name_path(name, apply_watched_prefix(path, is_watched_sound), id, pos, group, desc_obj.delay ?? 0., max_instances)
-  return invalid_sound_event_handle()
+  let handle = play(desc_id, path_obj, descs, tags, is_watched_sound, pos, false, max_instances)
+  add_sound(group, id, handle)
+  return handle
 
 
 def play_desc(desc_obj : Object;

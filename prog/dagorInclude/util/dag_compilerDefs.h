@@ -15,7 +15,11 @@
 #endif
 
 #if defined(_MSC_VER) && !defined(__clang__)
+#if _MSVC_LANG >= 202002L // constraint: vc17 gives C2416 on a lambda before C++20
+#define DAGOR_FORCE_INLINE_LAMBDA [[msvc::forceinline]]
+#else
 #define DAGOR_FORCE_INLINE_LAMBDA
+#endif
 #define DAGOR_NOINLINE_LAMBDA
 #else
 #define DAGOR_FORCE_INLINE_LAMBDA __attribute__((always_inline))
@@ -77,8 +81,12 @@
 
 #if defined(__clang__)
 #define DAGOR_LIFETIMEBOUND [[clang::lifetimebound]] // the built/returned object borrows from this arg, so a temporary here dangles
-#elif defined(_MSC_VER)
+#elif defined(_MSC_VER) && defined(__has_cpp_attribute)
+#if __has_cpp_attribute(msvc::lifetimebound)
 #define DAGOR_LIFETIMEBOUND [[msvc::lifetimebound]] // same, but only diagnosed under /analyze
+#else
+#define DAGOR_LIFETIMEBOUND
+#endif
 #else
 #define DAGOR_LIFETIMEBOUND
 #endif

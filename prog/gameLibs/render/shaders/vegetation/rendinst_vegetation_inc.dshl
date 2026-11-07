@@ -83,6 +83,7 @@ endmacro
 macro RENDER_TO_GBUFFER_IMPOSTOR()
   if (compatibility_mode == compatibility_mode_on)
   {
+    if (rendinst_render_pass == rendinst_render_pass_impostor_voxel) { dont_render; }
     hlsl(ps) {
       #define BLEND_GBUFFER 1
       #define USE_SSS_THIN 1
@@ -124,28 +125,43 @@ macro RENDER_TO_GBUFFER_IMPOSTOR()
       }
     }
   } else {
-    if (branch_mask_render == yes) {
+    if (in_editor_assume == yes && branch_mask_render == yes) {
       WRITE_IMPOSTOR_BRANCH_MASK()
     } else {
       WRITE_IMPOSTOR_GBUFFER_SLICES()
     }
     hlsl(ps) {
-      IMPOSTOR_GBUFFER_OUTPUT render_to_impostor_ps(VsOutput input INPUT_VFACE)
+      #if RENDINST_IMPOSTOR_VOXEL
+        VOXEL_BAKER_OUTPUT render_to_impostor_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+      #else
+        IMPOSTOR_GBUFFER_OUTPUT render_to_impostor_ps(VsOutput input INPUT_VFACE)
+      #endif
       {
         #if SET_UP_MULTIDRAW
           SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
         #endif
-        half alpha, coloring;
+        #if RENDINST_IMPOSTOR_VOXEL
+          VOXEL_BAKER_PRE_DISCARD
+        #endif
         input.normal.xyz = MUL_VFACE(input.normal.xyz);
         #ifdef NEED_ELLIPSOID_NORMAL
         input.normal.xyz =  normalize(lerp(input.normal.xyz, input.ellipsoidNormal.xyz, get_n_ellipsoid_mix()));
         #endif
 
-        ImpostorUnpackedGbuffer gbuffer;
-        gbuffer.base = get_impostor_gbuffer(input, gbuffer.alpha, gbuffer.coloring);
-        gbuffer.depth = input.diffuseTexcoord.z / input.diffuseTexcoord.w;
-
-        return encode_impostor_gbuffer(gbuffer);
+        #if RENDINST_IMPOSTOR_VOXEL
+          half alpha = 1;
+          half coloring = 1;
+          VOXEL_DECAL_OUTPUT gbuf = get_impostor_gbuffer(input, alpha, coloring);
+          if (alpha < 0.5) VOXEL_BAKER_DISCARD_CALL;
+          const float3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
+          VOXEL_BAKER_DEPTH(worldPos, GET_SCREEN_POS(input.pos).xy);
+          return init_baker_output(depth, gbuf);
+        #else
+          ImpostorUnpackedGbuffer gbuffer;
+          gbuffer.base = get_impostor_gbuffer(input, gbuffer.alpha, gbuffer.coloring);
+          gbuffer.depth = input.diffuseTexcoord.z / input.diffuseTexcoord.w;
+          return encode_impostor_gbuffer(gbuffer);
+        #endif
       }
     }
   }
@@ -210,8 +226,41 @@ macro INIT_GROUND_ALIGN()
   }
 endmacro
 
-macro USE_GROUND_ALIGN_MATH(code)
+macro USE_GROUND_SNAP_MATH(code)
   USE_RENDINST_HEIGHTMAP_OFS(code)
+  hlsl(code)
+  {
+    float3 apply_snap(float3 worldPos, float3 localPos, float3 worldLocalPos, float4 pos_and_scale)
+    {
+      const float4 heightMaskParams = get_ground_snap_params();
+      const float offset = get_ground_snap_normal_offset();
+      const float snapLimit = get_ground_snap_limit();
+      float landscapeHeight = getWorldHeightGathered(worldPos.xz);
+      apply_renderinst_hmap_ofs(worldPos.xz, landscapeHeight);
+      landscapeHeight -= offset;
+      BRANCH
+      if (worldLocalPos.y - landscapeHeight < snapLimit)
+      {
+        BRANCH
+        if (localPos.y < 0.0f)
+          worldPos.y = worldPos.y - (worldLocalPos.y - landscapeHeight);
+        else if (localPos.y < heightMaskParams.z)
+        {
+          float heightMaskLerpValue = saturate((heightMaskParams.z - localPos.y) * heightMaskParams.w);
+          worldPos.y = lerp(landscapeHeight + heightMaskParams.z * pos_and_scale.w, landscapeHeight, heightMaskLerpValue);
+        }
+        else if (localPos.y < heightMaskParams.x)
+        {
+          float heightMaskLerpValue = saturate((heightMaskParams.x - localPos.y) * heightMaskParams.y);
+          worldPos.y = lerp(worldLocalPos.y + heightMaskParams.x * pos_and_scale.w, landscapeHeight, heightMaskLerpValue);
+        }
+      }
+      return worldPos;
+    }
+  }
+endmacro
+
+macro USE_GROUND_ALIGN_MATH(code)
   hlsl(code)
   {
     float4x4 get_rotation_from_angle_axis(float angle, float3 axis)
@@ -246,34 +295,6 @@ macro USE_GROUND_ALIGN_MATH(code)
       return any(saturate(heightmapTc) != heightmapTc);
     }
 
-    float3 apply_snap(float3 worldPos, float3 localPos, float3 worldLocalPos, float4 pos_and_scale)
-    {
-      const float4 heightMaskParams = get_ground_snap_params();
-      const float offset = get_ground_snap_normal_offset();
-      const float snapLimit = get_ground_snap_limit();
-      float landscapeHeight = getWorldHeightGathered(worldPos.xz);
-      apply_renderinst_hmap_ofs(worldPos.xz, landscapeHeight);
-      landscapeHeight -= offset;
-      BRANCH
-      if (worldLocalPos.y - landscapeHeight < snapLimit)
-      {
-        BRANCH
-        if (localPos.y < 0.0f)
-          worldPos.y = worldPos.y - (worldLocalPos.y - landscapeHeight);
-        else if (localPos.y < heightMaskParams.z)
-        {
-          float heightMaskLerpValue = saturate((heightMaskParams.z - localPos.y) * heightMaskParams.w);
-          worldPos.y = lerp(landscapeHeight + heightMaskParams.z * pos_and_scale.w, landscapeHeight, heightMaskLerpValue);
-        }
-        else if (localPos.y < heightMaskParams.x)
-        {
-          float heightMaskLerpValue = saturate((heightMaskParams.x - localPos.y) * heightMaskParams.y);
-          worldPos.y = lerp(worldLocalPos.y + heightMaskParams.x * pos_and_scale.w, landscapeHeight, heightMaskLerpValue);
-        }
-      }
-      return worldPos;
-    }
-
     float3 apply_bend(float3 worldPos, float3 localPos, float3 worldLocalPos, float4 pos_and_scale)
     {
       float4 heightMaskParams = get_ground_bend_params();
@@ -297,6 +318,10 @@ endmacro
 
 macro USE_GROUND_ALIGN()
   USE_GROUND_ALIGN_MATH(vs)
+  if (ground_snap_height_soft == snapOn)
+  {
+    USE_GROUND_SNAP_MATH(vs)
+  }
   hlsl(vs)
   {
     float3 apply_ground_align(float3 worldPos, float3 localPos, float3 worldLocalPos, float4 pos_and_scale)

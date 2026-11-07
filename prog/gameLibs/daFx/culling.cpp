@@ -24,7 +24,7 @@ namespace dafx
 
 constexpr uint32_t CULLING_REQ_FLAGS = SYS_VALID | SYS_ENABLED | SYS_RENDERABLE | SYS_RENDER_REQ;
 
-CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &descs, uint32_t visibilityMask)
+CullingId create_culling_state(ContextId cid, dag::ConstSpan<CullingDesc> descs, uint32_t visibilityMask)
 {
   GET_CTX_RET(CullingId());
   G_ASSERT_RETURN(!descs.empty(), CullingId());
@@ -107,19 +107,19 @@ void clear_culling_state(ContextId cid, CullingId cull_id)
     cull->workers[i].clear();
 }
 
-void remap_culling_state_tag(ContextId cid, CullingId cullid, const eastl::string &from, const eastl::string &to)
+void remap_culling_state_tag(ContextId cid, CullingId cullid, eastl::string_view from, eastl::string_view to)
 {
   GET_CTX();
 
   CullingState *cull = ctx.cullingStates.get(cullid);
   G_ASSERT_RETURN(cull, );
 
-  RenderTagMap::iterator it = ctx.shaders.renderTagMap.find(from);
+  RenderTagMap::iterator it = ctx.shaders.renderTagMap.find_as(from);
   G_ASSERT_RETURN(it != ctx.shaders.renderTagMap.end(), );
   int fromTag = it->second;
   G_ASSERT_RETURN(cull->renderTagsMask & (1 << fromTag), );
 
-  it = ctx.shaders.renderTagMap.find(to);
+  it = ctx.shaders.renderTagMap.find_as(to);
   int toTag = it != ctx.shaders.renderTagMap.end() ? it->second : -1;
   G_ASSERT_RETURN(toTag == -1 || (cull->renderTagsMask & (1 << toTag)), );
 
@@ -691,8 +691,8 @@ void update_culling_state(Context &ctx, CullingState *cull, dag::ConstSpan<int> 
     {
       const bbox3f &box = stream.cget<INST_BBOX>(sid);
       uint32_t &flags = stream.get<INST_FLAGS>(sid);
-      if (!(flags & SYS_CULL_FETCHED) || (cull->disableOcclusion & stream.cget<INST_RENDER_TAGS>(sid)) ||
-          occlusion->isVisibleBox(box.bmin, box.bmax))
+      if ((flags & SYS_DISABLE_OCCLUSION) || !(flags & SYS_CULL_FETCHED) ||
+          (cull->disableOcclusion & stream.cget<INST_RENDER_TAGS>(sid)) || occlusion->isVisibleBox(box.bmin, box.bmax))
         populate_cull_workers(sid, cull, flags, stream.cget<INST_RENDER_TAGS>(sid));
     }
   }
@@ -757,7 +757,7 @@ void update_instances_culling_state(ContextId cid, CullingId cull_id, dag::Const
   update_culling_state(ctx, cull, workers, frustum, globtm, view_pos, occlusion_sync_wait_f);
 }
 
-int fetch_culling_state_visible_count(ContextId cid, CullingId cull_id, const eastl::string &tag_name)
+int fetch_culling_state_visible_count(ContextId cid, CullingId cull_id, eastl::string_view tag_name)
 {
   GET_CTX_RET(0);
 
@@ -773,7 +773,7 @@ int fetch_culling_state_visible_count(ContextId cid, CullingId cull_id, const ea
 }
 
 template <class UnaryPredicate>
-void partition_workers_if(ContextId cid, CullingId cull_id_from, CullingId cull_id_to, const eastl::vector<eastl::string> &tags,
+void partition_workers_if(ContextId cid, CullingId cull_id_from, CullingId cull_id_to, dag::ConstSpan<eastl::string_view> tags,
   UnaryPredicate p)
 {
   TIME_D3D_PROFILE(dafx_partition);
@@ -786,7 +786,7 @@ void partition_workers_if(ContextId cid, CullingId cull_id_from, CullingId cull_
   G_ASSERT_RETURN(cull_to && cull_to->isProxy, );
 
   uint32_t tags_mask = 0;
-  for (const auto &tag_name : tags)
+  for (eastl::string_view tag_name : tags)
   {
     uint32_t tag = get_render_tag(ctx.shaders, tag_name, Config::max_render_tags);
     G_ASSERT_RETURN(tag < Config::max_render_tags, );
@@ -820,7 +820,7 @@ void partition_workers_if(ContextId cid, CullingId cull_id_from, CullingId cull_
 
 template <bool insideSphere>
 void partition_workers_if_x_sphere(ContextId cid, CullingId cull_id_from, CullingId cull_id_to,
-  const eastl::vector<eastl::string> &tags, Point4 sphere)
+  dag::ConstSpan<eastl::string_view> tags, Point4 sphere)
 {
   GET_CTX();
 
@@ -838,13 +838,13 @@ void partition_workers_if_x_sphere(ContextId cid, CullingId cull_id_from, Cullin
 }
 
 void partition_workers_if_outside_sphere(ContextId cid, CullingId cull_id_from, CullingId cull_id_to,
-  const eastl::vector<eastl::string> &tags, Point4 sphere)
+  dag::ConstSpan<eastl::string_view> tags, Point4 sphere)
 {
   partition_workers_if_x_sphere<false>(cid, cull_id_from, cull_id_to, tags, sphere);
 }
 
 void partition_workers_if_inside_sphere(ContextId cid, CullingId cull_id_from, CullingId cull_id_to,
-  const eastl::vector<eastl::string> &tags, Point4 sphere)
+  dag::ConstSpan<eastl::string_view> tags, Point4 sphere)
 {
   partition_workers_if_x_sphere<true>(cid, cull_id_from, cull_id_to, tags, sphere);
 }

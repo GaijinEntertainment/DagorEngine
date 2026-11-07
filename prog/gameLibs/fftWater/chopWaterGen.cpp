@@ -159,6 +159,7 @@ Point2 DirFromAngle(float angle)
 ChopWaterGenerator::ChopWaterGenerator()
 {
   m_spectrum_cache.emplace_back();
+  firstUpdate = true;
   Update(0.0f, 0.0f); // to calc maxWaveHeight, significantWaveHeight
 }
 
@@ -244,7 +245,10 @@ void ChopWaterGenerator::setWind(float speed, const Point2 &wind_dir)
   genProps.wind_speed = speed;
 
   if (windSpeedChanged) // update waves params so getMaxWaveHeight, getSignificantWaveHeight become correct immediately
+  {
+    firstUpdate = true;
     GenerateWaves(genProps, windDir, &m_spectrum_cache[0], genProps.wind_speed);
+  }
 }
 
 void ChopWaterGenerator::Update(float water_time, float scaled_dt, bool detail_waves_enabled)
@@ -301,7 +305,7 @@ void ChopWaterGenerator::Update(float water_time, float scaled_dt, bool detail_w
   wave_spectrum->domains[3].power = wave_spectrum->domains[3].max_wave_height / max_wind_wave_spectrum.domains[3].max_wave_height;
   wave_spectrum->domains[4].power = wave_spectrum->domains[4].max_wave_height / max_wind_wave_spectrum.domains[4].max_wave_height;
 
-  if (!lazyInited || scaled_dt == 0.0f)
+  if (!lazyInited || (scaled_dt == 0.0f && !firstUpdate))
   {
     return;
   }
@@ -390,6 +394,7 @@ void ChopWaterGenerator::Update(float water_time, float scaled_dt, bool detail_w
   ShaderGlobal::set_float4(detail_waves_paramsVarId, Color4(convar::detail_waves_mask_scale, convar::detail_waves_distort_str,
                                                        convar::detail_waves_detail_strength, convar::detail_waves_detail_bias));
 
+  firstUpdate = false;
   ++pingPongIndex;
 }
 

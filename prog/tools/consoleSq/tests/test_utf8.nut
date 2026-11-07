@@ -128,7 +128,7 @@ assert(utf8.charToInt("\xc3\x41") == 0 && utf8.charToInt("abcde") == 0, "charToI
 
 threw = false
 try {
-  utf8.charToInt([0x41])
+  let _ = utf8.charToInt([0x41])
 } catch (e) {
   threw = true
 }

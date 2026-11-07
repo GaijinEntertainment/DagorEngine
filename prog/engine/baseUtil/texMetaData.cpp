@@ -164,6 +164,8 @@ const char *TextureMetaData::encode(const char *fpath, String *storage) const
     buf.append("X1");
   if (flags & FLG_IES_ROT)
     buf.append("R");
+  if (flags & FLG_LD_IMM)
+    buf.append("I");
   if (iesScalingFactor != 0)
     buf.aprintf(5, "V%04x", static_cast<uint16_t>(iesScalingFactor));
 
@@ -200,6 +202,7 @@ bool TextureMetaData::decodeData(const char *fstring, bool dec_bt_name)
 {
   const char *p = strrchr(fstring, '?');
   uint8_t addr = 0, filt = 0;
+  bool streaming_requested = false;
 
   defaults();
   if (!p)
@@ -320,6 +323,12 @@ bool TextureMetaData::decodeData(const char *fstring, bool dec_bt_name)
         flags |= FLG_PREMUL_A;
         break;
 
+      case 'I':
+      case 'i':
+        p++;
+        flags |= FLG_LD_IMM;
+        break;
+
       case 'X':
       case 'x':
         p++;
@@ -394,6 +403,7 @@ bool TextureMetaData::decodeData(const char *fstring, bool dec_bt_name)
       case 'u':
         p++;
         stubTexIdx = atoi(p);
+        streaming_requested = true;
         while (isdigit((unsigned char)*p))
           p++;
         break;
@@ -412,6 +422,8 @@ bool TextureMetaData::decodeData(const char *fstring, bool dec_bt_name)
     }
   }
 
+  if ((flags & FLG_LD_IMM) && streaming_requested)
+    goto err;
   if (isValid())
     return true;
 
@@ -480,7 +492,9 @@ const char *TextureMetaData::decodeBaseTexName(const char *fstring)
       case 'D':
       case 'd':
       case 'R':
-      case 'r': p++; break;
+      case 'r':
+      case 'I':
+      case 'i': p++; break;
 
       case 'F':
       case 'f':

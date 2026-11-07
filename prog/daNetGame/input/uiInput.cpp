@@ -2,8 +2,8 @@
 
 #include "uiInput.h"
 #include "globInput.h"
+#include "inputControls.h"
 
-#include "ui/userUi.h"
 #include "ui/uiShared.h"
 
 #include <daEditorE/editorCommon/inGameEditor.h>
@@ -18,7 +18,7 @@
 #include <drv/hid/dag_hiKeyboard.h>
 #include <drv/hid/dag_hiKeybIds.h>
 #include <drv/hid/dag_hiXInputMappings.h>
-#include <startup/dag_inpDevClsDrv.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <startup/dag_globalSettings.h>
 #include <gui/dag_visConsole.h>
 #include <daInput/input_api.h>
@@ -156,7 +156,6 @@ void mask_dainput_pointers(int iflags, int layer)
   const unsigned bit = 1u << layer;
   const unsigned layers = (iflags & IGuiSceneCallback::IF_MOUSE) ? ui_mouse_layers | bit : ui_mouse_layers & ~bit;
   interlocked_relaxed_store(ui_mouse_layers, layers);
-  interlocked_relaxed_store(stg_pnt.touchPadTapClicks, layers != 0);
 
   // Mask mouse and gamepad stick
 
@@ -271,14 +270,12 @@ MouseKbdHandler::~MouseKbdHandler()
   // #endif
 }
 
-using all_darg_scenes_t = dag::RelocatableFixedVector<darg::IGuiScene *, 2, true, framemem_allocator>;
+using all_darg_scenes_t = dag::RelocatableFixedVector<darg::IGuiScene *, 1, true, framemem_allocator>;
 static all_darg_scenes_t get_all_scenes()
 {
   all_darg_scenes_t scenes;
   if (auto oscn = overlay_ui::gui_scene())
     scenes.push_back(oscn);
-  if (auto gscn = user_ui::gui_scene.get())
-    scenes.push_back(gscn);
   return scenes;
 }
 
@@ -335,12 +332,45 @@ bool MouseKbdHandler::gmehWheel(const Context &ctx, int scroll)
 }
 
 
+// One finger on the pad touch pad aims when the UI does not take the pointer and the touch pad aim is on. The moves
+// are injected, so daInput does not count them as mouse use.
+static void aim_with_touch_pad(darg::InputEvent event, int touch_idx, const HumanInput::PointingRawState::Touch &touch, int ui_res)
+{
+  static int aimTouchIdx = -1; // a second finger does not aim
+  if (touch.touchSrc != HumanInput::PointingRawState::Touch::TS_touchPad)
+    return;
+  if (event == darg::INP_EV_PRESS)
+  {
+    if (aimTouchIdx < 0)
+      aimTouchIdx = touch_idx;
+    return;
+  }
+  if (touch_idx != aimTouchIdx)
+    return;
+  if (event == darg::INP_EV_RELEASE)
+  {
+    aimTouchIdx = -1;
+    return;
+  }
+  if (ui_res || is_mouse_used_by_ui() || !controls::touch_pad_aims() || !::dgs_app_active)
+    return;
+  // touches are scaled to the screen height; daInput gets 1/1080 of the pad height: the DualSense pad pixels it got
+  // before, and 1080/942 of the old units for the shorter DualShock 4 pad
+  int w = 0, h = 0;
+  d3d::get_screen_size(w, h);
+  const float k = h > 0 ? 1080.f / h : 1.f;
+  dainput::mouse_move_event_occurs(ref_time_delta_to_usec(ref_time_ticks()), touch.deltaX * k, touch.deltaY * k,
+    HumanInput::raw_state_pnt.mouse.x, HumanInput::raw_state_pnt.mouse.y, /*injected*/ true);
+}
+
+
 bool MouseKbdHandler::gtehTouchBegan(
   const Context &, HumanInput::IGenPointing *m, int touch_idx, const HumanInput::PointingRawState::Touch &touch)
 {
   int resFlags = 0;
   for (darg::IGuiScene *scene : get_all_scenes())
     resFlags |= scene->onTouchEvent(darg::INP_EV_PRESS, m, touch_idx, touch, resFlags);
+  aim_with_touch_pad(darg::INP_EV_PRESS, touch_idx, touch, resFlags);
   return resFlags != 0;
 }
 
@@ -351,6 +381,7 @@ bool MouseKbdHandler::gtehTouchMoved(
   int resFlags = 0;
   for (darg::IGuiScene *scene : get_all_scenes())
     resFlags |= scene->onTouchEvent(darg::INP_EV_POINTER_MOVE, m, touch_idx, touch, resFlags);
+  aim_with_touch_pad(darg::INP_EV_POINTER_MOVE, touch_idx, touch, resFlags);
   return resFlags != 0;
 }
 
@@ -361,6 +392,7 @@ bool MouseKbdHandler::gtehTouchEnded(
   int resFlags = 0;
   for (darg::IGuiScene *scene : get_all_scenes())
     resFlags |= scene->onTouchEvent(darg::INP_EV_RELEASE, m, touch_idx, touch);
+  aim_with_touch_pad(darg::INP_EV_RELEASE, touch_idx, touch, resFlags);
   return resFlags != 0;
 }
 
@@ -399,39 +431,6 @@ bool MouseKbdHandler::gjehStateChanged(const Context &, HumanInput::IGenJoystick
 }
 
 
-#if _TARGET_PC
-static void move_mouse_with_touch_pad()
-{
-  using namespace HumanInput;
-  static JoystickTouchpadState::Point last;
-  JoystickTouchpadState touch;
-  JoystickTouchpadState::Point p;
-  {
-    WinAutoLock lock(global_cls_drv_update_cs);
-    IGenJoystick *joy = ::global_cls_drv_joy ? ::global_cls_drv_joy->getDevice(0) : nullptr;
-    if (joy && joy->getTouchpadState(touch))
-      p = touch.points[0];
-  }
-  IGenPointing *pnt = ::global_cls_drv_pnt ? ::global_cls_drv_pnt->getDevice(0) : nullptr;
-  const int dx = p.x - last.x, dy = p.y - last.y;
-  if (pnt && ::dgs_app_active && p.down && last.down && p.contactId == last.contactId && (dx || dy) &&
-      interlocked_relaxed_load(stg_pnt.emuMouseWithTouchPad))
-  {
-    if (!pnt->getRelativeMovementMode())
-      pnt->setPosition(pnt->getRawState().mouse.x + dx, pnt->getRawState().mouse.y + dy);
-    dainput::mouse_move_event_occurs(ref_time_delta_to_usec(ref_time_ticks()), dx, dy, raw_state_pnt.mouse.x, raw_state_pnt.mouse.y,
-      /*injected*/ true);
-  }
-  last = p;
-}
-#endif
-
-void update_joystick_input()
-{
-  uishared::joystick_handler->processPendingBtnStack(get_all_scenes());
-#if _TARGET_PC
-  move_mouse_with_touch_pad();
-#endif
-}
+void update_joystick_input() { uishared::joystick_handler->processPendingBtnStack(get_all_scenes()); }
 
 } // namespace uiinput

@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/sqPacked ;
+StrictCompile = yes ;
+UseQuirrel = yes ;
+
+TargetType  = lib ;
+local TargetLib = gameLibs/quirrel/sqPacked ;
+if $(SqVarTrace) = yes { TargetLib = $(TargetLib)~vt ; }
+Target = $(TargetLib).lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/gameLibs
+;
+
+Sources =
+  sqPacked.cpp
+;
+
+if $(SqVarTrace) = yes {
+  CPPopt += -DSQ_VAR_TRACE_ENABLED ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -44,7 +44,7 @@ struct LandDetile
     clusters = clampClusters(raw);
     angle = DegToRad(detail_blk.getReal("detileMainDir", 0.f));
     spread = DegToRad(detail_blk.getReal("detileAngleSpread", 180.f));
-    // constraint: the land shaders de-tile only a simple or a detailmap landclass; load_land_class() picks the kind in this order
+    // the land shaders de-tile only a simple or a detailmap landclass; load_land_class() picks the kind in this order
     const char *unsupported = nullptr;
     if (detail_blk.getStr("shader", nullptr))
       unsupported = "custom shader";

@@ -1,4 +1,4 @@
-include "../raytracedToroidalStaticShadow/shaders/rtss_static_shadow.dshl" // constraint: the asset tools can lack the root
+include "../raytracedToroidalStaticShadow/shaders/rtss_static_shadow.dshl" // the asset tools can lack the root
 
 texture static_shadow_tex;
 sampler static_shadow_tex_samplerstate
@@ -14,6 +14,10 @@ interval static_shadows_cascades: off<1, one < 2, two;
 int force_rtss_shadows = 0 always_referenced;
 interval force_rtss_shadows: off < 1, on;
 assume_if_not_assumed force_rtss_shadows = off;
+// off: a sun step restarts an rtss level; not in rtss_lookup.dshl, as an additional dump links assumed intervals by value
+int rtss_sun_sweep always_referenced;
+interval rtss_sun_sweep: off < 1, on;
+assume_if_not_assumed rtss_sun_sweep = on;
 
 float static_cascade_start = -1;
 

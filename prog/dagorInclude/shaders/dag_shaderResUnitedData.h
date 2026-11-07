@@ -10,6 +10,7 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_smallTab.h>
 #include <shaders/dag_shaderMesh.h>
+#include <shaders/dag_shaderMeshlets.h>
 #include <util/dag_delayedAction.h>
 #include <osApiWrappers/dag_mutex.h>
 #include <util/dag_multicastEvent.h>
@@ -247,9 +248,10 @@ protected:
   void doDowngradeRes(int idx, int upper_lod);
 
   static void prepareVdataBaseOfs(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, Tab<int> &dviOfs);
-  static bool updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, unitedvdata::BufPool &buf, Tab<uint8_t> &buf_stor,
-    dag::ConstSpan<unitedvdata::BufChunk> c, uint32_t layout_gen);
+  static bool updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, const RES *r, unitedvdata::BufPool &buf,
+    Tab<uint8_t> &buf_stor, dag::ConstSpan<unitedvdata::BufChunk> c, uint32_t layout_gen);
   static void rebaseElemOfs(const RES *r, dag::ConstSpan<int> dviOfs);
+  static shader_meshlets::VdataElemSet gatherMeshletElems(const RES *r);
 
   inline dag::ConstSpan<unitedvdata::BufChunk> getBufChunks(int i) const
   {

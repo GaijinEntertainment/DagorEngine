@@ -149,13 +149,20 @@ enum class DistantHazeNodeType
   Color
 };
 
+static int get_heat_haze_lod()
+{
+  int depthlod = -1;
+  get_heat_haze_lod_ecs_query(*g_entity_mgr, [&depthlod](int heat_haze__lod) { depthlod = heat_haze__lod; });
+  return depthlod;
+}
+
 template <DistantHazeNodeType type>
-dafg::NodeHandle createDistantHazeNode(DistantHazeManager &distant_haze__manager, int depthlod)
+dafg::NodeHandle createDistantHazeNode(DistantHazeManager &distant_haze__manager)
 {
   const char *nodeName =
     type == DistantHazeNodeType::Normal ? "heat_haze_render_distant_haze_node" : "heat_haze_render_distant_haze_node_color";
 
-  return dafg::register_node(nodeName, DAFG_PP_NODE_SRC, [&distant_haze__manager, depthlod](dafg::Registry registry) {
+  return dafg::register_node(nodeName, DAFG_PP_NODE_SRC, [&distant_haze__manager](dafg::Registry registry) {
     read_all_camera_view_tokens(registry.currNameSpace(), "after_heat_haze_render_particles_nodes");
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
@@ -169,7 +176,7 @@ dafg::NodeHandle createDistantHazeNode(DistantHazeManager &distant_haze__manager
     auto farDownsampledDepthHndl =
       registry.readTexture("far_downsampled_depth").atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
-    return [&distant_haze__manager, cameraHndl, hazeRenderedHndl, depthForTransparencyHndl, farDownsampledDepthHndl, depthlod] {
+    return [&distant_haze__manager, cameraHndl, hazeRenderedHndl, depthForTransparencyHndl, farDownsampledDepthHndl] {
       if (!distant_haze__manager.is_active())
         return;
 
@@ -191,6 +198,7 @@ dafg::NodeHandle createDistantHazeNode(DistantHazeManager &distant_haze__manager
       float minH, maxH;
       wr.getMinMaxZ(minH, maxH); // TODO: get rid of wr dependecy here.
 
+      const int depthlod = get_heat_haze_lod();
       G_ASSERT(depthlod >= 0);
       const auto depthTex = depthlod == 0 ? depthForTransparencyHndl.view() : farDownsampledDepthHndl.view();
 
@@ -206,9 +214,6 @@ ECS_TRACK(render_settings__haze)
 ECS_REQUIRE(bool render_settings__haze)
 static void distant_haze_settings_tracking_es(const ecs::Event &, ecs::EntityManager &manager, bool render_settings__haze)
 {
-  int depthlod = -1;
-  get_heat_haze_lod_ecs_query(manager, [&depthlod](int heat_haze__lod) { depthlod = heat_haze__lod; });
-
   distant_haze_node_init_ecs_query(manager, manager.getSingletonEntity(ECS_HASH("distant_haze_manager")),
     [&](DistantHazeManager &distant_haze__manager, dafg::NodeHandle &distant_haze__node, dafg::NodeHandle &distant_haze__color_node) {
       distant_haze__node = {};
@@ -219,8 +224,8 @@ static void distant_haze_settings_tracking_es(const ecs::Event &, ecs::EntityMan
 
       const bool isColoredHazeSuppored = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("coloredHaze", false);
 
-      distant_haze__node = createDistantHazeNode<DistantHazeNodeType::Normal>(distant_haze__manager, depthlod);
+      distant_haze__node = createDistantHazeNode<DistantHazeNodeType::Normal>(distant_haze__manager);
       if (isColoredHazeSuppored)
-        distant_haze__color_node = createDistantHazeNode<DistantHazeNodeType::Color>(distant_haze__manager, depthlod);
+        distant_haze__color_node = createDistantHazeNode<DistantHazeNodeType::Color>(distant_haze__manager);
     });
 }

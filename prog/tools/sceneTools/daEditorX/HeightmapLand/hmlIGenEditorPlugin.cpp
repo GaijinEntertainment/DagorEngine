@@ -289,6 +289,9 @@ void HmapLandPlugin::registered()
   if (navmeshSubtypeMask == -1)
     navmeshSubtypeMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("navmesh");
 
+  if (loftTaggedSubtypeMask == -1)
+    loftTaggedSubtypeMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("loft_tagged");
+
   if (SplineObject::gameSplineSubtypeMask == -1)
     SplineObject::gameSplineSubtypeMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("game_spline");
 
@@ -334,7 +337,6 @@ void HmapLandPlugin::unregistered()
 
   releaseVertTexRef();
   clear_and_shrink(brushes);
-  objEd.unloadRoadBuilderDll();
 
   self = NULL;
 }
@@ -2778,8 +2780,8 @@ bool HmapLandPlugin::buildEditorHeightmap(DynamicMemGeneralSaveCB *cb)
   cb->writeReal(offset.y);
   const int hmap_version = (int)HmapVersion::HMAP_BASE_VER;
   cb->writeInt(texSize.x | (hmap_version << HMAP_WIDTH_BITS));
-  cb->writeInt(texSize.y); // mirror bit = 0
-  cb->writeInt(0);         // exclude bbox (empty)
+  cb->writeInt(texSize.y | (useDetHmap ? 0 : 0x80000000));
+  cb->writeInt(0); // exclude bbox (empty)
   cb->writeInt(0);
   cb->writeInt(0);
   cb->writeInt(0);
@@ -3702,11 +3704,10 @@ void HmapLandPlugin::exportLand()
 }
 
 void HmapLandPlugin::exportLoftMasks(const char *_out_folder, int main_hmap_sz, int det_hmap_sz, float hmin, float hmax,
-  int prefab_dest_idx)
+  int prefab_dest_idx, LayerHiddenMask layers_hide_mask)
 {
   ISplineGenService::LayerIndexList loft_layers(0);
   OAHashNameMap<true> loft_tags;
-  const LayerHiddenMask layers_hide_mask = DAEDITOR3.getEntityLayerHiddenMask();
 
   String out_folder[2];
   bool out_folder_ensured[2] = {false, false};
@@ -3763,7 +3764,7 @@ void HmapLandPlugin::exportLoftMasks(const char *_out_folder, int main_hmap_sz, 
     if (IGenEditorPlugin *p = DAGORED2->getPluginByName("_prefabEntMgr"))
       if (IGatherStaticGeometry *geom = p->queryInterface<IGatherStaticGeometry>())
       {
-        geom->gatherStaticVisualGeometryForStage(*all_prefab_obj->getGeometryContainer(), prefabs::LOFT_MASK_EXPORT);
+        geom->gatherStaticVisualGeometryForStage(*all_prefab_obj->getGeometryContainer(), prefabs::LOFT_MASK_EXPORT, layers_hide_mask);
         for (StaticGeometryNode *node : all_prefab_obj->getGeometryContainer()->nodes)
           if (node)
             if (const char *tag = node->script.getStr("layerTag", nullptr))
@@ -6760,8 +6761,28 @@ void HmapLandPlugin::setVisible(bool vis)
 //==============================================================================
 
 
+void HmapLandPlugin::requestLandClassRegenerate()
+{
+  pendingLandClassRegen = true;
+  landClassRegenRequestMsec = get_time_msec();
+}
+
+void HmapLandPlugin::applyLandClassRegenerate()
+{
+  if (!pendingLandClassRegen)
+    return;
+  pendingLandClassRegen = false;
+  for (ScriptParam *p : genLayers)
+    p->applyLandClassAssetChange();
+  lcMgr->regenerateObjects(getlandClassMap());
+}
+
 void HmapLandPlugin::actObjects(float dt)
 {
+  // An external tool might write multiple files over some seconds, so wait for a pause in the changes.
+  const int LAND_CLASS_REGEN_DELAY_MSEC = 1000;
+  if (pendingLandClassRegen && (get_time_msec() - landClassRegenRequestMsec) >= LAND_CLASS_REGEN_DELAY_MSEC)
+    applyLandClassRegenerate();
 
   if (isVisible)
   {
@@ -7098,6 +7119,8 @@ void HmapLandPlugin::renderGeometry(Stage stage)
     }
 
     case STG_RENDER_STATIC_OPAQUE:
+      if (st_mask & loftTaggedSubtypeMask)
+        objEd.renderLoftTaggedGeometry();
       if (DAGORED2->getWorkspace().isUsingDngBasedSceneRender())
         break;
       if (useMeshSurface && !landMeshMap.isEmpty() && !landMeshRenderer)
@@ -7223,12 +7246,12 @@ void HmapLandPlugin::renderGeometry(Stage stage)
 
     case STG_RENDER_GRASS_MASK: renderGrassMask(); break;
 
-    case STG_RENDER_LAND_DECALS:
+    case STG_RENDER_WATER_DECALS:
       if (need_lmap && landMeshRenderer && landMeshManager)
       {
         if (!landMeshRenderer->isPrepared())
           hmlService->prepareLandMesh(*landMeshRenderer, *landMeshManager, dagRender->curView().pos);
-        hmlService->renderDecals(*landMeshRenderer, *landMeshManager);
+        hmlService->renderDecals(*landMeshRenderer, *landMeshManager, true);
       }
       break;
     default: break;
@@ -7453,6 +7476,8 @@ static void setSuperEntityRef(ICompositObj *co, const char *nm)
 
 void HmapLandPlugin::onBeforeExport(unsigned target_code)
 {
+  applyLandClassRegenerate();
+
   // update splines geometry if needed
   objEd.updateSplinesGeom();
   rebuildSplinesBitmask();

@@ -45,7 +45,7 @@ dag::ConstSpan<int16_t> VoiceRecorder::readFrames(FMOD::System *fmod_sys)
   if (bufSamples < 0)
     bufSamples += recordSoundSamples;
 
-  // constraint: a lag past the whole ring wraps unseen
+  // a lag past the whole ring wraps unseen
   if (bufSamples > (int)recordSoundSamples / 2)
   {
     const int lagMs = samples_to_ms(bufSamples, sample_rate);
@@ -203,7 +203,7 @@ bool VoiceRecorder::startRecord(FMOD::System *fmod_sys, const SoundSettings &sou
     return false;
   }
 
-  // constraint: Initialize() resets AGC2 and AEC3 adaptation
+  // Initialize() resets AGC2 and AEC3 adaptation
   if (sound_settings.recordDeviceId != currentRecordDevId)
   {
     debug("[VC] Reinit audio processing for record device %d", sound_settings.recordDeviceId);

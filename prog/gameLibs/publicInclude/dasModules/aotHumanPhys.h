@@ -244,6 +244,24 @@ inline void human_phys_state_set_attachedToLadder(HumanPhysState &phys, bool val
 
 inline bool human_phys_state_attachedToLadder(const HumanPhysState &phys) { return phys.attachedToLadder; }
 
+inline void human_phys_state_rope_attach(HumanPhysState &phys, const Point3 &anchor_pos, float max_len)
+{
+  phys.ropeAttach(anchor_pos, max_len);
+}
+
+inline void human_phys_state_rope_detach(HumanPhysState &phys) { phys.ropeDetach(); }
+
+inline bool human_phys_state_rope_attached(const HumanPhysState &phys) { return phys.ropeAttached; }
+
+inline bool human_phys_state_rope_climbing(const HumanPhysState &phys) { return phys.ropeClimbing; }
+
+inline int human_phys_state_rope_bends_count(const HumanPhysState &phys) { return int(phys.ropeBends.size()); }
+
+inline Point3 human_phys_state_rope_bend(const HumanPhysState &phys, int idx)
+{
+  return idx >= 0 && idx < int(phys.ropeBends.size()) ? phys.ropeBends[idx] : phys.ropeAnchorPos;
+}
+
 inline void human_phys_state_set_detachedFromLadder(HumanPhysState &phys, bool value) { phys.detachedFromLadder = value; }
 
 inline void human_phys_state_set_forceWeaponUp(HumanPhysState &phys, bool value) { phys.forceWeaponUp = value; }

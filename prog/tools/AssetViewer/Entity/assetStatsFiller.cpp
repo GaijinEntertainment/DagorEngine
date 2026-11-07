@@ -8,6 +8,8 @@
 #include <3d/dag_texIdSet.h>
 #include <gameRes/dag_collisionResource.h>
 #include <shaders/dag_rendInstRes.h>
+#include <EASTL/algorithm.h>
+#include <limits.h>
 
 extern int rimgr_get_force_lod_no();
 
@@ -67,17 +69,95 @@ int AssetStatsFiller::fillAssetStatsFromRenderableInstanceLodsResource(const Ren
   else if (lod >= res.lods.size())
     lod = res.lods.size() - 1;
 
-  if (!res.lods[lod].scene)
-    return -1;
-
-  const InstShaderMeshResource *meshResource = res.lods[lod].scene->getMesh();
-  const InstShaderMesh *mesh = meshResource ? meshResource->getMesh() : nullptr;
+  const ShaderMesh *mesh = getRenderableInstanceLodMesh(res, lod);
   if (!mesh)
     return -1;
 
-  fillAssetStatsFromShaderMesh(*mesh->getMesh());
+  fillAssetStatsFromShaderMesh(*mesh);
 
   return lod;
+}
+
+const ShaderMesh *AssetStatsFiller::getRenderableInstanceLodMesh(const RenderableInstanceLodsResource &res, int lod)
+{
+  if (lod < 0 || lod >= res.lods.size() || !res.lods[lod].scene)
+    return nullptr;
+
+  const InstShaderMeshResource *meshResource = res.lods[lod].scene->getMesh();
+  const InstShaderMesh *mesh = meshResource ? meshResource->getMesh() : nullptr;
+  return mesh ? mesh->getMesh() : nullptr;
+}
+
+static int get_elem_start_vertex(const ShaderMesh::RElem &elem)
+{
+  return elem.si != RELEM_NO_INDEX_BUFFER ? elem.baseVertex + elem.sv : elem.sv;
+}
+
+// The voxel mip data follows the hull vertices of the voxel element in its VB, up to the next element of the same vertex data.
+static uint32_t calc_voxel_vb_data_size(const RenderableInstanceLodsResource &res, const ShaderMesh::RElem &voxel_elem)
+{
+  const GlobalVertexData *vdata = voxel_elem.vertexData;
+  const int voxelDataStart = get_elem_start_vertex(voxel_elem) + voxel_elem.numv;
+  int dataEnd = vdata->getVOffs() + vdata->getVbSize() / vdata->getStride();
+  for (int lod = 0; lod < res.lods.size(); ++lod)
+    if (const ShaderMesh *mesh = AssetStatsFiller::getRenderableInstanceLodMesh(res, lod))
+      for (const ShaderMesh::RElem &elem : mesh->getAllElems())
+        if (elem.vertexData == vdata)
+        {
+          const int start = get_elem_start_vertex(elem);
+          if (start >= voxelDataStart)
+            dataEnd = min(dataEnd, start);
+        }
+
+  return dataEnd > voxelDataStart ? (dataEnd - voxelDataStart) * vdata->getStride() : 0;
+}
+
+uint32_t AssetStatsFiller::calcRenderableInstanceLodGpuMemory(const RenderableInstanceLodsResource &res, int lod)
+{
+  const ShaderMesh *mesh = getRenderableInstanceLodMesh(res, lod);
+  if (!mesh)
+    return 0;
+
+  struct VertexRange
+  {
+    const GlobalVertexData *vdata;
+    int start, end;
+  };
+  Tab<VertexRange> vertexRanges;
+  uint32_t size = 0;
+  for (const ShaderMesh::RElem &elem : mesh->getAllElems())
+  {
+    if (!elem.vertexData)
+      continue;
+
+    // Several elements can draw the same vertex range.
+    const int start = get_elem_start_vertex(elem);
+    const int end = start + elem.numv;
+    auto range = eastl::find_if(vertexRanges.begin(), vertexRanges.end(),
+      [&](const VertexRange &r) { return r.vdata == elem.vertexData && r.start < end && r.end > start; });
+    if (range == vertexRanges.end())
+      vertexRanges.push_back({elem.vertexData, start, end});
+    else
+    {
+      range->start = min(range->start, start);
+      range->end = max(range->end, end);
+    }
+
+    if (elem.si != RELEM_NO_INDEX_BUFFER)
+      size += elem.numf * 3 * elem.vertexData->getIbElemSz();
+  }
+  for (const VertexRange &range : vertexRanges)
+    size += (range.end - range.start) * range.vdata->getStride();
+
+  if (const VoxelSurfaceData *voxelSurface = res.lods[lod].getVoxelSurface())
+  {
+    for (const ShaderMesh::RElem &elem : mesh->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest))
+      if (elem.vertexData)
+        size += calc_voxel_vb_data_size(res, elem);
+    size += voxelSurface->getAtlasMemoryUsed();
+  }
+
+  return size;
 }
 
 int AssetStatsFiller::fillAssetStatsFromDynamicRenderableSceneInstance(DynamicRenderableSceneInstance &scene_instance)

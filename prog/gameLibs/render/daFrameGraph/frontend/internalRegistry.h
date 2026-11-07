@@ -72,6 +72,8 @@ struct VirtualPassRequirements
   VirtualSubresourceRef vrsRateAttachment;
 };
 
+using RenderingRequirements = eastl::variant<eastl::monostate, VirtualPassRequirements>;
+
 struct ShaderBlockLayersInfo
 {
   int objectLayer = -1;
@@ -110,6 +112,7 @@ struct BlobArg
 struct DispatchAutoResolutionArg
 {
   AutoResTypeNameId autoResTypeId = AutoResTypeNameId::Invalid;
+  bool roundUp = false;
   float multiplier = 1.0f;
   detail::TypeErasedProjector projector = +[](const void *data) { return data; };
 };
@@ -286,7 +289,7 @@ struct NodeData
   // This is implementable, but not worth it right now.
   dag::FixedVectorMap<ResNameId, ResourceRequest, 16> historyResourceReadRequests;
 
-  eastl::optional<VirtualPassRequirements> renderingRequirements;
+  RenderingRequirements renderingRequirements;
   eastl::variant<eastl::monostate, DispatchRequirements, DrawRequirements, CopyRequirements> executeRequirements;
   eastl::array<eastl::optional<VertexSource>, MAX_VERTEX_STREAMS> vertexSources;
   BindingsMap bindings;

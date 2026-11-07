@@ -1,2 +1,3 @@
 Sources += $(ProjectLocation)/main/dasGameModulesList.cpp ;
 include $(Root)/prog/daNetGameLibs/package_physobj/_aot.jam ;
+include $(Root)/prog/daNetGameLibs/phys_kind/_aot.jam ;

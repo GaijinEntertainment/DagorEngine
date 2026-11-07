@@ -22,17 +22,12 @@ static void stderr_report_fatal_error(const char *, const char *msg, const char 
 
 
 static int err_count = 0;
-static int log_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
-{
-  if (lev_tag == LOGLEVEL_ERR || lev_tag == LOGLEVEL_FATAL)
-    err_count++;
-  return 1;
-}
+static void log_callback(void *, LogMessage &) { err_count++; }
 
 int DagorWinMain(bool debugmode)
 {
   dgs_report_fatal_error = stderr_report_fatal_error;
-  debug_set_log_callback(&log_callback);
+  debug_add_log_handler(&log_callback, nullptr, {.levelMask = LOGMASK_ERRORS});
 
   setvbuf(stdout, NULL, _IOFBF, 8192);
 

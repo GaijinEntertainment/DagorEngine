@@ -147,7 +147,7 @@ void WinHwExceptionUtils::parseExceptionInfo(EXCEPTION_POINTERS *eptr, const cha
 
 #if DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0
   // immediately report exception (to debug)
-  debug_set_log_callback(nullptr); // if we get here, process already in undetermined state, don't do unknown side-effects even more
+  debug_stop_calling_log_handlers(); // if we get here, process already in undetermined state, don't do unknown side-effects even more
   logmessage(LOGLEVEL_FATAL, "%s", text_buffer);
   flush_debug_file();
 #endif // DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0

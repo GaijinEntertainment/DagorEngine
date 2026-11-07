@@ -6,7 +6,9 @@
 
 #include <math/dag_mathBase.h>
 #include <math/dag_Point3.h>
+#include <generic/dag_functionRef.h>
 
+class DagorAsset;
 class IObjEntity;
 
 class ICompositObj
@@ -53,6 +55,24 @@ public:
   //! false when the asset discards an explicit per-instance seed (forceInstSeed0:b), so there is no point
   //! giving a placed object one whatever autoInstSeed:b says
   virtual bool canCompositUseInstSeed() { return true; }
+};
+
+class ICompositLeafEnumerator
+{
+public:
+  // Calls leaf_cb for each leaf entity of the asset's composit tree, with its tm in the composit space. From a random
+  // node, the walk selects one entity, and makes the random tm of each node, as for a new composit entity at the
+  // origin. Placement on collision or water is skipped. Leaf is the virtual entity of the sub-asset, or of a spline
+  // or polygon node, which has no asset.
+  //
+  // No entity is added to the scene. The call creates the entity pool of the composit and of each sub-asset when the
+  // pool does not exist, and the services keep the pools.
+  //
+  // Returns false when the asset is not a composit, when a composit in the tree has require blocks, or when leaf_cb
+  // returns false, which stops the walk. You have to discard what leaf_cb collected when the function returns false.
+  virtual bool enumCompositLeaves(const DagorAsset &asset, dag::FunctionRef<bool(IObjEntity &leaf, const TMatrix &tm)> leaf_cb) = 0;
+
+  static constexpr unsigned HUID = 0xF8D3B00Bu; // ICompositLeafEnumerator
 };
 
 // In a composite the Y axis scale is scale * yScale.

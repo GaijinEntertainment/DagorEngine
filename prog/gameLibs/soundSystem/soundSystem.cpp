@@ -32,6 +32,7 @@
 
 #include <math/random/dag_random.h>
 #include <osApiWrappers/dag_atomic_types.h>
+#include <osApiWrappers/dag_threads.h>
 
 #if _TARGET_IOS
 #include "soundSystem_ios.h"
@@ -39,12 +40,6 @@
 
 #if _TARGET_PC_WIN
 #include <objbase.h>
-#endif
-
-#if FMOD_VERSION < 0x00020100 && _TARGET_XBOX
-#include <fmod_gamecore.h>
-#define XBOX_THREAD_AFFINITY FMOD_GAMECORE_THREADAFFINITY
-#define XBOX_SET_AFFINITY    FMOD_GameCore_SetThreadAffinity
 #endif
 
 #if _TARGET_ANDROID
@@ -413,33 +408,19 @@ static bool system_init(const DataBlock &blk, bool null_output)
 #endif
 
 #if _TARGET_XBOX
-#if FMOD_VERSION < 0x00020100
-  XBOX_THREAD_AFFINITY affinity = {0};
-  affinity.mixer = FMOD_THREAD_CORE5;
-  affinity.stream = FMOD_THREAD_CORE5;
-  affinity.nonblocking = FMOD_THREAD_CORE5;
-  affinity.file = FMOD_THREAD_CORE5;
-  affinity.geometry = FMOD_THREAD_CORE5;
-  affinity.profiler = FMOD_THREAD_CORE5;
-  affinity.studioUpdate = FMOD_THREAD_CORE5;
-  affinity.studioLoadBank = FMOD_THREAD_CORE5;
-  affinity.studioLoadSample = FMOD_THREAD_CORE5;
-  XBOX_SET_AFFINITY(&affinity);
-#else
-  // Allow medium & low priority threads use 6th core as well (it can't interfere with TP Workers since it has above normal prio)
-  constexpr FMOD_THREAD_AFFINITY core56 = FMOD_THREAD_AFFINITY_CORE_5 | FMOD_THREAD_AFFINITY_CORE_6;
   FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_MIXER, FMOD_THREAD_AFFINITY_CORE_5);
   FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_FEEDER, FMOD_THREAD_AFFINITY_CORE_4); // FMOD_THREAD_PRIORITY_CRITICAL by default, use
                                                                                     // dedicated core
   FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_STREAM, FMOD_THREAD_AFFINITY_CORE_5);
   FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_NONBLOCKING, FMOD_THREAD_AFFINITY_CORE_5);
   FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_FILE, FMOD_THREAD_AFFINITY_CORE_5);
-  FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_GEOMETRY, core56);
-  FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_PROFILER, core56);
-  FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_STUDIO_UPDATE, core56);
-  FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_STUDIO_LOAD_BANK, core56);
-  FMOD::Thread_SetAttributes(FMOD_THREAD_TYPE_STUDIO_LOAD_SAMPLE, core56);
 #endif
+#if _TARGET_XBOX | _TARGET_C1
+  // Normal/below normal prio threads are below main & TP workers prio: run them on every core but main's, as the engine's own threads
+  const FMOD_THREAD_AFFINITY belowMainCores = WORKER_THREADS_AFFINITY_USE & ((1ull << cpujobs::get_core_count()) - 1);
+  for (FMOD_THREAD_TYPE type : {FMOD_THREAD_TYPE_GEOMETRY, FMOD_THREAD_TYPE_PROFILER, FMOD_THREAD_TYPE_STUDIO_UPDATE,
+         FMOD_THREAD_TYPE_STUDIO_LOAD_BANK, FMOD_THREAD_TYPE_STUDIO_LOAD_SAMPLE})
+    FMOD::Thread_SetAttributes(type, belowMainCores);
 #endif
 
   {

@@ -527,8 +527,8 @@ namespace das
         else if ( val==-DBL_MIN ) return "(-DBL_MIN)";
         else if ( val==DBL_MAX ) return "DBL_MAX";
         else if ( val==-DBL_MAX ) return "(-DBL_MAX)";
-        else if ( isinf(val) ) return val > 0 ? "((double)INFINITY)" : "((double)(-INFINITY))";
-        else if ( isnan(val) ) return "((double)NAN)";
+        else if ( disnan(val) ) return "((double)NAN)";
+        else if ( !disfinite(val) ) return val > 0 ? "((double)INFINITY)" : "((double)(-INFINITY))";
         else {
             char buf[256];
             auto result = fmt::format_to(buf, FMT_STRING("{:.17e}"), val);
@@ -561,8 +561,8 @@ namespace das
         else if ( val==-FLT_MIN ) return "(-FLT_MIN)";
         else if ( val==FLT_MAX ) return "FLT_MAX";
         else if ( val==-FLT_MAX ) return "(-FLT_MAX)";
-        else if ( isinf(val) ) return val > 0 ? "INFINITY" : "(-INFINITY)";
-        else if ( isnan(val) ) return "NAN";
+        else if ( fisnan(val) ) return "NAN";
+        else if ( !fisfinite(val) ) return val > 0 ? "INFINITY" : "(-INFINITY)";
         else {
             char buf[256];
             // {:e} defaults to %e semantics (6 digits after decimal = 7 sig figs

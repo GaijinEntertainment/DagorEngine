@@ -34,7 +34,7 @@
 
 static VoiceSwitchVar stats_enabled("voice.stats_enabled", false);
 static VoiceSwitchVar test_enabled("voice.test", false, "plays the processed mic back, as SoundSettings::voiceTest does");
-// constraint: the console test plays through one communicator only; for voiceTest of the settings the game makes that choice
+// the console test plays through one communicator only; for voiceTest of the settings the game makes that choice
 static voicechat::VoiceCommunicator *volatile console_test_owner = nullptr;
 
 namespace voicechat
@@ -104,7 +104,7 @@ private:
   const thread::Identity *threadIdentity = nullptr;
   const int64_t creatorThreadId = get_current_thread_id();
 
-  // constraint: declared before sourceControlMap, whose control of it must end first
+  // declared before sourceControlMap, whose control of it must end first
   eastl::unique_ptr<VoiceLoopback> loopback;
   using VoiceSourceControlPtr = eastl::unique_ptr<VoiceSourceControl>;
   ska::flat_hash_map<IVoiceSource *, VoiceSourceControlPtr> sourceControlMap;

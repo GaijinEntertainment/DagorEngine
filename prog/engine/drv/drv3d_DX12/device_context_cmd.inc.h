@@ -219,10 +219,9 @@ DX12_END_CONTEXT_COMMAND
 DX12_BEGIN_CONTEXT_COMMAND(true, EnhancedTextureBarrier)
   DX12_CONTEXT_COMMAND_PARAM(d3d::TextureBarrier, barrier)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, texFlags)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.enhancedTextureBarrier(barrier, image, texFlags);
+  ctx.enhancedTextureBarrier(barrier, image);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -700,6 +699,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedIndirect)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, count)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, buffer)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, stride)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, offsetInRecord)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.switchActivePipeline(ActivePipeline::Graphics);
@@ -709,7 +709,26 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedIndirect)
   ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsState(top);
-  ctx.drawIndexedIndirect(buffer, count, stride);
+  ctx.drawIndexedIndirect(buffer, count, stride, offsetInRecord);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedIndirectTessellationWorkaround)
+  DX12_CONTEXT_COMMAND_PARAM(D3D12_PRIMITIVE_TOPOLOGY, top)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, count)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, buffer)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, stride)
+  DX12_CONTEXT_COMMAND_PARAM(const uint8_t *, cpuArgs)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchActivePipeline(ActivePipeline::Graphics);
+  ctx.ensureActivePass();
+  ctx.flushIndexBuffer();
+  ctx.flushVertexBuffers();
+  ctx.flushStreamOutputBuffer();
+  ctx.flushGraphicsStateResourceBindings();
+  ctx.flushGraphicsState(top);
+  ctx.drawIndexedIndirectTessellationWorkaround(buffer, count, stride, cpuArgs);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -788,13 +807,13 @@ DX12_END_CONTEXT_COMMAND
 DX12_BEGIN_CONTEXT_COMMAND(true, FlushWithFence)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint64_t, progress)
-  DX12_CONTEXT_COMMAND_PARAM(std::atomic<uint32_t> *, threadFinishSignal)
+  DX12_CONTEXT_COMMAND_PARAM(dag::AtomicInteger<uint32_t> *, threadFinishSignal)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.flush(progress, {}, {});
   if (threadFinishSignal)
   {
-    *threadFinishSignal = 1;
+    threadFinishSignal->store(1);
     ::notify_all(*threadFinishSignal);
   }
 #endif
@@ -1304,10 +1323,12 @@ DX12_BEGIN_CONTEXT_COMMAND(true, WorkerPing)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, FlushWithFenceAndTerminate)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint64_t, progress)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.flush(progress, {}, {});
+  if (!ctx.isDeviceInErrorState())
+    ctx.flush(progress, {}, {});
   ctx.terminateWorker();
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -1411,7 +1432,7 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, CommandFence)
   DX12_CONTEXT_COMMAND_USE_DEVICE(false)
-  DX12_CONTEXT_COMMAND_PARAM(std::atomic_uint32_t &, signal)
+  DX12_CONTEXT_COMMAND_PARAM(dag::AtomicInteger<uint32_t> &, signal)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.commandFence(signal);
 #endif

@@ -8,7 +8,6 @@ namespace ecs
 {
 #if DAECS_EXTENSIVE_CHECKS
 extern bool log_unchaged_track_components_marked_as_changed;
-extern dag::VectorMap<int, int> component_index_to_unchanged_track_count;
 #endif
 
 #if TIME_PROFILER_ENABLED && DAGOR_DBGLEVEL > 0

@@ -15,6 +15,19 @@
 #ifndef RTSS_HW_COMPARE
 #define RTSS_HW_COMPARE 1
 #endif
+#ifndef RTSS_SUN_SWEEP
+#define RTSS_SUN_SWEEP 1
+#endif
+#ifndef RTSS_TAP_LOOP
+#define RTSS_TAP_LOOP 0 // 1 keeps the loop in static form
+#endif
+#if RTSS_SUN_SWEEP
+#define rtss_newest_bit(flags) ((flags) & RTSS_LEVEL_NEWEST_BIT)
+#define rtss_level0_bit        uint(rtss_params.z)
+#else
+#define rtss_newest_bit(flags) 0u
+#define rtss_level0_bit        0u
+#endif
 
 struct RtssTap
 {
@@ -94,6 +107,13 @@ half rtss_pcf2x2(RtssTap tap, float3 ofs)
   return rtss_pcf2x2_at(b, rtss_pcf_axis(b, ofs));
 }
 
+half rtss_pcf_tent3x3(RtssTap tap)
+{
+  RtssPcf b = rtss_pcf_base(tap);
+  float4 o = float4(0.5, -0.5, 0, 0) * (RTSS_HW_COMPARE ? rtss_atlas_texel : 1.0);
+  return (rtss_pcf2x2_at(b, o.xxz) + rtss_pcf2x2_at(b, o.xyz) + rtss_pcf2x2_at(b, o.yxz) + rtss_pcf2x2_at(b, o.yyz)) * half(0.25);
+}
+
 float rtss_caster_z(RtssTap tap)
 {
   return tap.zBase + rtss_atlas[uint3(tap.slot * uint(rtss_params_i.z) + uint2(rtss_slot_pos(tap)), tap.level)] / tap.invRange;
@@ -105,8 +125,8 @@ uint rtss_find_tap(uint level, float3 pos, out RtssTap tap)
   tap.level = level;
   uint W = uint(rtss_params_i.y);
   uint4 window = rtss_level_window(level);
-  uint bit = window.z & RTSS_LEVEL_NEWEST_BIT, miss = RTSS_TAP_RELEASED;
-  for (uint i = 0; i < ((window.z & RTSS_LEVEL_SWEEPING) ? 2u : 1u); ++i, bit ^= 1)
+  uint bit = rtss_newest_bit(window.z), miss = RTSS_TAP_RELEASED;
+  for (uint i = 0; i < ((RTSS_SUN_SWEEP || RTSS_TAP_LOOP) && (window.z & RTSS_LEVEL_SWEEPING) ? 2u : 1u); ++i, bit ^= 1)
   {
     tap.ls = rtss_to_ls(level, bit, float4(pos, 1));
     tap.pageRel = int2(floor(tap.ls.xy * asfloat(window.w)));
@@ -116,7 +136,7 @@ uint rtss_find_tap(uint level, float3 pos, out RtssTap tap)
     uint4 s = rtss_slot((level * W + tap.slot.y) * W + tap.slot.x);
     float2 depth = asfloat(s.zw);
     bool samePage = (s.y & RTSS_SLOT_VALID) != 0 && s.x == rtss_pack_page(page);
-    bool sameBit = ((s.y & RTSS_SLOT_BIT) != 0) == (bit != 0);
+    bool sameBit = !(RTSS_SUN_SWEEP || RTSS_TAP_LOOP) || ((s.y & RTSS_SLOT_BIT) != 0) == (bit != 0);
     tap.zBase = depth.x;
     tap.invRange = rcp(max(depth.y - depth.x, 1e-6));
     if (samePage && sameBit && tap.ls.z >= depth.x && tap.ls.z <= depth.y)
@@ -128,7 +148,7 @@ uint rtss_find_tap(uint level, float3 pos, out RtssTap tap)
 
 float3 rtss_normal_offset_pos(float3 pos_rel, float3 world_normal, float lod)
 {
-  float3 d = rtss_level_row(0, uint(rtss_params.z) * 3 + 2).xyz;
+  float3 d = rtss_level_row(0, rtss_level0_bit * 3 + 2).xyz;
   float NoL = saturate(dot(world_normal, -d));
   return pos_rel + world_normal * (rtss_bias.y * rtss_texel0 * exp2(max(lod, 0.0)) * (1 - NoL));
 }
@@ -140,12 +160,12 @@ float rtss_dither(float3 world_pos) { return pcg3d_hash_16bit(asuint(world_pos))
 uint rtss_select_level(float3 pos_rel, float dither, out float lod, out float fade)
 {
   float3 fromCenter = pos_rel - float3(0, rtss_center_y, 0);
-  float3 dc = rtss_to_ls(0, uint(rtss_params.z), float4(fromCenter, 0));
+  float3 dc = rtss_to_ls(0, rtss_level0_bit, float4(fromCenter, 0));
   float m = max(max(max(abs(dc.x), abs(dc.y) * rtss_select_y), abs(dc.z)) * rtss_params.x, 1e-6);
   lod = log2(m);
   uint first = uint(max(0, int(ceil(lod)))), last = uint(max(rtss_params_i.x - 1, 0));
   float band = saturate((m * asfloat((127u - first) << 23) - 1) * rtss_params.w + 1); // read with first < last alone
-  float3 dl = abs(rtss_to_ls(last, rtss_level_window(last).z & RTSS_LEVEL_NEWEST_BIT, float4(fromCenter, 0)));
+  float3 dl = abs(rtss_to_ls(last, rtss_newest_bit(rtss_level_window(last).z), float4(fromCenter, 0)));
   float ml = max(max(dl.x, dl.y), dl.z) * rtss_params.x * asfloat((127u - last) << 23);
   fade = first >= last ? saturate((ml - 1) * rtss_params.w + 1) : 0;
   return first < last && dither < band ? first + 1 : min(first, last);
@@ -154,7 +174,7 @@ uint rtss_select_level(float3 pos_rel, float dither, out float lod, out float fa
 // RTSS_NO_LEVEL when no level from the selected one on has data at the normal offset position
 uint rtss_find_level(float3 pos_rel, float3 world_normal, float dither, out float lod, out RtssTap tap, out float fade)
 {
-  // constraint: fxc rejects an output read it hoists above the hit test, and the loop can run zero times
+  // fxc rejects an output read it hoists above the hit test, and the loop can run zero times
   tap = (RtssTap)0;
   lod = fade = 0;
   uint k = rtss_select_level(pos_rel, dither, lod, fade);
@@ -231,17 +251,17 @@ half rtss_screen_filter(RtssTap center, float3 world_normal, float dither, float
   float hardenK = saturate(distToCaster * harden.x);
   radiusTexels = lerp(0.5, radiusTexels, lerp(hardenK * hardenK, 1, harden.y));
   #endif
-  float3 tangent = r0, bitangent = normalize(r1);
-  if (dot(world_normal, world_normal) > 1e-6)
-  {
-    tangent = normalize(cross(abs(world_normal.y) > 0.5 ? float3(1, 0, 0) : float3(0, 1, 0), world_normal));
-    bitangent = cross(tangent, world_normal);
-  }
+  float r1Len2 = dot(r1, r1), invSy = rsqrt(r1Len2), sy = r1Len2 * invSy;
+  float2 nxy = float2(dot(world_normal, r0), dot(world_normal, r1) * invSy);
+  float nz = dot(world_normal, rtss_level_row(level, row + 2).xyz);
   float2 sc;
   sincos(6.2831853 * dither, sc.x, sc.y);
   float2x2 rotation = {sc.x, sc.y, -sc.y, sc.x};
-  float2x3 axes = mul(rotation * (min(radiusTexels * radius_scale * texel, maxOfs) * grow), float2x3(tangent, bitangent));
-  float3 ax = rtss_to_ls(level, center.bit, float4(axes[0], 0)), ay = rtss_to_ls(level, center.bit, float4(axes[1], 0));
+  float2x2 axes = rotation * (min(radiusTexels * radius_scale * texel, maxOfs) * grow);
+  float2 k = mul(axes, nxy), kz = nz > 0 ? -k : k;
+  float squeeze = rcp(1 + abs(nz));
+  float2 a0 = axes[0] - nxy * (k.x * squeeze), a1 = axes[1] - nxy * (k.y * squeeze);
+  float3 ax = float3(a0.x, a0.y * sy, kz.x), ay = float3(a1.x, a1.y * sy, kz.y);
   float scale = min(1, maxOfs * rsqrt(max(max(ax.x * ax.x + ay.x * ay.x, ax.y * ax.y + ay.y * ay.y), 1e-12)));
   RtssPcf b = rtss_pcf_base(center);
   ax = rtss_pcf_axis(b, ax * scale);
@@ -261,7 +281,7 @@ half rtss_sun_visibility_screen_rel(float3 pos_rel, float3 world_normal, float d
     return 0;
   float lod, fade;
   RtssTap center;
-  // constraint: no ?: here, HLSL 2018 evaluates both sides, a filter of a missed tap with no level
+  // no ?: here, HLSL 2018 evaluates both sides, a filter of a missed tap with no level
   if (rtss_find_level(pos_rel, world_normal, frac(dither * 16), lod, center, fade) == RTSS_NO_LEVEL)
     return 1;
   return lerp(rtss_screen_filter(center, world_normal, dither, radius_scale, harden, lod), 1, fade);

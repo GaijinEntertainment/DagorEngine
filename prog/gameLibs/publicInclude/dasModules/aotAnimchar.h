@@ -22,6 +22,7 @@
 #include <anim/dag_animPostBlendCtrl.h>
 #include <ecs/phys/ragdoll.h>
 #include <phys/dag_physDecl.h>
+#include <phys/dag_fastPhys.h>
 #include <memory/dag_framemem.h>
 #include <dasModules/dasManagedTab.h>
 #include <generic/dag_patchTab.h>
@@ -140,6 +141,31 @@ struct das::isCloneable<AnimV20::AnimBlender> : false_type
 namespace bind_dascript
 {
 inline void animchar_act(::AnimV20::AnimcharBaseComponent &animchar, real dt, bool calc_anim) { animchar.act(dt, calc_anim); }
+
+inline void animchar_fast_phys_set_clip_friction(const ::AnimV20::AnimcharBaseComponent &animchar, float friction)
+{
+  if (FastPhysSystem *fastPhys = animchar.getFastPhysSystem())
+    fastPhys->clipFriction = friction;
+}
+
+inline void animchar_fast_phys_set_clip_boxes(const ::AnimV20::AnimcharBaseComponent &animchar, const das::TArray<TMatrix> &boxes)
+{
+  if (FastPhysSystem *fastPhys = animchar.getFastPhysSystem())
+  {
+    const TMatrix *first = (const TMatrix *)boxes.data;
+    fastPhys->clipBoxes.assign(first, first + boxes.size);
+  }
+}
+
+inline void animchar_fast_phys_set_clip_capsules(const ::AnimV20::AnimcharBaseComponent &animchar,
+  const das::TArray<Capsule> &capsules)
+{
+  if (FastPhysSystem *fastPhys = animchar.getFastPhysSystem())
+  {
+    const Capsule *first = (const Capsule *)capsules.data;
+    fastPhys->clipCapsules.assign(first, first + capsules.size);
+  }
+}
 
 inline const char *animchar_get_res_name(const ::AnimV20::AnimcharBaseComponent &animchar)
 {

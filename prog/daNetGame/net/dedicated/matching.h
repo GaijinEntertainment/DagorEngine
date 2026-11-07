@@ -6,6 +6,7 @@
 #include <EASTL/unordered_map.h>
 #include <matching/types.h>
 #include <json/json.h>
+#include <daECS/net/netbase.h> // SessionUrlKind
 
 namespace matching
 {
@@ -41,7 +42,8 @@ eastl::string get_current_cluster();
 matching::Client *get_client();
 // Matching client owns these RPCs so reply lifetime follows matching, not the relay ES.
 void request_start_relay(int gen);
-void set_urls(const eastl::vector<eastl::string> &extra_urls, const eastl::string &stun_request, int pub_gen);
+// Extra routes as SessionUrl; matching attrs stay host_urls + host_url_kinds (compat).
+void set_urls(const eastl::vector<net::SessionUrl> &extra, const eastl::string &stun_request, int pub_gen);
 
 const eastl::unordered_map<matching::UserId, Json::Value> &get_session_players();
 

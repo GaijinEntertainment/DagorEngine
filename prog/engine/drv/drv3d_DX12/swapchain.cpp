@@ -16,6 +16,10 @@ using namespace drv3d_dx12;
 #include "swapchain_xbox.inc.cpp"
 #endif
 
+#if _TARGET_PC_WIN
+#include <flipStallNudge.h>
+#endif
+
 // ~~~~~~~~~~~~~~ FRONTEND ~~~~~~~~~~~~~~
 
 void frontend::Swapchain::setup(SetupInfo setup, uint32_t swapchain_index)
@@ -29,6 +33,7 @@ void frontend::Swapchain::setup(SetupInfo setup, uint32_t swapchain_index)
 
 #if _TARGET_PC_WIN
   waitableObject = eastl::move(setup.waitableObject);
+  init_flip_nudge();
 #endif
   if (!swapchainColorTex)
   {
@@ -88,7 +93,11 @@ void frontend::Swapchain::waitForFrameStart() const
     // In some cases the object times out even when the GPU is idle and waits for work,
     // this seems to happen when frames on the CPU take very long (during loading for example),
     // and the GPU finishes all outstanding frames before we wait here.
+#if _TARGET_PC_WIN
+    auto result = wait_with_flip_nudge(waitableObject.get(), MAX_WAIT_OBJECT_TIMEOUT_MS, "frame latency");
+#else
     auto result = WaitForSingleObjectEx(waitableObject.get(), MAX_WAIT_OBJECT_TIMEOUT_MS, FALSE);
+#endif
     if (WAIT_OBJECT_0 != result)
     {
       // don't report it as error, we can go on, so just warn about it.
@@ -133,6 +142,7 @@ void frontend::Swapchain::shutdown()
   currentTargetIndex = 0;
 #if _TARGET_PC_WIN
   freeSwapchainsMask = ~1u;
+  shutdown_flip_nudge();
 #endif
 }
 
@@ -511,7 +521,7 @@ void backend::Swapchain::present(Device &device, uint32_t frame_id)
   device.getContext().gpuLatencyWait();
   TIME_PROFILE(present);
   swapchainPresent(frame_id, getCurrentSwapchainIndex());
-  numFramesCompletedByBackend++;
+  numFramesCompletedByBackend.fetch_add(1);
 }
 
 void backend::Swapchain::secondaryPresent(uint32_t swapchain_index, uint32_t frame_id) { swapchainPresent(frame_id, swapchain_index); }
@@ -573,12 +583,18 @@ void backend::Swapchain::clearViews(Device &device, uint32_t swapchain_index)
     // caller of this already holds context lock
     prepareViewForShutDown(info.colorTarget->getRecentView());
     for (auto &view : info.colorTarget->getOldViews())
-    {
       prepareViewForShutDown(view);
-      if (view.state.isSRV() || view.state.isUAV())
-        swapchainBufferSRVHeap.free(view.handle);
-      else if (view.state.isRTV())
-        swapchainBufferRTVHeap.free(view.handle);
+    for (auto &buffer : info.colorTargets)
+    {
+      for (size_t i = 0; i < buffer.viewTable.size(); ++i)
+      {
+        if (buffer.viewTable[i] == D3D12_CPU_DESCRIPTOR_HANDLE{})
+          continue;
+        if (info.swapchainViewSet[i].state.isRTV())
+          swapchainBufferRTVHeap.free(buffer.viewTable[i]);
+        else
+          swapchainBufferSRVHeap.free(buffer.viewTable[i]);
+      }
     }
     info.colorTarget->removeAllViews();
     info.colorTarget->replaceResource(nullptr);
@@ -624,7 +640,7 @@ void backend::Swapchain::preRecovery()
     info.swapchainViewSet.clear();
     info.virtualColorTarget = nullptr;
   }
-  numFramesCompletedByBackend.store(0, std::memory_order_relaxed);
+  numFramesCompletedByBackend.store(0, dag::memory_order_relaxed);
   swapchainBufferSRVHeap.shutdown();
   swapchainBufferRTVHeap.shutdown();
 }

@@ -1128,9 +1128,11 @@ class AsmParser
     {
       return false;
     }
-    if (!expect('{'))
+    // specialized nodes, like the debug info !DILocation(...), are no tuples and are not needed
+    if (!check("{"))
     {
-      return false;
+      skipLine();
+      return true;
     }
 
     auto &data = target.addMetaData(name);

@@ -60,15 +60,16 @@ void GraphAddNodePopup::openAt(const GraphData &gd, GraphEditorPlg &plugin, int 
     iconsLoaded = true;
   }
 
-  const GraphData::Pin *const sourcePinDesc = find_pin(gd, source_node, source_pin);
-  if (!sourcePinDesc)
+  const GraphData::Pin *const sourcePinDesc = source_node >= 0 ? find_pin(gd, source_node, source_pin) : nullptr;
+  if (source_node >= 0 && !sourcePinDesc)
   {
     return;
   }
 
   sourceNode = source_node;
   sourcePin = source_pin;
-  srcIsOutput = sourcePinDesc->role == PinRole::Out;
+  // With no pin the ghost hangs right of the drop point, as an output's does.
+  srcIsOutput = !sourcePinDesc || sourcePinDesc->role == PinRole::Out;
   splice = splice_into_connections;
   anchorEdge = anchor_edge;
 
@@ -82,24 +83,26 @@ void GraphAddNodePopup::openAt(const GraphData &gd, GraphEditorPlg &plugin, int 
 
   dropCanvas = clamp_add_node_drop_point(srcIsOutput, drop_canvas_pos, canvas_min, canvas_max);
 
-  // makeNodeFromBaseBlk runs resolve_node_pins, so it is the only way to learn a descriptor's pin
-  // types without inserting the node.
   for_each_node_descriptor(plugin.getBaseNodesBlk(), [&](const DataBlock &desc) {
     if (!node_desc_is_offerable(desc))
     {
       return;
     }
     const char *const uid = desc.getStr("templateUid", "");
-    GraphData::Node candidate;
-    if (!plugin.makeNodeFromBaseBlk(uid, 0.0f, 0.0f, candidate))
+    if (sourcePinDesc)
     {
-      return;
-    }
-    // A transit has to pass the wire on, which is what keeps a one-sided node like `subgraph out`
-    // off the list.
-    if (!can_node_splice(gd, ends, candidate))
-    {
-      return;
+      // A node made and never inserted: making it resolves the pin types from the descriptor, which can_node_splice reads.
+      GraphData::Node candidate;
+      if (!plugin.makeNodeFromBaseBlk(uid, 0.0f, 0.0f, candidate))
+      {
+        return;
+      }
+      // A transit has to pass the wire on, which is what keeps a one-sided node like `subgraph out`
+      // off the list.
+      if (!can_node_splice(gd, ends, candidate))
+      {
+        return;
+      }
     }
 
     Row &row = offerable.push_back();
@@ -159,7 +162,7 @@ bool GraphAddNodePopup::draw(const GraphData &gd, const ImVec2 &canvas_min, cons
     return false;
   }
 
-  if (!is_pin_reachable(gd, sourceNode, sourcePin))
+  if (sourceNode >= 0 && !is_pin_reachable(gd, sourceNode, sourcePin))
   {
     close();
     return false;

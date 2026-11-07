@@ -14,6 +14,7 @@
 #include <sqrat.h>
 #include <gui/dag_stdGuiRender.h>
 #include <shaders/dag_shaders.h>
+#include <generic/dag_span.h>
 
 namespace darg
 {
@@ -24,7 +25,6 @@ struct TileHandle
 {
   PICTUREID picId = BAD_PICTUREID;
   TEXTUREID texId = BAD_TEXTUREID;
-  d3d::SamplerHandle smpId = d3d::INVALID_SAMPLER_HANDLE;
 };
 
 // could be an `eastl::fixed_string`, but `eastl::hash_map` doesn't support it with default hash function
@@ -139,6 +139,8 @@ public:
   void setViewportSize(int width, int height);
 
   inline Point2 getVisibleRadiusRange() const { return worldVisibleRadiusRange; }
+  // also replaces the configured range that the world border clamp limits, until the next setup
+  void setVisibleRadiusRange(const Point2 &range);
   inline float getVisibleRadiusWidth() const { return worldVisibleRadius.x; }
   inline float getVisibleRadiusHeight() const { return worldVisibleRadius.y; }
   inline float getVisibleRadius() const { return min(worldVisibleRadius.x, worldVisibleRadius.y); }
@@ -185,7 +187,7 @@ public:
   inline void toggleFogOfWar() { fogOfWarEnabled = !fogOfWarEnabled; }
 
 private:
-  void dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
+  void dispatchTiles(dag::ConstSpan<QuadKey> requiredTiles,
     TilesHashMap &tilesHashMap,
     const eastl::string &prefix,
     int tileZLevel,
@@ -199,6 +201,7 @@ private:
   void setWorldBorderInner(Point2 leftTop, Point2 rightBottom, bool clampToWorld);
   void setVisibleRadiusInner(float r);
   void setViewportSizeInner(int width, int height);
+  void initFogOfWarTex();
 
   inline void clampToWorldBorder()
   {
@@ -213,6 +216,7 @@ public:
   eastl::string tilesPath;
   eastl::string tilesExt = "avif";
   TilesHashMap tiles;
+  d3d::SamplerHandle clampSampler = d3d::INVALID_SAMPLER_HANDLE;
 
   bool canLoadTiles = true;
 
@@ -252,7 +256,6 @@ public:
   bool zoomToFitBorderEdges = false;
 
   UniqueTex fogOfWarTex;
-  d3d::SamplerHandle fogOfWarSampler;
   UniqueBuf fogOfWarBitsetSb;
   PostFxRenderer fogOfWarShader = PostFxRenderer("fog_of_war");
   StdGuiRender::StdGuiShader fogOfWarTileShader;

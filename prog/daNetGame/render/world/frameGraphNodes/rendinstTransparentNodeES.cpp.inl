@@ -3,6 +3,7 @@
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <render/daFrameGraph/daFG.h>
+#include <render/denoiser/denoiser_api.h>
 #include <rendInst/rendInstGenRender.h>
 #include <rendInst/rendInstExtraRender.h>
 
@@ -59,6 +60,7 @@ dafg::NodeHandle makeRendinstTransparentNode(bool is_early, bool is_triangle_deb
     read_prev_frame_tex(registry);
     registry.read("glass_depth_for_merge").texture().atStage(dafg::Stage::POST_RASTER).bindToShaderVar("glass_hole_mask").optional();
     registry.read("glass_target").texture().atStage(dafg::Stage::POST_RASTER).bindToShaderVar("glass_rt_reflection").optional();
+    denoiser::read_shadow_output(registry);
     read_gbuffer_material_only(registry);
 
     registry.requestState().allowWireframe().setFrameBlock("global_frame");

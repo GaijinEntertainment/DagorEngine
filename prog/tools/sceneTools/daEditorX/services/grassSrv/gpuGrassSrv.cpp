@@ -246,7 +246,10 @@ void GPUGrassService::enumerateGrassDecals(DataBlock &grassBlk)
   {
     grassDecals.push_back({});
     grassDecals.back().name = decal->getBlockName();
-    grassDecals.back().id = decal->getInt("id", 0);
+    for (int j = decal->findParam("id"); j >= 0; j = decal->findParam("id", j))
+      grassDecals.back().ids.push_back(decal->getInt(j));
+    if (grassDecals.back().ids.empty())
+      grassDecals.back().ids.push_back(0);
     int j = 0;
     while (const char *name = decal->getParamName(j))
     {
@@ -272,15 +275,15 @@ GPUGrassDecal &GPUGrassService::getDecal(int index)
 
 bool GPUGrassService::findDecalId(int id) const
 {
-  return eastl::find_if(grassDecals.begin(), grassDecals.end(), [id](const auto &decal) { return decal.id == id; }) !=
-         grassDecals.end();
+  return eastl::find_if(grassDecals.begin(), grassDecals.end(), [id](const auto &decal) {
+    return eastl::find(decal.ids.begin(), decal.ids.end(), id) != decal.ids.end();
+  }) != grassDecals.end();
 }
 
 int GPUGrassService::findFreeDecalId() const
 {
   int id = 1;
-  while (
-    eastl::find_if(grassDecals.begin(), grassDecals.end(), [id](const auto &decal) { return decal.id == id; }) != grassDecals.end())
+  while (findDecalId(id))
     ++id;
   return id;
 }
@@ -290,7 +293,7 @@ GPUGrassDecal &GPUGrassService::addDecal(const char *name)
   int id = findFreeDecalId();
   grassDecals.push_back({});
   grassDecals.back().name = name;
-  grassDecals.back().id = id;
+  grassDecals.back().ids.push_back(id);
   return grassDecals.back();
 }
 

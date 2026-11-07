@@ -389,18 +389,10 @@ export class ECSService {
     }
   }
 
-  fetchEntities(withComponent = null) {
-    console.log('fetchEntities', withComponent);
-    if (withComponent !== null) {
-      ++this._fullDataCounter;
-      this.coreService.sendCommand('getEntities', { withComponent: withComponent });
-      this.fetchData();
-    }
-    else {
-      ++this._fullDataCounter;
-      this.coreService.sendCommand('getEntities');
-      this.fetchData();
-    }
+  fetchEntities() {
+    ++this._fullDataCounter;
+    this.coreService.sendCommand('getEntities');
+    this.fetchData();
   }
 
   fetchEntityAttributes(eid) {

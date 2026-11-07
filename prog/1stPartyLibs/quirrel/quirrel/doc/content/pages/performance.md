@@ -5,8 +5,8 @@ order: 93
 summary: Benchmarks against Lua, LuaJIT, Luau, QuickJS and Squirrel 3.
 ---
 
-This page has two sets of benchmarks. Both are measured on Windows x64, and
-both are committed with the numbers they produced.
+This page has one set of benchmarks. It is measured on Windows x64, and it is
+committed with the numbers it produced.
 
 Every row times the benchmarked code only, without interpreter startup and
 without compilation. Each workload repeats the load inside one process and keeps
@@ -57,29 +57,12 @@ Shorter bars are better.
 
 {{benchmarks}}
 
-## Against Lua and Luau
-
-This head-to-head harness runs Quirrel against Lua and Luau (at `-O0`, `-O1`
-and `-O2`) on paired workloads with identical algorithms: general interpreter
-loads (fib, binarytrees, life, mandel, strings) and daRg-UI-shaped loads
-(desc_churn, probe_storm, nullable_probe, closure_storm, method_calls).
-
-On some CPUs, code layout alone moves these numbers by up to 17%, so one run
-before and one after a VM change do not show what the change does. To measure
-a change, `bench/vmperf` builds each version in four code layouts and compares
-the means.
-
-Times are milliseconds. The ratio is Quirrel over the other interpreter, so a
-value above 1.0 means Quirrel is slower.
-
-{{vm_benchmarks}}
-
 ## What was built, and how
 
 Everything is built for Windows 64-bit with clang-cl where the source allows it.
 The Quirrel rows measure the release build of `csq`, the console interpreter of
-the Dagor engine tree, which is the shipped runtime configuration: clang and
-mimalloc. A build on the CRT heap, such as a plain cmake `sq.exe`, is up to twice
+the Dagor engine tree, which is the shipped runtime configuration: clang with
+whole program optimization, and mimalloc. A build on the CRT heap, such as a plain cmake `sq.exe`, is up to twice
 as slow on table-sweep workloads, so it would not measure shipped performance.
 `csq` runs with closure hoisting on, as the game runtime does.
 
@@ -106,10 +89,10 @@ under `prog/1stPartyLibs/quirrel/quirrel`, one folder per language:
 
 - `bench/benchmarks.py` - the cross-language suite above. It writes
   `doc/content/_bench.json`, which this page renders.
-- `bench/run_vm_bench.py` - the comparison with Lua and Luau above. It writes
-  `doc/content/_vm_bench.json`.
 - `bench/vmperf/vmperf.py` - measures one change to the VM or the compiler.
+  Code layout alone moves the VM speed by up to 17% on some CPUs, so it builds
+  each version in four code layouts and compares the means.
 
-`benchmarks.py` and `run_vm_bench.py` need the Windows interpreters, so the
+`benchmarks.py` needs the Windows interpreters, so the
 numbers are refreshed by hand and committed. The site itself builds anywhere. `bench/README.md` says how to run
 them and how each committed binary was built.

@@ -32,8 +32,7 @@ class LightsPartition;
 class SpotLightsManager final : public LightsManager<SpotLight, RenderSpotLight, SpotLightMaskType, MAX_SCENE_SPOT_LIGHTS>
 {
 public:
-  SpotLightsManager();
-  SpotLightsManager(const char *name);
+  explicit SpotLightsManager(LightsManagerSharedStorage *shared_storage);
 
   void renderDebugBboxes();
   int addLight(const Light &light); // return -1 if fails

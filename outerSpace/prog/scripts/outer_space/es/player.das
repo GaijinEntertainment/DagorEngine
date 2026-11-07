@@ -183,10 +183,15 @@ def spawn_player_entity(possessed_by_player : EntityId)
     idx = (idx + 1) % length(spawnpoints)
   assert(good_idx, "No vacant spawn bases to spawn onto")
 
-  createEntity("combat_space_unit") <| $(var init)
+  var unitTemplate = "combat_space_unit"
+  query() <| $ [es] (player_unit__template : das_string)
+    unitTemplate = string(player_unit__template)
+  let isSpaceship = unitTemplate == "combat_space_unit"
+  createEntity(unitTemplate) <| $(var init)
     init |> set("transform", spawnTm)
     init |> set("possessedByPlr", possessed_by_player)
-    init |> set("spaceship__use_stabilization", has_gravity)
+    if isSpaceship
+      init |> set("spaceship__use_stabilization", has_gravity)
 
 [es(tag=not_inside_tools, tag=server, on_appear, REQUIRE=player)]
 def on_player_created_server(evt : Event; eid : EntityId; connid : int = -1; canBeLocal : bool = true)
@@ -230,7 +235,7 @@ def finalize_possesion_server(evt : Event; eid, possessedByPlr : EntityId; var r
 
     possessed = possessedEid
 
-    var clientConn : net::IConnection? = get_client_connection(connid)
+    let clientConn : net::IConnection? = get_client_connection(connid)
     if clientConn != null
       replication |> net_object_setControlledBy(connid)
       clientNetFlags |= int(ClientNetFlags.CNF_REPLICATE_PHYS_ACTORS)

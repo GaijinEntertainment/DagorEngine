@@ -9,6 +9,7 @@ enum class NodeBasedShaderType
   Fog,
   EnviCover,
   Clouds,
+  COUNT
 };
 
 enum class NodeBasedShaderFogVariant : uint32_t

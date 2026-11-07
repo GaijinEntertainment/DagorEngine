@@ -276,6 +276,11 @@ bool rendinst::isRIGenExtraDestroyedPhysResExist(uint32_t pool)
   return false;
 }
 
+bool rendinst::isRIGenExtraDestroyedPhysNetSynced(uint32_t pool)
+{
+  return riExtra.isValid(pool) && riExtra[pool].isDestroyedPhysNetSynced;
+}
+
 int rendinst::getRIGenExtraDestroyedRiIdx(uint32_t pool)
 {
   if (riExtra.isValid(pool))

@@ -75,6 +75,7 @@ public:
   bool isReactivationInProcess() const;
   void addInstancesToBVH(bvh::ContextId context_id);
   void removeBVHContext();
+  void removePendingBVHObjectAdd();
 
   enum class SplineGenType
   {

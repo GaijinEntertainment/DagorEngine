@@ -83,7 +83,7 @@ struct DebugDrawContext
   bool drawCutEdgeGraph = false;
   bool drawBoundaryFill = false;
   bool drawCutFaceTriangles = false;
-  bool withHeight = false;
+  float heightScale = 0.f;
 
   // state
   TMatrix tm = TMatrix::IDENT;

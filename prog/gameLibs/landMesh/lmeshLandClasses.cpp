@@ -558,6 +558,9 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
   clear_and_resize(landClassesEditorId, landClassCount);
   biomeLandClassIdx = -1;
 
+  // a level without landSelfillumParams must not inherit the previous level's values
+  set_land_selfillum_parameters_to_shaders(DataBlock::emptyBlock, LandClassDetailTextures());
+
   String nm;
   for (int i = 0; i < landClassCount; ++i)
   {
@@ -665,12 +668,16 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
     }
   }
 }
+unsigned LandMeshManager::get_weight_tex_cflgs(LandMeshReset data_reset)
+{
+  // a system copy is only worth carrying when nothing would reload the atlas
+  return data_reset == LandMeshReset::SysCopy ? TEXCF_SYSTEXCOPY | TEXCF_LOADONCE : 0;
+}
+
 void LandMeshManager::loadDetailData(IGenLoad &cb)
 {
   loadLandClasses(cb);
 
   srcFileDetailMapOfs = cb.tell(); // where afterDeviceReset() reads the weights back from
-  // a system copy is only worth carrying when nothing would reload the atlas
-  const unsigned weightCflg = dataReset == LandMeshReset::SysCopy ? TEXCF_SYSTEXCOPY | TEXCF_LOADONCE : 0;
-  detailMap.load(cb, baseDataOffset, toolsInternal, d3d::is_stub_driver() ? nullptr : &weightAtlas, weightCflg);
+  detailMap.load(cb, baseDataOffset, toolsInternal, d3d::is_stub_driver() ? nullptr : &weightAtlas, get_weight_tex_cflgs(dataReset));
 }

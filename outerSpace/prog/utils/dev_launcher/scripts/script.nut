@@ -1,11 +1,9 @@
 from "%darg/ui_imports.nut" import *
 from "dagor.workcycle" import resetTimeout
 import "components/style.nut" as style
-from "frp" import set_subscriber_validation, warn_on_deprecated_methods
-from "dagor.system" import DBGLEVEL
+from "frp" import set_subscriber_validation
 
 //set_subscriber_validation( DBGLEVEL>0)
-warn_on_deprecated_methods( DBGLEVEL>0)
 
 let {Preferences} = require("components/preferences.nut")
 let {set_app_window_title, dgs_get_settings} = require("dagor.system")

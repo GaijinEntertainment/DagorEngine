@@ -50,7 +50,7 @@ void ParallelOcclusionRasterizer::rasterizeMeshes(eastl::vector<RasterizationTas
 }
 
 
-uint32_t ParallelOcclusionRasterizer::mergeRasterizationResults(Occlusion &occlusion, bool active_wait)
+uint32_t ParallelOcclusionRasterizer::mergeRasterizationResults(Occlusion &occlusion, bool merge_two_layers, bool active_wait)
 {
   for (uint32_t i = 0; i < usedOcclusions; ++i)
   {
@@ -88,7 +88,7 @@ uint32_t ParallelOcclusionRasterizer::mergeRasterizationResults(Occlusion &occlu
     for (int i = 0; i < nMergeJobs; ++i)
     {
       new (&mergeJobs[i], _NEW_INPLACE)
-        MergingJob(occlusion, nonEmptyOcclusions.data(), nonEmptyOcclusions.size(), tilesCount, quant, mergedTiles);
+        MergingJob(occlusion, nonEmptyOcclusions.data(), nonEmptyOcclusions.size(), tilesCount, quant, merge_two_layers, mergedTiles);
       if (i)
         threadpool::add(&mergeJobs[i], threadpool::PRIO_NORMAL, tpqpos, threadpool::AddFlags::None);
     }

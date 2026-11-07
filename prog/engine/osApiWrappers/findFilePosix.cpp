@@ -187,7 +187,8 @@ static bool bp_find_first(bool dir, alefind_t *fs, const char *basepath)
   const char *wildcard = dd_get_fname(fs->fmask);
   // printf("dir=%d mask:%s basepath:%s full:%s path:%s name:%s\n", dir, fs->fmask, basepath, msk, path, wildcard);
 
-  DIR *fd = opendir_impl(path);
+  // keep path empty: prepareResult appends names directly
+  DIR *fd = opendir_impl(*path ? path : ".");
   if (!fd)
     return false;
 

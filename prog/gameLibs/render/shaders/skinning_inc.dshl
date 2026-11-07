@@ -6,7 +6,7 @@ int dynmodel_node_collapser_data = 1 always_referenced;
 interval dynmodel_node_collapser_data : no < 1, yes;
 assume_if_not_assumed dynmodel_node_collapser_data = yes;
 
-// constraint: use_shared_skin_bones = yes requires dynmodel_node_collapser_data = no.
+// use_shared_skin_bones = yes requires dynmodel_node_collapser_data = no.
 int use_shared_skin_bones = 0 always_referenced;
 interval use_shared_skin_bones : no < 1, yes;
 assume_if_not_assumed use_shared_skin_bones = no;

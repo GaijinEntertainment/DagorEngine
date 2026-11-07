@@ -128,10 +128,16 @@ bool multi_draw_indirect(int prim_type, Sbuffer *args, uint32_t draw_count, uint
  * @brief Draw multiple instances of indexed primitives using indirect parameters.
  *
  * @param prim_type The type of primitives to draw. One of PRIM_XXX enum.
- * @param args The buffer containing the draw parameters. The buffer must contain DrawIndexedIndirectArgs structures.
+ * @param args The buffer containing the draw parameters. The buffer must contain DrawIndexedIndirectArgs structures, or on DX12
+ *        DrawIndexedIndirectArgsWithId records (see stride_bytes).
  * @param draw_count The number of draw calls.
- * @param stride_bytes The stride between draw parameters in bytes.
- * @param byte_offset The byte offset into the buffer.
+ * @param stride_bytes The stride between draw parameters in bytes. On DX12 a stride of sizeof(DrawIndexedIndirectArgsWithId)
+ *        means DrawIndexedIndirectArgsWithId records: the driver passes the draw id to a shader that reads it and skips it
+ *        otherwise. Do not use this stride for other records.
+ * @param byte_offset The byte offset into the buffer. For DrawIndexedIndirectArgsWithId records the driver skips the draw id
+ *        only when byte_offset is a multiple of stride_bytes, so the records must start at such offsets. An offset at the args
+ *        inside a record means that the caller skips the draw id itself. This is valid only when the bound shaders do not read
+ *        the draw id.
  * @return True if the draw operation was successful, false otherwise.
  */
 bool multi_draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t draw_count, uint32_t stride_bytes, uint32_t byte_offset = 0);

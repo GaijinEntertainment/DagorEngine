@@ -72,6 +72,7 @@ void StdGuiRender::GuiContext::set_color(E3DCOLOR) { G_ASSERT(0); }
 float StdGuiRender::GuiContext::screen_width() { G_ASSERT_RETURN(false, 0.f); }
 float StdGuiRender::GuiContext::screen_height() { G_ASSERT_RETURN(false, 0.f); }
 void StdGuiRender::GuiContext::render_frame(float, float, float, float, float) { G_ASSERT(0); }
+void StdGuiRender::GuiContext::render_quad(Point2, Point2, Point2, Point2, Point2, Point2, Point2, Point2) { G_ASSERT(0); }
 void StdGuiRender::GuiContext::render_box(float, float, float, float) { G_ASSERT(0); }
 void StdGuiRender::GuiContext::render_rounded_box(Point2, Point2, E3DCOLOR, E3DCOLOR, Point4, float) { G_ASSERT(0); }
 void StdGuiRender::GuiContext::render_rounded_frame(Point2, Point2, E3DCOLOR, Point4, float) { G_ASSERT(0); }

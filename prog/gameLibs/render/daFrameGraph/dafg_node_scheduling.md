@@ -68,7 +68,7 @@ These edges are added per multiplexing index (see Step 2).
 
 ### 1d. SideEffects::None
 
-Nodes with `executionHas(SideEffects::None)` (or void declaration callback) have an empty execution callback. Their resource requests ARE recorded in the registry and DO create dependency edges through the resource lifetime data (steps 1a). However, at the IR level, their requests are moved to `supressedRequests` -- this suppresses barrier events (no GPU barriers placed for these requests). The nodes are still scheduled and their empty callback is executed. They can be pruned if unreachable from sinks (step 3).
+Nodes whose final side effect is `SideEffects::None` are not executed. This is the case for `executionHas(SideEffects::None)`, and for a void declaration callback without an execute request: an execute request changes the side effect to `SideEffects::Internal`. Their resource requests ARE recorded in the registry and DO create dependency edges through the resource lifetime data (steps 1a). However, at the IR level, their requests are moved to `supressedRequests` -- this suppresses barrier events (no GPU barriers placed for these requests). The nodes are still scheduled, and the pass colorer uses their render pass requests. After scheduling, the remap into the sorted IR graph hides them: every later stage, the executor included, does not see them, so their state is never applied and their callback is never called. The debug views read `all()` and still show them. They can be pruned if unreachable from sinks (step 3).
 
 ## Step 2: Multiplexing Fan-out
 

@@ -9,6 +9,7 @@
 #include <sqstddatetime.h>
 #include <sqstdaux.h>
 #include <sqasync.h>
+#include <sqext.h>
 
 #include <stdlib.h>
 #include <limits.h>
@@ -113,7 +114,7 @@ SqModules::~SqModules()
   modules.swap(prevModules);
   modules.clear();
 
-  callAndClearUnloadHandlers(true);
+  callUnloadHandlersOnClose();
 
   prevModules.clear();
 
@@ -568,7 +569,9 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   module.fn = resolvedFn;
   module.stateStorage = stateStorage;
   module.refHolder = refHolder;
-  module.scriptClosure = scriptClosure;
+  SQFunctionInfo fi;
+  SQRAT_VERIFY(SQ_SUCCEEDED(sq_ext_getfuncinfo(scriptClosure.GetObject(), &fi)));
+  module.sourceName = Sqrat::Object(fi.source, vm); // the compiler cuts long names
   module.__name__ = __name__;
 
   modules.push_back(module);
@@ -799,6 +802,15 @@ void SqModules::callAndClearUnloadHandlers(bool is_closing)
 
   for (ModuleUnloadCallback cb : onModuleUnloadNative)
     cb(sqvm, is_closing);
+}
+
+
+void SqModules::callUnloadHandlersOnClose()
+{
+  if (closeHandlersCalled)
+    return;
+  closeHandlersCalled = true;
+  callAndClearUnloadHandlers(true);
 }
 
 

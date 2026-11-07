@@ -43,10 +43,13 @@ void AnimcharRenderMainJob::doJob()
   g_entity_mgr->broadcastEventImmediate(AnimcharRenderAsyncEvent(dynCtx, &mainCtx->globalVarsState, occlusion, *frustum, add_vis_bits,
     require_any_vis_bits, reject_if_any_vis_bits, filterMask,
     /*needPreviousMatrices*/ (hints & UpdateStageInfoRender::RENDER_MOTION_VECS) != 0, flt, texCtx));
+  dynrend::presort_packed(dynCtx);                   // still parallel here, so the merge below only merges sorted runs
   if (interlocked_decrement(mainCtx->jobsLeft) == 0) // Last one finalizes to 0th
   {
+    dynrend::ContextId srcCtxIds[AnimcharRenderAsyncFilter::ARF_IDX_COUNT - 1];
     for (int n = 1; n < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; n++)
-      dynrend::merge_context(mainCtx->jobs[0].dynCtx, mainCtx->jobs[n].dynCtx);
+      srcCtxIds[n - 1] = mainCtx->jobs[n].dynCtx;
+    dynrend::merge_multiple_contexts(mainCtx->jobs[0].dynCtx, make_span_const(srcCtxIds));
     dynrend::prepare_render_finalize(mainCtx->jobs[0].dynCtx);
   }
 }

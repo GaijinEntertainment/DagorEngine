@@ -57,5 +57,11 @@ host holds the handle while the work is in flight. `future_resolve` and
 `future_throw` settle the Future, and the task that was awaiting resumes on the
 next pump. Release the handle once the Future is settled.
 
+## Shutting down
+
+Call `sqasync::stop_tasks(v)` during the VM teardown, before any later pump.
+After this call no task step runs, so script does not see host state that is
+partly gone. Callbacks still run, so native code can drain its posts.
+
 The full list, with the header's own notes, is on
 [Async runtime](page:capi/async).

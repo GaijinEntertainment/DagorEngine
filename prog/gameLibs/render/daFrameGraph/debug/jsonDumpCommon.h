@@ -4,6 +4,8 @@
 #include <frontend/internalRegistry.h>
 #include <backend/intermediateRepresentation.h>
 #include <backend/nodeStateDeltas.h>
+#include <backend/resourceScheduling/barrierScheduler.h>
+#include <backend/resourceScheduling/heapLayout.h>
 
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
@@ -17,6 +19,10 @@ void dump_registry_to_json(const InternalRegistry &registry);
 void dump_ir_graph_to_json(const InternalRegistry &registry, const intermediate::Graph &graph);
 
 void dump_state_deltas_to_json(const intermediate::Graph &graph, const sd::NodeStateDeltas &state_deltas);
+
+void dump_events_to_json(const intermediate::Graph &graph, const BarrierScheduler::EventsCollection &events);
+
+void dump_layout_to_json(const intermediate::Graph &graph, const Layout &layout);
 
 void print_shaders_override_state(const shaders::OverrideState &state);
 
@@ -37,7 +43,7 @@ inline const char *get_name(const InternalRegistry &reg, ShaderNameId id) { retu
 
 inline const char *get_name(const intermediate::Graph &graph, const intermediate::NodeIndex idx)
 {
-  return graph.nodeNames.isMapped(idx) ? graph.nodeNames[idx].c_str() : "NOT_MAPPED";
+  return graph.nodeNames.all().isMapped(idx) ? graph.nodeNames.all()[idx].c_str() : "NOT_MAPPED";
 }
 
 inline const char *get_name(const intermediate::Graph &graph, const intermediate::ResourceIndex idx)
@@ -48,9 +54,6 @@ inline const char *get_name(const intermediate::Graph &graph, const intermediate
 
 using Buffer = rapidjson::StringBuffer;
 using Writer = rapidjson::PrettyWriter<Buffer>;
-
-inline bool write_string(Writer &writer, const String &str) { return writer.String(str.data(), str.length()); }
-inline bool write_string(Writer &writer, const eastl::string_view &str) { return writer.String(str.data(), str.size()); }
 
 struct ObjectHandler
 {
@@ -66,5 +69,10 @@ struct ArrayHandler
 };
 #define OBJECT_SCOPED auto DAG_CONCAT(oh, __LINE__) = ObjectHandler(w);
 #define ARRAY_SCOPED  auto DAG_CONCAT(ah, __LINE__) = ArrayHandler(w);
+
+inline bool write_string(Writer &writer, const String &str) { return writer.String(str.data(), str.length()); }
+inline bool write_string(Writer &writer, const eastl::string_view &str) { return writer.String(str.data(), str.size()); }
+
+void write_to_file(const String &filename, const Buffer &buffer);
 
 } // namespace dafg::jsondump

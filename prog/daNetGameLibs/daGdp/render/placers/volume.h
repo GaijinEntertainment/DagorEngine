@@ -239,6 +239,7 @@ struct VolumeMappingItem
   int targetMeshLod;
   Point3 axis;
   bool axisLocal;
+  bool discardBelowHeightmap;
   int csmCascadeCount;
 };
 

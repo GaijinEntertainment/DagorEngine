@@ -60,7 +60,7 @@ struct ManagedTexEntryDesc
   unsigned qResSz[TQL__COUNT] = {0};                        //< resource size for each QL available
   uint8_t qLev[TQL__COUNT] = {0};                           //< quality levels for each QL available
   uint8_t maxLev = 0, ldLev = 0, maxQL = 0, curQL = 0;      //< max quality level and current loaded state
-  uint8_t isLoading : 1 = 0, isLoadedWithErrors : 1 = 0;
+  uint8_t isLoading : 1 = 0, isLoadedWithErrors : 1 = 0;    //< valid only for textures loaded by build_on_demand_tex_factory
 };
 
 

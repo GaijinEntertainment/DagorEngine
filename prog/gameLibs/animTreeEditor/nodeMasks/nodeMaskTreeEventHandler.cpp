@@ -10,18 +10,6 @@
 #include <osApiWrappers/dag_clipboard.h>
 #include <assets/assetUtils.h>
 
-namespace ContextMenu
-{
-enum
-{
-  COPY_NODE_NAME = 0,
-  COPY_FILEPATH,
-  COPY_FOLDER_PATH,
-  COPY_RESOLVED_FOLDER_PATH,
-  REVEAL_IN_EXPLORER,
-};
-}
-
 NodeMaskTreeEventHandler::NodeMaskTreeEventHandler(dag::Vector<NodeMaskData> &node_masks, dag::Vector<String> &paths) :
   nodeMasks(node_masks), paths(paths)
 {}
@@ -59,6 +47,8 @@ bool NodeMaskTreeEventHandler::onTreeContextMenu(PropPanel::ContainerPropertyCon
 
 int NodeMaskTreeEventHandler::onMenuItemClick(unsigned id)
 {
+  if (!asset)
+    return 0;
   switch (id)
   {
     case ContextMenu::COPY_NODE_NAME: clipboard::set_clipboard_ansi_text(masksTree->getCaption(selLeaf)); break;

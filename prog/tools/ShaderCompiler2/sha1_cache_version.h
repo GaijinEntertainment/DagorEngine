@@ -17,5 +17,5 @@ static const uint32_t sha1_cache_version = 10;
 #elif _CROSS_TARGET_DX12
 static const uint32_t sha1_cache_version = 59;
 #elif _CROSS_TARGET_DX11 //_TARGET_PC is also defined
-static const uint32_t sha1_cache_version = 17;
+static const uint32_t sha1_cache_version = 19;
 #endif

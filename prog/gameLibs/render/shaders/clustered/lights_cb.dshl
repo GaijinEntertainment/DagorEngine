@@ -231,6 +231,10 @@ macro INIT_AND_USE_CLUSTERED_LIGHTS(code)
 endmacro
 
 macro USE_CLUSTERED_LIGHTS_WORD_COUNTS(code)
+
+  bool clustered_lights_limited_omni_words_read = (dynamic_lights_omni_1 || dynamic_lights_spot_1);
+  bool clustered_lights_limited_spot_words_read = (dynamic_lights_omni_1 || dynamic_lights_spot_1);
+
   hlsl(code) {
     void get_clustered_light_word_counts(out uint words_per_omni, out uint words_per_spot)
     {

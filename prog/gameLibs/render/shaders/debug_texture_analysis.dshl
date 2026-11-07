@@ -1,0 +1,101 @@
+// Texture analysis debug views, compiled only into a debug shader dump.
+// Materials write the measured value into dbg_gbuff_tex (see
+// init_worldTexelDensity), these postfx shaders colorize it.
+include "shader_global.dshl"
+include "gbuffer.dshl"
+
+float world_texel_density_target = 1024;
+texture dbg_gbuff_tex;
+
+macro INIT_TEXTURE_ANALYSIS_VIEW()
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  POSTFX_VS_TEXCOORD(1, tc)
+
+  (ps) {
+    viewport@f4 = get_viewport();
+    dbg_gbuff_tex@tex2d = dbg_gbuff_tex;
+  }
+
+  hlsl(ps) {
+    #include "debug_gbuffer_tex_constants.hlsli"
+
+    static const half3 COLOR_FAR_UNDER  = half3(DBG_DENSITY_COLOR_FAR_UNDER_R, DBG_DENSITY_COLOR_FAR_UNDER_G, DBG_DENSITY_COLOR_FAR_UNDER_B);
+    static const half3 COLOR_NEAR_UNDER = half3(DBG_DENSITY_COLOR_NEAR_UNDER_R, DBG_DENSITY_COLOR_NEAR_UNDER_G, DBG_DENSITY_COLOR_NEAR_UNDER_B);
+    static const half3 COLOR_ON_TARGET  = half3(DBG_DENSITY_COLOR_ON_TARGET_R, DBG_DENSITY_COLOR_ON_TARGET_G, DBG_DENSITY_COLOR_ON_TARGET_B);
+    static const half3 COLOR_NEAR_OVER  = half3(DBG_DENSITY_COLOR_NEAR_OVER_R, DBG_DENSITY_COLOR_NEAR_OVER_G, DBG_DENSITY_COLOR_NEAR_OVER_B);
+    static const half3 COLOR_FAR_OVER   = half3(DBG_DENSITY_COLOR_FAR_OVER_R, DBG_DENSITY_COLOR_FAR_OVER_G, DBG_DENSITY_COLOR_FAR_OVER_B);
+    static const half3 COLOR_CHECKER    = half3(DBG_DENSITY_COLOR_CHECKER_R, DBG_DENSITY_COLOR_CHECKER_G, DBG_DENSITY_COLOR_CHECKER_B);
+
+    float sample_dbg_value(float2 tc)
+    {
+      float2 res;
+      dbg_gbuff_tex.GetDimensions(res.x, res.y);
+      return texelFetch(dbg_gbuff_tex, (int2)floor(tc * res), 0).x;
+    }
+
+    half3 context_albedo(float2 tc)
+    {
+      UnpackedGbuffer gbuf = unpackGbuffer(readPackedGbuffer(tc));
+      return sqrt(dot(gbuf.albedo, float3(0.2126, 0.7152, 0.0722))).xxx * 0.5;
+    }
+  }
+endmacro
+
+shader debug_world_texel_density
+{
+  INIT_TEXTURE_ANALYSIS_VIEW()
+
+  (ps) { density_target@f1 = world_texel_density_target; }
+
+  hlsl(ps) {
+    float4 debug_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
+    {
+      float2 screenpos = GET_SCREEN_POS(input.pos).xy - viewport.xy;
+      float2 tc = screenpos / viewport.zw;
+
+      float rawDepth = readGbufferDepth(tc);
+      BRANCH
+      if (rawDepth <= 0)
+        return float4(0, 0, 0, 1);
+
+      half3 albedo = context_albedo(tc);
+      float log2Density = sample_dbg_value(tc) * (DBG_WORLD_TEXEL_DENSITY_LOG2_MAX + 1);
+      // negative = uninstrumented material wrote the -1 default, high = cleared
+      if (log2Density < 0 || log2Density > DBG_WORLD_TEXEL_DENSITY_LOG2_MAX + 0.5)
+        return float4(albedo, 1);
+
+      // octaves off target: negative = fewer texels per meter than asked for
+      float r = log2Density - log2(max(density_target, 1.0));
+
+      if (abs(r) >= DBG_DENSITY_OCTAVES_WORST)
+      {
+        uint2 tile = uint2(screenpos) / DBG_DENSITY_CHECKER_TILE;
+        bool checkerOn = ((tile.x + tile.y) & 1) != 0;
+        return float4(checkerOn ? COLOR_CHECKER : (r < 0 ? COLOR_FAR_UNDER : COLOR_FAR_OVER), 1);
+      }
+
+      half3 color;
+      if (r <= -DBG_DENSITY_OCTAVES_NEAR)
+        color = COLOR_FAR_UNDER;
+      else if (r <= -DBG_DENSITY_OCTAVES_ON_TARGET)
+        color = COLOR_NEAR_UNDER;
+      else if (r < DBG_DENSITY_OCTAVES_ON_TARGET)
+        color = COLOR_ON_TARGET;
+      else if (r < DBG_DENSITY_OCTAVES_NEAR)
+        color = COLOR_NEAR_OVER;
+      else
+        color = COLOR_FAR_OVER;
+      return float4(lerp(color, albedo, 0.2), 1);
+    }
+  }
+  compile("target_ps", "debug_ps");
+}

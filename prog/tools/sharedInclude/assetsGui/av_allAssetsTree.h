@@ -23,13 +23,19 @@ public:
 
   void selectNextItem(bool forward = true);
   bool selectAsset(const DagorAsset *asset);
+  bool selectAssetFolder(const DagorAssetFolder &folder);
   void setShownTypes(dag::ConstSpan<bool> new_shown_types);
   void setSearchText(const char *text);
   void setTagFilter(const FastIntList &tags);
 
   DagorAsset *getSelectedAsset() const;
   DagorAssetFolder *getSelectedAssetFolder() const;
-  void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const;
+
+  // sub_folders: the subfolders of the current folder.
+  // Returns the folder whose direct assets were appended, or nullptr when there is none.
+  DagorAssetFolder *getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets,
+    dag::Vector<DagorAssetFolder *> &sub_folders) const;
+
   bool isFolder(PropPanel::TLeafHandle node) const;
 
   void updateImgui(float control_height = 0.0f) override;
@@ -43,6 +49,7 @@ protected:
 private:
   PropPanel::TLeafHandle addGroup(int folder_idx, PropPanel::TLeafHandle parent, const DataBlock *blk);
   PropPanel::TLeafHandle addEntry(const DagorAsset *asset, PropPanel::TLeafHandle parent, bool selected);
+  PropPanel::TLeafHandle findItemByData(const void *item_data) const;
 
   void saveTreeExpansionState(const PropPanel::TreeNode &parent, DataBlock *blk);
 

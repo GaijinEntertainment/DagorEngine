@@ -6,6 +6,15 @@
 #define PALETTE_ID_MULTIPLIER (1 << PALETTE_ID_BIT_COUNT)
 #define PALETTE_SCALE_MULTIPLIER (1 << (8 - PALETTE_ID_BIT_COUNT))
 
+// Packed impostor vertex output: the flags from bit 0, then the palette id, the color from bit 8.
+#define IMPOSTOR_FLAG_PRESHADOW                    (1u << 0)
+#define IMPOSTOR_FLAG_CAMERA_SPACE_FOLIAGE_NORMALS (1u << 1)
+#define IMPOSTOR_FLAG_BIT_COUNT                    2
+#define IMPOSTOR_COLOR_MUL_FIRST_BIT               8
+#if IMPOSTOR_FLAG_BIT_COUNT + PALETTE_ID_BIT_COUNT > IMPOSTOR_COLOR_MUL_FIRST_BIT
+#error Impostor flags and palette id do not fit below the color
+#endif
+
 #ifndef M_PI
 #define M_PI (3.14159265358979323846)
 #endif

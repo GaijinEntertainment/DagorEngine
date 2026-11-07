@@ -275,7 +275,8 @@ rendinst::gen::RotationPaletteManager::PaletteInfo &rendinst::gen::RotationPalet
   append_items(impostorData, paramCount);
   impostorData[offset + IMPOSTOR_DATA_SCALE] = impostors_params.scale;
   impostorData[offset + IMPOSTOR_DATA_BSP_Y__PRESHADOW__BOT_GRADIENT] =
-    Point4(impostors_params.boundingSphere.y, impostors_params.preshadowEnabled ? 1 : -1, safeinv(impostors_params.bottomGradient), 0);
+    Point4(impostors_params.boundingSphere.y, impostors_params.preshadowEnabled ? 1 : -1, safeinv(impostors_params.bottomGradient),
+      impostors_params.cameraSpaceFoliageNormals ? 1 : 0);
   for (int i = 0; i < 4; ++i)
     impostorData[offset + IMPOSTOR_DATA_VERTEX_OFFSET + i] = impostors_params.vertexOffsets[i];
   impostorData[offset + TRANSMITTANCE_CROWN_RAD1_DATA_OFFSET] = impostors_params.invCrownRad1;

@@ -30,7 +30,7 @@ def collision_viewer()
       get_local_path_to_dag(asset__baseFolderAbsPath, asset__curCollisionPath)
     imgui::Text("path: {asset__curCollisionPath}")
 
-    if imgui::Button("Create collision asset")
+    if !empty(asset__curCollisionPath) && imgui::Button("Create collision asset")
       let assetPath = get_dlg_save_file("", "", "collision.blk")
       if !empty(assetPath)
 

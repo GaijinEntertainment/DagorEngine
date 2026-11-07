@@ -83,20 +83,7 @@ float4 heightmap_foam_scale = (0.21, 0.5, 0.5, 1.5);
 // z- scale for highFreq foam
 // w- base val for highFreq foam shift
 
-macro USE_LAND_WETNESS()
-  INIT_PUDDLES_WETNESS(ps)
-  USE_PUDDLES_WETNESS(ps)
-  INIT_WETNESS()
-  USE_WETNESS()
-  INIT_WRITE_GBUFFER_WETNESS()
-  WRITE_GBUFFER_WETNESS()
-  USE_WATER_RIPPLES(@smp2d)
-  INIT_WATER_HEIGHTMAP(ps)
-  USE_WATER_HEIGHTMAP(ps)
-
-  (ps) {
-    heightmap_mud_color@f4 = heightmap_mud_color;
-  }
+macro USE_LAND_WETNESS_APPLY()
   if (shader == heightmap || shader == explosion_rendinst_decal)
   {
     (ps) {
@@ -104,28 +91,19 @@ macro USE_LAND_WETNESS()
       droplets_8bit_tex@smp3d = droplets_8bit_tex;
       foam_time@f2 = (time_phase(1, 0), time_phase(2.1, 0));
       heightmap_foam_scale@f4 = heightmap_foam_scale;
+      heightmap_mud_color@f4 = heightmap_mud_color;
+    }
+  }
+  else
+  {
+    hlsl(ps)
+    {
+      #define heightmap_mud_color float4(0.08, 0.05, 0.015, 3)
     }
   }
 
-  hlsl(ps) {
-
-    bool check_land_wetness_conditions(float3 world_pos, float3 vertical_normal, float dist, float water_level, float puddle_level, out float base_wetness, out float water_border)
-    {
-      base_wetness = get_base_wetness(world_pos, vertical_normal, water_level, water_border);
-      return base_wetness > 0 || (check_puddles_conditions(puddle_level, dist, vertical_normal) && world_pos.y > water_level);
-    }
-
-    float2 get_land_wetness(float3 world_pos, float3 vertical_normal, float dist, float puddle_level, float land_thickness, float land_deformation, float height, float base_wetness, float water_border)
-    {
-      // puddles
-      float puddleDisplacement = 0;
-      float puddlesWetness = get_puddles_wetness(world_pos, vertical_normal, dist, puddle_level, land_thickness, land_deformation, height, puddleDisplacement);
-      // underwater
-      puddlesWetness *= max(water_border, 0);
-
-      return float2(base_wetness, puddlesWetness);
-    }
-
+  hlsl(ps)
+  {
     void apply_land_wetness(float2 wetness, float water_border, float3 world_pos, float3 vertical_norm, float3 view, float3 sunDir, float landThickness, float porosity, inout UnpackedGbuffer g_buf)
     {
       float totalWetness = max(wetness.x, wetness.y);
@@ -191,6 +169,39 @@ macro USE_LAND_WETNESS()
   }
 endmacro
 
+macro USE_LAND_WETNESS()
+  INIT_PUDDLES_WETNESS(ps)
+  USE_PUDDLES_WETNESS(ps)
+  INIT_WETNESS()
+  USE_WETNESS()
+  INIT_WRITE_GBUFFER_WETNESS()
+  WRITE_GBUFFER_WETNESS()
+  USE_WATER_RIPPLES(@smp2d)
+  INIT_WATER_HEIGHTMAP(ps)
+  USE_WATER_HEIGHTMAP(ps)
+  USE_LAND_WETNESS_APPLY()
+
+  hlsl(ps) {
+
+    bool check_land_wetness_conditions(float3 world_pos, float3 vertical_normal, float dist, float water_level, float puddle_level, out float base_wetness, out float water_border)
+    {
+      base_wetness = get_base_wetness(world_pos, vertical_normal, water_level, water_border);
+      return base_wetness > 0 || (check_puddles_conditions(puddle_level, dist, vertical_normal) && world_pos.y > water_level);
+    }
+
+    float2 get_land_wetness(float3 world_pos, float3 vertical_normal, float dist, float puddle_level, float land_thickness, float land_deformation, float height, float base_wetness, float water_border)
+    {
+      // puddles
+      float puddleDisplacement = 0;
+      float puddlesWetness = get_puddles_wetness(world_pos, vertical_normal, dist, puddle_level, land_thickness, land_deformation, height, puddleDisplacement);
+      // underwater
+      puddlesWetness *= max(water_border, 0);
+
+      return float2(base_wetness, puddlesWetness);
+    }
+  }
+endmacro
+
 float object_default_porosity = 0.6;
 float decal_default_porosity = 0.7;
 
@@ -211,6 +222,7 @@ macro USE_RENDINST_PUDDLES(code)
   USE_TOROIDAL_PUDDLES(code)
   USE_WETNESS()
   USE_PUDDLE_DISTANCES(code)
+  USE_LAND_WETNESS_APPLY()
 
   hlsl(code) {
     #define object_default_porosity porosity_params.x
@@ -236,27 +248,11 @@ macro USE_RENDINST_PUDDLES(code)
       return wetness;
     }
 
-    void apply_rendinst_puddles(float porosity, float puddle_influence, float puddle_variance, float water_border, float eye_dist, float3 world_pos, float3 vertical_norm, float3 view, float3 sunDir, inout UnpackedGbuffer g_buf)
+    void apply_rendinst_puddles(float porosity, float puddle_influence, float puddle_variance, float water_border, float eye_dist, float3 world_pos, float3 vertical_norm, float3 view, float3 sunDir, inout UnpackedGbuffer g_buf, float base_wetness = 0.0f)
     {
       float wetness = get_rendinst_puddles(world_pos, vertical_norm, eye_dist, puddle_influence, puddle_variance);
-      float fresnelterm = 0.04 + 0.96 * saturate(1.2*pow3(1-view.y));
-      float wetMaterial = get_wet_material(wetness, water_border);
-      float wetnessAO = ClampRange(wetMaterial, 0.45, 0.95);
-      float3 albedoSqr = 0.8*g_buf.albedo.rgb * g_buf.albedo.rgb;
 
-      // we overriding real normal by vertical normal, so we lose all microdetails on puddle bottom. fake them by sundot
-      float preshadow = saturate(dot(g_buf.normal, sunDir));
-
-      g_buf.normal = lerp(g_buf.normal, vertical_norm, wetnessAO);
-      g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, albedoSqr, ClampRange(wetness, 0.0, 0.35) * porosity);
-      g_buf.albedo.rgb *= lerp(1, preshadow, 0.8 * wetnessAO);
-      g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, float3(0.015, 0.015, 0.015), fresnelterm*pow2(wetness));
-      g_buf.ao = lerp(g_buf.ao, 1.0, wetnessAO);
-      g_buf.shadow = lerp(g_buf.shadow, 1.0, wetnessAO);
-      g_buf.translucency *= (1 - wetnessAO);
-      g_buf.smoothness = lerp(g_buf.smoothness, 1, ClampRange(wetMaterial, 0.2, 1.0));
-
-      g_buf.reflectance = lerp(g_buf.reflectance, 1.0, wetMaterial);
+      apply_land_wetness(float2(base_wetness, wetness), water_border, world_pos, vertical_norm, view, sunDir, 0, porosity, g_buf);
     }
   }
 endmacro

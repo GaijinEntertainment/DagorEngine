@@ -2,7 +2,6 @@ options no_aot
 require ecs
 require PhysMat
 require AnimV20
-require %gameLibs/anim/animReplay/imports/anim_replay_events
 
 
 [es(on_appear)]

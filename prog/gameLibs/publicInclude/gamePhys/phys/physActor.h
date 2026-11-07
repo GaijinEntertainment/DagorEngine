@@ -12,6 +12,7 @@
 #include <gamePhys/phys/physActor.h>
 
 class NetCrew;
+class NetPayload;
 class NetWeapon;
 class NetWeaponControl;
 class NetAutopilot;
@@ -128,6 +129,7 @@ public:
   virtual void repair() {}
 
   virtual NetCrew *getCrew() { return NULL; }
+  virtual dag::ConstSpan<const NetPayload *> getAllPayloads() const { return {}; }
   virtual dag::ConstSpan<NetWeapon *> getAllWeapons() const { return {}; }
   virtual dag::ConstSpan<NetWeaponControl *> getAllWeaponControls() const { return {}; }
   virtual NetAutopilot *getAutopilot() const { return NULL; }

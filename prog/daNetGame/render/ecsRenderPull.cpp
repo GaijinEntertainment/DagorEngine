@@ -10,7 +10,9 @@
 
 extern size_t pull_das_daFrameGraph_aot_lib();
 
-#define REG_SYS_DEV RS(animCharDbgRender)
+#define REG_SYS_DEV     \
+  RS(animCharDbgRender) \
+  RS(rendinstDebug)
 
 #define REG_SYS              \
   RS(sphere_cam)             \

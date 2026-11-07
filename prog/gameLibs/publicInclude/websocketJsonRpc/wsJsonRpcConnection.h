@@ -17,7 +17,7 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/variant.h>
 
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 
 namespace websocketjsonrpc
@@ -317,7 +317,7 @@ private:
 
   State state = State::INITIAL;
 
-  std::mutex protectIncomingEvents;
+  dag::mutex protectIncomingEvents;
   eastl::deque<Event, EASTLAllocatorType, 64> incomingEvents;
 
   IncomingRequestCallback incomingRequestCallback;

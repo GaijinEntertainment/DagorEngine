@@ -220,6 +220,21 @@ public:
   bool isMultisampled() const { return msaaLevel > 0; }
   uint8_t getMsaaLevel() const { return msaaLevel; }
 
+  bool shouldPerformSlowDepthClear([[maybe_unused]] float depth) const
+  {
+#if _TARGET_SCARLETT
+    // TC reads a fast cleared HTILE tile only as 0.0 or 1.0, so clears to other values must write the depth
+    if (depth == 0.f || depth == 1.f || !image || !format.isDepth())
+      return false;
+
+    constexpr auto tcFlags =
+      D3D12XBOX_RESOURCE_FLAG_FORCE_HTILE_TEXTURE_COMPATIBILITY | D3D12XBOX_RESOURCE_FLAG_FORCE_TEXTURE_COMPATIBILITY;
+    return (image->GetDesc().Flags & tcFlags) != 0;
+#else
+    return false;
+#endif
+  }
+
   ExtendedImageGlobalSubresourceId getGlobalSubResourceIdBase() const { return globalSubResBase; }
   bool hasTrackedState() const { return globalSubResBase.isValid(); }
 

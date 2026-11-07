@@ -32,7 +32,8 @@
   VAR(rtss_build_augment)  \
   VAR(rtss_gather_sampler) \
   VAR(rtss_debug_mode)     \
-  VAR(rtss_debug_level)
+  VAR(rtss_debug_level)    \
+  VAR(rtss_sun_sweep)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
@@ -79,7 +80,7 @@ struct RaytracedToroidalStaticShadow::Impl
   shaders::UniqueOverrideStateId rasterState;
 
   UniqueTexWithShaderVar atlas;
-  UniqueBufWithShaderVar slots, levels, jobs, groups;
+  UniqueBufWithShaderVar slots, levels, jobs, groups; // slots: only for older additional dumps
   PostFxRenderer debugScreen, debugAtlas;
   UniqueBuf debugCounters;
   RingCPUBufferLock debugCountersReadback;
@@ -120,9 +121,9 @@ void RaytracedToroidalStaticShadow::Impl::createResources()
   atlas = dag::create_array_tex(side, side, s.levels, TEXFMT_L16 | TEXCF_UNORDERED, 1, "rtss_atlas", RESTAG_SHADOW);
   slots = dag::buffers::create_persistent_sr_byte_address(slotCount * sizeof(RtssSlot) / 4, "rtss_slots", d3d::buffers::Init::Zero,
     RESTAG_SHADOW);
-  levels = dag::buffers::create_persistent_sr_byte_address(s.levels * sizeof(RtssLevel) / 4, "rtss_levels", d3d::buffers::Init::Zero,
-    RESTAG_SHADOW);
-  shaders::OverrideState zClamp; // constraint: no depth bias, the lookup applies it
+  levels = dag::buffers::create_persistent_sr_byte_address((RTSS_SLOTS_OFFSET + slotCount * sizeof(RtssSlot)) / 4, "rtss_levels",
+    d3d::buffers::Init::Zero, RESTAG_SHADOW);
+  shaders::OverrideState zClamp; // no depth bias, the lookup applies it
   zClamp.set(shaders::OverrideState::Z_CLAMP_ENABLED | shaders::OverrideState::Z_FUNC);
   zClamp.zFunc = CMPF_LESSEQUAL;
   zClamp.colorWr = 0;
@@ -133,7 +134,7 @@ void RaytracedToroidalStaticShadow::Impl::createResources()
 void RaytracedToroidalStaticShadow::Impl::setGlobals(bool lookup)
 {
   IPoint4 paramsI;
-  Point4 globals[5]; // constraint: rtss_common.hlsli order: rtss_params_i, rtss_params, rtss_origin, rtss_bias, rtss_atlas_texel
+  Point4 globals[5]; // rtss_common.hlsli order: rtss_params_i, rtss_params, rtss_origin, rtss_bias, rtss_atlas_texel
   scheduler->globals(paramsI, globals[1], globals[2]);
   globals[0] = Point4(lookup ? paramsI.x : 0, paramsI.y, paramsI.z, paramsI.w);
   globals[3] = Point4(settings.biasTexels, settings.normalBiasTexels, scheduler->centerY(), float(scheduler->texel(0)));
@@ -148,9 +149,12 @@ RaytracedToroidalStaticShadow::RaytracedToroidalStaticShadow(const Settings &set
 
 RaytracedToroidalStaticShadow::~RaytracedToroidalStaticShadow() { impl->setGlobals(false); }
 
-void RaytracedToroidalStaticShadow::setSettings(const Settings &settings)
+void RaytracedToroidalStaticShadow::setSettings(Settings settings)
 {
   Impl &d = *impl;
+  // the lookup of a dump that assumes rtss_sun_sweep off reads transform 0 alone
+  settings.sunSweep =
+    !ShaderGlobal::is_var_assumed(rtss_sun_sweepVarId) || ShaderGlobal::get_interval_assumed_value(rtss_sun_sweepVarId);
   if (!d.scheduler || !(static_cast<const RtssSchedulerLayout &>(settings) == d.settings))
   {
     d.settings = settings;
@@ -339,7 +343,7 @@ bool RaytracedToroidalStaticShadow::Impl::renderRaster(const RtssFramePlan &plan
         live += !isSkipped(r);
       if (!live)
         continue;
-      // constraint: the scheduler gives the whole-slot jobs of one level and bit one depth range
+      // the scheduler gives the whole-slot jobs of one level and bit one depth range
       const RtssJob &first = plan.jobs[rasterPlan.order[group.first]];
       if (key != group.level * 2 + group.bit)
       {
@@ -433,7 +437,8 @@ void RaytracedToroidalStaticShadow::render(IStaticShadowsCB *raster_cb, IRtssTra
   if (!built || d.slotsStale || d.scheduler->slotTableChanged())
   {
     const dag::ConstSpan<RtssSlot> slotTable = d.scheduler->slotTable();
-    d.slotsStale = !d.slots->updateData(0, data_size(slotTable), slotTable.data(), VBLOCK_WRITEONLY);
+    d.slotsStale = !d.levels->updateData(RTSS_SLOTS_OFFSET, data_size(slotTable), slotTable.data(), VBLOCK_WRITEONLY) ||
+                   !d.slots->updateData(0, data_size(slotTable), slotTable.data(), VBLOCK_WRITEONLY);
   }
   if (d.slotsStale)
     d.setGlobals(false);
@@ -444,6 +449,12 @@ bool RaytracedToroidalStaticShadow::isReady(const BBox3 &box, uint32_t level) co
   const RtssScheduler &s = *impl->scheduler;
   return s.isReady(box, 1u << eastl::min(level, uint32_t(s.getSettings().levels - 1)));
 }
+
+bool RaytracedToroidalStaticShadow::isFullyRendered() const { return impl->scheduler->isIdle(); }
+
+float RaytracedToroidalStaticShadow::getCasterReach() const { return impl->scheduler->casterReach(); }
+
+float RaytracedToroidalStaticShadow::getFullWeightDistance() const { return impl->scheduler->fullWeightDistance(); }
 
 void RaytracedToroidalStaticShadow::afterDeviceReset()
 {
@@ -464,7 +475,7 @@ void RaytracedToroidalStaticShadow::getStats(Stats &out) const
   out.gpu = impl->gpuCounters;
 }
 
-void RaytracedToroidalStaticShadow::debugRenderScreen(int mode)
+void RaytracedToroidalStaticShadow::debugRenderScreen(int mode, bool counters)
 {
   Impl &d = *impl;
   if (!d.debugScreen.getElem())
@@ -487,11 +498,16 @@ void RaytracedToroidalStaticShadow::debugRenderScreen(int mode)
 
   static const int countersUavNo = ShaderGlobal::get_slot_by_name("rtss_debug_counters_uav_no");
   ShaderGlobal::set_int(rtss_debug_modeVarId, mode);
-  d3d::zero_rwbufi(d.debugCounters.getBuf());
-  d3d::resource_barrier({d.debugCounters.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_PIXEL});
+  if (counters)
+  {
+    d3d::zero_rwbufi(d.debugCounters.getBuf());
+    d3d::resource_barrier({d.debugCounters.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_PIXEL});
+  }
   d3d::set_rwbuffer(STAGE_PS, countersUavNo, d.debugCounters.getBuf());
   d.debugScreen.render();
   d3d::set_rwbuffer(STAGE_PS, countersUavNo, nullptr);
+  if (!counters)
+    return;
   if (Sbuffer *target = (Sbuffer *)d.debugCountersReadback.getNewTarget(frame))
   {
     d.debugCounters->copyTo(target, 0, 0, sizeof(GpuCounters));

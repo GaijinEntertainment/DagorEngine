@@ -60,6 +60,8 @@ public:
 
   void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
+  void setValueHighlight(ColorOverride::ColorIndex color) override { valueHighlightColor = color; }
+
   void reset() override
   {
     setIntValue(RADIO_SELECT_NONE);
@@ -95,7 +97,14 @@ public:
     if (!controlCaption.empty())
       labelWithTooltip(controlCaption.begin(), controlCaption.end());
 
+    const bool valueHighlightColorSet = valueHighlightColor != ColorOverride::NONE;
+    if (valueHighlightColorSet)
+      ImGui::PushStyleColor(ImGuiCol_FrameBg, getOverriddenColor(valueHighlightColor));
+
     ContainerPropertyControl::updateImgui();
+
+    if (valueHighlightColorSet)
+      ImGui::PopStyleColor();
   }
 
 private:
@@ -119,6 +128,7 @@ private:
   String controlCaption;
   bool controlEnabled = true;
   int selectedValue = RADIO_SELECT_NONE;
+  ColorOverride::ColorIndex valueHighlightColor = ColorOverride::NONE;
 };
 
 } // namespace PropPanel

@@ -6,19 +6,18 @@ Target      = tools/libTools/csgFaceRemover.lib ;
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
+  $(Root)/prog
 ;
 
 Sources =
-  csgFaceRemover.cpp
   geomContainerRemover.cpp
 ;
 
 
 UseProgLibs =
   tools/libTools/staticGeom
+  tools/libTools/meshCSG
   engine/daBVH
-  3rdPartyLibs/math/carve
 ;
 
-include $(Root)/prog/3rdPartyLibs/math/carve/carve-options.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

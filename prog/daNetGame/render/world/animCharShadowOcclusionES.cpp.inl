@@ -5,9 +5,9 @@
 #include <daECS/core/componentTypes.h>
 #include <generic/dag_tab.h>
 #include <math/dag_vecMathCompatibility.h>
+#include <math/integer/dag_IBBox2.h>
 #include <ecs/anim/anim.h>
 #include <util/dag_delayedAction.h>
-#include <render/toroidalStaticShadows.h>
 #include <render/world/shadowsManager.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <ecs/anim/animchar_visbits.h>
@@ -165,28 +165,14 @@ static void expand_bbox_by_attaches(bbox3f &bbox, const ecs::EidList *attaches_l
   }
 }
 
-bbox3f ShadowsManager::gatherBboxesForAnimcharShadowCull(const Point3 &cam_pos,
+void ShadowsManager::gatherBboxesForAnimcharShadowCull(const Point3 &cam_pos,
   dag::Vector<GpuVisibilityTestManager::TestObjectData, framemem_allocator> &out_bboxes,
   uint32_t usr_data) const
 {
   constexpr float CULL_TEST_FRAMES_DELAY = 2.0f;
-  constexpr int MAX_BBOX_SIZE_SQ_TEXELS = 16384;
 
-  bbox3f overallBbox;
-  v_bbox3_init_empty(overallBbox);
-  if (!staticShadows || staticShadows->cascadesCount() <= 0)
-    return overallBbox;
-
-  constexpr size_t TOROIDAL_TEXTURE_MAX_VIEWS_PER_BOX = 4;
-  eastl::fixed_vector<ViewTransformData, TOROIDAL_TEXTURE_MAX_VIEWS_PER_BOX> views(TOROIDAL_TEXTURE_MAX_VIEWS_PER_BOX);
-  {
-    int viewsCnt;
-    staticShadows->getCascadeWorldBoxViews(staticShadows->cascadesCount() - 1, views.data(), viewsCnt);
-    views.resize(viewsCnt);
-  }
-
-  if (views.size() <= 0)
-    return overallBbox;
+  if (!staticShadows)
+    return;
 
   static Point3 prevCamPos = cam_pos;
   Point3 camPosDiff = cam_pos - prevCamPos;
@@ -230,25 +216,12 @@ bbox3f ShadowsManager::gatherBboxesForAnimcharShadowCull(const Point3 &cam_pos,
         testBbox.bmin = v_max(testBbox.bmin, v_sub(animchar_bsph, testBboxMaxHalfSize));
         testBbox.bmax = v_min(testBbox.bmax, v_add(animchar_bsph, testBboxMaxHalfSize));
 
-        // Any view is suitable since we only need distance between points.
-        vec4f bminScr = v_mat44_mul_vec3v(views[0].globtm, testBbox.bmin);
-        vec4f bmaxScr = v_mat44_mul_vec3v(views[0].globtm, testBbox.bmax);
-        vec4f bsizeScr = v_sub(v_max(bminScr, bmaxScr), v_min(bminScr, bmaxScr));
-        vec4f bsizeVp = v_mul(bsizeScr, v_make_vec4f(views[0].w, views[0].h, 0, 0));
-        vec4f bsizeVpExtended = v_ceil(v_add(bsizeVp, v_splats(2.f)));
-        float area = v_extract_x(v_mul_x(bsizeVpExtended, v_splat_y(bsizeVpExtended)));
-        if (area > MAX_BBOX_SIZE_SQ_TEXELS * 4.f)
-          return;
-
         testBbox.bmax = v_perm_xyzd(testBbox.bmax, v_cast_vec4f(v_splatsi(usr_data)));
         out_bboxes.push_back(testBbox);
-        v_bbox3_add_box(overallBbox, testBbox);
       }
     });
 
   prevCamPos = cam_pos;
-
-  return overallBbox;
 }
 
 void ShadowsManager::setAnimcharShadowCullBboxes(dag::Span<bbox3f> tested_bboxes, const Point3 &cam_pos)

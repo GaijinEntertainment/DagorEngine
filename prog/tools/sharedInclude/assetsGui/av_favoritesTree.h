@@ -109,7 +109,17 @@ public:
     tree->setSelectedItem(treeItem);
   }
 
-  void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets)
+  void setSelectedAssetFolder(const DagorAssetFolder &folder)
+  {
+    auto it = folderIndexToFavoriteTreeFolderMap.find(assetMgr.getFolderIndex(folder));
+    if (it != folderIndexToFavoriteTreeFolderMap.end())
+      tree->setSelectedItem(getTreeItemByItemData(makeItemDataFromFolder(*it->second)));
+  }
+
+  // sub_folders: the subfolders of the current folder.
+  // Returns the folder whose direct assets were appended, or nullptr when there is none.
+  DagorAssetFolder *getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets,
+    dag::Vector<DagorAssetFolder *> &sub_folders)
   {
     PropPanel::TLeafHandle selectedFolder = tree->getSelectedItem();
     if (!getFolderFromItemData(selectedFolder))
@@ -123,8 +133,12 @@ public:
       {
         if (DagorAsset *asset = getAssetFromItemData(child))
           assets.push_back(asset);
+        else if (DagorAssetFolder *childFolder = getAssetFolderFromItemData(child))
+          sub_folders.push_back(childFolder);
       }
     }
+
+    return getAssetFolderFromItemData(selectedFolder);
   }
 
   void expandAll(bool expand) { tree->expandRecursive(tree->getRoot(), expand); }

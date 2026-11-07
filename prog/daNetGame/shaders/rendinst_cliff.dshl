@@ -10,7 +10,7 @@ shader rendinst_cliff
   COMMON_RENDINST_VCOLOR_INIT(pn_triangulation_enabled, true)
   INIT_COMMON_RENDINST_TESSELLATION()
   COMMON_RENDINST_INIT_HMAP(true)
-  INIT_COMMON_RENDINST_TESSELLATION_CHANNELS()
+  INIT_COMMON_RENDINST_TESSELLATION_CHANNELS(triplanar == triplanar_on)
 
   COMMON_RENDINST_VS_IO_DEFINES()
 
@@ -94,6 +94,10 @@ shader rendinst_cliff
       }
     }
 
+    if (triplanar == triplanar_on)
+    {
+      USE_VCOLOR_LAYERED_TRIPLANAR_DISPLACEMENT()
+    }
     USE_COMMON_RENDINST_DISPLACEMENT_FOR_TESSELLATION()
 
     hlsl(ds)

@@ -28,7 +28,7 @@ start a worker served as that. The site then reports that it has no VM.
 | one-line summary | the `docstring` field of the C++ binding |
 | prose sections | `content/<module>/<name>.md` |
 | example and its output | `examples/<module>/<name>.nut` and `.out` |
-| the numbers on the Performance page | `content/_bench.json` and `content/_vm_bench.json`, written by `../bench/` |
+| the numbers on the Performance page | `content/_bench.json`, written by `../bench/benchmarks.py` |
 
 Nothing on a page restates what the VM already knows, so a signature cannot drift
 from the implementation.

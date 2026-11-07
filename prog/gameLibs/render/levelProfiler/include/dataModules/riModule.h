@@ -25,12 +25,14 @@ struct LodInfo
   int drawCalls = 0;
   int totalFaces = 0;
   float lodDistance = 0.0f;
-  float screenPercent = 0.0f;
+  // The longest bbox edge divided by lodDistance; Screen% is this ratio for the FOV of the table.
+  float maxEdgePerDistance = 0.0f;
   struct HeavyShaderEntry
   {
     ProfilerString name;
     int count = 1;
   };
+  // Sorted by name.
   eastl::vector<HeavyShaderEntry> heavyShaders;
 };
 
@@ -46,6 +48,8 @@ struct RiData
   int countOnMap = 0;
   float bSphereRadius = 0.0f;
   float bBoxRadius = 0.0f;
+  // The LOD count of the resource; lods holds not more than RiExtraPool::MAX_LODS of them.
+  int lodCount = 0;
   eastl::vector<LodInfo> lods;
   CollisionInfo collision;
   const RenderableInstanceLodsResource *resource = nullptr;
@@ -63,18 +67,21 @@ public:
 
   void collect() override;
   void clear() override;
+  bool canCollect() const override;
 
-  void init() override;
   void shutdown() override;
   void drawUI() override;
 
-  const eastl::vector<AssetInfo> &getAssets() const { return assets; }
   const eastl::hash_map<ProfilerString, eastl::vector<ProfilerString>> &getTextureToAssetsMap() const { return textureToAssetsMap; }
   const eastl::hash_map<ProfilerString, TextureUsage> &getTextureUsage() const { return textureUsage; }
 
   const eastl::vector<RiData> &getRiData() const { return riData; }
-  const RiData *getRiDataByName(const ProfilerString &name) const;
-  const eastl::hash_map<ProfilerString, int> &getRiInstanceCounts() const { return riInstanceCounts; }
+  // 0 for an asset without instances on the map.
+  int getRiInstanceCount(const ProfilerString &asset_name) const
+  {
+    auto countIt = riInstanceCounts.find(asset_name);
+    return countIt != riInstanceCounts.end() ? countIt->second : 0;
+  }
 
   void continueCollect() override;
   bool isCollecting() const override;
@@ -93,10 +100,8 @@ public:
   bool hasProvisionalRiData() const { return riDataProvisional; }
   bool wasCollectCancelled() const { return collectCancelled; }
   unsigned getRiDataGeneration() const { return riDataGeneration; }
-
-  void buildTextureToAssetMap();
-  void computeTextureUsageStatistics();
-  void collectRiDataForProfiling();
+  // Changes when the riGen walk writes instance counts into riData, which riDataGeneration does not track.
+  unsigned getRiCountsGeneration() const { return riCountsGeneration; }
 
   eastl::vector<const RenderableInstanceLodsResource *> allRenderableInstances;
 
@@ -121,13 +126,21 @@ private:
   bool riDataProvisional = false;
   bool collectCancelled = false;
   unsigned riDataGeneration = 0;
+  unsigned riCountsGeneration = 0;
 
   void collectRenderableInstances();
+  void buildTextureToAssetMap();
+  void computeTextureUsageStatistics();
+  // First pool with a collision wins for a resource shared by several pools, riExtra pools before riGen.
+  using CollisionByRes = ska::flat_hash_map<const RenderableInstanceLodsResource *, const CollisionResource *>;
+  // Reads riInstanceCounts, so it runs after scanRiExtraPools.
+  void collectRiDataForProfiling(const CollisionByRes &collision_by_res);
   eastl::vector<AssetInfo> getUniqueAssets();
 
   struct LayerCollectState;
 
-  void collectInstanceCounts();
+  void scanRiExtraPools(CollisionByRes &collision_by_res);
+  static void addRiGenCollision(CollisionByRes &collision_by_res);
   void collectRiGenInstanceCounts();
   int countRiGenCell(LayerCollectState &state, RendInstGenData *layer, int cell_x, int cell_y);
   void prepareLayerCollection();
@@ -136,7 +149,6 @@ private:
   void finalizeCollection();
   void cancelCollection();
   void resetCollectionState();
-  void updateRiDataCount(const ProfilerString &asset_name, int new_count);
   template <typename LodType>
   LodInfo analyzeLodData(const LodType &lod, float bsphere_radius, float bbox_radius) const;
   CollisionInfo analyzeCollision(const CollisionResource *collision_resource) const;

@@ -8,6 +8,7 @@
 #include <util/dag_string.h>
 #include <propPanel/control/container.h>
 #include <ioSys/dag_dataBlock.h>
+#include <imgui/imgui_internal.h>
 
 void BaseAnimStatesReorderHandler::handleReorder(int from, int to)
 {
@@ -39,15 +40,21 @@ void BaseCtrlReorderHandler::handleReorder(int from, int to)
 
 bool BaseCtrlReorderHandler::canReorder()
 {
-  Tab<String> values;
-  panel->getStrings(PID_CTRLS_NODES_LIST, values);
-  for (const String &v : values)
+  for (const String &v : panel->getStrings(PID_CTRLS_NODES_LIST))
     if (v == "new_node")
       return false;
   return true;
 }
 
 void ResetRandomSwitchReorderHandler::handleReorder(int from, int to) { editor.reorderResetRandomSwitchList(panel, from, to); }
+
+bool ResetRandomSwitchReorderHandler::canReorder()
+{
+  for (const String &v : panel->getStrings(PID_NODES_RESET_RANDOM_SWITCH_LIST))
+    if (v == "##")
+      return false;
+  return true;
+}
 
 void AnimTreeListDragHandler::onBeginDrag(int idx, const char *value)
 {
@@ -70,13 +77,15 @@ PropPanel::DragAndDropResult AnimTreeListDropHandler::onDropTarget(int idx)
   float y = mouseY < midY ? min.y : max.y;
 
   drawList->AddLine(ImVec2(min.x, y), ImVec2(max.x, y), IM_COL32(0, 120, 215, 255), 2.0f);
-  const ImGuiPayload *dragAndDropPayload = PropPanel::acceptDragDropPayloadBeforeDelivery("ListBoxReorder");
+  const ImGuiPayload *dragAndDropPayload = PropPanel::acceptDragDropPayloadBeforeDelivery(ASSET_DRAG_AND_DROP_TYPE);
+  if (!dragAndDropPayload || dragAndDropPayload->SourceParentId != ImGui::GetCurrentWindowRead()->IDStack.back())
+    return PropPanel::DragAndDropResult::NOT_ALLOWED;
   if (reorderHandler && !reorderHandler->canReorder())
     return PropPanel::DragAndDropResult::NOT_ALLOWED;
 
   DragDropPayloadData dragData;
   PropPanel::getDragAndDropPayloadData<DragDropPayloadData>(dragAndDropPayload, &dragData);
-  if (dragAndDropPayload && dragAndDropPayload->IsDelivery())
+  if (dragAndDropPayload->IsDelivery())
   {
     int offsetIdx = mouseY < midY ? 0 : 1;
     offsetIdx += dragData.idx < idx ? -1 : 0;

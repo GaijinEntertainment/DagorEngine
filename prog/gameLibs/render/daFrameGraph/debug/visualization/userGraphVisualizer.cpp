@@ -15,6 +15,7 @@
 #include <backend/simdBitMatrix.h>
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <gui/dag_imgui.h>
 #include <gui/dag_imguiUtil.h>
 #include <imgui-node-editor/imgui_canvas.h>
@@ -63,6 +64,11 @@ constexpr float MACRO_FONT_SCALE = 4.f;
 constexpr float NAMESPACE_FONT_SCALE = 6.f;
 
 
+constexpr float COMBO_WIDTH = 150.f;
+constexpr float EXPLORER_PANEL_INIT_WIDTH = 300.f;
+constexpr float SEARCH_ELEMENTS_OFFSET = 5.f;
+
+
 constexpr ImU32 NODE_NAME_COLOR = IM_COL32(128, 128, 128, 255);       // rgb(128, 128, 128)
 constexpr ImU32 NODE_BASE_COLOR = IM_COL32(96, 96, 96, 255);          // rgb(96, 96, 96)
 constexpr ImU32 NODE_CHANGED_COLOR = IM_COL32(255, 64, 255, 255);     // rgb(255, 64, 255)
@@ -83,6 +89,10 @@ constexpr ImU32 DISABLED_DEP_COLOR = CYCLED_DEP_COLOR;
 constexpr ImU32 CAPTURE_START_COLOR = IM_COL32(64, 220, 64, 255); // rgb(64, 220, 64)
 constexpr ImU32 CAPTURE_END_COLOR = IM_COL32(255, 96, 64, 255);   // rgb(255, 96, 64)
 
+constexpr ImU32 NODE_ICON_COLOR = IM_COL32(64, 196, 64, 255);    // rgb(64, 196, 64)
+constexpr ImU32 RES_ICON_COLOR = IM_COL32(128, 128, 255, 255);   // rgb(128, 128, 255)
+constexpr ImU32 SEARCH_MATCH_COLOR = IM_COL32(0, 196, 128, 255); // rgb(0, 196, 128)
+
 
 constexpr ImU32 OPT_POPUP_POS_COLOR = IM_COL32(64, 196, 64, 255);  // rgb(64, 196, 64)
 constexpr ImU32 OPT_POPUP_WAR_COLOR = IM_COL32(196, 196, 64, 255); // rgb(196, 196, 64)
@@ -92,6 +102,10 @@ constexpr ImU32 SIDE_EFF_NON_COLOR = IM_COL32(64, 196, 64, 255);  // rgb(64, 196
 constexpr ImU32 SIDE_EFF_INT_COLOR = IM_COL32(196, 64, 196, 255); // rgb(196, 64, 196)
 constexpr ImU32 SIDE_EFF_EXT_COLOR = IM_COL32(196, 64, 0, 255);   // rgb(196, 64, 0)
 
+constexpr ImU32 GRID_MAIN_COLOR = IM_COL32(255, 255, 255, 64); // rgb(255, 255, 255)
+constexpr ImU32 GRID_MIN_COLOR = IM_COL32(255, 255, 255, 32);  // rgb(255, 255, 255)
+
+
 constexpr auto NODE_EXEX_REQ_POPUP = "node_exec_reqs";
 constexpr auto NODE_RENDER_REQ_POPUP = "node_render_reqs";
 constexpr auto NODE_BINDINGS_POPUP = "node_bindings";
@@ -99,6 +113,8 @@ constexpr auto NODE_IDX_VTX_POPUP = "node_iv_bufs";
 constexpr auto EDGE_RESOURCES_POPUP = "edge_resources";
 constexpr auto HISTORY_EDGE_POPUP = "history_edge";
 constexpr auto NODE_CAPTURE_POPUP = "node_capture_range";
+
+constexpr auto SEARCH_BAR_POPUP = "search_bar_popup";
 
 
 template <class T, class... Ts>
@@ -127,9 +143,9 @@ namespace visualization::usergraph
 {
 
 static const eastl::array<eastl::pair<NodeColorationType, const char *>, static_cast<size_t>(NodeColorationType::COUNT)>
-  nodeColorationTypeArray{eastl::pair{NodeColorationType::None, (const char *)"None"},
-    eastl::pair{NodeColorationType::Framebuffer, (const char *)"Color by framebuffers"},
-    eastl::pair{NodeColorationType::Pass, (const char *)"Color by passes"}};
+  nodeColorationTypeArray{eastl::pair{NodeColorationType::None, (const char *)"default"},
+    eastl::pair{NodeColorationType::Framebuffer, (const char *)"framebuffers"},
+    eastl::pair{NodeColorationType::Pass, (const char *)"passes"}};
 
 static const char *node_coloration_name_by_type(NodeColorationType type)
 {
@@ -137,9 +153,9 @@ static const char *node_coloration_name_by_type(NodeColorationType type)
 }
 
 static const eastl::array<eastl::pair<ResourceFocusType, const char *>, static_cast<size_t>(ResourceFocusType::COUNT)>
-  resourceFocusTypeArray{eastl::pair{ResourceFocusType::All, (const char *)"Show all"},
-    eastl::pair{ResourceFocusType::Resource, (const char *)"Focus on resource"},
-    eastl::pair{ResourceFocusType::ResourceAndRenames, (const char *)"Focus on resource and renames"}};
+  resourceFocusTypeArray{eastl::pair{ResourceFocusType::All, (const char *)"All"},
+    eastl::pair{ResourceFocusType::Resource, (const char *)"Focused"},
+    eastl::pair{ResourceFocusType::ResourceAndRenames, (const char *)"Focused + Renames"}};
 
 static const char *res_focus_name_by_type(ResourceFocusType type) { return resourceFocusTypeArray[static_cast<size_t>(type)].second; }
 
@@ -197,12 +213,11 @@ void Visualizer::draw()
   hoverState.reset();
   hoverState.window = ImGui::IsWindowHovered();
   gpuCapture.nodeRowPopupOpenedThisFrame = false;
-  macroView = canvasCamera.getZoom() < MACRO_VIEW_THRESHOLD;
 
 
-  drawUI();
-
-  drawCanvas();
+  drawExplorerPanel();
+  ImGui::SameLine();
+  drawCanvasPanel();
 
 
   processPopup();
@@ -212,119 +227,371 @@ void Visualizer::draw()
   processTextureDebug();
 }
 
-void Visualizer::drawUI()
+
+void Visualizer::drawExplorerPanel()
 {
+  ImGui::BeginChild("##fg_explorer_panel", ImVec2(EXPLORER_PANEL_INIT_WIDTH, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
+
+  ImGui::TextUnformatted("SEARCH:");
+  ImGui::BeginChild("##fg_search_bar", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+  drawSearchBar();
+  ImGui::EndChild();
+
+  ImGui::NewLine();
+
+  ImGui::TextUnformatted("TREE VIEW:");
+  ImGui::BeginChild("##fg_tree_view", ImVec2(0, 0), ImGuiChildFlags_Borders);
+  drawNameSpaceTree(registry.knownNames.root());
+  ImGui::EndChild();
+
+  ImGui::EndChild();
+}
+
+void Visualizer::drawCanvasPanel()
+{
+  ImGui::BeginGroup();
+
+  ImGui::BeginChild("##fg_canvas_controls", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+  drawControls();
+  ImGui::EndChild();
+
+  drawCanvas();
+
+  ImGui::EndGroup();
+}
+
+void Visualizer::drawSearchBar()
+{
+  static String label;
+
+  const float inputWidth = ImGui::GetContentRegionAvail().x;
+
+  ImGui::SetNextItemWidth(inputWidth);
+  ImGuiDagor::InputTextWithHint("##fg_search_input", "Search nodes/resources...", &searchState.input);
+  searchState.rateSearch();
+
+  const bool wasPopupOpen = ImGui::IsPopupOpen(SEARCH_BAR_POPUP);
+  if (ImGui::IsItemActive())
+    ImGui::OpenPopup(SEARCH_BAR_POPUP);
+
+  ImGui::SetNextWindowPos({ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().y});
+  ImGui::SetNextWindowSizeConstraints({inputWidth, 0.f}, {inputWidth, 300.f});
+  if (ImGui::BeginPopup(SEARCH_BAR_POPUP, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                                            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoFocusOnAppearing))
   {
-    if (ImGuiDagor::ComboWithFilter("User Node Search", nsNodeNames, focusedNodeIndex, nodeSearchInput, false, true,
-          "Search for node...") &&
-        focusedNodeIndex != UNKNOWN_INDEX)
+    if (!wasPopupOpen)
+      ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+
+    const bool enterPressed = ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter);
+    const bool arrowUpPressed = ImGui::IsKeyPressed(ImGuiKey_UpArrow, true);
+    const bool arrowDownPressed = ImGui::IsKeyPressed(ImGuiKey_DownArrow, true);
+    const bool arrowPressed = arrowUpPressed || arrowDownPressed;
+    const auto normalTextColor = ImGui::GetColorU32(ImGuiCol_Text);
+
+    if (!searchState.sortedIndices.empty())
     {
-      setFocus(nsNodeNameIds[focusedNodeIndex]);
-      centerOnFocus();
+      if (arrowUpPressed)
+        searchState.selectedIndex = max(searchState.selectedIndex - 1, 0);
+      if (arrowDownPressed)
+        searchState.selectedIndex = min(searchState.selectedIndex + 1, int(searchState.sortedIndices.size() - 1));
     }
 
-    if (focusState.nodeValid())
+    for (uint32_t searchResultIdx = 0; searchResultIdx < searchState.sortedIndices.size(); ++searchResultIdx)
     {
+      const uint32_t itemIdx = searchState.sortedIndices[searchResultIdx];
+      const auto &item = searchState.searchItems[itemIdx];
+
+      const bool isFocused = item.isNode() ? item.nodeId == focusState.nodeId : item.resId == focusState.resId;
+      const bool isHiddenResource = !item.isNode() && userResources[item.resId].hidden;
+      const bool isAccentWithArrow = searchResultIdx == searchState.selectedIndex;
+
+
+      ImGui::BeginDisabled(isHiddenResource);
+
+      label.printf(0, "##search_entry_%u", searchResultIdx);
+      const bool isSelectedWithMouse = ImGui::Selectable(label, isAccentWithArrow, ImGuiSelectableFlags_SpanAvailWidth);
+      const bool isSelectedWithEnter = !isHiddenResource && enterPressed && isAccentWithArrow;
       ImGui::SameLine();
-      if (ImGui::Button("Center on node"))
+
+      const auto itemIconColor = item.isNode() ? NODE_ICON_COLOR : RES_ICON_COLOR;
+      const auto itemIconText = item.isNode() ? "[N]" : "[R]";
+      ImGui::PushStyleColor(ImGuiCol_Text, itemIconColor);
+      ImGui::TextUnformatted(itemIconText);
+      ImGui::PopStyleColor();
+      if (isHiddenResource)
+      {
+        ImGui::SameLine();
+        ImGui::TextUnformatted("(hidden)");
+      }
+
+      const ImU32 regularTextColor = isFocused ? FOCUS_COLOR : normalTextColor;
+      const ImU32 highlightedTextColor = SEARCH_MATCH_COLOR;
+      const auto iconMin = ImGui::GetItemRectMin();
+      const auto iconMax = ImGui::GetItemRectMax();
+      ImVec2 textStartPos = ImVec2{iconMax.x, iconMin.y};
+      textStartPos.x += SEARCH_ELEMENTS_OFFSET;
+      if (!item.shortNameMatches.empty())
+      {
+        textStartPos =
+          draw_highlighted_text(textStartPos, item.shortName, regularTextColor, highlightedTextColor, item.shortNameMatches);
+        textStartPos.x += SEARCH_ELEMENTS_OFFSET;
+        draw_highlighted_text(textStartPos, item.parentName, apply_alpha_coeff(normalTextColor, 0.5f), 0, {});
+      }
+      else
+      {
+        draw_highlighted_text(textStartPos, item.fullName, regularTextColor, highlightedTextColor, item.fullNameMatches);
+      }
+
+      if (arrowPressed && isAccentWithArrow)
+      {
+        ImGui::SetScrollHereY();
+        if (!isHiddenResource)
+        {
+          if (item.isNode())
+            setFocus(item.nodeId);
+          else
+            setFocus(item.resId);
+          centerOnFocus();
+        }
+      }
+
+      if (isSelectedWithEnter || isSelectedWithMouse)
+      {
+        if (item.isNode())
+          setFocus(item.nodeId);
+        else
+          setFocus(item.resId);
         centerOnFocus();
 
-      ImGui::SameLine();
-      if (ImGui::Button("Reset node focus"))
-        clearFocus();
+        searchState.input.clear();
+        searchState.selectedIndex = 0;
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::EndDisabled();
     }
+
+    ImGui::EndPopup();
   }
+}
 
+void Visualizer::drawNameSpaceTree(NameSpaceNameId namespace_id)
+{
+  static String label;
+
+  const auto &nameSpace = nameSpaces[namespace_id];
+  const auto normalTextColor = ImGui::GetColorU32(ImGuiCol_Text);
+
+  ImGui::BeginGroup();
   {
-    if (treeWithFilter("FG Managed Resource Search", nsResNames, focusedResourceIndex, resourceSearchInput, true,
-          "Search for resource...") &&
-        focusedResourceIndex != UNKNOWN_INDEX)
+    for (auto subNameSpaceId : nameSpace.subNameSpaces)
     {
-      setFocus(nsResNameIds[focusedResourceIndex]);
-      centerOnFocus();
+      const bool anyResVisible = nameSpaces[subNameSpaceId].visibleResourcesInSubtree != 0;
+      ImU32 textColor = normalTextColor;
+      if (!anyResVisible)
+        textColor = apply_alpha_coeff(textColor, 0.5f);
+
+      label.printf(0, "%s##_tree_namespace_%u", getShortName(subNameSpaceId), static_cast<uint32_t>(subNameSpaceId));
+      ImGui::PushStyleColor(ImGuiCol_Text, textColor);
+      const bool nsOpened = ImGui::TreeNodeEx(label,
+        ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_SpanLabelWidth | ImGuiTreeNodeFlags_DrawLinesFull);
+      ImGui::PopStyleColor();
+      ImGui::SameLine();
+
+      if (anyResVisible)
+      {
+        label.printf(0, "Hide##_namespace_%u", static_cast<uint32_t>(subNameSpaceId));
+        if (ImGui::Button(label))
+          hideResourcesInNameSpace(subNameSpaceId);
+      }
+      else
+      {
+        label.printf(0, "Show##_namespace_%u", static_cast<uint32_t>(subNameSpaceId));
+        if (ImGui::Button(label))
+          showResourcesInNameSpace(subNameSpaceId);
+      }
+
+      if (nsOpened)
+      {
+        drawNameSpaceTree(subNameSpaceId);
+        ImGui::TreePop();
+      }
     }
 
-    if (focusState.resValid())
+    if (!nameSpace.nodes.empty())
+      ImGui::TextUnformatted("Nodes:");
+    for (auto nodeNameId : nameSpace.nodes)
     {
+      bool &enabledFlag = registry.nodes[nodeNameId].enabled;
+      const bool isEnabled = enabledFlag;
+      const bool isFocused = focusState.nodeNameId == nodeNameId;
+
+      label.printf(0, "##enable_node_%u", static_cast<uint32_t>(nodeNameId));
+      ImGui::Checkbox(label, &enabledFlag);
       ImGui::SameLine();
-      if (ImGui::Button("Center on resource"))
+
+      ImU32 textColor = normalTextColor;
+      if (isFocused)
+        textColor = FOCUS_COLOR;
+      if (!isEnabled)
+        textColor = apply_alpha_coeff(textColor, 0.5f);
+
+      label.printf(0, "%s##_tree_nodename_%u", getShortName(nodeNameId), static_cast<uint32_t>(nodeNameId));
+      ImGui::PushStyleColor(ImGuiCol_Text, textColor);
+      if (ImGui::Selectable(label, isFocused))
+      {
+        setFocus(nodeNameId);
         centerOnFocus();
-
-      ImGui::SameLine();
-      if (ImGui::Button("Reset resource focus"))
-        clearFocus();
-
-      ImGui::SameLine();
-      ImGuiDagor::EnumCombo("##resourceRenamesCombo", ResourceFocusType::All,
-        focusState.hasRenames ? ResourceFocusType::ResourceAndRenames : ResourceFocusType::Resource, focusState.focusType,
-        &res_focus_name_by_type, ImGuiComboFlags_WidthFitPreview);
-    }
-  }
-
-  {
-    ImGui::Text("Edge types: ");
-
-    for (auto &info : dependencyInfoByTypeArray)
-    {
-      ImGui::SameLine();
-      ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(info.imguiColor));
-      ImGui::Checkbox(info.name.c_str(), &info.visible);
+      }
       ImGui::PopStyleColor();
     }
 
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(200);
-    if (ImGui::BeginCombo("##coloration", node_coloration_name_by_type(coloration)))
+    if (!nameSpace.resources.empty())
+      ImGui::TextUnformatted("Resources:");
+    for (auto resNameId : nameSpace.resources)
     {
-      for (const auto [type, name] : nodeColorationTypeArray)
+      const bool isHidden = userResources[getRepresentId(resNameId)].hidden;
+      const bool isFocused = focusState.resNameId == resNameId;
+      const bool isInspected = inspectedDependency.resNameId == resNameId;
+
+      if (isHidden)
       {
-        const bool selected = coloration == type;
-        if (ImGui::Selectable(name, selected))
-          coloration = type;
-        if (selected)
-          ImGui::SetItemDefaultFocus();
+        label.printf(0, "Show##_resource_%u", static_cast<uint32_t>(resNameId));
+        if (ImGui::Button(label))
+          showResource(resNameId);
       }
-      ImGui::EndCombo();
+      else
+      {
+        label.printf(0, "Hide##_resource_%u", static_cast<uint32_t>(resNameId));
+        if (ImGui::Button(label))
+          hideResource(resNameId);
+      }
+      ImGui::SameLine();
+
+      ImU32 textColor = normalTextColor;
+      if (isFocused)
+        textColor = FOCUS_COLOR;
+      if (isInspected)
+        textColor = RES_INSPECT_COLOR;
+      if (isHidden)
+        textColor = apply_alpha_coeff(textColor, 0.5f);
+
+      label.printf(0, "%s##_tree_resname_%u", getShortName(resNameId), static_cast<uint32_t>(resNameId));
+      ImGui::PushStyleColor(ImGuiCol_Text, textColor);
+      ImGui::BeginDisabled(isHidden);
+      if (ImGui::Selectable(label, isFocused))
+      {
+        setFocus(resNameId);
+        centerOnFocus();
+      }
+      ImGui::EndDisabled();
+      ImGui::PopStyleColor();
     }
-
-    ImGui::SameLine();
-    ImGui::Text("Hierarchical view:");
-    ImGui::SameLine();
-    ImGui::Checkbox("##hierarchicalView", &hierarchicalView);
   }
+  ImGui::EndGroup();
+}
 
+void Visualizer::drawControls()
+{
+  ImGui::BeginGroup();
   {
+    ImGui::TextUnformatted("VIEW:");
+
+    ImGui::BeginGroup();
+    {
+      ImGui::TextUnformatted("Edge types:");
+      for (auto &info : dependencyInfoByTypeArray)
+      {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(info.imguiColor));
+        ImGui::Checkbox(info.name.c_str(), &info.visible);
+        ImGui::PopStyleColor();
+      }
+    }
+    ImGui::EndGroup();
+
+    ImGui::SameLine();
+
+    ImGui::BeginGroup();
+    {
+      ImGui::TextUnformatted("Focus:");
+      ImGui::BeginDisabled(!focusState.nodeValid() && !focusState.resValid());
+      {
+        if (ImGui::Button("Center on focus"))
+          centerOnFocus();
+
+        if (ImGui::Button("Reset focus"))
+          clearFocus();
+
+        ImGui::NewLine();
+        ImGui::BeginDisabled(!focusState.resValid());
+        {
+          ImGui::TextUnformatted("Show resources:");
+          ImGui::SetNextItemWidth(COMBO_WIDTH);
+          ImGuiDagor::EnumCombo("##resourceRenamesCombo", ResourceFocusType::All,
+            focusState.hasRenames ? ResourceFocusType::ResourceAndRenames : ResourceFocusType::Resource, focusState.focusType,
+            &res_focus_name_by_type);
+        }
+        ImGui::EndDisabled();
+      }
+      ImGui::EndDisabled();
+    }
+    ImGui::EndGroup();
+
+    ImGui::SameLine();
+
+    ImGui::BeginGroup();
+    {
+      ImGui::TextUnformatted("Color nodes by:");
+      ImGui::SetNextItemWidth(COMBO_WIDTH);
+      ImGuiDagor::EnumCombo("##nodeColorationCombo", NodeColorationType::None, NodeColorationType::Pass, nodeColoration,
+        &node_coloration_name_by_type);
+
+      ImGui::NewLine();
+      ImGui::Checkbox("Hierarchical view", &hierarchicalView);
+      ImGui::Checkbox("Smooth camera", &smoothCamera);
+      ImGui::Checkbox("Show grid", &canvasGrid);
+
+      ImGui::NewLine();
+      if (ImGui::Button("Reset changed nodes"))
+      {
+        lastChangedNodes.assign(lastChangedNodes.size(), false);
+        accumChangedNodes.assign(accumChangedNodes.size(), false);
+      }
+    }
+    ImGui::EndGroup();
+  }
+  ImGui::EndGroup();
+
+  ImGui::SameLine();
+  ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+  ImGui::SameLine();
+
+  ImGui::BeginGroup();
+  {
+    ImGui::TextUnformatted("CONTROLS:");
+
     if (ImGui::Button("Recompile"))
       dafg::recompile_graph.set(true);
 
     ImGui::SameLine();
-    if (ImGui::Button("Reset changed nodes"))
-    {
-      lastChangedNodes.assign(lastChangedNodes.size(), false);
-      accumChangedNodes.assign(accumChangedNodes.size(), false);
-    }
-
-    ImGui::SameLine();
-    if (deselect_button("Deselect"))
-      clearInspectedDependency();
-
-    fg_texture_visualization_imgui_line(registry);
-
-    ImGui::SameLine();
-    overlay_checkbox("Overlay mode");
-  }
-
-  {
     if (ImGui::Button("GPU capture"))
     {
       imgui_window_set_visible(IMGUI_WINDOW_GROUP_FG2, IMGUI_GPU_CAPTURE_WIN_NAME, true);
       gpuCapture.focusGpuCaptureWindow = true;
     }
-  }
 
-  {
-    ImGui::Text("Use mouse wheel button to pan.");
+    ImGui::NewLine();
+    if (deselect_button("Deselect inspected"))
+      clearInspectedDependency();
+    ImGui::SameLine();
+    overlay_checkbox("Overlay mode");
+
+    fg_texture_visualization_imgui_line(registry);
+
+    ImGui::NewLine();
+    ImGui::TextUnformatted("Use mouse wheel button or double r-click to pan.");
   }
+  ImGui::EndGroup();
 }
 
 void Visualizer::drawCanvas()
@@ -332,10 +599,41 @@ void Visualizer::drawCanvas()
   if (!canvas.Begin("##scrolling_region", ImVec2(0, 0)))
     return;
 
+  canvasCamera.update(ImGui::GetIO().DeltaTime, !smoothCamera);
+  canvas.SetView(canvas.ViewOrigin(), canvasCamera.scale);
+  canvas.CenterView(canvasCamera.center);
+  macroView = canvasCamera.scale < MACRO_VIEW_THRESHOLD;
+
   checkHovering();
+
 
   // here, we will perform draw, based on precalculated positions
   ImDrawList *drawList = ImGui::GetWindowDrawList();
+
+  if (canvasGrid)
+  {
+    const ImRect canvasRect = canvas.ViewRect();
+
+    const int scaleOrder = ceil(log10(max(canvasRect.GetHeight(), canvasRect.GetWidth())));
+    const float mainGridSize = pow(10.f, scaleOrder - 1);
+    const float minGridSize = pow(10.f, scaleOrder - 2);
+
+    const float leftBorder = floor(canvasRect.GetTL().x / mainGridSize) * mainGridSize;
+    const float rightBorder = ceil(canvasRect.GetBR().x / mainGridSize) * mainGridSize;
+    const float topBorder = floor(canvasRect.GetTL().y / mainGridSize) * mainGridSize;
+    const float bottomBorder = ceil(canvasRect.GetBR().y / mainGridSize) * mainGridSize;
+
+    for (float x = leftBorder; x <= rightBorder; x += mainGridSize)
+      drawList->AddLine({x, topBorder}, {x, bottomBorder}, GRID_MAIN_COLOR);
+    for (float y = topBorder; y <= bottomBorder; y += mainGridSize)
+      drawList->AddLine({leftBorder, y}, {rightBorder, y}, GRID_MAIN_COLOR);
+
+    for (float x = leftBorder; x <= rightBorder; x += minGridSize)
+      drawList->AddLine({x, topBorder}, {x, bottomBorder}, GRID_MIN_COLOR);
+    for (float y = topBorder; y <= bottomBorder; y += minGridSize)
+      drawList->AddLine({leftBorder, y}, {rightBorder, y}, GRID_MIN_COLOR);
+  }
+
   drawList->ChannelsSplit(CanvasChannels::COUNT);
   {
     const auto &layoutToUse = hierarchicalView ? condensedLayout : generalLayout;
@@ -479,7 +777,7 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
       draw_list->ChannelsSetCurrent(CanvasChannels::NODES);
 
       ImU32 nodeFillColor = NODE_BASE_COLOR;
-      switch (coloration)
+      switch (nodeColoration)
       {
         case NodeColorationType::None: break;
         case NodeColorationType::Framebuffer: nodeFillColor = node.fbImColor; break;
@@ -527,7 +825,7 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
 
 
     if (hoverState.node == nodeId)
-      switch (coloration)
+      switch (nodeColoration)
       {
         case NodeColorationType::None: break;
         case NodeColorationType::Framebuffer: break;
@@ -589,7 +887,8 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
         conditionalPopup("State reqs:", bool(nodeData.stateRequirements), nullptr,
           nodeData.stateRequirements ? state_reqs_descr(*nodeData.stateRequirements) : nullptr);
         conditionalPopup("Exec reqs:", !eastl::holds_alternative<eastl::monostate>(nodeData.executeRequirements), NODE_EXEX_REQ_POPUP);
-        conditionalPopup("Render reqs:", bool(nodeData.renderingRequirements), NODE_RENDER_REQ_POPUP);
+        conditionalPopup("Render reqs:", !eastl::holds_alternative<eastl::monostate>(nodeData.renderingRequirements),
+          NODE_RENDER_REQ_POPUP);
 
         ImGui::TextUnformatted("");
         conditionalPopup("Binds:", !nodeData.bindings.empty(), NODE_BINDINGS_POPUP);
@@ -731,7 +1030,7 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const CanvasLayout &layout)
 
     float visibleWidth = BASE_DEP_WIDTH;
     if (macroView && focusingThisRes)
-      visibleWidth /= canvasCamera.getZoom();
+      visibleWidth /= canvasCamera.scale;
 
     dag::RelocatableFixedVector<ImU32, 4> colorsToDraw;
 
@@ -796,6 +1095,88 @@ void Visualizer::drawNodeBoxes(ImDrawList *draw_list)
 }
 
 
+void Visualizer::hideResource(ResNameId res_name_id)
+{
+  if (userResources[getRepresentId(res_name_id)].hidden)
+    return;
+
+  userResources[getRepresentId(res_name_id)].hidden = true;
+
+  auto namespaceId = getParent(res_name_id);
+  --nameSpaces[namespaceId].visibleResourcesInSubtree;
+  while (namespaceId != registry.knownNames.root())
+  {
+    namespaceId = getParent(namespaceId);
+    --nameSpaces[namespaceId].visibleResourcesInSubtree;
+  }
+}
+
+void Visualizer::showResource(ResNameId res_name_id)
+{
+  if (!userResources[getRepresentId(res_name_id)].hidden)
+    return;
+
+  userResources[getRepresentId(res_name_id)].hidden = false;
+
+  auto namespaceId = getParent(res_name_id);
+  ++nameSpaces[namespaceId].visibleResourcesInSubtree;
+  while (namespaceId != registry.knownNames.root())
+  {
+    namespaceId = getParent(namespaceId);
+    ++nameSpaces[namespaceId].visibleResourcesInSubtree;
+  }
+}
+
+void Visualizer::hideResourcesInSubTree(NameSpaceNameId namespace_id)
+{
+  auto &nameSpace = nameSpaces[namespace_id];
+  nameSpace.visibleResourcesInSubtree = 0;
+
+  for (const auto resNameId : nameSpace.resources)
+    userResources[getRepresentId(resNameId)].hidden = true;
+
+  for (const auto subNameSpaceNameId : nameSpace.subNameSpaces)
+    hideResourcesInSubTree(subNameSpaceNameId);
+}
+
+void Visualizer::hideResourcesInNameSpace(NameSpaceNameId namespace_id)
+{
+  const uint16_t wereVisibleCount = nameSpaces[namespace_id].visibleResourcesInSubtree;
+  hideResourcesInSubTree(namespace_id);
+
+  while (namespace_id != registry.knownNames.root())
+  {
+    namespace_id = getParent(namespace_id);
+    nameSpaces[namespace_id].visibleResourcesInSubtree -= wereVisibleCount;
+  }
+}
+
+void Visualizer::showResourcesInSubTree(NameSpaceNameId namespace_id)
+{
+  auto &nameSpace = nameSpaces[namespace_id];
+  nameSpace.visibleResourcesInSubtree = nameSpace.totalResourcesInSubtree;
+
+  for (const auto resNameId : nameSpace.resources)
+    userResources[getRepresentId(resNameId)].hidden = false;
+
+  for (const auto subNameSpaceNameId : nameSpace.subNameSpaces)
+    showResourcesInSubTree(subNameSpaceNameId);
+}
+
+void Visualizer::showResourcesInNameSpace(NameSpaceNameId namespace_id)
+{
+  const uint16_t wereHiddenCount =
+    nameSpaces[namespace_id].totalResourcesInSubtree - nameSpaces[namespace_id].visibleResourcesInSubtree;
+  showResourcesInSubTree(namespace_id);
+
+  while (namespace_id != registry.knownNames.root())
+  {
+    namespace_id = getParent(namespace_id);
+    nameSpaces[namespace_id].visibleResourcesInSubtree += wereHiddenCount;
+  }
+}
+
+
 void Visualizer::checkHovering()
 {
   const auto &canvasView = canvas.ViewRect();
@@ -816,7 +1197,7 @@ void Visualizer::checkHovering()
   }
 
   const ImVec2 mousePos = ImGui::GetMousePos();
-  const float visibleFocusWidth = BASE_DEP_WIDTH / canvasCamera.getZoom();
+  const float visibleFocusWidth = BASE_DEP_WIDTH / canvasCamera.scale;
   for (const auto &[edgeDeps, edgeSplines] : layout.edges)
   {
     if (eastl::find_if(edgeSplines.begin(), edgeSplines.end(),
@@ -840,57 +1221,61 @@ void Visualizer::checkHovering()
 
 void Visualizer::processInput()
 {
+  static bool rightClickDragMode = false;
+
+  if (!ImGui::IsMouseDown(ImGuiMouseButton_Right))
+    rightClickDragMode = false;
+
   if (!hoverState.isActive())
     return;
 
-  if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f))
+
+  if (!ImGui::IsAnyItemActive() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
   {
-    canvasCamera.canvasOffset += ImGui::GetIO().MouseDelta;
-    canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
+    if (hoverState.resource != ResourceId::Invalid)
+      setFocus(hoverState.resource);
+    else if (hoverState.node != NodeId::Invalid)
+      setFocus(hoverState.node);
+    else
+      clearFocus();
   }
 
-  if (abs(ImGui::GetIO().MouseWheel) > 0.1)
-  {
-    ImGui::GetIO().MouseWheel > 0 ? canvasCamera.zoomIn() : canvasCamera.zoomOut();
 
-    ImVec2 oldPos = canvas.ToLocal(ImGui::GetIO().MousePos);
-    canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
-    ImVec2 newPos = canvas.ToLocal(ImGui::GetIO().MousePos);
-
-    canvasCamera.canvasOffset += canvas.FromLocalV(newPos - oldPos);
-    canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
-  }
-
-  if (hoverState.node != NodeId::Invalid && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-  {
-    setFocus(hoverState.node);
-  }
-
-  // A history wave must not silence resource focus: double-click focuses the resource.
-  if (hoverState.resource != ResourceId::Invalid && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-  {
-    setFocus(hoverState.resource);
-  }
-
-  // Right-click opens one popup, by priority: history wave, resource edge, then node.
+  bool rightClickOpenedPopup = false;
   if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
   {
+    rightClickOpenedPopup = gpuCapture.nodeRowPopupOpenedThisFrame;
     if (hoverState.historyEdge)
     {
       setPopupState(hoverState);
       ImGui::OpenPopup(HISTORY_EDGE_POPUP);
+      rightClickOpenedPopup = true;
     }
     else if (hoverState.resource != ResourceId::Invalid)
     {
       setPopupState(hoverState);
       ImGui::OpenPopup(EDGE_RESOURCES_POPUP);
+      rightClickOpenedPopup = true;
     }
     else if (hoverState.node != NodeId::Invalid && !gpuCapture.nodeRowPopupOpenedThisFrame)
     {
       setPopupState(hoverState);
       ImGui::OpenPopup(NODE_CAPTURE_POPUP);
+      rightClickOpenedPopup = true;
     }
   }
+  if (!rightClickOpenedPopup && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Right))
+    rightClickDragMode = true;
+
+
+  const auto &input = ImGui::GetIO();
+
+  if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f) ||
+      (rightClickDragMode && ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f)))
+    canvasCamera.moveCamera(-input.MouseDelta / canvasCamera.scale);
+
+  if (abs(input.MouseWheel) > 0.1 && (input.MouseWheel > 0 ? canvasCamera.zoomIn() : canvasCamera.zoomOut()))
+    canvasCamera.scalePointRelative(canvas.ToLocal(input.MousePos));
 }
 
 void Visualizer::processPopup()
@@ -959,13 +1344,14 @@ void Visualizer::processPopup()
   {
     CHECK_VALID_POPUP_NODE
 
-    if (!registry.nodes[popupState.nodeNameId].renderingRequirements.has_value())
+    const auto *virtualPass = eastl::get_if<VirtualPassRequirements>(&registry.nodes[popupState.nodeNameId].renderingRequirements);
+    if (!virtualPass)
     {
       ImGui::TextUnformatted("No render requirements presented");
       ImGui::EndPopup();
       return;
     }
-    const auto &pass = *registry.nodes[popupState.nodeNameId].renderingRequirements;
+    const auto &pass = *virtualPass;
 
     ImGui::TextUnformatted("(mip,layer) name");
 
@@ -1367,6 +1753,7 @@ void Visualizer::processTextureDebug()
   }
 }
 
+
 void Visualizer::receiveBlobData(NodeNameId node_id, ResNameId res_id, const BlobView &blob_view)
 {
   const auto &typeDb = dafg::Runtime::get().getTypeDb();
@@ -1404,78 +1791,6 @@ Visualizer::InspectedBlob::~InspectedBlob()
       storedRtti->dtor(buffer.data());
 }
 
-void Visualizer::hideResourcesInSubTree(NameSpaceNameId name_space_id)
-{
-  nameSpaces[name_space_id].visibleResourcesInSubtree = 0;
-  for (const auto &subNameSpace : nameSpaces[name_space_id].subNameSpaces)
-    hideResourcesInSubTree(subNameSpace);
-}
-
-void Visualizer::hideResourcesInNameSpace(NameSpaceNameId namespace_id)
-{
-  const uint16_t old = nameSpaces[namespace_id].visibleResourcesInSubtree;
-  hideResourcesInSubTree(namespace_id);
-  while (namespace_id != registry.knownNames.root())
-  {
-    namespace_id = registry.knownNames.getParent(namespace_id);
-    nameSpaces[namespace_id].visibleResourcesInSubtree -= old;
-  }
-}
-
-void Visualizer::showResourcesInSubTree(NameSpaceNameId namespace_id)
-{
-  nameSpaces[namespace_id].visibleResourcesInSubtree = nameSpaces[namespace_id].totalResourcesInSubtree;
-  for (const auto &subNameSpace : nameSpaces[namespace_id].subNameSpaces)
-    showResourcesInSubTree(subNameSpace);
-}
-
-void Visualizer::showResourcesInNameSpace(NameSpaceNameId namespace_id)
-{
-  const uint16_t diff = nameSpaces[namespace_id].totalResourcesInSubtree - nameSpaces[namespace_id].visibleResourcesInSubtree;
-  showResourcesInSubTree(namespace_id);
-  while (namespace_id != registry.knownNames.root())
-  {
-    namespace_id = registry.knownNames.getParent(namespace_id);
-    nameSpaces[namespace_id].visibleResourcesInSubtree += diff;
-  }
-}
-
-
-void Visualizer::centerOnFocus()
-{
-  if (focusState.nodeValid())
-  {
-    const auto nodeRect = (hierarchicalView ? condensedLayout : generalLayout).nodes[focusState.nodeId];
-    canvas.CenterView(nodeRect.offset + nodeRect.size / 2.f);
-    canvasCamera.canvasOffset = canvas.ViewOrigin();
-    return;
-  }
-
-  if (focusState.resValid())
-  {
-    constexpr ImVec2 MAX_IMVEC2 = ImVec2{eastl::numeric_limits<float>::max(), eastl::numeric_limits<float>::max()};
-
-    ImVec2 leftPos = MAX_IMVEC2;
-    ImVec2 rightPos = MAX_IMVEC2;
-    for (const auto &edge : (hierarchicalView ? condensedLayout : generalLayout).edges.values())
-      for (const auto depId : edge.carriedDeps)
-        if (registryDependencies[depId].resource == focusState.resId)
-          for (const auto &spline : edge.splines)
-            if (spline.P0.x < leftPos.x)
-            {
-              leftPos = spline.P0;
-              rightPos = spline.P3;
-              break;
-            }
-
-    if (leftPos == MAX_IMVEC2 || rightPos == MAX_IMVEC2)
-      return;
-
-    canvas.CenterView((leftPos + rightPos) / 2.f);
-    canvasCamera.canvasOffset = canvas.ViewOrigin();
-  }
-}
-
 
 void Visualizer::updateVisualization(const IdIndexedFlags<NodeNameId, framemem_allocator> &nodes_changed)
 {
@@ -1498,12 +1813,13 @@ void Visualizer::updateVisualization(const IdIndexedFlags<NodeNameId, framemem_a
   inspectedBlob.reset();
 
   updateNodesRess();
+  updateSearchItems();
   updateIRInfo();
   updateNameSpaces();
   updateDependencies();
 
   gpuCapture.distinctExtents.clear();
-  for (const auto &irNode : intermediateGraph.nodes.values())
+  for (const auto &irNode : intermediateGraph.nodes.all().values())
     if (irNode.multiplexingIndex != intermediate::MultiplexingIndex::Invalid &&
         eastl::find(gpuCapture.distinctExtents.begin(), gpuCapture.distinctExtents.end(), irNode.multiplexingIndex) ==
           gpuCapture.distinctExtents.end())
@@ -1557,12 +1873,55 @@ void Visualizer::updateNodesRess()
       regResRepresent[resNameId] = userResources.appendNew(Resource{resNameId}).first;
 }
 
+void Visualizer::updateSearchItems()
+{
+  TIME_PROFILE(update_search_items);
+
+  const uint32_t totalItemsCount = userNodes.size() + userResources.size();
+  searchState.reset(totalItemsCount);
+
+  for (auto &&[nodeId, node] : userNodes.enumerate())
+  {
+    auto &item = searchState.searchItems.emplace_back();
+    item.nodeId = nodeId;
+
+    const auto nodeNameId = getNameId(nodeId);
+    item.shortName = getShortName(nodeNameId);
+    item.fullName = getName(nodeNameId);
+    item.parentName = getName(getParent(nodeNameId));
+  }
+
+  for (auto &&[resId, resource] : userResources.enumerate())
+  {
+    auto &item = searchState.searchItems.emplace_back();
+    item.resId = resId;
+
+    const auto resNameId = getNameId(resId);
+    item.shortName = getShortName(resNameId);
+    item.fullName = getName(resNameId);
+    item.parentName = getName(getParent(resNameId));
+  }
+
+
+  // for old combo search
+  // TODO: replace with unified search
+  nsNodeNameIds.clear();
+  nsNodeNames.clear();
+  nsNodeNameIds.reserve(userNodes.size());
+  nsNodeNames.reserve(userNodes.size());
+  for (auto &node : userNodes)
+  {
+    nsNodeNameIds.push_back(node.regId);
+    nsNodeNames.push_back(getName(node.regId));
+  }
+}
+
 void Visualizer::updateIRInfo()
 {
   TIME_PROFILE(update_ir_info);
 
   uint32_t currExecTime = 0;
-  for (const auto &[irIndex, irNode] : intermediateGraph.nodes.enumerate())
+  for (const auto &[irIndex, irNode] : intermediateGraph.nodes.all().enumerate())
     if (irNode.multiplexingIndex == 0 && irNode.frontendNode && isPresented(*irNode.frontendNode))
     {
       auto &node = userNodes[getRepresentId(*irNode.frontendNode)];
@@ -1577,13 +1936,7 @@ void Visualizer::updateNameSpaces()
   TIME_PROFILE(update_name_spaces);
 
   nameSpaces.clear();
-  nsNodeNameIds.clear();
-  nsResNameIds.clear();
-
   nameSpaces.resize(registry.knownNames.nameCount<NameSpaceNameId>(), {});
-  nsNodeNameIds.reserve(userNodes.size());
-  nsResNameIds.reserve(userResources.size());
-
 
   // collect sub namespaces
   for (const auto nameSpaceId : nameSpaces.keys())
@@ -1619,19 +1972,10 @@ void Visualizer::updateNameSpaces()
       }
 
       nameSpace.visibleResourcesInSubtree = nameSpace.totalResourcesInSubtree;
-
-      nsNodeNameIds.insert(nsNodeNameIds.end(), nameSpace.nodes.begin(), nameSpace.nodes.end());
-      nsResNameIds.insert(nsResNameIds.end(), nameSpace.resources.begin(), nameSpace.resources.end());
     };
 
     calculateContents(registry.knownNames.root());
   }
-
-  // get names
-  nsNodeNames.clear();
-  nsResNames.clear();
-  nsNodeNames = gatherNames<NodeNameId>(nsNodeNameIds);
-  nsResNames = gatherNames<ResNameId>(nsResNameIds);
 }
 
 void Visualizer::updateDependencies()
@@ -1781,9 +2125,9 @@ void Visualizer::calculateNodesColors()
     node.passImColor = NODE_BASE_COLOR;
 
     auto &nodeData = registry.nodes[node.regId];
-    if (nodeData.renderingRequirements)
+    if (const auto *virtualPass = eastl::get_if<VirtualPassRequirements>(&nodeData.renderingRequirements))
     {
-      const auto &pass = *nodeData.renderingRequirements;
+      const auto &pass = *virtualPass;
 
       size_t hash = 0;
       hash_pack(hash, pass.depthReadOnly);
@@ -3004,153 +3348,6 @@ void Visualizer::calculateEdgeSplines(CanvasLayout &layout, const RawLayout &raw
       ++backEdgesDrawn;
     }
   }
-}
-
-
-void Visualizer::drawTree(const dafg::NameSpaceNameId &namespace_id, int &res_idx, int &counter, bool &selected_by_mouse,
-  ImGuiDagor::ComboInfo &info, eastl::string &input, float text_width, float button_offset)
-{
-  const auto &knownNames = registry.knownNames;
-  auto &nsContent = nameSpaces[namespace_id];
-
-  eastl::string imguiLabel = namespace_id == knownNames.root() ? "" : knownNames.getShortName(namespace_id);
-  const float freeWidthAfterText = eastl::max(text_width - ImGui::GetCursorPosX() - ImGui::CalcTextSize(imguiLabel.data()).x, 0.f);
-  const int spaceCount = static_cast<int>(freeWidthAfterText / ImGui::CalcTextSize(" ").x);
-  imguiLabel.append(spaceCount, ' ');
-  imguiLabel.append_sprintf("##ns_%d", static_cast<int>(namespace_id));
-
-  const ImGuiTreeNodeFlags commonFlags = ImGuiTreeNodeFlags_SpanLabelWidth | ImGuiTreeNodeFlags_FramePadding;
-  const ImGuiTreeNodeFlags subTreeFlags = ImGuiTreeNodeFlags_DefaultOpen | commonFlags;
-
-  const bool active = ImGui::GetStateStorage()->GetInt(ImGui::GetID(imguiLabel.data()), 1) != 0;
-  const uint16_t totalResourcesInSubtree = nsContent.totalResourcesInSubtree;
-  const bool needOpenSubTree = counter <= res_idx && res_idx < counter + totalResourcesInSubtree; // to show focused res
-  bool closeSubTree = !active && needOpenSubTree;
-  if (!active && needOpenSubTree)
-    ImGui::TreeNodeSetOpen(ImGui::GetID(imguiLabel.data()), true);
-
-  const bool opened = ImGui::TreeNodeEx(imguiLabel.data(), subTreeFlags);
-  const bool hiddenNameSpace = nsContent.visibleResourcesInSubtree == 0;
-  eastl::string buttonLabel = hiddenNameSpace ? "Show" : "Hide";
-  buttonLabel.append_sprintf("##bns_%d", static_cast<int>(namespace_id));
-  ImGui::SameLine();
-  ImGui::SetCursorPosX(button_offset);
-  if (ImGui::Button(buttonLabel.data()))
-  {
-    auto cit = nsResNameIds.begin() + counter;
-    for (uint16_t i = 0; i < totalResourcesInSubtree; ++i, ++cit)
-      userResources[getRepresentId(*cit)].hidden = !hiddenNameSpace;
-    if (hiddenNameSpace)
-      showResourcesInNameSpace(namespace_id);
-    else
-      hideResourcesInNameSpace(namespace_id);
-  }
-
-  if (opened)
-  {
-    for (const auto &childNS : nsContent.subNameSpaces)
-      if (!selected_by_mouse)
-        drawTree(childNS, res_idx, counter, selected_by_mouse, info, input, text_width, button_offset);
-    ImGui::TreePop();
-    if (closeSubTree)
-      ImGui::TreeNodeSetOpen(ImGui::GetID(imguiLabel.data()), false);
-  }
-  else
-  {
-    counter += totalResourcesInSubtree;
-    return;
-  }
-
-  const ImGuiTreeNodeFlags leafFlags = commonFlags | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Leaf;
-  for (const auto &resData : nsContent.resources)
-  {
-    const bool isSelected = res_idx == counter;
-    const bool hidden = userResources[getRepresentId(resData)].hidden;
-    if (isSelected && (ImGui::IsWindowAppearing() || info.selectionChanged))
-      ImGui::SetScrollHereY();
-    if (isSelected && info.arrowScroll)
-      ImGui::SetScrollHereY();
-
-    eastl::string imguiLabel = knownNames.getShortName(resData);
-    const float freeWidthAfterText = eastl::max(text_width - ImGui::GetCursorPosX() - ImGui::CalcTextSize(imguiLabel.data()).x, 0.f);
-    const int spaceCount = static_cast<int>(freeWidthAfterText / ImGui::CalcTextSize(" ").x);
-    imguiLabel.append(spaceCount, ' ');
-    imguiLabel.append_sprintf("##res_%d", static_cast<int>(resData));
-
-    const ImGuiTreeNodeFlags selectedFlag = isSelected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None;
-    if (ImGui::TreeNodeEx(imguiLabel.data(), leafFlags | selectedFlag))
-    {
-      if (!hidden && ImGui::IsItemClicked(ImGuiMouseButton_Left))
-      {
-        info.selectionChanged = res_idx != counter;
-        res_idx = counter;
-        input = knownNames.getName(resData);
-        ImGui::CloseCurrentPopup();
-        selected_by_mouse = true;
-      }
-      if (hidden && isSelected)
-      {
-        info.selectionChanged = true;
-        res_idx = -1;
-        input.clear();
-        selected_by_mouse = true;
-      }
-    }
-
-    eastl::string buttonLabel = hidden ? "Show" : "Hide";
-    buttonLabel.append_sprintf("##bres_%d", static_cast<int>(resData));
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(button_offset);
-    if (ImGui::Button(buttonLabel.data()))
-    {
-      userResources[getRepresentId(resData)].hidden = !userResources[getRepresentId(resData)].hidden;
-      dafg::NameSpaceNameId updatedNS = namespace_id;
-      bool rootNameSpace = false;
-      while (!rootNameSpace)
-      {
-        nameSpaces[updatedNS].visibleResourcesInSubtree += hidden ? 1 : -1;
-        rootNameSpace = updatedNS == registry.knownNames.root();
-        updatedNS = registry.knownNames.getParent(updatedNS);
-      }
-    }
-
-    ++counter;
-  }
-}
-
-bool Visualizer::treeWithFilter(const char *label, const dag::Vector<eastl::string_view> &data, int &current_idx, eastl::string &input,
-  bool return_on_arrows, const char *hint, ImGuiComboFlags flags)
-{
-  if (data.empty())
-  {
-    ImGui::TextColored({1, 1, 0, 1}, "No resources");
-    return false;
-  }
-
-  float textWidth = 0.f;
-  eastl::for_each(data.begin(), data.end(),
-    [&max = textWidth](const auto &b) { max = eastl::max(max, ImGui::CalcTextSize(b.data()).x); });
-  const float buttonWidth = eastl::max(ImGui::CalcTextSize("Show").x, ImGui::CalcTextSize("Hide").x);
-  const float padding = ImGui::GetStyle().FramePadding.x + ImGui::GetStyle().WindowPadding.x;
-  const float width = textWidth + buttonWidth + ImGui::GetStyle().ScrollbarSize + 2.0f * padding;
-
-  auto res = ImGuiDagor::BeginComboWithFilter(label, data, current_idx, input, width, hint, flags);
-
-  if (!res.has_value())
-    return false;
-
-  auto &info = res.value();
-
-  if (info.inputTextChanged && !info.arrowScroll)
-    ImGui::CloseCurrentPopup();
-
-  int counter = 0;
-  bool selectedByMouse = false;
-  const float buttonOffset =
-    ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ScrollbarSize - buttonWidth - ImGui::GetStyle().FramePadding.x;
-  drawTree(registry.knownNames.root(), current_idx, counter, selectedByMouse, info, input, textWidth, buttonOffset);
-  info.arrowScroll = info.arrowScroll && return_on_arrows;
-  return ImGuiDagor::EndComboWithFilter(label, data, current_idx, input, info, selectedByMouse);
 }
 
 } // namespace visualization::usergraph

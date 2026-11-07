@@ -47,9 +47,10 @@ void d3d::begin_frame(uint32_t frame_id, bool allow_wait)
 
   if (allow_wait)
   {
-    if (lowLatencyModule && lowLatencyModule->isEnabled())
+    if (lowLatencyModule)
       lowLatencyModule->sleep(frame_id);
-    else if (!Globals::cfg.bits.autoPredictedLatencyWaitApp && Globals::cfg.bits.allowPredictedLatencyWaitApp)
+    if (!(lowLatencyModule && lowLatencyModule->isEnabled()) && !Globals::cfg.bits.autoPredictedLatencyWaitApp &&
+        Globals::cfg.bits.allowPredictedLatencyWaitApp)
       Frontend::latencyWaiter.asyncWait();
   }
 }

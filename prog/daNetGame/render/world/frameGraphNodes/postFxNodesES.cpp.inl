@@ -9,6 +9,7 @@
 #include <render/cinematicMode.h>
 #include <render/antialiasing.h>
 #include <ecs/render/updateStageRender.h>
+#include <render/compressedRtOverrideFlag.h>
 
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
@@ -320,7 +321,8 @@ dafg::NodeHandle makeFrameBeforeDistortionProducerNode()
 
     auto dstFrameHndl = registry
                           .createTexture2d("frame_before_distortion",
-                            {render::antialiasing::get_frame_after_aa_flags() | TEXCF_RTARGET, registry.getResolution<2>("post_fx")})
+                            {render::antialiasing::get_frame_after_aa_flags() | TEXCF_RTARGET | COMPRESSED_RT_OVERRIDE_FLAG,
+                              registry.getResolution<2>("post_fx")})
                           .atStage(dafg::Stage::TRANSFER)
                           .useAs(dafg::Usage::BLIT)
                           .handle();

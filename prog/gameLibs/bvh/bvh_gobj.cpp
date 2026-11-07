@@ -24,9 +24,6 @@ struct BVHConnection : public bvh::BVHConnection
     uint32_t padding;
   };
 
-  // From gpuObjects.h
-  static constexpr int maxLodCount = 4;
-
   BVHConnection(const char *name) : bvh::BVHConnection(name) {}
 
   bool prepare() override
@@ -52,7 +49,7 @@ struct BVHConnection : public bvh::BVHConnection
     if (!mapping.mapping)
     {
       String bname(64, "bvh_gpuobject_mapping_%d", id);
-      mapping.mapping = dag::buffers::create_persistent_sr_structured(sizeof(GpuObjectsBvhMapping), maxLodCount, bname,
+      mapping.mapping = dag::buffers::create_persistent_sr_structured(sizeof(GpuObjectsBvhMapping), gpu_objects::MAX_LODS, bname,
         d3d::buffers::Init::No, RESTAG_BVH);
 
       HANDLE_LOST_DEVICE_STATE(mapping.mapping, false);
@@ -62,25 +59,9 @@ struct BVHConnection : public bvh::BVHConnection
     {
       TIME_PROFILE(bvh_objects_lock_gobj);
       Context::BvhObjectReadLock objectsGuard((*contexts.begin())->objectsLock);
-      GpuObjectsBvhMapping mappings[maxLodCount];
+      GpuObjectsBvhMapping mappings[gpu_objects::MAX_LODS];
       for (auto [lodIx, mapping] : enumerate(mappings))
-      {
-        auto meshId = make_relem_mesh_id(riRes->getBvhId(), lodIx, 0);
-        Object *object = get_object(*contexts.begin(), meshId);
-
-        if (object && object->blas && MeshMetaAllocator::is_valid(object->metaAllocId))
-        {
-          mapping.blas.x = object->blas.getGPUAddress() & GPU_ADDRESS_LOW_MASK;
-          mapping.blas.y = object->blas.getGPUAddress() >> GPU_ADDRESS_HIGH_SHIFT;
-          mapping.metaIndex = MeshMetaAllocator::decode(object->metaAllocId);
-        }
-        else
-        {
-          mapping.blas.x = 0;
-          mapping.blas.y = 0;
-          mapping.metaIndex = 0;
-        }
-      }
+        get_blas_mapping(*contexts.begin(), make_relem_mesh_id(riRes->getBvhId(), lodIx, 0), mapping.blas, mapping.metaIndex);
 
       mapping.mapping->updateData(0, sizeof(mappings), mappings, 0);
       mapping.dirty = false;

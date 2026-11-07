@@ -109,8 +109,7 @@ static void init_threads(const DataBlock &cfg)
 #if _TARGET_PC_WIN || _TARGET_XBOX
   if (cfg.getBool("boostMainThreadPriority", true)) // boost main thread priority in order to overrule loading threads (resources,
                                                     // textures, etc...)
-    DaThread::applyThisThreadPriority(THREAD_PRIORITY_ABOVE_NORMAL); // we increase main thread priority by one step. We only support
-                                                                     // two priorities: high and low
+    DaThread::applyThisThreadPriority(MAIN_THREAD_PRIORITY); // Above the pool workers, which may share main's CPU
   G_VERIFY(SetThreadAffinityMask(GetCurrentThread(), MAIN_THREAD_AFFINITY));
 #endif
 #if _TARGET_C1
