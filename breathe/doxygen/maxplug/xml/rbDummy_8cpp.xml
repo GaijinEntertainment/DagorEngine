@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="rbDummy_8cpp" kind="file" language="C++">
+    <compoundname>rbDummy.cpp</compoundname>
+    <includes refid="dummyObject_8h" local="yes">dummyObject.h</includes>
+    <incdepgraph>
+      <node id="6">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dummyObject.h</label>
+        <link refid="dummyObject_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>rbDummy.cpp</label>
+        <link refid="rbDummy_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="9">
+        <label>filesystem</label>
+      </node>
+      <node id="5">
+        <label>iparamm.h</label>
+      </node>
+      <node id="7">
+        <label>math.h</label>
+      </node>
+      <node id="3">
+        <label>max.h</label>
+      </node>
+      <node id="4">
+        <label>simpobj.h</label>
+      </node>
+      <node id="8">
+        <label>string_view</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="rbDummy_8cpp_1abe9e2703b914c4581b72395e62c743ca" prot="public" static="yes" mutable="no">
+        <type><ref refid="classDummyClassDesc" kindref="compound">DummyClassDesc</ref>&lt; RBHelperTraits &gt;</type>
+        <definition>DummyClassDesc&lt;RBHelperTraits&gt; RBHelperCD</definition>
+        <argsstring></argsstring>
+        <name>RBHelperCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="20" column="23" bodyfile="rbDummy.cpp" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="rbDummy_8cpp_1a273f5592dd92108b41cf55c45a98a4c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetRBDummyCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetRBDummyCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="22" column="11" bodyfile="rbDummy.cpp" bodystart="22" bodyend="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dummyObject_8h" kindref="compound">dummyObject.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="keyword">namespace</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">RBHelperTraits</highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>nameId<sp/>=<sp/><ref refid="resource_8h_1af678c7905385e7965916b29083f1109a" kindref="member">IDS_RBHelper</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>rollupId<sp/>=<sp/><ref refid="resource_8h_1afe0448a3f0de1fb78e95542f5cacd8d6" kindref="member">IDS_RBDUMMY_ROLL</ref>;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>paramDialogId<sp/>=<sp/><ref refid="resource_8h_1a8de9795568b725e580ddf21390672807" kindref="member">IDD_RBDUMMY_PARAM</ref>;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>SClass_ID<sp/>superClassId()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>HELPER_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>Class_ID<sp/>classId()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1aa92de089f2ac292ce0c8f82ba8b751bf" kindref="member">RBDummy_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>axisColor(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>selected,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>selected<sp/>?<sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(1,<sp/>1,<sp/>1)<sp/>:<sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(0.5f,<sp/>1.0f,<sp/>0.5f);<sp/>}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classDummyClassDesc" kindref="compound">DummyClassDesc&lt;RBHelperTraits&gt;</ref><sp/>RBHelperCD;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">ClassDesc<sp/>*<ref refid="rbDummy_8cpp_1a273f5592dd92108b41cf55c45a98a4c9" kindref="member">GetRBDummyCD</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;RBHelperCD;<sp/>}</highlight></codeline>
+    </programlisting>
+    <location file="rbDummy.cpp"/>
+  </compounddef>
+</doxygen>

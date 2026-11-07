@@ -1,0 +1,372 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespace__colorer__keywords" kind="namespace" language="Python">
+    <compoundname>_colorer_keywords</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespace__colorer__keywords_1af40de3d87c754df62edfdc5d84d9b5bb" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int _colorer_keywords.COMMENT_WIDTH</definition>
+        <argsstring></argsstring>
+        <name>COMMENT_WIDTH</name>
+        <qualifiedname>_colorer_keywords.COMMENT_WIDTH</qualifiedname>
+        <initializer>=  110</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="51" column="1" bodyfile="_colorer_keywords.py" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespace__colorer__keywords_1a8297152d832311ec43289f4ab14083b6" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>_colorer_keywords.HERE</definition>
+        <argsstring></argsstring>
+        <name>HERE</name>
+        <qualifiedname>_colorer_keywords.HERE</qualifiedname>
+        <initializer>=  os.path.dirname(os.path.abspath(__file__))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="53" column="1" bodyfile="_colorer_keywords.py" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespace__colorer__keywords_1a678ba350299ad0e6414ac6233ec7a63f" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>_colorer_keywords.DLP</definition>
+        <argsstring></argsstring>
+        <name>DLP</name>
+        <qualifiedname>_colorer_keywords.DLP</qualifiedname>
+        <initializer>=  os.path.join(<ref refid="namespace__colorer__keywords_1a8297152d832311ec43289f4ab14083b6" kindref="member">HERE</ref>, &apos;shlex.dlp&apos;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="54" column="1" bodyfile="_colorer_keywords.py" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespace__colorer__keywords_1a33ad7a5c23fbc520d426e5350b8b1bf0" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>_colorer_keywords.VSEM</definition>
+        <argsstring></argsstring>
+        <name>VSEM</name>
+        <qualifiedname>_colorer_keywords.VSEM</qualifiedname>
+        <initializer>=  os.path.join(<ref refid="namespace__colorer__keywords_1a8297152d832311ec43289f4ab14083b6" kindref="member">HERE</ref>, &apos;variantSemantic.h&apos;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="55" column="1" bodyfile="_colorer_keywords.py" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespace__colorer__keywords_1a50748e254d9b0e4e1b412c151000a906" prot="public" static="no" mutable="no">
+        <type>dict</type>
+        <definition>dict _colorer_keywords.CATEGORIES</definition>
+        <argsstring></argsstring>
+        <name>CATEGORIES</name>
+        <qualifiedname>_colorer_keywords.CATEGORIES</qualifiedname>
+        <initializer>=  {
+    # declarations, shader structure, directives, resource types.
+    # rules: shader-decl block-decl supports-stat channel-decl hlsl-compile
+    # interval-decl local-decl static-var-mode global-decl static-decl
+    # bool-value assume-stat error-stat render-stage-stat shader-directive
+    # external-register raytrace-pipeline-stat immediate-const-block
+    # static-var-type sampler-decl sh-mat-texture
+    &apos;dKeyword&apos;: ,
+    # value types: channel-type plus the scalar/vector/matrix variable types
+    # rules: channel-type local-var-type static-var-type bool-decl
+    &apos;dType&apos;: ,
+    # render states, vertex channel usages and material colours
+    # rules: state-var zbias-state-stat channel-usage sh-mat-color
+    &apos;dState&apos;: ,
+    # values those states / supports / assume take
+    # rules: hardware-support state-plain-value bool-value external-var-name
+    &apos;dStateValue&apos;: ,
+    # preprocessor-level, handled by shlexterm.cpp / shMacro.cpp
+    &apos;dDirective&apos;: ,
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="60" column="1" bodyfile="_colorer_keywords.py" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespace__colorer__keywords_1a40d8bf39df6c0770304c6475f8bdb54c" prot="public" static="no" mutable="no">
+        <type>str</type>
+        <definition>str _colorer_keywords.HLSL_BUILTINS</definition>
+        <argsstring></argsstring>
+        <name>HLSL_BUILTINS</name>
+        <qualifiedname>_colorer_keywords.HLSL_BUILTINS</qualifiedname>
+        <initializer>=  &quot;&quot;&quot;
+    immediate_dword_count
+    globtm projtm viewprojtm
+    local_view_x local_view_y local_view_z local_view_pos
+    world_local_x world_local_y world_local_z world_local_pos
+&quot;&quot;&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="110" column="1" bodyfile="_colorer_keywords.py" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespace__colorer__keywords_1a4c85628460392822c21a621c9591ff17" prot="public" static="no" mutable="no">
+        <type>dict</type>
+        <definition>dict _colorer_keywords.TARGETS</definition>
+        <argsstring></argsstring>
+        <name>TARGETS</name>
+        <qualifiedname>_colorer_keywords.TARGETS</qualifiedname>
+        <initializer>=  {
+    &apos;4ever&apos;: {
+        &apos;path&apos;: os.path.join(<ref refid="namespace__colorer__keywords_1a8297152d832311ec43289f4ab14083b6" kindref="member">HERE</ref>, &apos;_colorer4&apos;, &apos;dshl.hrc&apos;),
+        &apos;encoding&apos;: &apos;cp1251&apos;,
+        &apos;regions&apos;: {k: k for k in <ref refid="namespace__colorer__keywords_1a50748e254d9b0e4e1b412c151000a906" kindref="member">CATEGORIES</ref>},
+        &apos;hlsl_region&apos;: &apos;dHlslPreProc2&apos;,
+        &apos;at_regions&apos;: (&apos;dKeyword&apos;, &apos;dString&apos;),
+        &apos;word_end&apos;: r&apos;\B&apos;,          # 4ever: \B == end of word
+    },
+    &apos;take5&apos;: {
+        &apos;path&apos;: os.path.join(<ref refid="namespace__colorer__keywords_1a8297152d832311ec43289f4ab14083b6" kindref="member">HERE</ref>, &apos;_colorer5&apos;, &apos;dshl.hrc&apos;),
+        &apos;encoding&apos;: &apos;utf-8&apos;,
+        &apos;regions&apos;: {&apos;dKeyword&apos;: &apos;Keyword&apos;, &apos;dType&apos;: &apos;Type&apos;, &apos;dState&apos;: &apos;State&apos;,
+                    &apos;dStateValue&apos;: &apos;StateValue&apos;, &apos;dDirective&apos;: &apos;Directive&apos;},
+        &apos;hlsl_region&apos;: &apos;HlslPreProc2&apos;,
+        &apos;at_regions&apos;: (&apos;Keyword&apos;, &apos;String&apos;),
+        &apos;word_end&apos;: r&apos;\b&apos;,          # take5: Perl word boundary
+    },
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="117" column="1" bodyfile="_colorer_keywords.py" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespace__colorer__keywords_1a750341dbd0e91d9e34b61e782e878bd3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>_colorer_keywords.dshl_keywords</definition>
+        <argsstring>()</argsstring>
+        <name>dshl_keywords</name>
+        <qualifiedname>_colorer_keywords.dshl_keywords</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="138" column="1" bodyfile="_colorer_keywords.py" bodystart="138" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="namespace__colorer__keywords_1a585cdaecd181c10c49538dc796e1e075" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>_colorer_keywords.at_types</definition>
+        <argsstring>()</argsstring>
+        <name>at_types</name>
+        <qualifiedname>_colorer_keywords.at_types</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><verbatim>-&gt; [(group, [type, ...]), ...] in the order variantSemantic.h declares them.</verbatim> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="146" column="1" bodyfile="_colorer_keywords.py" bodystart="146" bodyend="163"/>
+      </memberdef>
+      <memberdef kind="function" id="namespace__colorer__keywords_1af258ecd2fb0304914c60fed88cbba75e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>_colorer_keywords.build_keyword_block</definition>
+        <argsstring>(words, region, indent, ignorecase=False)</argsstring>
+        <name>build_keyword_block</name>
+        <qualifiedname>_colorer_keywords.build_keyword_block</qualifiedname>
+        <param>
+          <type>words</type>
+          <defname>words</defname>
+        </param>
+        <param>
+          <type>region</type>
+          <defname>region</defname>
+        </param>
+        <param>
+          <type>indent</type>
+          <defname>indent</defname>
+        </param>
+        <param>
+          <type>ignorecase</type>
+          <defname>ignorecase</defname>
+          <defval>False</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="164" column="1" bodyfile="_colorer_keywords.py" bodystart="164" bodyend="171"/>
+      </memberdef>
+      <memberdef kind="function" id="namespace__colorer__keywords_1a798ca78c8f4c047d939082ccee82b04f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>_colorer_keywords.replace_keywords</definition>
+        <argsstring>(text, region, words, ignorecase=False)</argsstring>
+        <name>replace_keywords</name>
+        <qualifiedname>_colorer_keywords.replace_keywords</qualifiedname>
+        <param>
+          <type>text</type>
+          <defname>text</defname>
+        </param>
+        <param>
+          <type>region</type>
+          <defname>region</defname>
+        </param>
+        <param>
+          <type>words</type>
+          <defname>words</defname>
+        </param>
+        <param>
+          <type>ignorecase</type>
+          <defname>ignorecase</defname>
+          <defval>False</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="172" column="1" bodyfile="_colorer_keywords.py" bodystart="172" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="namespace__colorer__keywords_1a3acb4492952cc4acbcbbd17cb1b27f16" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>_colorer_keywords.replace_at_regexps</definition>
+        <argsstring>(text, groups, cfg)</argsstring>
+        <name>replace_at_regexps</name>
+        <qualifiedname>_colorer_keywords.replace_at_regexps</qualifiedname>
+        <param>
+          <type>text</type>
+          <defname>text</defname>
+        </param>
+        <param>
+          <type>groups</type>
+          <defname>groups</defname>
+        </param>
+        <param>
+          <type>cfg</type>
+          <defname>cfg</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><verbatim>Regenerate the @-type rules: one per PRESHADER_VARIABLE_TYPE_LIST_* group,
+in the order variantSemantic.h declares them, so a rule here lines up with a
+group there and diffs stay readable.</verbatim> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="183" column="1" bodyfile="_colorer_keywords.py" bodystart="183" bodyend="217"/>
+      </memberdef>
+      <memberdef kind="function" id="namespace__colorer__keywords_1ad9ce2661b28dbd70c004f41e58c14f44" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>_colorer_keywords.apply</definition>
+        <argsstring>(cfg, keywords, types, check)</argsstring>
+        <name>apply</name>
+        <qualifiedname>_colorer_keywords.apply</qualifiedname>
+        <param>
+          <type>cfg</type>
+          <defname>cfg</defname>
+        </param>
+        <param>
+          <type>keywords</type>
+          <defname>keywords</defname>
+        </param>
+        <param>
+          <type>types</type>
+          <defname>types</defname>
+        </param>
+        <param>
+          <type>check</type>
+          <defname>check</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="218" column="1" bodyfile="_colorer_keywords.py" bodystart="218" bodyend="235"/>
+      </memberdef>
+      <memberdef kind="function" id="namespace__colorer__keywords_1af4d5eca38e85ced4c29202b2c4b7e801" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>_colorer_keywords.main</definition>
+        <argsstring>()</argsstring>
+        <name>main</name>
+        <qualifiedname>_colorer_keywords.main</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="_colorer_keywords.py" line="236" column="1" bodyfile="_colorer_keywords.py" bodystart="236" bodyend="272"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><verbatim>Sync the Colorer .hrc keyword lists with the actual dsc2 implementation.
+
+Sources of truth
+----------------
+* DSHL keywords  - the `keyword` rule in shlex.dlp.  That rule is what stops a
+  word being usable as an identifier, which is exactly the set worth colouring.
+  (Do not use the grammar&apos;s terminal list: shsyn.whl still declares `fsh_4_1`,
+  but the lexer emits no token for it, so it is dead.)
+* `@` binding types - the PRESHADER_VARIABLE_TYPE_LIST X-macro in
+  variantSemantic.h, which variantSemantic.h:315 turns into the {&quot;@&quot;#type -&gt;
+  VariableType} lookup table.
+
+Usage
+-----
+    python _colorer_keywords.py            rewrite _colorer4 and _colorer5
+    python _colorer_keywords.py --check    report drift, exit 1 if any
+
+CATEGORIES below assigns every keyword to a colour group. The grouping follows
+the grammar rule each keyword appears in (shsyn.whl); the comment on each group
+names those rules. When dsc2 gains or loses a keyword this script fails loudly
+until the new word is placed in a group.
+
+When to run
+-----------
+After any dsc2 change that adds or removes a keyword or an `@` binding type.
+Both .hrc files are rewritten together and are meant to stay in lockstep, so do
+not hand edit the generated keyword blocks or the `@` rules - the next run would
+overwrite the edit. `--check` exits non-zero on drift and is meant for CI.
+
+What this script does NOT manage
+--------------------------------
+Only the keyword lists and the `@` binding rules are generated. Everything else
+in the two .hrc files - schemes, blocks, the hlsl block rules, the &quot;bad shader
+stage&quot; error regexps, region declarations - is hand written, and a change there
+has to be made in both files by hand. The dialects differ; the &lt;annotation&gt; of
+_colorer5/dshl.hrc lists the 4ever/take5 spellings that trip people up.
+
+Verifying a change
+------------------
+4ever can be rendered without Far, using the console colorizer that ships with
+Far 2.0, so grammar edits can be diffed before/after:
+
+    &lt;Far2&gt;\\Plugins\\Colorer\\bin\\colorer.exe -c -h some_file.dshl
+
+take5 has no console tool - check it in Far3.
+</verbatim> </para>
+    </detaileddescription>
+    <location file="_colorer_keywords.py" line="1" column="1"/>
+  </compounddef>
+</doxygen>

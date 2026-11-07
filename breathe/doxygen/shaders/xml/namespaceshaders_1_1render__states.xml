@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshaders_1_1render__states" kind="namespace" language="C++">
+    <compoundname>shaders::render_states</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__renderStateId_8h_1ae53c4aa3dc9660b312657c3e60cd8aa9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RenderStateId</type>
+        <definition>RenderStateId shaders::render_states::create</definition>
+        <argsstring>(const RenderState &amp;state)</argsstring>
+        <name>create</name>
+        <qualifiedname>shaders::render_states::create</qualifiedname>
+        <param>
+          <type>const RenderState &amp;</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+<para>Create a render state. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>state</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The render state description. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A render state handle. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStateId.h" line="21" column="15" declfile="dag_renderStateId.h" declline="21" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__renderStateId_8h_1a2e828d07a091879715fcd010e2834cc5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shaders::render_states::set</definition>
+        <argsstring>(RenderStateId)</argsstring>
+        <name>set</name>
+        <qualifiedname>shaders::render_states::set</qualifiedname>
+        <param>
+          <type>RenderStateId</type>
+        </param>
+        <briefdescription>
+<para>Set render state. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Render state handle. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStateId.h" line="28" column="6" declfile="dag_renderStateId.h" declline="28" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__renderStateId_8h_1a46ccfb68087188ac04aee4087c0d0408" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const RenderState &amp;</type>
+        <definition>const RenderState &amp; shaders::render_states::get</definition>
+        <argsstring>(RenderStateId id)</argsstring>
+        <name>get</name>
+        <qualifiedname>shaders::render_states::get</qualifiedname>
+        <param>
+          <type>RenderStateId</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Get render state description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Render state handle. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A render state description. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStateId.h" line="36" column="19" declfile="dag_renderStateId.h" declline="36" declcolumn="19"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__renderStateId_8h_1a264e15aada161b76af915ea01a91a41d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::render_states::get_count</definition>
+        <argsstring>()</argsstring>
+        <name>get_count</name>
+        <qualifiedname>shaders::render_states::get_count</qualifiedname>
+        <briefdescription>
+<para>Get the number of created unique render states. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Uniqie render states count. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStateId.h" line="43" column="10" declfile="dag_renderStateId.h" declline="43" declcolumn="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderStateId.h" line="12" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFindParamResult" kind="struct" language="C++" prot="public">
+    <compoundname>FindParamResult</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFindParamResult_1a4b506a4fa1f8991d21ae07be9717399f" prot="public" static="no" mutable="no">
+        <type>std::string</type>
+        <definition>std::string FindParamResult::group</definition>
+        <argsstring></argsstring>
+        <name>group</name>
+        <qualifiedname>FindParamResult::group</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="137" column="15" bodyfile="rolluppanel.cpp" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFindParamResult_1ab5a87ea28717ba4061792dabe62761ac" prot="public" static="no" mutable="no">
+        <type>std::string</type>
+        <definition>std::string FindParamResult::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>FindParamResult::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="138" column="15" bodyfile="rolluppanel.cpp" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFindParamResult_1af3828f553afd16e089a4b5b7bb322767" prot="public" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833d" kindref="member">SchemeType</ref></type>
+        <definition>SchemeType FindParamResult::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>FindParamResult::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="139" column="14" bodyfile="rolluppanel.cpp" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFindParamResult_1a797a8c52857a98c12d307adfdca812e7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int FindParamResult::component</definition>
+        <argsstring></argsstring>
+        <name>component</name>
+        <qualifiedname>FindParamResult::component</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="140" column="7" bodyfile="rolluppanel.cpp" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rolluppanel.cpp" line="135" column="1" bodyfile="rolluppanel.cpp" bodystart="136" bodyend="141"/>
+    <listofallmembers>
+      <member refid="structFindParamResult_1a797a8c52857a98c12d307adfdca812e7" prot="public" virt="non-virtual"><scope>FindParamResult</scope><name>component</name></member>
+      <member refid="structFindParamResult_1a4b506a4fa1f8991d21ae07be9717399f" prot="public" virt="non-virtual"><scope>FindParamResult</scope><name>group</name></member>
+      <member refid="structFindParamResult_1ab5a87ea28717ba4061792dabe62761ac" prot="public" virt="non-virtual"><scope>FindParamResult</scope><name>name</name></member>
+      <member refid="structFindParamResult_1af3828f553afd16e089a4b5b7bb322767" prot="public" virt="non-virtual"><scope>FindParamResult</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

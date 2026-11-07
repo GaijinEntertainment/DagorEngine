@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRingCPUBufferLock_1_1FencedGPUResource" kind="struct" language="C++" prot="protected">
+    <compoundname>RingCPUBufferLock::FencedGPUResource</compoundname>
+    <includes refid="dag__ringCPUQueryLock_8h" local="no">dag_ringCPUQueryLock.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRingCPUBufferLock_1_1FencedGPUResource_1aa27120e5422d12965bfe21c891853448" prot="public" static="no" mutable="no">
+        <type>D3dResource *</type>
+        <definition>D3dResource* RingCPUBufferLock::FencedGPUResource::gpu</definition>
+        <argsstring></argsstring>
+        <name>gpu</name>
+        <qualifiedname>RingCPUBufferLock::FencedGPUResource::gpu</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="53" column="17" bodyfile="dag_ringCPUQueryLock.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRingCPUBufferLock_1_1FencedGPUResource_1a466a0a0882a3eb5ae27bc1d340819fc3" prot="public" static="no" mutable="no">
+        <type>D3DRESID</type>
+        <definition>D3DRESID RingCPUBufferLock::FencedGPUResource::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>RingCPUBufferLock::FencedGPUResource::id</qualifiedname>
+        <initializer>= BAD_D3DRESID</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="54" column="14" bodyfile="dag_ringCPUQueryLock.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRingCPUBufferLock_1_1FencedGPUResource_1a2ea44d67d3f6bee58f4b83d7ca4cf5e6" prot="public" static="no" mutable="no">
+        <type>D3dEventQuery *</type>
+        <definition>D3dEventQuery* RingCPUBufferLock::FencedGPUResource::event</definition>
+        <argsstring></argsstring>
+        <name>event</name>
+        <qualifiedname>RingCPUBufferLock::FencedGPUResource::event</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="55" column="19" bodyfile="dag_ringCPUQueryLock.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_ringCPUQueryLock.h" line="51" column="3" bodyfile="dag_ringCPUQueryLock.h" bodystart="52" bodyend="56"/>
+    <listofallmembers>
+      <member refid="structRingCPUBufferLock_1_1FencedGPUResource_1a2ea44d67d3f6bee58f4b83d7ca4cf5e6" prot="public" virt="non-virtual"><scope>RingCPUBufferLock::FencedGPUResource</scope><name>event</name></member>
+      <member refid="structRingCPUBufferLock_1_1FencedGPUResource_1aa27120e5422d12965bfe21c891853448" prot="public" virt="non-virtual"><scope>RingCPUBufferLock::FencedGPUResource</scope><name>gpu</name></member>
+      <member refid="structRingCPUBufferLock_1_1FencedGPUResource_1a466a0a0882a3eb5ae27bc1d340819fc3" prot="public" virt="non-virtual"><scope>RingCPUBufferLock::FencedGPUResource</scope><name>id</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

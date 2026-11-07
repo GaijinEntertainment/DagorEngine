@@ -1,0 +1,162 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shMaterialUtils_8h" kind="file" language="C++">
+    <compoundname>dag_shMaterialUtils.h</compoundname>
+    <includes refid="dag__shaderMatData_8h" local="no">shaders/dag_shaderMatData.h</includes>
+    <includes refid="dag__shaderCommon_8h" local="no">shaders/dag_shaderCommon.h</includes>
+    <includes local="no">dag/dag_vector.h</includes>
+    <includes local="no">shaders/shader_layout.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_shMaterialUtils.h</label>
+        <link refid="dag__shMaterialUtils_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaders/dag_shaderMatData.h</label>
+        <link refid="dag__shaderMatData_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="3">
+        <label>3d/dag_materialData.h</label>
+      </node>
+      <node id="7">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="11">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="9">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="4">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="12">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structShaderVarDesc" prot="public">ShaderVarDesc</innerclass>
+    <innernamespace refid="namespaceshaderbindump">shaderbindump</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shMaterialUtils_8h_1a300e4fc730bd0c287dc54546142da268" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::Vector&lt; <ref refid="structShaderVarDesc" kindref="compound">ShaderVarDesc</ref> &gt;</type>
+        <definition>dag::Vector&lt; ShaderVarDesc &gt; get_shclass_script_vars_list</definition>
+        <argsstring>(const char *shclass_name)</argsstring>
+        <name>get_shclass_script_vars_list</name>
+        <param>
+          <type>const char *</type>
+          <declname>shclass_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shMaterialUtils.h" line="24" column="13" declfile="dag_shMaterialUtils.h" declline="24" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shMaterialUtils_8h_1a8e0ab4e260b45147c626b13f78115e8e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned get_shclass_used_tex_mask</definition>
+        <argsstring>(const shaderbindump::ShaderClass *shclass)</argsstring>
+        <name>get_shclass_used_tex_mask</name>
+        <param>
+          <type>const shaderbindump::ShaderClass *</type>
+          <declname>shclass</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shMaterialUtils.h" line="25" column="10" declfile="dag_shMaterialUtils.h" declline="25" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shMaterialUtils_8h_1aabf04d8d4e16a330faeadf1be384331e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned get_shclass_used_tex_mask</definition>
+        <argsstring>(const char *shclass_name)</argsstring>
+        <name>get_shclass_used_tex_mask</name>
+        <param>
+          <type>const char *</type>
+          <declname>shclass_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shMaterialUtils.h" line="26" column="10" declfile="dag_shMaterialUtils.h" declline="26" declcolumn="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderMatData.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderCommon.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;dag/dag_vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/shader_layout.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">shaderbindump</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">ShaderClass<sp/>=<sp/>bindump::Mapper&lt;shader_layout::ShaderClass&gt;;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="structShaderVarDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderVarDesc" kindref="compound">ShaderVarDesc</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/>SimpleString<sp/>name;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>ShaderVarType<sp/>type;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><ref refid="unionShaderMatData_1_1VarValue" kindref="compound">ShaderMatData::VarValue</ref><sp/>value;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">dag::Vector&lt;ShaderVarDesc&gt;<sp/>get_shclass_script_vars_list(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shclass_name);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>get_shclass_used_tex_mask(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>shaderbindump::ShaderClass<sp/>*shclass);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>get_shclass_used_tex_mask(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shclass_name);</highlight></codeline>
+    </programlisting>
+    <location file="dag_shMaterialUtils.h"/>
+  </compounddef>
+</doxygen>

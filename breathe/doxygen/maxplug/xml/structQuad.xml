@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structQuad" kind="struct" language="C++" prot="public">
+    <compoundname>Quad</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structQuad_1acd1207069fcdaa4072efc21812d13ef6" prot="public" static="no" mutable="no">
+        <type>DWORD</type>
+        <definition>DWORD Quad::face</definition>
+        <argsstring></argsstring>
+        <name>face</name>
+        <qualifiedname>Quad::face</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3850" column="9" bodyfile="util.cpp" bodystart="3850" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structQuad_1aae8e220b3cc8615a0b74fcba87e707a4" prot="public" static="no" mutable="no">
+        <type>DWORD</type>
+        <definition>DWORD Quad::mate</definition>
+        <argsstring></argsstring>
+        <name>mate</name>
+        <qualifiedname>Quad::mate</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3851" column="9" bodyfile="util.cpp" bodystart="3851" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structQuad_1a79e60de1c4d732030f5c9a9635920064" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Quad::diagonal</definition>
+        <argsstring></argsstring>
+        <name>diagonal</name>
+        <qualifiedname>Quad::diagonal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3852" column="7" bodyfile="util.cpp" bodystart="3852" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structQuad_1a1a3a3f7564d8923004e2776db3e5613d" prot="public" static="no" mutable="no">
+        <type>std::array&lt; DWORD, 4 &gt;</type>
+        <definition>std::array&lt;DWORD, 4&gt; Quad::corners</definition>
+        <argsstring></argsstring>
+        <name>corners</name>
+        <qualifiedname>Quad::corners</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3853" column="14" bodyfile="util.cpp" bodystart="3853" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="util.cpp" line="3848" column="1" bodyfile="util.cpp" bodystart="3849" bodyend="3854"/>
+    <listofallmembers>
+      <member refid="structQuad_1a1a3a3f7564d8923004e2776db3e5613d" prot="public" virt="non-virtual"><scope>Quad</scope><name>corners</name></member>
+      <member refid="structQuad_1a79e60de1c4d732030f5c9a9635920064" prot="public" virt="non-virtual"><scope>Quad</scope><name>diagonal</name></member>
+      <member refid="structQuad_1acd1207069fcdaa4072efc21812d13ef6" prot="public" virt="non-virtual"><scope>Quad</scope><name>face</name></member>
+      <member refid="structQuad_1aae8e220b3cc8615a0b74fcba87e707a4" prot="public" virt="non-virtual"><scope>Quad</scope><name>mate</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

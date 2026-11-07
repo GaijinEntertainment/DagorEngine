@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshader__meshlets" kind="namespace" language="C++">
+    <compoundname>shader_meshlets</compoundname>
+    <innerclass refid="structshader__meshlets_1_1GlobalMeshletData" prot="public">shader_meshlets::GlobalMeshletData</innerclass>
+    <innerclass refid="structshader__meshlets_1_1VdataElemRange" prot="public">shader_meshlets::VdataElemRange</innerclass>
+    <innerclass refid="classshader__meshlets_1_1VdataElemSpan" prot="public">shader_meshlets::VdataElemSpan</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__shaderMeshlets_8h_1a0642d31a64e97d01e42f5582db135da2" prot="public" static="no">
+        <type>dag::VectorSet&lt; <ref refid="structshader__meshlets_1_1VdataElemRange" kindref="compound">VdataElemRange</ref> &gt;</type>
+        <definition>using shader_meshlets::VdataElemSet = typedef dag::VectorSet&lt;VdataElemRange&gt;</definition>
+        <argsstring></argsstring>
+        <name>VdataElemSet</name>
+        <qualifiedname>shader_meshlets::VdataElemSet</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="67" column="1" bodyfile="dag_shaderMeshlets.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shaderMeshlets_8h_1a766444fbd56dfceed80951a07bd9fd47" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shader_meshlets::is_enabled</definition>
+        <argsstring>()</argsstring>
+        <name>is_enabled</name>
+        <qualifiedname>shader_meshlets::is_enabled</qualifiedname>
+        <briefdescription>
+<para>Use &apos;graphics/enableMeshlets&apos; config key to activate feature on supported platforms. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="18" column="6" declfile="dag_shaderMeshlets.h" declline="18" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderMeshlets_8h_1a2cc5b42a81e01748ca4c8d57a973aefa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structshader__meshlets_1_1GlobalMeshletData" kindref="compound">GlobalMeshletData</ref> *</type>
+        <definition>GlobalMeshletData * shader_meshlets::build</definition>
+        <argsstring>(const GlobalVertexData &amp;vd, VdataElemSpan vd_elems, const uint8_t *vb, const uint16_t *ib)</argsstring>
+        <name>build</name>
+        <qualifiedname>shader_meshlets::build</qualifiedname>
+        <param>
+          <type>const <ref refid="classGlobalVertexData" kindref="compound">GlobalVertexData</ref> &amp;</type>
+          <declname>vd</declname>
+        </param>
+        <param>
+          <type><ref refid="classshader__meshlets_1_1VdataElemSpan" kindref="compound">VdataElemSpan</ref></type>
+          <declname>vd_elems</declname>
+        </param>
+        <param>
+          <type>const uint8_t *</type>
+          <declname>vb</declname>
+        </param>
+        <param>
+          <type>const uint16_t *</type>
+          <declname>ib</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Builds meshlets of vd_elems (all of one vdata, from forVdataIndex()) from the unpacked VB and 16-bit IB of vd. The caller owns the result. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="71" column="19" declfile="dag_shaderMeshlets.h" declline="71" declcolumn="19"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMesh.h" line="45" column="1"/>
+  </compounddef>
+</doxygen>

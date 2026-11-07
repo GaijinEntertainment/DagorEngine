@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderRenderPass_1_1SubpassInfo" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderRenderPass::SubpassInfo</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderRenderPass_1_1SubpassInfo_1a3c434166e5d90965e5df7912f15e4172" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt;int&gt; ShaderRenderPass::SubpassInfo::colors</definition>
+        <argsstring></argsstring>
+        <name>colors</name>
+        <qualifiedname>ShaderRenderPass::SubpassInfo::colors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="58" column="18" bodyfile="dag_shaderRenderPass.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1SubpassInfo_1a83bb95b353e041e7b22927c3a666b452" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderRenderPass::SubpassInfo::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <qualifiedname>ShaderRenderPass::SubpassInfo::depth</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="59" column="7" bodyfile="dag_shaderRenderPass.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1SubpassInfo_1a8f1452bef0cbdbb99ae5144b4d60d365" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9a" kindref="member">DepthUse</ref></type>
+        <definition>DepthUse ShaderRenderPass::SubpassInfo::depthUse</definition>
+        <argsstring></argsstring>
+        <name>depthUse</name>
+        <qualifiedname>ShaderRenderPass::SubpassInfo::depthUse</qualifiedname>
+        <initializer>= DepthUse::Write</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="60" column="12" bodyfile="dag_shaderRenderPass.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1SubpassInfo_1a2d3f0c50925e169b1fb36131d2f13126" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt;int&gt; ShaderRenderPass::SubpassInfo::reads</definition>
+        <argsstring></argsstring>
+        <name>reads</name>
+        <qualifiedname>ShaderRenderPass::SubpassInfo::reads</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="61" column="18" bodyfile="dag_shaderRenderPass.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1SubpassInfo_1a898e38e2d25f10273b74ace501514d4f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderRenderPass::SubpassInfo::vrs</definition>
+        <argsstring></argsstring>
+        <name>vrs</name>
+        <qualifiedname>ShaderRenderPass::SubpassInfo::vrs</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="62" column="7" bodyfile="dag_shaderRenderPass.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="56" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="57" bodyend="63"/>
+    <listofallmembers>
+      <member refid="structShaderRenderPass_1_1SubpassInfo_1a3c434166e5d90965e5df7912f15e4172" prot="public" virt="non-virtual"><scope>ShaderRenderPass::SubpassInfo</scope><name>colors</name></member>
+      <member refid="structShaderRenderPass_1_1SubpassInfo_1a83bb95b353e041e7b22927c3a666b452" prot="public" virt="non-virtual"><scope>ShaderRenderPass::SubpassInfo</scope><name>depth</name></member>
+      <member refid="structShaderRenderPass_1_1SubpassInfo_1a8f1452bef0cbdbb99ae5144b4d60d365" prot="public" virt="non-virtual"><scope>ShaderRenderPass::SubpassInfo</scope><name>depthUse</name></member>
+      <member refid="structShaderRenderPass_1_1SubpassInfo_1a2d3f0c50925e169b1fb36131d2f13126" prot="public" virt="non-virtual"><scope>ShaderRenderPass::SubpassInfo</scope><name>reads</name></member>
+      <member refid="structShaderRenderPass_1_1SubpassInfo_1a898e38e2d25f10273b74ace501514d4f" prot="public" virt="non-virtual"><scope>ShaderRenderPass::SubpassInfo</scope><name>vrs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

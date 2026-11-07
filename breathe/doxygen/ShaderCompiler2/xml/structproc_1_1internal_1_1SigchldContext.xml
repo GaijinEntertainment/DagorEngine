@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structproc_1_1internal_1_1SigchldContext" kind="struct" language="C++" prot="public">
+    <compoundname>proc::internal::SigchldContext</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structproc_1_1internal_1_1SigchldContext_1af67c11ef61bc4fc2836062d02ad5abc4" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceproc_1_1internal_1a8b2030d52046c536f22dc3f875c98c47" kindref="member">Sigaction</ref></type>
+        <definition>Sigaction proc::internal::SigchldContext::sigchldAction</definition>
+        <argsstring></argsstring>
+        <name>sigchldAction</name>
+        <qualifiedname>proc::internal::SigchldContext::sigchldAction</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="55" column="13" bodyfile="processes_unix.cpp" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1SigchldContext_1a628b5a81a6f68a72571e9342c2c6b446" prot="public" static="no" mutable="no">
+        <type>pthread_t</type>
+        <definition>pthread_t proc::internal::SigchldContext::performerThreadHnd</definition>
+        <argsstring></argsstring>
+        <name>performerThreadHnd</name>
+        <qualifiedname>proc::internal::SigchldContext::performerThreadHnd</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="56" column="13" bodyfile="processes_unix.cpp" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="processes_unix.cpp" line="53" column="1" bodyfile="processes_unix.cpp" bodystart="54" bodyend="57"/>
+    <listofallmembers>
+      <member refid="structproc_1_1internal_1_1SigchldContext_1a628b5a81a6f68a72571e9342c2c6b446" prot="public" virt="non-virtual"><scope>proc::internal::SigchldContext</scope><name>performerThreadHnd</name></member>
+      <member refid="structproc_1_1internal_1_1SigchldContext_1af67c11ef61bc4fc2836062d02ad5abc4" prot="public" virt="non-virtual"><scope>proc::internal::SigchldContext</scope><name>sigchldAction</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRenderPassGroupTable" kind="class" language="C++" prot="public">
+    <compoundname>RenderPassGroupTable</compoundname>
+    <basecompoundref refid="classRenderPassNamedTable" prot="public" virt="non-virtual">RenderPassNamedTable&lt; RenderPassGroup &gt;</basecompoundref>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRenderPassGroupTable_1ac9e3b99b64dd9d768b8e689eb3292802" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderPassGroupTable::registerGroup</definition>
+        <argsstring>(RenderPassGroup *g)</argsstring>
+        <name>registerGroup</name>
+        <qualifiedname>RenderPassGroupTable::registerGroup</qualifiedname>
+        <param>
+          <type><ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref> *</type>
+          <declname>g</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="180" column="8" bodyfile="renderPassObject.h" bodystart="180" bodyend="180"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassGroupTable_1a54c5571cbe72f5ee90e6fc58fd73de8d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderPassGroupTable::link</definition>
+        <argsstring>(Tab&lt; RenderPassGroup * &gt; &amp;loaded_groups, const RenderPassTable &amp;passes, dag::ConstSpan&lt; int &gt; pass_lnktbl, Tab&lt; int &gt; &amp;lnktbl)</argsstring>
+        <name>link</name>
+        <qualifiedname>RenderPassGroupTable::link</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref> * &gt; &amp;</type>
+          <declname>loaded_groups</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> &amp;</type>
+          <declname>passes</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>pass_lnktbl</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>lnktbl</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="181" column="8" bodyfile="renderPassObject.cpp" bodystart="210" bodyend="231"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassGroupTable_1a70c2f69ea0ed32f1ce7b427134170779" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderPassNamedTable&lt; T &gt;::RenderPassNamedTable</definition>
+        <argsstring>(VarNameMap &amp;names)</argsstring>
+        <name>RenderPassNamedTable</name>
+        <qualifiedname>RenderPassGroupTable::RenderPassNamedTable</qualifiedname>
+        <param>
+          <type><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+          <declname>names</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="178" column="3" bodyfile="framebufferLayout.h" bodystart="79" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassGroupTable_1ade2b4cadb6239cabfdd4246ab8b4f950" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderPassNamedTable&lt; T &gt;::RenderPassNamedTable</definition>
+        <argsstring>(const RenderPassNamedTable &amp;)=delete</argsstring>
+        <name>RenderPassNamedTable</name>
+        <qualifiedname>RenderPassGroupTable::RenderPassNamedTable</qualifiedname>
+        <param>
+          <type>const <ref refid="classRenderPassNamedTable" kindref="compound">RenderPassNamedTable</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="178" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>RenderPassGroupTable</label>
+        <link refid="classRenderPassGroupTable"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderPassNamedTable&lt; RenderPassGroup &gt;</label>
+        <link refid="classRenderPassNamedTable"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>RenderPassGroupTable</label>
+        <link refid="classRenderPassGroupTable"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderPassNamedTable&lt; RenderPassGroup &gt;</label>
+        <link refid="classRenderPassNamedTable"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>mNames</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>VarNameMap</label>
+        <link refid="classVarNameMap"/>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.h" line="175" column="1" bodyfile="renderPassObject.h" bodystart="176" bodyend="182"/>
+    <listofallmembers>
+      <member refid="classRenderPassNamedTable_1a3a83085c5607c97cacf57a429b59d3ac" prot="protected" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>adopt</name></member>
+      <member refid="classRenderPassNamedTable_1aaee0a562dc9d31bfea075f6a29beabb5" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>all</name></member>
+      <member refid="classRenderPassNamedTable_1a8f6081beb5e971d5e705184c12203dda" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>bindNames</name></member>
+      <member refid="classRenderPassNamedTable_1a3b03d44beec432445f94b4958c57e7f9" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>byId</name></member>
+      <member refid="classRenderPassNamedTable_1a1eaba2f8c80bb099afa9669e0c52c609" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>findByName</name></member>
+      <member refid="classRenderPassNamedTable_1a6b806ef7053a4e63a09a6f870bf8b6ae" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>findByName</name></member>
+      <member refid="classRenderPassGroupTable_1a54c5571cbe72f5ee90e6fc58fd73de8d" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>link</name></member>
+      <member refid="classRenderPassNamedTable_1a7082ddc242ac5c3b3e5a3dddb1bd452a" prot="protected" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>mByName</name></member>
+      <member refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" prot="protected" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>mItems</name></member>
+      <member refid="classRenderPassNamedTable_1a84768e7bf2cba6a67b550168845ff89b" prot="protected" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>mNames</name></member>
+      <member refid="classRenderPassNamedTable_1a9b113c11cce13e5b09c0d30b14c0654d" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>operator=</name></member>
+      <member refid="classRenderPassGroupTable_1ac9e3b99b64dd9d768b8e689eb3292802" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>registerGroup</name></member>
+      <member refid="classRenderPassNamedTable_1ab58b1a32425ec8c9436fdafa197b54ea" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>release</name></member>
+      <member refid="classRenderPassGroupTable_1a70c2f69ea0ed32f1ce7b427134170779" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>RenderPassNamedTable</name></member>
+      <member refid="classRenderPassGroupTable_1ade2b4cadb6239cabfdd4246ab8b4f950" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>RenderPassNamedTable</name></member>
+      <member refid="classRenderPassNamedTable_1ac625175be3fdd37000d1e841050817d1" prot="public" virt="non-virtual"><scope>RenderPassGroupTable</scope><name>~RenderPassNamedTable</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

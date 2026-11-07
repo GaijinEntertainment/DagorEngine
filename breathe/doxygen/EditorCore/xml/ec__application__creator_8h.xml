@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__application__creator_8h" kind="file" language="C++">
+    <compoundname>ec_application_creator.h</compoundname>
+    <includes local="no">propPanel/commonWindow/dialogWindow.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_application_creator.h</label>
+        <link refid="ec__application__creator_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classApplicationCreator" prot="public">ApplicationCreator</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/commonWindow/dialogWindow.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref>;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="classApplicationCreator" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classApplicationCreator" kindref="compound">ApplicationCreator</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::DialogWindow</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="12" refid="classApplicationCreator_1a722206e3382ca10a2c5b33ba653c4a9d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classApplicationCreator_1a722206e3382ca10a2c5b33ba653c4a9d" kindref="member">ApplicationCreator</ref>(<ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref><sp/>&amp;wsp);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DialogWindow<sp/>interface</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classApplicationCreator_1a730c10aacd136ef9035e63c55b50b03b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classApplicationCreator_1a730c10aacd136ef9035e63c55b50b03b" kindref="member">onOk</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="17" refid="classApplicationCreator_1a7755368fd9f2746394644e3407a253a2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classApplicationCreator_1a7755368fd9f2746394644e3407a253a2" kindref="member">onCancel</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>};</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>ControlEventHandler<sp/>methods<sp/>from<sp/>CDialogWindow</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="classApplicationCreator_1ac0209e5a02da6d958916b7e75771168b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classApplicationCreator_1ac0209e5a02da6d958916b7e75771168b" kindref="member">onChange</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref><sp/>&amp;wsp;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>correctAppPath(PropPanel::ContainerPropertyControl<sp/>&amp;panel);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_application_creator.h"/>
+  </compounddef>
+</doxygen>

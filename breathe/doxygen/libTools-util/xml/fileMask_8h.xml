@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="fileMask_8h" kind="file" language="C++">
+    <compoundname>fileMask.h</compoundname>
+    <includes local="no">generic/dag_smallTab.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>fileMask.h</label>
+        <link refid="fileMask_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaceloadmask">loadmask</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_smallTab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="namespaceloadmask" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceloadmask" kindref="compound">loadmask</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11" refid="namespaceloadmask_1a342689e2b2f4c4ed81e9d2e4563ad4a2" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceloadmask_1a342689e2b2f4c4ed81e9d2e4563ad4a2" kindref="member">loadMaskFromTga</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename,<sp/>SmallTab&lt;float,<sp/>TmpmemAlloc&gt;<sp/>&amp;hmap,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h);</highlight></codeline>
+<codeline lineno="12" refid="namespaceloadmask_1aefdecbe1fae24b2f8d36efd7e96a15cc" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceloadmask_1aefdecbe1fae24b2f8d36efd7e96a15cc" kindref="member">loadMaskFromRaw32</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename,<sp/>SmallTab&lt;float,<sp/>TmpmemAlloc&gt;<sp/>&amp;hmap,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h);</highlight></codeline>
+<codeline lineno="13" refid="namespaceloadmask_1a2978489198d99e82840739744c049f00" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceloadmask_1a2978489198d99e82840739744c049f00" kindref="member">loadMaskFromRaw16</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename,<sp/>SmallTab&lt;float,<sp/>TmpmemAlloc&gt;<sp/>&amp;hmap,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h);</highlight></codeline>
+<codeline lineno="14" refid="namespaceloadmask_1a48f7dec31dd98b50377df35ea4e41bfa" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceloadmask_1a48f7dec31dd98b50377df35ea4e41bfa" kindref="member">loadMaskFromFile</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename,<sp/>SmallTab&lt;float,<sp/>TmpmemAlloc&gt;<sp/>&amp;hmap,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h);</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>loadmask</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="fileMask.h"/>
+  </compounddef>
+</doxygen>

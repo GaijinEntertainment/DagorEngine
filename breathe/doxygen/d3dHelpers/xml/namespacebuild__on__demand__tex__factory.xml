@@ -1,0 +1,188 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacebuild__on__demand__tex__factory" kind="namespace" language="C++">
+    <compoundname>build_on_demand_tex_factory</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacebuild__on__demand__tex__factory_1a2b79413f0906dc4801507c025142abce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+        <definition>TextureFactory * build_on_demand_tex_factory::get</definition>
+        <argsstring>()</argsstring>
+        <name>get</name>
+        <qualifiedname>build_on_demand_tex_factory::get</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="69" column="16" declfile="dag_buildOnDemandTexFactory.h" declline="69" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacebuild__on__demand__tex__factory_1a4e17fa3cc898602d544a9e210a2ad86f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+        <definition>TextureFactory * build_on_demand_tex_factory::init</definition>
+        <argsstring>(ITexBuildOnDemandHelper *h)</argsstring>
+        <name>init</name>
+        <qualifiedname>build_on_demand_tex_factory::init</qualifiedname>
+        <param>
+          <type><ref refid="structITexBuildOnDemandHelper" kindref="compound">ITexBuildOnDemandHelper</ref> *</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+<para>initializes texture factory to manage textures using specified build-helper </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="71" column="16" declfile="dag_buildOnDemandTexFactory.h" declline="71" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacebuild__on__demand__tex__factory_1a191bdea541276d8436e388b9bda1093e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void build_on_demand_tex_factory::term</definition>
+        <argsstring>(TextureFactory *f)</argsstring>
+        <name>term</name>
+        <qualifiedname>build_on_demand_tex_factory::term</qualifiedname>
+        <param>
+          <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+<para>terminates texture factory and releases allocated resources </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="73" column="6" declfile="dag_buildOnDemandTexFactory.h" declline="73" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacebuild__on__demand__tex__factory_1a1bb6bc0e96a5dbd0b69ea297b24c6573" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool build_on_demand_tex_factory::cease_loading</definition>
+        <argsstring>(TextureFactory *f, bool allow_further_tex_loading)</argsstring>
+        <name>cease_loading</name>
+        <qualifiedname>build_on_demand_tex_factory::cease_loading</qualifiedname>
+        <param>
+          <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>allow_further_tex_loading</declname>
+        </param>
+        <briefdescription>
+<para>stops tex loading job and resets job queue (and optionally disables async tex loading after that); returns previous allow_loading </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="75" column="6" declfile="dag_buildOnDemandTexFactory.h" declline="75" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacebuild__on__demand__tex__factory_1aefcc07f40bbd5bb9a85343e2f04dc4ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void build_on_demand_tex_factory::schedule_prebuild_tex</definition>
+        <argsstring>(TextureFactory *f, unsigned tex_nameId, TexQL ql)</argsstring>
+        <name>schedule_prebuild_tex</name>
+        <qualifiedname>build_on_demand_tex_factory::schedule_prebuild_tex</qualifiedname>
+        <param>
+          <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>tex_nameId</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref></type>
+          <declname>ql</declname>
+        </param>
+        <briefdescription>
+<para>schedule tex prebuilding job with specified quality </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="78" column="6" declfile="dag_buildOnDemandTexFactory.h" declline="78" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacebuild__on__demand__tex__factory_1a65fc875d6eb9da760196e7aabdfaf667" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool build_on_demand_tex_factory::get_current_loading_state</definition>
+        <argsstring>(const TextureFactory *f, AsyncTextureLoadingState &amp;out_state)</argsstring>
+        <name>get_current_loading_state</name>
+        <qualifiedname>build_on_demand_tex_factory::get_current_loading_state</qualifiedname>
+        <param>
+          <type>const <ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type><ref refid="structAsyncTextureLoadingState" kindref="compound">AsyncTextureLoadingState</ref> &amp;</type>
+          <declname>out_state</declname>
+        </param>
+        <briefdescription>
+<para>fills current state of async textures loading for given factory; returns false for bad factory </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="81" column="6" declfile="dag_buildOnDemandTexFactory.h" declline="81" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacebuild__on__demand__tex__factory_1a28327c6b74f7f5f5ce6c7daaac46e549" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void build_on_demand_tex_factory::limit_tql</definition>
+        <argsstring>(TextureFactory *f, TexQL max_tql, const TextureIdSet &amp;tid)</argsstring>
+        <name>limit_tql</name>
+        <qualifiedname>build_on_demand_tex_factory::limit_tql</qualifiedname>
+        <param>
+          <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref></type>
+          <declname>max_tql</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classTextureIdSet" kindref="compound">TextureIdSet</ref> &amp;</type>
+          <declname>tid</declname>
+        </param>
+        <briefdescription>
+<para>limit texture quality to max specified level for textures in list </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="84" column="6" declfile="dag_buildOnDemandTexFactory.h" declline="84" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacebuild__on__demand__tex__factory_1abcbb8037e761a3ce8dec2912fa43e1fd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void build_on_demand_tex_factory::limit_tql</definition>
+        <argsstring>(TextureFactory *f, TexQL max_tql)</argsstring>
+        <name>limit_tql</name>
+        <qualifiedname>build_on_demand_tex_factory::limit_tql</qualifiedname>
+        <param>
+          <type><ref refid="classTextureFactory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__resMgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref></type>
+          <declname>max_tql</declname>
+        </param>
+        <briefdescription>
+<para>limit texture quality to max specified level for all registered textures) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="86" column="6" declfile="dag_buildOnDemandTexFactory.h" declline="86" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_buildOnDemandTexFactory.h" line="67" column="1"/>
+  </compounddef>
+</doxygen>

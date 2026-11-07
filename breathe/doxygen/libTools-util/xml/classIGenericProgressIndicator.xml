@@ -1,0 +1,233 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIGenericProgressIndicator" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IGenericProgressIndicator</compoundname>
+    <derivedcompoundref refid="classConsoleProgressIndicator" prot="public" virt="non-virtual">ConsoleProgressIndicator</derivedcompoundref>
+    <derivedcompoundref refid="classQuietProgressIndicator" prot="public" virt="non-virtual">QuietProgressIndicator</derivedcompoundref>
+    <includes refid="progressInd_8h" local="no">progressInd.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIGenericProgressIndicator_1ae498be70da64475b793509e68311f643" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenericProgressIndicator::setActionDescFmt</definition>
+        <argsstring>(const char *desc, const DagorSafeArg *arg, int anum)=0</argsstring>
+        <name>setActionDescFmt</name>
+        <qualifiedname>IGenericProgressIndicator::setActionDescFmt</qualifiedname>
+        <reimplementedby refid="classQuietProgressIndicator_1a67859d32e7cbdb84691eac5ef27c6001">setActionDescFmt</reimplementedby>
+        <reimplementedby refid="classConsoleProgressIndicator_1ad8b09c79658defcbaba23d47974725dc">setActionDescFmt</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>desc</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+<para>sets description of current action, uses printf-like formatted string (with dagor extensions) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="37" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenericProgressIndicator_1a86c83496a4c6a3e672a824fd4837a3ac" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenericProgressIndicator::setTotal</definition>
+        <argsstring>(int total_cnt)=0</argsstring>
+        <name>setTotal</name>
+        <qualifiedname>IGenericProgressIndicator::setTotal</qualifiedname>
+        <reimplementedby refid="classQuietProgressIndicator_1a92ec0117568f718daa3640af3090c095">setTotal</reimplementedby>
+        <reimplementedby refid="classConsoleProgressIndicator_1a669b302dbeeb6bda60bee6e6b7cb969a">setTotal</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>total_cnt</declname>
+        </param>
+        <briefdescription>
+<para>sets total count of steps </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="39" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenericProgressIndicator_1af61273cbbb0a3f8b0372ab13d8fa4b4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenericProgressIndicator::setDone</definition>
+        <argsstring>(int done_cnt)=0</argsstring>
+        <name>setDone</name>
+        <qualifiedname>IGenericProgressIndicator::setDone</qualifiedname>
+        <reimplementedby refid="classQuietProgressIndicator_1a7758f5c615be4a8524a8a73604764dd6">setDone</reimplementedby>
+        <reimplementedby refid="classConsoleProgressIndicator_1a96645d5f2decf91dd428d4dc081cd857">setDone</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>done_cnt</declname>
+        </param>
+        <briefdescription>
+<para>sets count of performed steps </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="41" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenericProgressIndicator_1ae56a24dec52fcbdbc4dc9c0d02b56e9a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenericProgressIndicator::incDone</definition>
+        <argsstring>(int inc=1)=0</argsstring>
+        <name>incDone</name>
+        <qualifiedname>IGenericProgressIndicator::incDone</qualifiedname>
+        <reimplementedby refid="classQuietProgressIndicator_1a79f080ca7216b8bb06cacbaa2c3b112b">incDone</reimplementedby>
+        <reimplementedby refid="classConsoleProgressIndicator_1ab035e72fd76f8a96e59dc6dfa88612f8">incDone</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>inc</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+<para>increments count of performed steps </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="43" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenericProgressIndicator_1a2695bdad13406028345abe14136e68c4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenericProgressIndicator::redrawScreen</definition>
+        <argsstring>()=0</argsstring>
+        <name>redrawScreen</name>
+        <qualifiedname>IGenericProgressIndicator::redrawScreen</qualifiedname>
+        <reimplementedby refid="classQuietProgressIndicator_1a7c63dd859d3e3c5a4ba36fc120089bde">redrawScreen</reimplementedby>
+        <reimplementedby refid="classConsoleProgressIndicator_1a0fbc64a69db9d50246da0c7559f24d60">redrawScreen</reimplementedby>
+        <briefdescription>
+<para>forces screen redraw (even though progress indicator didn&apos;t change) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="46" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenericProgressIndicator_1a7728d96da0e4b55a5a8928cd87029ca4" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenericProgressIndicator::destroy</definition>
+        <argsstring>()=0</argsstring>
+        <name>destroy</name>
+        <qualifiedname>IGenericProgressIndicator::destroy</qualifiedname>
+        <reimplementedby refid="classQuietProgressIndicator_1a6b13529b83c11fd3a5e9450166c15bf4">destroy</reimplementedby>
+        <reimplementedby refid="classConsoleProgressIndicator_1a8c4c27a129e0214e634d56093f66752d">destroy</reimplementedby>
+        <briefdescription>
+<para>closes and destroys progressbar </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="49" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenericProgressIndicator_1a7961d9618fbc30ba9c5a8dbf53769472" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenericProgressIndicator::startProgress</definition>
+        <argsstring>(IProgressCB *progress_cb=NULL)=0</argsstring>
+        <name>startProgress</name>
+        <qualifiedname>IGenericProgressIndicator::startProgress</qualifiedname>
+        <reimplementedby refid="classConsoleProgressIndicator_1a07d251004db5492e832b84bcacfe8a4a">startProgress</reimplementedby>
+        <reimplementedby refid="classQuietProgressIndicator_1a53c0da3450c198640c4bca0cf7ba8efb">startProgress</reimplementedby>
+        <param>
+          <type><ref refid="classIProgressCB" kindref="compound">IProgressCB</ref> *</type>
+          <declname>progress_cb</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+<para>causes higher-level progressbar implementation to show indicator </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="52" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenericProgressIndicator_1a5dc6416228fdf7cb0bc96f52962e0b84" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGenericProgressIndicator::endProgress</definition>
+        <argsstring>()=0</argsstring>
+        <name>endProgress</name>
+        <qualifiedname>IGenericProgressIndicator::endProgress</qualifiedname>
+        <reimplementedby refid="classQuietProgressIndicator_1a1c72ab1ee0c0074ef3421e9716f6f23c">endProgress</reimplementedby>
+        <reimplementedby refid="classConsoleProgressIndicator_1a08a014a5c6a815987afeb61629e30ecb">endProgress</reimplementedby>
+        <briefdescription>
+<para>causes higher-level progressbar implementation to hide indicator </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="54" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGenericProgressIndicator_1a1ed452a29863168e758f85e889a2e042" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>IGenericProgressIndicator::DECLARE_DSA_OVERLOADS_FAMILY_LT</definition>
+        <argsstring>(void setActionDesc, setActionDescFmt)</argsstring>
+        <name>DECLARE_DSA_OVERLOADS_FAMILY_LT</name>
+        <qualifiedname>IGenericProgressIndicator::DECLARE_DSA_OVERLOADS_FAMILY_LT</qualifiedname>
+        <param>
+          <type>void</type>
+          <declname>setActionDesc</declname>
+        </param>
+        <param>
+          <type><ref refid="classIGenericProgressIndicator_1ae498be70da64475b793509e68311f643" kindref="member">setActionDescFmt</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="58" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Generic progress indicator interface. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ConsoleProgressIndicator</label>
+        <link refid="classConsoleProgressIndicator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>IGenericProgressIndicator</label>
+        <link refid="classIGenericProgressIndicator"/>
+      </node>
+      <node id="3">
+        <label>QuietProgressIndicator</label>
+        <link refid="classQuietProgressIndicator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="progressInd.h" line="33" column="1" bodyfile="progressInd.h" bodystart="34" bodyend="61"/>
+    <listofallmembers>
+      <member refid="classIGenericProgressIndicator_1a1ed452a29863168e758f85e889a2e042" prot="public" virt="non-virtual"><scope>IGenericProgressIndicator</scope><name>DECLARE_DSA_OVERLOADS_FAMILY_LT</name></member>
+      <member refid="classIGenericProgressIndicator_1a7728d96da0e4b55a5a8928cd87029ca4" prot="public" virt="pure-virtual"><scope>IGenericProgressIndicator</scope><name>destroy</name></member>
+      <member refid="classIGenericProgressIndicator_1a5dc6416228fdf7cb0bc96f52962e0b84" prot="public" virt="pure-virtual"><scope>IGenericProgressIndicator</scope><name>endProgress</name></member>
+      <member refid="classIGenericProgressIndicator_1ae56a24dec52fcbdbc4dc9c0d02b56e9a" prot="public" virt="pure-virtual"><scope>IGenericProgressIndicator</scope><name>incDone</name></member>
+      <member refid="classIGenericProgressIndicator_1a2695bdad13406028345abe14136e68c4" prot="public" virt="pure-virtual"><scope>IGenericProgressIndicator</scope><name>redrawScreen</name></member>
+      <member refid="classIGenericProgressIndicator_1ae498be70da64475b793509e68311f643" prot="public" virt="pure-virtual"><scope>IGenericProgressIndicator</scope><name>setActionDescFmt</name></member>
+      <member refid="classIGenericProgressIndicator_1af61273cbbb0a3f8b0372ab13d8fa4b4b" prot="public" virt="pure-virtual"><scope>IGenericProgressIndicator</scope><name>setDone</name></member>
+      <member refid="classIGenericProgressIndicator_1a86c83496a4c6a3e672a824fd4837a3ac" prot="public" virt="pure-virtual"><scope>IGenericProgressIndicator</scope><name>setTotal</name></member>
+      <member refid="classIGenericProgressIndicator_1a7961d9618fbc30ba9c5a8dbf53769472" prot="public" virt="pure-virtual"><scope>IGenericProgressIndicator</scope><name>startProgress</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classExpTMAnimCB" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ExpTMAnimCB</compoundname>
+    <derivedcompoundref refid="classMyExpTMAnimCB" prot="public" virt="non-virtual">MyExpTMAnimCB</derivedcompoundref>
+    <includes refid="expanim_8h" local="no">expanim.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classExpTMAnimCB_1a0491ef38445f01f064855042945a291b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual ExpTMAnimCB::~ExpTMAnimCB</definition>
+        <argsstring>()=default</argsstring>
+        <name>~ExpTMAnimCB</name>
+        <qualifiedname>ExpTMAnimCB::~ExpTMAnimCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="7" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classExpTMAnimCB_1ae0c42715a97d401a20c33d79513632f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ExpTMAnimCB::interp_tm</definition>
+        <argsstring>(TimeValue, Matrix3 &amp;)=0</argsstring>
+        <name>interp_tm</name>
+        <qualifiedname>ExpTMAnimCB::interp_tm</qualifiedname>
+        <reimplementedby refid="classMyExpTMAnimCB_1a4fec60070b816ac49c8fa15feccfdd3a">interp_tm</reimplementedby>
+        <param>
+          <type>TimeValue</type>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim.h" line="8" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ExpTMAnimCB</label>
+        <link refid="classExpTMAnimCB"/>
+      </node>
+      <node id="2">
+        <label>MyExpTMAnimCB</label>
+        <link refid="classMyExpTMAnimCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="expanim.h" line="4" column="1" bodyfile="expanim.h" bodystart="5" bodyend="9"/>
+    <listofallmembers>
+      <member refid="classExpTMAnimCB_1ae0c42715a97d401a20c33d79513632f8" prot="public" virt="pure-virtual"><scope>ExpTMAnimCB</scope><name>interp_tm</name></member>
+      <member refid="classExpTMAnimCB_1a0491ef38445f01f064855042945a291b" prot="public" virt="virtual"><scope>ExpTMAnimCB</scope><name>~ExpTMAnimCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

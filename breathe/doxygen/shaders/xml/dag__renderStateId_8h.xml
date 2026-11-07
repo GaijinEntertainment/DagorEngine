@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__renderStateId_8h" kind="file" language="C++">
+    <compoundname>dag_renderStateId.h</compoundname>
+    <includes local="no">drv/3d/dag_renderStateId.h</includes>
+    <includes local="no">util/dag_generationRefId.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_renderStateId.h</label>
+        <link refid="dag__renderStateId_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_renderStateId.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_generationRefId.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaceshaders">shaders</innernamespace>
+    <innernamespace refid="namespaceshaders_1_1render__states">shaders::render_states</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_renderStateId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_generationRefId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">shaders</highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">render_states</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">RenderStateId<sp/>create(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderState<sp/>&amp;state);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set(RenderStateId);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderState<sp/>&amp;get(RenderStateId<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal">uint32_t<sp/>get_count();</highlight></codeline>
+<codeline lineno="44"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>render_states</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>shaders</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_renderStateId.h"/>
+  </compounddef>
+</doxygen>

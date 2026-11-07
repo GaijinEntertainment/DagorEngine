@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFramebufferLayoutObject_1_1Entry" kind="struct" language="C++" prot="public">
+    <compoundname>FramebufferLayoutObject::Entry</compoundname>
+    <includes refid="framebufferLayout_8h" local="no">framebufferLayout.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFramebufferLayoutObject_1_1Entry_1a1935e7eaff3247df315f0f74911cf86d" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref></type>
+        <definition>RenderPassNameId FramebufferLayoutObject::Entry::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>FramebufferLayoutObject::Entry::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="43" column="22" bodyfile="framebufferLayout.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFramebufferLayoutObject_1_1Entry_1ab3a3346446c8203e9429ccfb32f5932d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t FramebufferLayoutObject::Entry::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <qualifiedname>FramebufferLayoutObject::Entry::format</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="44" column="14" bodyfile="framebufferLayout.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFramebufferLayoutObject_1_1Entry_1ab3bb205576cc385e6d90f9c4d61e652a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int FramebufferLayoutObject::Entry::samples</definition>
+        <argsstring></argsstring>
+        <name>samples</name>
+        <qualifiedname>FramebufferLayoutObject::Entry::samples</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="45" column="9" bodyfile="framebufferLayout.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>FramebufferLayoutObject::Entry</label>
+        <link refid="structFramebufferLayoutObject_1_1Entry"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+    </collaborationgraph>
+    <location file="framebufferLayout.h" line="41" column="3" bodyfile="framebufferLayout.h" bodystart="42" bodyend="46"/>
+    <listofallmembers>
+      <member refid="structFramebufferLayoutObject_1_1Entry_1ab3a3346446c8203e9429ccfb32f5932d" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject::Entry</scope><name>format</name></member>
+      <member refid="structFramebufferLayoutObject_1_1Entry_1a1935e7eaff3247df315f0f74911cf86d" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject::Entry</scope><name>name</name></member>
+      <member refid="structFramebufferLayoutObject_1_1Entry_1ab3bb205576cc385e6d90f9c4d61e652a" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject::Entry</scope><name>samples</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

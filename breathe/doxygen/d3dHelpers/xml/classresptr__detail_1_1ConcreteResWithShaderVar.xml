@@ -1,0 +1,306 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1ConcreteResWithShaderVar" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::ConcreteResWithShaderVar</compoundname>
+    <basecompoundref refid="classresptr__detail_1_1ManagedResWithShaderVar" prot="public" virt="non-virtual">resptr_detail::ManagedResWithShaderVar&lt; ManagedResType::BaseType &gt;</basecompoundref>
+    <basecompoundref prot="public" virt="non-virtual">ManagedResType::move_assignable_t</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ManagedResType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1ConcreteResWithShaderVar_1acac0b2dd3a437de7247309199085cee2" prot="private" static="no">
+        <type>typename ManagedResType::resource_t</type>
+        <definition>using resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::ResType =  typename ManagedResType::resource_t</definition>
+        <argsstring></argsstring>
+        <name>ResType</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::ResType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="531" column="3" bodyfile="dag_resPtr.h" bodystart="531" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1a508aa7449299dc71625d19ced01cf8f7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::ConcreteResWithShaderVar</definition>
+        <argsstring>()=default</argsstring>
+        <name>ConcreteResWithShaderVar</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::ConcreteResWithShaderVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="534" column="4"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1a1752f4eb4beafe99467f008d962f4562" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::ConcreteResWithShaderVar</definition>
+        <argsstring>(ConcreteResWithShaderVar &amp;&amp;other) noexcept</argsstring>
+        <name>ConcreteResWithShaderVar</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::ConcreteResWithShaderVar</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ConcreteResWithShaderVar" kindref="compound">ConcreteResWithShaderVar</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="534" column="43" bodyfile="dag_resPtr.h" bodystart="534" bodyend="534"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1a82f9f8a64c23d3fc6e7d46b36b6acf14" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1ConcreteResWithShaderVar" kindref="compound">ConcreteResWithShaderVar</ref> &amp;</type>
+        <definition>ConcreteResWithShaderVar &amp; resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::operator=</definition>
+        <argsstring>(ConcreteResWithShaderVar &amp;&amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ConcreteResWithShaderVar" kindref="compound">ConcreteResWithShaderVar</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="534" column="131" bodyfile="dag_resPtr.h" bodystart="534" bodyend="534"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1afc834ddacf8211d1de1ef580f75a6885" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="534" column="318" bodyfile="dag_resPtr.h" bodystart="534" bodyend="534"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1a2b8d4aded3e0cfb44557b882ecd5483c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1ConcreteResWithShaderVar" kindref="compound">ConcreteResWithShaderVar</ref> &amp;</type>
+        <definition>ConcreteResWithShaderVar &amp; resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::operator=</definition>
+        <argsstring>(ResPtr&lt; ResType &gt; &amp;&amp;res)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="535" column="30" bodyfile="dag_resPtr.h" bodystart="535" bodyend="535"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1a4c6dee92d1b0dffb6f57b73c0f4dc2ff" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1ConcreteResWithShaderVar" kindref="compound">ConcreteResWithShaderVar</ref> &amp;</type>
+        <definition>ConcreteResWithShaderVar &amp; resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::operator=</definition>
+        <argsstring>(ResFactory&lt; ResType &gt; &amp;&amp;factory)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>factory</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="536" column="30" bodyfile="dag_resPtr.h" bodystart="536" bodyend="536"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1a9dcee68346c9ce908148d65630f1ebeb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::ConcreteResWithShaderVar</definition>
+        <argsstring>(ManagedResType &amp;&amp;resource, const char *shader_var_name=nullptr)</argsstring>
+        <name>ConcreteResWithShaderVar</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::ConcreteResWithShaderVar</qualifiedname>
+        <param>
+          <type>ManagedResType &amp;&amp;</type>
+          <declname>resource</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="538" column="3" bodyfile="dag_resPtr.h" bodystart="538" bodyend="548"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1a7813a90b872b3b1591324dd466a9ffa7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::ConcreteResWithShaderVar</definition>
+        <argsstring>(ManagedResType &amp;&amp;resource, int var_id)</argsstring>
+        <name>ConcreteResWithShaderVar</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::ConcreteResWithShaderVar</qualifiedname>
+        <param>
+          <type>ManagedResType &amp;&amp;</type>
+          <declname>resource</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="550" column="3" bodyfile="dag_resPtr.h" bodystart="550" bodyend="557"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1a334ea1328636f567e99984ecfabdf06f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::ConcreteResWithShaderVar</definition>
+        <argsstring>(ResPtr&lt; ResType &gt; &amp;&amp;res, const char *shader_var_name=nullptr)</argsstring>
+        <name>ConcreteResWithShaderVar</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::ConcreteResWithShaderVar</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="559" column="3" bodyfile="dag_resPtr.h" bodystart="559" bodyend="561"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1afe32d1a1227432be62cdf8c6b8db7830" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::ConcreteResWithShaderVar</definition>
+        <argsstring>(ResFactory&lt; ResType &gt; &amp;&amp;res, const char *shader_var_name=nullptr)</argsstring>
+        <name>ConcreteResWithShaderVar</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::ConcreteResWithShaderVar</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="563" column="3" bodyfile="dag_resPtr.h" bodystart="563" bodyend="565"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ConcreteResWithShaderVar_1a48a314311fbd4fb4735831927c1b647a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;::~ConcreteResWithShaderVar</definition>
+        <argsstring>()</argsstring>
+        <name>~ConcreteResWithShaderVar</name>
+        <qualifiedname>resptr_detail::ConcreteResWithShaderVar::~ConcreteResWithShaderVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="567" column="3" bodyfile="dag_resPtr.h" bodystart="567" bodyend="573"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>ManagedResType</label>
+      </node>
+      <node id="4">
+        <label>ManagedResType::move_assignable_t</label>
+      </node>
+      <node id="2">
+        <label>resptr_detail::ManagedResWithShaderVar&lt; ManagedResType::BaseType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResWithShaderVar"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ConcreteResWithShaderVar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>ManagedResType</label>
+      </node>
+      <node id="4">
+        <label>ManagedResType::move_assignable_t</label>
+      </node>
+      <node id="2">
+        <label>resptr_detail::ManagedResWithShaderVar&lt; ManagedResType::BaseType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResWithShaderVar"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ConcreteResWithShaderVar&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ConcreteResWithShaderVar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="528" column="1" bodyfile="dag_resPtr.h" bodystart="530" bodyend="574"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1afc834ddacf8211d1de1ef580f75a6885" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>close</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1a508aa7449299dc71625d19ced01cf8f7" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>ConcreteResWithShaderVar</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1a1752f4eb4beafe99467f008d962f4562" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>ConcreteResWithShaderVar</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1a9dcee68346c9ce908148d65630f1ebeb" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>ConcreteResWithShaderVar</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1a7813a90b872b3b1591324dd466a9ffa7" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>ConcreteResWithShaderVar</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1a334ea1328636f567e99984ecfabdf06f" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>ConcreteResWithShaderVar</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1afe32d1a1227432be62cdf8c6b8db7830" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>ConcreteResWithShaderVar</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a9e6dfd73e138e44b9f11fc944c0b5c12" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>getVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a0f8236730d6e70ebd19eb0ca31981217" prot="protected" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>ManagedResWithShaderVar</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a290715780a84ee960f70951f42534f17" prot="protected" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>mShaderVarId</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1a82f9f8a64c23d3fc6e7d46b36b6acf14" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1a2b8d4aded3e0cfb44557b882ecd5483c" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1a4c6dee92d1b0dffb6f57b73c0f4dc2ff" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1acac0b2dd3a437de7247309199085cee2" prot="private" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>ResType</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a18bafdf63aae349e80716a1d2d0bd4ff" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>setVar</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a48eacb34af79a1dcb82429fbc3c4c28d" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>setVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a03f0318d854d27c0c5499dc2715dd176" prot="protected" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>swap</name></member>
+      <member refid="classresptr__detail_1_1ConcreteResWithShaderVar_1a48a314311fbd4fb4735831927c1b647a" prot="public" virt="non-virtual"><scope>resptr_detail::ConcreteResWithShaderVar</scope><name>~ConcreteResWithShaderVar</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

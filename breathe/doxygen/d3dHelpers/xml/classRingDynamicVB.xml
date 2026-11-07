@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRingDynamicVB" kind="class" language="C++" prot="public">
+    <compoundname>RingDynamicVB</compoundname>
+    <basecompoundref refid="classRingDynamicBuffer" prot="public" virt="non-virtual">RingDynamicBuffer&lt; UniqueBuf, void &gt;</basecompoundref>
+    <includes refid="dag__ringDynBuf_8h" local="no">dag_ringDynBuf.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRingDynamicVB_1aa9f14c55e5a474077efafbda8db1e4e9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingDynamicVB::init</definition>
+        <argsstring>(int v_count, int v_stride, const char *stat_name)</argsstring>
+        <name>init</name>
+        <qualifiedname>RingDynamicVB::init</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>v_count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>v_stride</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>stat_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringDynBuf.h" line="131" column="8" bodyfile="dag_ringDynBuf.h" bodystart="131" bodyend="137"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>RingDynamicBuffer&lt; UniqueBuf, void &gt;</label>
+        <link refid="classRingDynamicBuffer"/>
+      </node>
+      <node id="1">
+        <label>RingDynamicVB</label>
+        <link refid="classRingDynamicVB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>ManagedResType</label>
+      </node>
+      <node id="2">
+        <label>RingDynamicBuffer&lt; UniqueBuf, void &gt;</label>
+        <link refid="classRingDynamicBuffer"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>buf</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>RingDynamicVB</label>
+        <link refid="classRingDynamicVB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;</label>
+        <link refid="classresptr__detail_1_1UniqueRes"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>resptr_detail::WeakMoveAssignable</label>
+        <link refid="classresptr__detail_1_1WeakMoveAssignable"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_ringDynBuf.h" line="128" column="1" bodyfile="dag_ringDynBuf.h" bodystart="129" bodyend="138"/>
+    <listofallmembers>
+      <member refid="classRingDynamicBuffer_1a6fd3aeef18c27ad0a3235b0a0c2cbcc5" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>addData</name></member>
+      <member refid="classRingDynamicBuffer_1abb2c1590689241835b1f60c8bd2bd789" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>addRef</name></member>
+      <member refid="classRingDynamicBuffer_1a84ca6e1c670509a73984782f8acc12ed" prot="protected" virt="non-virtual"><scope>RingDynamicVB</scope><name>buf</name></member>
+      <member refid="classRingDynamicBuffer_1a99f83b78cfb029f6fa87df44ab3bdc69" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>bufLeft</name></member>
+      <member refid="classRingDynamicBuffer_1a3eb781ae723963ab73cccd08d06bbed9" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>bufSize</name></member>
+      <member refid="classRingDynamicBuffer_1ad8981a42b5b9cd761a23830c558858ad" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>close</name></member>
+      <member refid="classRingDynamicBuffer_1a5083a83dd1e56a9a010e67cde5db9f2f" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>delRef</name></member>
+      <member refid="classRingDynamicBuffer_1ab7a4c13ffb9526e52d58cb5d9f284752" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>getBuf</name></member>
+      <member refid="classRingDynamicBuffer_1a42fe788220de1f0b9ab59130dd7adbda" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>getBufId</name></member>
+      <member refid="classRingDynamicBuffer_1ad1849e9221154bfaf08b94c133351fb9" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>getPos</name></member>
+      <member refid="classRingDynamicBuffer_1af182f9a7ad89013cfd194bf9ab0ff839" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>getProcessedCount</name></member>
+      <member refid="classRingDynamicBuffer_1a4e0d95c1429454d1f09a78c57a434159" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>getStride</name></member>
+      <member refid="classRingDynamicVB_1aa9f14c55e5a474077efafbda8db1e4e9" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>init</name></member>
+      <member refid="classRingDynamicBuffer_1af797f0a0d9f0ae233a1d73ffcc10f359" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>lockBufferAs</name></member>
+      <member refid="classRingDynamicBuffer_1a1f8dce232b006a8cb44faa9b056b74d4" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>lockData</name></member>
+      <member refid="classRingDynamicBuffer_1adcd1bf8b62685ee1a11191a05d6db02e" prot="protected" virt="non-virtual"><scope>RingDynamicVB</scope><name>pos</name></member>
+      <member refid="classRingDynamicBuffer_1abc4e109a2ef2f4ed7fbc49c7bc2efd1e" prot="protected" virt="non-virtual"><scope>RingDynamicVB</scope><name>refCount</name></member>
+      <member refid="classRingDynamicBuffer_1acf950570109455ccc7f9ca4514966550" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>resetCounters</name></member>
+      <member refid="classRingDynamicBuffer_1ab13297bc225050733eedaa4ca0cc38d6" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>resetPos</name></member>
+      <member refid="classRingDynamicBuffer_1aef26ed4ab02486bb9c09fd1e5c769a47" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>RingDynamicBuffer</name></member>
+      <member refid="classRingDynamicBuffer_1a185e388bba8d1a022dc702f01460d8c1" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>RingDynamicBuffer</name></member>
+      <member refid="classRingDynamicBuffer_1a06ed9874c13c36eeab0edf6d273bd087" prot="protected" virt="non-virtual"><scope>RingDynamicVB</scope><name>rounds</name></member>
+      <member refid="classRingDynamicBuffer_1ac8e547290b778dd4f8c9b6d9b69772a6" prot="protected" virt="non-virtual"><scope>RingDynamicVB</scope><name>size</name></member>
+      <member refid="classRingDynamicBuffer_1a92f5cf6a10f994f067683570a537f6a6" prot="protected" virt="non-virtual"><scope>RingDynamicVB</scope><name>sPos</name></member>
+      <member refid="classRingDynamicBuffer_1ae9f793a5595698e1468d42bb2a5c1cbd" prot="protected" virt="non-virtual"><scope>RingDynamicVB</scope><name>stride</name></member>
+      <member refid="classRingDynamicBuffer_1a76348ea1bcf986f012fbdfcbe789f4fc" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>unlockData</name></member>
+      <member refid="classRingDynamicBuffer_1a108e11565a39459feab495f024726ebe" prot="public" virt="non-virtual"><scope>RingDynamicVB</scope><name>~RingDynamicBuffer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

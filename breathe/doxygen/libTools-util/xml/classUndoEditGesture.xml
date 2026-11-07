@@ -1,0 +1,162 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classUndoEditGesture" kind="class" language="C++" prot="public">
+    <compoundname>UndoEditGesture</compoundname>
+    <includes refid="undo_8h" local="no">undo.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classUndoEditGesture_1a4962fa774976f6d2f04e617827b16118" prot="private" static="no" mutable="no">
+        <type><ref refid="classUndoSystem" kindref="compound">UndoSystem</ref> *</type>
+        <definition>UndoSystem* UndoEditGesture::undoSystem</definition>
+        <argsstring></argsstring>
+        <name>undoSystem</name>
+        <qualifiedname>UndoEditGesture::undoSystem</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="280" column="14" bodyfile="undo.h" bodystart="280" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classUndoEditGesture_1a85913a9f292f55f54f8506f373562b2a" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int UndoEditGesture::gestureId</definition>
+        <argsstring></argsstring>
+        <name>gestureId</name>
+        <qualifiedname>UndoEditGesture::gestureId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="281" column="7" bodyfile="undo.h" bodystart="281" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classUndoEditGesture_1a0c6cf7a238c3978876bd01bcfa769238" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int UndoEditGesture::gestureDepth</definition>
+        <argsstring></argsstring>
+        <name>gestureDepth</name>
+        <qualifiedname>UndoEditGesture::gestureDepth</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="282" column="7" bodyfile="undo.h" bodystart="282" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classUndoEditGesture_1a4793df66e79ddf78345ef8e5142220d1" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* UndoEditGesture::gestureName</definition>
+        <argsstring></argsstring>
+        <name>gestureName</name>
+        <qualifiedname>UndoEditGesture::gestureName</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="283" column="14" bodyfile="undo.h" bodystart="283" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classUndoEditGesture_1a4bf8fc586538f24e661b0f2b3dfcd46a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool UndoEditGesture::isOpenFor</definition>
+        <argsstring>(int edit_id) const</argsstring>
+        <name>isOpenFor</name>
+        <qualifiedname>UndoEditGesture::isOpenFor</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>edit_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="265" column="8" bodyfile="undo.h" bodystart="265" bodyend="265"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoEditGesture_1a4bc9e9df02b2762f33714e88e50d0740" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void UndoEditGesture::begin</definition>
+        <argsstring>(UndoSystem &amp;undo, int edit_id, const char *operation_name)</argsstring>
+        <name>begin</name>
+        <qualifiedname>UndoEditGesture::begin</qualifiedname>
+        <param>
+          <type><ref refid="classUndoSystem" kindref="compound">UndoSystem</ref> &amp;</type>
+          <declname>undo</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>edit_id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>operation_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="269" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoEditGesture_1ae6b30d27db1fc342b92a4a113c121bc4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool UndoEditGesture::end</definition>
+        <argsstring>()</argsstring>
+        <name>end</name>
+        <qualifiedname>UndoEditGesture::end</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="273" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoEditGesture_1a73519bb3ef6946b4c5102e41eff14779" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool UndoEditGesture::end</definition>
+        <argsstring>(int edit_id)</argsstring>
+        <name>end</name>
+        <qualifiedname>UndoEditGesture::end</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>edit_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="277" column="8" bodyfile="undo.h" bodystart="277" bodyend="277"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="undo.h" line="262" column="1" bodyfile="undo.h" bodystart="263" bodyend="284"/>
+    <listofallmembers>
+      <member refid="classUndoEditGesture_1a4bc9e9df02b2762f33714e88e50d0740" prot="public" virt="non-virtual"><scope>UndoEditGesture</scope><name>begin</name></member>
+      <member refid="classUndoEditGesture_1ae6b30d27db1fc342b92a4a113c121bc4" prot="public" virt="non-virtual"><scope>UndoEditGesture</scope><name>end</name></member>
+      <member refid="classUndoEditGesture_1a73519bb3ef6946b4c5102e41eff14779" prot="public" virt="non-virtual"><scope>UndoEditGesture</scope><name>end</name></member>
+      <member refid="classUndoEditGesture_1a0c6cf7a238c3978876bd01bcfa769238" prot="private" virt="non-virtual"><scope>UndoEditGesture</scope><name>gestureDepth</name></member>
+      <member refid="classUndoEditGesture_1a85913a9f292f55f54f8506f373562b2a" prot="private" virt="non-virtual"><scope>UndoEditGesture</scope><name>gestureId</name></member>
+      <member refid="classUndoEditGesture_1a4793df66e79ddf78345ef8e5142220d1" prot="private" virt="non-virtual"><scope>UndoEditGesture</scope><name>gestureName</name></member>
+      <member refid="classUndoEditGesture_1a4bf8fc586538f24e661b0f2b3dfcd46a" prot="public" virt="non-virtual"><scope>UndoEditGesture</scope><name>isOpenFor</name></member>
+      <member refid="classUndoEditGesture_1a4962fa774976f6d2f04e617827b16118" prot="private" virt="non-virtual"><scope>UndoEditGesture</scope><name>undoSystem</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

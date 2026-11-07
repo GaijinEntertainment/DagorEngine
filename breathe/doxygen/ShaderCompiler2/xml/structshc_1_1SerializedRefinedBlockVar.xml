@@ -1,0 +1,204 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1SerializedRefinedBlockVar" kind="struct" language="C++" prot="public">
+    <compoundname>shc::SerializedRefinedBlockVar</compoundname>
+    <includes refid="refinedBlockLayout_8h" local="no">refinedBlockLayout.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a3cd571137c7af117f0985bc65058ef55" prot="public" static="no" mutable="no">
+        <type><ref refid="classNameId" kindref="compound">NameId</ref>&lt; <ref refid="structRbVarMapAdapter" kindref="compound">RbVarMapAdapter</ref> &gt;</type>
+        <definition>NameId&lt;RbVarMapAdapter&gt; shc::SerializedRefinedBlockVar::varNameId</definition>
+        <argsstring></argsstring>
+        <name>varNameId</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::varNameId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="45" column="10" bodyfile="refinedBlockLayout.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a790af066430688393f3fef7e0fc6bd31" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::localVarId</definition>
+        <argsstring></argsstring>
+        <name>localVarId</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::localVarId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="46" column="7" bodyfile="refinedBlockLayout.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a86620c4cfb5a29e8ffbf59df686d01f8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::varType</definition>
+        <argsstring></argsstring>
+        <name>varType</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::varType</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="47" column="7" bodyfile="refinedBlockLayout.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a934659dc0d74f2633b4f2c3df8bc82e6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::svType</definition>
+        <argsstring></argsstring>
+        <name>svType</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::svType</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="48" column="7" bodyfile="refinedBlockLayout.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a7f27369af116aa8a51635741ef67926e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::cbufOffset</definition>
+        <argsstring></argsstring>
+        <name>cbufOffset</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::cbufOffset</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="49" column="7" bodyfile="refinedBlockLayout.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1abb547d7bcc4659df7e2cec7a8bc5f417" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::space</definition>
+        <argsstring></argsstring>
+        <name>space</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::space</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="50" column="7" bodyfile="refinedBlockLayout.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a35c5c14e1ef674e693bbbabb21105710" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::slot[STAGE_MAX]</definition>
+        <argsstring>[STAGE_MAX]</argsstring>
+        <name>slot</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::slot</qualifiedname>
+        <initializer>{-1, -1, -1}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="51" column="7" bodyfile="refinedBlockLayout.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a86b21c66bd14120f26675304588f0e3f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::computedStcodeOffset</definition>
+        <argsstring></argsstring>
+        <name>computedStcodeOffset</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::computedStcodeOffset</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="52" column="7" bodyfile="refinedBlockLayout.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a9df58aa2edaa77f35c30fef01e1b675b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::computedStcodeLen</definition>
+        <argsstring></argsstring>
+        <name>computedStcodeLen</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::computedStcodeLen</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="53" column="7" bodyfile="refinedBlockLayout.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a8ef679e432a3c5f9926e88ef4f5946eb" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::computedCppExprOffset</definition>
+        <argsstring></argsstring>
+        <name>computedCppExprOffset</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::computedCppExprOffset</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="54" column="7" bodyfile="refinedBlockLayout.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1SerializedRefinedBlockVar_1a62ae407a652d08d6ce365d08731b354f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::SerializedRefinedBlockVar::computedCppExprLen</definition>
+        <argsstring></argsstring>
+        <name>computedCppExprLen</name>
+        <qualifiedname>shc::SerializedRefinedBlockVar::computedCppExprLen</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="55" column="7" bodyfile="refinedBlockLayout.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>NameId&lt; RbVarMapAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="1">
+        <label>shc::SerializedRefinedBlockVar</label>
+        <link refid="structshc_1_1SerializedRefinedBlockVar"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>varNameId</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="refinedBlockLayout.h" line="43" column="1" bodyfile="refinedBlockLayout.h" bodystart="44" bodyend="56"/>
+    <listofallmembers>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a7f27369af116aa8a51635741ef67926e" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>cbufOffset</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a62ae407a652d08d6ce365d08731b354f" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>computedCppExprLen</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a8ef679e432a3c5f9926e88ef4f5946eb" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>computedCppExprOffset</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a9df58aa2edaa77f35c30fef01e1b675b" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>computedStcodeLen</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a86b21c66bd14120f26675304588f0e3f" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>computedStcodeOffset</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a790af066430688393f3fef7e0fc6bd31" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>localVarId</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a35c5c14e1ef674e693bbbabb21105710" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>slot</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1abb547d7bcc4659df7e2cec7a8bc5f417" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>space</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a934659dc0d74f2633b4f2c3df8bc82e6" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>svType</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a3cd571137c7af117f0985bc65058ef55" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>varNameId</name></member>
+      <member refid="structshc_1_1SerializedRefinedBlockVar_1a86620c4cfb5a29e8ffbf59df686d01f8" prot="public" virt="non-virtual"><scope>shc::SerializedRefinedBlockVar</scope><name>varType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

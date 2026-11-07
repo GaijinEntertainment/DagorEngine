@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIRenderWrapperControl" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IRenderWrapperControl</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIRenderWrapperControl_1a28e9fdf3d84571eb9792efd6d52b7865" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IRenderWrapperControl::checkVisible</definition>
+        <argsstring>(const BSphere3 &amp;sph, const BBox3 *bbox)=0</argsstring>
+        <name>checkVisible</name>
+        <qualifiedname>IRenderWrapperControl::checkVisible</qualifiedname>
+        <param>
+          <type>const BSphere3 &amp;</type>
+          <declname>sph</declname>
+        </param>
+        <param>
+          <type>const BBox3 *</type>
+          <declname>bbox</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_IRenderWrapperControl.h" line="13" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classIRenderWrapperControl_1a717ca9763a48aed983d2fbd72abd584b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IRenderWrapperControl::beforeRender</definition>
+        <argsstring>(int value, bool trans)=0</argsstring>
+        <name>beforeRender</name>
+        <qualifiedname>IRenderWrapperControl::beforeRender</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>trans</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_IRenderWrapperControl.h" line="14" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIRenderWrapperControl_1a83a4a9e4fc1cb3e6a8d82bbcc7722046" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IRenderWrapperControl::afterRender</definition>
+        <argsstring>(int value, bool trans)=0</argsstring>
+        <name>afterRender</name>
+        <qualifiedname>IRenderWrapperControl::afterRender</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>trans</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_IRenderWrapperControl.h" line="15" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIRenderWrapperControl_1a1246ab8fd67b3483270c686be4c631da" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IRenderWrapperControl::destroy</definition>
+        <argsstring>()=0</argsstring>
+        <name>destroy</name>
+        <qualifiedname>IRenderWrapperControl::destroy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_IRenderWrapperControl.h" line="16" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_IRenderWrapperControl.h" line="10" column="1" bodyfile="dag_IRenderWrapperControl.h" bodystart="11" bodyend="17"/>
+    <listofallmembers>
+      <member refid="classIRenderWrapperControl_1a83a4a9e4fc1cb3e6a8d82bbcc7722046" prot="public" virt="pure-virtual"><scope>IRenderWrapperControl</scope><name>afterRender</name></member>
+      <member refid="classIRenderWrapperControl_1a717ca9763a48aed983d2fbd72abd584b" prot="public" virt="pure-virtual"><scope>IRenderWrapperControl</scope><name>beforeRender</name></member>
+      <member refid="classIRenderWrapperControl_1a28e9fdf3d84571eb9792efd6d52b7865" prot="public" virt="pure-virtual"><scope>IRenderWrapperControl</scope><name>checkVisible</name></member>
+      <member refid="classIRenderWrapperControl_1a1246ab8fd67b3483270c686be4c631da" prot="public" virt="pure-virtual"><scope>IRenderWrapperControl</scope><name>destroy</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

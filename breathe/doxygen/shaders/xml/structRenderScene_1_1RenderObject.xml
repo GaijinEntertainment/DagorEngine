@@ -1,0 +1,515 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderScene_1_1RenderObject" kind="struct" language="C++" prot="public">
+    <compoundname>RenderScene::RenderObject</compoundname>
+    <innerclass refid="structRenderScene_1_1RenderObject_1_1ObjectLod" prot="public">RenderScene::RenderObject::ObjectLod</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>RenderScene::RenderObject</qualifiedname>
+        <enumvalue id="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9a7fb3ac79eda0095483b9dfc7a3f596ec" prot="public">
+          <name>ROP_FADE</name>
+          <initializer>= 0x01</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9abea8a89111747bcc1ac73b2589d483af" prot="public">
+          <name>ROP_WATER</name>
+          <initializer>= 0x02</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9af7d1a5deacaaf85d71022cd5700d197a" prot="public">
+          <name>ROP_FADENULL</name>
+          <initializer>= 0x04</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9a41bfc462e7857f83205919b60dcc9227" prot="public">
+          <name>ROP_BACK_FACE_DYNAMIC_LIGHTING</name>
+          <initializer>= 0x08</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9ad0bb511fde6fa2af0faff3bd75c87fe5" prot="public">
+          <name>ROP_NOT_MIX_LODS</name>
+          <initializer>= 0x10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="66" column="5" bodyfile="dag_renderScene.h" bodystart="67" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="enum" id="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422cab" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>RenderScene::RenderObject</qualifiedname>
+        <enumvalue id="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba901aada7ce9e2cbe0fcecc142cd7f51a" prot="public">
+          <name>ROF_Valid</name>
+          <initializer>= 0x0001</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba7476d9cb331695928a4dc1f30d188580" prot="public">
+          <name>ROF_HasOpaq</name>
+          <initializer>= 0x0004</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba6a0dca7e61d20ee8d2dbb0907f504b23" prot="public">
+          <name>ROF_HasTrans</name>
+          <initializer>= 0x0008</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba77985a1e206d7a22d28bb2d3d1a4b118" prot="public">
+          <name>ROF_CastShadows</name>
+          <initializer>= 0x0010</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422cabafffaadd700fbfcf1a808164f77f5d715" prot="public">
+          <name>ROF_WRAPPERMASK</name>
+          <initializer>= 0x0F00</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba2973be0d8c3b68f319e645fbb8f5d9ab" prot="public">
+          <name>ROF_WRAPPERSHIFT</name>
+          <initializer>= 8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="75" column="5" bodyfile="dag_renderScene.h" bodystart="76" bodyend="85"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1a4e03368fd86b2589ca1befd218346aec" prot="public" static="no" mutable="no">
+        <type>PatchablePtr&lt; void &gt;</type>
+        <definition>PatchablePtr&lt;void&gt; RenderScene::RenderObject::visobj</definition>
+        <argsstring></argsstring>
+        <name>visobj</name>
+        <qualifiedname>RenderScene::RenderObject::visobj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="91" column="18" bodyfile="dag_renderScene.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1acccf1a8675864dc998c25d6027f328ef" prot="public" static="no" mutable="no">
+        <type>PatchablePtr&lt; void &gt;</type>
+        <definition>PatchablePtr&lt;void&gt; RenderScene::RenderObject::rctrl</definition>
+        <argsstring></argsstring>
+        <name>rctrl</name>
+        <qualifiedname>RenderScene::RenderObject::rctrl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="92" column="18" bodyfile="dag_renderScene.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1a999cbf12a03e4fb140ab6099f31d076b" prot="public" static="no" mutable="no">
+        <type>PatchableTab&lt; <ref refid="structRenderScene_1_1RenderObject_1_1ObjectLod" kindref="compound">ObjectLod</ref> &gt;</type>
+        <definition>PatchableTab&lt;ObjectLod&gt; RenderScene::RenderObject::lods</definition>
+        <argsstring></argsstring>
+        <name>lods</name>
+        <qualifiedname>RenderScene::RenderObject::lods</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="94" column="18" bodyfile="dag_renderScene.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1a235a233038d6d43bfa4602a055973ce2" prot="public" static="no" mutable="no">
+        <type>BSphere3</type>
+        <definition>BSphere3 RenderScene::RenderObject::bsph</definition>
+        <argsstring></argsstring>
+        <name>bsph</name>
+        <qualifiedname>RenderScene::RenderObject::bsph</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="95" column="14" bodyfile="dag_renderScene.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1a1dbfda12a8d8632b52aaf1252ac28943" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real RenderScene::RenderObject::visrange</definition>
+        <argsstring></argsstring>
+        <name>visrange</name>
+        <qualifiedname>RenderScene::RenderObject::visrange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="96" column="10" bodyfile="dag_renderScene.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1af0bcbf246e71a348a9340f7e502903ff" prot="public" static="no" mutable="no">
+        <type>BBox3</type>
+        <definition>BBox3 RenderScene::RenderObject::bbox</definition>
+        <argsstring></argsstring>
+        <name>bbox</name>
+        <qualifiedname>RenderScene::RenderObject::bbox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="97" column="11" bodyfile="dag_renderScene.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1a70d0a6749a4c4ba795cb006075dcf130" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderScene::RenderObject::maxSubobjRad</definition>
+        <argsstring></argsstring>
+        <name>maxSubobjRad</name>
+        <qualifiedname>RenderScene::RenderObject::maxSubobjRad</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="99" column="11" bodyfile="dag_renderScene.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1af525cb4abdbcdc27c24f5488b13509b0" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t RenderScene::RenderObject::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>RenderScene::RenderObject::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="100" column="14" bodyfile="dag_renderScene.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1a6d2131ba68ef26019e1e2bd0a4beb830" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t RenderScene::RenderObject::lightingObjectDataNo</definition>
+        <argsstring></argsstring>
+        <name>lightingObjectDataNo</name>
+        <qualifiedname>RenderScene::RenderObject::lightingObjectDataNo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="100" column="20" bodyfile="dag_renderScene.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1ad1c9c608d77dae96109ac1fddc581b01" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t RenderScene::RenderObject::curLod</definition>
+        <argsstring></argsstring>
+        <name>curLod</name>
+        <qualifiedname>RenderScene::RenderObject::curLod</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="101" column="13" bodyfile="dag_renderScene.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1adb7376708f1998f025aea4bdacf04950" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t RenderScene::RenderObject::priority</definition>
+        <argsstring></argsstring>
+        <name>priority</name>
+        <qualifiedname>RenderScene::RenderObject::priority</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="101" column="20" bodyfile="dag_renderScene.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1ad0f159a9fd3197766c418c0ca4f0aa9f" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t RenderScene::RenderObject::params</definition>
+        <argsstring></argsstring>
+        <name>params</name>
+        <qualifiedname>RenderScene::RenderObject::params</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="101" column="29" bodyfile="dag_renderScene.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1aaf2c7fcc720767b7cd9ddbe86e8210ea" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t RenderScene::RenderObject::start_last_plane</definition>
+        <argsstring></argsstring>
+        <name>start_last_plane</name>
+        <qualifiedname>RenderScene::RenderObject::start_last_plane</qualifiedname>
+        <briefdescription>
+<para>can be used in future </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="102" column="13" bodyfile="dag_renderScene.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1a1960314542c80f6c4cad945b261030b3" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real RenderScene::RenderObject::lodNearVisRangeSq</definition>
+        <argsstring></argsstring>
+        <name>lodNearVisRangeSq</name>
+        <qualifiedname>RenderScene::RenderObject::lodNearVisRangeSq</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="104" column="10" bodyfile="dag_renderScene.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1a5e9cea347c4e0a8939adf6faba601181" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real RenderScene::RenderObject::lodFarVisRangeSq</definition>
+        <argsstring></argsstring>
+        <name>lodFarVisRangeSq</name>
+        <qualifiedname>RenderScene::RenderObject::lodFarVisRangeSq</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="104" column="28" bodyfile="dag_renderScene.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1aa75a36ec9c063d323027190c594b31a1" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real RenderScene::RenderObject::mixNextLod</definition>
+        <argsstring></argsstring>
+        <name>mixNextLod</name>
+        <qualifiedname>RenderScene::RenderObject::mixNextLod</qualifiedname>
+        <briefdescription>
+<para>if &gt;0 need to render next lod with transparency mixNextLod </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="105" column="10" bodyfile="dag_renderScene.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1af91a7b9c5c0f51b3846c3e618b59cac1" prot="public" static="no" mutable="no">
+        <type>PatchablePtr&lt; const char &gt;</type>
+        <definition>PatchablePtr&lt;const char&gt; RenderScene::RenderObject::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>RenderScene::RenderObject::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="107" column="18" bodyfile="dag_renderScene.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRenderScene_1_1RenderObject_1a4332d97a13f2dee0090ccf0dd1b1d86a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::RenderObject::freeData</definition>
+        <argsstring>()</argsstring>
+        <name>freeData</name>
+        <qualifiedname>RenderScene::RenderObject::freeData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="110" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1RenderObject_1a0fa9b0c571bdc28b345a69b68a5b81b1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::RenderObject::update</definition>
+        <argsstring>()</argsstring>
+        <name>update</name>
+        <qualifiedname>RenderScene::RenderObject::update</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="112" column="10" bodyfile="dag_renderScene.h" bodystart="112" bodyend="131"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1RenderObject_1a22b63fb4f23726a1b1900690bb717a2a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="structRenderScene_1_1RenderObject_1_1ObjectLod" kindref="compound">ObjectLod</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt; ObjectLod &gt; RenderScene::RenderObject::getLods</definition>
+        <argsstring>() const</argsstring>
+        <name>getLods</name>
+        <qualifiedname>RenderScene::RenderObject::getLods</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="133" column="27" bodyfile="dag_renderScene.h" bodystart="133" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1RenderObject_1ac729cb6c54f3be9f2eecbed29fe26047" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BBox3</type>
+        <definition>BBox3 RenderScene::RenderObject::getBoundingBox</definition>
+        <argsstring>()</argsstring>
+        <name>getBoundingBox</name>
+        <qualifiedname>RenderScene::RenderObject::getBoundingBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="136" column="11" bodyfile="dag_renderScene.h" bodystart="136" bodyend="136"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1RenderObject_1a9fad31445aec7529df6655f871d44c6e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BSphere3</type>
+        <definition>BSphere3 RenderScene::RenderObject::getBoundingSphere</definition>
+        <argsstring>()</argsstring>
+        <name>getBoundingSphere</name>
+        <qualifiedname>RenderScene::RenderObject::getBoundingSphere</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="137" column="14" bodyfile="dag_renderScene.h" bodystart="137" bodyend="137"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1RenderObject_1ad2d489b156f046d3db46ee42138cc84f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float RenderScene::RenderObject::getVisibilityRange</definition>
+        <argsstring>()</argsstring>
+        <name>getVisibilityRange</name>
+        <qualifiedname>RenderScene::RenderObject::getVisibilityRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="138" column="11" bodyfile="dag_renderScene.h" bodystart="138" bodyend="138"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structRenderScene_1_1RenderObject_1a7ac57a1e7fc5c1927d578e92533431a2" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void RenderScene::RenderObject::parseParams</definition>
+        <argsstring>(unsigned char &amp;_params, const char *text)</argsstring>
+        <name>parseParams</name>
+        <qualifiedname>RenderScene::RenderObject::parseParams</qualifiedname>
+        <param>
+          <type>unsigned char &amp;</type>
+          <declname>_params</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="141" column="17"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderScene.h" line="57" column="3" bodyfile="dag_renderScene.h" bodystart="58" bodyend="142"/>
+    <listofallmembers>
+      <member refid="structRenderScene_1_1RenderObject_1af0bcbf246e71a348a9340f7e502903ff" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>bbox</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a235a233038d6d43bfa4602a055973ce2" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>bsph</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1ad1c9c608d77dae96109ac1fddc581b01" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>curLod</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1af525cb4abdbcdc27c24f5488b13509b0" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>flags</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a4332d97a13f2dee0090ccf0dd1b1d86a" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>freeData</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1ac729cb6c54f3be9f2eecbed29fe26047" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>getBoundingBox</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a9fad31445aec7529df6655f871d44c6e" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>getBoundingSphere</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a22b63fb4f23726a1b1900690bb717a2a" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>getLods</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1ad2d489b156f046d3db46ee42138cc84f" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>getVisibilityRange</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a6d2131ba68ef26019e1e2bd0a4beb830" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>lightingObjectDataNo</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a5e9cea347c4e0a8939adf6faba601181" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>lodFarVisRangeSq</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a1960314542c80f6c4cad945b261030b3" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>lodNearVisRangeSq</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a999cbf12a03e4fb140ab6099f31d076b" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>lods</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a70d0a6749a4c4ba795cb006075dcf130" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>maxSubobjRad</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1aa75a36ec9c063d323027190c594b31a1" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>mixNextLod</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1af91a7b9c5c0f51b3846c3e618b59cac1" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>name</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1ad0f159a9fd3197766c418c0ca4f0aa9f" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>params</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a7ac57a1e7fc5c1927d578e92533431a2" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>parseParams</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1adb7376708f1998f025aea4bdacf04950" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>priority</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1acccf1a8675864dc998c25d6027f328ef" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>rctrl</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba77985a1e206d7a22d28bb2d3d1a4b118" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROF_CastShadows</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba7476d9cb331695928a4dc1f30d188580" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROF_HasOpaq</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba6a0dca7e61d20ee8d2dbb0907f504b23" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROF_HasTrans</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba901aada7ce9e2cbe0fcecc142cd7f51a" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROF_Valid</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422cabafffaadd700fbfcf1a808164f77f5d715" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROF_WRAPPERMASK</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a429bd8bccd52f3bc0f97352371422caba2973be0d8c3b68f319e645fbb8f5d9ab" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROF_WRAPPERSHIFT</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9a41bfc462e7857f83205919b60dcc9227" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROP_BACK_FACE_DYNAMIC_LIGHTING</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9a7fb3ac79eda0095483b9dfc7a3f596ec" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROP_FADE</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9af7d1a5deacaaf85d71022cd5700d197a" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROP_FADENULL</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9ad0bb511fde6fa2af0faff3bd75c87fe5" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROP_NOT_MIX_LODS</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1aba6bcfec64f8611cb83950571d298bf9abea8a89111747bcc1ac73b2589d483af" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>ROP_WATER</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1aaf2c7fcc720767b7cd9ddbe86e8210ea" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>start_last_plane</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a0fa9b0c571bdc28b345a69b68a5b81b1" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>update</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a4e03368fd86b2589ca1befd218346aec" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>visobj</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1a1dbfda12a8d8632b52aaf1252ac28943" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject</scope><name>visrange</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

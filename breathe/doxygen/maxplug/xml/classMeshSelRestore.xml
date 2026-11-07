@@ -1,0 +1,223 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMeshSelRestore" kind="class" language="C++" prot="public">
+    <compoundname>MeshSelRestore</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">RestoreObj</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classMeshSelRestore_1a16384a0b80152ec31fc86cd32cdc3b68" prot="private" static="no" mutable="no">
+        <type>TriObject *</type>
+        <definition>TriObject* MeshSelRestore::tri</definition>
+        <argsstring></argsstring>
+        <name>tri</name>
+        <qualifiedname>MeshSelRestore::tri</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="263" column="13" bodyfile="util.cpp" bodystart="263" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMeshSelRestore_1a82231c675ec49498b0d4993c5e9fe60c" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool MeshSelRestore::vert</definition>
+        <argsstring></argsstring>
+        <name>vert</name>
+        <qualifiedname>MeshSelRestore::vert</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="264" column="8" bodyfile="util.cpp" bodystart="264" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMeshSelRestore_1a12d391335474ac216021614526f453a4" prot="private" static="no" mutable="no">
+        <type>BitArray</type>
+        <definition>BitArray MeshSelRestore::undoSel</definition>
+        <argsstring></argsstring>
+        <name>undoSel</name>
+        <qualifiedname>MeshSelRestore::undoSel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="265" column="12" bodyfile="util.cpp" bodystart="265" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMeshSelRestore_1ac7749380a4e5adc3ec34791b11691342" prot="private" static="no" mutable="no">
+        <type>BitArray</type>
+        <definition>BitArray MeshSelRestore::redoSel</definition>
+        <argsstring></argsstring>
+        <name>redoSel</name>
+        <qualifiedname>MeshSelRestore::redoSel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="265" column="20" bodyfile="util.cpp" bodystart="265" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classMeshSelRestore_1a1e36daf171f82d1f3784377e356b8bf7" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BitArray &amp;</type>
+        <definition>BitArray &amp; MeshSelRestore::sel</definition>
+        <argsstring>()</argsstring>
+        <name>sel</name>
+        <qualifiedname>MeshSelRestore::sel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="267" column="12" bodyfile="util.cpp" bodystart="267" bodyend="267"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshSelRestore_1af1a81f535c1f5c025cbc12afee66ef9d" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MeshSelRestore::set</definition>
+        <argsstring>(const BitArray &amp;s)</argsstring>
+        <name>set</name>
+        <qualifiedname>MeshSelRestore::set</qualifiedname>
+        <param>
+          <type>const BitArray &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="269" column="8" bodyfile="util.cpp" bodystart="269" bodyend="273"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMeshSelRestore_1a88293ba2dbe1949dfe8b8ef0e041c58e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MeshSelRestore::MeshSelRestore</definition>
+        <argsstring>(TriObject *t, bool v)</argsstring>
+        <name>MeshSelRestore</name>
+        <qualifiedname>MeshSelRestore::MeshSelRestore</qualifiedname>
+        <param>
+          <type>TriObject *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="276" column="3" bodyfile="util.cpp" bodystart="276" bodyend="276"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshSelRestore_1a4c43dbfabf37d2bdc4e1a524e58035b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MeshSelRestore::Restore</definition>
+        <argsstring>(int is_undo) override</argsstring>
+        <name>Restore</name>
+        <qualifiedname>MeshSelRestore::Restore</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>is_undo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="278" column="8" bodyfile="util.cpp" bodystart="278" bodyend="283"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshSelRestore_1afd832295c34377987913730aeb09cc14" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MeshSelRestore::Redo</definition>
+        <argsstring>() override</argsstring>
+        <name>Redo</name>
+        <qualifiedname>MeshSelRestore::Redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="284" column="8" bodyfile="util.cpp" bodystart="284" bodyend="284"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshSelRestore_1a5164d5c20874790ceb9e33defdca5c28" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int MeshSelRestore::Size</definition>
+        <argsstring>() override</argsstring>
+        <name>Size</name>
+        <qualifiedname>MeshSelRestore::Size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="285" column="7" bodyfile="util.cpp" bodystart="285" bodyend="285"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshSelRestore_1ac2bdfa1554c2504457379612d735d926" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR MeshSelRestore::Description</definition>
+        <argsstring>() override</argsstring>
+        <name>Description</name>
+        <qualifiedname>MeshSelRestore::Description</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="286" column="8" bodyfile="util.cpp" bodystart="286" bodyend="286"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>MeshSelRestore</label>
+        <link refid="classMeshSelRestore"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RestoreObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>MeshSelRestore</label>
+        <link refid="classMeshSelRestore"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RestoreObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="261" column="1" bodyfile="util.cpp" bodystart="262" bodyend="287"/>
+    <listofallmembers>
+      <member refid="classMeshSelRestore_1ac2bdfa1554c2504457379612d735d926" prot="public" virt="non-virtual"><scope>MeshSelRestore</scope><name>Description</name></member>
+      <member refid="classMeshSelRestore_1a88293ba2dbe1949dfe8b8ef0e041c58e" prot="public" virt="non-virtual"><scope>MeshSelRestore</scope><name>MeshSelRestore</name></member>
+      <member refid="classMeshSelRestore_1afd832295c34377987913730aeb09cc14" prot="public" virt="non-virtual"><scope>MeshSelRestore</scope><name>Redo</name></member>
+      <member refid="classMeshSelRestore_1ac7749380a4e5adc3ec34791b11691342" prot="private" virt="non-virtual"><scope>MeshSelRestore</scope><name>redoSel</name></member>
+      <member refid="classMeshSelRestore_1a4c43dbfabf37d2bdc4e1a524e58035b0" prot="public" virt="non-virtual"><scope>MeshSelRestore</scope><name>Restore</name></member>
+      <member refid="classMeshSelRestore_1a1e36daf171f82d1f3784377e356b8bf7" prot="private" virt="non-virtual"><scope>MeshSelRestore</scope><name>sel</name></member>
+      <member refid="classMeshSelRestore_1af1a81f535c1f5c025cbc12afee66ef9d" prot="private" virt="non-virtual"><scope>MeshSelRestore</scope><name>set</name></member>
+      <member refid="classMeshSelRestore_1a5164d5c20874790ceb9e33defdca5c28" prot="public" virt="non-virtual"><scope>MeshSelRestore</scope><name>Size</name></member>
+      <member refid="classMeshSelRestore_1a16384a0b80152ec31fc86cd32cdc3b68" prot="private" virt="non-virtual"><scope>MeshSelRestore</scope><name>tri</name></member>
+      <member refid="classMeshSelRestore_1a12d391335474ac216021614526f453a4" prot="private" virt="non-virtual"><scope>MeshSelRestore</scope><name>undoSel</name></member>
+      <member refid="classMeshSelRestore_1a82231c675ec49498b0d4993c5e9fe60c" prot="private" virt="non-virtual"><scope>MeshSelRestore</scope><name>vert</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,176 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1DlssNROptions" kind="struct" language="C++" prot="public">
+    <compoundname>nv::DlssNROptions</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1a9f9ede81b5a5212e9df5d85c9783fbda" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool nv::DlssNROptions::enabled</definition>
+        <argsstring></argsstring>
+        <name>enabled</name>
+        <qualifiedname>nv::DlssNROptions::enabled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="248" column="8" bodyfile="dag_nvFeatures.h" bodystart="248" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1a3fa94f3962e746058ffdcc80953bf287" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DlssNROptions::style</definition>
+        <argsstring></argsstring>
+        <name>style</name>
+        <qualifiedname>nv::DlssNROptions::style</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="249" column="12" bodyfile="dag_nvFeatures.h" bodystart="249" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1affd92a6f36c9a35e09a7b0adcdae7c27" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DlssNROptions::preset</definition>
+        <argsstring></argsstring>
+        <name>preset</name>
+        <qualifiedname>nv::DlssNROptions::preset</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="250" column="12" bodyfile="dag_nvFeatures.h" bodystart="250" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1a63c9023cd4ea4500c64596ee64541b3d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::DlssNROptions::intensity</definition>
+        <argsstring></argsstring>
+        <name>intensity</name>
+        <qualifiedname>nv::DlssNROptions::intensity</qualifiedname>
+        <initializer>= 1.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="251" column="9" bodyfile="dag_nvFeatures.h" bodystart="251" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1afe9810c6d0afd7962d9fb1a187c0a2b7" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::DlssNROptions::localToneStrength</definition>
+        <argsstring></argsstring>
+        <name>localToneStrength</name>
+        <qualifiedname>nv::DlssNROptions::localToneStrength</qualifiedname>
+        <initializer>= 1.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="252" column="9" bodyfile="dag_nvFeatures.h" bodystart="252" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1af7f597c543285e11a0e0ed96d73a0f3d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::DlssNROptions::localStructureStrength</definition>
+        <argsstring></argsstring>
+        <name>localStructureStrength</name>
+        <qualifiedname>nv::DlssNROptions::localStructureStrength</qualifiedname>
+        <initializer>= 1.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="253" column="9" bodyfile="dag_nvFeatures.h" bodystart="253" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1aac37925ea99014d47ff0d53262e0eb31" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool nv::DlssNROptions::useAutoMask</definition>
+        <argsstring></argsstring>
+        <name>useAutoMask</name>
+        <qualifiedname>nv::DlssNROptions::useAutoMask</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="254" column="8" bodyfile="dag_nvFeatures.h" bodystart="254" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1a9a37baf94af27fdca3ad943481861c64" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::DlssNROptions::skinStructureStrength</definition>
+        <argsstring></argsstring>
+        <name>skinStructureStrength</name>
+        <qualifiedname>nv::DlssNROptions::skinStructureStrength</qualifiedname>
+        <initializer>= 1.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="255" column="9" bodyfile="dag_nvFeatures.h" bodystart="255" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1a395c457b69f6a83c2e120663ad37a36e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float nv::DlssNROptions::globalToneStrength</definition>
+        <argsstring></argsstring>
+        <name>globalToneStrength</name>
+        <qualifiedname>nv::DlssNROptions::globalToneStrength</qualifiedname>
+        <initializer>= 1.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="257" column="9" bodyfile="dag_nvFeatures.h" bodystart="257" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssNROptions_1a12bfd12ad2a81fbe8e7ae5c33ae9e87e" prot="public" static="no" mutable="no">
+        <type><ref refid="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245f" kindref="member">DLSS::Mode</ref></type>
+        <definition>DLSS::Mode nv::DlssNROptions::performanceMode</definition>
+        <argsstring></argsstring>
+        <name>performanceMode</name>
+        <qualifiedname>nv::DlssNROptions::performanceMode</qualifiedname>
+        <initializer>= <ref refid="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245fa78183a468abfad57f1857a9132021ae9" kindref="member">DLSS::Mode::MaxQuality</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="258" column="14" bodyfile="dag_nvFeatures.h" bodystart="258" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="246" column="1" bodyfile="dag_nvFeatures.h" bodystart="247" bodyend="259"/>
+    <listofallmembers>
+      <member refid="structnv_1_1DlssNROptions_1a9f9ede81b5a5212e9df5d85c9783fbda" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>enabled</name></member>
+      <member refid="structnv_1_1DlssNROptions_1a395c457b69f6a83c2e120663ad37a36e" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>globalToneStrength</name></member>
+      <member refid="structnv_1_1DlssNROptions_1a63c9023cd4ea4500c64596ee64541b3d" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>intensity</name></member>
+      <member refid="structnv_1_1DlssNROptions_1af7f597c543285e11a0e0ed96d73a0f3d" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>localStructureStrength</name></member>
+      <member refid="structnv_1_1DlssNROptions_1afe9810c6d0afd7962d9fb1a187c0a2b7" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>localToneStrength</name></member>
+      <member refid="structnv_1_1DlssNROptions_1a12bfd12ad2a81fbe8e7ae5c33ae9e87e" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>performanceMode</name></member>
+      <member refid="structnv_1_1DlssNROptions_1affd92a6f36c9a35e09a7b0adcdae7c27" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>preset</name></member>
+      <member refid="structnv_1_1DlssNROptions_1a9a37baf94af27fdca3ad943481861c64" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>skinStructureStrength</name></member>
+      <member refid="structnv_1_1DlssNROptions_1a3fa94f3962e746058ffdcc80953bf287" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>style</name></member>
+      <member refid="structnv_1_1DlssNROptions_1aac37925ea99014d47ff0d53262e0eb31" prot="public" virt="non-virtual"><scope>nv::DlssNROptions</scope><name>useAutoMask</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

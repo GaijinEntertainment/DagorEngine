@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structSemanticShaderPass_1_1PsOutputField" kind="struct" language="C++" prot="public">
+    <compoundname>SemanticShaderPass::PsOutputField</compoundname>
+    <includes refid="shSemCode_8h" local="no">shSemCode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutputField_1a6c1931e4946daa176fdd036c2afebac0" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string SemanticShaderPass::PsOutputField::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>SemanticShaderPass::PsOutputField::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="97" column="19" bodyfile="shSemCode.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutputField_1adb5c815b4c95a0dd6f795985c47ddb03" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string SemanticShaderPass::PsOutputField::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>SemanticShaderPass::PsOutputField::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="98" column="19" bodyfile="shSemCode.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutputField_1a6a325556d422c93dba674c56f307a69d" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string SemanticShaderPass::PsOutputField::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>SemanticShaderPass::PsOutputField::target</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="99" column="19" bodyfile="shSemCode.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutputField_1a836ab204fe094a78265fe4091db97ec7" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" kindref="member">FramebufferFormatClass</ref></type>
+        <definition>FramebufferFormatClass SemanticShaderPass::PsOutputField::cls</definition>
+        <argsstring></argsstring>
+        <name>cls</name>
+        <qualifiedname>SemanticShaderPass::PsOutputField::cls</qualifiedname>
+        <initializer>= <ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbca22ae0e2b89e5e3d477f988cc36d3272b" kindref="member">FramebufferFormatClass::Float</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="100" column="28" bodyfile="shSemCode.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutputField_1a67265968877b66be7b5579dd00ecdabe" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SemanticShaderPass::PsOutputField::components</definition>
+        <argsstring></argsstring>
+        <name>components</name>
+        <qualifiedname>SemanticShaderPass::PsOutputField::components</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="101" column="9" bodyfile="shSemCode.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shSemCode.h" line="95" column="3" bodyfile="shSemCode.h" bodystart="96" bodyend="102"/>
+    <listofallmembers>
+      <member refid="structSemanticShaderPass_1_1PsOutputField_1a836ab204fe094a78265fe4091db97ec7" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutputField</scope><name>cls</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutputField_1a67265968877b66be7b5579dd00ecdabe" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutputField</scope><name>components</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutputField_1a6c1931e4946daa176fdd036c2afebac0" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutputField</scope><name>name</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutputField_1a6a325556d422c93dba674c56f307a69d" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutputField</scope><name>target</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutputField_1adb5c815b4c95a0dd6f795985c47ddb03" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutputField</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

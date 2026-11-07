@@ -1,0 +1,178 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshader__meshlets_1_1VdataElemSpan" kind="class" language="C++" prot="public">
+    <compoundname>shader_meshlets::VdataElemSpan</compoundname>
+    <includes refid="dag__shaderMeshlets_8h" local="no">dag_shaderMeshlets.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classshader__meshlets_1_1VdataElemSpan_1aa23623365954d975ebf6a337c89a3a4d" prot="private" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; <ref refid="structshader__meshlets_1_1VdataElemRange" kindref="compound">VdataElemRange</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;VdataElemRange&gt; shader_meshlets::VdataElemSpan::elems</definition>
+        <argsstring></argsstring>
+        <name>elems</name>
+        <qualifiedname>shader_meshlets::VdataElemSpan::elems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="62" column="18" bodyfile="dag_shaderMeshlets.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshader__meshlets_1_1VdataElemSpan_1aabd9a03ae4f4e470de74dfc0af2be5b3" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shader_meshlets::VdataElemSpan::selectedSmvdIndex</definition>
+        <argsstring></argsstring>
+        <name>selectedSmvdIndex</name>
+        <qualifiedname>shader_meshlets::VdataElemSpan::selectedSmvdIndex</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="63" column="7" bodyfile="dag_shaderMeshlets.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshader__meshlets_1_1VdataElemSpan_1a6d73a42ce219d90c6f0f42102a66c20f" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shader_meshlets::VdataElemSpan::selectedVdataIndex</definition>
+        <argsstring></argsstring>
+        <name>selectedVdataIndex</name>
+        <qualifiedname>shader_meshlets::VdataElemSpan::selectedVdataIndex</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="64" column="7" bodyfile="dag_shaderMeshlets.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classshader__meshlets_1_1VdataElemSpan_1aa8eddc3ef446873dd0037c6d5b391fa3" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shader_meshlets::VdataElemSpan::VdataElemSpan</definition>
+        <argsstring>(dag::ConstSpan&lt; VdataElemRange &gt; e, int smvd_idx=-1, int vd_idx=-1)</argsstring>
+        <name>VdataElemSpan</name>
+        <qualifiedname>shader_meshlets::VdataElemSpan::VdataElemSpan</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structshader__meshlets_1_1VdataElemRange" kindref="compound">VdataElemRange</ref> &gt;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>smvd_idx</declname>
+          <defval>-1</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vd_idx</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="50" column="12" bodyfile="dag_shaderMeshlets.h" bodystart="50" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classshader__meshlets_1_1VdataElemSpan_1a9acf947c74214d56eadb24c5468e2e0a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classshader__meshlets_1_1VdataElemSpan" kindref="compound">VdataElemSpan</ref></type>
+        <definition>VdataElemSpan shader_meshlets::VdataElemSpan::forShaderMatVdataIndex</definition>
+        <argsstring>(int smvd_idx) const</argsstring>
+        <name>forShaderMatVdataIndex</name>
+        <qualifiedname>shader_meshlets::VdataElemSpan::forShaderMatVdataIndex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>smvd_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="54" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classshader__meshlets_1_1VdataElemSpan_1a4301bd5cca13c60411ddee2a41c5f01c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classshader__meshlets_1_1VdataElemSpan" kindref="compound">VdataElemSpan</ref></type>
+        <definition>VdataElemSpan shader_meshlets::VdataElemSpan::forVdataIndex</definition>
+        <argsstring>(int vd_idx) const</argsstring>
+        <name>forVdataIndex</name>
+        <qualifiedname>shader_meshlets::VdataElemSpan::forVdataIndex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>vd_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="55" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classshader__meshlets_1_1VdataElemSpan_1a86d67e6f6bb912c8681ac9fb200a4665" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shader_meshlets::VdataElemSpan::isVdataSelected</definition>
+        <argsstring>() const</argsstring>
+        <name>isVdataSelected</name>
+        <qualifiedname>shader_meshlets::VdataElemSpan::isVdataSelected</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="57" column="8" bodyfile="dag_shaderMeshlets.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classshader__meshlets_1_1VdataElemSpan_1aa7c5ff0177d37ee00bb58def468e8d67" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="structshader__meshlets_1_1VdataElemRange" kindref="compound">VdataElemRange</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt; VdataElemRange &gt; shader_meshlets::VdataElemSpan::getElems</definition>
+        <argsstring>() const</argsstring>
+        <name>getElems</name>
+        <qualifiedname>shader_meshlets::VdataElemSpan::getElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="58" column="18" bodyfile="dag_shaderMeshlets.h" bodystart="58" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="classshader__meshlets_1_1VdataElemSpan_1afca623629f79fc2fcbde65e7533bc5cd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shader_meshlets::VdataElemSpan::empty</definition>
+        <argsstring>() const</argsstring>
+        <name>empty</name>
+        <qualifiedname>shader_meshlets::VdataElemSpan::empty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="59" column="8" bodyfile="dag_shaderMeshlets.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Non-owning view of a VdataElemSet. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMeshlets.h" line="47" column="1" bodyfile="dag_shaderMeshlets.h" bodystart="48" bodyend="65"/>
+    <listofallmembers>
+      <member refid="classshader__meshlets_1_1VdataElemSpan_1aa23623365954d975ebf6a337c89a3a4d" prot="private" virt="non-virtual"><scope>shader_meshlets::VdataElemSpan</scope><name>elems</name></member>
+      <member refid="classshader__meshlets_1_1VdataElemSpan_1afca623629f79fc2fcbde65e7533bc5cd" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemSpan</scope><name>empty</name></member>
+      <member refid="classshader__meshlets_1_1VdataElemSpan_1a9acf947c74214d56eadb24c5468e2e0a" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemSpan</scope><name>forShaderMatVdataIndex</name></member>
+      <member refid="classshader__meshlets_1_1VdataElemSpan_1a4301bd5cca13c60411ddee2a41c5f01c" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemSpan</scope><name>forVdataIndex</name></member>
+      <member refid="classshader__meshlets_1_1VdataElemSpan_1aa7c5ff0177d37ee00bb58def468e8d67" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemSpan</scope><name>getElems</name></member>
+      <member refid="classshader__meshlets_1_1VdataElemSpan_1a86d67e6f6bb912c8681ac9fb200a4665" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemSpan</scope><name>isVdataSelected</name></member>
+      <member refid="classshader__meshlets_1_1VdataElemSpan_1aabd9a03ae4f4e470de74dfc0af2be5b3" prot="private" virt="non-virtual"><scope>shader_meshlets::VdataElemSpan</scope><name>selectedSmvdIndex</name></member>
+      <member refid="classshader__meshlets_1_1VdataElemSpan_1a6d73a42ce219d90c6f0f42102a66c20f" prot="private" virt="non-virtual"><scope>shader_meshlets::VdataElemSpan</scope><name>selectedVdataIndex</name></member>
+      <member refid="classshader__meshlets_1_1VdataElemSpan_1aa8eddc3ef446873dd0037c6d5b391fa3" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemSpan</scope><name>VdataElemSpan</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

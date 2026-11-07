@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__menu_8h" kind="file" language="C++">
+    <compoundname>ec_menu.h</compoundname>
+    <innernamespace refid="namespacePropPanel">PropPanel</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__menu_8h_1abf99a3de23705de6dc71ae2aeca2b72a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>PropPanel::IMenu *</type>
+        <definition>PropPanel::IMenu * ec_create_menu</definition>
+        <argsstring>()</argsstring>
+        <name>ec_create_menu</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_menu.h" line="10" column="18" declfile="ec_menu.h" declline="10" declcolumn="18"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__menu_8h_1a40ca767d3f4a930c4f38481fa55ba21b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>PropPanel::IMenu *</type>
+        <definition>PropPanel::IMenu * ec_create_context_menu</definition>
+        <argsstring>()</argsstring>
+        <name>ec_create_context_menu</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_menu.h" line="13" column="18" declfile="ec_menu.h" declline="13" declcolumn="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacePropPanel" kindref="compound">PropPanel</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IMenu;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>EditorCore<sp/>version<sp/>of<sp/>PropPanel::create_menu().<sp/>It<sp/>supports<sp/>editor<sp/>commands.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="ec__menu_8h_1abf99a3de23705de6dc71ae2aeca2b72a" refkind="member"><highlight class="normal">PropPanel::IMenu<sp/>*<ref refid="ec__menu_8h_1abf99a3de23705de6dc71ae2aeca2b72a" kindref="member">ec_create_menu</ref>();</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/>EditorCore<sp/>version<sp/>of<sp/>PropPanel::create_context_menu().<sp/>It<sp/>supports<sp/>editor<sp/>commands.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="ec__menu_8h_1a40ca767d3f4a930c4f38481fa55ba21b" refkind="member"><highlight class="normal">PropPanel::IMenu<sp/>*<ref refid="ec__menu_8h_1a40ca767d3f4a930c4f38481fa55ba21b" kindref="member">ec_create_context_menu</ref>();</highlight></codeline>
+    </programlisting>
+    <location file="ec_menu.h"/>
+  </compounddef>
+</doxygen>

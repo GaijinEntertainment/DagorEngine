@@ -1,0 +1,189 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1PsOutputStructKey" kind="struct" language="C++" prot="public">
+    <compoundname>shc::PsOutputStructKey</compoundname>
+    <includes refid="shShaderContext_8h" local="no">shShaderContext.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1PsOutputStructKey_1a02d4eab4440cc0f72d21f221b860c91b" prot="public" static="no" mutable="no">
+        <type>const ShaderTerminal::state_block_struct_decl *</type>
+        <definition>const ShaderTerminal::state_block_struct_decl* shc::PsOutputStructKey::decl</definition>
+        <argsstring></argsstring>
+        <name>decl</name>
+        <qualifiedname>shc::PsOutputStructKey::decl</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="34" column="49" bodyfile="shShaderContext.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1PsOutputStructKey_1a3dbd00150c8b31d6460cc8a69f5cd19c" prot="public" static="no" mutable="no">
+        <type><ref refid="structRenderPassOptIn" kindref="compound">RenderPassOptIn</ref></type>
+        <definition>RenderPassOptIn shc::PsOutputStructKey::optIn</definition>
+        <argsstring></argsstring>
+        <name>optIn</name>
+        <qualifiedname>shc::PsOutputStructKey::optIn</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="35" column="19" bodyfile="shShaderContext.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshc_1_1PsOutputStructKey_1a89141c16207eeaec84f060ccfec43ccb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::PsOutputStructKey::operator==</definition>
+        <argsstring>(const PsOutputStructKey &amp;) const =default</argsstring>
+        <name>operator==</name>
+        <qualifiedname>shc::PsOutputStructKey::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structshc_1_1PsOutputStructKey" kindref="compound">PsOutputStructKey</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="37" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="13">
+        <label>RenderPassGroup</label>
+        <link refid="classRenderPassGroup"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>members</edgelabel>
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>colorSlots</edgelabel>
+        </childnode>
+        <childnode refid="18" relation="usage">
+          <edgelabel>reads</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>RenderPassObject</label>
+        <link refid="classRenderPassObject"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>targets</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>subpasses</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>resolves</edgelabel>
+        </childnode>
+        <childnode refid="11" relation="usage">
+          <edgelabel>framebuffers</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderPassOptIn</label>
+        <link refid="structRenderPassOptIn"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>pass</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>group</edgelabel>
+        </childnode>
+      </node>
+      <node id="11">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="12" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>SerializableTab&lt; RenderPassGroup::ColorSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="17" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>SerializableTab&lt; RenderPassGroup::Member &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="15" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>SerializableTab&lt; RenderPassGroup::ReadSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="19" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>SerializableTab&lt; RenderPassObject::Resolve &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>SerializableTab&lt; RenderPassObject::Subpass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>SerializableTab&lt; RenderPassObject::Target &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="17">
+        <label>Tab&lt; RenderPassGroup::ColorSlot &gt;</label>
+      </node>
+      <node id="15">
+        <label>Tab&lt; RenderPassGroup::Member &gt;</label>
+      </node>
+      <node id="19">
+        <label>Tab&lt; RenderPassGroup::ReadSlot &gt;</label>
+      </node>
+      <node id="10">
+        <label>Tab&lt; RenderPassObject::Resolve &gt;</label>
+      </node>
+      <node id="8">
+        <label>Tab&lt; RenderPassObject::Subpass &gt;</label>
+      </node>
+      <node id="6">
+        <label>Tab&lt; RenderPassObject::Target &gt;</label>
+      </node>
+      <node id="1">
+        <label>shc::PsOutputStructKey</label>
+        <link refid="structshc_1_1PsOutputStructKey"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>optIn</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shShaderContext.h" line="32" column="1" bodyfile="shShaderContext.h" bodystart="33" bodyend="38"/>
+    <listofallmembers>
+      <member refid="structshc_1_1PsOutputStructKey_1a02d4eab4440cc0f72d21f221b860c91b" prot="public" virt="non-virtual"><scope>shc::PsOutputStructKey</scope><name>decl</name></member>
+      <member refid="structshc_1_1PsOutputStructKey_1a89141c16207eeaec84f060ccfec43ccb" prot="public" virt="non-virtual"><scope>shc::PsOutputStructKey</scope><name>operator==</name></member>
+      <member refid="structshc_1_1PsOutputStructKey_1a3dbd00150c8b31d6460cc8a69f5cd19c" prot="public" virt="non-virtual"><scope>shc::PsOutputStructKey</scope><name>optIn</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

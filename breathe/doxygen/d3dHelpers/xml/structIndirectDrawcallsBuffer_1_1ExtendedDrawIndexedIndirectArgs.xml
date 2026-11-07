@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIndirectDrawcallsBuffer_1_1ExtendedDrawIndexedIndirectArgs" kind="struct" language="C++" prot="private">
+    <compoundname>IndirectDrawcallsBuffer::ExtendedDrawIndexedIndirectArgs</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structIndirectDrawcallsBuffer_1_1ExtendedDrawIndexedIndirectArgs_1ad01b52dc7190e367819a1e1baf415227" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::ExtendedDrawIndexedIndirectArgs::drawcallId</definition>
+        <argsstring></argsstring>
+        <name>drawcallId</name>
+        <qualifiedname>IndirectDrawcallsBuffer::ExtendedDrawIndexedIndirectArgs::drawcallId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="42" column="14" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIndirectDrawcallsBuffer_1_1ExtendedDrawIndexedIndirectArgs_1ab5728522698610f060d393ff9d591cdd" prot="public" static="no" mutable="no">
+        <type>BaseArgsType</type>
+        <definition>BaseArgsType IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::ExtendedDrawIndexedIndirectArgs::args</definition>
+        <argsstring></argsstring>
+        <name>args</name>
+        <qualifiedname>IndirectDrawcallsBuffer::ExtendedDrawIndexedIndirectArgs::args</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="43" column="18" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_indirectDrawcallsBuffer.h" line="40" column="3" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="41" bodyend="44"/>
+    <listofallmembers>
+      <member refid="structIndirectDrawcallsBuffer_1_1ExtendedDrawIndexedIndirectArgs_1ab5728522698610f060d393ff9d591cdd" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer::ExtendedDrawIndexedIndirectArgs</scope><name>args</name></member>
+      <member refid="structIndirectDrawcallsBuffer_1_1ExtendedDrawIndexedIndirectArgs_1ad01b52dc7190e367819a1e1baf415227" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer::ExtendedDrawIndexedIndirectArgs</scope><name>drawcallId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

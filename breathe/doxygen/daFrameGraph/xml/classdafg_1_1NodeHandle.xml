@@ -1,0 +1,239 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1NodeHandle" kind="class" language="C++" prot="public">
+    <compoundname>dafg::NodeHandle</compoundname>
+    <includes refid="nodeHandle_8h" local="no">nodeHandle.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1NodeHandle_1a7934cf821b23d924a511e1b8b8ead041" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class NameSpace</definition>
+        <argsstring></argsstring>
+        <name>NameSpace</name>
+        <qualifiedname>dafg::NodeHandle::NameSpace</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="21" column="16" bodyfile="nodeHandle.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdafg_1_1NodeHandle_1a5621b733309352592e84817b5af97430" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1NodeHandle" kindref="compound">NodeHandle</ref></type>
+        <definition>NodeHandle register_external_node</definition>
+        <argsstring>(NodeNameId name_id, uint16_t generation)</argsstring>
+        <name>register_external_node</name>
+        <qualifiedname>dafg::NodeHandle::register_external_node</qualifiedname>
+        <param>
+          <type>NodeNameId</type>
+          <declname>name_id</declname>
+        </param>
+        <param>
+          <type>uint16_t</type>
+          <declname>generation</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="22" column="21"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdafg_1_1NodeHandle_1a184ec272ae4a12e4c8f9a9ad04b96b9c" prot="private" static="no" mutable="no">
+        <type>detail::NodeUid</type>
+        <definition>detail::NodeUid dafg::NodeHandle::uid</definition>
+        <argsstring></argsstring>
+        <name>uid</name>
+        <qualifiedname>dafg::NodeHandle::uid</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="62" column="19" bodyfile="nodeHandle.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1NodeHandle_1a049b1cb97b08c6fc83926a8b9da8cf6f" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::NodeHandle::NodeHandle</definition>
+        <argsstring>(detail::NodeUid id)</argsstring>
+        <name>NodeHandle</name>
+        <qualifiedname>dafg::NodeHandle::NodeHandle</qualifiedname>
+        <param>
+          <type>detail::NodeUid</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="24" column="3" bodyfile="nodeHandle.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1NodeHandle_1a5252b8797a8587cac7f25d13b9065da1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dafg::NodeHandle::NodeHandle</definition>
+        <argsstring>()=default</argsstring>
+        <name>NodeHandle</name>
+        <qualifiedname>dafg::NodeHandle::NodeHandle</qualifiedname>
+        <briefdescription>
+<para>Constructs an invalid handle. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="28" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NodeHandle_1ae9317dceaa5e17257861f87862033bb7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dafg::NodeHandle::NodeHandle</definition>
+        <argsstring>(const NodeHandle &amp;)=delete</argsstring>
+        <name>NodeHandle</name>
+        <qualifiedname>dafg::NodeHandle::NodeHandle</qualifiedname>
+        <param>
+          <type>const <ref refid="classdafg_1_1NodeHandle" kindref="compound">NodeHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="30" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NodeHandle_1afdb8a77be03fe8cae8e2f3a956fa8d57" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdafg_1_1NodeHandle" kindref="compound">NodeHandle</ref> &amp;</type>
+        <definition>NodeHandle &amp; dafg::NodeHandle::operator=</definition>
+        <argsstring>(const NodeHandle &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>dafg::NodeHandle::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classdafg_1_1NodeHandle" kindref="compound">NodeHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="31" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NodeHandle_1aca61efe4e7cabddfa14fd9cd8f01e432" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::NodeHandle::NodeHandle</definition>
+        <argsstring>(NodeHandle &amp;&amp;other)</argsstring>
+        <name>NodeHandle</name>
+        <qualifiedname>dafg::NodeHandle::NodeHandle</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1NodeHandle" kindref="compound">NodeHandle</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Move constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="34" column="3" bodyfile="nodeHandle.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NodeHandle_1a3672c86832e234d2cc2911678a7d20e2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdafg_1_1NodeHandle" kindref="compound">NodeHandle</ref> &amp;</type>
+        <definition>NodeHandle &amp; dafg::NodeHandle::operator=</definition>
+        <argsstring>(NodeHandle &amp;&amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>dafg::NodeHandle::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1NodeHandle" kindref="compound">NodeHandle</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Move assignment operator. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="37" column="14" bodyfile="nodeHandle.h" bodystart="37" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NodeHandle_1a7ebbe86dc4dc4273dbd7c768df9fd80b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::NodeHandle::~NodeHandle</definition>
+        <argsstring>()</argsstring>
+        <name>~NodeHandle</name>
+        <qualifiedname>dafg::NodeHandle::~NodeHandle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="50" column="3" bodyfile="nodeHandle.h" bodystart="50" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NodeHandle_1aaa2fa2fafb5fd9e8ee8128566f88c4c1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool dafg::NodeHandle::valid</definition>
+        <argsstring>() const</argsstring>
+        <name>valid</name>
+        <qualifiedname>dafg::NodeHandle::valid</qualifiedname>
+        <briefdescription>
+<para>Returns true if the handle is valid. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="57" column="8" bodyfile="nodeHandle.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1NodeHandle_1ae4650918bc84a3a62ee0415c6849be4b" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::NodeHandle::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>dafg::NodeHandle::operator bool</qualifiedname>
+        <briefdescription>
+<para>Returns true if the handle is valid. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="nodeHandle.h" line="59" column="12" bodyfile="nodeHandle.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Holds ownership over a node&apos;s lifetime. As soon as a handle to a node destroyed, the node is unregistered, but only if it was not re-registered since the time that this handle was acquired. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Note that this is a move-only type. </para>
+    </detaileddescription>
+    <location file="nodeHandle.h" line="19" column="1" bodyfile="nodeHandle.h" bodystart="20" bodyend="63"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1NodeHandle_1a7934cf821b23d924a511e1b8b8ead041" prot="private" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>NameSpace</name></member>
+      <member refid="classdafg_1_1NodeHandle_1a049b1cb97b08c6fc83926a8b9da8cf6f" prot="private" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>NodeHandle</name></member>
+      <member refid="classdafg_1_1NodeHandle_1a5252b8797a8587cac7f25d13b9065da1" prot="public" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>NodeHandle</name></member>
+      <member refid="classdafg_1_1NodeHandle_1ae9317dceaa5e17257861f87862033bb7" prot="public" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>NodeHandle</name></member>
+      <member refid="classdafg_1_1NodeHandle_1aca61efe4e7cabddfa14fd9cd8f01e432" prot="public" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>NodeHandle</name></member>
+      <member refid="classdafg_1_1NodeHandle_1ae4650918bc84a3a62ee0415c6849be4b" prot="public" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>operator bool</name></member>
+      <member refid="classdafg_1_1NodeHandle_1afdb8a77be03fe8cae8e2f3a956fa8d57" prot="public" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>operator=</name></member>
+      <member refid="classdafg_1_1NodeHandle_1a3672c86832e234d2cc2911678a7d20e2" prot="public" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>operator=</name></member>
+      <member refid="classdafg_1_1NodeHandle_1a5621b733309352592e84817b5af97430" prot="private" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>register_external_node</name></member>
+      <member refid="classdafg_1_1NodeHandle_1a184ec272ae4a12e4c8f9a9ad04b96b9c" prot="private" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>uid</name></member>
+      <member refid="classdafg_1_1NodeHandle_1aaa2fa2fafb5fd9e8ee8128566f88c4c1" prot="public" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>valid</name></member>
+      <member refid="classdafg_1_1NodeHandle_1a7ebbe86dc4dc4273dbd7c768df9fd80b" prot="public" virt="non-virtual"><scope>dafg::NodeHandle</scope><name>~NodeHandle</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

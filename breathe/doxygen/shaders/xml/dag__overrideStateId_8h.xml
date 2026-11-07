@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__overrideStateId_8h" kind="file" language="C++">
+    <compoundname>dag_overrideStateId.h</compoundname>
+    <includes local="no">util/dag_generationRefId.h</includes>
+    <includedby refid="dag__overrideStates_8h" local="no">dag_overrideStates.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_overrideStateId.h</label>
+        <link refid="dag__overrideStateId_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_generationRefId.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>dag_overrideStateId.h</label>
+        <link refid="dag__overrideStateId_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_overrideStates.h</label>
+        <link refid="dag__overrideStates_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classshaders_1_1OverrideStateIdDummy" prot="public">shaders::OverrideStateIdDummy</innerclass>
+    <innerclass refid="structshaders_1_1UniqueOverrideStateId" prot="public">shaders::UniqueOverrideStateId</innerclass>
+    <innernamespace refid="namespaceshaders">shaders</innernamespace>
+    <innernamespace refid="namespaceshaders_1_1overrides">shaders::overrides</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_generationRefId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">shaders</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14" refid="classshaders_1_1OverrideStateIdDummy" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classshaders_1_1OverrideStateIdDummy" kindref="compound">OverrideStateIdDummy</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{};</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>GenerationRefId&lt;8,<sp/>OverrideStateIdDummy&gt;<sp/>OverrideStateId;<sp/></highlight><highlight class="comment">//<sp/>weak<sp/>reference</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref>;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">overrides</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">OverrideStateId<sp/>create(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1OverrideState" kindref="compound">OverrideState</ref><sp/>&amp;);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>destroy(OverrideStateId<sp/>&amp;override_id);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>exists(OverrideStateId<sp/>override_id);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set(OverrideStateId<sp/>override_id);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reset()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>set(OverrideStateId());<sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal">OverrideState<sp/>get(OverrideStateId<sp/>override_id);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal">OverrideStateId<sp/>get_current();</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">OverrideStateId<sp/>get_current_with_master();</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_master_state(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>OverrideState<sp/>&amp;s);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_master_state();</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>destroy_all_managed_master_states();</highlight></codeline>
+<codeline lineno="107"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>overrides</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114" refid="structshaders_1_1UniqueOverrideStateId" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref></highlight></codeline>
+<codeline lineno="115"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="121" refid="structshaders_1_1UniqueOverrideStateId_1a45686cdf16bf48731bc1527a93664c7d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1a45686cdf16bf48731bc1527a93664c7d" kindref="member">~UniqueOverrideStateId</ref>()<sp/>{<sp/>shaders::overrides::destroy(<ref refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" kindref="member">ref</ref>);<sp/>};</highlight></codeline>
+<codeline lineno="127" refid="structshaders_1_1UniqueOverrideStateId_1a63fcea4d099b318c6c8f0f8d8dd305e5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1a63fcea4d099b318c6c8f0f8d8dd305e5" kindref="member">UniqueOverrideStateId</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="135" refid="structshaders_1_1UniqueOverrideStateId_1a5aa698aef82bd97dee89d25d97d15704" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1a5aa698aef82bd97dee89d25d97d15704" kindref="member">UniqueOverrideStateId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>OverrideStateId<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1af42534a46896eb7cda1854591277bd40" kindref="member">reset</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="144" refid="structshaders_1_1UniqueOverrideStateId_1a1625fea388f3016a7d75fc8e15993388" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref><sp/>&amp;<ref refid="structshaders_1_1UniqueOverrideStateId_1a1625fea388f3016a7d75fc8e15993388" kindref="member">operator=</ref>(OverrideStateId<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1af42534a46896eb7cda1854591277bd40" kindref="member">reset</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="157" refid="structshaders_1_1UniqueOverrideStateId_1af42534a46896eb7cda1854591277bd40" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1af42534a46896eb7cda1854591277bd40" kindref="member">reset</ref>(OverrideStateId<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>OverrideStateId())</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ret<sp/>=<sp/>overrides::destroy(<ref refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" kindref="member">ref</ref>);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" kindref="member">ref</ref><sp/>=<sp/>id;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>ret;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="168" refid="structshaders_1_1UniqueOverrideStateId_1ad00c2f6b8e8609191184fadf38f9c1fb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>OverrideStateId<sp/>&amp;<ref refid="structshaders_1_1UniqueOverrideStateId_1ad00c2f6b8e8609191184fadf38f9c1fb" kindref="member">get</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" kindref="member">ref</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="174" refid="structshaders_1_1UniqueOverrideStateId_1af84bd5982aec92af067a0c58d60e5aa8" refkind="member"><highlight class="normal"><sp/><sp/>OverrideStateId<sp/>&amp;<ref refid="structshaders_1_1UniqueOverrideStateId_1af84bd5982aec92af067a0c58d60e5aa8" kindref="member">get</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" kindref="member">ref</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="183" refid="structshaders_1_1UniqueOverrideStateId_1ad5e02c6e6f62cfb62fef808fcd0448ae" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1ad5e02c6e6f62cfb62fef808fcd0448ae" kindref="member">UniqueOverrideStateId</ref>(<ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref><sp/>&amp;&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" kindref="member">ref</ref><sp/>=<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.ref;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.ref<sp/>=<sp/>OverrideStateId();</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="197" refid="structshaders_1_1UniqueOverrideStateId_1a8319214cccde49c1535703336388091b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref><sp/>&amp;<ref refid="structshaders_1_1UniqueOverrideStateId_1a8319214cccde49c1535703336388091b" kindref="member">operator=</ref>(<ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref><sp/>&amp;&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1af42534a46896eb7cda1854591277bd40" kindref="member">reset</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.<ref refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" kindref="member">ref</ref>);</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.ref<sp/>=<sp/>OverrideStateId();</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="210" refid="structshaders_1_1UniqueOverrideStateId_1a65c8c8a010571673e39ae4fb84ac6f0c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1a65c8c8a010571673e39ae4fb84ac6f0c" kindref="member">UniqueOverrideStateId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref><sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="219" refid="structshaders_1_1UniqueOverrideStateId_1abf9e15a21462f6da39bfb50e59028108" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref><sp/>&amp;<ref refid="structshaders_1_1UniqueOverrideStateId_1abf9e15a21462f6da39bfb50e59028108" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref><sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="225" refid="structshaders_1_1UniqueOverrideStateId_1a55e303ceefb4e3a7674aaf5f09a23d85" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>bool()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">)<ref refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" kindref="member">ref</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"></highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="228" refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" refkind="member"><highlight class="normal"><sp/><sp/>OverrideStateId<sp/><ref refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" kindref="member">ref</ref>;<sp/></highlight></codeline>
+<codeline lineno="229"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">overrides</highlight></codeline>
+<codeline lineno="232"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>destroy(<ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref><sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.reset();<sp/>}</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set(UniqueOverrideStateId<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/>shaders::overrides::set(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.get());<sp/>}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>UniqueOverrideStateId<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/>shaders::overrides::set(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.get());<sp/>}</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>exists(UniqueOverrideStateId<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>shaders::overrides::exists(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.get());<sp/>}</highlight></codeline>
+<codeline lineno="270"><highlight class="normal">OverrideState<sp/>get(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>UniqueOverrideStateId<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="271"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>overrides</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="272"><highlight class="normal"></highlight></codeline>
+<codeline lineno="273"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>shaders</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_overrideStateId.h"/>
+  </compounddef>
+</doxygen>

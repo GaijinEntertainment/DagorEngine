@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshader__meshlets_1_1VdataElemRange" kind="struct" language="C++" prot="public">
+    <compoundname>shader_meshlets::VdataElemRange</compoundname>
+    <includes refid="dag__shaderMeshlets_8h" local="no">dag_shaderMeshlets.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshader__meshlets_1_1VdataElemRange_1ad78838206e5c49cbb0f2e7645776873a" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t shader_meshlets::VdataElemRange::shaderMatVdataIndex</definition>
+        <argsstring></argsstring>
+        <name>shaderMatVdataIndex</name>
+        <qualifiedname>shader_meshlets::VdataElemRange::shaderMatVdataIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="35" column="12" bodyfile="dag_shaderMeshlets.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshader__meshlets_1_1VdataElemRange_1a423f2460071fd39d460d3b2c5fe36048" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t shader_meshlets::VdataElemRange::vdataIndex</definition>
+        <argsstring></argsstring>
+        <name>vdataIndex</name>
+        <qualifiedname>shader_meshlets::VdataElemRange::vdataIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="35" column="32" bodyfile="dag_shaderMeshlets.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshader__meshlets_1_1VdataElemRange_1ae1c6c3acf15a95365a5a78aec8d6c949" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shader_meshlets::VdataElemRange::startIndex</definition>
+        <argsstring></argsstring>
+        <name>startIndex</name>
+        <qualifiedname>shader_meshlets::VdataElemRange::startIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="36" column="12" bodyfile="dag_shaderMeshlets.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshader__meshlets_1_1VdataElemRange_1a4ac6f5610346ca850f10267d2d737012" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shader_meshlets::VdataElemRange::primitiveCount</definition>
+        <argsstring></argsstring>
+        <name>primitiveCount</name>
+        <qualifiedname>shader_meshlets::VdataElemRange::primitiveCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="36" column="23" bodyfile="dag_shaderMeshlets.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshader__meshlets_1_1VdataElemRange_1a54d8f2cfdaad3daed858fdb9efcd21f0" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t shader_meshlets::VdataElemRange::baseVertex</definition>
+        <argsstring></argsstring>
+        <name>baseVertex</name>
+        <qualifiedname>shader_meshlets::VdataElemRange::baseVertex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="37" column="11" bodyfile="dag_shaderMeshlets.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshader__meshlets_1_1VdataElemRange_1a4db10f7e8cc4e8e9f7cf298d877b2f92" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shader_meshlets::VdataElemRange::operator&lt;</definition>
+        <argsstring>(const VdataElemRange &amp;b) const</argsstring>
+        <name>operator&lt;</name>
+        <qualifiedname>shader_meshlets::VdataElemRange::operator&lt;</qualifiedname>
+        <param>
+          <type>const <ref refid="structshader__meshlets_1_1VdataElemRange" kindref="compound">VdataElemRange</ref> &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="39" column="3" bodyfile="dag_shaderMeshlets.h" bodystart="39" bodyend="43"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Indexed RElem range of a resource, in vdata-local coordinates shaderMatVdataIndex is the index in the resource smvd list, vdataIndex is the index in that <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> </para>
+    </detaileddescription>
+    <location file="dag_shaderMeshlets.h" line="33" column="1" bodyfile="dag_shaderMeshlets.h" bodystart="34" bodyend="44"/>
+    <listofallmembers>
+      <member refid="structshader__meshlets_1_1VdataElemRange_1a54d8f2cfdaad3daed858fdb9efcd21f0" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemRange</scope><name>baseVertex</name></member>
+      <member refid="structshader__meshlets_1_1VdataElemRange_1a4db10f7e8cc4e8e9f7cf298d877b2f92" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemRange</scope><name>operator&lt;</name></member>
+      <member refid="structshader__meshlets_1_1VdataElemRange_1a4ac6f5610346ca850f10267d2d737012" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemRange</scope><name>primitiveCount</name></member>
+      <member refid="structshader__meshlets_1_1VdataElemRange_1ad78838206e5c49cbb0f2e7645776873a" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemRange</scope><name>shaderMatVdataIndex</name></member>
+      <member refid="structshader__meshlets_1_1VdataElemRange_1ae1c6c3acf15a95365a5a78aec8d6c949" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemRange</scope><name>startIndex</name></member>
+      <member refid="structshader__meshlets_1_1VdataElemRange_1a423f2460071fd39d460d3b2c5fe36048" prot="public" virt="non-virtual"><scope>shader_meshlets::VdataElemRange</scope><name>vdataIndex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

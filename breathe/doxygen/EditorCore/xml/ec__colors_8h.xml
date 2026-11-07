@@ -1,0 +1,122 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__colors_8h" kind="file" language="C++">
+    <compoundname>ec_colors.h</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__colors_8h_1acbd9c490e4cbea71aaf891b7e574ef65" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const E3DCOLOR</type>
+        <definition>const E3DCOLOR neutral_color</definition>
+        <argsstring>(128, 160, 128, 255)</argsstring>
+        <name>neutral_color</name>
+        <param>
+          <type>128</type>
+        </param>
+        <param>
+          <type>160</type>
+        </param>
+        <param>
+          <type>128</type>
+        </param>
+        <param>
+          <type>255</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_colors.h" line="4" column="16" declfile="ec_colors.h" declline="4" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__colors_8h_1a210daa778c13a5e6860372631aaa8425" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const E3DCOLOR</type>
+        <definition>const E3DCOLOR selected_color</definition>
+        <argsstring>(200, 200, 200, 255)</argsstring>
+        <name>selected_color</name>
+        <param>
+          <type>200</type>
+        </param>
+        <param>
+          <type>200</type>
+        </param>
+        <param>
+          <type>200</type>
+        </param>
+        <param>
+          <type>255</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_colors.h" line="5" column="16" declfile="ec_colors.h" declline="5" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__colors_8h_1a371b0dbe907c8b3e84922b982854bf4f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const E3DCOLOR</type>
+        <definition>const E3DCOLOR higlighted_color</definition>
+        <argsstring>(200, 128, 128, 255)</argsstring>
+        <name>higlighted_color</name>
+        <param>
+          <type>200</type>
+        </param>
+        <param>
+          <type>128</type>
+        </param>
+        <param>
+          <type>128</type>
+        </param>
+        <param>
+          <type>255</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_colors.h" line="6" column="16" declfile="ec_colors.h" declline="6" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__colors_8h_1a383c9ef242b51d1378e8c95bedf286a7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const E3DCOLOR</type>
+        <definition>const E3DCOLOR higlighted_selected_color</definition>
+        <argsstring>(255, 200, 200, 255)</argsstring>
+        <name>higlighted_selected_color</name>
+        <param>
+          <type>255</type>
+        </param>
+        <param>
+          <type>200</type>
+        </param>
+        <param>
+          <type>200</type>
+        </param>
+        <param>
+          <type>255</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_colors.h" line="7" column="16" declfile="ec_colors.h" declline="7" declcolumn="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="ec__colors_8h_1acbd9c490e4cbea71aaf891b7e574ef65" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>E3DCOLOR<sp/><ref refid="ec__colors_8h_1acbd9c490e4cbea71aaf891b7e574ef65" kindref="member">neutral_color</ref>(128,<sp/>160,<sp/>128,<sp/>255);</highlight></codeline>
+<codeline lineno="5" refid="ec__colors_8h_1a210daa778c13a5e6860372631aaa8425" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>E3DCOLOR<sp/><ref refid="ec__colors_8h_1a210daa778c13a5e6860372631aaa8425" kindref="member">selected_color</ref>(200,<sp/>200,<sp/>200,<sp/>255);</highlight></codeline>
+<codeline lineno="6" refid="ec__colors_8h_1a371b0dbe907c8b3e84922b982854bf4f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>E3DCOLOR<sp/><ref refid="ec__colors_8h_1a371b0dbe907c8b3e84922b982854bf4f" kindref="member">higlighted_color</ref>(200,<sp/>128,<sp/>128,<sp/>255);</highlight></codeline>
+<codeline lineno="7" refid="ec__colors_8h_1a383c9ef242b51d1378e8c95bedf286a7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>E3DCOLOR<sp/><ref refid="ec__colors_8h_1a383c9ef242b51d1378e8c95bedf286a7" kindref="member">higlighted_selected_color</ref>(255,<sp/>200,<sp/>200,<sp/>255);</highlight></codeline>
+    </programlisting>
+    <location file="ec_colors.h"/>
+  </compounddef>
+</doxygen>

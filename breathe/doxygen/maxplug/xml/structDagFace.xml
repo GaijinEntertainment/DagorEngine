@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagFace" kind="struct" language="C++" prot="public">
+    <compoundname>DagFace</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagFace_1a158277f233be6293b93ad00988caa05e" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short DagFace::v[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>v</name>
+        <qualifiedname>DagFace::v</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="172" column="18" bodyfile="dagfmt.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagFace_1a8b3883555a74190689dcb01a134906b3" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DagFace::smgr</definition>
+        <argsstring></argsstring>
+        <name>smgr</name>
+        <qualifiedname>DagFace::smgr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="173" column="12" bodyfile="dagfmt.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagFace_1a947397672bbdd18edf2fe06dab23c4e2" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short DagFace::mat</definition>
+        <argsstring></argsstring>
+        <name>mat</name>
+        <qualifiedname>DagFace::mat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="174" column="18" bodyfile="dagfmt.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagFace_1a1d034fdc520e38de46adcb571d2b1c47" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagFace::DagFace</definition>
+        <argsstring>()</argsstring>
+        <name>DagFace</name>
+        <qualifiedname>DagFace::DagFace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="175" column="3" bodyfile="dagfmt.h" bodystart="175" bodyend="175"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="170" column="1" bodyfile="dagfmt.h" bodystart="171" bodyend="176"/>
+    <listofallmembers>
+      <member refid="structDagFace_1a1d034fdc520e38de46adcb571d2b1c47" prot="public" virt="non-virtual"><scope>DagFace</scope><name>DagFace</name></member>
+      <member refid="structDagFace_1a947397672bbdd18edf2fe06dab23c4e2" prot="public" virt="non-virtual"><scope>DagFace</scope><name>mat</name></member>
+      <member refid="structDagFace_1a8b3883555a74190689dcb01a134906b3" prot="public" virt="non-virtual"><scope>DagFace</scope><name>smgr</name></member>
+      <member refid="structDagFace_1a158277f233be6293b93ad00988caa05e" prot="public" virt="non-virtual"><scope>DagFace</scope><name>v</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

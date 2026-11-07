@@ -1,0 +1,319 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classQuadWalk" kind="class" language="C++" prot="public">
+    <compoundname>QuadWalk</compoundname>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classQuadWalk_1a9fb30e2388e498775674f91312c98ad2" prot="private" static="no">
+        <type>std::array&lt; int, 4 &gt;</type>
+        <definition>using QuadWalk::Sides =  std::array&lt;int, 4&gt;</definition>
+        <argsstring></argsstring>
+        <name>Sides</name>
+        <qualifiedname>QuadWalk::Sides</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3876" column="3" bodyfile="util.cpp" bodystart="3876" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classQuadWalk_1a9f7fc4aa1dbb1cc241209722c654223d" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; <ref refid="util_8cpp_1a396109539dfdd268e104bfbd44ead5f4" kindref="member">EdgeMark</ref> &gt;</type>
+        <definition>std::vector&lt;EdgeMark&gt; QuadWalk::edgeMarks</definition>
+        <argsstring></argsstring>
+        <name>edgeMarks</name>
+        <qualifiedname>QuadWalk::edgeMarks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3872" column="15" bodyfile="util.cpp" bodystart="3872" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classQuadWalk_1a383a325c0232f0dcbffac7b485912af0" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; DWORD &gt;</type>
+        <definition>std::vector&lt;DWORD&gt; QuadWalk::mates</definition>
+        <argsstring></argsstring>
+        <name>mates</name>
+        <qualifiedname>QuadWalk::mates</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3873" column="15" bodyfile="util.cpp" bodystart="3873" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classQuadWalk_1a6f8b3d0029b9df98c0a3de021376d617" prot="private" static="no" mutable="no">
+        <type>Mesh &amp;</type>
+        <definition>Mesh&amp; QuadWalk::m</definition>
+        <argsstring></argsstring>
+        <name>m</name>
+        <qualifiedname>QuadWalk::m</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3886" column="8" bodyfile="util.cpp" bodystart="3886" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classQuadWalk_1a236b213116c45ec6335d367dd6bb3406" prot="private" static="no" mutable="no">
+        <type>AdjEdgeList &amp;</type>
+        <definition>AdjEdgeList&amp; QuadWalk::ae</definition>
+        <argsstring></argsstring>
+        <name>ae</name>
+        <qualifiedname>QuadWalk::ae</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3887" column="15" bodyfile="util.cpp" bodystart="3887" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classQuadWalk_1aabf79b4d1bce12ffb1d631752edd2ae6" prot="private" static="no" mutable="no">
+        <type>BitArray</type>
+        <definition>BitArray QuadWalk::candidates</definition>
+        <argsstring></argsstring>
+        <name>candidates</name>
+        <qualifiedname>QuadWalk::candidates</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3888" column="12" bodyfile="util.cpp" bodystart="3888" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classQuadWalk_1aebd37090060e16d4d0599c5529cfc87b" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; int &gt;</type>
+        <definition>std::vector&lt;int&gt; QuadWalk::toVisit</definition>
+        <argsstring></argsstring>
+        <name>toVisit</name>
+        <qualifiedname>QuadWalk::toVisit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3889" column="15" bodyfile="util.cpp" bodystart="3889" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classQuadWalk_1a8c6ea7746688f9a15055607ff627aba3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>QuadWalk::QuadWalk</definition>
+        <argsstring>(Mesh &amp;mesh, AdjEdgeList &amp;adjEdges, bool selectedOnly)</argsstring>
+        <name>QuadWalk</name>
+        <qualifiedname>QuadWalk::QuadWalk</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>mesh</declname>
+        </param>
+        <param>
+          <type>AdjEdgeList &amp;</type>
+          <declname>adjEdges</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>selectedOnly</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3859" column="3" bodyfile="util.cpp" bodystart="3859" bodyend="3868"/>
+      </memberdef>
+      <memberdef kind="function" id="classQuadWalk_1ae98e87b45b264035a42bfea92578c482" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void QuadWalk::mark_first_region</definition>
+        <argsstring>(bool swapUV)</argsstring>
+        <name>mark_first_region</name>
+        <qualifiedname>QuadWalk::mark_first_region</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>swapUV</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3870" column="8" bodyfile="util.cpp" bodystart="3892" bodyend="3917"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classQuadWalk_1a487d6d8184ac98319c84902fcbc6e708" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::optional&lt; <ref refid="structQuad" kindref="compound">Quad</ref> &gt;</type>
+        <definition>std::optional&lt; Quad &gt; QuadWalk::take_quad</definition>
+        <argsstring>(DWORD face)</argsstring>
+        <name>take_quad</name>
+        <qualifiedname>QuadWalk::take_quad</qualifiedname>
+        <param>
+          <type>DWORD</type>
+          <declname>face</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3878" column="17" bodyfile="util.cpp" bodystart="3919" bodyend="3953"/>
+      </memberdef>
+      <memberdef kind="function" id="classQuadWalk_1a661ccfdf079d2019e2355a0e55255b34" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>DWORD</type>
+        <definition>DWORD QuadWalk::face_across</definition>
+        <argsstring>(int side) const</argsstring>
+        <name>face_across</name>
+        <qualifiedname>QuadWalk::face_across</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>side</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3879" column="9" bodyfile="util.cpp" bodystart="3955" bodyend="3962"/>
+      </memberdef>
+      <memberdef kind="function" id="classQuadWalk_1af74faa686dc4c068cd1739a9f670ab5f" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Sides</type>
+        <definition>QuadWalk::Sides QuadWalk::sides_of</definition>
+        <argsstring>(const Quad &amp;quad) const</argsstring>
+        <name>sides_of</name>
+        <qualifiedname>QuadWalk::sides_of</qualifiedname>
+        <param>
+          <type>const <ref refid="structQuad" kindref="compound">Quad</ref> &amp;</type>
+          <declname>quad</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3880" column="9" bodyfile="util.cpp" bodystart="3964" bodyend="3968"/>
+      </memberdef>
+      <memberdef kind="function" id="classQuadWalk_1a76dd1b599822a6465549a9071c99bb8f" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="util_8cpp_1a1e115eb4b6313c458b33975ae1dc750b" kindref="member">SidePair</ref></type>
+        <definition>SidePair QuadWalk::pair_from_uv</definition>
+        <argsstring>(const Quad &amp;quad, bool swapUV) const</argsstring>
+        <name>pair_from_uv</name>
+        <qualifiedname>QuadWalk::pair_from_uv</qualifiedname>
+        <param>
+          <type>const <ref refid="structQuad" kindref="compound">Quad</ref> &amp;</type>
+          <declname>quad</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>swapUV</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3881" column="12" bodyfile="util.cpp" bodystart="3970" bodyend="3979"/>
+      </memberdef>
+      <memberdef kind="function" id="classQuadWalk_1af3c5110a3657599965b31ae3084b5855" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>std::optional&lt; <ref refid="util_8cpp_1a1e115eb4b6313c458b33975ae1dc750b" kindref="member">SidePair</ref> &gt;</type>
+        <definition>std::optional&lt; SidePair &gt; QuadWalk::pair_from_marks</definition>
+        <argsstring>(const Sides &amp;sides) const</argsstring>
+        <name>pair_from_marks</name>
+        <qualifiedname>QuadWalk::pair_from_marks</qualifiedname>
+        <param>
+          <type>const Sides &amp;</type>
+          <declname>sides</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3882" column="17" bodyfile="util.cpp" bodystart="3981" bodyend="3993"/>
+      </memberdef>
+      <memberdef kind="function" id="classQuadWalk_1ae07ffaa783888dfad0cd627f23f06b59" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void QuadWalk::mark</definition>
+        <argsstring>(const Quad &amp;quad, const Sides &amp;sides, SidePair pair)</argsstring>
+        <name>mark</name>
+        <qualifiedname>QuadWalk::mark</qualifiedname>
+        <param>
+          <type>const <ref refid="structQuad" kindref="compound">Quad</ref> &amp;</type>
+          <declname>quad</declname>
+        </param>
+        <param>
+          <type>const Sides &amp;</type>
+          <declname>sides</declname>
+        </param>
+        <param>
+          <type><ref refid="util_8cpp_1a1e115eb4b6313c458b33975ae1dc750b" kindref="member">SidePair</ref></type>
+          <declname>pair</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3883" column="8" bodyfile="util.cpp" bodystart="3995" bodyend="4006"/>
+      </memberdef>
+      <memberdef kind="function" id="classQuadWalk_1a0a509b6b50cd397a107d9e94a4d773af" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool QuadWalk::has_mate</definition>
+        <argsstring>(DWORD face) const</argsstring>
+        <name>has_mate</name>
+        <qualifiedname>QuadWalk::has_mate</qualifiedname>
+        <param>
+          <type>DWORD</type>
+          <declname>face</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="3884" column="8" bodyfile="util.cpp" bodystart="3884" bodyend="3884"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="util.cpp" line="3856" column="1" bodyfile="util.cpp" bodystart="3857" bodyend="3890"/>
+    <listofallmembers>
+      <member refid="classQuadWalk_1a236b213116c45ec6335d367dd6bb3406" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>ae</name></member>
+      <member refid="classQuadWalk_1aabf79b4d1bce12ffb1d631752edd2ae6" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>candidates</name></member>
+      <member refid="classQuadWalk_1a9f7fc4aa1dbb1cc241209722c654223d" prot="public" virt="non-virtual"><scope>QuadWalk</scope><name>edgeMarks</name></member>
+      <member refid="classQuadWalk_1a661ccfdf079d2019e2355a0e55255b34" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>face_across</name></member>
+      <member refid="classQuadWalk_1a0a509b6b50cd397a107d9e94a4d773af" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>has_mate</name></member>
+      <member refid="classQuadWalk_1a6f8b3d0029b9df98c0a3de021376d617" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>m</name></member>
+      <member refid="classQuadWalk_1ae07ffaa783888dfad0cd627f23f06b59" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>mark</name></member>
+      <member refid="classQuadWalk_1ae98e87b45b264035a42bfea92578c482" prot="public" virt="non-virtual"><scope>QuadWalk</scope><name>mark_first_region</name></member>
+      <member refid="classQuadWalk_1a383a325c0232f0dcbffac7b485912af0" prot="public" virt="non-virtual"><scope>QuadWalk</scope><name>mates</name></member>
+      <member refid="classQuadWalk_1af3c5110a3657599965b31ae3084b5855" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>pair_from_marks</name></member>
+      <member refid="classQuadWalk_1a76dd1b599822a6465549a9071c99bb8f" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>pair_from_uv</name></member>
+      <member refid="classQuadWalk_1a8c6ea7746688f9a15055607ff627aba3" prot="public" virt="non-virtual"><scope>QuadWalk</scope><name>QuadWalk</name></member>
+      <member refid="classQuadWalk_1a9fb30e2388e498775674f91312c98ad2" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>Sides</name></member>
+      <member refid="classQuadWalk_1af74faa686dc4c068cd1739a9f670ab5f" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>sides_of</name></member>
+      <member refid="classQuadWalk_1a487d6d8184ac98319c84902fcbc6e708" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>take_quad</name></member>
+      <member refid="classQuadWalk_1aebd37090060e16d4d0599c5529cfc87b" prot="private" virt="non-virtual"><scope>QuadWalk</scope><name>toVisit</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

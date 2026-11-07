@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classStairCreator" kind="class" language="C++" prot="public">
+    <compoundname>StairCreator</compoundname>
+    <basecompoundref refid="classBoxCreator" prot="public" virt="non-virtual">BoxCreator</basecompoundref>
+    <includes refid="ec__ObjectCreator_8h" local="no">ec_ObjectCreator.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classStairCreator_1a734591d6321a5264fdbfc4f676bcc90d" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StairCreator::render</definition>
+        <argsstring>() override</argsstring>
+        <name>render</name>
+        <qualifiedname>StairCreator::render</qualifiedname>
+        <reimplements refid="classBoxCreator_1a6cc226d9e0d2d57715988d20493e9e28">render</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Render <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="567" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BoxCreator</label>
+        <link refid="classBoxCreator"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="1">
+        <label>StairCreator</label>
+        <link refid="classStairCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BoxCreator</label>
+        <link refid="classBoxCreator"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="1">
+        <label>StairCreator</label>
+        <link refid="classStairCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_ObjectCreator.h" line="564" column="1" bodyfile="ec_ObjectCreator.h" bodystart="565" bodyend="568"/>
+    <listofallmembers>
+      <member refid="classBoxCreator_1a1d6d864375efed2516879f582df4dc6b" prot="public" virt="non-virtual"><scope>StairCreator</scope><name>BoxCreator</name></member>
+      <member refid="classBoxCreator_1a189c669f196fdafbe9ced16b73cd5a16" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>clientPoint0</name></member>
+      <member refid="classBoxCreator_1a514de4e824ce9f0d90304c304f191a0a" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>clientPoint2</name></member>
+      <member refid="classBoxCreator_1afd0c75b43d405ccdb7c13676d756a6d0" prot="public" virt="non-virtual"><scope>StairCreator</scope><name>getStageNo</name></member>
+      <member refid="classBoxCreator_1abfc42f36931faf858715dc2709a0e39f" prot="public" virt="virtual"><scope>StairCreator</scope><name>handleMouseLBPress</name></member>
+      <member refid="classBoxCreator_1a9583b6b162a164efe8d3fee11e6e0a97" prot="public" virt="virtual"><scope>StairCreator</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classBoxCreator_1a9816d644d519f3bcef8e2751bcd50e0b" prot="public" virt="virtual"><scope>StairCreator</scope><name>handleMouseMove</name></member>
+      <member refid="classBoxCreator_1a798b0cf47a96cddcb5a09f8f7532ea0a" prot="public" virt="virtual"><scope>StairCreator</scope><name>handleMouseRBPress</name></member>
+      <member refid="classBoxCreator_1ad89839e751b04051b2f3051f1cb32d7c" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>height</name></member>
+      <member refid="classIObjectCreator_1a329744f60005a03f1d0c7a0c01457b01" prot="public" virt="non-virtual"><scope>StairCreator</scope><name>IObjectCreator</name></member>
+      <member refid="classIObjectCreator_1ac4a428a645503de2ee32a59539b40671" prot="public" virt="non-virtual"><scope>StairCreator</scope><name>isFinished</name></member>
+      <member refid="classIObjectCreator_1a6176e974fe1e9bcd327f7c2897d054ef" prot="public" virt="non-virtual"><scope>StairCreator</scope><name>isOk</name></member>
+      <member refid="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" prot="public" virt="non-virtual"><scope>StairCreator</scope><name>matrix</name></member>
+      <member refid="classBoxCreator_1af65eb7da51818ee66fab79f69df6ae78" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>point0</name></member>
+      <member refid="classBoxCreator_1aca55c9df5c062222163ba200e4e66878" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>point1</name></member>
+      <member refid="classBoxCreator_1a44807dd6a812a569d24868e9e33e2573" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>point2</name></member>
+      <member refid="classStairCreator_1a734591d6321a5264fdbfc4f676bcc90d" prot="public" virt="virtual"><scope>StairCreator</scope><name>render</name></member>
+      <member refid="classBoxCreator_1aeb455541e02966bb5e15ae3dc742bbdb" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>stageNo</name></member>
+      <member refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>stateFinished</name></member>
+      <member refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>stateOk</name></member>
+      <member refid="classBoxCreator_1a57036b05f14efa52ad80f9b8e9a57ce5" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>wrapedX</name></member>
+      <member refid="classBoxCreator_1a3d84853c25908e81caa240ae8c308e11" prot="protected" virt="non-virtual"><scope>StairCreator</scope><name>wrapedY</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

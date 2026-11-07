@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderScene_1_1RenderObject_1_1ObjectLod" kind="struct" language="C++" prot="public">
+    <compoundname>RenderScene::RenderObject::ObjectLod</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1_1ObjectLod_1a060907a83a904c6c35ac6c0363856ab4" prot="public" static="no" mutable="no">
+        <type>PatchablePtr&lt; <ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref> &gt;</type>
+        <definition>PatchablePtr&lt;ShaderMesh&gt; RenderScene::RenderObject::ObjectLod::mesh</definition>
+        <argsstring></argsstring>
+        <name>mesh</name>
+        <qualifiedname>RenderScene::RenderObject::ObjectLod::mesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="61" column="20" bodyfile="dag_renderScene.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1_1ObjectLod_1a5b3bddbfffcaa55f84069a60f46a3567" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real RenderScene::RenderObject::ObjectLod::lodRangeSq</definition>
+        <argsstring></argsstring>
+        <name>lodRangeSq</name>
+        <qualifiedname>RenderScene::RenderObject::ObjectLod::lodRangeSq</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="62" column="12" bodyfile="dag_renderScene.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1RenderObject_1_1ObjectLod_1a22cb6cc55b11fce99b3b3b7267288f29" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderScene::RenderObject::ObjectLod::_resv</definition>
+        <argsstring></argsstring>
+        <name>_resv</name>
+        <qualifiedname>RenderScene::RenderObject::ObjectLod::_resv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="63" column="11" bodyfile="dag_renderScene.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderScene.h" line="59" column="5" bodyfile="dag_renderScene.h" bodystart="60" bodyend="64"/>
+    <listofallmembers>
+      <member refid="structRenderScene_1_1RenderObject_1_1ObjectLod_1a22cb6cc55b11fce99b3b3b7267288f29" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject::ObjectLod</scope><name>_resv</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1_1ObjectLod_1a5b3bddbfffcaa55f84069a60f46a3567" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject::ObjectLod</scope><name>lodRangeSq</name></member>
+      <member refid="structRenderScene_1_1RenderObject_1_1ObjectLod_1a060907a83a904c6c35ac6c0363856ab4" prot="public" virt="non-virtual"><scope>RenderScene::RenderObject::ObjectLod</scope><name>mesh</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1PsOutputStructCacheEntry" kind="struct" language="C++" prot="public">
+    <compoundname>shc::PsOutputStructCacheEntry</compoundname>
+    <includes refid="shShaderContext_8h" local="no">shShaderContext.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1PsOutputStructCacheEntry_1a2540641d4a2d36ed92379861627bdd58" prot="public" static="no" mutable="no">
+        <type><ref refid="structSemanticShaderPass_1_1PsOutput" kindref="compound">SemanticShaderPass::PsOutput</ref></type>
+        <definition>SemanticShaderPass::PsOutput shc::PsOutputStructCacheEntry::psOutput</definition>
+        <argsstring></argsstring>
+        <name>psOutput</name>
+        <qualifiedname>shc::PsOutputStructCacheEntry::psOutput</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="55" column="32" bodyfile="shShaderContext.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1PsOutputStructCacheEntry_1a2f45c750a3e4984e966a960ab8829be1" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string shc::PsOutputStructCacheEntry::src1Target</definition>
+        <argsstring></argsstring>
+        <name>src1Target</name>
+        <qualifiedname>shc::PsOutputStructCacheEntry::src1Target</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="56" column="17" bodyfile="shShaderContext.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>SemanticShaderPass::PsOutput</label>
+        <link refid="structSemanticShaderPass_1_1PsOutput"/>
+      </node>
+      <node id="1">
+        <label>shc::PsOutputStructCacheEntry</label>
+        <link refid="structshc_1_1PsOutputStructCacheEntry"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>psOutput</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shShaderContext.h" line="53" column="1" bodyfile="shShaderContext.h" bodystart="54" bodyend="57"/>
+    <listofallmembers>
+      <member refid="structshc_1_1PsOutputStructCacheEntry_1a2540641d4a2d36ed92379861627bdd58" prot="public" virt="non-virtual"><scope>shc::PsOutputStructCacheEntry</scope><name>psOutput</name></member>
+      <member refid="structshc_1_1PsOutputStructCacheEntry_1a2f45c750a3e4984e966a960ab8829be1" prot="public" virt="non-virtual"><scope>shc::PsOutputStructCacheEntry</scope><name>src1Target</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

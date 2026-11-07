@@ -1,0 +1,492 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFilePathName" kind="class" language="C++" prot="public">
+    <compoundname>FilePathName</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">String</basecompoundref>
+    <derivedcompoundref refid="classDETextureName" prot="public" virt="non-virtual">DETextureName</derivedcompoundref>
+    <includes refid="filePathname_8h" local="no">filePathname.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFilePathName_1a66226150c970454c9e402517b78e4612" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FilePathName::FilePathName</definition>
+        <argsstring>()</argsstring>
+        <name>FilePathName</name>
+        <qualifiedname>FilePathName::FilePathName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="15" column="3" bodyfile="filePathname.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a3229ebc71d0cafc3ed462b3817370f01" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>FilePathName::FilePathName</definition>
+        <argsstring>(const char *str)</argsstring>
+        <name>FilePathName</name>
+        <qualifiedname>FilePathName::FilePathName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="16" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1aafe00093cbd088029e5bfbb3e81f1c3a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>FilePathName::FilePathName</definition>
+        <argsstring>(const String &amp;s)</argsstring>
+        <name>FilePathName</name>
+        <qualifiedname>FilePathName::FilePathName</qualifiedname>
+        <param>
+          <type>const String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="17" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a629b22bdffbc8a5cabb64207c73cff75" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FilePathName::FilePathName</definition>
+        <argsstring>(const FilePathName &amp;str)</argsstring>
+        <name>FilePathName</name>
+        <qualifiedname>FilePathName::FilePathName</qualifiedname>
+        <param>
+          <type>const <ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="18" column="3" bodyfile="filePathname.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a2c0d40fb5b3d5e8e009258568d98b8dd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>FilePathName::FilePathName</definition>
+        <argsstring>(const char *path, const char *name, const char *ext=NULL)</argsstring>
+        <name>FilePathName</name>
+        <qualifiedname>FilePathName::FilePathName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>ext</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="19" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1af3f3a1c913d3d34ae006bd1e49cd78c5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+        <definition>FilePathName &amp; FilePathName::operator=</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>FilePathName::operator=</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="21" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a45a404ce35c5c10ab99521a1e4c999ae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+        <definition>FilePathName &amp; FilePathName::operator=</definition>
+        <argsstring>(const String &amp;s)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>FilePathName::operator=</qualifiedname>
+        <param>
+          <type>const String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="22" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1ac0db4aeda982a077b2a977807491e047" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+        <definition>FilePathName &amp; FilePathName::operator=</definition>
+        <argsstring>(const FilePathName &amp;s)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>FilePathName::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="23" column="17" bodyfile="filePathname.h" bodystart="23" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a9c89b2f3a4484b310b50ba0151877242" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref></type>
+        <definition>FilePathName FilePathName::getPath</definition>
+        <argsstring>() const</argsstring>
+        <name>getPath</name>
+        <qualifiedname>FilePathName::getPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="29" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a9016d2559e5a87198138179082daf2e3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref></type>
+        <definition>FilePathName FilePathName::getName</definition>
+        <argsstring>(bool with_ext=true) const</argsstring>
+        <name>getName</name>
+        <qualifiedname>FilePathName::getName</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>with_ext</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="30" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a22fd0385781534e303bb3f528986965c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref></type>
+        <definition>FilePathName FilePathName::getExt</definition>
+        <argsstring>() const</argsstring>
+        <name>getExt</name>
+        <qualifiedname>FilePathName::getExt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="31" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a9535ed01eec2c4e7a8e96722f3d59e92" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+        <definition>FilePathName &amp; FilePathName::setPath</definition>
+        <argsstring>(const char *new_path)</argsstring>
+        <name>setPath</name>
+        <qualifiedname>FilePathName::setPath</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>new_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="33" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a98b04d589f1a60a2b0291d1d26f2037a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+        <definition>FilePathName &amp; FilePathName::setName</definition>
+        <argsstring>(const char *new_name, bool with_ext=true)</argsstring>
+        <name>setName</name>
+        <qualifiedname>FilePathName::setName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>new_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>with_ext</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="34" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1ac186d597c134d7188e154318ec76c45f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+        <definition>FilePathName &amp; FilePathName::setExt</definition>
+        <argsstring>(const char *new_ext)</argsstring>
+        <name>setExt</name>
+        <qualifiedname>FilePathName::setExt</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>new_ext</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="35" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1ad267286bc7a15c561e573e4a8a472f22" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FilePathName::makeRelativePath</definition>
+        <argsstring>(const char *base_path)</argsstring>
+        <name>makeRelativePath</name>
+        <qualifiedname>FilePathName::makeRelativePath</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>base_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="37" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a75d4ad67f81e3e9081ad07eadb09e5d8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FilePathName::makeFullPath</definition>
+        <argsstring>(const char *base_path)</argsstring>
+        <name>makeFullPath</name>
+        <qualifiedname>FilePathName::makeFullPath</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>base_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="38" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a1f07b0f1232920a293d051b490c5a2ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+        <definition>FilePathName &amp; FilePathName::makeIdent</definition>
+        <argsstring>(bool name_and_ext_only=true, char mark=&apos;_&apos;)</argsstring>
+        <name>makeIdent</name>
+        <qualifiedname>FilePathName::makeIdent</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>name_and_ext_only</declname>
+          <defval>true</defval>
+        </param>
+        <param>
+          <type>char</type>
+          <declname>mark</declname>
+          <defval>&apos;_&apos;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="39" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1aec6a365faaea020e75914c86563dc9f2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FilePathName::operator==</definition>
+        <argsstring>(const char *s) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>FilePathName::operator==</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="42" column="9" bodyfile="filePathname.h" bodystart="42" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a72b0b51814dfdca6df4d83a20630c9d0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FilePathName::operator!=</definition>
+        <argsstring>(const char *s) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>FilePathName::operator!=</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="43" column="9" bodyfile="filePathname.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1aba1aaced3833be360b3755a9ac9bb233" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FilePathName::operator==</definition>
+        <argsstring>(const String &amp;s) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>FilePathName::operator==</qualifiedname>
+        <param>
+          <type>const String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="44" column="9" bodyfile="filePathname.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a0a8775f37e8875eaefa768cfc8174e0a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FilePathName::operator!=</definition>
+        <argsstring>(const String &amp;s) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>FilePathName::operator!=</qualifiedname>
+        <param>
+          <type>const String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="45" column="9" bodyfile="filePathname.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a1ef95b344877a034ecd999742005897a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FilePathName::operator==</definition>
+        <argsstring>(const FilePathName &amp;s) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>FilePathName::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="46" column="9" bodyfile="filePathname.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classFilePathName_1a9009ec32bdb5c35cb649a766ab052fcb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FilePathName::operator!=</definition>
+        <argsstring>(const FilePathName &amp;s) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>FilePathName::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="classFilePathName" kindref="compound">FilePathName</ref> &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="filePathname.h" line="47" column="9" bodyfile="filePathname.h" bodystart="47" bodyend="47"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>DETextureName</label>
+        <link refid="classDETextureName"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>FilePathName</label>
+        <link refid="classFilePathName"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>String</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>FilePathName</label>
+        <link refid="classFilePathName"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>String</label>
+      </node>
+    </collaborationgraph>
+    <location file="filePathname.h" line="12" column="1" bodyfile="filePathname.h" bodystart="13" bodyend="48"/>
+    <listofallmembers>
+      <member refid="classFilePathName_1a66226150c970454c9e402517b78e4612" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>FilePathName</name></member>
+      <member refid="classFilePathName_1a3229ebc71d0cafc3ed462b3817370f01" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>FilePathName</name></member>
+      <member refid="classFilePathName_1aafe00093cbd088029e5bfbb3e81f1c3a" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>FilePathName</name></member>
+      <member refid="classFilePathName_1a629b22bdffbc8a5cabb64207c73cff75" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>FilePathName</name></member>
+      <member refid="classFilePathName_1a2c0d40fb5b3d5e8e009258568d98b8dd" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>FilePathName</name></member>
+      <member refid="classFilePathName_1a22fd0385781534e303bb3f528986965c" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>getExt</name></member>
+      <member refid="classFilePathName_1a9016d2559e5a87198138179082daf2e3" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>getName</name></member>
+      <member refid="classFilePathName_1a9c89b2f3a4484b310b50ba0151877242" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>getPath</name></member>
+      <member refid="classFilePathName_1a75d4ad67f81e3e9081ad07eadb09e5d8" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>makeFullPath</name></member>
+      <member refid="classFilePathName_1a1f07b0f1232920a293d051b490c5a2ff" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>makeIdent</name></member>
+      <member refid="classFilePathName_1ad267286bc7a15c561e573e4a8a472f22" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>makeRelativePath</name></member>
+      <member refid="classFilePathName_1a72b0b51814dfdca6df4d83a20630c9d0" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>operator!=</name></member>
+      <member refid="classFilePathName_1a0a8775f37e8875eaefa768cfc8174e0a" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>operator!=</name></member>
+      <member refid="classFilePathName_1a9009ec32bdb5c35cb649a766ab052fcb" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>operator!=</name></member>
+      <member refid="classFilePathName_1af3f3a1c913d3d34ae006bd1e49cd78c5" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>operator=</name></member>
+      <member refid="classFilePathName_1a45a404ce35c5c10ab99521a1e4c999ae" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>operator=</name></member>
+      <member refid="classFilePathName_1ac0db4aeda982a077b2a977807491e047" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>operator=</name></member>
+      <member refid="classFilePathName_1aec6a365faaea020e75914c86563dc9f2" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>operator==</name></member>
+      <member refid="classFilePathName_1aba1aaced3833be360b3755a9ac9bb233" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>operator==</name></member>
+      <member refid="classFilePathName_1a1ef95b344877a034ecd999742005897a" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>operator==</name></member>
+      <member refid="classFilePathName_1ac186d597c134d7188e154318ec76c45f" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>setExt</name></member>
+      <member refid="classFilePathName_1a98b04d589f1a60a2b0291d1d26f2037a" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>setName</name></member>
+      <member refid="classFilePathName_1a9535ed01eec2c4e7a8e96722f3d59e92" prot="public" virt="non-virtual"><scope>FilePathName</scope><name>setPath</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

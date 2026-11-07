@@ -1,0 +1,352 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRenderPassGroup" kind="class" language="C++" prot="public">
+    <compoundname>RenderPassGroup</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+    <innerclass refid="structRenderPassGroup_1_1ColorSlot" prot="public">RenderPassGroup::ColorSlot</innerclass>
+    <innerclass refid="structRenderPassGroup_1_1Member" prot="public">RenderPassGroup::Member</innerclass>
+    <innerclass refid="structRenderPassGroup_1_1ReadSlot" prot="public">RenderPassGroup::ReadSlot</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classRenderPassGroup_1a4970b6011f7bfae8f9a7ed1571e8551b" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref></type>
+        <definition>RenderPassNameId RenderPassGroup::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>RenderPassGroup::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="135" column="20" bodyfile="renderPassObject.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassGroup_1a9c9f7122a5220e31b6cf936d83a2529a" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structRenderPassGroup_1_1Member" kindref="compound">Member</ref> &gt;</type>
+        <definition>SerializableTab&lt;Member&gt; RenderPassGroup::members</definition>
+        <argsstring></argsstring>
+        <name>members</name>
+        <qualifiedname>RenderPassGroup::members</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="136" column="19" bodyfile="renderPassObject.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassGroup_1acfd01f9db25bcb9f2ee5862d85276d9a" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structRenderPassGroup_1_1ColorSlot" kindref="compound">ColorSlot</ref> &gt;</type>
+        <definition>SerializableTab&lt;ColorSlot&gt; RenderPassGroup::colorSlots</definition>
+        <argsstring></argsstring>
+        <name>colorSlots</name>
+        <qualifiedname>RenderPassGroup::colorSlots</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="137" column="19" bodyfile="renderPassObject.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassGroup_1affcb555ea5e95d98b39cf024f2e3ec39" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structRenderPassGroup_1_1ReadSlot" kindref="compound">ReadSlot</ref> &gt;</type>
+        <definition>SerializableTab&lt;ReadSlot&gt; RenderPassGroup::reads</definition>
+        <argsstring></argsstring>
+        <name>reads</name>
+        <qualifiedname>RenderPassGroup::reads</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="138" column="19" bodyfile="renderPassObject.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassGroup_1a115df216ea55bdc0e4045ba2658cf00a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassGroup::tableIdx</definition>
+        <argsstring></argsstring>
+        <name>tableIdx</name>
+        <qualifiedname>RenderPassGroup::tableIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="139" column="7" bodyfile="renderPassObject.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassGroup_1a3aa51b1bcdd7511aee53f2249cdda7fd" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassGroup::readableCount</definition>
+        <argsstring></argsstring>
+        <name>readableCount</name>
+        <qualifiedname>RenderPassGroup::readableCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="140" column="7" bodyfile="renderPassObject.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassGroup_1a98f62d3066fc8c5f0e7a6c2c079244e0" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassGroup::depthPresent</definition>
+        <argsstring></argsstring>
+        <name>depthPresent</name>
+        <qualifiedname>RenderPassGroup::depthPresent</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="141" column="8" bodyfile="renderPassObject.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassGroup_1a724da9b86b96dd5e12b6bb7c80901d03" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassGroup::depthReadOnly</definition>
+        <argsstring></argsstring>
+        <name>depthReadOnly</name>
+        <qualifiedname>RenderPassGroup::depthReadOnly</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="142" column="8" bodyfile="renderPassObject.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassGroup_1acc2ecee7d5f186a0d8db078f3968dbe1" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassGroup::depthSampled</definition>
+        <argsstring></argsstring>
+        <name>depthSampled</name>
+        <qualifiedname>RenderPassGroup::depthSampled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="143" column="8" bodyfile="renderPassObject.h" bodystart="143" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassGroup_1a51b334268a05180ba10fd3b440ea7519" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassGroup::allowSplit</definition>
+        <argsstring></argsstring>
+        <name>allowSplit</name>
+        <qualifiedname>RenderPassGroup::allowSplit</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="144" column="8" bodyfile="renderPassObject.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRenderPassGroup_1ad62a4992138a2380c2a8b61b0e641d81" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderPassGroup::BINDUMP_NON_SERIALIZABLE</definition>
+        <argsstring>(const VarNameMap *names=nullptr;)</argsstring>
+        <name>BINDUMP_NON_SERIALIZABLE</name>
+        <qualifiedname>RenderPassGroup::BINDUMP_NON_SERIALIZABLE</qualifiedname>
+        <param>
+          <type>const <ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> *</type>
+          <declname>names</declname>
+          <defval>nullptr;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="146" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassGroup_1a70fac1b10a3f4c2b9085cc6498354fbb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * RenderPassGroup::str</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>str</name>
+        <qualifiedname>RenderPassGroup::str</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="148" column="14" bodyfile="renderPassObject.h" bodystart="148" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassGroup_1a9c5104bff514da1811e17df9ac08f9a2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * RenderPassGroup::nameStr</definition>
+        <argsstring>() const</argsstring>
+        <name>nameStr</name>
+        <qualifiedname>RenderPassGroup::nameStr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="149" column="14" bodyfile="renderPassObject.h" bodystart="149" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassGroup_1a7036cc594d51bcb63104ec7c8e21be21" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structRenderPassGroup_1_1ColorSlot" kindref="compound">ColorSlot</ref> *</type>
+        <definition>const RenderPassGroup::ColorSlot * RenderPassGroup::findColor</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>findColor</name>
+        <qualifiedname>RenderPassGroup::findColor</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="150" column="19" bodyfile="renderPassObject.cpp" bodystart="132" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassGroup_1aac44e95271628f19d6a6eea0a7601e7e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderPassGroup::readPos</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>readPos</name>
+        <qualifiedname>RenderPassGroup::readPos</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="151" column="7" bodyfile="renderPassObject.cpp" bodystart="140" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassGroup_1a26e6dcb19c3863ea3bbdfdb74f63b32e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string RenderPassGroup::shapeDesc</definition>
+        <argsstring>() const</argsstring>
+        <name>shapeDesc</name>
+        <qualifiedname>RenderPassGroup::shapeDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="152" column="17" bodyfile="renderPassObject.cpp" bodystart="148" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassGroup_1a283455c40d1db602ff9a9f4b13896dc1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string RenderPassGroup::describe</definition>
+        <argsstring>(const RenderPassTable *passes) const</argsstring>
+        <name>describe</name>
+        <qualifiedname>RenderPassGroup::describe</qualifiedname>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> *</type>
+          <declname>passes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="153" column="17" bodyfile="renderPassObject.cpp" bodystart="150" bodyend="167"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="1">
+        <label>RenderPassGroup</label>
+        <link refid="classRenderPassGroup"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>members</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>colorSlots</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>reads</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>SerializableTab&lt; RenderPassGroup::ColorSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>SerializableTab&lt; RenderPassGroup::Member &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>SerializableTab&lt; RenderPassGroup::ReadSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>Tab&lt; RenderPassGroup::ColorSlot &gt;</label>
+      </node>
+      <node id="4">
+        <label>Tab&lt; RenderPassGroup::Member &gt;</label>
+      </node>
+      <node id="8">
+        <label>Tab&lt; RenderPassGroup::ReadSlot &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.h" line="111" column="1" bodyfile="renderPassObject.h" bodystart="112" bodyend="154"/>
+    <listofallmembers>
+      <member refid="classRenderPassGroup_1a51b334268a05180ba10fd3b440ea7519" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>allowSplit</name></member>
+      <member refid="classRenderPassGroup_1ad62a4992138a2380c2a8b61b0e641d81" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>BINDUMP_NON_SERIALIZABLE</name></member>
+      <member refid="classRenderPassGroup_1acfd01f9db25bcb9f2ee5862d85276d9a" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>colorSlots</name></member>
+      <member refid="classRenderPassGroup_1a98f62d3066fc8c5f0e7a6c2c079244e0" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>depthPresent</name></member>
+      <member refid="classRenderPassGroup_1a724da9b86b96dd5e12b6bb7c80901d03" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>depthReadOnly</name></member>
+      <member refid="classRenderPassGroup_1acc2ecee7d5f186a0d8db078f3968dbe1" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>depthSampled</name></member>
+      <member refid="classRenderPassGroup_1a283455c40d1db602ff9a9f4b13896dc1" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>describe</name></member>
+      <member refid="classRenderPassGroup_1a7036cc594d51bcb63104ec7c8e21be21" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>findColor</name></member>
+      <member refid="classRenderPassGroup_1a9c9f7122a5220e31b6cf936d83a2529a" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>members</name></member>
+      <member refid="classRenderPassGroup_1a4970b6011f7bfae8f9a7ed1571e8551b" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>name</name></member>
+      <member refid="classRenderPassGroup_1a9c5104bff514da1811e17df9ac08f9a2" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>nameStr</name></member>
+      <member refid="classRenderPassGroup_1a3aa51b1bcdd7511aee53f2249cdda7fd" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>readableCount</name></member>
+      <member refid="classRenderPassGroup_1aac44e95271628f19d6a6eea0a7601e7e" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>readPos</name></member>
+      <member refid="classRenderPassGroup_1affcb555ea5e95d98b39cf024f2e3ec39" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>reads</name></member>
+      <member refid="classRenderPassGroup_1a26e6dcb19c3863ea3bbdfdb74f63b32e" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>shapeDesc</name></member>
+      <member refid="classRenderPassGroup_1a70fac1b10a3f4c2b9085cc6498354fbb" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>str</name></member>
+      <member refid="classRenderPassGroup_1a115df216ea55bdc0e4045ba2658cf00a" prot="public" virt="non-virtual"><scope>RenderPassGroup</scope><name>tableIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

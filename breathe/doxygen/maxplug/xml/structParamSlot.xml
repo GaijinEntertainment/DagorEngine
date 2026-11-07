@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structParamSlot" kind="struct" language="C++" prot="public">
+    <compoundname>ParamSlot</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structParamSlot_1aaaebffb3feb7ca97cd54a91d0f71af8b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ParamSlot::groupId</definition>
+        <argsstring></argsstring>
+        <name>groupId</name>
+        <qualifiedname>ParamSlot::groupId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="105" column="7" bodyfile="rolluppanel.cpp" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamSlot_1a43847de41844c138779293d5f5b533db" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ParamSlot::paramId</definition>
+        <argsstring></argsstring>
+        <name>paramId</name>
+        <qualifiedname>ParamSlot::paramId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="106" column="7" bodyfile="rolluppanel.cpp" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rolluppanel.cpp" line="103" column="1" bodyfile="rolluppanel.cpp" bodystart="104" bodyend="107"/>
+    <listofallmembers>
+      <member refid="structParamSlot_1aaaebffb3feb7ca97cd54a91d0f71af8b" prot="public" virt="non-virtual"><scope>ParamSlot</scope><name>groupId</name></member>
+      <member refid="structParamSlot_1a43847de41844c138779293d5f5b533db" prot="public" virt="non-virtual"><scope>ParamSlot</scope><name>paramId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

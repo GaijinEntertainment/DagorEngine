@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIVisibilityFinderProvider" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IVisibilityFinderProvider</compoundname>
+    <includes refid="ec__interface__ex_8h" local="no">ec_interface_ex.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classIVisibilityFinderProvider_1a0656555a2259fac66120bc43f359907f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned IVisibilityFinderProvider::HUID</definition>
+        <argsstring></argsstring>
+        <name>HUID</name>
+        <qualifiedname>IVisibilityFinderProvider::HUID</qualifiedname>
+        <initializer>= 0x509D8ABEu</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="16" column="29" bodyfile="ec_interface_ex.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIVisibilityFinderProvider_1ae30fffbb7fe2af7741df27ab9f5ffe93" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>VisibilityFinder &amp;</type>
+        <definition>virtual VisibilityFinder &amp; IVisibilityFinderProvider::getVisibilityFinder</definition>
+        <argsstring>()=0</argsstring>
+        <name>getVisibilityFinder</name>
+        <qualifiedname>IVisibilityFinderProvider::getVisibilityFinder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_interface_ex.h" line="17" column="28"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_interface_ex.h" line="13" column="1" bodyfile="ec_interface_ex.h" bodystart="14" bodyend="18"/>
+    <listofallmembers>
+      <member refid="classIVisibilityFinderProvider_1ae30fffbb7fe2af7741df27ab9f5ffe93" prot="public" virt="pure-virtual"><scope>IVisibilityFinderProvider</scope><name>getVisibilityFinder</name></member>
+      <member refid="classIVisibilityFinderProvider_1a0656555a2259fac66120bc43f359907f" prot="public" virt="non-virtual"><scope>IVisibilityFinderProvider</scope><name>HUID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

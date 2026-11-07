@@ -1,0 +1,813 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="strUtil_8h" kind="file" language="C++">
+    <compoundname>strUtil.h</compoundname>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includedby refid="de__TextureName_8h" local="no">de_TextureName.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>strUtil.h</label>
+        <link refid="strUtil_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>de_TextureName.h</label>
+        <link refid="de__TextureName_8h"/>
+      </node>
+      <node id="1">
+        <label>strUtil.h</label>
+        <link refid="strUtil_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="strUtil_8h_1accfadf6f6de95ca248f1ed61e4cb1349" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_empty_string</definition>
+        <argsstring>(const char *str)</argsstring>
+        <name>is_empty_string</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="11" column="7" bodyfile="strUtil.h" bodystart="11" bodyend="11"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ac081444173a2c2fb3d8ac758ae20b6b4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_full_path</definition>
+        <argsstring>(const char *path)</argsstring>
+        <name>is_full_path</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="16" column="6" declfile="strUtil.h" declline="16" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a883b0d41cc4bdccb241721c55e50277a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void split_path</definition>
+        <argsstring>(const char *path, String &amp;location, String &amp;filename)</argsstring>
+        <name>split_path</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>location</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="19" column="6" declfile="strUtil.h" declline="19" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ad813a735f62d3e5a1504e7e5187f7ef2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String make_path_absolute</definition>
+        <argsstring>(const char *path)</argsstring>
+        <name>make_path_absolute</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="22" column="9" declfile="strUtil.h" declline="22" declcolumn="9"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ab61d36ffbbd543d07de9d5577dc90c0f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String make_path_relative</definition>
+        <argsstring>(const char *path, const char *base)</argsstring>
+        <name>make_path_relative</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>base</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="26" column="8" declfile="strUtil.h" declline="26" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a0d198376a0e7f8d142988740e2c8a933" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String make_full_path</definition>
+        <argsstring>(const char *dir, const char *fname)</argsstring>
+        <name>make_full_path</name>
+        <param>
+          <type>const char *</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="30" column="8" declfile="strUtil.h" declline="30" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a935597ae0de8cd68fa12ecc09f11ed36" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool find_in_base</definition>
+        <argsstring>(const char *path, const char *base, String &amp;new_path)</argsstring>
+        <name>find_in_base</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>base</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>new_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="36" column="6" declfile="strUtil.h" declline="36" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1afb664154a266ee41ad4f06274f254993" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String find_in_base_smart</definition>
+        <argsstring>(const char *path, const char *base, const char *def_path)</argsstring>
+        <name>find_in_base_smart</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>base</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>def_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="40" column="8" declfile="strUtil.h" declline="40" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a58b2aa15410be87a92bdbf695cf88147" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void location_from_path</definition>
+        <argsstring>(String &amp;full_path)</argsstring>
+        <name>location_from_path</name>
+        <param>
+          <type>String &amp;</type>
+          <declname>full_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="43" column="6" declfile="strUtil.h" declline="43" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a7577ae2ebfc9e38386d784d3f2cfdce6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_file_ext</definition>
+        <argsstring>(const char *path)</argsstring>
+        <name>get_file_ext</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="46" column="12" declfile="strUtil.h" declline="46" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ae59a078d0fcf392bf667ccdc78b07b3b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * get_file_name</definition>
+        <argsstring>(const char *path)</argsstring>
+        <name>get_file_name</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="49" column="12" declfile="strUtil.h" declline="49" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a68f76683565d8d19624790965a600c57" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String get_file_name_wo_ext</definition>
+        <argsstring>(const char *path)</argsstring>
+        <name>get_file_name_wo_ext</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="52" column="8" declfile="strUtil.h" declline="52" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a12a4d5b8eff371b2ece42f406d2e435d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void append_slash</definition>
+        <argsstring>(String &amp;)</argsstring>
+        <name>append_slash</name>
+        <param>
+          <type>String &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="55" column="6" declfile="strUtil.h" declline="55" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a0ad9f57eb4f874197c820cc9ab1d2ceb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String add_dot_slash</definition>
+        <argsstring>(const char *path)</argsstring>
+        <name>add_dot_slash</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="59" column="8" declfile="strUtil.h" declline="59" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ac1e642df8730294891b8fd072bcf3c87" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String make_good_path</definition>
+        <argsstring>(const char *path)</argsstring>
+        <name>make_good_path</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="62" column="8" declfile="strUtil.h" declline="62" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ad01bacfb23d07b5e1bd1def6ccc7a017" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String unify_path_from_win32_dlg</definition>
+        <argsstring>(const char *path, const char *def_ext)</argsstring>
+        <name>unify_path_from_win32_dlg</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>def_ext</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="65" column="8" declfile="strUtil.h" declline="65" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a522edcb9b0df2849a76925bd26bf5b88" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char *</type>
+        <definition>char * make_ms_slashes</definition>
+        <argsstring>(char *path)</argsstring>
+        <name>make_ms_slashes</name>
+        <param>
+          <type>char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="68" column="7" bodyfile="strUtil.h" bodystart="68" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1acb03cb77d2ed1a2e45ceb33c610c0066" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char *</type>
+        <definition>char * make_slashes</definition>
+        <argsstring>(char *path)</argsstring>
+        <name>make_slashes</name>
+        <param>
+          <type>char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="77" column="7" bodyfile="strUtil.h" bodystart="77" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a7fe441db79805bcf3b80f3ff9a45b6af" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * remove_end_zeros</definition>
+        <argsstring>(char *s)</argsstring>
+        <name>remove_end_zeros</name>
+        <param>
+          <type>char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="88" column="12" declfile="strUtil.h" declline="88" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1adf8af22498cf7723e983c18771eedcfe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String bytes_to_kb</definition>
+        <argsstring>(uint64_t bytes)</argsstring>
+        <name>bytes_to_kb</name>
+        <param>
+          <type>uint64_t</type>
+          <declname>bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="92" column="8" declfile="strUtil.h" declline="92" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a9488508941a9d53a66705037de8b5556" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String bytes_to_mb</definition>
+        <argsstring>(uint64_t bytes)</argsstring>
+        <name>bytes_to_mb</name>
+        <param>
+          <type>uint64_t</type>
+          <declname>bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="95" column="8" declfile="strUtil.h" declline="95" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a12bec0fd42bcbbd6803aaf5bc3279304" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool trail_strcmp</definition>
+        <argsstring>(const char *str, const char *trail_str)</argsstring>
+        <name>trail_strcmp</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>trail_str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="99" column="6" declfile="strUtil.h" declline="99" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1acb263748125e685f0fdfd8af20dbae6f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool trail_stricmp</definition>
+        <argsstring>(const char *str, const char *trail_str)</argsstring>
+        <name>trail_stricmp</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>trail_str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="102" column="6" declfile="strUtil.h" declline="102" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ab0255a2f2c1c3e6d8d98a8af9ea62c0a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void remove_trailing_string</definition>
+        <argsstring>(String &amp;target, const char *trail_str)</argsstring>
+        <name>remove_trailing_string</name>
+        <param>
+          <type>String &amp;</type>
+          <declname>target</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>trail_str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="106" column="6" declfile="strUtil.h" declline="106" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a8498a398a9f836b5c63066d2a74a31eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void trim</definition>
+        <argsstring>(String &amp;str)</argsstring>
+        <name>trim</name>
+        <param>
+          <type>String &amp;</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="109" column="6" declfile="strUtil.h" declline="109" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ab36bf624081e703d6906375657d89a40" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * trim</definition>
+        <argsstring>(char *str)</argsstring>
+        <name>trim</name>
+        <param>
+          <type>char *</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="112" column="12" declfile="strUtil.h" declline="112" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1aca6b49908c7b7ac2300ea58ed6c7b496" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void make_next_numbered_name</definition>
+        <argsstring>(String &amp;name, int num_digits=3)</argsstring>
+        <name>make_next_numbered_name</name>
+        <param>
+          <type>String &amp;</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_digits</declname>
+          <defval>3</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="117" column="6" declfile="strUtil.h" declline="117" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1aae68b6943ba26c6213917c47ad840225" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void make_ident_like_name</definition>
+        <argsstring>(String &amp;name)</argsstring>
+        <name>make_ident_like_name</name>
+        <param>
+          <type>String &amp;</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="120" column="6" declfile="strUtil.h" declline="120" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ae4c6e7cda6a24459b451adc63dea0296" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ensure_trailing_string</definition>
+        <argsstring>(String &amp;target, const char *suffix)</argsstring>
+        <name>ensure_trailing_string</name>
+        <param>
+          <type>String &amp;</type>
+          <declname>target</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>suffix</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="123" column="6" declfile="strUtil.h" declline="123" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a2c188d3bdced11c41541be734512bed1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void cvt_pathname_to_valid_filename</definition>
+        <argsstring>(String &amp;inout_name)</argsstring>
+        <name>cvt_pathname_to_valid_filename</name>
+        <param>
+          <type>String &amp;</type>
+          <declname>inout_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="126" column="6" declfile="strUtil.h" declline="126" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a6181159ade1e49a324236e6657347696" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void string_to_words</definition>
+        <argsstring>(const String &amp;str, Tab&lt; String &gt; &amp;list)</argsstring>
+        <name>string_to_words</name>
+        <param>
+          <type>const String &amp;</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="129" column="6" declfile="strUtil.h" declline="129" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1ab45271f27cd8f9a575a49b92398faa95" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool str_has_wildcard_character</definition>
+        <argsstring>(const char *text)</argsstring>
+        <name>str_has_wildcard_character</name>
+        <param>
+          <type>const char *</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="132" column="6" declfile="strUtil.h" declline="132" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="strUtil_8h_1a6aba28cd3b1ce24b09a7343c2d628023" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool str_matches_wildcard_pattern</definition>
+        <argsstring>(const char *text, const char *pattern)</argsstring>
+        <name>str_matches_wildcard_pattern</name>
+        <param>
+          <type>const char *</type>
+          <declname>text</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>pattern</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="strUtil.h" line="142" column="6" declfile="strUtil.h" declline="142" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="strUtil_8h_1accfadf6f6de95ca248f1ed61e4cb1349" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1accfadf6f6de95ca248f1ed61e4cb1349" kindref="member">is_empty_string</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*str)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!(str<sp/>&amp;&amp;<sp/>*str<sp/>!=<sp/></highlight><highlight class="charliteral">&apos;\0&apos;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//---<sp/>filenames<sp/>&amp;<sp/>paths<sp/>functions</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//<sp/>detects<sp/>full<sp/>path<sp/>like<sp/>D:\projects</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="strUtil_8h_1ac081444173a2c2fb3d8ac758ae20b6b4" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1ac081444173a2c2fb3d8ac758ae20b6b4" kindref="member">is_full_path</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/>splits<sp/>path<sp/>to<sp/>base<sp/>path<sp/>and<sp/>filename</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="strUtil_8h_1a883b0d41cc4bdccb241721c55e50277a" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1a883b0d41cc4bdccb241721c55e50277a" kindref="member">split_path</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path,<sp/>String<sp/>&amp;location,<sp/>String<sp/>&amp;filename);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">//<sp/>makes<sp/>path<sp/>&quot;path&quot;<sp/>absolute</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="strUtil_8h_1ad813a735f62d3e5a1504e7e5187f7ef2" refkind="member"><highlight class="normal">[[nodiscard]]<sp/>String<sp/><ref refid="strUtil_8h_1ad813a735f62d3e5a1504e7e5187f7ef2" kindref="member">make_path_absolute</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>makes<sp/>path<sp/>&quot;path&quot;<sp/>relative<sp/>to<sp/>&quot;base&quot;<sp/>path</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>returns<sp/>relative<sp/>&quot;path&quot;<sp/>or<sp/>full<sp/>&quot;path&quot;<sp/>if<sp/>unable<sp/>to<sp/>make<sp/>&quot;path&quot;<sp/>relative</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="strUtil_8h_1ab61d36ffbbd543d07de9d5577dc90c0f" refkind="member"><highlight class="normal">String<sp/><ref refid="strUtil_8h_1ab61d36ffbbd543d07de9d5577dc90c0f" kindref="member">make_path_relative</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*base);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">//<sp/>makes<sp/>full<sp/>path<sp/>from<sp/>&quot;dir&quot;<sp/>and<sp/>&quot;fname&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="comment">//<sp/>if<sp/>&quot;fname&quot;<sp/>is<sp/>a<sp/>full<sp/>path,<sp/>function<sp/>returns<sp/>&quot;fname&quot;<sp/>only</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="strUtil_8h_1a0d198376a0e7f8d142988740e2c8a933" refkind="member"><highlight class="normal">String<sp/><ref refid="strUtil_8h_1a0d198376a0e7f8d142988740e2c8a933" kindref="member">make_full_path</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*dir,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="comment">//<sp/>tries<sp/>to<sp/>smart<sp/>find<sp/>file<sp/>with<sp/>path<sp/>&quot;path&quot;<sp/>in<sp/>catalog<sp/>&quot;base&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="comment">//<sp/>if<sp/>&quot;path&quot;<sp/>is<sp/>&quot;C:\foo_dir\file.foo&quot;<sp/>and<sp/>&quot;base&quot;<sp/>is<sp/>&quot;D:\base&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="comment">//<sp/>and<sp/>full<sp/>path<sp/>to<sp/>necessary<sp/>file<sp/>is<sp/>&quot;D:\base\foo_dir\file.foo&quot;,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="comment">//&quot;new_path&quot;<sp/>will<sp/>set<sp/>to<sp/>&quot;D:\base\foo_dir\file.foo&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="strUtil_8h_1a935597ae0de8cd68fa12ecc09f11ed36" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1a935597ae0de8cd68fa12ecc09f11ed36" kindref="member">find_in_base</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*base,<sp/>String<sp/>&amp;new_path);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="comment">//<sp/>such<sp/>as<sp/>previous<sp/>&quot;find_in_base&quot;,<sp/>but<sp/>returns<sp/>&quot;path&quot;<sp/>if<sp/>file<sp/>with<sp/>path<sp/>&quot;path&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="comment">//<sp/>exists,<sp/>and<sp/>&quot;def_path&quot;<sp/>if<sp/>unable<sp/>to<sp/>find<sp/>file</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="strUtil_8h_1afb664154a266ee41ad4f06274f254993" refkind="member"><highlight class="normal">String<sp/><ref refid="strUtil_8h_1afb664154a266ee41ad4f06274f254993" kindref="member">find_in_base_smart</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*base,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*def_path);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="comment">//<sp/>trims<sp/>full<sp/>path<sp/>to<sp/>location<sp/>(folder<sp/>with<sp/>trailing<sp/>slash)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="strUtil_8h_1a58b2aa15410be87a92bdbf695cf88147" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1a58b2aa15410be87a92bdbf695cf88147" kindref="member">location_from_path</ref>(String<sp/>&amp;full_path);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="comment">//<sp/>returns<sp/>file<sp/>extension<sp/>(without<sp/>dot)<sp/>or<sp/>NULL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="strUtil_8h_1a7577ae2ebfc9e38386d784d3f2cfdce6" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="strUtil_8h_1a7577ae2ebfc9e38386d784d3f2cfdce6" kindref="member">get_file_ext</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="comment">//<sp/>returns<sp/>file<sp/>name<sp/>from<sp/>path</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="strUtil_8h_1ae59a078d0fcf392bf667ccdc78b07b3b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="strUtil_8h_1ae59a078d0fcf392bf667ccdc78b07b3b" kindref="member">get_file_name</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="comment">//<sp/>returns<sp/>file<sp/>name<sp/>w/o<sp/>extension</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="strUtil_8h_1a68f76683565d8d19624790965a600c57" refkind="member"><highlight class="normal">String<sp/><ref refid="strUtil_8h_1a68f76683565d8d19624790965a600c57" kindref="member">get_file_name_wo_ext</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="comment">//<sp/>append<sp/>slash,<sp/>if<sp/>there<sp/>is<sp/>no<sp/>slash</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="strUtil_8h_1a12a4d5b8eff371b2ece42f406d2e435d" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1a12a4d5b8eff371b2ece42f406d2e435d" kindref="member">append_slash</ref>(String<sp/>&amp;);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="comment">//<sp/>adds<sp/>&quot;./&quot;<sp/>before<sp/>path<sp/>if<sp/>it<sp/>is<sp/>no<sp/>one<sp/>slash<sp/>found<sp/>there</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="comment">//<sp/>in<sp/>other<sp/>case<sp/>function<sp/>returns<sp/>&quot;path&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="strUtil_8h_1a0ad9f57eb4f874197c820cc9ab1d2ceb" refkind="member"><highlight class="normal">String<sp/><ref refid="strUtil_8h_1a0ad9f57eb4f874197c820cc9ab1d2ceb" kindref="member">add_dot_slash</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="comment">//<sp/>makes<sp/>&quot;path&quot;<sp/>&apos;good&apos;<sp/>:)<sp/>simplifies<sp/>and<sp/>make<sp/>path<sp/>local<sp/>(if<sp/>needed)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="strUtil_8h_1ac1e642df8730294891b8fd072bcf3c87" refkind="member"><highlight class="normal">String<sp/><ref refid="strUtil_8h_1ac1e642df8730294891b8fd072bcf3c87" kindref="member">make_good_path</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="comment">//<sp/>converts<sp/>path<sp/>like<sp/>&quot;foo.ltinput.ltinput.dat&quot;<sp/>to<sp/>&quot;foo.ltinput.dat&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="strUtil_8h_1ad01bacfb23d07b5e1bd1def6ccc7a017" refkind="member"><highlight class="normal">String<sp/><ref refid="strUtil_8h_1ad01bacfb23d07b5e1bd1def6ccc7a017" kindref="member">unify_path_from_win32_dlg</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*def_ext);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="comment">//<sp/>converts<sp/>slashes<sp/>(&apos;/&apos;)<sp/>in<sp/>MS-style<sp/>slashes<sp/>(&apos;\&apos;)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68" refid="strUtil_8h_1a522edcb9b0df2849a76925bd26bf5b88" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="strUtil_8h_1a522edcb9b0df2849a76925bd26bf5b88" kindref="member">make_ms_slashes</ref>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*c<sp/>=<sp/>path;<sp/>*c;<sp/>++c)</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*c<sp/>==<sp/></highlight><highlight class="charliteral">&apos;/&apos;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*c<sp/>=<sp/></highlight><highlight class="charliteral">&apos;\\&apos;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>path;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="comment">//<sp/>converts<sp/>MS-style<sp/>slashes<sp/>(&apos;\&apos;)<sp/>in<sp/>true<sp/>slashes<sp/>(&apos;/&apos;)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="strUtil_8h_1acb03cb77d2ed1a2e45ceb33c610c0066" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="strUtil_8h_1acb03cb77d2ed1a2e45ceb33c610c0066" kindref="member">make_slashes</ref>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path)</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*c<sp/>=<sp/>path;<sp/>*c;<sp/>++c)</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*c<sp/>==<sp/></highlight><highlight class="charliteral">&apos;\\&apos;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*c<sp/>=<sp/></highlight><highlight class="charliteral">&apos;/&apos;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>path;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="comment">//<sp/>replaces<sp/>end<sp/>zeros<sp/>in<sp/>strings<sp/>like<sp/>&quot;12.345000&quot;<sp/>NULL<sp/>characters<sp/>(&quot;12.345&quot;)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="comment">//<sp/>returns<sp/>modified<sp/>string<sp/>(argument<sp/>&quot;s&quot;)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="strUtil_8h_1a7fe441db79805bcf3b80f3ff9a45b6af" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="strUtil_8h_1a7fe441db79805bcf3b80f3ff9a45b6af" kindref="member">remove_end_zeros</ref>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="comment">//<sp/>translates<sp/>bytes<sp/>to<sp/>Kb</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="strUtil_8h_1adf8af22498cf7723e983c18771eedcfe" refkind="member"><highlight class="normal">String<sp/><ref refid="strUtil_8h_1adf8af22498cf7723e983c18771eedcfe" kindref="member">bytes_to_kb</ref>(uint64_t<sp/>bytes);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="comment">//<sp/>translates<sp/>bytes<sp/>to<sp/>Mb</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="strUtil_8h_1a9488508941a9d53a66705037de8b5556" refkind="member"><highlight class="normal">String<sp/><ref refid="strUtil_8h_1a9488508941a9d53a66705037de8b5556" kindref="member">bytes_to_mb</ref>(uint64_t<sp/>bytes);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="comment">//<sp/>compares<sp/>the<sp/>end<sp/>of<sp/>str<sp/>with<sp/>trail_str</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="strUtil_8h_1a12bec0fd42bcbbd6803aaf5bc3279304" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1a12bec0fd42bcbbd6803aaf5bc3279304" kindref="member">trail_strcmp</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*str,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*trail_str);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="comment">//<sp/>compares<sp/>the<sp/>end<sp/>of<sp/>str<sp/>with<sp/>trail_str<sp/>(case<sp/>ignored)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102" refid="strUtil_8h_1acb263748125e685f0fdfd8af20dbae6f" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1acb263748125e685f0fdfd8af20dbae6f" kindref="member">trail_stricmp</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*str,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*trail_str);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="comment">//<sp/>compares<sp/>the<sp/>end<sp/>of<sp/>target<sp/>with<sp/>trail_str<sp/>(case<sp/>ignored)<sp/>and<sp/>removes<sp/>that<sp/>trailing<sp/>str</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight><highlight class="comment">//<sp/>in<sp/>target<sp/>if<sp/>it<sp/>coinsides</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="106" refid="strUtil_8h_1ab0255a2f2c1c3e6d8d98a8af9ea62c0a" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1ab0255a2f2c1c3e6d8d98a8af9ea62c0a" kindref="member">remove_trailing_string</ref>(String<sp/>&amp;target,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*trail_str);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="comment">//<sp/>remove<sp/>spaces<sp/>from<sp/>left<sp/>and<sp/>right<sp/>side<sp/>of<sp/>string<sp/>(resizing<sp/>string)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109" refid="strUtil_8h_1a8498a398a9f836b5c63066d2a74a31eb" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1a8498a398a9f836b5c63066d2a74a31eb" kindref="member">trim</ref>(String<sp/>&amp;str);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="comment">//<sp/>fills<sp/>all<sp/>ending<sp/>spaces<sp/>with<sp/>&apos;\0&apos;<sp/>and<sp/>returns<sp/>pointer<sp/>to<sp/>first<sp/>non-space<sp/>char</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112" refid="strUtil_8h_1ab36bf624081e703d6906375657d89a40" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="strUtil_8h_1a8498a398a9f836b5c63066d2a74a31eb" kindref="member">trim</ref>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*str);</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight><highlight class="comment">//---<sp/>some<sp/>functions...<sp/>may<sp/>be,<sp/>useless</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Append<sp/>number<sp/>to<sp/>name<sp/>or<sp/>increment<sp/>existing.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117" refid="strUtil_8h_1aca6b49908c7b7ac2300ea58ed6c7b496" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1aca6b49908c7b7ac2300ea58ed6c7b496" kindref="member">make_next_numbered_name</ref>(String<sp/>&amp;name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num_digits<sp/>=<sp/>3);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Converts<sp/>name<sp/>so<sp/>that<sp/>it<sp/>contains<sp/>only<sp/>A-Z,<sp/>a-z,<sp/>0-9<sp/>or<sp/>_.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120" refid="strUtil_8h_1aae68b6943ba26c6213917c47ad840225" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1aae68b6943ba26c6213917c47ad840225" kindref="member">make_ident_like_name</ref>(String<sp/>&amp;name);</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Append<sp/>suffix<sp/>to<sp/>target,<sp/>unless<sp/>it<sp/>already<sp/>has<sp/>that<sp/>suffix<sp/>(case<sp/>ignored).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="strUtil_8h_1ae4c6e7cda6a24459b451adc63dea0296" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1ae4c6e7cda6a24459b451adc63dea0296" kindref="member">ensure_trailing_string</ref>(String<sp/>&amp;target,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*suffix);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="comment">//<sp/>replaces<sp/>&apos;/&apos;,<sp/>&apos;\&apos;<sp/>and<sp/>&apos;:&apos;<sp/>to<sp/>convert<sp/>pathname<sp/>to<sp/>valid<sp/>filename</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126" refid="strUtil_8h_1a2c188d3bdced11c41541be734512bed1" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1a2c188d3bdced11c41541be734512bed1" kindref="member">cvt_pathname_to_valid_filename</ref>(String<sp/>&amp;inout_name);</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight><highlight class="comment">//<sp/>generate<sp/>words<sp/>list<sp/>by<sp/>string.<sp/>Example:<sp/>in:<sp/>&quot;p1<sp/>p2&quot;,<sp/>out:<sp/>&quot;p1&quot;,<sp/>&quot;p2&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="129" refid="strUtil_8h_1a6181159ade1e49a324236e6657347696" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1a6181159ade1e49a324236e6657347696" kindref="member">string_to_words</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;str,<sp/>Tab&lt;String&gt;<sp/>&amp;list);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Returns<sp/>if<sp/>text<sp/>contains<sp/>a<sp/>wildcard<sp/>character<sp/>(&apos;*&apos;<sp/>or<sp/>&apos;?&apos;).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="132" refid="strUtil_8h_1ab45271f27cd8f9a575a49b92398faa95" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1ab45271f27cd8f9a575a49b92398faa95" kindref="member">str_has_wildcard_character</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*text);</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Returns<sp/>true<sp/>if<sp/>text<sp/>matches<sp/>the<sp/>specified<sp/>wildcard<sp/>pattern.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight><highlight class="comment">//<sp/>*<sp/>matches<sp/>zero<sp/>or<sp/>more<sp/>characters</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight><highlight class="comment">//<sp/>?<sp/>matches<sp/>exactly<sp/>one<sp/>character</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="comment">//<sp/>For<sp/>example:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="comment">//<sp/>test*<sp/>is<sp/>matched<sp/>by<sp/>test<sp/>and<sp/>test_something<sp/>but<sp/>not<sp/>Atest</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="comment">//<sp/>test?<sp/>is<sp/>matched<sp/>by<sp/>test1<sp/>but<sp/>not<sp/>test<sp/>or<sp/>test11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142" refid="strUtil_8h_1a6aba28cd3b1ce24b09a7343c2d628023" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="strUtil_8h_1a6aba28cd3b1ce24b09a7343c2d628023" kindref="member">str_matches_wildcard_pattern</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*text,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*pattern);</highlight></codeline>
+    </programlisting>
+    <location file="strUtil.h"/>
+  </compounddef>
+</doxygen>

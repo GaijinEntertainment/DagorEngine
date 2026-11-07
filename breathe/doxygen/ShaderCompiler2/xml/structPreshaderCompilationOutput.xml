@@ -1,0 +1,275 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPreshaderCompilationOutput" kind="struct" language="C++" prot="public">
+    <compoundname>PreshaderCompilationOutput</compoundname>
+    <includes refid="preshaderCompilation_8h" local="no">preshaderCompilation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPreshaderCompilationOutput_1a0cbcc02586dcf89eeefa3f04966779e9" prot="public" static="no" mutable="no">
+        <type><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref></type>
+        <definition>CompiledPreshader PreshaderCompilationOutput::code</definition>
+        <argsstring></argsstring>
+        <name>code</name>
+        <qualifiedname>PreshaderCompilationOutput::code</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="173" column="21" bodyfile="preshaderCompilation.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>CompiledPreshader</label>
+        <link refid="structCompiledPreshader"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>namedConstTable</edgelabel>
+        </childnode>
+        <childnode refid="28" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="34" relation="usage">
+          <edgelabel>dynStBytecode</edgelabel>
+          <edgelabel>stBlkBytecode</edgelabel>
+        </childnode>
+      </node>
+      <node id="29">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="30" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>HlslRegAllocator</label>
+        <link refid="classHlslRegAllocator"/>
+      </node>
+      <node id="10">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="3">
+        <label>NamedConstBlock</label>
+        <link refid="structNamedConstBlock"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>bufferedConstProps</edgelabel>
+          <edgelabel>pixelProps</edgelabel>
+          <edgelabel>vertexProps</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>mRefinedBlockLayout</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>bufferedConstsRegAllocator</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>slotTextureSuballocators</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>subpassReadWindow</edgelabel>
+        </childnode>
+        <childnode refid="26" relation="usage">
+          <edgelabel>suppBlk</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>NamedConstBlock::RegisterProperties</label>
+        <link refid="structNamedConstBlock_1_1RegisterProperties"/>
+      </node>
+      <node id="7">
+        <label>NamedConstBlock::SlotTextureSubAllocators</label>
+        <link refid="structNamedConstBlock_1_1SlotTextureSubAllocators"/>
+        <childnode refid="6" relation="usage">
+          <edgelabel>psSamplers</edgelabel>
+          <edgelabel>psTex</edgelabel>
+          <edgelabel>vsSamplers</edgelabel>
+          <edgelabel>vsTex</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>PreshaderCompilationOutput</label>
+        <link refid="structPreshaderCompilationOutput"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>code</edgelabel>
+        </childnode>
+      </node>
+      <node id="19">
+        <label>RenderPassGroup</label>
+        <link refid="classRenderPassGroup"/>
+        <childnode refid="10" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="20" relation="usage">
+          <edgelabel>members</edgelabel>
+        </childnode>
+        <childnode refid="22" relation="usage">
+          <edgelabel>colorSlots</edgelabel>
+        </childnode>
+        <childnode refid="24" relation="usage">
+          <edgelabel>reads</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>RenderPassObject</label>
+        <link refid="classRenderPassObject"/>
+        <childnode refid="10" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="11" relation="usage">
+          <edgelabel>targets</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>subpasses</edgelabel>
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>resolves</edgelabel>
+        </childnode>
+        <childnode refid="17" relation="usage">
+          <edgelabel>framebuffers</edgelabel>
+        </childnode>
+      </node>
+      <node id="8">
+        <label>RenderPassOptIn</label>
+        <link refid="structRenderPassOptIn"/>
+        <childnode refid="9" relation="usage">
+          <edgelabel>pass</edgelabel>
+        </childnode>
+        <childnode refid="19" relation="usage">
+          <edgelabel>group</edgelabel>
+        </childnode>
+      </node>
+      <node id="17">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="18" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>SerializableTab&lt; RenderPassGroup::ColorSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="23" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>SerializableTab&lt; RenderPassGroup::Member &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="21" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>SerializableTab&lt; RenderPassGroup::ReadSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="25" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>SerializableTab&lt; RenderPassObject::Resolve &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="16" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>SerializableTab&lt; RenderPassObject::Subpass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="14" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>SerializableTab&lt; RenderPassObject::Target &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="12" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="26">
+        <label>SerializableTab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="27" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>SerializableTab&lt; int32_t &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="35" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>StaticStcodeRoutine</label>
+        <link refid="structStaticStcodeRoutine"/>
+        <childnode refid="30" relation="public-inheritance">
+        </childnode>
+        <childnode refid="32" relation="usage">
+          <edgelabel>constRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="31">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="28">
+        <label>StcodePass</label>
+        <link refid="structStcodePass"/>
+        <childnode refid="29" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="33" relation="usage">
+          <edgelabel>cppStblkcode</edgelabel>
+        </childnode>
+      </node>
+      <node id="32">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="30">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="31" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="32" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="18">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="23">
+        <label>Tab&lt; RenderPassGroup::ColorSlot &gt;</label>
+      </node>
+      <node id="21">
+        <label>Tab&lt; RenderPassGroup::Member &gt;</label>
+      </node>
+      <node id="25">
+        <label>Tab&lt; RenderPassGroup::ReadSlot &gt;</label>
+      </node>
+      <node id="16">
+        <label>Tab&lt; RenderPassObject::Resolve &gt;</label>
+      </node>
+      <node id="14">
+        <label>Tab&lt; RenderPassObject::Subpass &gt;</label>
+      </node>
+      <node id="12">
+        <label>Tab&lt; RenderPassObject::Target &gt;</label>
+      </node>
+      <node id="27">
+        <label>Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+      </node>
+      <node id="35">
+        <label>Tab&lt; int32_t  &gt;</label>
+      </node>
+      <node id="5">
+        <label>shc::RefinedBlockLayout</label>
+        <link refid="classshc_1_1RefinedBlockLayout"/>
+      </node>
+    </collaborationgraph>
+    <location file="preshaderCompilation.h" line="171" column="1" bodyfile="preshaderCompilation.h" bodystart="172" bodyend="174"/>
+    <listofallmembers>
+      <member refid="structPreshaderCompilationOutput_1a0cbcc02586dcf89eeefa3f04966779e9" prot="public" virt="non-virtual"><scope>PreshaderCompilationOutput</scope><name>code</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaced3d_1_1ps" kind="namespace" language="C++">
+    <compoundname>d3d::ps</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaced3d_1_1ps_1a59a2bedfff0ad345336b40c883627905" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * d3d::ps::alloc_mem_block</definition>
+        <argsstring>(bool onion, uint32_t size, uint32_t alignment)</argsstring>
+        <name>alloc_mem_block</name>
+        <qualifiedname>d3d::ps::alloc_mem_block</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>onion</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>alignment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="26" column="6" declfile="dag_platform_ps.h" declline="26" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1ps_1a31d7e346d64548ac792fec73c8369e11" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::free_mem_block</definition>
+        <argsstring>(void *addr)</argsstring>
+        <name>free_mem_block</name>
+        <qualifiedname>d3d::ps::free_mem_block</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="27" column="6" declfile="dag_platform_ps.h" declline="27" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1ps_1ac127a0cc9134b41fea26968ca7afccce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::debug_point</definition>
+        <argsstring>(int id=0)</argsstring>
+        <name>debug_point</name>
+        <qualifiedname>d3d::ps::debug_point</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="31" column="6" declfile="dag_platform_ps.h" declline="31" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1ps_1a45167c2cc7fa3f60d3f8275dbeb09fb4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::set_verbose_mode</definition>
+        <argsstring>(bool ena)</argsstring>
+        <name>set_verbose_mode</name>
+        <qualifiedname>d3d::ps::set_verbose_mode</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>ena</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="32" column="6" declfile="dag_platform_ps.h" declline="32" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1ps_1a533e3ecbf2de216bfb1bd01e7d54622c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::set_fill_gpu_blocks</definition>
+        <argsstring>(bool ena)</argsstring>
+        <name>set_fill_gpu_blocks</name>
+        <qualifiedname>d3d::ps::set_fill_gpu_blocks</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>ena</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="33" column="6" declfile="dag_platform_ps.h" declline="33" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1ps_1ae7791c0f9b976b7c369d2510f8ec35b0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::submit_and_stall</definition>
+        <argsstring>(bool locked_state)</argsstring>
+        <name>submit_and_stall</name>
+        <qualifiedname>d3d::ps::submit_and_stall</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>locked_state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="34" column="6" declfile="dag_platform_ps.h" declline="34" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1ps_1acbe6144594de29450d578b6904a01308" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::submit_background</definition>
+        <argsstring>()</argsstring>
+        <name>submit_background</name>
+        <qualifiedname>d3d::ps::submit_background</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="35" column="6" declfile="dag_platform_ps.h" declline="35" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1ps_1a94dba0f578dffea35d34dd079cfa28bc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::freeze_frame</definition>
+        <argsstring>()</argsstring>
+        <name>freeze_frame</name>
+        <qualifiedname>d3d::ps::freeze_frame</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="36" column="6" declfile="dag_platform_ps.h" declline="36" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_platform_ps.h" line="23" column="1"/>
+  </compounddef>
+</doxygen>

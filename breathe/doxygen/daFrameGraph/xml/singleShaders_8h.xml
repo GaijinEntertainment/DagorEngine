@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="singleShaders_8h" kind="file" language="C++">
+    <compoundname>singleShaders.h</compoundname>
+    <includes refid="registry_8h" local="no">render/daFrameGraph/registry.h</includes>
+    <includes refid="primitive_8h" local="no">render/daFrameGraph/primitive.h</includes>
+    <incdepgraph>
+      <node id="4">
+        <label>render/daFrameGraph/primitive.h</label>
+        <link refid="primitive_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>render/daFrameGraph/registry.h</label>
+        <link refid="registry_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>singleShaders.h</label>
+        <link refid="singleShaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_consts_base.h</label>
+      </node>
+      <node id="3">
+        <label>render/daFrameGraph/detail/baseRegistry.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="registry_8h" kindref="compound">render/daFrameGraph/registry.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="primitive_8h" kindref="compound">render/daFrameGraph/primitive.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="namespacedafg_1ad35bab11f8356648c11e5bd1744c99da" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacedafg_1ad35bab11f8356648c11e5bd1744c99da" kindref="member">postFx</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*shader_name,<sp/><ref refid="classdafg_1_1Registry" kindref="compound">dafg::Registry</ref><sp/>&amp;registry)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>registry.draw(shader_name,<sp/><ref refid="namespacedafg_1a8ec1ed29a6eb6cf5b3868f03071d5a19a14d20da17f6d27fc43c5f311c17eb912" kindref="member">DrawPrimitive::TRIANGLE_LIST</ref>).primitiveCount(1).instanceCount(1);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="singleShaders.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1RefinedBlockRegisterAllocator_1_1Allocation" kind="struct" language="C++" prot="private">
+    <compoundname>shc::RefinedBlockRegisterAllocator::Allocation</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1RefinedBlockRegisterAllocator_1_1Allocation_1a2330a81faace1db9f7ec1ec685754d48" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shc::RefinedBlockRegisterAllocator::Allocation::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::Allocation::slot</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="46" column="14" bodyfile="refinedBlockRegisterAllocator.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1RefinedBlockRegisterAllocator_1_1Allocation_1a1b72ba022be187e876753f7b6e5df785" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shc::RefinedBlockRegisterAllocator::Allocation::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::Allocation::count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="47" column="14" bodyfile="refinedBlockRegisterAllocator.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="refinedBlockRegisterAllocator.h" line="44" column="3" bodyfile="refinedBlockRegisterAllocator.h" bodystart="45" bodyend="48"/>
+    <listofallmembers>
+      <member refid="structshc_1_1RefinedBlockRegisterAllocator_1_1Allocation_1a1b72ba022be187e876753f7b6e5df785" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator::Allocation</scope><name>count</name></member>
+      <member refid="structshc_1_1RefinedBlockRegisterAllocator_1_1Allocation_1a2330a81faace1db9f7ec1ec685754d48" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator::Allocation</scope><name>slot</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

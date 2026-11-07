@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__stencilState_8h" kind="file" language="C++">
+    <compoundname>dag_stencilState.h</compoundname>
+    <includes local="no">stdint.h</includes>
+    <includes local="no">debug/dag_assert.h</includes>
+    <includedby refid="dag__renderStates_8h" local="no">dag_renderStates.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_stencilState.h</label>
+        <link refid="dag__stencilState_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="2">
+        <label>stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_renderStates.h</label>
+        <link refid="dag__renderStates_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_stencilState.h</label>
+        <link refid="dag__stencilState_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structshaders_1_1StencilState" prot="public">shaders::StencilState</innerclass>
+    <innernamespace refid="namespaceshaders">shaders</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshaders" kindref="compound">shaders</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16" refid="structshaders_1_1StencilState" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshaders_1_1StencilState" kindref="compound">StencilState</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18" refid="structshaders_1_1StencilState_1a03d9a9592e48831faf589411d1cd6577" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1StencilState_1a03d9a9592e48831faf589411d1cd6577" kindref="member">func</ref><sp/>:<sp/>4;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="19" refid="structshaders_1_1StencilState_1a7ccb2c57216d18f596f74b93c7604b88" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1StencilState_1a7ccb2c57216d18f596f74b93c7604b88" kindref="member">fail</ref><sp/>:<sp/>4;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="20" refid="structshaders_1_1StencilState_1a35ae58411010e98ecb948ed05e8c41ef" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1StencilState_1a35ae58411010e98ecb948ed05e8c41ef" kindref="member">zFail</ref><sp/>:<sp/>4;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="21" refid="structshaders_1_1StencilState_1acdb648aa661f9b3f4548016e90e4b8bc" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1StencilState_1acdb648aa661f9b3f4548016e90e4b8bc" kindref="member">pass</ref><sp/>:<sp/>4;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="22" refid="structshaders_1_1StencilState_1ad45798945fc88bc4c960cf8078ad2237" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1StencilState_1ad45798945fc88bc4c960cf8078ad2237" kindref="member">readMask</ref><sp/>=<sp/>255;<sp/><sp/></highlight></codeline>
+<codeline lineno="23" refid="structshaders_1_1StencilState_1aa6bf34a71be55e2e03c67f558465e674" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1StencilState_1aa6bf34a71be55e2e03c67f558465e674" kindref="member">writeMask</ref><sp/>=<sp/>255;<sp/></highlight></codeline>
+<codeline lineno="27" refid="structshaders_1_1StencilState_1a5625f8744e7cc42e286c0090b287e6a7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1StencilState_1a5625f8744e7cc42e286c0090b287e6a7" kindref="member">StencilState</ref>()</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1a03d9a9592e48831faf589411d1cd6577" kindref="member">func</ref><sp/>=<sp/>1;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>CMPF_NEVER</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1acdb648aa661f9b3f4548016e90e4b8bc" kindref="member">pass</ref><sp/>=<sp/><ref refid="structshaders_1_1StencilState_1a35ae58411010e98ecb948ed05e8c41ef" kindref="member">zFail</ref><sp/>=<sp/><ref refid="structshaders_1_1StencilState_1a7ccb2c57216d18f596f74b93c7604b88" kindref="member">fail</ref><sp/>=<sp/>1;<sp/></highlight><highlight class="comment">//<sp/>STNCLOP_KEEP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1ad45798945fc88bc4c960cf8078ad2237" kindref="member">readMask</ref><sp/>=<sp/><ref refid="structshaders_1_1StencilState_1aa6bf34a71be55e2e03c67f558465e674" kindref="member">writeMask</ref><sp/>=<sp/>255;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="45" refid="structshaders_1_1StencilState_1aabb718fe7951771e349c95602872862f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1StencilState_1aabb718fe7951771e349c95602872862f" kindref="member">StencilState</ref>(uint8_t<sp/>stencil_func,<sp/>uint8_t<sp/>stencil_fail,<sp/>uint8_t<sp/>z_fail,<sp/>uint8_t<sp/>stencil_z_pass,<sp/>uint8_t<sp/>write_mask,</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>read_mask)</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1a1128b1a854d35c135fff0b8cffcc3fc9" kindref="member">set</ref>(stencil_func,<sp/>stencil_fail,<sp/>z_fail,<sp/>stencil_z_pass,<sp/>write_mask,<sp/>read_mask);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="structshaders_1_1StencilState_1a1128b1a854d35c135fff0b8cffcc3fc9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1StencilState_1a1128b1a854d35c135fff0b8cffcc3fc9" kindref="member">set</ref>(uint8_t<sp/>stencil_func,<sp/>uint8_t<sp/>stencil_fail,<sp/>uint8_t<sp/>z_fail,<sp/>uint8_t<sp/>stencil_z_pass,<sp/>uint8_t<sp/>write_mask,<sp/>uint8_t<sp/>read_mask)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1a03d9a9592e48831faf589411d1cd6577" kindref="member">func</ref><sp/>=<sp/>stencil_func;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1a7ccb2c57216d18f596f74b93c7604b88" kindref="member">fail</ref><sp/>=<sp/>stencil_fail;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1a35ae58411010e98ecb948ed05e8c41ef" kindref="member">zFail</ref><sp/>=<sp/>z_fail;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1acdb648aa661f9b3f4548016e90e4b8bc" kindref="member">pass</ref><sp/>=<sp/>stencil_z_pass;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1aa6bf34a71be55e2e03c67f558465e674" kindref="member">writeMask</ref><sp/>=<sp/>write_mask;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1StencilState_1ad45798945fc88bc4c960cf8078ad2237" kindref="member">readMask</ref><sp/>=<sp/>read_mask;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(<ref refid="structshaders_1_1StencilState_1a03d9a9592e48831faf589411d1cd6577" kindref="member">func</ref><sp/>&amp;&amp;<sp/><ref refid="structshaders_1_1StencilState_1a7ccb2c57216d18f596f74b93c7604b88" kindref="member">fail</ref><sp/>&amp;&amp;<sp/><ref refid="structshaders_1_1StencilState_1a35ae58411010e98ecb948ed05e8c41ef" kindref="member">zFail</ref><sp/>&amp;&amp;<sp/><ref refid="structshaders_1_1StencilState_1acdb648aa661f9b3f4548016e90e4b8bc" kindref="member">pass</ref>);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>shaders</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_stencilState.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,182 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder" kind="struct" language="C++" prot="public">
+    <compoundname>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1a9bd2274e2cdd3711fc1680a27ea9689c" prot="public" static="no" mutable="no">
+        <type><ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref> &amp;</type>
+        <definition>FramebufferLayoutObject&amp; anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::obj</definition>
+        <argsstring></argsstring>
+        <name>obj</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::obj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="268" column="27" bodyfile="framebufferLayout.cpp" bodystart="268" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1afc7b402a5374beb14da4eb03b866c293" prot="public" static="no" mutable="no">
+        <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+        <definition>Parser&amp; anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::parser</definition>
+        <argsstring></argsstring>
+        <name>parser</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::parser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="269" column="10" bodyfile="framebufferLayout.cpp" bodystart="269" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1ac0826b32de54dc452d93a84038c67698" prot="public" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+        <definition>shc::TargetContext&amp; anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="270" column="22" bodyfile="framebufferLayout.cpp" bodystart="270" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1ab02814196d61cf4c048184f5ff080e55" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::ok</definition>
+        <argsstring></argsstring>
+        <name>ok</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::ok</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="271" column="8" bodyfile="framebufferLayout.cpp" bodystart="271" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1ac80fb1a92ce7d5867f99d8ac4763aff3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::evalStat</definition>
+        <argsstring>(framebuffer_layout_stat &amp;s)</argsstring>
+        <name>evalStat</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::evalStat</qualifiedname>
+        <param>
+          <type>framebuffer_layout_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="273" column="8" bodyfile="framebufferLayout.cpp" bodystart="273" bodyend="297"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1ac50232dc9aeab0643412aa4462841fc9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::evalIf</definition>
+        <argsstring>(framebuffer_layout_if &amp;s)</argsstring>
+        <name>evalIf</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder::evalIf</qualifiedname>
+        <param>
+          <type>framebuffer_layout_if &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="299" column="8" bodyfile="framebufferLayout.cpp" bodystart="299" bodyend="305"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>FramebufferLayoutObject</label>
+        <link refid="classFramebufferLayoutObject"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>entries</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>members</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="8">
+        <label>Parser</label>
+        <link refid="structParser"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>SerializableTab&lt; FramebufferLayoutObject::Entry &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>ShaderTerminal::GeneratedParser</label>
+      </node>
+      <node id="5">
+        <label>Tab&lt; FramebufferLayoutObject::Entry &gt;</label>
+      </node>
+      <node id="7">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="1">
+        <label>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder</label>
+        <link refid="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>obj</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>parser</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="10">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="framebufferLayout.cpp" line="266" column="1" bodyfile="framebufferLayout.cpp" bodystart="267" bodyend="306"/>
+    <listofallmembers>
+      <member refid="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1ac0826b32de54dc452d93a84038c67698" prot="public" virt="non-virtual"><scope>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder</scope><name>ctx</name></member>
+      <member refid="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1ac50232dc9aeab0643412aa4462841fc9" prot="public" virt="non-virtual"><scope>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder</scope><name>evalIf</name></member>
+      <member refid="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1ac80fb1a92ce7d5867f99d8ac4763aff3" prot="public" virt="non-virtual"><scope>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder</scope><name>evalStat</name></member>
+      <member refid="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1a9bd2274e2cdd3711fc1680a27ea9689c" prot="public" virt="non-virtual"><scope>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder</scope><name>obj</name></member>
+      <member refid="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1ab02814196d61cf4c048184f5ff080e55" prot="public" virt="non-virtual"><scope>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder</scope><name>ok</name></member>
+      <member refid="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder_1afc7b402a5374beb14da4eb03b866c293" prot="public" virt="non-virtual"><scope>anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder</scope><name>parser</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

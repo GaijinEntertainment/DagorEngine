@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader" kind="class" language="C++" prot="public" final="yes">
+    <compoundname>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">bindump::IReader</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a81aae092cc044ae4a572d878b5757691" prot="private" static="no" mutable="no">
+        <type>const uint8_t *</type>
+        <definition>const uint8_t* anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::mData</definition>
+        <argsstring></argsstring>
+        <name>mData</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::mData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="1215" column="17" bodyfile="linkShaders.cpp" bodystart="1215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a4bc00e551b57ab9e4584ee3ed9c3426b" prot="private" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::mSize</definition>
+        <argsstring></argsstring>
+        <name>mSize</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::mSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="1216" column="12" bodyfile="linkShaders.cpp" bodystart="1216" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a120ac1fed3257bd8adc404b0e79ce1b5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::BoundedMemoryReader</definition>
+        <argsstring>(const uint8_t *data, uint64_t size)</argsstring>
+        <name>BoundedMemoryReader</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::BoundedMemoryReader</qualifiedname>
+        <param>
+          <type>const uint8_t *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="1219" column="3" bodyfile="linkShaders.cpp" bodystart="1219" bodyend="1219"/>
+      </memberdef>
+      <memberdef kind="function" id="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a611e7313b238d21a924a799a200750ed" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::begin</definition>
+        <argsstring>() override</argsstring>
+        <name>begin</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::begin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="1221" column="8" bodyfile="linkShaders.cpp" bodystart="1221" bodyend="1221"/>
+      </memberdef>
+      <memberdef kind="function" id="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a421ef570c6de06364649821b2b79b469" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::end</definition>
+        <argsstring>() override</argsstring>
+        <name>end</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::end</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="1222" column="8" bodyfile="linkShaders.cpp" bodystart="1222" bodyend="1222"/>
+      </memberdef>
+      <memberdef kind="function" id="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a87bbebbe28968a0e759976827d78fc87" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::read</definition>
+        <argsstring>(uint64_t offset, void *dest_data, uint64_t dest_size) override</argsstring>
+        <name>read</name>
+        <qualifiedname>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader::read</qualifiedname>
+        <param>
+          <type>uint64_t</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>dest_data</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>dest_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.cpp" line="1224" column="8" bodyfile="linkShaders.cpp" bodystart="1224" bodyend="1229"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader</label>
+        <link refid="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>bindump::IReader</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader</label>
+        <link refid="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>bindump::IReader</label>
+      </node>
+    </collaborationgraph>
+    <location file="linkShaders.cpp" line="1213" column="1" bodyfile="linkShaders.cpp" bodystart="1214" bodyend="1230"/>
+    <listofallmembers>
+      <member refid="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a611e7313b238d21a924a799a200750ed" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader</scope><name>begin</name></member>
+      <member refid="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a120ac1fed3257bd8adc404b0e79ce1b5" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader</scope><name>BoundedMemoryReader</name></member>
+      <member refid="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a421ef570c6de06364649821b2b79b469" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader</scope><name>end</name></member>
+      <member refid="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a81aae092cc044ae4a572d878b5757691" prot="private" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader</scope><name>mData</name></member>
+      <member refid="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a4bc00e551b57ab9e4584ee3ed9c3426b" prot="private" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader</scope><name>mSize</name></member>
+      <member refid="classanonymous__namespace_02linkShaders_8cpp_03_1_1BoundedMemoryReader_1a87bbebbe28968a0e759976827d78fc87" prot="public" virt="non-virtual"><scope>anonymous_namespace{linkShaders.cpp}::BoundedMemoryReader</scope><name>read</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

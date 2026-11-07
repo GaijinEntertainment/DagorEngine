@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCodeSourceBlocks_1_1Unconditional_1_1Decl" kind="struct" language="C++" prot="public">
+    <compoundname>CodeSourceBlocks::Unconditional::Decl</compoundname>
+    <includes refid="codeBlocks_8h" local="no">codeBlocks.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1Unconditional_1_1Decl_1a31b0dcb5e14d2be3e2d2d1653c828034" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CodeSourceBlocks::Unconditional::Decl::identId</definition>
+        <argsstring></argsstring>
+        <name>identId</name>
+        <qualifiedname>CodeSourceBlocks::Unconditional::Decl::identId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="52" column="11" bodyfile="codeBlocks.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1Unconditional_1_1Decl_1a3e73d6ba6cd3cccb70f6b5e7a0bdcd87" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CodeSourceBlocks::Unconditional::Decl::identValue</definition>
+        <argsstring></argsstring>
+        <name>identValue</name>
+        <qualifiedname>CodeSourceBlocks::Unconditional::Decl::identValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="52" column="19" bodyfile="codeBlocks.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="codeBlocks.h" line="50" column="5" bodyfile="codeBlocks.h" bodystart="51" bodyend="53"/>
+    <listofallmembers>
+      <member refid="structCodeSourceBlocks_1_1Unconditional_1_1Decl_1a31b0dcb5e14d2be3e2d2d1653c828034" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Unconditional::Decl</scope><name>identId</name></member>
+      <member refid="structCodeSourceBlocks_1_1Unconditional_1_1Decl_1a3e73d6ba6cd3cccb70f6b5e7a0bdcd87" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::Unconditional::Decl</scope><name>identValue</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMessages" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderMessages</compoundname>
+    <includes refid="shMessages_8h" local="no">shMessages.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderMessages_1a1ec5397cb59cd024e1d1e052cd2e5151" prot="public" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap ShaderMessages::strings</definition>
+        <argsstring></argsstring>
+        <name>strings</name>
+        <qualifiedname>ShaderMessages::strings</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMessages.h" line="10" column="17" bodyfile="shMessages.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderMessages_1a896c021c2f26db64372a7e0b31165744" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderMessages::addMessage</definition>
+        <argsstring>(const char *message)</argsstring>
+        <name>addMessage</name>
+        <qualifiedname>ShaderMessages::addMessage</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>message</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMessages.h" line="12" column="7" bodyfile="shMessages.h" bodystart="12" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shMessages.h" line="8" column="1" bodyfile="shMessages.h" bodystart="9" bodyend="17"/>
+    <listofallmembers>
+      <member refid="structShaderMessages_1a896c021c2f26db64372a7e0b31165744" prot="public" virt="non-virtual"><scope>ShaderMessages</scope><name>addMessage</name></member>
+      <member refid="structShaderMessages_1a1ec5397cb59cd024e1d1e052cd2e5151" prot="public" virt="non-virtual"><scope>ShaderMessages</scope><name>strings</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

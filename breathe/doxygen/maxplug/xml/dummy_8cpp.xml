@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dummy_8cpp" kind="file" language="C++">
+    <compoundname>dummy.cpp</compoundname>
+    <includes refid="dummyObject_8h" local="yes">dummyObject.h</includes>
+    <incdepgraph>
+      <node id="6">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dummy.cpp</label>
+        <link refid="dummy_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dummyObject.h</label>
+        <link refid="dummyObject_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="9">
+        <label>filesystem</label>
+      </node>
+      <node id="5">
+        <label>iparamm.h</label>
+      </node>
+      <node id="7">
+        <label>math.h</label>
+      </node>
+      <node id="3">
+        <label>max.h</label>
+      </node>
+      <node id="4">
+        <label>simpobj.h</label>
+      </node>
+      <node id="8">
+        <label>string_view</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dummy_8cpp_1a1e2bec9d8124183c23b3cd2485d156bd" prot="public" static="yes" mutable="no">
+        <type><ref refid="classDummyClassDesc" kindref="compound">DummyClassDesc</ref>&lt; LinkDummyTraits &gt;</type>
+        <definition>DummyClassDesc&lt;LinkDummyTraits&gt; LinkDummyCD</definition>
+        <argsstring></argsstring>
+        <name>LinkDummyCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="25" column="23" bodyfile="dummy.cpp" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dummy_8cpp_1a8e31b6fa0d20015c2d397732b9ace88c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ClassDesc *</type>
+        <definition>ClassDesc * GetDummyCD</definition>
+        <argsstring>()</argsstring>
+        <name>GetDummyCD</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="27" column="11" bodyfile="dummy.cpp" bodystart="27" bodyend="27"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dummyObject_8h" kindref="compound">dummyObject.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="keyword">namespace</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">LinkDummyTraits</highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>nameId<sp/>=<sp/><ref refid="resource_8h_1aa32e73e0c5d9728cc09345c5ba1f7857" kindref="member">IDS_Dummy</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>rollupId<sp/>=<sp/><ref refid="resource_8h_1aca680bc99454eea82230b8ff1d2172fe" kindref="member">IDS_DUMMY_ROLL</ref>;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>paramDialogId<sp/>=<sp/><ref refid="resource_8h_1ab4c21b31ea8d5544e0fd69d5d0383d16" kindref="member">IDD_DUMMY_PARAM</ref>;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>SClass_ID<sp/>superClassId()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>GEOMOBJECT_CLASS_ID;<sp/>}</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>Class_ID<sp/>classId()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a3c99c6cc99ba27ff7f869c2901da2733" kindref="member">Dummy_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>axisColor(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>selected,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>axis)</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(selected)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(axis<sp/>==<sp/>0<sp/>?<sp/>1<sp/>:<sp/>0.5f,<sp/>axis<sp/>==<sp/>1<sp/>?<sp/>1<sp/>:<sp/>0.5f,<sp/>axis<sp/>==<sp/>2<sp/>?<sp/>1<sp/>:<sp/>0.5f);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(axis<sp/>==<sp/>0<sp/>?<sp/>0.7f<sp/>:<sp/>0,<sp/>axis<sp/>==<sp/>1<sp/>?<sp/>0.7f<sp/>:<sp/>0,<sp/>axis<sp/>==<sp/>2<sp/>?<sp/>0.7f<sp/>:<sp/>0);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classDummyClassDesc" kindref="compound">DummyClassDesc&lt;LinkDummyTraits&gt;</ref><sp/>LinkDummyCD;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">ClassDesc<sp/>*<ref refid="dummy_8cpp_1a8e31b6fa0d20015c2d397732b9ace88c" kindref="member">GetDummyCD</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;LinkDummyCD;<sp/>}</highlight></codeline>
+    </programlisting>
+    <location file="dummy.cpp"/>
+  </compounddef>
+</doxygen>

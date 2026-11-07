@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagorDummyObject_1_1CreateCallBack" kind="class" language="C++" prot="private">
+    <compoundname>DagorDummyObject::CreateCallBack</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">CreateMouseCallBack</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDagorDummyObject_1_1CreateCallBack_1ab2060df4cd6f58871f2e5d2eed072bed" prot="private" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 DagorDummyObject&lt; Traits &gt;::CreateCallBack::sp1</definition>
+        <argsstring></argsstring>
+        <name>sp1</name>
+        <qualifiedname>DagorDummyObject::CreateCallBack::sp1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="214" column="13" bodyfile="dummyObject.h" bodystart="214" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorDummyObject_1_1CreateCallBack_1af5c1ea18bc55487652d679a7ce515fb9" prot="private" static="no" mutable="no">
+        <type><ref refid="classDagorDummyObject" kindref="compound">DagorDummyObject</ref> *</type>
+        <definition>DagorDummyObject* DagorDummyObject&lt; Traits &gt;::CreateCallBack::ob</definition>
+        <argsstring></argsstring>
+        <name>ob</name>
+        <qualifiedname>DagorDummyObject::CreateCallBack::ob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="215" column="22" bodyfile="dummyObject.h" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorDummyObject_1_1CreateCallBack_1a648f0db07cc6597339ed3e0de6fcbc01" prot="private" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 DagorDummyObject&lt; Traits &gt;::CreateCallBack::p0</definition>
+        <argsstring></argsstring>
+        <name>p0</name>
+        <qualifiedname>DagorDummyObject::CreateCallBack::p0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="216" column="12" bodyfile="dummyObject.h" bodystart="216" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorDummyObject_1_1CreateCallBack_1a5809b53b96b4161b6381e4058612bbe4" prot="private" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 DagorDummyObject&lt; Traits &gt;::CreateCallBack::p1</definition>
+        <argsstring></argsstring>
+        <name>p1</name>
+        <qualifiedname>DagorDummyObject::CreateCallBack::p1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="216" column="15" bodyfile="dummyObject.h" bodystart="216" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagorDummyObject_1_1CreateCallBack_1a795ab8af495b725d4b9708613cf7e0ea" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::CreateCallBack::SetObj</definition>
+        <argsstring>(DagorDummyObject *obj)</argsstring>
+        <name>SetObj</name>
+        <qualifiedname>DagorDummyObject::CreateCallBack::SetObj</qualifiedname>
+        <param>
+          <type><ref refid="classDagorDummyObject" kindref="compound">DagorDummyObject</ref> *</type>
+          <declname>obj</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="219" column="10" bodyfile="dummyObject.h" bodystart="219" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1_1CreateCallBack_1a9853b3cd6cd8ef15ff2d707bf761f7ee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorDummyObject&lt; Traits &gt;::CreateCallBack::proc</definition>
+        <argsstring>(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3 &amp;mat) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>DagorDummyObject::CreateCallBack::proc</qualifiedname>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>point</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="221" column="9" bodyfile="dummyObject.h" bodystart="221" bodyend="264"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CreateMouseCallBack</label>
+      </node>
+      <node id="1">
+        <label>DagorDummyObject&lt; Traits &gt;::CreateCallBack</label>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CreateMouseCallBack</label>
+      </node>
+      <node id="1">
+        <label>DagorDummyObject&lt; Traits &gt;::CreateCallBack</label>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dummyObject.h" line="212" column="3" bodyfile="dummyObject.h" bodystart="213" bodyend="265"/>
+    <listofallmembers>
+      <member refid="classDagorDummyObject_1_1CreateCallBack_1af5c1ea18bc55487652d679a7ce515fb9" prot="private" virt="non-virtual"><scope>DagorDummyObject::CreateCallBack</scope><name>ob</name></member>
+      <member refid="classDagorDummyObject_1_1CreateCallBack_1a648f0db07cc6597339ed3e0de6fcbc01" prot="private" virt="non-virtual"><scope>DagorDummyObject::CreateCallBack</scope><name>p0</name></member>
+      <member refid="classDagorDummyObject_1_1CreateCallBack_1a5809b53b96b4161b6381e4058612bbe4" prot="private" virt="non-virtual"><scope>DagorDummyObject::CreateCallBack</scope><name>p1</name></member>
+      <member refid="classDagorDummyObject_1_1CreateCallBack_1a9853b3cd6cd8ef15ff2d707bf761f7ee" prot="public" virt="non-virtual"><scope>DagorDummyObject::CreateCallBack</scope><name>proc</name></member>
+      <member refid="classDagorDummyObject_1_1CreateCallBack_1a795ab8af495b725d4b9708613cf7e0ea" prot="public" virt="non-virtual"><scope>DagorDummyObject::CreateCallBack</scope><name>SetObj</name></member>
+      <member refid="classDagorDummyObject_1_1CreateCallBack_1ab2060df4cd6f58871f2e5d2eed072bed" prot="private" virt="non-virtual"><scope>DagorDummyObject::CreateCallBack</scope><name>sp1</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

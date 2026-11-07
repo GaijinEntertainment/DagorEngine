@@ -1,0 +1,386 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dummyObject_8h" kind="file" language="C++">
+    <compoundname>dummyObject.h</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">simpobj.h</includes>
+    <includes local="no">iparamm.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <includes refid="resource_8h" local="yes">resource.h</includes>
+    <includedby refid="dummy_8cpp" local="yes">dummy.cpp</includedby>
+    <includedby refid="rbDummy_8cpp" local="yes">rbDummy.cpp</includedby>
+    <incdepgraph>
+      <node id="5">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dummyObject.h</label>
+        <link refid="dummyObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="8">
+        <label>filesystem</label>
+      </node>
+      <node id="4">
+        <label>iparamm.h</label>
+      </node>
+      <node id="6">
+        <label>math.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="3">
+        <label>simpobj.h</label>
+      </node>
+      <node id="7">
+        <label>string_view</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dummy.cpp</label>
+        <link refid="dummy_8cpp"/>
+      </node>
+      <node id="1">
+        <label>dummyObject.h</label>
+        <link refid="dummyObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>rbDummy.cpp</label>
+        <link refid="rbDummy_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classDagorDummyObject" prot="public">DagorDummyObject</innerclass>
+    <innerclass refid="classDagorDummyObject_1_1CreateCallBack" prot="private">DagorDummyObject::CreateCallBack</innerclass>
+    <innerclass refid="classDummyClassDesc" prot="public">DummyClassDesc</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dummyObject_8h_1abb8facb24a0f43b19c20e89fc3654669" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Matrix3</type>
+        <definition>const Matrix3 dummyIdentTm</definition>
+        <argsstring>(1)</argsstring>
+        <name>dummyIdentTm</name>
+        <param>
+          <type>1</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="10" column="22" declfile="dummyObject.h" declline="10" declcolumn="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;simpobj.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;iparamm.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="resource_8h" kindref="compound">resource.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="dummyObject_8h_1abb8facb24a0f43b19c20e89fc3654669" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Matrix3<sp/><ref refid="dummyObject_8h_1abb8facb24a0f43b19c20e89fc3654669" kindref="member">dummyIdentTm</ref>(1);</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Traits<sp/>supplies<sp/>superClassId(),<sp/>classId(),<sp/>nameId,<sp/>rollupId,<sp/>paramDialogId<sp/>and<sp/>axisColor(selected,<sp/>axis)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>Traits&gt;</highlight></codeline>
+<codeline lineno="14" refid="classDagorDummyObject" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classDagorDummyObject" kindref="compound">DagorDummyObject</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>SimpleObject</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="17" refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>IParamMap<sp/>*<ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="20" refid="classDagorDummyObject_1a7183dec7522747d9c6c4b64368642800" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a7183dec7522747d9c6c4b64368642800" kindref="member">crtSize</ref><sp/>=<sp/>20.0f;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="classDagorDummyObject_1a58cf36ebc84a64d7d118ab87ddf69a24" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classDagorDummyObject_1a58cf36ebc84a64d7d118ab87ddf69a24" kindref="member">DagorDummyObject</ref>()</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>ParamBlockDescID<sp/>descVer0[]<sp/>=<sp/>{{TYPE_FLOAT,<sp/>NULL,<sp/>FALSE,<sp/><ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>}};</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="max__cpt_8h_1aa3b7f5b93a662600e293010eae105f1a" kindref="member">MakeRefByID</ref>(FOREVER,<sp/>0,<sp/>CreateParameterBlock(descVer0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(descVer0)<sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(descVer0[0]),<sp/>0));</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>assert(pblock);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>pblock-&gt;SetValue(<ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>,<sp/>0,<sp/><ref refid="classDagorDummyObject_1a7183dec7522747d9c6c4b64368642800" kindref="member">crtSize</ref>);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="classDagorDummyObject_1a57824b060d4e1077747aacf20d54a58b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a57824b060d4e1077747aacf20d54a58b" kindref="member">InvalidateUI</ref>()</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="31"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref>)</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref>-&gt;Invalidate();</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="classDagorDummyObject_1a643b20802e74f8c51c870f478c99c7eb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a643b20802e74f8c51c870f478c99c7eb" kindref="member">set_axis_color</ref>(GraphicsWindow<sp/>*gw,<sp/>INode<sp/>*n,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>a)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>c<sp/>=<sp/>n-&gt;IsFrozen()<sp/>?<sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(0.5f,<sp/>0.5f,<sp/>0.5f)<sp/>:<sp/>Traits::axisColor(n-&gt;Selected(),<sp/>a);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setColor(LINE_COLOR,<sp/>c.x,<sp/>c.y,<sp/>c.z);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classDagorDummyObject_1a9d7173846852fbe3a457c32ce851cfdc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a9d7173846852fbe3a457c32ce851cfdc" kindref="member">Display</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/>ViewExp<sp/>*vpt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="43"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>UpdateMesh(t);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>GraphicsWindow<sp/>*gw<sp/>=<sp/>vpt-&gt;getGW();</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setTransform(<ref refid="dummyObject_8h_1abb8facb24a0f43b19c20e89fc3654669" kindref="member">dummyIdentTm</ref>);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject_1ac0e309d13fb9e28f5b069e6d9a16f0f7" kindref="member">DrawIt</ref>(gw,<sp/>t,<sp/>inode,<sp/>inode-&gt;Selected(),<sp/>flags,<sp/>vpt);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="classDagorDummyObject_1ac9ccaf2a3e6e9fe78492ec9cf210244f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1ac9ccaf2a3e6e9fe78492ec9cf210244f" kindref="member">HitTest</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="datablk_8cpp_1a4239073fad32ad26f06c0b999cf37411" kindref="member">type</ref>,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>crossing,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/>IPoint2<sp/>*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/>ViewExp<sp/>*vpt)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="53"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>HitRegion<sp/>hitRegion;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>GraphicsWindow<sp/>*gw<sp/>=<sp/>vpt-&gt;getGW();</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>MakeHitRegion(hitRegion,<sp/><ref refid="datablk_8cpp_1a4239073fad32ad26f06c0b999cf37411" kindref="member">type</ref>,<sp/>crossing,<sp/>4,<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/>UpdateMesh(t);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>DWORD<sp/>rlim<sp/>=<sp/>gw-&gt;getRndLimits();</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setTransform(<ref refid="dummyObject_8h_1abb8facb24a0f43b19c20e89fc3654669" kindref="member">dummyIdentTm</ref>);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setHitRegion(&amp;hitRegion);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;clearHitCode();</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setRndLimits(rlim<sp/>|<sp/>GW_PICK);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject_1ac0e309d13fb9e28f5b069e6d9a16f0f7" kindref="member">DrawIt</ref>(gw,<sp/>t,<sp/>inode,<sp/>inode-&gt;Selected(),<sp/>flags,<sp/>vpt);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>res<sp/>=<sp/>gw-&gt;checkHitCode();</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setRndLimits(rlim);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>res;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="classDagorDummyObject_1a41bcc6e5ab29f20beba3bed086752aae" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a41bcc6e5ab29f20beba3bed086752aae" kindref="member">DeleteThis</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="74" refid="classDagorDummyObject_1abf23e65557e506ed2987044b9bdcbb92" refkind="member"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classDagorDummyObject_1abf23e65557e506ed2987044b9bdcbb92" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>Traits::superClassId();<sp/>}</highlight></codeline>
+<codeline lineno="75" refid="classDagorDummyObject_1aee134d517284c8e6d0ac8f5bac2dc429" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1aee134d517284c8e6d0ac8f5bac2dc429" kindref="member">IsRenderable</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="76" refid="classDagorDummyObject_1a1922e45eb0de6d9be0bfe813b917f2e4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a1922e45eb0de6d9be0bfe813b917f2e4" kindref="member">UsesWireColor</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="77" refid="classDagorDummyObject_1abd08c1a81c0562048d9d5ac1f0ec8595" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1abd08c1a81c0562048d9d5ac1f0ec8595" kindref="member">DoOwnSelectHilite</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="classDagorDummyObject_1a4537cfe4c3bb2f1817f2373257e54fb5" refkind="member"><highlight class="normal"><sp/><sp/>CreateMouseCallBack<sp/>*<ref refid="classDagorDummyObject_1a4537cfe4c3bb2f1817f2373257e54fb5" kindref="member">GetCreateMouseCallBack</ref>()</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="80"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>CreateCallBack<sp/>createCb;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>createCb.SetObj(</highlight><highlight class="keyword">this</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;createCb;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="classDagorDummyObject_1a1abd2b74e7b4641fa6806e3560cc4b33" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*<ref refid="classDagorDummyObject_1a1abd2b74e7b4641fa6806e3560cc4b33" kindref="member">GetObjectName</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>localized)</highlight><highlight class="keyword"><sp/>const<sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a13c6e41cfa286e2457b6663546c64199" kindref="member">GetString</ref>(Traits::nameId);<sp/>}</highlight></codeline>
+<codeline lineno="87" refid="classDagorDummyObject_1a8d65161264535d0c74626c50ec59bb7b" refkind="member"><highlight class="normal"><sp/><sp/>RefTargetHandle<sp/><ref refid="classDagorDummyObject_1a8d65161264535d0c74626c50ec59bb7b" kindref="member">Clone</ref>(RemapDir<sp/>&amp;remap)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="88"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject" kindref="compound">DagorDummyObject</ref><sp/>*newob<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a58cf36ebc84a64d7d118ab87ddf69a24" kindref="member">DagorDummyObject</ref>();</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>newob-&gt;ReplaceReference(0,<sp/>pblock-&gt;Clone(remap));</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>newob-&gt;ivalid.SetEmpty();</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>BaseClone(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>newob,<sp/>remap);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>newob;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="classDagorDummyObject_1aa0f3679aaeb91cf17eea0a93661857a5" refkind="member"><highlight class="normal"><sp/><sp/>BOOL<sp/><ref refid="classDagorDummyObject_1aa0f3679aaeb91cf17eea0a93661857a5" kindref="member">OKtoDisplay</ref>(TimeValue<sp/>t)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="97"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>r;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(*pblock,<sp/><ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>,<sp/>t,<sp/>r);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>r<sp/>!=<sp/>0.0f;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103" refid="classDagorDummyObject_1ac10aca2520a88fa33a1ccc3846ab6a17" refkind="member"><highlight class="normal"><sp/><sp/>ParamDimension<sp/>*<ref refid="classDagorDummyObject_1ac10aca2520a88fa33a1ccc3846ab6a17" kindref="member">GetParameterDim</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pbIndex)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="104"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(pbIndex)</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>stdWorldDim;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>defaultDim;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112" refid="classDagorDummyObject_1a41a44ecc9728d72d1aa52b5fcb8ab11c" refkind="member"><highlight class="normal"><sp/><sp/>MSTR<sp/><ref refid="classDagorDummyObject_1a41a44ecc9728d72d1aa52b5fcb8ab11c" kindref="member">GetParameterName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pbIndex,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>localized)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>MSTR(_T(</highlight><highlight class="stringliteral">&quot;???&quot;</highlight><highlight class="normal">));<sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114" refid="classDagorDummyObject_1ac6eb0c8da54162d75ef9a2962a2d1da3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1ac6eb0c8da54162d75ef9a2962a2d1da3" kindref="member">BeginEditParams</ref>(IObjParam<sp/>*ip,<sp/>ULONG<sp/>flags,<sp/>Animatable<sp/>*prev)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="115"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>ParamUIDesc<sp/>descParam[]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ParamUIDesc(<ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>,<sp/>EDITTYPE_UNIVERSE,<sp/><ref refid="resource_8h_1a53033aedabefdb4699b484a8cc6e94a6" kindref="member">IDC_SIZ</ref>,<sp/><ref refid="resource_8h_1af594aa86e01e67da252dea6c1550a1cc" kindref="member">IDC_SIZE_S</ref>,<sp/>0.0f,<sp/>9999999999.0f,<sp/>SPIN_AUTOSCALE)};</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>SimpleObject::BeginEditParams(ip,<sp/>flags,<sp/>prev);</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref>)</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref>-&gt;SetParamBlock(pblock);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref><sp/>=<sp/>CreateCPParamMap(descParam,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(descParam)<sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(descParam[0]),<sp/>pblock,<sp/>ip,<sp/><ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MAKEINTRESOURCE(Traits::paramDialogId),<sp/><ref refid="dagor_8h_1a13c6e41cfa286e2457b6663546c64199" kindref="member">GetString</ref>(Traits::rollupId),<sp/>0);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132" refid="classDagorDummyObject_1a532a8022db2c1d5db3bbb9496516cd27" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a532a8022db2c1d5db3bbb9496516cd27" kindref="member">EndEditParams</ref>(IObjParam<sp/>*ip,<sp/>ULONG<sp/>flags,<sp/>Animatable<sp/>*next)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="133"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>SimpleObject::EndEditParams(ip,<sp/>flags,<sp/>next);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(flags<sp/>&amp;<sp/>END_EDIT_REMOVEUI)</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>DestroyCPParamMap(<ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref>);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref><sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(*pblock,<sp/><ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>,<sp/>ip-&gt;GetTime(),<sp/><ref refid="classDagorDummyObject_1a7183dec7522747d9c6c4b64368642800" kindref="member">crtSize</ref>);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145" refid="classDagorDummyObject_1aae17539b7559de7444edb470bcf38f92" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1aae17539b7559de7444edb470bcf38f92" kindref="member">BuildMesh</ref>(TimeValue)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="146"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/>ivalid.SetInfinite();</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>mesh.setNumTVerts(0);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/>mesh.setNumTVFaces(0);</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/>mesh.setNumFaces(0);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/>mesh.setNumVerts(0);</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154" refid="classDagorDummyObject_1ac0e309d13fb9e28f5b069e6d9a16f0f7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1ac0e309d13fb9e28f5b069e6d9a16f0f7" kindref="member">DrawIt</ref>(GraphicsWindow<sp/>*gw,<sp/>TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sel,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/>ViewExp<sp/>*vpt)</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/>DWORD<sp/>rlim<sp/>=<sp/>gw-&gt;getRndLimits();</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setRndLimits((rlim<sp/>|<sp/>GW_WIREFRAME)<sp/>&amp;<sp/>~(GW_ILLUM<sp/>|<sp/>GW_BACKCULL<sp/>|<sp/>GW_FLAT<sp/>|<sp/>GW_SPECULAR));</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/>Matrix3<sp/>tm<sp/>=<sp/>inode-&gt;GetNodeTM(t);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>sz;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(*pblock,<sp/><ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>,<sp/>t,<sp/>sz);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>p0<sp/>=<sp/>tm.GetRow(3);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>v[3]<sp/>=<sp/>{tm.GetRow(0)<sp/>*<sp/>sz,<sp/>tm.GetRow(1)<sp/>*<sp/>sz,<sp/>tm.GetRow(2)<sp/>*<sp/>sz};</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>a<sp/>=<sp/>0;<sp/>a<sp/>&lt;<sp/>3;<sp/>++a)</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;axis<sp/>=<sp/>v[a];</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;s1<sp/>=<sp/>v[a<sp/>==<sp/>0<sp/>?<sp/>1<sp/>:<sp/>0];</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;s2<sp/>=<sp/>v[a<sp/>==<sp/>2<sp/>?<sp/>1<sp/>:<sp/>2];</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[8];</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[0]<sp/>=<sp/>p0<sp/>-<sp/>axis;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1]<sp/>=<sp/>p0<sp/>+<sp/>axis;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[2]<sp/>=<sp/>p0<sp/>+<sp/>axis<sp/>*<sp/>0.5f<sp/>-<sp/>s1<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[3]<sp/>=<sp/>p0<sp/>+<sp/>axis<sp/>*<sp/>0.5f<sp/>+<sp/>s1<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[4]<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1];</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[5]<sp/>=<sp/>p0<sp/>+<sp/>axis<sp/>*<sp/>0.5f<sp/>-<sp/>s2<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[6]<sp/>=<sp/>p0<sp/>+<sp/>axis<sp/>*<sp/>0.5f<sp/>+<sp/>s2<sp/>*<sp/>0.25f;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[7]<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1];</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject_1a643b20802e74f8c51c870f478c99c7eb" kindref="member">set_axis_color</ref>(gw,<sp/>inode,<sp/>a);</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>gw-&gt;polyline(8,<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/>NULL,<sp/>NULL,<sp/>FALSE,<sp/>NULL);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/>gw-&gt;setRndLimits(rlim);</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186" refid="classDagorDummyObject_1a261b22feb2afcce3b609147aab59d9c4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a261b22feb2afcce3b609147aab59d9c4" kindref="member">GetLocalBoundBox</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/>ViewExp<sp/>*vpt,<sp/>Box3<sp/>&amp;box)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="187"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/>UpdateMesh(t);</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>sz;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="dagor_8h_1aa8a8a546472d99c86d9d9c3d17b863fe" kindref="member">pb_get_value</ref>(*pblock,<sp/><ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>,<sp/>t,<sp/>sz);</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/>box.MakeCube(<ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(0,<sp/>0,<sp/>0),<sp/>sz<sp/>*<sp/>2);</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194" refid="classDagorDummyObject_1a5efbb47faddf074d59f4f51b7d09de33" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a5efbb47faddf074d59f4f51b7d09de33" kindref="member">GetWorldBoundBox</ref>(TimeValue<sp/>t,<sp/>INode<sp/>*inode,<sp/>ViewExp<sp/>*vpt,<sp/>Box3<sp/>&amp;box)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="195"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/>UpdateMesh(t);</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/>Matrix3<sp/>mat<sp/>=<sp/>inode-&gt;GetNodeTM(t);</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject_1a261b22feb2afcce3b609147aab59d9c4" kindref="member">GetLocalBoundBox</ref>(t,<sp/>inode,<sp/>vpt,<sp/>box);</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/>box<sp/>=<sp/>box<sp/>*<sp/>mat;</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202" refid="classDagorDummyObject_1a5b45c6765d40f61a63ab65ebb9775e96" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject_1a5b45c6765d40f61a63ab65ebb9775e96" kindref="member">GetDeformBBox</ref>(TimeValue<sp/>t,<sp/>Box3<sp/>&amp;box,<sp/>Matrix3<sp/>*tm<sp/>=<sp/>NULL,<sp/>BOOL<sp/>useSel<sp/>=<sp/>FALSE)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="203"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject_1a261b22feb2afcce3b609147aab59d9c4" kindref="member">GetLocalBoundBox</ref>(t,<sp/>NULL,<sp/>NULL,<sp/>box);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tm)</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>box<sp/>=<sp/>box<sp/>*<sp/>(*tm);</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight></codeline>
+<codeline lineno="209" refid="classDagorDummyObject_1a62986a600e2727883d5e85de1a74c946" refkind="member"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classDagorDummyObject_1a62986a600e2727883d5e85de1a74c946" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>Traits::classId();<sp/>}</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">CreateCallBack<sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>CreateMouseCallBack</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/>IPoint2<sp/>sp1;</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDagorDummyObject" kindref="compound">DagorDummyObject</ref><sp/>*ob;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>p0,<sp/>p1;</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>SetObj(<ref refid="classDagorDummyObject" kindref="compound">DagorDummyObject</ref><sp/>*obj)<sp/>{<sp/>ob<sp/>=<sp/>obj;<sp/>}</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>proc(ViewExp<sp/>*vpt,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>msg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>point,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags,<sp/>IPoint2<sp/>m,<sp/>Matrix3<sp/>&amp;mat)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="222"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(msg<sp/>==<sp/>MOUSE_POINT<sp/>||<sp/>msg<sp/>==<sp/>MOUSE_MOVE)</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(point)</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>0:<sp/></highlight><highlight class="comment">//<sp/>only<sp/>happens<sp/>with<sp/>MOUSE_POINT<sp/>msg</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;suspendSnap<sp/>=<sp/>TRUE;</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sp1<sp/>=<sp/>m;</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>p0<sp/>=<sp/>vpt-&gt;SnapPoint(m,<sp/>m,<sp/>NULL,<sp/>SNAP_IN_PLANE);</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetTrans(p0);</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;GetParamBlock()-&gt;SetValue(<ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>,<sp/>0,<sp/>0.01f);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;<ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref>-&gt;Invalidate();</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>1:</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>p1<sp/>=<sp/>vpt-&gt;SnapPoint(m,<sp/>m,<sp/>NULL,<sp/>SNAP_IN_PLANE);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(p1<sp/>==<sp/>p0)</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(msg<sp/>!=<sp/>MOUSE_POINT)</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;suspendSnap<sp/>=<sp/>FALSE;</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>CREATE_ABORT;</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetRow(1,<sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(0,<sp/>0,<sp/>1));</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetRow(2,<sp/>Normalize(p1<sp/>-<sp/>p0));</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetRow(0,<sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(0,<sp/>0,<sp/>1)<sp/>^<sp/>mat.GetRow(2));</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mat.SetRow(3,<sp/>p0);</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;GetParamBlock()-&gt;SetValue(<ref refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" kindref="member">PB_SIZE</ref>,<sp/>0,<sp/>Length(p1<sp/>-<sp/>p0));</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;<ref refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" kindref="member">pmapParam</ref>-&gt;Invalidate();</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(msg<sp/>==<sp/>MOUSE_POINT)</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ob-&gt;suspendSnap<sp/>=<sp/>FALSE;</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(Length(m<sp/>-<sp/>sp1)<sp/>&lt;<sp/>3)<sp/>?<sp/>CREATE_ABORT<sp/>:<sp/>CREATE_STOP;</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(msg<sp/>==<sp/>MOUSE_ABORT)</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>CREATE_ABORT;</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="266"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"></highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>Traits&gt;</highlight></codeline>
+<codeline lineno="269" refid="classDummyClassDesc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classDummyClassDesc" kindref="compound">DummyClassDesc</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>ClassDesc</highlight></codeline>
+<codeline lineno="270"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="272" refid="classDummyClassDesc_1a325fcf1f10ebd2d5102b615e3ad78b56" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDummyClassDesc_1a325fcf1f10ebd2d5102b615e3ad78b56" kindref="member">IsPublic</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;<sp/>}</highlight></codeline>
+<codeline lineno="273" refid="classDummyClassDesc_1a6b07a15db08248a55f51adb8749d8dc8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classDummyClassDesc_1a6b07a15db08248a55f51adb8749d8dc8" kindref="member">Create</ref>(BOOL<sp/>loading<sp/>=<sp/>FALSE)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="classDagorDummyObject" kindref="compound">DagorDummyObject&lt;Traits&gt;</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="274" refid="classDummyClassDesc_1a3e5657b0285295bf9b94431afcad888b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classDummyClassDesc_1a3e5657b0285295bf9b94431afcad888b" kindref="member">ClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a13c6e41cfa286e2457b6663546c64199" kindref="member">GetString</ref>(Traits::nameId);<sp/>}</highlight></codeline>
+<codeline lineno="275" refid="classDummyClassDesc_1a8fee92130220496ae509e75bfe7e7dc8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>MCHAR<sp/>*<ref refid="classDummyClassDesc_1a8fee92130220496ae509e75bfe7e7dc8" kindref="member">NonLocalizedClassName</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDummyClassDesc_1a3e5657b0285295bf9b94431afcad888b" kindref="member">ClassName</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="276" refid="classDummyClassDesc_1a66d9c636215d70e5b52b322b927aa85e" refkind="member"><highlight class="normal"><sp/><sp/>SClass_ID<sp/><ref refid="classDummyClassDesc_1a66d9c636215d70e5b52b322b927aa85e" kindref="member">SuperClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>Traits::superClassId();<sp/>}</highlight></codeline>
+<codeline lineno="277" refid="classDummyClassDesc_1a3a925cc42571c554c7adb35761f52450" refkind="member"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classDummyClassDesc_1a3a925cc42571c554c7adb35761f52450" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>Traits::classId();<sp/>}</highlight></codeline>
+<codeline lineno="278" refid="classDummyClassDesc_1a5a2fd3c0ea7d128e86764cf8ef535228" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*<ref refid="classDummyClassDesc_1a5a2fd3c0ea7d128e86764cf8ef535228" kindref="member">Category</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a13c6e41cfa286e2457b6663546c64199" kindref="member">GetString</ref>(<ref refid="resource_8h_1a9175aa3ceff18a9c81290c7da42d0ec4" kindref="member">IDS_DAGOR_CAT</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="279"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dummyObject.h"/>
+  </compounddef>
+</doxygen>

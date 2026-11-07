@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassLinkTables" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassLinkTables</compoundname>
+    <includes refid="linkShaders_8h" local="no">linkShaders.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassLinkTables_1a75344dd2f0eafe78672cf5535f5585f2" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; RenderPassLinkTables::passes</definition>
+        <argsstring></argsstring>
+        <name>passes</name>
+        <qualifiedname>RenderPassLinkTables::passes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="108" column="7" bodyfile="linkShaders.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassLinkTables_1a99c0dc3f9268043aa9b438fd36d40b15" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; RenderPassLinkTables::groups</definition>
+        <argsstring></argsstring>
+        <name>groups</name>
+        <qualifiedname>RenderPassLinkTables::groups</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="109" column="7" bodyfile="linkShaders.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="linkShaders.h" line="106" column="1" bodyfile="linkShaders.h" bodystart="107" bodyend="110"/>
+    <listofallmembers>
+      <member refid="structRenderPassLinkTables_1a99c0dc3f9268043aa9b438fd36d40b15" prot="public" virt="non-virtual"><scope>RenderPassLinkTables</scope><name>groups</name></member>
+      <member refid="structRenderPassLinkTables_1a75344dd2f0eafe78672cf5535f5585f2" prot="public" virt="non-virtual"><scope>RenderPassLinkTables</scope><name>passes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

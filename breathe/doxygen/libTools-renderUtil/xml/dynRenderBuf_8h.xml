@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dynRenderBuf_8h" kind="file" language="C++">
+    <compoundname>dynRenderBuf.h</compoundname>
+    <includes local="no">shaders/dag_shaders.h</includes>
+    <includes local="no">math/dag_Point3.h</includes>
+    <includes local="no">math/dag_Point2.h</includes>
+    <includes local="no">math/dag_e3dColor.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dynRenderBuf.h</label>
+        <link refid="dynRenderBuf_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="3">
+        <label>math/dag_Point3.h</label>
+      </node>
+      <node id="5">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="2">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classDynRenderBuffer" prot="public">DynRenderBuffer</innerclass>
+    <innerclass refid="structDynRenderBuffer_1_1Vertex" prot="public">DynRenderBuffer::Vertex</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaders.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_Point3.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_Point2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_e3dColor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>forward<sp/>declarations<sp/>for<sp/>external<sp/>classes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DynamicShadersBuffer;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classDynRenderBuffer" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classDynRenderBuffer" kindref="compound">DynRenderBuffer</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24" refid="structDynRenderBuffer_1_1Vertex" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDynRenderBuffer_1_1Vertex" kindref="compound">Vertex</ref></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="26" refid="structDynRenderBuffer_1_1Vertex_1a6622ce7e12633ed4e25739b37490aad0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point3<sp/><ref refid="structDynRenderBuffer_1_1Vertex_1a6622ce7e12633ed4e25739b37490aad0" kindref="member">pos</ref>;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="27" refid="structDynRenderBuffer_1_1Vertex_1ad422a1dee49850cd77f98e92e95c43c2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>E3DCOLOR<sp/><ref refid="structDynRenderBuffer_1_1Vertex_1ad422a1dee49850cd77f98e92e95c43c2" kindref="member">color</ref>;<sp/></highlight></codeline>
+<codeline lineno="28" refid="structDynRenderBuffer_1_1Vertex_1a090b53e8f616bba0bbc9c80d12d372b9" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>Point2<sp/><ref refid="structDynRenderBuffer_1_1Vertex_1a090b53e8f616bba0bbc9c80d12d372b9" kindref="member">tc</ref>;<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>SafetyBounds</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/>SAFETY_MAX_BUFFER_VERTEX<sp/>=<sp/>0xF0FF,</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>SAFETY_MAX_BUFFER_FACES<sp/>=<sp/>SAFETY_MAX_BUFFER_VERTEX,</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="classDynRenderBuffer_1aafbe66e2a77e2212ea09bb506751ccc9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classDynRenderBuffer_1aafbe66e2a77e2212ea09bb506751ccc9" kindref="member">DynRenderBuffer</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*class_name<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;editor_helper&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classDynRenderBuffer_1ae3b22f3f1a04d04166a42a32887c68b6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classDynRenderBuffer_1ae3b22f3f1a04d04166a42a32887c68b6" kindref="member">~DynRenderBuffer</ref>();</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="classDynRenderBuffer_1a6a13606b9c85dbbb5d1d5a82f0c8a85c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a6a13606b9c85dbbb5d1d5a82f0c8a85c" kindref="member">getVertexCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>edVerts.size();<sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="classDynRenderBuffer_1a0cd272fcefd60f648608c7e1067b10ee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a0cd272fcefd60f648608c7e1067b10ee" kindref="member">getIndexCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>edFaces.size();<sp/>}</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*******************************************************</highlight></codeline>
+<codeline lineno="54"><highlight class="comment"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classDynRenderBuffer_1a71f15c53c55126010b65763ff472eb6a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a71f15c53c55126010b65763ff472eb6a" kindref="member">clearBuf</ref>();</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="classDynRenderBuffer_1a744dd7c269a872d21c637bd0954cdb98" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a744dd7c269a872d21c637bd0954cdb98" kindref="member">drawCustom</ref>(dag::ConstSpan&lt;Vertex&gt;<sp/>vertex_tab,<sp/>dag::ConstSpan&lt;int&gt;<sp/>face_tab);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="classDynRenderBuffer_1a1da9df1c6e374999a0301ef90b03a2f7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structDynRenderBuffer_1_1Vertex" kindref="compound">Vertex</ref><sp/>*<ref refid="classDynRenderBuffer_1a1da9df1c6e374999a0301ef90b03a2f7" kindref="member">drawNetSurface</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>h);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="classDynRenderBuffer_1a5e59edcfe33fbf07188e437d00d2cd0f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a5e59edcfe33fbf07188e437d00d2cd0f" kindref="member">drawQuad</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p0,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p1,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p2,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p3,<sp/>E3DCOLOR<sp/>color,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>u<sp/>=<sp/>1,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v<sp/>=<sp/>1);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="classDynRenderBuffer_1abbd2775baf08c1348a58a601499ae092" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1abbd2775baf08c1348a58a601499ae092" kindref="member">drawLine</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;from,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;to,<sp/>real<sp/>width,<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85" refid="classDynRenderBuffer_1a1f4ad17530fe37f5405858408302480c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a1f4ad17530fe37f5405858408302480c" kindref="member">drawSquare</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p,<sp/>real<sp/>radius,<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="classDynRenderBuffer_1a2d2e264f9f50f4608f91b1bc57e3e7c1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a2d2e264f9f50f4608f91b1bc57e3e7c1" kindref="member">drawDebugSphere</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;pos,<sp/>real<sp/>radius,<sp/>real<sp/>width,<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//???</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>drawWireSphere(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;pos,<sp/>real<sp/>radius,<sp/>real<sp/>width,<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//???</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>drawSphere(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;tm,<sp/>E3DCOLOR<sp/>color,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>segs<sp/>=<sp/>-1);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="classDynRenderBuffer_1ad05d397609a53d5afcf4e419e041e5a3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1ad05d397609a53d5afcf4e419e041e5a3" kindref="member">drawBox</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;tm,<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//???</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>drawWireBox(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;tm,<sp/>real<sp/>width,<sp/>E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//*******************************************************</highlight></codeline>
+<codeline lineno="116"><highlight class="comment"></highlight></codeline>
+<codeline lineno="117"></codeline>
+<codeline lineno="120" refid="classDynRenderBuffer_1a9c49c875157585af7100095d5595a783" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a9c49c875157585af7100095d5595a783" kindref="member">flushToBuffer</ref>(TEXTUREID<sp/>tid)<sp/>{<sp/><ref refid="classDynRenderBuffer_1a594ef18a43799118cea733823f10b5da" kindref="member">addFaces</ref>(tid);<sp/>}</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="classDynRenderBuffer_1a594ef18a43799118cea733823f10b5da" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a594ef18a43799118cea733823f10b5da" kindref="member">addFaces</ref>(TEXTUREID<sp/>tid);</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129" refid="classDynRenderBuffer_1a1a7369279f36b5218a56ffc4f602f61e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDynRenderBuffer_1a1a7369279f36b5218a56ffc4f602f61e" kindref="member">flush</ref>();</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addVert(<ref refid="structDynRenderBuffer_1_1Vertex" kindref="compound">Vertex</ref><sp/>*v,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>numv)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>append_items(edVerts,<sp/>numv,<sp/>v);<sp/>}</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>addInd(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*i,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>numi,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sv)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>idx<sp/>=<sp/>append_items(edFaces,<sp/>numi);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*d<sp/>=<sp/>edFaces.data()<sp/>+<sp/>idx;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(;<sp/>numi<sp/>&gt;<sp/>0;<sp/>i++,<sp/>d++,<sp/>numi--)</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*d<sp/>=<sp/>*i<sp/>+<sp/>sv;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>Tab&lt;Vertex&gt;<sp/>VertexTab;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>Tab&lt;int&gt;<sp/>FaceTab;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>DynamicShadersBuffer<sp/>*edBuffer;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>CompiledShaderChannelId<sp/>channels[3];</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/>Ptr&lt;ShaderMaterial&gt;<sp/>edMat;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>Ptr&lt;ShaderElement&gt;<sp/>edShader;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texVarId;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texSamplerstateVarId;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>VertexTab<sp/>edVerts;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>FaceTab<sp/>edFaces;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>vertexMaxCount;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>faceMaxCount;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>createBuffer(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_verts,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_faces);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dynRenderBuf.h"/>
+  </compounddef>
+</doxygen>

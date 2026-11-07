@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassGroup_1_1ColorSlot" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassGroup::ColorSlot</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassGroup_1_1ColorSlot_1a82d89647454ea17924dc27b8e004ef9b" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref></type>
+        <definition>RenderPassNameId RenderPassGroup::ColorSlot::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>RenderPassGroup::ColorSlot::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="130" column="22" bodyfile="renderPassObject.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassGroup_1_1ColorSlot_1a2ac3a0f6f1798eec61e31819a1b3c115" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassGroup::ColorSlot::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>RenderPassGroup::ColorSlot::slot</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="131" column="9" bodyfile="renderPassObject.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassGroup_1_1ColorSlot_1a84664a5f83aac9850bc228a1f2261cc2" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassGroup::ColorSlot::inAllMembers</definition>
+        <argsstring></argsstring>
+        <name>inAllMembers</name>
+        <qualifiedname>RenderPassGroup::ColorSlot::inAllMembers</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="132" column="10" bodyfile="renderPassObject.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="1">
+        <label>RenderPassGroup::ColorSlot</label>
+        <link refid="structRenderPassGroup_1_1ColorSlot"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.h" line="128" column="3" bodyfile="renderPassObject.h" bodystart="129" bodyend="133"/>
+    <listofallmembers>
+      <member refid="structRenderPassGroup_1_1ColorSlot_1a84664a5f83aac9850bc228a1f2261cc2" prot="public" virt="non-virtual"><scope>RenderPassGroup::ColorSlot</scope><name>inAllMembers</name></member>
+      <member refid="structRenderPassGroup_1_1ColorSlot_1a82d89647454ea17924dc27b8e004ef9b" prot="public" virt="non-virtual"><scope>RenderPassGroup::ColorSlot</scope><name>name</name></member>
+      <member refid="structRenderPassGroup_1_1ColorSlot_1a2ac3a0f6f1798eec61e31819a1b3c115" prot="public" virt="non-virtual"><scope>RenderPassGroup::ColorSlot</scope><name>slot</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

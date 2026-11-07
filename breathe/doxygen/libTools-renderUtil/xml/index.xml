@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygenindex xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="index.xsd" version="1.9.7" xml:lang="en-US">
+  <compound refid="classDynRenderBuffer" kind="class"><name>DynRenderBuffer</name>
+    <member refid="classDynRenderBuffer_1ae0b25206cecc8348b8fe20a4b880904f" kind="typedef"><name>VertexTab</name></member>
+    <member refid="classDynRenderBuffer_1a53e68086ba4d92c3a8efdf324bf8ab58" kind="typedef"><name>FaceTab</name></member>
+    <member refid="classDynRenderBuffer_1aee549e685bc46dc59897fa1f3a8d7418" kind="variable"><name>edBuffer</name></member>
+    <member refid="classDynRenderBuffer_1a3c9d08ef22b1948557719e930f181c53" kind="variable"><name>channels</name></member>
+    <member refid="classDynRenderBuffer_1ab8cead55bc2746a029e7facc3555817f" kind="variable"><name>edMat</name></member>
+    <member refid="classDynRenderBuffer_1a31466cf92bcd967bf3ed0a219a5199d5" kind="variable"><name>edShader</name></member>
+    <member refid="classDynRenderBuffer_1a6408062726a977c665eac004278e9d06" kind="variable"><name>texVarId</name></member>
+    <member refid="classDynRenderBuffer_1a55fe9b1745f8caecd0fae532a36b532f" kind="variable"><name>texSamplerstateVarId</name></member>
+    <member refid="classDynRenderBuffer_1add403a026a7ccb1f02ef9c735567ce88" kind="variable"><name>edVerts</name></member>
+    <member refid="classDynRenderBuffer_1a15069e46e9e58a4991c06f65cc4ef43c" kind="variable"><name>edFaces</name></member>
+    <member refid="classDynRenderBuffer_1a6939f7710ee787874c73fc5261e028f0" kind="variable"><name>vertexMaxCount</name></member>
+    <member refid="classDynRenderBuffer_1a03a1cbc381087aa4e526c3cbd766c449" kind="variable"><name>faceMaxCount</name></member>
+    <member refid="classDynRenderBuffer_1a9c49c875157585af7100095d5595a783" kind="function"><name>flushToBuffer</name></member>
+    <member refid="classDynRenderBuffer_1a594ef18a43799118cea733823f10b5da" kind="function"><name>addFaces</name></member>
+    <member refid="classDynRenderBuffer_1a1a7369279f36b5218a56ffc4f602f61e" kind="function"><name>flush</name></member>
+    <member refid="classDynRenderBuffer_1aa6bd7bdabb6e9093a9c74d7dac4389aa" kind="function"><name>addVert</name></member>
+    <member refid="classDynRenderBuffer_1ad19410a722ccd54a996c6b9ffc4f412f" kind="function"><name>addInd</name></member>
+    <member refid="classDynRenderBuffer_1a75b927add07e3e7d45c637a5f9a7035c" kind="function"><name>createBuffer</name></member>
+    <member refid="classDynRenderBuffer_1a71f15c53c55126010b65763ff472eb6a" kind="function"><name>clearBuf</name></member>
+    <member refid="classDynRenderBuffer_1a744dd7c269a872d21c637bd0954cdb98" kind="function"><name>drawCustom</name></member>
+    <member refid="classDynRenderBuffer_1a1da9df1c6e374999a0301ef90b03a2f7" kind="function"><name>drawNetSurface</name></member>
+    <member refid="classDynRenderBuffer_1a5e59edcfe33fbf07188e437d00d2cd0f" kind="function"><name>drawQuad</name></member>
+    <member refid="classDynRenderBuffer_1abbd2775baf08c1348a58a601499ae092" kind="function"><name>drawLine</name></member>
+    <member refid="classDynRenderBuffer_1a1f4ad17530fe37f5405858408302480c" kind="function"><name>drawSquare</name></member>
+    <member refid="classDynRenderBuffer_1a2d2e264f9f50f4608f91b1bc57e3e7c1" kind="function"><name>drawDebugSphere</name></member>
+    <member refid="classDynRenderBuffer_1a71be935d43c313bf9b430b4567d51dff" kind="function"><name>drawWireSphere</name></member>
+    <member refid="classDynRenderBuffer_1a54869d2b4a7e4ea545d42bb2763f271d" kind="function"><name>drawSphere</name></member>
+    <member refid="classDynRenderBuffer_1ad05d397609a53d5afcf4e419e041e5a3" kind="function"><name>drawBox</name></member>
+    <member refid="classDynRenderBuffer_1a400b1044499a611f0ab4b4e61ef4ff13" kind="function"><name>drawWireBox</name></member>
+    <member refid="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350" kind="enum"><name>SafetyBounds</name></member>
+    <member refid="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350ab777b2e0a13f647f211e5092f3082c2d" kind="enumvalue"><name>SAFETY_MAX_BUFFER_VERTEX</name></member>
+    <member refid="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350a2962bfc5d7b5b930fcbaab4dad626183" kind="enumvalue"><name>SAFETY_MAX_BUFFER_FACES</name></member>
+    <member refid="classDynRenderBuffer_1aafbe66e2a77e2212ea09bb506751ccc9" kind="function"><name>DynRenderBuffer</name></member>
+    <member refid="classDynRenderBuffer_1ae3b22f3f1a04d04166a42a32887c68b6" kind="function"><name>~DynRenderBuffer</name></member>
+    <member refid="classDynRenderBuffer_1a6a13606b9c85dbbb5d1d5a82f0c8a85c" kind="function"><name>getVertexCount</name></member>
+    <member refid="classDynRenderBuffer_1a0cd272fcefd60f648608c7e1067b10ee" kind="function"><name>getIndexCount</name></member>
+  </compound>
+  <compound refid="structDynRenderBuffer_1_1Vertex" kind="struct"><name>DynRenderBuffer::Vertex</name>
+    <member refid="structDynRenderBuffer_1_1Vertex_1a6622ce7e12633ed4e25739b37490aad0" kind="variable"><name>pos</name></member>
+    <member refid="structDynRenderBuffer_1_1Vertex_1ad422a1dee49850cd77f98e92e95c43c2" kind="variable"><name>color</name></member>
+    <member refid="structDynRenderBuffer_1_1Vertex_1a090b53e8f616bba0bbc9c80d12d372b9" kind="variable"><name>tc</name></member>
+  </compound>
+  <compound refid="dynRenderBuf_8h" kind="file"><name>dynRenderBuf.h</name>
+  </compound>
+</doxygenindex>

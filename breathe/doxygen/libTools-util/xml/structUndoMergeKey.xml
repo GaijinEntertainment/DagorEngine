@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structUndoMergeKey" kind="struct" language="C++" prot="public">
+    <compoundname>UndoMergeKey</compoundname>
+    <includes refid="undo_8h" local="no">undo.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structUndoMergeKey_1a9e03dcb159de67d49060c8504ef9577e" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned UndoMergeKey::kind</definition>
+        <argsstring></argsstring>
+        <name>kind</name>
+        <qualifiedname>UndoMergeKey::kind</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="16" column="12" bodyfile="undo.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structUndoMergeKey_1a152899d81c6c03ca31bf631daa46432b" prot="public" static="no" mutable="no">
+        <type>const void *</type>
+        <definition>const void* UndoMergeKey::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>UndoMergeKey::target</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="17" column="14" bodyfile="undo.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structUndoMergeKey_1a7e3f4bf8ac510fcf6b3b76d8f52be390" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool UndoMergeKey::is_mergeable</definition>
+        <argsstring>() const</argsstring>
+        <name>is_mergeable</name>
+        <qualifiedname>UndoMergeKey::is_mergeable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="19" column="8" bodyfile="undo.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="structUndoMergeKey_1a4ba00f011e8fd9b8b7f2060796a22be1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool UndoMergeKey::operator==</definition>
+        <argsstring>(const UndoMergeKey &amp;k) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>UndoMergeKey::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref> &amp;</type>
+          <declname>k</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="20" column="8" bodyfile="undo.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="undo.h" line="14" column="1" bodyfile="undo.h" bodystart="15" bodyend="21"/>
+    <listofallmembers>
+      <member refid="structUndoMergeKey_1a7e3f4bf8ac510fcf6b3b76d8f52be390" prot="public" virt="non-virtual"><scope>UndoMergeKey</scope><name>is_mergeable</name></member>
+      <member refid="structUndoMergeKey_1a9e03dcb159de67d49060c8504ef9577e" prot="public" virt="non-virtual"><scope>UndoMergeKey</scope><name>kind</name></member>
+      <member refid="structUndoMergeKey_1a4ba00f011e8fd9b8b7f2060796a22be1" prot="public" virt="non-virtual"><scope>UndoMergeKey</scope><name>operator==</name></member>
+      <member refid="structUndoMergeKey_1a152899d81c6c03ca31bf631daa46432b" prot="public" virt="non-virtual"><scope>UndoMergeKey</scope><name>target</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

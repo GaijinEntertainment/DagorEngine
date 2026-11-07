@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderConstants_8h" kind="file" language="C++">
+    <compoundname>dag_shaderConstants.h</compoundname>
+    <includes local="no">debug/dag_assert.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includes refid="dag__multi__interface_8h" local="no">drv/3d/dag_multi_interface.h</includes>
+    <incdepgraph>
+      <node id="4">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_multi_interface.h</label>
+        <link refid="dag__multi__interface_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_shaderConstants.h</label>
+        <link refid="dag__shaderConstants_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="5">
+        <label>cstdint</label>
+      </node>
+      <node id="2">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespace__MULTI__INTERFACE">_MULTI_INTERFACE</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__consts_8h" kindref="compound">drv/3d/dag_consts.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__multi__interface_8h" kindref="compound">drv/3d/dag_multi_interface.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref><sp/><ref refid="namespace__MULTI__INTERFACE" kindref="compound">_MULTI_INTERFACE</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="27" refid="namespace__MULTI__INTERFACE_1acfc02bc98c5693f67803cc7c978a9e14" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1acfc02bc98c5693f67803cc7c978a9e14" kindref="member">set_const</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>stage,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reg_base,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_regs);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="namespace__MULTI__INTERFACE_1a741f69fac0e23982a6822e75bb59878f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a741f69fac0e23982a6822e75bb59878f" kindref="member">set_vs_const</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reg_base,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_regs)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1acfc02bc98c5693f67803cc7c978a9e14" kindref="member">set_const</ref>(<ref refid="dag__consts_8h_1a22fa67f5720e9bfbd075bd088285c531aed161417d5593d0e3d8635337ae6b0fb" kindref="member">STAGE_VS</ref>,<sp/>reg_base,<sp/>data,<sp/>num_regs);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="namespace__MULTI__INTERFACE_1acce57561ab5b7020085c7295daaf7985" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1acce57561ab5b7020085c7295daaf7985" kindref="member">set_ps_const</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reg_base,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_regs)</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1acfc02bc98c5693f67803cc7c978a9e14" kindref="member">set_const</ref>(<ref refid="dag__consts_8h_1a22fa67f5720e9bfbd075bd088285c531a0e39054827c2b7a4f0a0296a48e674af" kindref="member">STAGE_PS</ref>,<sp/>reg_base,<sp/>data,<sp/>num_regs);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="namespace__MULTI__INTERFACE_1a68705935a9f2ddd9f12984e4f243d2fe" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a68705935a9f2ddd9f12984e4f243d2fe" kindref="member">set_cs_const</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reg_base,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_regs)</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1acfc02bc98c5693f67803cc7c978a9e14" kindref="member">set_const</ref>(<ref refid="dag__consts_8h_1a22fa67f5720e9bfbd075bd088285c531a01985f1cf73a9f46e9a937a814612618" kindref="member">STAGE_CS</ref>,<sp/>reg_base,<sp/>data,<sp/>num_regs);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="namespace__MULTI__INTERFACE_1ad34be1971923ead60fffaa03faa2fa86" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ad34be1971923ead60fffaa03faa2fa86" kindref="member">set_vs_const1</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reg,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v0,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v1,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v2,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v3)</highlight></codeline>
+<codeline lineno="83"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v[4]<sp/>=<sp/>{v0,<sp/>v1,<sp/>v2,<sp/>v3};</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a741f69fac0e23982a6822e75bb59878f" kindref="member">set_vs_const</ref>(reg,<sp/>v,<sp/>1);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="namespace__MULTI__INTERFACE_1a8643f3bda52d80301e740a3fb158e13f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a8643f3bda52d80301e740a3fb158e13f" kindref="member">set_ps_const1</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reg,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v0,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v1,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v2,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v3)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>v[4]<sp/>=<sp/>{v0,<sp/>v1,<sp/>v2,<sp/>v3};</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1acce57561ab5b7020085c7295daaf7985" kindref="member">set_ps_const</ref>(reg,<sp/>v,<sp/>1);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="namespace__MULTI__INTERFACE_1a095fffc6229ed1c36c4fd6855b5013cf" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a095fffc6229ed1c36c4fd6855b5013cf" kindref="member">set_immediate_const</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>stage,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_words);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138" refid="namespace__MULTI__INTERFACE_1a23a570c7530b5ba27ed59d402fd7eb8e" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a23a570c7530b5ba27ed59d402fd7eb8e" kindref="member">set_const_buffer</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>stage,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>slot,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_regs);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152" refid="namespace__MULTI__INTERFACE_1a1d4b29408e5b46421131eaa48b211207" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a23a570c7530b5ba27ed59d402fd7eb8e" kindref="member">set_const_buffer</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>stage,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>slot,<sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*buffer);</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165" refid="namespace__MULTI__INTERFACE_1ab79c2316e00cd3ce8087b8734c04129a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ab79c2316e00cd3ce8087b8734c04129a" kindref="member">set_cb0_data</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>stage,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_regs)</highlight></codeline>
+<codeline lineno="166"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_C1<sp/>|<sp/>_TARGET_C2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(stage)</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a22fa67f5720e9bfbd075bd088285c531a01985f1cf73a9f46e9a937a814612618" kindref="member">STAGE_CS</ref>:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a68705935a9f2ddd9f12984e4f243d2fe" kindref="member">set_cs_const</ref>(0,<sp/>data,<sp/>num_regs);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a22fa67f5720e9bfbd075bd088285c531a0e39054827c2b7a4f0a0296a48e674af" kindref="member">STAGE_PS</ref>:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1acce57561ab5b7020085c7295daaf7985" kindref="member">set_ps_const</ref>(0,<sp/>data,<sp/>num_regs);</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a22fa67f5720e9bfbd075bd088285c531aed161417d5593d0e3d8635337ae6b0fb" kindref="member">STAGE_VS</ref>:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a741f69fac0e23982a6822e75bb59878f" kindref="member">set_vs_const</ref>(0,<sp/>data,<sp/>num_regs);</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERTF(0,<sp/></highlight><highlight class="stringliteral">&quot;Stage<sp/>%d<sp/>unsupported&quot;</highlight><highlight class="normal">,<sp/>stage);<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185" refid="namespace__MULTI__INTERFACE_1a4897ce3d9a674833a9316d127bcb44c8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a4897ce3d9a674833a9316d127bcb44c8" kindref="member">release_cb0_data</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>stage)</highlight></codeline>
+<codeline lineno="186"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_C1<sp/>|<sp/>_TARGET_C2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/>G_UNUSED(stage);</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d<sp/>_MULTI_INTERFACE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="199"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1acfc02bc98c5693f67803cc7c978a9e14" kindref="member">set_const</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>stage,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reg_base,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_regs)</highlight></codeline>
+<codeline lineno="201"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a7e745bcdf460d3f8a7b0976b7d01a53d" kindref="member">set_const</ref>(stage,<sp/>reg_base,<sp/>data,<sp/>num_regs);</highlight></codeline>
+<codeline lineno="203"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a095fffc6229ed1c36c4fd6855b5013cf" kindref="member">set_immediate_const</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>stage,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>*data,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>num_words)</highlight></codeline>
+<codeline lineno="206"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1aecc5ae6b8dbc2caa691890f807d33a1c" kindref="member">set_immediate_const</ref>(stage,<sp/>data,<sp/>num_words);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a23a570c7530b5ba27ed59d402fd7eb8e" kindref="member">set_const_buffer</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>stage,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>slot,<sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*buffer)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a6f45841e6ff9c941778250066c29be33" kindref="member">set_const_buffer</ref>(stage,<sp/>slot,<sp/>buffer);<sp/>}</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderConstants.h"/>
+  </compounddef>
+</doxygen>

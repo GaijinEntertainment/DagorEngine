@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTPSCameraTab" kind="class" language="C++" prot="public">
+    <compoundname>TPSCameraTab</compoundname>
+    <basecompoundref refid="classFPSCameraTab" prot="public" virt="non-virtual">FPSCameraTab</basecompoundref>
+    <includes refid="ec__camera__dlg_8h" local="no">ec_camera_dlg.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTPSCameraTab_1a2a736bcde0b2b5c268c1076e90634358" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TPSCameraTab::TPSCameraTab</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options)</argsstring>
+        <name>TPSCameraTab</name>
+        <qualifiedname>TPSCameraTab::TPSCameraTab</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>tab_page</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>options</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="175" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTPSCameraTab_1a6b4f9a3369150e25b0245d98614913af" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TPSCameraTab::fill</definition>
+        <argsstring>()</argsstring>
+        <name>fill</name>
+        <qualifiedname>TPSCameraTab::fill</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="176" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTPSCameraTab_1a8129cb1ec58fcea8bdeca14ae2acea0c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TPSCameraTab::updateConfigFromUserInterface</definition>
+        <argsstring>(int pcb_id)</argsstring>
+        <name>updateConfigFromUserInterface</name>
+        <qualifiedname>TPSCameraTab::updateConfigFromUserInterface</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="177" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>FPSCameraTab</label>
+        <link refid="classFPSCameraTab"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>FreeCameraTab</label>
+        <link refid="classFreeCameraTab"/>
+      </node>
+      <node id="1">
+        <label>TPSCameraTab</label>
+        <link refid="classTPSCameraTab"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>commonInertia</edgelabel>
+          <edgelabel>hangInertia</edgelabel>
+          <edgelabel>vangInertia</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>FPSCameraTab</label>
+        <link refid="classFPSCameraTab"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>FreeCameraTab</label>
+        <link refid="classFreeCameraTab"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>mConfig</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>Inertia</label>
+        <link refid="structInertia"/>
+      </node>
+      <node id="1">
+        <label>TPSCameraTab</label>
+        <link refid="classTPSCameraTab"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_camera_dlg.h" line="172" column="1" bodyfile="ec_camera_dlg.h" bodystart="173" bodyend="178"/>
+    <listofallmembers>
+      <member refid="classTPSCameraTab_1a6b4f9a3369150e25b0245d98614913af" prot="public" virt="non-virtual"><scope>TPSCameraTab</scope><name>fill</name></member>
+      <member refid="classFPSCameraTab_1ad65481cb8088c1b01d796dcaafa216ac" prot="public" virt="non-virtual"><scope>TPSCameraTab</scope><name>FPSCameraTab</name></member>
+      <member refid="classFreeCameraTab_1a3ea91745ced807affda0abe13d576023" prot="public" virt="non-virtual"><scope>TPSCameraTab</scope><name>FreeCameraTab</name></member>
+      <member refid="classFreeCameraTab_1a4bd9621cdf5d7f234d16cdadfc707e5e" prot="protected" virt="non-virtual"><scope>TPSCameraTab</scope><name>mConfig</name></member>
+      <member refid="classFreeCameraTab_1aa9a434f6ca18689801e5690fde0247c7" prot="protected" virt="non-virtual"><scope>TPSCameraTab</scope><name>mTabPage</name></member>
+      <member refid="classTPSCameraTab_1a2a736bcde0b2b5c268c1076e90634358" prot="public" virt="non-virtual"><scope>TPSCameraTab</scope><name>TPSCameraTab</name></member>
+      <member refid="classTPSCameraTab_1a8129cb1ec58fcea8bdeca14ae2acea0c" prot="public" virt="non-virtual"><scope>TPSCameraTab</scope><name>updateConfigFromUserInterface</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

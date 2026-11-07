@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__rect_8h" kind="file" language="C++">
+    <compoundname>ec_rect.h</compoundname>
+    <includedby refid="ec__ViewportWindow_8h" local="no">ec_ViewportWindow.h</includedby>
+    <includedby refid="ec__selwindow_8h" local="no">ec_selwindow.h</includedby>
+    <invincdepgraph>
+      <node id="7">
+        <label>ec_IGizmoObject.h</label>
+        <link refid="ec__IGizmoObject_8h"/>
+      </node>
+      <node id="2">
+        <label>ec_ViewportWindow.h</label>
+        <link refid="ec__ViewportWindow_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="4">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ec_gizmofilter.h</label>
+        <link refid="ec__gizmofilter_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_rect.h</label>
+        <link refid="ec__rect_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>ec_selwindow.h</label>
+        <link refid="ec__selwindow_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structEcRect" prot="public">EcRect</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="structEcRect" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structEcRect" kindref="compound">EcRect</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6" refid="structEcRect_1a9f282ba98284f61dfc35fea669c81b6f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structEcRect_1a8c58b917dcee1207f32b621bff423e23" kindref="member">l</ref>,<sp/><ref refid="structEcRect_1abddaadb375cc6c7f1a206368269bd0ce" kindref="member">t</ref>,<sp/><ref refid="structEcRect_1ac7069e9f9a93d0566c3f9cf6a5991f85" kindref="member">r</ref>,<sp/><ref refid="structEcRect_1a9f282ba98284f61dfc35fea669c81b6f" kindref="member">b</ref>;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="structEcRect_1a02d8088d3b433485489eb31bd34af540" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structEcRect_1a02d8088d3b433485489eb31bd34af540" kindref="member">operator!=</ref>(<ref refid="structEcRect" kindref="compound">EcRect</ref><sp/>&amp;r2)</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="structEcRect_1a8c58b917dcee1207f32b621bff423e23" kindref="member">l</ref><sp/>!=<sp/>r2.<ref refid="structEcRect_1a8c58b917dcee1207f32b621bff423e23" kindref="member">l</ref><sp/>||<sp/><ref refid="structEcRect_1abddaadb375cc6c7f1a206368269bd0ce" kindref="member">t</ref><sp/>!=<sp/>r2.<ref refid="structEcRect_1abddaadb375cc6c7f1a206368269bd0ce" kindref="member">t</ref><sp/>||<sp/><ref refid="structEcRect_1ac7069e9f9a93d0566c3f9cf6a5991f85" kindref="member">r</ref><sp/>!=<sp/>r2.<ref refid="structEcRect_1ac7069e9f9a93d0566c3f9cf6a5991f85" kindref="member">r</ref><sp/>||<sp/><ref refid="structEcRect_1a9f282ba98284f61dfc35fea669c81b6f" kindref="member">b</ref><sp/>!=<sp/>r2.<ref refid="structEcRect_1a9f282ba98284f61dfc35fea669c81b6f" kindref="member">b</ref>)</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="structEcRect_1abb2713e5d0ee73cb46c0e225d988ba09" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structEcRect_1abb2713e5d0ee73cb46c0e225d988ba09" kindref="member">operator==</ref>(<ref refid="structEcRect" kindref="compound">EcRect</ref><sp/>&amp;r2)</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="structEcRect_1a8c58b917dcee1207f32b621bff423e23" kindref="member">l</ref><sp/>==<sp/>r2.<ref refid="structEcRect_1a8c58b917dcee1207f32b621bff423e23" kindref="member">l</ref><sp/>&amp;&amp;<sp/><ref refid="structEcRect_1abddaadb375cc6c7f1a206368269bd0ce" kindref="member">t</ref><sp/>==<sp/>r2.<ref refid="structEcRect_1abddaadb375cc6c7f1a206368269bd0ce" kindref="member">t</ref><sp/>&amp;&amp;<sp/><ref refid="structEcRect_1ac7069e9f9a93d0566c3f9cf6a5991f85" kindref="member">r</ref><sp/>==<sp/>r2.<ref refid="structEcRect_1ac7069e9f9a93d0566c3f9cf6a5991f85" kindref="member">r</ref><sp/>&amp;&amp;<sp/><ref refid="structEcRect_1a9f282ba98284f61dfc35fea669c81b6f" kindref="member">b</ref><sp/>==<sp/>r2.<ref refid="structEcRect_1a9f282ba98284f61dfc35fea669c81b6f" kindref="member">b</ref>)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="structEcRect_1a88775765776ae0090440f1962c84dc6e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structEcRect_1a88775765776ae0090440f1962c84dc6e" kindref="member">width</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structEcRect_1ac7069e9f9a93d0566c3f9cf6a5991f85" kindref="member">r</ref><sp/>-<sp/><ref refid="structEcRect_1a8c58b917dcee1207f32b621bff423e23" kindref="member">l</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="25" refid="structEcRect_1a46bdb8f0c94d9a284a84cf1389b4060d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structEcRect_1a46bdb8f0c94d9a284a84cf1389b4060d" kindref="member">height</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structEcRect_1a9f282ba98284f61dfc35fea669c81b6f" kindref="member">b</ref><sp/>-<sp/><ref refid="structEcRect_1abddaadb375cc6c7f1a206368269bd0ce" kindref="member">t</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_rect.h"/>
+  </compounddef>
+</doxygen>

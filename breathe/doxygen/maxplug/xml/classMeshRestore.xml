@@ -1,0 +1,189 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMeshRestore" kind="class" language="C++" prot="public">
+    <compoundname>MeshRestore</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">RestoreObj</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classMeshRestore_1a570b55e6153bc32e60892c011b269a77" prot="private" static="no" mutable="no">
+        <type>TriObject *</type>
+        <definition>TriObject* MeshRestore::tri</definition>
+        <argsstring></argsstring>
+        <name>tri</name>
+        <qualifiedname>MeshRestore::tri</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="236" column="13" bodyfile="util.cpp" bodystart="236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMeshRestore_1a69d7d529931d3e0affd3143d70637a79" prot="private" static="no" mutable="no">
+        <type>Mesh</type>
+        <definition>Mesh MeshRestore::undoMesh</definition>
+        <argsstring></argsstring>
+        <name>undoMesh</name>
+        <qualifiedname>MeshRestore::undoMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="237" column="8" bodyfile="util.cpp" bodystart="237" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMeshRestore_1a732f9ac8ae54df302a2befe49cc1864d" prot="private" static="no" mutable="no">
+        <type>Mesh</type>
+        <definition>Mesh MeshRestore::redoMesh</definition>
+        <argsstring></argsstring>
+        <name>redoMesh</name>
+        <qualifiedname>MeshRestore::redoMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="237" column="17" bodyfile="util.cpp" bodystart="237" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classMeshRestore_1ae97c57679c67204d4a3362e27c8e04d3" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MeshRestore::set</definition>
+        <argsstring>(const Mesh &amp;m)</argsstring>
+        <name>set</name>
+        <qualifiedname>MeshRestore::set</qualifiedname>
+        <param>
+          <type>const Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="239" column="8" bodyfile="util.cpp" bodystart="239" bodyend="245"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMeshRestore_1a09407ec1b133cc0697dfb61897f2a1ef" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MeshRestore::MeshRestore</definition>
+        <argsstring>(TriObject *t)</argsstring>
+        <name>MeshRestore</name>
+        <qualifiedname>MeshRestore::MeshRestore</qualifiedname>
+        <param>
+          <type>TriObject *</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="248" column="12" bodyfile="util.cpp" bodystart="248" bodyend="248"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshRestore_1a4df1e9f91cf8f079d9fa9b53a470d416" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MeshRestore::Restore</definition>
+        <argsstring>(int is_undo) override</argsstring>
+        <name>Restore</name>
+        <qualifiedname>MeshRestore::Restore</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>is_undo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="250" column="8" bodyfile="util.cpp" bodystart="250" bodyend="255"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshRestore_1a5bad2748ac1394b270533fc80bd3a9b7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MeshRestore::Redo</definition>
+        <argsstring>() override</argsstring>
+        <name>Redo</name>
+        <qualifiedname>MeshRestore::Redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="256" column="8" bodyfile="util.cpp" bodystart="256" bodyend="256"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshRestore_1ad64136b0669870b7125a1b78f6a40dac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int MeshRestore::Size</definition>
+        <argsstring>() override</argsstring>
+        <name>Size</name>
+        <qualifiedname>MeshRestore::Size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="257" column="7" bodyfile="util.cpp" bodystart="257" bodyend="257"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshRestore_1aa71292d74a5b643f066c4ba205b607c0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR MeshRestore::Description</definition>
+        <argsstring>() override</argsstring>
+        <name>Description</name>
+        <qualifiedname>MeshRestore::Description</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="258" column="8" bodyfile="util.cpp" bodystart="258" bodyend="258"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>MeshRestore</label>
+        <link refid="classMeshRestore"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RestoreObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>MeshRestore</label>
+        <link refid="classMeshRestore"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RestoreObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="234" column="1" bodyfile="util.cpp" bodystart="235" bodyend="259"/>
+    <listofallmembers>
+      <member refid="classMeshRestore_1aa71292d74a5b643f066c4ba205b607c0" prot="public" virt="non-virtual"><scope>MeshRestore</scope><name>Description</name></member>
+      <member refid="classMeshRestore_1a09407ec1b133cc0697dfb61897f2a1ef" prot="public" virt="non-virtual"><scope>MeshRestore</scope><name>MeshRestore</name></member>
+      <member refid="classMeshRestore_1a5bad2748ac1394b270533fc80bd3a9b7" prot="public" virt="non-virtual"><scope>MeshRestore</scope><name>Redo</name></member>
+      <member refid="classMeshRestore_1a732f9ac8ae54df302a2befe49cc1864d" prot="private" virt="non-virtual"><scope>MeshRestore</scope><name>redoMesh</name></member>
+      <member refid="classMeshRestore_1a4df1e9f91cf8f079d9fa9b53a470d416" prot="public" virt="non-virtual"><scope>MeshRestore</scope><name>Restore</name></member>
+      <member refid="classMeshRestore_1ae97c57679c67204d4a3362e27c8e04d3" prot="private" virt="non-virtual"><scope>MeshRestore</scope><name>set</name></member>
+      <member refid="classMeshRestore_1ad64136b0669870b7125a1b78f6a40dac" prot="public" virt="non-virtual"><scope>MeshRestore</scope><name>Size</name></member>
+      <member refid="classMeshRestore_1a570b55e6153bc32e60892c011b269a77" prot="private" virt="non-virtual"><scope>MeshRestore</scope><name>tri</name></member>
+      <member refid="classMeshRestore_1a69d7d529931d3e0affd3143d70637a79" prot="private" virt="non-virtual"><scope>MeshRestore</scope><name>undoMesh</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

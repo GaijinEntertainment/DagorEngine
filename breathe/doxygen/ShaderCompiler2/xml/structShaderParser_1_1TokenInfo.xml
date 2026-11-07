@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderParser_1_1TokenInfo" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderParser::TokenInfo</compoundname>
+    <includes refid="shMacro_8h" local="no">shMacro.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderParser_1_1TokenInfo_1a657464dbaabd0bed7acbed914f51a7db" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::TokenInfo::file</definition>
+        <argsstring></argsstring>
+        <name>file</name>
+        <qualifiedname>ShaderParser::TokenInfo::file</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="29" column="7" bodyfile="shMacro.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1TokenInfo_1a21500ff2d7a5ae4c1b933d92bac2b5ca" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::TokenInfo::line</definition>
+        <argsstring></argsstring>
+        <name>line</name>
+        <qualifiedname>ShaderParser::TokenInfo::line</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="30" column="7" bodyfile="shMacro.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1TokenInfo_1ad6ad16601acddc4e7835b186fa09190a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::TokenInfo::column</definition>
+        <argsstring></argsstring>
+        <name>column</name>
+        <qualifiedname>ShaderParser::TokenInfo::column</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="31" column="7" bodyfile="shMacro.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1TokenInfo_1abd03427e0889aa2f537e8330f237abfc" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::TokenInfo::token</definition>
+        <argsstring></argsstring>
+        <name>token</name>
+        <qualifiedname>ShaderParser::TokenInfo::token</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="32" column="7" bodyfile="shMacro.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1TokenInfo_1a1ef44eeb587bbdae1f8fb647d8f518ef" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String ShaderParser::TokenInfo::lexeme</definition>
+        <argsstring></argsstring>
+        <name>lexeme</name>
+        <qualifiedname>ShaderParser::TokenInfo::lexeme</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="33" column="10" bodyfile="shMacro.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1TokenInfo_1a0787097a6cb11ce6356e20d080e56318" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::TokenInfo::isMacro</definition>
+        <argsstring></argsstring>
+        <name>isMacro</name>
+        <qualifiedname>ShaderParser::TokenInfo::isMacro</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="34" column="8" bodyfile="shMacro.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1TokenInfo_1a5c4f0a3b18affc2ddb1474579ce8d8cc" prot="public" static="no" mutable="no">
+        <type>BaseParNamespace::Symbol::MacroCallStack</type>
+        <definition>BaseParNamespace::Symbol::MacroCallStack ShaderParser::TokenInfo::macroCallStack</definition>
+        <argsstring></argsstring>
+        <name>macroCallStack</name>
+        <qualifiedname>ShaderParser::TokenInfo::macroCallStack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="35" column="44" bodyfile="shMacro.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderParser_1_1TokenInfo_1aab6c05478af06cfb7ccf2d89b5e56acb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderParser::TokenInfo::TokenInfo</definition>
+        <argsstring>()</argsstring>
+        <name>TokenInfo</name>
+        <qualifiedname>ShaderParser::TokenInfo::TokenInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="37" column="3" bodyfile="shMacro.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shMacro.h" line="27" column="1" bodyfile="shMacro.h" bodystart="28" bodyend="38"/>
+    <listofallmembers>
+      <member refid="structShaderParser_1_1TokenInfo_1ad6ad16601acddc4e7835b186fa09190a" prot="public" virt="non-virtual"><scope>ShaderParser::TokenInfo</scope><name>column</name></member>
+      <member refid="structShaderParser_1_1TokenInfo_1a657464dbaabd0bed7acbed914f51a7db" prot="public" virt="non-virtual"><scope>ShaderParser::TokenInfo</scope><name>file</name></member>
+      <member refid="structShaderParser_1_1TokenInfo_1a0787097a6cb11ce6356e20d080e56318" prot="public" virt="non-virtual"><scope>ShaderParser::TokenInfo</scope><name>isMacro</name></member>
+      <member refid="structShaderParser_1_1TokenInfo_1a1ef44eeb587bbdae1f8fb647d8f518ef" prot="public" virt="non-virtual"><scope>ShaderParser::TokenInfo</scope><name>lexeme</name></member>
+      <member refid="structShaderParser_1_1TokenInfo_1a21500ff2d7a5ae4c1b933d92bac2b5ca" prot="public" virt="non-virtual"><scope>ShaderParser::TokenInfo</scope><name>line</name></member>
+      <member refid="structShaderParser_1_1TokenInfo_1a5c4f0a3b18affc2ddb1474579ce8d8cc" prot="public" virt="non-virtual"><scope>ShaderParser::TokenInfo</scope><name>macroCallStack</name></member>
+      <member refid="structShaderParser_1_1TokenInfo_1abd03427e0889aa2f537e8330f237abfc" prot="public" virt="non-virtual"><scope>ShaderParser::TokenInfo</scope><name>token</name></member>
+      <member refid="structShaderParser_1_1TokenInfo_1aab6c05478af06cfb7ccf2d89b5e56acb" prot="public" virt="non-virtual"><scope>ShaderParser::TokenInfo</scope><name>TokenInfo</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

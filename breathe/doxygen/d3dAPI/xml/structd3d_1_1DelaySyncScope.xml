@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1DelaySyncScope" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::DelaySyncScope</compoundname>
+    <includes refid="dag__commands_8h" local="no">dag_commands.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1DelaySyncScope_1a203e743498239486756efc89ac9a3ae4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::DelaySyncScope::DelaySyncScope</definition>
+        <argsstring>()</argsstring>
+        <name>DelaySyncScope</name>
+        <qualifiedname>d3d::DelaySyncScope::DelaySyncScope</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="786" column="3" bodyfile="dag_commands.h" bodystart="786" bodyend="786"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1DelaySyncScope_1a9320161c5dc9c486c50ecbc0305bf4dc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::DelaySyncScope::~DelaySyncScope</definition>
+        <argsstring>()</argsstring>
+        <name>~DelaySyncScope</name>
+        <qualifiedname>d3d::DelaySyncScope::~DelaySyncScope</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="787" column="3" bodyfile="dag_commands.h" bodystart="787" bodyend="787"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1DelaySyncScope_1a0da7adcdae2f0e4cfcd654c1f0639b8d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::DelaySyncScope::DelaySyncScope</definition>
+        <argsstring>(const DelaySyncScope &amp;)=delete</argsstring>
+        <name>DelaySyncScope</name>
+        <qualifiedname>d3d::DelaySyncScope::DelaySyncScope</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1DelaySyncScope" kindref="compound">DelaySyncScope</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="788" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1DelaySyncScope_1a6d8a751b9e0db5ab51a9fb096064a994" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structd3d_1_1DelaySyncScope" kindref="compound">DelaySyncScope</ref> &amp;</type>
+        <definition>DelaySyncScope &amp; d3d::DelaySyncScope::operator=</definition>
+        <argsstring>(const DelaySyncScope &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>d3d::DelaySyncScope::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structd3d_1_1DelaySyncScope" kindref="compound">DelaySyncScope</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="789" column="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_commands.h" line="784" column="1" bodyfile="dag_commands.h" bodystart="785" bodyend="790"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1DelaySyncScope_1a203e743498239486756efc89ac9a3ae4" prot="public" virt="non-virtual"><scope>d3d::DelaySyncScope</scope><name>DelaySyncScope</name></member>
+      <member refid="structd3d_1_1DelaySyncScope_1a0da7adcdae2f0e4cfcd654c1f0639b8d" prot="public" virt="non-virtual"><scope>d3d::DelaySyncScope</scope><name>DelaySyncScope</name></member>
+      <member refid="structd3d_1_1DelaySyncScope_1a6d8a751b9e0db5ab51a9fb096064a994" prot="public" virt="non-virtual"><scope>d3d::DelaySyncScope</scope><name>operator=</name></member>
+      <member refid="structd3d_1_1DelaySyncScope_1a9320161c5dc9c486c50ecbc0305bf4dc" prot="public" virt="non-virtual"><scope>d3d::DelaySyncScope</scope><name>~DelaySyncScope</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

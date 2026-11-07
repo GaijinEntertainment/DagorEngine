@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="colorUtil_8h" kind="file" language="C++">
+    <compoundname>colorUtil.h</compoundname>
+    <includes local="no">math/dag_e3dColor.h</includes>
+    <includes local="no">math/dag_color.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>colorUtil.h</label>
+        <link refid="colorUtil_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="2">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="colorUtil_8h_1aca7253665470cd6d03e9536523eda73f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR normalize_color4</definition>
+        <argsstring>(const Color4 &amp;color, real &amp;bright)</argsstring>
+        <name>normalize_color4</name>
+        <param>
+          <type>const Color4 &amp;</type>
+          <declname>color</declname>
+        </param>
+        <param>
+          <type>real &amp;</type>
+          <declname>bright</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="colorUtil.h" line="13" column="10" declfile="colorUtil.h" declline="13" declcolumn="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_e3dColor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_color.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="colorUtil_8h_1aca7253665470cd6d03e9536523eda73f" refkind="member"><highlight class="normal">E3DCOLOR<sp/><ref refid="colorUtil_8h_1aca7253665470cd6d03e9536523eda73f" kindref="member">normalize_color4</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Color4<sp/>&amp;color,<sp/>real<sp/>&amp;bright);</highlight></codeline>
+    </programlisting>
+    <location file="colorUtil.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,214 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="atomicPrintf_8h" kind="file" language="C++">
+    <compoundname>atomicPrintf.h</compoundname>
+    <includes local="no">osApiWrappers/dag_globalMutex.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">stdio.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>atomicPrintf.h</label>
+        <link refid="atomicPrintf_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>osApiWrappers/dag_globalMutex.h</label>
+      </node>
+      <node id="4">
+        <label>stdio.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classAtomicPrintfMutex" prot="public">AtomicPrintfMutex</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="atomicPrintf_8h_1ae054e8e16df3b4d146ee72524d4bff3f" prot="public" static="no">
+        <name>ATOMIC_PRINTF</name>
+        <param><defname>...</defname></param>
+        <initializer>  do                                        \
+  {                                         \
+    <ref refid="classAtomicPrintfMutex_1a718fd138437ccc1898c32808e2e596d7" kindref="member">AtomicPrintfMutex::inst.lock</ref>();         \
+    printf(__VA_ARGS__);                    \
+    <ref refid="classAtomicPrintfMutex_1a1937277391805024595efbc29b1f8d04" kindref="member">AtomicPrintfMutex::inst.unlock</ref>(stdout); \
+  } while (0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="16" column="9" bodyfile="atomicPrintf.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="atomicPrintf_8h_1a3dc84696469563fc776754a4aed7f30e" prot="public" static="no">
+        <name>ATOMIC_FPRINTF</name>
+        <param><defname>FP</defname></param>
+        <param><defname>...</defname></param>
+        <initializer>  do                                    \
+  {                                     \
+    <ref refid="classAtomicPrintfMutex_1a718fd138437ccc1898c32808e2e596d7" kindref="member">AtomicPrintfMutex::inst.lock</ref>();     \
+    fprintf(FP, __VA_ARGS__);           \
+    <ref refid="classAtomicPrintfMutex_1a1937277391805024595efbc29b1f8d04" kindref="member">AtomicPrintfMutex::inst.unlock</ref>(FP); \
+  } while (0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="24" column="9" bodyfile="atomicPrintf.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="atomicPrintf_8h_1a00fe4f5e90a995baa206af8f0e21bde5" prot="public" static="no">
+        <name>ATOMIC_PRINTF_IMM</name>
+        <param><defname>...</defname></param>
+        <initializer>  do                                        \
+  {                                         \
+    <ref refid="classAtomicPrintfMutex_1a718fd138437ccc1898c32808e2e596d7" kindref="member">AtomicPrintfMutex::inst.lock</ref>();         \
+    printf(__VA_ARGS__);                    \
+    fflush(stdout);                         \
+    <ref refid="classAtomicPrintfMutex_1a1937277391805024595efbc29b1f8d04" kindref="member">AtomicPrintfMutex::inst.unlock</ref>(stdout); \
+  } while (0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="32" column="9" bodyfile="atomicPrintf.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="atomicPrintf_8h_1a6ef93948f0b26be5fdb9d3d76ded5fcb" prot="public" static="no">
+        <name>ATOMIC_FPRINTF_IMM</name>
+        <param><defname>FP</defname></param>
+        <param><defname>...</defname></param>
+        <initializer>  do                                    \
+  {                                     \
+    <ref refid="classAtomicPrintfMutex_1a718fd138437ccc1898c32808e2e596d7" kindref="member">AtomicPrintfMutex::inst.lock</ref>();     \
+    fprintf(FP, __VA_ARGS__);           \
+    fflush(FP);                         \
+    <ref refid="classAtomicPrintfMutex_1a1937277391805024595efbc29b1f8d04" kindref="member">AtomicPrintfMutex::inst.unlock</ref>(FP); \
+  } while (0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="41" column="9" bodyfile="atomicPrintf.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_globalMutex.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdio.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_PC_WIN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;direct.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_TARGET_PC_LINUX<sp/>|<sp/>_TARGET_APPLE<sp/>|<sp/>_TARGET_C3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;unistd.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="atomicPrintf_8h_1ae054e8e16df3b4d146ee72524d4bff3f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATOMIC_PRINTF(...)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="17"><highlight class="preprocessor"><sp/><sp/>do<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="18"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="19"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>AtomicPrintfMutex::inst.lock();<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="20"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>printf(__VA_ARGS__);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="21"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>AtomicPrintfMutex::inst.unlock(stdout);<sp/>\</highlight></codeline>
+<codeline lineno="22"><highlight class="preprocessor"><sp/><sp/>}<sp/>while<sp/>(0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="atomicPrintf_8h_1a3dc84696469563fc776754a4aed7f30e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATOMIC_FPRINTF(FP,<sp/>...)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="25"><highlight class="preprocessor"><sp/><sp/>do<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="26"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="27"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>AtomicPrintfMutex::inst.lock();<sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="28"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>fprintf(FP,<sp/>__VA_ARGS__);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="29"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>AtomicPrintfMutex::inst.unlock(FP);<sp/>\</highlight></codeline>
+<codeline lineno="30"><highlight class="preprocessor"><sp/><sp/>}<sp/>while<sp/>(0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="atomicPrintf_8h_1a00fe4f5e90a995baa206af8f0e21bde5" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATOMIC_PRINTF_IMM(...)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="33"><highlight class="preprocessor"><sp/><sp/>do<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="34"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="35"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>AtomicPrintfMutex::inst.lock();<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="36"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>printf(__VA_ARGS__);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="37"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>fflush(stdout);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="38"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>AtomicPrintfMutex::inst.unlock(stdout);<sp/>\</highlight></codeline>
+<codeline lineno="39"><highlight class="preprocessor"><sp/><sp/>}<sp/>while<sp/>(0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="atomicPrintf_8h_1a6ef93948f0b26be5fdb9d3d76ded5fcb" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ATOMIC_FPRINTF_IMM(FP,<sp/>...)<sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="42"><highlight class="preprocessor"><sp/><sp/>do<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="43"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="44"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>AtomicPrintfMutex::inst.lock();<sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="45"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>fprintf(FP,<sp/>__VA_ARGS__);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="46"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>fflush(FP);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="47"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>AtomicPrintfMutex::inst.unlock(FP);<sp/>\</highlight></codeline>
+<codeline lineno="48"><highlight class="preprocessor"><sp/><sp/>}<sp/>while<sp/>(0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="comment">//<sp/>support<sp/>for<sp/>inter-process<sp/>atomic<sp/>printf</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="classAtomicPrintfMutex" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classAtomicPrintfMutex" kindref="compound">AtomicPrintfMutex</ref></highlight></codeline>
+<codeline lineno="52"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*mutex;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>locked;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>String<sp/>name;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="58" refid="classAtomicPrintfMutex_1a1a840879e1f194ce31a114e3a33e98b3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classAtomicPrintfMutex_1a1a840879e1f194ce31a114e3a33e98b3" kindref="member">init</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*exe_name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*config_path)</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(!<ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.mutex);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>buf[DAGOR_MAX_PATH];</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.name.printf(0,<sp/></highlight><highlight class="stringliteral">&quot;%s_%s@%s&quot;</highlight><highlight class="normal">,<sp/>exe_name,<sp/>config_path,<sp/>getcwd(buf,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(buf)));</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.name.replaceAll(</highlight><highlight class="stringliteral">&quot;\\&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;_&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.name.replaceAll(</highlight><highlight class="stringliteral">&quot;/&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;_&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.mutex<sp/>=<sp/>global_mutex_create(<ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.name);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>ATOMIC_PRINTF(&quot;using<sp/>mutex<sp/>%s=%p\n&quot;,<sp/>inst.name.str(),<sp/>inst.mutex);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>atexit(&amp;<ref refid="classAtomicPrintfMutex_1aaccc8fdabc016c06cc83aa99fbf0cb80" kindref="member">term</ref>);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="70" refid="classAtomicPrintfMutex_1aaccc8fdabc016c06cc83aa99fbf0cb80" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classAtomicPrintfMutex_1aaccc8fdabc016c06cc83aa99fbf0cb80" kindref="member">term</ref>()</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.mutex)</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.locked)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>global_mutex_leave(<ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.mutex);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>global_mutex_destroy(<ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.mutex,<sp/><ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.name);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.mutex<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/>clear_and_shrink(<ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>.name);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="classAtomicPrintfMutex_1a718fd138437ccc1898c32808e2e596d7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classAtomicPrintfMutex_1a718fd138437ccc1898c32808e2e596d7" kindref="member">lock</ref>()</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mutex)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>global_mutex_enter(mutex);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>locked<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="89" refid="classAtomicPrintfMutex_1a1937277391805024595efbc29b1f8d04" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classAtomicPrintfMutex_1a1937277391805024595efbc29b1f8d04" kindref="member">unlock</ref>(FILE<sp/>*fp,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>flush_always<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mutex)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>fflush(fp);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>locked<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>global_mutex_leave(mutex);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(flush_always)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>fflush(fp);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101" refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classAtomicPrintfMutex" kindref="compound">AtomicPrintfMutex</ref><sp/><ref refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" kindref="member">inst</ref>;<sp/></highlight><highlight class="comment">//<sp/>to<sp/>be<sp/>defined<sp/>in<sp/>final<sp/>module<sp/>explicitly:<sp/>AtomicPrintfMutex<sp/>AtomicPrintfMutex::inst;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="atomicPrintf.h"/>
+  </compounddef>
+</doxygen>

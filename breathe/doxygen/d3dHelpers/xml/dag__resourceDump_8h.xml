@@ -1,0 +1,123 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__resourceDump_8h" kind="file" language="C++">
+    <compoundname>dag_resourceDump.h</compoundname>
+    <includes local="no">EASTL/variant.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_resourceDump.h</label>
+        <link refid="dag__resourceDump_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="2">
+        <label>EASTL/variant.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structResourceDumpBase" prot="public">ResourceDumpBase</innerclass>
+    <innerclass refid="structResourceDumpTexture" prot="public">ResourceDumpTexture</innerclass>
+    <innerclass refid="structResourceDumpBuffer" prot="public">ResourceDumpBuffer</innerclass>
+    <innerclass refid="structResourceDumpRayTrace" prot="public">ResourceDumpRayTrace</innerclass>
+    <innernamespace refid="namespaceresource__dump__types">resource_dump_types</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__resourceDump_8h_1ab9a4c58620b74a16093b1dd774e646ae" prot="public" static="no">
+        <type>eastl::variant&lt; <ref refid="structResourceDumpTexture" kindref="compound">ResourceDumpTexture</ref>, <ref refid="structResourceDumpBuffer" kindref="compound">ResourceDumpBuffer</ref>, <ref refid="structResourceDumpRayTrace" kindref="compound">ResourceDumpRayTrace</ref> &gt;</type>
+        <definition>typedef eastl::variant&lt;ResourceDumpTexture, ResourceDumpBuffer, ResourceDumpRayTrace&gt; ResourceDumpInfo</definition>
+        <argsstring></argsstring>
+        <name>ResourceDumpInfo</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="72" column="24" bodyfile="dag_resourceDump.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/variant.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="namespaceresource__dump__types" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceresource__dump__types" kindref="compound">resource_dump_types</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12" refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3" kindref="member">TextureTypes</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3aa3166cbd5d5bb4475573ba1d85b9268c" kindref="member">TEX2D</ref>,</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3ae7ee4d32712df025b7f8f92eabf24344" kindref="member">CUBETEX</ref>,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3abee50059b421068baed4374fa29e094b" kindref="member">VOLTEX</ref>,</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3a10cf336c868e7bd2de17e4f1c61a13e2" kindref="member">ARRTEX</ref>,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3a335f06645ca70d01648906d0ee42749e" kindref="member">CUBEARRTEX</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="20" refid="namespaceresource__dump__types_1aa7fc191c45953c15548661553c431879" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceresource__dump__types_1aa7fc191c45953c15548661553c431879" kindref="member">ResourceType</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><ref refid="namespaceresource__dump__types_1aa7fc191c45953c15548661553c431879a7e62bc342f41c946868f0ea6f0b712d8" kindref="member">Buffer</ref>,</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="namespaceresource__dump__types_1aa7fc191c45953c15548661553c431879aa3e8ae43188ae76d38f414b2bdb0077b" kindref="member">Texture</ref>,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><ref refid="namespaceresource__dump__types_1aa7fc191c45953c15548661553c431879a67f4e9c95e5eaeaac203237f47176b19" kindref="member">RtAccel</ref>,</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>resource_dump_types</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="structResourceDumpBase" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structResourceDumpBase" kindref="compound">ResourceDumpBase</ref></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31" refid="structResourceDumpBase_1a58332b23d52a6790cebd16c171432c95" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="structResourceDumpBase_1a58332b23d52a6790cebd16c171432c95" kindref="member">gpuAddress</ref>,<sp/><ref refid="structResourceDumpBase_1af8a4e6b6711232665ec91c0a3c1c20d5" kindref="member">heapId</ref>,<sp/><ref refid="structResourceDumpBase_1abca6d33bbc67e481aa88b05882f3a48d" kindref="member">heapOffset</ref>;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="structResourceDumpTexture" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structResourceDumpTexture" kindref="compound">ResourceDumpTexture</ref><sp/>:<sp/><ref refid="structResourceDumpBase" kindref="compound">ResourceDumpBase</ref></highlight></codeline>
+<codeline lineno="35"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="36" refid="structResourceDumpTexture_1ac1ee9bc6d2ff497ee1c847bb1e41b5c8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structResourceDumpTexture_1a20f938d5cd2c699ce1d702ca9d73a6e4" kindref="member">resX</ref>,<sp/><ref refid="structResourceDumpTexture_1a31d94ad4b67744e1f6ce60a6576b6d63" kindref="member">resY</ref>,<sp/><ref refid="structResourceDumpTexture_1a31d675a9435c98f0a1971d5feb2f92ea" kindref="member">mip</ref>,<sp/><ref refid="structResourceDumpTexture_1ac1ee9bc6d2ff497ee1c847bb1e41b5c8" kindref="member">depth</ref>,<sp/><ref refid="structResourceDumpTexture_1a05352dc6d331c258d8d11e8dbcbd13c3" kindref="member">layers</ref>;</highlight></codeline>
+<codeline lineno="37" refid="structResourceDumpTexture_1a9d9f95438b6488cee6aaeacafa04f814" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structResourceDumpTexture_1a243ae3ee56a9b85fbfaf6360c75c9712" kindref="member">memSize</ref>,<sp/><ref refid="structResourceDumpTexture_1a9d9f95438b6488cee6aaeacafa04f814" kindref="member">flags</ref>,<sp/><ref refid="structResourceDumpTexture_1aa42ee30f67f550b013a321f9c1cef969" kindref="member">formatFlags</ref>;</highlight></codeline>
+<codeline lineno="38" refid="structResourceDumpTexture_1ada062231a55d3c6c6b99e855436738e9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3" kindref="member">resource_dump_types::TextureTypes</ref><sp/><ref refid="structResourceDumpTexture_1ada062231a55d3c6c6b99e855436738e9" kindref="member">texType</ref>;</highlight></codeline>
+<codeline lineno="39" refid="structResourceDumpTexture_1a5b5ff9c5884a80f9f3dd668cdd4d33e9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceDumpTexture_1a5b5ff9c5884a80f9f3dd668cdd4d33e9" kindref="member">isColor</ref>;</highlight></codeline>
+<codeline lineno="40" refid="structResourceDumpTexture_1a09f6a35036f986fd61ddbe38a092cd44" refkind="member"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="structResourceDumpTexture_1a09f6a35036f986fd61ddbe38a092cd44" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="41" refid="structResourceDumpTexture_1a819f220647736b390401757fa573b39d" refkind="member"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="structResourceDumpTexture_1a819f220647736b390401757fa573b39d" kindref="member">heapNamePS</ref>;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="structResourceDumpTexture_1a5c3a4d2665ad8e2c9e48cc5a0e550b2c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structResourceDumpTexture_1a5c3a4d2665ad8e2c9e48cc5a0e550b2c" kindref="member">getTypeInString</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="44"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(<ref refid="structResourceDumpTexture_1ada062231a55d3c6c6b99e855436738e9" kindref="member">texType</ref>)</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3aa3166cbd5d5bb4475573ba1d85b9268c" kindref="member">resource_dump_types::TextureTypes::TEX2D</ref>:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;2D&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3abee50059b421068baed4374fa29e094b" kindref="member">resource_dump_types::TextureTypes::VOLTEX</ref>:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;3D&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3ae7ee4d32712df025b7f8f92eabf24344" kindref="member">resource_dump_types::TextureTypes::CUBETEX</ref>:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;cube<sp/>map&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3a335f06645ca70d01648906d0ee42749e" kindref="member">resource_dump_types::TextureTypes::CUBEARRTEX</ref>:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;cube<sp/>array&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="stringliteral">&quot;tex<sp/>array&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="structResourceDumpBuffer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structResourceDumpBuffer" kindref="compound">ResourceDumpBuffer</ref><sp/>:<sp/><ref refid="structResourceDumpBase" kindref="compound">ResourceDumpBase</ref></highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58" refid="structResourceDumpBuffer_1a2998f163312f199fd6a66357849890d8" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="structResourceDumpBuffer_1a06827213bad8e9c0eeb2293b3d32f092" kindref="member">offset</ref>,<sp/><ref refid="structResourceDumpBuffer_1a2998f163312f199fd6a66357849890d8" kindref="member">mapAddress</ref>;</highlight></codeline>
+<codeline lineno="59" refid="structResourceDumpBuffer_1a639366a8c7ab12876d6435b5324f172b" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structResourceDumpBuffer_1a639366a8c7ab12876d6435b5324f172b" kindref="member">memSize</ref>,<sp/><ref refid="structResourceDumpBuffer_1a2ef8bed77bb67f2f333eed8fc3a20a27" kindref="member">sysCopySize</ref>;</highlight></codeline>
+<codeline lineno="60" refid="structResourceDumpBuffer_1a4dac73598ea05d04cc40c13cd03bc4ac" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structResourceDumpBuffer_1afc17494bc9ac718c44a18abd298d6ee8" kindref="member">flags</ref>,<sp/><ref refid="structResourceDumpBuffer_1a4dac73598ea05d04cc40c13cd03bc4ac" kindref="member">currentDiscard</ref>,<sp/><ref refid="structResourceDumpBuffer_1a954643c409d39f614bf915307c43556d" kindref="member">currentDiscardOffset</ref>,<sp/><ref refid="structResourceDumpBuffer_1a247967f55a25ff0ecdc55fa44a96fa90" kindref="member">totalDiscards</ref>,<sp/><ref refid="structResourceDumpBuffer_1af7dc23856f99ed524e593144cd0769aa" kindref="member">id</ref>;</highlight></codeline>
+<codeline lineno="61" refid="structResourceDumpBuffer_1ad0f9236b15ae2e87d14ff553dded96ae" refkind="member"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="structResourceDumpBuffer_1ad0f9236b15ae2e87d14ff553dded96ae" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="62" refid="structResourceDumpBuffer_1add0bdc2f7df9642a6e83c51bf65e1ac9" refkind="member"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="structResourceDumpBuffer_1add0bdc2f7df9642a6e83c51bf65e1ac9" kindref="member">heapNamePS</ref>;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="structResourceDumpRayTrace" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structResourceDumpRayTrace" kindref="compound">ResourceDumpRayTrace</ref><sp/>:<sp/><ref refid="structResourceDumpBase" kindref="compound">ResourceDumpBase</ref></highlight></codeline>
+<codeline lineno="66"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="67" refid="structResourceDumpRayTrace_1ab6a44eca5ceab9a2c9bc5c896fd7b134" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structResourceDumpRayTrace_1ab6a44eca5ceab9a2c9bc5c896fd7b134" kindref="member">memSize</ref>;</highlight></codeline>
+<codeline lineno="68" refid="structResourceDumpRayTrace_1a599c13deee33d0d3b65e7e73ec2803c4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceDumpRayTrace_1a599c13deee33d0d3b65e7e73ec2803c4" kindref="member">top</ref>;</highlight></codeline>
+<codeline lineno="69" refid="structResourceDumpRayTrace_1a119ca655ea14ad78ba8dfb81bebce246" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceDumpRayTrace_1a119ca655ea14ad78ba8dfb81bebce246" kindref="member">canDifferentiate</ref>;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72" refid="dag__resourceDump_8h_1ab9a4c58620b74a16093b1dd774e646ae" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>eastl::variant&lt;ResourceDumpTexture,<sp/>ResourceDumpBuffer,<sp/>ResourceDumpRayTrace&gt;<sp/><ref refid="dag__resourceDump_8h_1ab9a4c58620b74a16093b1dd774e646ae" kindref="member">ResourceDumpInfo</ref>;</highlight></codeline>
+    </programlisting>
+    <location file="dag_resourceDump.h"/>
+  </compounddef>
+</doxygen>

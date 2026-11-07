@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDummyClassDesc" kind="class" language="C++" prot="public">
+    <compoundname>DummyClassDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+    <includes refid="dummyObject_8h" local="no">dummyObject.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class Traits</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDummyClassDesc_1a325fcf1f10ebd2d5102b615e3ad78b56" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DummyClassDesc&lt; Traits &gt;::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>DummyClassDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="272" column="7" bodyfile="dummyObject.h" bodystart="272" bodyend="272"/>
+      </memberdef>
+      <memberdef kind="function" id="classDummyClassDesc_1a6b07a15db08248a55f51adb8749d8dc8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * DummyClassDesc&lt; Traits &gt;::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>DummyClassDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="273" column="8" bodyfile="dummyObject.h" bodystart="273" bodyend="273"/>
+      </memberdef>
+      <memberdef kind="function" id="classDummyClassDesc_1a3e5657b0285295bf9b94431afcad888b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DummyClassDesc&lt; Traits &gt;::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>DummyClassDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="274" column="15" bodyfile="dummyObject.h" bodystart="274" bodyend="274"/>
+      </memberdef>
+      <memberdef kind="function" id="classDummyClassDesc_1a8fee92130220496ae509e75bfe7e7dc8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const MCHAR *</type>
+        <definition>const MCHAR * DummyClassDesc&lt; Traits &gt;::NonLocalizedClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>DummyClassDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="275" column="15" bodyfile="dummyObject.h" bodystart="275" bodyend="275"/>
+      </memberdef>
+      <memberdef kind="function" id="classDummyClassDesc_1a66d9c636215d70e5b52b322b927aa85e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID DummyClassDesc&lt; Traits &gt;::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>DummyClassDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="276" column="13" bodyfile="dummyObject.h" bodystart="276" bodyend="276"/>
+      </memberdef>
+      <memberdef kind="function" id="classDummyClassDesc_1a3a925cc42571c554c7adb35761f52450" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID DummyClassDesc&lt; Traits &gt;::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>DummyClassDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="277" column="12" bodyfile="dummyObject.h" bodystart="277" bodyend="277"/>
+      </memberdef>
+      <memberdef kind="function" id="classDummyClassDesc_1a5a2fd3c0ea7d128e86764cf8ef535228" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DummyClassDesc&lt; Traits &gt;::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>DummyClassDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="278" column="15" bodyfile="dummyObject.h" bodystart="278" bodyend="278"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DummyClassDesc&lt; Traits &gt;</label>
+        <link refid="classDummyClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DummyClassDesc&lt; Traits &gt;</label>
+        <link refid="classDummyClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dummyObject.h" line="269" column="1" bodyfile="dummyObject.h" bodystart="270" bodyend="279"/>
+    <listofallmembers>
+      <member refid="classDummyClassDesc_1a5a2fd3c0ea7d128e86764cf8ef535228" prot="public" virt="non-virtual"><scope>DummyClassDesc</scope><name>Category</name></member>
+      <member refid="classDummyClassDesc_1a3a925cc42571c554c7adb35761f52450" prot="public" virt="non-virtual"><scope>DummyClassDesc</scope><name>ClassID</name></member>
+      <member refid="classDummyClassDesc_1a3e5657b0285295bf9b94431afcad888b" prot="public" virt="non-virtual"><scope>DummyClassDesc</scope><name>ClassName</name></member>
+      <member refid="classDummyClassDesc_1a6b07a15db08248a55f51adb8749d8dc8" prot="public" virt="non-virtual"><scope>DummyClassDesc</scope><name>Create</name></member>
+      <member refid="classDummyClassDesc_1a325fcf1f10ebd2d5102b615e3ad78b56" prot="public" virt="non-virtual"><scope>DummyClassDesc</scope><name>IsPublic</name></member>
+      <member refid="classDummyClassDesc_1a8fee92130220496ae509e75bfe7e7dc8" prot="public" virt="non-virtual"><scope>DummyClassDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classDummyClassDesc_1a66d9c636215d70e5b52b322b927aa85e" prot="public" virt="non-virtual"><scope>DummyClassDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

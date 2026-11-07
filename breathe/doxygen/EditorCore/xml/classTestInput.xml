@@ -1,0 +1,607 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTestInput" kind="class" language="C++" prot="public">
+    <compoundname>TestInput</compoundname>
+    <includes refid="ec__testSystem_8h" local="no">ec_testSystem.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTestInput_1ae45f4bea14c63943f72015af1a508f2e" prot="private" static="no" mutable="no">
+        <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+        <definition>TestRuntime&amp; TestInput::runtime</definition>
+        <argsstring></argsstring>
+        <name>runtime</name>
+        <qualifiedname>TestInput::runtime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="137" column="15" bodyfile="ec_testSystem.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTestInput_1aad9154f76c05fa6de5bff6a2082e95ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TestInput::TestInput</definition>
+        <argsstring>(TestRuntime &amp;runtime)</argsstring>
+        <name>TestInput</name>
+        <qualifiedname>TestInput::TestInput</qualifiedname>
+        <param>
+          <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+          <declname>runtime</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="102" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a6298c49db95c7f60362a62bc60d83573" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::mouseButtonDown</definition>
+        <argsstring>(int button)</argsstring>
+        <name>mouseButtonDown</name>
+        <qualifiedname>TestInput::mouseButtonDown</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>button</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="105" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1ae7f3aec4c6dd351881689984f061517d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::mouseButtonUp</definition>
+        <argsstring>(int button)</argsstring>
+        <name>mouseButtonUp</name>
+        <qualifiedname>TestInput::mouseButtonUp</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>button</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="106" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a2cccb5e84ba004d20d3c170a661c2c91" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::mouseClick</definition>
+        <argsstring>(int button)</argsstring>
+        <name>mouseClick</name>
+        <qualifiedname>TestInput::mouseClick</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>button</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="107" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a92d4a386940c3eef56f0b98f1f0e2ee0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::mouseClickModifier</definition>
+        <argsstring>(int button, int modifier)</argsstring>
+        <name>mouseClickModifier</name>
+        <qualifiedname>TestInput::mouseClickModifier</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>button</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>modifier</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="108" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a525181e968f85b8ea08ce3f90d58077a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::mousePosition</definition>
+        <argsstring>(Point2 at)</argsstring>
+        <name>mousePosition</name>
+        <qualifiedname>TestInput::mousePosition</qualifiedname>
+        <param>
+          <type>Point2</type>
+          <declname>at</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="109" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1aaab5b9f12ca5b148aab9543876dc907b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::mouseMove</definition>
+        <argsstring>(Point2 from, Point2 to, float over_seconds=1.0f)</argsstring>
+        <name>mouseMove</name>
+        <qualifiedname>TestInput::mouseMove</qualifiedname>
+        <param>
+          <type>Point2</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>Point2</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>over_seconds</declname>
+          <defval>1.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="110" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1affc2d0af0feb22267b5ba842eab10511" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::keyDown</definition>
+        <argsstring>(int key)</argsstring>
+        <name>keyDown</name>
+        <qualifiedname>TestInput::keyDown</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="111" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a8ffcbc28f80879408b80fbf2b154c79b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::keyUp</definition>
+        <argsstring>(int key)</argsstring>
+        <name>keyUp</name>
+        <qualifiedname>TestInput::keyUp</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="112" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1ab69aa228a4e1f5fe46e482e07c81317f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::keyPress</definition>
+        <argsstring>(int key)</argsstring>
+        <name>keyPress</name>
+        <qualifiedname>TestInput::keyPress</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="113" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1ac2636e68686516356eb4f88e0adfe52a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::keyPressModifier</definition>
+        <argsstring>(int key, int modifier)</argsstring>
+        <name>keyPressModifier</name>
+        <qualifiedname>TestInput::keyPressModifier</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>modifier</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="114" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a3215d7612ef6714753e7cc25369b6308" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::keyHeld</definition>
+        <argsstring>(int key, float over_seconds=1.0f)</argsstring>
+        <name>keyHeld</name>
+        <qualifiedname>TestInput::keyHeld</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>over_seconds</declname>
+          <defval>1.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="115" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a4ba23dfa20f32c16cd03039a4af40220" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::keyHeldModifier</definition>
+        <argsstring>(int key, int modifier, float over_seconds=1.0f)</argsstring>
+        <name>keyHeldModifier</name>
+        <qualifiedname>TestInput::keyHeldModifier</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>modifier</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>over_seconds</declname>
+          <defval>1.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="116" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a95ad08824220aad0e0e39c3a6688d73a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::characterInput</definition>
+        <argsstring>(const char *text, float between_seconds=0.0f)</argsstring>
+        <name>characterInput</name>
+        <qualifiedname>TestInput::characterInput</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>text</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>between_seconds</declname>
+          <defval>0.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="117" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a387d2004ff66d4ccf71925f3cfb07265" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::mouseDrag</definition>
+        <argsstring>(int button, Point2 from, Point2 to, float over_seconds=1.0f)</argsstring>
+        <name>mouseDrag</name>
+        <qualifiedname>TestInput::mouseDrag</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>button</declname>
+        </param>
+        <param>
+          <type>Point2</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>Point2</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>over_seconds</declname>
+          <defval>1.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="118" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a98bd110f85bc5b799ccdde774cdd3d63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::mouseMoveItem</definition>
+        <argsstring>(const char *path, float over_seconds=1.0f, const char *filepath=nullptr, int line=0)</argsstring>
+        <name>mouseMoveItem</name>
+        <qualifiedname>TestInput::mouseMoveItem</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>over_seconds</declname>
+          <defval>1.0f</defval>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>filepath</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>line</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="124" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a421be1c4435db1e2e1f4159d36a9e192" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sqrat::Object</type>
+        <definition>Sqrat::Object TestInput::mouseClickItem</definition>
+        <argsstring>(const char *path, int button, const char *filepath=nullptr, int line=0)</argsstring>
+        <name>mouseClickItem</name>
+        <qualifiedname>TestInput::mouseClickItem</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>button</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>filepath</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>line</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="125" column="17"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classTestInput_1a00d65ef6068a6671b18b4cc46f63f0ad" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void TestInput::register_script_class</definition>
+        <argsstring>(HSQUIRRELVM vm)</argsstring>
+        <name>register_script_class</name>
+        <qualifiedname>TestInput::register_script_class</qualifiedname>
+        <param>
+          <type><ref refid="ec__testSystem_8h_1a9118df9c000fff034a7b410b6de3443c" kindref="member">HSQUIRRELVM</ref></type>
+          <declname>vm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="127" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classTestInput_1a1c3cd78e0d0513f696a39aa6d3af481c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestInput::queueMouseButton</definition>
+        <argsstring>(int button, bool down)</argsstring>
+        <name>queueMouseButton</name>
+        <qualifiedname>TestInput::queueMouseButton</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>button</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>down</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="130" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1acece71feafd564fbbb840fcb8b202f48" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestInput::queueMousePosition</definition>
+        <argsstring>(Point2 at)</argsstring>
+        <name>queueMousePosition</name>
+        <qualifiedname>TestInput::queueMousePosition</qualifiedname>
+        <param>
+          <type>Point2</type>
+          <declname>at</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="131" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a90085efbac51c040b654ea92e8c1bcae" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestInput::queueMouseLerp</definition>
+        <argsstring>(Point2 from, Point2 to, float over_seconds)</argsstring>
+        <name>queueMouseLerp</name>
+        <qualifiedname>TestInput::queueMouseLerp</qualifiedname>
+        <param>
+          <type>Point2</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>Point2</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>over_seconds</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="132" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a8e1430da8c47b3adda2716032ab1e53f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestInput::queueKey</definition>
+        <argsstring>(int key, bool down)</argsstring>
+        <name>queueKey</name>
+        <qualifiedname>TestInput::queueKey</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>down</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="133" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a07b8730609441da86e2d38a73b746608" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestInput::queueKeyWithModifier</definition>
+        <argsstring>(int key, int modifier, bool down)</argsstring>
+        <name>queueKeyWithModifier</name>
+        <qualifiedname>TestInput::queueKeyWithModifier</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>modifier</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>down</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="134" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestInput_1a14979f1a817202103219bee131a27c7b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TestInput::queueMouseMoveItem</definition>
+        <argsstring>(const char *path, float over_seconds, const char *filepath, int line)</argsstring>
+        <name>queueMouseMoveItem</name>
+        <qualifiedname>TestInput::queueMouseMoveItem</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>over_seconds</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>filepath</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>line</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="135" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_testSystem.h" line="99" column="1" bodyfile="ec_testSystem.h" bodystart="100" bodyend="138"/>
+    <listofallmembers>
+      <member refid="classTestInput_1a95ad08824220aad0e0e39c3a6688d73a" prot="public" virt="non-virtual"><scope>TestInput</scope><name>characterInput</name></member>
+      <member refid="classTestInput_1affc2d0af0feb22267b5ba842eab10511" prot="public" virt="non-virtual"><scope>TestInput</scope><name>keyDown</name></member>
+      <member refid="classTestInput_1a3215d7612ef6714753e7cc25369b6308" prot="public" virt="non-virtual"><scope>TestInput</scope><name>keyHeld</name></member>
+      <member refid="classTestInput_1a4ba23dfa20f32c16cd03039a4af40220" prot="public" virt="non-virtual"><scope>TestInput</scope><name>keyHeldModifier</name></member>
+      <member refid="classTestInput_1ab69aa228a4e1f5fe46e482e07c81317f" prot="public" virt="non-virtual"><scope>TestInput</scope><name>keyPress</name></member>
+      <member refid="classTestInput_1ac2636e68686516356eb4f88e0adfe52a" prot="public" virt="non-virtual"><scope>TestInput</scope><name>keyPressModifier</name></member>
+      <member refid="classTestInput_1a8ffcbc28f80879408b80fbf2b154c79b" prot="public" virt="non-virtual"><scope>TestInput</scope><name>keyUp</name></member>
+      <member refid="classTestInput_1a6298c49db95c7f60362a62bc60d83573" prot="public" virt="non-virtual"><scope>TestInput</scope><name>mouseButtonDown</name></member>
+      <member refid="classTestInput_1ae7f3aec4c6dd351881689984f061517d" prot="public" virt="non-virtual"><scope>TestInput</scope><name>mouseButtonUp</name></member>
+      <member refid="classTestInput_1a2cccb5e84ba004d20d3c170a661c2c91" prot="public" virt="non-virtual"><scope>TestInput</scope><name>mouseClick</name></member>
+      <member refid="classTestInput_1a421be1c4435db1e2e1f4159d36a9e192" prot="public" virt="non-virtual"><scope>TestInput</scope><name>mouseClickItem</name></member>
+      <member refid="classTestInput_1a92d4a386940c3eef56f0b98f1f0e2ee0" prot="public" virt="non-virtual"><scope>TestInput</scope><name>mouseClickModifier</name></member>
+      <member refid="classTestInput_1a387d2004ff66d4ccf71925f3cfb07265" prot="public" virt="non-virtual"><scope>TestInput</scope><name>mouseDrag</name></member>
+      <member refid="classTestInput_1aaab5b9f12ca5b148aab9543876dc907b" prot="public" virt="non-virtual"><scope>TestInput</scope><name>mouseMove</name></member>
+      <member refid="classTestInput_1a98bd110f85bc5b799ccdde774cdd3d63" prot="public" virt="non-virtual"><scope>TestInput</scope><name>mouseMoveItem</name></member>
+      <member refid="classTestInput_1a525181e968f85b8ea08ce3f90d58077a" prot="public" virt="non-virtual"><scope>TestInput</scope><name>mousePosition</name></member>
+      <member refid="classTestInput_1a8e1430da8c47b3adda2716032ab1e53f" prot="private" virt="non-virtual"><scope>TestInput</scope><name>queueKey</name></member>
+      <member refid="classTestInput_1a07b8730609441da86e2d38a73b746608" prot="private" virt="non-virtual"><scope>TestInput</scope><name>queueKeyWithModifier</name></member>
+      <member refid="classTestInput_1a1c3cd78e0d0513f696a39aa6d3af481c" prot="private" virt="non-virtual"><scope>TestInput</scope><name>queueMouseButton</name></member>
+      <member refid="classTestInput_1a90085efbac51c040b654ea92e8c1bcae" prot="private" virt="non-virtual"><scope>TestInput</scope><name>queueMouseLerp</name></member>
+      <member refid="classTestInput_1a14979f1a817202103219bee131a27c7b" prot="private" virt="non-virtual"><scope>TestInput</scope><name>queueMouseMoveItem</name></member>
+      <member refid="classTestInput_1acece71feafd564fbbb840fcb8b202f48" prot="private" virt="non-virtual"><scope>TestInput</scope><name>queueMousePosition</name></member>
+      <member refid="classTestInput_1a00d65ef6068a6671b18b4cc46f63f0ad" prot="public" virt="non-virtual"><scope>TestInput</scope><name>register_script_class</name></member>
+      <member refid="classTestInput_1ae45f4bea14c63943f72015af1a508f2e" prot="private" virt="non-virtual"><scope>TestInput</scope><name>runtime</name></member>
+      <member refid="classTestInput_1aad9154f76c05fa6de5bff6a2082e95ad" prot="public" virt="non-virtual"><scope>TestInput</scope><name>TestInput</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,923 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDynRenderBuffer" kind="class" language="C++" prot="public">
+    <compoundname>DynRenderBuffer</compoundname>
+    <includes refid="dynRenderBuf_8h" local="no">dynRenderBuf.h</includes>
+    <innerclass refid="structDynRenderBuffer_1_1Vertex" prot="public">DynRenderBuffer::Vertex</innerclass>
+      <sectiondef kind="user-defined">
+      <header>Data render methods.</header>
+      <memberdef kind="typedef" id="classDynRenderBuffer_1ae0b25206cecc8348b8fe20a4b880904f" prot="private" static="no">
+        <type>Tab&lt; <ref refid="structDynRenderBuffer_1_1Vertex" kindref="compound">Vertex</ref> &gt;</type>
+        <definition>typedef Tab&lt;Vertex&gt; DynRenderBuffer::VertexTab</definition>
+        <argsstring></argsstring>
+        <name>VertexTab</name>
+        <qualifiedname>DynRenderBuffer::VertexTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="142" column="15" bodyfile="dynRenderBuf.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classDynRenderBuffer_1a53e68086ba4d92c3a8efdf324bf8ab58" prot="private" static="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>typedef Tab&lt;int&gt; DynRenderBuffer::FaceTab</definition>
+        <argsstring></argsstring>
+        <name>FaceTab</name>
+        <qualifiedname>DynRenderBuffer::FaceTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="143" column="15" bodyfile="dynRenderBuf.h" bodystart="143" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1aee549e685bc46dc59897fa1f3a8d7418" prot="private" static="no" mutable="no">
+        <type>DynamicShadersBuffer *</type>
+        <definition>DynamicShadersBuffer* DynRenderBuffer::edBuffer</definition>
+        <argsstring></argsstring>
+        <name>edBuffer</name>
+        <qualifiedname>DynRenderBuffer::edBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="145" column="24" bodyfile="dynRenderBuf.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1a3c9d08ef22b1948557719e930f181c53" prot="private" static="no" mutable="no">
+        <type>CompiledShaderChannelId</type>
+        <definition>CompiledShaderChannelId DynRenderBuffer::channels[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>channels</name>
+        <qualifiedname>DynRenderBuffer::channels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="146" column="27" bodyfile="dynRenderBuf.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1ab8cead55bc2746a029e7facc3555817f" prot="private" static="no" mutable="no">
+        <type>Ptr&lt; ShaderMaterial &gt;</type>
+        <definition>Ptr&lt;ShaderMaterial&gt; DynRenderBuffer::edMat</definition>
+        <argsstring></argsstring>
+        <name>edMat</name>
+        <qualifiedname>DynRenderBuffer::edMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="147" column="7" bodyfile="dynRenderBuf.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1a31466cf92bcd967bf3ed0a219a5199d5" prot="private" static="no" mutable="no">
+        <type>Ptr&lt; ShaderElement &gt;</type>
+        <definition>Ptr&lt;ShaderElement&gt; DynRenderBuffer::edShader</definition>
+        <argsstring></argsstring>
+        <name>edShader</name>
+        <qualifiedname>DynRenderBuffer::edShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="148" column="7" bodyfile="dynRenderBuf.h" bodystart="148" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1a6408062726a977c665eac004278e9d06" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynRenderBuffer::texVarId</definition>
+        <argsstring></argsstring>
+        <name>texVarId</name>
+        <qualifiedname>DynRenderBuffer::texVarId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="150" column="7" bodyfile="dynRenderBuf.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1a55fe9b1745f8caecd0fae532a36b532f" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynRenderBuffer::texSamplerstateVarId</definition>
+        <argsstring></argsstring>
+        <name>texSamplerstateVarId</name>
+        <qualifiedname>DynRenderBuffer::texSamplerstateVarId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="151" column="7" bodyfile="dynRenderBuf.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1add403a026a7ccb1f02ef9c735567ce88" prot="private" static="no" mutable="no">
+        <type>VertexTab</type>
+        <definition>VertexTab DynRenderBuffer::edVerts</definition>
+        <argsstring></argsstring>
+        <name>edVerts</name>
+        <qualifiedname>DynRenderBuffer::edVerts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="152" column="13" bodyfile="dynRenderBuf.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1a15069e46e9e58a4991c06f65cc4ef43c" prot="private" static="no" mutable="no">
+        <type>FaceTab</type>
+        <definition>FaceTab DynRenderBuffer::edFaces</definition>
+        <argsstring></argsstring>
+        <name>edFaces</name>
+        <qualifiedname>DynRenderBuffer::edFaces</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="153" column="11" bodyfile="dynRenderBuf.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1a6939f7710ee787874c73fc5261e028f0" prot="private" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DynRenderBuffer::vertexMaxCount</definition>
+        <argsstring></argsstring>
+        <name>vertexMaxCount</name>
+        <qualifiedname>DynRenderBuffer::vertexMaxCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="154" column="12" bodyfile="dynRenderBuf.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynRenderBuffer_1a03a1cbc381087aa4e526c3cbd766c449" prot="private" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DynRenderBuffer::faceMaxCount</definition>
+        <argsstring></argsstring>
+        <name>faceMaxCount</name>
+        <qualifiedname>DynRenderBuffer::faceMaxCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="155" column="12" bodyfile="dynRenderBuf.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a9c49c875157585af7100095d5595a783" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::flushToBuffer</definition>
+        <argsstring>(TEXTUREID tid)</argsstring>
+        <name>flushToBuffer</name>
+        <qualifiedname>DynRenderBuffer::flushToBuffer</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The function begins process of rendering shader geometry and calls <ref refid="classDynRenderBuffer_1a594ef18a43799118cea733823f10b5da" kindref="member">addFaces()</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">tid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- ID of texture used for rendering </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="120" column="8" bodyfile="dynRenderBuf.h" bodystart="120" bodyend="120"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a594ef18a43799118cea733823f10b5da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::addFaces</definition>
+        <argsstring>(TEXTUREID tid)</argsstring>
+        <name>addFaces</name>
+        <qualifiedname>DynRenderBuffer::addFaces</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The function moves data from internal buffer to shader buffer. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">tid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- ID of texture used for rendering </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="124" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a1a7369279f36b5218a56ffc4f602f61e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::flush</definition>
+        <argsstring>()</argsstring>
+        <name>flush</name>
+        <qualifiedname>DynRenderBuffer::flush</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The function outputs shader buffer to screen and ends process of rendering shader geometry (see #ShaderMesh::end_render()). </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="129" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1aa6bd7bdabb6e9093a9c74d7dac4389aa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynRenderBuffer::addVert</definition>
+        <argsstring>(Vertex *v, int numv)</argsstring>
+        <name>addVert</name>
+        <qualifiedname>DynRenderBuffer::addVert</qualifiedname>
+        <param>
+          <type><ref refid="structDynRenderBuffer_1_1Vertex" kindref="compound">Vertex</ref> *</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="132" column="7" bodyfile="dynRenderBuf.h" bodystart="132" bodyend="132"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1ad19410a722ccd54a996c6b9ffc4f412f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::addInd</definition>
+        <argsstring>(int *i, int numi, int sv)</argsstring>
+        <name>addInd</name>
+        <qualifiedname>DynRenderBuffer::addInd</qualifiedname>
+        <param>
+          <type>int *</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>numi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="133" column="8" bodyfile="dynRenderBuf.h" bodystart="133" bodyend="139"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a75b927add07e3e7d45c637a5f9a7035c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::createBuffer</definition>
+        <argsstring>(int max_verts, int max_faces)</argsstring>
+        <name>createBuffer</name>
+        <qualifiedname>DynRenderBuffer::createBuffer</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>max_verts</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_faces</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="157" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Data accumulation methods.</header>
+      <memberdef kind="function" id="classDynRenderBuffer_1a71f15c53c55126010b65763ff472eb6a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::clearBuf</definition>
+        <argsstring>()</argsstring>
+        <name>clearBuf</name>
+        <qualifiedname>DynRenderBuffer::clearBuf</qualifiedname>
+        <briefdescription>
+<para>Clear buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="56" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a744dd7c269a872d21c637bd0954cdb98" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::drawCustom</definition>
+        <argsstring>(dag::ConstSpan&lt; Vertex &gt; vertex_tab, dag::ConstSpan&lt; int &gt; face_tab)</argsstring>
+        <name>drawCustom</name>
+        <qualifiedname>DynRenderBuffer::drawCustom</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structDynRenderBuffer_1_1Vertex" kindref="compound">Vertex</ref> &gt;</type>
+          <declname>vertex_tab</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>face_tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Put arbitrary geometry in buffer. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">vertex_tab</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- array of vertexes </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">face_tab</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- array of vertex indexes </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="61" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a1da9df1c6e374999a0301ef90b03a2f7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structDynRenderBuffer_1_1Vertex" kindref="compound">Vertex</ref> *</type>
+        <definition>Vertex * DynRenderBuffer::drawNetSurface</definition>
+        <argsstring>(int w, int h)</argsstring>
+        <name>drawNetSurface</name>
+        <qualifiedname>DynRenderBuffer::drawNetSurface</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>starts filling data for net surface; reserves space for w*h vertices and inits indices; returns pointer to first vertex, vertices are arranged as (0,0), (1,0) ... (w-1,0), (0, 1), (1,1), etc. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="65" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a5e59edcfe33fbf07188e437d00d2cd0f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::drawQuad</definition>
+        <argsstring>(const Point3 &amp;p0, const Point3 &amp;p1, const Point3 &amp;p2, const Point3 &amp;p3, E3DCOLOR color, float u=1, float v=1)</argsstring>
+        <name>drawQuad</name>
+        <qualifiedname>DynRenderBuffer::drawQuad</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p0</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p1</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p2</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p3</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>u</declname>
+          <defval>1</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Put quad in buffer. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">p0</parametername>
+<parametername direction="in">p1</parametername>
+<parametername direction="in">p2</parametername>
+<parametername direction="in">p3</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- coordinates of vertexes </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">color</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- quad color </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="70" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1abbd2775baf08c1348a58a601499ae092" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::drawLine</definition>
+        <argsstring>(const Point3 &amp;from, const Point3 &amp;to, real width, E3DCOLOR color)</argsstring>
+        <name>drawLine</name>
+        <qualifiedname>DynRenderBuffer::drawLine</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Place rectangular line on surface perpendicular to camera line of view and put it in buffer. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">from</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- start coordinates of the line </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">to</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- end coordinates of the line </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">width</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- line width </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">color</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- line color </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="78" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a1f4ad17530fe37f5405858408302480c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::drawSquare</definition>
+        <argsstring>(const Point3 &amp;p, real radius, E3DCOLOR color)</argsstring>
+        <name>drawSquare</name>
+        <qualifiedname>DynRenderBuffer::drawSquare</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>radius</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Place square on surface perpendicular to camera line of view and put it in buffer. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- coordinates of square center </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">radius</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- half length of square side </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">color</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- square color </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="85" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a2d2e264f9f50f4608f91b1bc57e3e7c1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::drawDebugSphere</definition>
+        <argsstring>(const Point3 &amp;pos, real radius, real width, E3DCOLOR color)</argsstring>
+        <name>drawDebugSphere</name>
+        <qualifiedname>DynRenderBuffer::drawDebugSphere</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>radius</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Place ring on surface perpendicular to camera line of view and put it in buffer. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">pos</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- coordinates of ring center </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">radius</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- ring radius </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">width</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- ring width </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">color</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- ring color </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="93" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a71be935d43c313bf9b430b4567d51dff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::drawWireSphere</definition>
+        <argsstring>(const Point3 &amp;pos, real radius, real width, E3DCOLOR color)</argsstring>
+        <name>drawWireSphere</name>
+        <qualifiedname>DynRenderBuffer::drawWireSphere</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>radius</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="96" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a54869d2b4a7e4ea545d42bb2763f271d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::drawSphere</definition>
+        <argsstring>(const TMatrix &amp;tm, E3DCOLOR color, int segs=-1)</argsstring>
+        <name>drawSphere</name>
+        <qualifiedname>DynRenderBuffer::drawSphere</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>segs</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="99" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1ad05d397609a53d5afcf4e419e041e5a3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::drawBox</definition>
+        <argsstring>(const TMatrix &amp;tm, E3DCOLOR color)</argsstring>
+        <name>drawBox</name>
+        <qualifiedname>DynRenderBuffer::drawBox</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Put parallelepiped (box) in buffer. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">tm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- the matrix that defines coordinates, dimensions and rotation of the parallelepiped. Parallelepiped is the result of matrix multiplication, where one matrix represents cube with side equal 1 metre and other matrix is tm matrix. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">color</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- parallelepiped color </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="108" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a400b1044499a611f0ab4b4e61ef4ff13" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynRenderBuffer::drawWireBox</definition>
+        <argsstring>(const TMatrix &amp;tm, real width, E3DCOLOR color)</argsstring>
+        <name>drawWireBox</name>
+        <qualifiedname>DynRenderBuffer::drawWireBox</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="111" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350" prot="public" static="no" strong="no">
+        <type></type>
+        <name>SafetyBounds</name>
+        <qualifiedname>DynRenderBuffer::SafetyBounds</qualifiedname>
+        <enumvalue id="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350ab777b2e0a13f647f211e5092f3082c2d" prot="public">
+          <name>SAFETY_MAX_BUFFER_VERTEX</name>
+          <initializer>= 0xF0FF</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350a2962bfc5d7b5b930fcbaab4dad626183" prot="public">
+          <name>SAFETY_MAX_BUFFER_FACES</name>
+          <initializer>= SAFETY_MAX_BUFFER_VERTEX</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="31" column="3" bodyfile="dynRenderBuf.h" bodystart="32" bodyend="35"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDynRenderBuffer_1aafbe66e2a77e2212ea09bb506751ccc9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DynRenderBuffer::DynRenderBuffer</definition>
+        <argsstring>(const char *class_name=&quot;editor_helper&quot;)</argsstring>
+        <name>DynRenderBuffer</name>
+        <qualifiedname>DynRenderBuffer::DynRenderBuffer</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>class_name</declname>
+          <defval>&quot;editor_helper&quot;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">class_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- name of shader used for rendering </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="39" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1ae3b22f3f1a04d04166a42a32887c68b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DynRenderBuffer::~DynRenderBuffer</definition>
+        <argsstring>()</argsstring>
+        <name>~DynRenderBuffer</name>
+        <qualifiedname>DynRenderBuffer::~DynRenderBuffer</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="42" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a6a13606b9c85dbbb5d1d5a82f0c8a85c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynRenderBuffer::getVertexCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getVertexCount</name>
+        <qualifiedname>DynRenderBuffer::getVertexCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get vertex count. <simplesect kind="return"><para>number of vertices in buffer </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="46" column="14" bodyfile="dynRenderBuf.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynRenderBuffer_1a0cd272fcefd60f648608c7e1067b10ee" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynRenderBuffer::getIndexCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getIndexCount</name>
+        <qualifiedname>DynRenderBuffer::getIndexCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get vertex index count. <simplesect kind="return"><para>number of vertex indexes in buffer </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="50" column="14" bodyfile="dynRenderBuf.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Used to render various geometry by means of built-in shader buffer (see #DynamicShadersBuffer). At first the data are accumulated in internal class&apos;s buffer, then after calling <ref refid="classDynRenderBuffer_1a9c49c875157585af7100095d5595a783" kindref="member">flushToBuffer()</ref> they are moved to shader buffer. After call to <ref refid="classDynRenderBuffer_1a1a7369279f36b5218a56ffc4f602f61e" kindref="member">flush()</ref> the data are displayed on the screen. </para>
+    </detaileddescription>
+    <location file="dynRenderBuf.h" line="20" column="1" bodyfile="dynRenderBuf.h" bodystart="21" bodyend="158"/>
+    <listofallmembers>
+      <member refid="classDynRenderBuffer_1a594ef18a43799118cea733823f10b5da" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>addFaces</name></member>
+      <member refid="classDynRenderBuffer_1ad19410a722ccd54a996c6b9ffc4f412f" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>addInd</name></member>
+      <member refid="classDynRenderBuffer_1aa6bd7bdabb6e9093a9c74d7dac4389aa" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>addVert</name></member>
+      <member refid="classDynRenderBuffer_1a3c9d08ef22b1948557719e930f181c53" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>channels</name></member>
+      <member refid="classDynRenderBuffer_1a71f15c53c55126010b65763ff472eb6a" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>clearBuf</name></member>
+      <member refid="classDynRenderBuffer_1a75b927add07e3e7d45c637a5f9a7035c" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>createBuffer</name></member>
+      <member refid="classDynRenderBuffer_1ad05d397609a53d5afcf4e419e041e5a3" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawBox</name></member>
+      <member refid="classDynRenderBuffer_1a744dd7c269a872d21c637bd0954cdb98" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawCustom</name></member>
+      <member refid="classDynRenderBuffer_1a2d2e264f9f50f4608f91b1bc57e3e7c1" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawDebugSphere</name></member>
+      <member refid="classDynRenderBuffer_1abbd2775baf08c1348a58a601499ae092" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawLine</name></member>
+      <member refid="classDynRenderBuffer_1a1da9df1c6e374999a0301ef90b03a2f7" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawNetSurface</name></member>
+      <member refid="classDynRenderBuffer_1a5e59edcfe33fbf07188e437d00d2cd0f" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawQuad</name></member>
+      <member refid="classDynRenderBuffer_1a54869d2b4a7e4ea545d42bb2763f271d" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawSphere</name></member>
+      <member refid="classDynRenderBuffer_1a1f4ad17530fe37f5405858408302480c" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawSquare</name></member>
+      <member refid="classDynRenderBuffer_1a400b1044499a611f0ab4b4e61ef4ff13" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawWireBox</name></member>
+      <member refid="classDynRenderBuffer_1a71be935d43c313bf9b430b4567d51dff" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>drawWireSphere</name></member>
+      <member refid="classDynRenderBuffer_1aafbe66e2a77e2212ea09bb506751ccc9" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>DynRenderBuffer</name></member>
+      <member refid="classDynRenderBuffer_1aee549e685bc46dc59897fa1f3a8d7418" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>edBuffer</name></member>
+      <member refid="classDynRenderBuffer_1a15069e46e9e58a4991c06f65cc4ef43c" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>edFaces</name></member>
+      <member refid="classDynRenderBuffer_1ab8cead55bc2746a029e7facc3555817f" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>edMat</name></member>
+      <member refid="classDynRenderBuffer_1a31466cf92bcd967bf3ed0a219a5199d5" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>edShader</name></member>
+      <member refid="classDynRenderBuffer_1add403a026a7ccb1f02ef9c735567ce88" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>edVerts</name></member>
+      <member refid="classDynRenderBuffer_1a03a1cbc381087aa4e526c3cbd766c449" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>faceMaxCount</name></member>
+      <member refid="classDynRenderBuffer_1a53e68086ba4d92c3a8efdf324bf8ab58" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>FaceTab</name></member>
+      <member refid="classDynRenderBuffer_1a1a7369279f36b5218a56ffc4f602f61e" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>flush</name></member>
+      <member refid="classDynRenderBuffer_1a9c49c875157585af7100095d5595a783" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>flushToBuffer</name></member>
+      <member refid="classDynRenderBuffer_1a0cd272fcefd60f648608c7e1067b10ee" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>getIndexCount</name></member>
+      <member refid="classDynRenderBuffer_1a6a13606b9c85dbbb5d1d5a82f0c8a85c" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>getVertexCount</name></member>
+      <member refid="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350a2962bfc5d7b5b930fcbaab4dad626183" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>SAFETY_MAX_BUFFER_FACES</name></member>
+      <member refid="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350ab777b2e0a13f647f211e5092f3082c2d" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>SAFETY_MAX_BUFFER_VERTEX</name></member>
+      <member refid="classDynRenderBuffer_1a01bdd0e220f885386db61dd5f90ed350" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>SafetyBounds</name></member>
+      <member refid="classDynRenderBuffer_1a55fe9b1745f8caecd0fae532a36b532f" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>texSamplerstateVarId</name></member>
+      <member refid="classDynRenderBuffer_1a6408062726a977c665eac004278e9d06" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>texVarId</name></member>
+      <member refid="classDynRenderBuffer_1a6939f7710ee787874c73fc5261e028f0" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>vertexMaxCount</name></member>
+      <member refid="classDynRenderBuffer_1ae0b25206cecc8348b8fe20a4b880904f" prot="private" virt="non-virtual"><scope>DynRenderBuffer</scope><name>VertexTab</name></member>
+      <member refid="classDynRenderBuffer_1ae3b22f3f1a04d04166a42a32887c68b6" prot="public" virt="non-virtual"><scope>DynRenderBuffer</scope><name>~DynRenderBuffer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

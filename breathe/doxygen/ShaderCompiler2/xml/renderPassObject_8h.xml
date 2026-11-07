@@ -1,0 +1,1351 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="renderPassObject_8h" kind="file" language="C++">
+    <compoundname>renderPassObject.h</compoundname>
+    <includes refid="shaderSave_8h" local="yes">shaderSave.h</includes>
+    <includes refid="const3d_8h" local="yes">const3d.h</includes>
+    <includes local="no">drv/shadersMetaData/renderPassLowering.h</includes>
+    <includes local="no">drv/3d/dag_decl.h</includes>
+    <includes refid="framebufferLayout_8h" local="yes">framebufferLayout.h</includes>
+    <includes refid="subpassRead_8h" local="yes">subpassRead.h</includes>
+    <includes refid="shLog_8h" local="yes">shLog.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">EASTL/vector.h</includes>
+    <includes local="no">dag/dag_vectorSet.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes local="no">osApiWrappers/dag_localConv.h</includes>
+    <includes local="no">string.h</includes>
+    <includedby refid="framebufferLayout_8cpp" local="yes">framebufferLayout.cpp</includedby>
+    <includedby refid="preshaderCompilation_8cpp" local="yes">preshaderCompilation.cpp</includedby>
+    <includedby refid="renderPassObject_8cpp" local="yes">renderPassObject.cpp</includedby>
+    <includedby refid="shTargetContext_8h" local="yes">shTargetContext.h</includedby>
+    <includedby refid="shlexterm_8cpp" local="yes">shlexterm.cpp</includedby>
+    <includedby refid="variantAssembly_8cpp" local="yes">variantAssembly.cpp</includedby>
+    <incdepgraph>
+      <node id="8">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>framebufferLayout.h</label>
+        <link refid="framebufferLayout_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>renderPassObject.h</label>
+        <link refid="renderPassObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="2">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>subpassRead.h</label>
+        <link refid="subpassRead_8h"/>
+      </node>
+      <node id="3">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="17">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="18">
+        <label>dag/dag_vectorSet.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="11">
+        <label>drv/3d/dag_decl.h</label>
+      </node>
+      <node id="10">
+        <label>drv/shadersMetaData/renderPassLowering.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="20">
+        <label>osApiWrappers/dag_localConv.h</label>
+      </node>
+      <node id="14">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="21">
+        <label>string.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="7">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="6">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="9">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="27">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="15">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="14">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="30">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>framebufferLayout.cpp</label>
+        <link refid="framebufferLayout_8cpp"/>
+      </node>
+      <node id="34">
+        <label>globvar.cpp</label>
+        <link refid="globvar_8cpp"/>
+      </node>
+      <node id="32">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="36">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="35">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="38">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="23">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="3">
+        <label>preshaderCompilation.cpp</label>
+        <link refid="preshaderCompilation_8cpp"/>
+      </node>
+      <node id="28">
+        <label>refinedBlockLayout.cpp</label>
+        <link refid="refinedBlockLayout_8cpp"/>
+      </node>
+      <node id="4">
+        <label>renderPassObject.cpp</label>
+        <link refid="renderPassObject_8cpp"/>
+      </node>
+      <node id="1">
+        <label>renderPassObject.h</label>
+        <link refid="renderPassObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>semUtils.cpp</label>
+        <link refid="semUtils_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="11">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="44">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="19">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="17">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="12">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="45">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="13">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="33">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="20">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="18">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="41">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="40">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="42">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="49">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="16">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="46">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="25">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="22">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="26">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classRenderPassObject" prot="public">RenderPassObject</innerclass>
+    <innerclass refid="structRenderPassObject_1_1Target" prot="public">RenderPassObject::Target</innerclass>
+    <innerclass refid="structRenderPassObject_1_1Resolve" prot="public">RenderPassObject::Resolve</innerclass>
+    <innerclass refid="structRenderPassObject_1_1Subpass" prot="public">RenderPassObject::Subpass</innerclass>
+    <innerclass refid="classRenderPassGroup" prot="public">RenderPassGroup</innerclass>
+    <innerclass refid="structRenderPassGroup_1_1Member" prot="public">RenderPassGroup::Member</innerclass>
+    <innerclass refid="structRenderPassGroup_1_1ReadSlot" prot="public">RenderPassGroup::ReadSlot</innerclass>
+    <innerclass refid="structRenderPassGroup_1_1ColorSlot" prot="public">RenderPassGroup::ColorSlot</innerclass>
+    <innerclass refid="structRenderPassGroupMemberRef" prot="public">RenderPassGroupMemberRef</innerclass>
+    <innerclass refid="classRenderPassTable" prot="public">RenderPassTable</innerclass>
+    <innerclass refid="classRenderPassGroupTable" prot="public">RenderPassGroupTable</innerclass>
+    <innerclass refid="structRenderPassNamed" prot="public">RenderPassNamed</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+    <innernamespace refid="namespaceBaseParNamespace">BaseParNamespace</innernamespace>
+    <innernamespace refid="namespaceShaderTerminal">ShaderTerminal</innernamespace>
+    <innernamespace refid="namespaceShaderParser">ShaderParser</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="renderPassObject_8h_1ac7127b0691a5ad7ff7b036e529de5a71" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr int</type>
+        <definition>constexpr int render_pass_read_register</definition>
+        <argsstring>(int read_index)</argsstring>
+        <name>render_pass_read_register</name>
+        <param>
+          <type>int</type>
+          <declname>read_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="39" column="22" bodyfile="renderPassObject.h" bodystart="39" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a55217edaee6d7c6f82a39f720749ecfd" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr int</type>
+        <definition>constexpr int render_pass_read_window_base</definition>
+        <argsstring>(int read_count)</argsstring>
+        <name>render_pass_read_window_base</name>
+        <param>
+          <type>int</type>
+          <declname>read_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="40" column="22" bodyfile="renderPassObject.h" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1adaa6e77cc89e0e4b338c7938d6aa114d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structRenderPassNamed" kindref="compound">RenderPassNamed</ref></type>
+        <definition>RenderPassNamed render_pass_namespace_find</definition>
+        <argsstring>(shc::TargetContext &amp;ctx, int name_id)</argsstring>
+        <name>render_pass_namespace_find</name>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="204" column="17" bodyfile="renderPassObject.cpp" bodystart="180" bodyend="183" declfile="renderPassObject.h" declline="204" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a80e21475af1daa3086677870070a6328" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structRenderPassNamed" kindref="compound">RenderPassNamed</ref></type>
+        <definition>RenderPassNamed render_pass_namespace_find</definition>
+        <argsstring>(const RenderPassTable &amp;passes, const RenderPassGroupTable &amp;groups, int name_id)</argsstring>
+        <name>render_pass_namespace_find</name>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> &amp;</type>
+          <declname>passes</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classRenderPassGroupTable" kindref="compound">RenderPassGroupTable</ref> &amp;</type>
+          <declname>groups</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="205" column="17" bodyfile="renderPassObject.cpp" bodystart="185" bodyend="192" declfile="renderPassObject.h" declline="205" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1acd0c8da8a1ea8a81d3edc4bbc09e0759" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+          <param>
+            <type>class Find</type>
+          </param>
+          <param>
+            <type>class ExistingOf</type>
+          </param>
+          <param>
+            <type>class OnExisting</type>
+          </param>
+          <param>
+            <type>class Adopt</type>
+          </param>
+          <param>
+            <type>class Describe</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void render_pass_link_named</definition>
+        <argsstring>(Tab&lt; T * &gt; &amp;loaded, RenderPassNamed::Kind kind, const char *mismatch_words, const char *plural_words, Find &amp;&amp;find_taken, ExistingOf &amp;&amp;existing_of, OnExisting &amp;&amp;on_existing, Adopt &amp;&amp;adopt, Describe &amp;&amp;describe)</argsstring>
+        <name>render_pass_link_named</name>
+        <param>
+          <type>Tab&lt; T * &gt; &amp;</type>
+          <declname>loaded</declname>
+        </param>
+        <param>
+          <type><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" kindref="member">RenderPassNamed::Kind</ref></type>
+          <declname>kind</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>mismatch_words</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>plural_words</declname>
+        </param>
+        <param>
+          <type>Find &amp;&amp;</type>
+          <declname>find_taken</declname>
+        </param>
+        <param>
+          <type>ExistingOf &amp;&amp;</type>
+          <declname>existing_of</declname>
+        </param>
+        <param>
+          <type>OnExisting &amp;&amp;</type>
+          <declname>on_existing</declname>
+        </param>
+        <param>
+          <type>Adopt &amp;&amp;</type>
+          <declname>adopt</declname>
+        </param>
+        <param>
+          <type>Describe &amp;&amp;</type>
+          <declname>describe</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="208" column="6" bodyfile="renderPassObject.h" bodystart="208" bodyend="235"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a0b92c2410f9f8adb4ca5b6a3099386a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool render_pass_claim_namespace_name</definition>
+        <argsstring>(RenderPassNamed::Kind kind, BaseParNamespace::Terminal *name, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>render_pass_claim_namespace_name</name>
+        <param>
+          <type><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" kindref="member">RenderPassNamed::Kind</ref></type>
+          <declname>kind</declname>
+        </param>
+        <param>
+          <type>BaseParNamespace::Terminal *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="237" column="6" declfile="renderPassObject.h" declline="237" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1ad88d9adcfc56489e5a8557d95ac502ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool render_pass_eval_build_condition</definition>
+        <argsstring>(ShaderTerminal::bool_expr &amp;e, Parser &amp;parser, shc::TargetContext &amp;ctx, bool &amp;out_value)</argsstring>
+        <name>render_pass_eval_build_condition</name>
+        <param>
+          <type>ShaderTerminal::bool_expr &amp;</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>bool &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="240" column="6" declfile="renderPassObject.h" declline="240" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1add5a8847fdd72bd957b04c0e414356a6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class IfNode</type>
+          </param>
+          <param>
+            <type>class EvalStat</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void render_pass_eval_if_chain</definition>
+        <argsstring>(IfNode &amp;s, Parser &amp;parser, shc::TargetContext &amp;ctx, bool &amp;had_error, EvalStat &amp;&amp;eval_stat)</argsstring>
+        <name>render_pass_eval_if_chain</name>
+        <param>
+          <type>IfNode &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>bool &amp;</type>
+          <declname>had_error</declname>
+        </param>
+        <param>
+          <type>EvalStat &amp;&amp;</type>
+          <declname>eval_stat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="243" column="6" bodyfile="renderPassObject.h" bodystart="243" bodyend="255"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a2d662ffc34837ec1bc46098c685e5ec2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool render_pass_split_mode_declared</definition>
+        <argsstring>(shc::TargetContext &amp;ctx)</argsstring>
+        <name>render_pass_split_mode_declared</name>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="259" column="6" bodyfile="renderPassObject.cpp" bodystart="233" bodyend="236" declfile="renderPassObject.h" declline="259" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a79563b9cb67996ba55045e8314ddcd2c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int render_pass_split_mode_ordinal</definition>
+        <argsstring>(const char *value_name, shc::TargetContext &amp;ctx)</argsstring>
+        <name>render_pass_split_mode_ordinal</name>
+        <param>
+          <type>const char *</type>
+          <declname>value_name</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="260" column="5" bodyfile="renderPassObject.cpp" bodystart="238" bodyend="252" declfile="renderPassObject.h" declline="260" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a201f3b766dffed4e4b4b60215adbcc57" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool render_pass_target_has_native_subpasses</definition>
+        <argsstring>()</argsstring>
+        <name>render_pass_target_has_native_subpasses</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="262" column="6" bodyfile="renderPassObject.cpp" bodystart="294" bodyend="303" declfile="renderPassObject.h" declline="262" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a4f1bf365230f370ea08ed7fc3ebcda85" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool render_pass_target_is_metal</definition>
+        <argsstring>()</argsstring>
+        <name>render_pass_target_is_metal</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="264" column="6" bodyfile="renderPassObject.cpp" bodystart="305" bodyend="312" declfile="renderPassObject.h" declline="264" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a6b97dc9ffba416463bfd524c6de16622" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structRenderPassGroupMemberRef" kindref="compound">RenderPassGroupMemberRef</ref></type>
+        <definition>RenderPassGroupMemberRef render_pass_group_member</definition>
+        <argsstring>(const RenderPassGroup::Member &amp;m, const RenderPassTable &amp;passes)</argsstring>
+        <name>render_pass_group_member</name>
+        <param>
+          <type>const <ref refid="structRenderPassGroup_1_1Member" kindref="compound">RenderPassGroup::Member</ref> &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> &amp;</type>
+          <declname>passes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="266" column="26" bodyfile="renderPassObject.cpp" bodystart="314" bodyend="320" declfile="renderPassObject.h" declline="266" declcolumn="26"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a8649bb4494d096282be24f2ac5342d92" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int render_pass_color_slot</definition>
+        <argsstring>(const RenderPassObject::Subpass &amp;sp, int color_pos)</argsstring>
+        <name>render_pass_color_slot</name>
+        <param>
+          <type>const <ref refid="structRenderPassObject_1_1Subpass" kindref="compound">RenderPassObject::Subpass</ref> &amp;</type>
+          <declname>sp</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>color_pos</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="268" column="5" bodyfile="renderPassObject.cpp" bodystart="322" bodyend="325" declfile="renderPassObject.h" declline="268" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a93299baca5545d4c647b1151cd9cde75" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int render_pass_scope_color_count</definition>
+        <argsstring>(const RenderPassOptIn &amp;scope, const RenderPassTable &amp;passes)</argsstring>
+        <name>render_pass_scope_color_count</name>
+        <param>
+          <type>const <ref refid="structRenderPassOptIn" kindref="compound">RenderPassOptIn</ref> &amp;</type>
+          <declname>scope</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> &amp;</type>
+          <declname>passes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="270" column="5" bodyfile="renderPassObject.cpp" bodystart="327" bodyend="336" declfile="renderPassObject.h" declline="270" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a39fec747be5497039ef7cecd8fdbe228" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool render_pass_any_has_target</definition>
+        <argsstring>(const RenderPassTable &amp;passes, int target_name_id)</argsstring>
+        <name>render_pass_any_has_target</name>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> &amp;</type>
+          <declname>passes</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>target_name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="272" column="6" bodyfile="renderPassObject.cpp" bodystart="338" bodyend="344" declfile="renderPassObject.h" declline="272" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1ae7053c1e2a5cba42d338c88cb294bd8d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool render_pass_group_target_is_resolve_dst</definition>
+        <argsstring>(const RenderPassGroup &amp;grp, int target_name_id, const RenderPassTable &amp;passes)</argsstring>
+        <name>render_pass_group_target_is_resolve_dst</name>
+        <param>
+          <type>const <ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref> &amp;</type>
+          <declname>grp</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>target_name_id</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> &amp;</type>
+          <declname>passes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="274" column="6" bodyfile="renderPassObject.cpp" bodystart="358" bodyend="364" declfile="renderPassObject.h" declline="274" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1a485c2b006145f0383449f827a3761758" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool render_pass_group_target_is_vrs</definition>
+        <argsstring>(const RenderPassGroup &amp;grp, int target_name_id, const RenderPassTable &amp;passes)</argsstring>
+        <name>render_pass_group_target_is_vrs</name>
+        <param>
+          <type>const <ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref> &amp;</type>
+          <declname>grp</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>target_name_id</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> &amp;</type>
+          <declname>passes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="276" column="6" bodyfile="renderPassObject.cpp" bodystart="366" bodyend="372" declfile="renderPassObject.h" declline="276" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="renderPassObject_8h_1af2d79ab637a04066d25db9fb6d0c1545" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void render_pass_group_slot_divergence</definition>
+        <argsstring>(const RenderPassGroup &amp;grp, int target_name_id, const RenderPassTable &amp;passes, eastl::string &amp;out_desc)</argsstring>
+        <name>render_pass_group_slot_divergence</name>
+        <param>
+          <type>const <ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref> &amp;</type>
+          <declname>grp</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>target_name_id</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> &amp;</type>
+          <declname>passes</declname>
+        </param>
+        <param>
+          <type>eastl::string &amp;</type>
+          <declname>out_desc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="278" column="6" bodyfile="renderPassObject.cpp" bodystart="409" bodyend="441" declfile="renderPassObject.h" declline="278" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderSave_8h" kindref="compound">shaderSave.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="const3d_8h" kindref="compound">const3d.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/shadersMetaData/renderPassLowering.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_decl.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="framebufferLayout_8h" kindref="compound">framebufferLayout.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="subpassRead_8h" kindref="compound">subpassRead.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;dag/dag_vectorSet.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_localConv.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TargetContext;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structParser" kindref="compound">Parser</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceBaseParNamespace" kindref="compound">BaseParNamespace</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Terminal;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderTerminal" kindref="compound">ShaderTerminal</ref></highlight></codeline>
+<codeline lineno="32"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">bool_expr;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">render_pass_decl;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">render_pass_group_decl;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">render_pass_use_stat;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderTerminal</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="renderPassObject_8h_1ac7127b0691a5ad7ff7b036e529de5a71" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1ac7127b0691a5ad7ff7b036e529de5a71" kindref="member">render_pass_read_register</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>read_index)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>subpass_read_register(MAX_T_REGISTERS,<sp/>read_index);<sp/>}</highlight></codeline>
+<codeline lineno="40" refid="renderPassObject_8h_1a55217edaee6d7c6f82a39f720749ecfd" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a55217edaee6d7c6f82a39f720749ecfd" kindref="member">render_pass_read_window_base</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>read_count)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>subpass_read_window_base(MAX_T_REGISTERS,<sp/>read_count);<sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classRenderPassObject" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref></highlight></codeline>
+<codeline lineno="43"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="45" refid="structRenderPassObject_1_1Target" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassObject_1_1Target" kindref="compound">Target</ref></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="47" refid="structRenderPassObject_1_1Target_1a50a129ff3283153f053dd396a8b9661f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classNameId" kindref="compound">RenderPassNameId</ref><sp/><ref refid="structRenderPassObject_1_1Target_1a50a129ff3283153f053dd396a8b9661f" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="48" refid="structRenderPassObject_1_1Target_1aacc610a9ed74e0d97d706b76e663aaf6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Target_1aacc610a9ed74e0d97d706b76e663aaf6" kindref="member">multisampled</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>formatSamples<sp/>==<sp/>0:<sp/>the<sp/>pass<sp/>names<sp/>framebuffer<sp/>layouts<sp/>instead<sp/>of<sp/>inline<sp/>formats.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="structRenderPassObject_1_1Target_1a846756401a7cd9379d71696faff26372" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structRenderPassObject_1_1Target_1a846756401a7cd9379d71696faff26372" kindref="member">format</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="51" refid="structRenderPassObject_1_1Target_1ab1edd722dde100106b80edce1189f0e8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Target_1ab1edd722dde100106b80edce1189f0e8" kindref="member">formatSamples</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="structRenderPassObject_1_1Resolve" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassObject_1_1Resolve" kindref="compound">Resolve</ref></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56" refid="structRenderPassObject_1_1Resolve_1aa4541d2977283347d2ffe7c94b117302" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Resolve_1aa4541d2977283347d2ffe7c94b117302" kindref="member">srcTargetIdx</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="57" refid="structRenderPassObject_1_1Resolve_1a80ec9a8928ae6a7c2df65c07796ff3f9" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Resolve_1a80ec9a8928ae6a7c2df65c07796ff3f9" kindref="member">dstTargetIdx</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="structRenderPassObject_1_1Subpass" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassObject_1_1Subpass" kindref="compound">Subpass</ref></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>{<sp/></highlight><highlight class="comment">//-V802</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="structRenderPassObject_1_1Subpass_1acb6b2917f2d18eb606b13995f6f43b2f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classNameId" kindref="compound">RenderPassNameId</ref><sp/><ref refid="structRenderPassObject_1_1Subpass_1acb6b2917f2d18eb606b13995f6f43b2f" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="63" refid="structRenderPassObject_1_1Subpass_1acc5b0d47ffbd8e5c505c3d97d6d60fad" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;int&gt;</ref><sp/><ref refid="structRenderPassObject_1_1Subpass_1acc5b0d47ffbd8e5c505c3d97d6d60fad" kindref="member">colors</ref>;</highlight></codeline>
+<codeline lineno="64" refid="structRenderPassObject_1_1Subpass_1aa7902db54e8ce8f6e4b94e9b78663f27" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;int&gt;</ref><sp/><ref refid="structRenderPassObject_1_1Subpass_1aa7902db54e8ce8f6e4b94e9b78663f27" kindref="member">reads</ref>;</highlight></codeline>
+<codeline lineno="65" refid="structRenderPassObject_1_1Subpass_1a9a3ff221e9e79775800ddb06e3340d73" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass_1a9a3ff221e9e79775800ddb06e3340d73" kindref="member">depthTargetIdx</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="66" refid="structRenderPassObject_1_1Subpass_1a370a397063f1a30c8acc741c0660922d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass_1a370a397063f1a30c8acc741c0660922d" kindref="member">vrsTargetIdx</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="67" refid="structRenderPassObject_1_1Subpass_1ac8b988b21bd05ae421fbe5310d89383a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass_1ac8b988b21bd05ae421fbe5310d89383a" kindref="member">depthSampled</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass_1a953203b6bc7f81eeaf228e188138b90d" kindref="member">readPos</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_idx)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass_1a4cdc7064573ed7a172f692b6d56b9b97" kindref="member">colorPos</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_idx)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass_1a849e2ca0069db2377bc651a5b4a00f9e" kindref="member">depthReadOnly</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass_1af478bd502a64657db0e6f5b27464b324" kindref="member">writes</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_idx)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass_1a5bd2d6de5df9cd1cb3bb6ad14894e28e" kindref="member">binds</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_idx)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76" refid="classRenderPassObject_1a759f493c21f053df7463422c853aa59b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classNameId" kindref="compound">RenderPassNameId</ref><sp/><ref refid="classRenderPassObject_1a759f493c21f053df7463422c853aa59b" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="77" refid="classRenderPassObject_1ac4ba48d4872e80937e16d5b0e3500eef" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1ac4ba48d4872e80937e16d5b0e3500eef" kindref="member">tableIdx</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="78" refid="classRenderPassObject_1aaf11bde712c312d7e3261da431acb10c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;Target&gt;</ref><sp/><ref refid="classRenderPassObject_1aaf11bde712c312d7e3261da431acb10c" kindref="member">targets</ref>;</highlight></codeline>
+<codeline lineno="79" refid="classRenderPassObject_1af327840123ad7699df3326b1a8a58d81" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;Subpass&gt;</ref><sp/><ref refid="classRenderPassObject_1af327840123ad7699df3326b1a8a58d81" kindref="member">subpasses</ref>;</highlight></codeline>
+<codeline lineno="80" refid="classRenderPassObject_1ab17613a478e26e0296fd44ea64d5ff0b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;Resolve&gt;</ref><sp/><ref refid="classRenderPassObject_1ab17613a478e26e0296fd44ea64d5ff0b" kindref="member">resolves</ref>;</highlight></codeline>
+<codeline lineno="81" refid="classRenderPassObject_1a521d23c706601e4507342323bafb3ffa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1a521d23c706601e4507342323bafb3ffa" kindref="member">allowSplit</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="82" refid="classRenderPassObject_1a4c4e981f97cc9f3db921607e92fc6a04" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;RenderPassNameId&gt;</ref><sp/><ref refid="classRenderPassObject_1a4c4e981f97cc9f3db921607e92fc6a04" kindref="member">framebuffers</ref>;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="classRenderPassObject_1a183e5050c4c7e1dcc0a2a5e73ed5d8b5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderPassObject_1a183e5050c4c7e1dcc0a2a5e73ed5d8b5" kindref="member">BINDUMP_NON_SERIALIZABLE</ref>(</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Untaken<sp/>hardware<sp/>branches<sp/>included,<sp/>so<sp/>`optional`<sp/>can<sp/>tell<sp/>a<sp/>typo<sp/>from<sp/>a<sp/>platform-only<sp/>target.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::VectorSet&lt;int&gt;<sp/>lexicalTargetNames;<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref><sp/>*names<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="classRenderPassObject_1a3c706ca609fb9c1bf733366e405a9f4d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1a3c706ca609fb9c1bf733366e405a9f4d" kindref="member">MAX_SUBPASS_READS</ref><sp/>=<sp/>8;</highlight></codeline>
+<codeline lineno="89" refid="classRenderPassObject_1ac184dd50009cb766554dcfcba61d229e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1ac184dd50009cb766554dcfcba61d229e" kindref="member">MAX_COLOR_SLOTS</ref><sp/>=<sp/>Driver3dRenderTarget::MAX_SIMRT;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(subpass_read_window_base(MAX_T_REGISTERS,<sp/><ref refid="classRenderPassObject_1a3c706ca609fb9c1bf733366e405a9f4d" kindref="member">MAX_SUBPASS_READS</ref>)<sp/>&gt;=<sp/>0);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(MAX_T_REGISTERS<sp/>==<sp/>RENDER_PASS_T_REGISTER_COUNT);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="classRenderPassObject_1af5b91a4ed18ad24b9c92b07f4ab84530" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classRenderPassObject_1af5b91a4ed18ad24b9c92b07f4ab84530" kindref="member">str</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>names-&gt;getName(name_id);<sp/>}</highlight></codeline>
+<codeline lineno="94" refid="classRenderPassObject_1ae4d4edd34248aa274791a8f90b799f4b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classRenderPassObject_1ae4d4edd34248aa274791a8f90b799f4b" kindref="member">nameStr</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1af5b91a4ed18ad24b9c92b07f4ab84530" kindref="member">str</ref>(<ref refid="classRenderPassObject_1a759f493c21f053df7463422c853aa59b" kindref="member">name</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1a0c7ee7dfedd1d340dd3e974f56115c06" kindref="member">targetIndex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="96" refid="classRenderPassObject_1a446b3ac9357f63d3b93420c5bd6852b8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classRenderPassObject_1a446b3ac9357f63d3b93420c5bd6852b8" kindref="member">targetName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1af5b91a4ed18ad24b9c92b07f4ab84530" kindref="member">str</ref>(<ref refid="classRenderPassObject_1aaf11bde712c312d7e3261da431acb10c" kindref="member">targets</ref>[i].<ref refid="classRenderPassObject_1a759f493c21f053df7463422c853aa59b" kindref="member">name</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="97" refid="classRenderPassObject_1a97468c0f79f7824c1318409d4faaf985" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1a97468c0f79f7824c1318409d4faaf985" kindref="member">targetIsMs</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1aaf11bde712c312d7e3261da431acb10c" kindref="member">targets</ref>[i].multisampled;<sp/>}</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1af35c95ae3dff8531da2c80b42fd06b83" kindref="member">subpassIndex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="classRenderPassObject_1ac1e43c0737df57ea4f8cb374381a2d69" kindref="member">subpassList</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="100" refid="classRenderPassObject_1a3f5214f4fcb5738bcc70b5a0ee6b3ebf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classRenderPassObject_1a3f5214f4fcb5738bcc70b5a0ee6b3ebf" kindref="member">subpassName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1af5b91a4ed18ad24b9c92b07f4ab84530" kindref="member">str</ref>(<ref refid="classRenderPassObject_1af327840123ad7699df3326b1a8a58d81" kindref="member">subpasses</ref>[i].<ref refid="classRenderPassObject_1a759f493c21f053df7463422c853aa59b" kindref="member">name</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1a561d8e6de109e9ac6a3a2b30b5ea6c7d" kindref="member">isResolveDst</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_idx)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1acdb807c24be6a61cdcf425bec3c98017" kindref="member">isResolveSrc</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_idx)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1a810f93fb29a7d19a491e3053c87a4c0c" kindref="member">isVrsTarget</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_idx)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="104" refid="classRenderPassObject_1aff608b4be0c669cd0f7cd42fe8be3fbd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1aff608b4be0c669cd0f7cd42fe8be3fbd" kindref="member">hasLexicalTarget</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lexicalTargetNames.count(name_id)<sp/>!=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject_1a631d3e707f81d5eed6305f627e53027f" kindref="member">hasInlineFormats</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="classRenderPassObject_1a2c7d0d21062800379903f51dcf6f64ec" kindref="member">shapeDesc</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref>;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111" refid="classRenderPassGroup" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref></highlight></codeline>
+<codeline lineno="112"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="114" refid="structRenderPassGroup_1_1Member" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassGroup_1_1Member" kindref="compound">Member</ref></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="116" refid="structRenderPassGroup_1_1Member_1ae5a1c11e155926d9ea3e9aad2eb4ee08" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassGroup_1_1Member_1ae5a1c11e155926d9ea3e9aad2eb4ee08" kindref="member">passIdx</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="117" refid="structRenderPassGroup_1_1Member_1aa1dbd37cd6ab2e397df85eecde6e0a8b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassGroup_1_1Member_1aa1dbd37cd6ab2e397df85eecde6e0a8b" kindref="member">subpassIdx</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120" refid="structRenderPassGroup_1_1ReadSlot" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassGroup_1_1ReadSlot" kindref="compound">ReadSlot</ref></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/>{<sp/></highlight><highlight class="comment">//-V802</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122" refid="structRenderPassGroup_1_1ReadSlot_1acdc095a4c31d06aeb140dca0efd667c0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classNameId" kindref="compound">RenderPassNameId</ref><sp/><ref refid="structRenderPassGroup_1_1ReadSlot_1acdc095a4c31d06aeb140dca0efd667c0" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="123" refid="structRenderPassGroup_1_1ReadSlot_1a7ae8469795bfee8852285646a9a3783a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassGroup_1_1ReadSlot_1a7ae8469795bfee8852285646a9a3783a" kindref="member">targetIdx</ref><sp/>=<sp/>-1;<sp/></highlight><highlight class="comment">//<sp/>Metal<sp/>fetches<sp/>an<sp/>input<sp/>attachment<sp/>by<sp/>it,<sp/>not<sp/>by<sp/>ordinal</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="structRenderPassGroup_1_1ReadSlot_1afd246dd7b523a5e0bfd416abb84e31bc" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassGroup_1_1ReadSlot_1afd246dd7b523a5e0bfd416abb84e31bc" kindref="member">multisampled</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>slot<sp/>-1:<sp/>the<sp/>members<sp/>disagree<sp/>on<sp/>the<sp/>slot,<sp/>so<sp/>no<sp/>group<sp/>variant<sp/>may<sp/>write<sp/>it.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="structRenderPassGroup_1_1ColorSlot" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassGroup_1_1ColorSlot" kindref="compound">ColorSlot</ref></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>{<sp/></highlight><highlight class="comment">//-V802</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130" refid="structRenderPassGroup_1_1ColorSlot_1a82d89647454ea17924dc27b8e004ef9b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classNameId" kindref="compound">RenderPassNameId</ref><sp/><ref refid="structRenderPassGroup_1_1ColorSlot_1a82d89647454ea17924dc27b8e004ef9b" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="131" refid="structRenderPassGroup_1_1ColorSlot_1a2ac3a0f6f1798eec61e31819a1b3c115" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassGroup_1_1ColorSlot_1a2ac3a0f6f1798eec61e31819a1b3c115" kindref="member">slot</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="132" refid="structRenderPassGroup_1_1ColorSlot_1a84664a5f83aac9850bc228a1f2261cc2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structRenderPassGroup_1_1ColorSlot_1a84664a5f83aac9850bc228a1f2261cc2" kindref="member">inAllMembers</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135" refid="classRenderPassGroup_1a4970b6011f7bfae8f9a7ed1571e8551b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classNameId" kindref="compound">RenderPassNameId</ref><sp/><ref refid="classRenderPassGroup_1a4970b6011f7bfae8f9a7ed1571e8551b" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="136" refid="classRenderPassGroup_1a9c9f7122a5220e31b6cf936d83a2529a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;Member&gt;</ref><sp/><ref refid="classRenderPassGroup_1a9c9f7122a5220e31b6cf936d83a2529a" kindref="member">members</ref>;</highlight></codeline>
+<codeline lineno="137" refid="classRenderPassGroup_1acfd01f9db25bcb9f2ee5862d85276d9a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;ColorSlot&gt;</ref><sp/><ref refid="classRenderPassGroup_1acfd01f9db25bcb9f2ee5862d85276d9a" kindref="member">colorSlots</ref>;</highlight></codeline>
+<codeline lineno="138" refid="classRenderPassGroup_1affcb555ea5e95d98b39cf024f2e3ec39" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;ReadSlot&gt;</ref><sp/><ref refid="classRenderPassGroup_1affcb555ea5e95d98b39cf024f2e3ec39" kindref="member">reads</ref>;</highlight></codeline>
+<codeline lineno="139" refid="classRenderPassGroup_1a115df216ea55bdc0e4045ba2658cf00a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup_1a115df216ea55bdc0e4045ba2658cf00a" kindref="member">tableIdx</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="140" refid="classRenderPassGroup_1a3aa51b1bcdd7511aee53f2249cdda7fd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup_1a3aa51b1bcdd7511aee53f2249cdda7fd" kindref="member">readableCount</ref><sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>common<sp/>read<sp/>prefix:<sp/>only<sp/>these<sp/>reads<sp/>are<sp/>usable</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="classRenderPassGroup_1a98f62d3066fc8c5f0e7a6c2c079244e0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup_1a98f62d3066fc8c5f0e7a6c2c079244e0" kindref="member">depthPresent</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="142" refid="classRenderPassGroup_1a724da9b86b96dd5e12b6bb7c80901d03" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup_1a724da9b86b96dd5e12b6bb7c80901d03" kindref="member">depthReadOnly</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="143" refid="classRenderPassGroup_1acc2ecee7d5f186a0d8db078f3968dbe1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup_1acc2ecee7d5f186a0d8db078f3968dbe1" kindref="member">depthSampled</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="144" refid="classRenderPassGroup_1a51b334268a05180ba10fd3b440ea7519" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup_1a51b334268a05180ba10fd3b440ea7519" kindref="member">allowSplit</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146" refid="classRenderPassGroup_1ad62a4992138a2380c2a8b61b0e641d81" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderPassGroup_1ad62a4992138a2380c2a8b61b0e641d81" kindref="member">BINDUMP_NON_SERIALIZABLE</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref><sp/>*names<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148" refid="classRenderPassGroup_1a70fac1b10a3f4c2b9085cc6498354fbb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classRenderPassGroup_1a70fac1b10a3f4c2b9085cc6498354fbb" kindref="member">str</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>names-&gt;getName(name_id);<sp/>}</highlight></codeline>
+<codeline lineno="149" refid="classRenderPassGroup_1a9c5104bff514da1811e17df9ac08f9a2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classRenderPassGroup_1a9c5104bff514da1811e17df9ac08f9a2" kindref="member">nameStr</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup_1a70fac1b10a3f4c2b9085cc6498354fbb" kindref="member">str</ref>(<ref refid="classRenderPassGroup_1a4970b6011f7bfae8f9a7ed1571e8551b" kindref="member">name</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ColorSlot<sp/>*<ref refid="classRenderPassGroup_1a7036cc594d51bcb63104ec7c8e21be21" kindref="member">findColor</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup_1aac44e95271628f19d6a6eea0a7601e7e" kindref="member">readPos</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="classRenderPassGroup_1a26e6dcb19c3863ea3bbdfdb74f63b32e" kindref="member">shapeDesc</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="classRenderPassGroup_1a283455c40d1db602ff9a9f4b13896dc1" kindref="member">describe</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>*passes)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassGroupTable" kindref="compound">RenderPassGroupTable</ref>;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158" refid="structRenderPassGroupMemberRef" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassGroupMemberRef" kindref="compound">RenderPassGroupMemberRef</ref></highlight></codeline>
+<codeline lineno="159"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="160" refid="structRenderPassGroupMemberRef_1acdc13abbdc3378b35e5987463b0adb92" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref><sp/>*<ref refid="structRenderPassGroupMemberRef_1acdc13abbdc3378b35e5987463b0adb92" kindref="member">pass</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="161" refid="structRenderPassGroupMemberRef_1a7ca8e96af36e3210550f4a3739ed3736" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass" kindref="compound">RenderPassObject::Subpass</ref><sp/>*<ref refid="structRenderPassGroupMemberRef_1a7ca8e96af36e3210550f4a3739ed3736" kindref="member">subpass</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163" refid="structRenderPassGroupMemberRef_1a7b39a519d84eb054b51d739e55e0afa2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>bool()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structRenderPassGroupMemberRef_1acdc13abbdc3378b35e5987463b0adb92" kindref="member">pass</ref><sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166" refid="classRenderPassTable" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable" kindref="compound">RenderPassNamedTable</ref>&lt;RenderPassObject&gt;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classRenderPassNamedTable_1a70c2f69ea0ed32f1ce7b427134170779" kindref="member">RenderPassNamedTable::RenderPassNamedTable</ref>;</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight></codeline>
+<codeline lineno="171" refid="classRenderPassTable_1a78bf21d0c4b730f8b833745d13535e5f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable_1a78bf21d0c4b730f8b833745d13535e5f" kindref="member">registerPass</ref>(<ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref><sp/>*p)<sp/>{<sp/><ref refid="classRenderPassNamedTable_1a3a83085c5607c97cacf57a429b59d3ac" kindref="member">adopt</ref>(p);<sp/>}</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable_1a45e06351d8e270b873123c966922510c" kindref="member">link</ref>(Tab&lt;RenderPassObject<sp/>*&gt;<sp/>&amp;loaded_passes,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroupTable" kindref="compound">RenderPassGroupTable</ref><sp/>&amp;groups,<sp/>Tab&lt;int&gt;<sp/>&amp;lnktbl);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175" refid="classRenderPassGroupTable" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassGroupTable" kindref="compound">RenderPassGroupTable</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable" kindref="compound">RenderPassNamedTable</ref>&lt;RenderPassGroup&gt;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classRenderPassNamedTable_1a70c2f69ea0ed32f1ce7b427134170779" kindref="member">RenderPassNamedTable::RenderPassNamedTable</ref>;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180" refid="classRenderPassGroupTable_1ac9e3b99b64dd9d768b8e689eb3292802" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroupTable_1ac9e3b99b64dd9d768b8e689eb3292802" kindref="member">registerGroup</ref>(<ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref><sp/>*g)<sp/>{<sp/><ref refid="classRenderPassNamedTable_1a3a83085c5607c97cacf57a429b59d3ac" kindref="member">adopt</ref>(g);<sp/>}</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroupTable_1a54c5571cbe72f5ee90e6fc58fd73de8d" kindref="member">link</ref>(Tab&lt;RenderPassGroup<sp/>*&gt;<sp/>&amp;loaded_groups,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>&amp;passes,<sp/>dag::ConstSpan&lt;int&gt;<sp/>pass_lnktbl,<sp/>Tab&lt;int&gt;<sp/>&amp;lnktbl);</highlight></codeline>
+<codeline lineno="182"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184" refid="structRenderPassNamed" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassNamed" kindref="compound">RenderPassNamed</ref></highlight></codeline>
+<codeline lineno="185"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="186" refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" kindref="member">Kind</ref></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fa6adf97f83acf6453d4a6a4b1070f3754" kindref="member">None</ref>,</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fab9b57aae83585e17ede4570dcede353c" kindref="member">Pass</ref>,</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fa03937134cedab9078be39a77ee3a48a0" kindref="member">Group</ref>,</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fa3daac1b7e03cca202656c225ecec2f94" kindref="member">FramebufferLayout</ref>,</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194" refid="structRenderPassNamed_1a907c645c38c2b2510ed62caa7b131756" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" kindref="member">Kind</ref><sp/><ref refid="structRenderPassNamed_1a907c645c38c2b2510ed62caa7b131756" kindref="member">kind</ref><sp/>=<sp/><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fa6adf97f83acf6453d4a6a4b1070f3754" kindref="member">Kind::None</ref>;</highlight></codeline>
+<codeline lineno="195" refid="structRenderPassNamed_1aa1a59652544be45f0a076cf0eb8ee6b8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref><sp/>*<ref refid="structRenderPassNamed_1aa1a59652544be45f0a076cf0eb8ee6b8" kindref="member">pass</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="196" refid="structRenderPassNamed_1ab47a609564b4cdfc5203e8adfbbaa3d5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref><sp/>*<ref refid="structRenderPassNamed_1ab47a609564b4cdfc5203e8adfbbaa3d5" kindref="member">group</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="197" refid="structRenderPassNamed_1a5fbc8f42a5f28176bf2f15b4b0f1d863" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref><sp/>*<ref refid="structRenderPassNamed_1a5fbc8f42a5f28176bf2f15b4b0f1d863" kindref="member">layout</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight></codeline>
+<codeline lineno="199" refid="structRenderPassNamed_1abd6f2d05d4e20797a09958d8569fee5d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>bool()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structRenderPassNamed_1a907c645c38c2b2510ed62caa7b131756" kindref="member">kind</ref><sp/>!=<sp/><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fa6adf97f83acf6453d4a6a4b1070f3754" kindref="member">Kind::None</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structRenderPassNamed_1afc50c1f70579521f176f463993043745" kindref="member">kindName</ref>(<ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" kindref="member">Kind</ref><sp/>k);</highlight></codeline>
+<codeline lineno="201" refid="structRenderPassNamed_1afc50c1f70579521f176f463993043745" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structRenderPassNamed_1afc50c1f70579521f176f463993043745" kindref="member">kindName</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structRenderPassNamed_1afc50c1f70579521f176f463993043745" kindref="member">kindName</ref>(<ref refid="structRenderPassNamed_1a907c645c38c2b2510ed62caa7b131756" kindref="member">kind</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="202"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><ref refid="structRenderPassNamed" kindref="compound">RenderPassNamed</ref><sp/><ref refid="renderPassObject_8h_1adaa6e77cc89e0e4b338c7938d6aa114d" kindref="member">render_pass_namespace_find</ref>(<ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><ref refid="structRenderPassNamed" kindref="compound">RenderPassNamed</ref><sp/><ref refid="renderPassObject_8h_1adaa6e77cc89e0e4b338c7938d6aa114d" kindref="member">render_pass_namespace_find</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>&amp;passes,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroupTable" kindref="compound">RenderPassGroupTable</ref><sp/>&amp;groups,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id);</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T,<sp/></highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>Find,<sp/></highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>ExistingOf,<sp/></highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>OnExisting,<sp/></highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>Adopt,<sp/></highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>Describe&gt;</highlight></codeline>
+<codeline lineno="208" refid="renderPassObject_8h_1acd0c8da8a1ea8a81d3edc4bbc09e0759" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1acd0c8da8a1ea8a81d3edc4bbc09e0759" kindref="member">render_pass_link_named</ref>(Tab&lt;T<sp/>*&gt;<sp/>&amp;loaded,<sp/><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" kindref="member">RenderPassNamed::Kind</ref><sp/>kind,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*mismatch_words,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*plural_words,</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/>Find<sp/>&amp;&amp;find_taken,<sp/>ExistingOf<sp/>&amp;&amp;existing_of,<sp/>OnExisting<sp/>&amp;&amp;on_existing,<sp/>Adopt<sp/>&amp;&amp;adopt,<sp/>Describe<sp/>&amp;&amp;describe)</highlight></codeline>
+<codeline lineno="210"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>loaded.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/>T<sp/>*obj<sp/>=<sp/>loaded[i];</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassNamed" kindref="compound">RenderPassNamed</ref><sp/>taken<sp/>=<sp/>find_taken(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">(obj-&gt;name));</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(taken<sp/>&amp;&amp;<sp/>taken.<ref refid="structRenderPassNamed_1a907c645c38c2b2510ed62caa7b131756" kindref="member">kind</ref><sp/>!=<sp/>kind)</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" kindref="member">SHLOG_FATAL</ref>,</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;%s<sp/>&apos;%s&apos;<sp/>collides<sp/>with<sp/>a<sp/>%s<sp/>of<sp/>the<sp/>same<sp/>name<sp/>declared<sp/>in<sp/>another<sp/>compilation<sp/>unit;<sp/>render<sp/>passes<sp/>and<sp/>subpass<sp/>groups<sp/>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;share<sp/>one<sp/>namespace&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structRenderPassNamed_1afc50c1f70579521f176f463993043745" kindref="member">RenderPassNamed::kindName</ref>(kind),<sp/>obj-&gt;nameStr(),<sp/>taken.<ref refid="structRenderPassNamed_1a928a05245eb62a90b49792a132c83e21" kindref="member">kindName</ref>());</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(T<sp/>*existing<sp/>=<sp/>existing_of(taken))</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(existing-&gt;shapeDesc()<sp/>!=<sp/>obj-&gt;shapeDesc())</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5ca6112bd3e7c5d175bac1569c33c1630ad" kindref="member">SHLOG_FATAL</ref>,</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;%s<sp/>&apos;%s&apos;<sp/>%s<sp/>across<sp/>compilation<sp/>units;<sp/>declare<sp/>all<sp/>%s<sp/>once<sp/>in<sp/>a<sp/>shared<sp/>include<sp/>(this<sp/>unit:<sp/>%s;<sp/>the<sp/>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;other:<sp/>%s)&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structRenderPassNamed_1afc50c1f70579521f176f463993043745" kindref="member">RenderPassNamed::kindName</ref>(kind),<sp/>obj-&gt;nameStr(),<sp/>mismatch_words,<sp/>plural_words,<sp/>describe(obj).c_str(),</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>describe(existing).c_str());</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>on_existing(i,<sp/>existing);</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/>obj;</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>adopt(i,<sp/>obj);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/>loaded.clear();</highlight></codeline>
+<codeline lineno="235"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight></codeline>
+<codeline lineno="237" refid="renderPassObject_8h_1a0b92c2410f9f8adb4ca5b6a3099386a8" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a0b92c2410f9f8adb4ca5b6a3099386a8" kindref="member">render_pass_claim_namespace_name</ref>(<ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" kindref="member">RenderPassNamed::Kind</ref><sp/>kind,<sp/>BaseParNamespace::Terminal<sp/>*name,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight></codeline>
+<codeline lineno="240" refid="renderPassObject_8h_1ad88d9adcfc56489e5a8557d95ac502ee" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1ad88d9adcfc56489e5a8557d95ac502ee" kindref="member">render_pass_eval_build_condition</ref>(ShaderTerminal::bool_expr<sp/>&amp;e,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;out_value);</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>IfNode,<sp/></highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>EvalStat&gt;</highlight></codeline>
+<codeline lineno="243" refid="renderPassObject_8h_1add5a8847fdd72bd957b04c0e414356a6" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1add5a8847fdd72bd957b04c0e414356a6" kindref="member">render_pass_eval_if_chain</ref>(IfNode<sp/>&amp;s,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;had_error,<sp/>EvalStat<sp/>&amp;&amp;eval_stat)</highlight></codeline>
+<codeline lineno="244"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>value<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="renderPassObject_8h_1ad88d9adcfc56489e5a8557d95ac502ee" kindref="member">render_pass_eval_build_condition</ref>(*s.expr,<sp/>parser,<sp/>ctx,<sp/>value))</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/>had_error<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*st<sp/>:<sp/>value<sp/>?<sp/>s.true_stat<sp/>:<sp/>s.false_stat)</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/>eval_stat(*st);</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!value<sp/>&amp;&amp;<sp/>s.else_if)</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="renderPassObject_8h_1add5a8847fdd72bd957b04c0e414356a6" kindref="member">render_pass_eval_if_chain</ref>(*s.else_if,<sp/>parser,<sp/>ctx,<sp/>had_error,<sp/>eval_stat);</highlight></codeline>
+<codeline lineno="255"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref>;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a2d662ffc34837ec1bc46098c685e5ec2" kindref="member">render_pass_split_mode_declared</ref>(<ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a79563b9cb67996ba55045e8314ddcd2c" kindref="member">render_pass_split_mode_ordinal</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*value_name,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"></highlight></codeline>
+<codeline lineno="262"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a201f3b766dffed4e4b4b60215adbcc57" kindref="member">render_pass_target_has_native_subpasses</ref>();</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"></highlight></codeline>
+<codeline lineno="264"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a4f1bf365230f370ea08ed7fc3ebcda85" kindref="member">render_pass_target_is_metal</ref>();</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"></highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><ref refid="structRenderPassGroupMemberRef" kindref="compound">RenderPassGroupMemberRef</ref><sp/><ref refid="renderPassObject_8h_1a6b97dc9ffba416463bfd524c6de16622" kindref="member">render_pass_group_member</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassGroup_1_1Member" kindref="compound">RenderPassGroup::Member</ref><sp/>&amp;m,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>&amp;passes);</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"></highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a8649bb4494d096282be24f2ac5342d92" kindref="member">render_pass_color_slot</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassObject_1_1Subpass" kindref="compound">RenderPassObject::Subpass</ref><sp/>&amp;sp,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>color_pos);</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"></highlight></codeline>
+<codeline lineno="270"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a93299baca5545d4c647b1151cd9cde75" kindref="member">render_pass_scope_color_count</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassOptIn" kindref="compound">RenderPassOptIn</ref><sp/>&amp;scope,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>&amp;passes);</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"></highlight></codeline>
+<codeline lineno="272"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a39fec747be5497039ef7cecd8fdbe228" kindref="member">render_pass_any_has_target</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>&amp;passes,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_name_id);</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"></highlight></codeline>
+<codeline lineno="274"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1ae7053c1e2a5cba42d338c88cb294bd8d" kindref="member">render_pass_group_target_is_resolve_dst</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref><sp/>&amp;grp,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_name_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>&amp;passes);</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"></highlight></codeline>
+<codeline lineno="276"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1a485c2b006145f0383449f827a3761758" kindref="member">render_pass_group_target_is_vrs</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref><sp/>&amp;grp,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_name_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>&amp;passes);</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"></highlight></codeline>
+<codeline lineno="278"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="renderPassObject_8h_1af2d79ab637a04066d25db9fb6d0c1545" kindref="member">render_pass_group_slot_divergence</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref><sp/>&amp;grp,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_name_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>&amp;passes,</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/>eastl::string<sp/>&amp;out_desc);</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderParser" kindref="compound">ShaderParser</ref></highlight></codeline>
+<codeline lineno="282"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="283" refid="namespaceShaderParser_1a4c453fd2482cf0292974f1933c7ed5a1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a4c453fd2482cf0292974f1933c7ed5a1" kindref="member">render_pass_name_is_system_value</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dd_strnicmp(name,<sp/></highlight><highlight class="stringliteral">&quot;sv_&quot;</highlight><highlight class="normal">,<sp/>3)<sp/>==<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight></codeline>
+<codeline lineno="285" refid="namespaceShaderParser_1a22017b077acf32d053672b6d7e7816ce" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a22017b077acf32d053672b6d7e7816ce" kindref="member">add_render_pass</ref>(ShaderTerminal::render_pass_decl<sp/>*rp,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="286" refid="namespaceShaderParser_1a0cbead85f8e60143c3d46927dff9388a" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a0cbead85f8e60143c3d46927dff9388a" kindref="member">add_render_pass_group</ref>(ShaderTerminal::render_pass_group_decl<sp/>*rpg,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"></highlight></codeline>
+<codeline lineno="288" refid="namespaceShaderParser_1a7e7f4289fd34e3939009291d16657d03" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a7e7f4289fd34e3939009291d16657d03" kindref="member">RenderPassOptInMode</ref></highlight></codeline>
+<codeline lineno="289"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderParser_1a7e7f4289fd34e3939009291d16657d03a2709046ed364cc54b91f908e85e512ed" kindref="member">Declare</ref>,</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderParser_1a7e7f4289fd34e3939009291d16657d03ae5c303d82e8b702ccaba9f2b4bbe4c80" kindref="member">Reuse</ref></highlight></codeline>
+<codeline lineno="292"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"></highlight></codeline>
+<codeline lineno="294" refid="namespaceShaderParser_1a6f25a8a9f226c037784db9974c01867a" refkind="member"><highlight class="normal"><ref refid="structRenderPassOptIn" kindref="compound">RenderPassOptIn</ref><sp/><ref refid="namespaceShaderParser_1a6f25a8a9f226c037784db9974c01867a" kindref="member">resolve_render_pass_opt_in</ref>(ShaderTerminal::render_pass_use_stat<sp/>&amp;s,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderParser_1a7e7f4289fd34e3939009291d16657d03" kindref="member">RenderPassOptInMode</ref><sp/>mode);</highlight></codeline>
+<codeline lineno="296" refid="namespaceShaderParser_1ab65ae7b6d3cb8856ca4b61092c20fe79" refkind="member"><highlight class="normal">BaseParNamespace::Terminal<sp/>*<ref refid="namespaceShaderParser_1ab65ae7b6d3cb8856ca4b61092c20fe79" kindref="member">render_pass_opt_in_term</ref>(ShaderTerminal::render_pass_use_stat<sp/>&amp;s);</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"></highlight></codeline>
+<codeline lineno="298"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a9b7cd63e7c0ec04dbce63ca447222988" kindref="member">validate_render_pass_writes</ref>(<ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;pass,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser);</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"></highlight></codeline>
+<codeline lineno="300"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a0a69f2d50ae721bd91b2c8ceb51cffb9" kindref="member">blend_reads_dst_alpha</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structSemanticShaderPass" kindref="compound">SemanticShaderPass</ref><sp/>&amp;pass,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>slot);</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"></highlight></codeline>
+<codeline lineno="302"><highlight class="normal">eastl::string<sp/><ref refid="namespaceShaderParser_1a2e670f9cdd8609581e9e1e43f8c6dc9d" kindref="member">render_pass_scope_desc</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassOptIn" kindref="compound">RenderPassOptIn</ref><sp/>&amp;scope,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*out_depth_present<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*out_depth_read_only<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"></highlight></codeline>
+<codeline lineno="305"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1ac423dcbe7cdf47a123cf5e74588b7bf6" kindref="member">render_pass_scope_layouts</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structRenderPassOptIn" kindref="compound">RenderPassOptIn</ref><sp/>&amp;scope,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/>Tab&lt;FramebufferLayoutRef&gt;<sp/>&amp;out);</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"></highlight></codeline>
+<codeline lineno="307"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1aa6df1e98e065b2eea60ee89ce2327276" kindref="member">render_pass_scope_target_reads_as_float</ref>(dag::ConstSpan&lt;FramebufferLayoutRef&gt;<sp/>layouts,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_name_id,</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/>eastl::string<sp/>&amp;out_offender);</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"></highlight></codeline>
+<codeline lineno="310"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderParser</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="renderPassObject.h"/>
+  </compounddef>
+</doxygen>

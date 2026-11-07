@@ -1,0 +1,636 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagorDummyObject" kind="class" language="C++" prot="public">
+    <compoundname>DagorDummyObject</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">SimpleObject</basecompoundref>
+    <includes refid="dummyObject_8h" local="no">dummyObject.h</includes>
+    <innerclass refid="classDagorDummyObject_1_1CreateCallBack" prot="private">DagorDummyObject::CreateCallBack</innerclass>
+    <templateparamlist>
+      <param>
+        <type>class Traits</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int DagorDummyObject&lt; Traits &gt;::PB_SIZE</definition>
+        <argsstring></argsstring>
+        <name>PB_SIZE</name>
+        <qualifiedname>DagorDummyObject::PB_SIZE</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="17" column="24" bodyfile="dummyObject.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" prot="public" static="yes" mutable="no">
+        <type>IParamMap *</type>
+        <definition>IParamMap* DagorDummyObject&lt; Traits &gt;::pmapParam</definition>
+        <argsstring></argsstring>
+        <name>pmapParam</name>
+        <qualifiedname>DagorDummyObject::pmapParam</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="19" column="27" bodyfile="dummyObject.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorDummyObject_1a7183dec7522747d9c6c4b64368642800" prot="public" static="yes" mutable="no">
+        <type>float</type>
+        <definition>float DagorDummyObject&lt; Traits &gt;::crtSize</definition>
+        <argsstring></argsstring>
+        <name>crtSize</name>
+        <qualifiedname>DagorDummyObject::crtSize</qualifiedname>
+        <initializer>= 20.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="20" column="23" bodyfile="dummyObject.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagorDummyObject_1a58cf36ebc84a64d7d118ab87ddf69a24" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagorDummyObject&lt; Traits &gt;::DagorDummyObject</definition>
+        <argsstring>()</argsstring>
+        <name>DagorDummyObject</name>
+        <qualifiedname>DagorDummyObject::DagorDummyObject</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="22" column="3" bodyfile="dummyObject.h" bodystart="22" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a57824b060d4e1077747aacf20d54a58b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::InvalidateUI</definition>
+        <argsstring>() override</argsstring>
+        <name>InvalidateUI</name>
+        <qualifiedname>DagorDummyObject::InvalidateUI</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="30" column="8" bodyfile="dummyObject.h" bodystart="30" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a643b20802e74f8c51c870f478c99c7eb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::set_axis_color</definition>
+        <argsstring>(GraphicsWindow *gw, INode *n, int a)</argsstring>
+        <name>set_axis_color</name>
+        <qualifiedname>DagorDummyObject::set_axis_color</qualifiedname>
+        <param>
+          <type>GraphicsWindow *</type>
+          <declname>gw</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="36" column="8" bodyfile="dummyObject.h" bodystart="36" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a9d7173846852fbe3a457c32ce851cfdc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorDummyObject&lt; Traits &gt;::Display</definition>
+        <argsstring>(TimeValue t, INode *inode, ViewExp *vpt, int flags) override</argsstring>
+        <name>Display</name>
+        <qualifiedname>DagorDummyObject::Display</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="42" column="7" bodyfile="dummyObject.h" bodystart="42" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1ac9ccaf2a3e6e9fe78492ec9cf210244f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorDummyObject&lt; Traits &gt;::HitTest</definition>
+        <argsstring>(TimeValue t, INode *inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override</argsstring>
+        <name>HitTest</name>
+        <qualifiedname>DagorDummyObject::HitTest</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>crossing</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>IPoint2 *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="52" column="7" bodyfile="dummyObject.h" bodystart="52" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a41bcc6e5ab29f20beba3bed086752aae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>DagorDummyObject::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="73" column="8" bodyfile="dummyObject.h" bodystart="73" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1abf23e65557e506ed2987044b9bdcbb92" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID DagorDummyObject&lt; Traits &gt;::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>DagorDummyObject::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="74" column="13" bodyfile="dummyObject.h" bodystart="74" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1aee134d517284c8e6d0ac8f5bac2dc429" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorDummyObject&lt; Traits &gt;::IsRenderable</definition>
+        <argsstring>() override</argsstring>
+        <name>IsRenderable</name>
+        <qualifiedname>DagorDummyObject::IsRenderable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="75" column="7" bodyfile="dummyObject.h" bodystart="75" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a1922e45eb0de6d9be0bfe813b917f2e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorDummyObject&lt; Traits &gt;::UsesWireColor</definition>
+        <argsstring>() override</argsstring>
+        <name>UsesWireColor</name>
+        <qualifiedname>DagorDummyObject::UsesWireColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="76" column="7" bodyfile="dummyObject.h" bodystart="76" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1abd08c1a81c0562048d9d5ac1f0ec8595" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagorDummyObject&lt; Traits &gt;::DoOwnSelectHilite</definition>
+        <argsstring>() override</argsstring>
+        <name>DoOwnSelectHilite</name>
+        <qualifiedname>DagorDummyObject::DoOwnSelectHilite</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="77" column="7" bodyfile="dummyObject.h" bodystart="77" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a4537cfe4c3bb2f1817f2373257e54fb5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>CreateMouseCallBack *</type>
+        <definition>CreateMouseCallBack * DagorDummyObject&lt; Traits &gt;::GetCreateMouseCallBack</definition>
+        <argsstring>() override</argsstring>
+        <name>GetCreateMouseCallBack</name>
+        <qualifiedname>DagorDummyObject::GetCreateMouseCallBack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="79" column="23" bodyfile="dummyObject.h" bodystart="79" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a1abd2b74e7b4641fa6806e3560cc4b33" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const wchar_t *</type>
+        <definition>const wchar_t * DagorDummyObject&lt; Traits &gt;::GetObjectName</definition>
+        <argsstring>(bool localized) const override</argsstring>
+        <name>GetObjectName</name>
+        <qualifiedname>DagorDummyObject::GetObjectName</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>localized</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="86" column="17" bodyfile="dummyObject.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a8d65161264535d0c74626c50ec59bb7b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>RefTargetHandle</type>
+        <definition>RefTargetHandle DagorDummyObject&lt; Traits &gt;::Clone</definition>
+        <argsstring>(RemapDir &amp;remap) override</argsstring>
+        <name>Clone</name>
+        <qualifiedname>DagorDummyObject::Clone</qualifiedname>
+        <param>
+          <type>RemapDir &amp;</type>
+          <declname>remap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="87" column="19" bodyfile="dummyObject.h" bodystart="87" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1aa0f3679aaeb91cf17eea0a93661857a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL DagorDummyObject&lt; Traits &gt;::OKtoDisplay</definition>
+        <argsstring>(TimeValue t) override</argsstring>
+        <name>OKtoDisplay</name>
+        <qualifiedname>DagorDummyObject::OKtoDisplay</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="96" column="8" bodyfile="dummyObject.h" bodystart="96" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1ac10aca2520a88fa33a1ccc3846ab6a17" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ParamDimension *</type>
+        <definition>ParamDimension * DagorDummyObject&lt; Traits &gt;::GetParameterDim</definition>
+        <argsstring>(int pbIndex) override</argsstring>
+        <name>GetParameterDim</name>
+        <qualifiedname>DagorDummyObject::GetParameterDim</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pbIndex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="103" column="18" bodyfile="dummyObject.h" bodystart="103" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a41a44ecc9728d72d1aa52b5fcb8ab11c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>MSTR</type>
+        <definition>MSTR DagorDummyObject&lt; Traits &gt;::GetParameterName</definition>
+        <argsstring>(int pbIndex, bool localized) override</argsstring>
+        <name>GetParameterName</name>
+        <qualifiedname>DagorDummyObject::GetParameterName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pbIndex</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>localized</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="112" column="8" bodyfile="dummyObject.h" bodystart="112" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1ac6eb0c8da54162d75ef9a2962a2d1da3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::BeginEditParams</definition>
+        <argsstring>(IObjParam *ip, ULONG flags, Animatable *prev) override</argsstring>
+        <name>BeginEditParams</name>
+        <qualifiedname>DagorDummyObject::BeginEditParams</qualifiedname>
+        <param>
+          <type>IObjParam *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>ULONG</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>Animatable *</type>
+          <declname>prev</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="114" column="8" bodyfile="dummyObject.h" bodystart="114" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a532a8022db2c1d5db3bbb9496516cd27" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::EndEditParams</definition>
+        <argsstring>(IObjParam *ip, ULONG flags, Animatable *next) override</argsstring>
+        <name>EndEditParams</name>
+        <qualifiedname>DagorDummyObject::EndEditParams</qualifiedname>
+        <param>
+          <type>IObjParam *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>ULONG</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>Animatable *</type>
+          <declname>next</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="132" column="8" bodyfile="dummyObject.h" bodystart="132" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1aae17539b7559de7444edb470bcf38f92" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::BuildMesh</definition>
+        <argsstring>(TimeValue) override</argsstring>
+        <name>BuildMesh</name>
+        <qualifiedname>DagorDummyObject::BuildMesh</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="145" column="8" bodyfile="dummyObject.h" bodystart="145" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1ac0e309d13fb9e28f5b069e6d9a16f0f7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::DrawIt</definition>
+        <argsstring>(GraphicsWindow *gw, TimeValue t, INode *inode, int sel, int flags, ViewExp *vpt)</argsstring>
+        <name>DrawIt</name>
+        <qualifiedname>DagorDummyObject::DrawIt</qualifiedname>
+        <param>
+          <type>GraphicsWindow *</type>
+          <declname>gw</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sel</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="154" column="8" bodyfile="dummyObject.h" bodystart="154" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a261b22feb2afcce3b609147aab59d9c4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::GetLocalBoundBox</definition>
+        <argsstring>(TimeValue t, INode *inode, ViewExp *vpt, Box3 &amp;box) override</argsstring>
+        <name>GetLocalBoundBox</name>
+        <qualifiedname>DagorDummyObject::GetLocalBoundBox</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="186" column="8" bodyfile="dummyObject.h" bodystart="186" bodyend="192"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a5efbb47faddf074d59f4f51b7d09de33" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::GetWorldBoundBox</definition>
+        <argsstring>(TimeValue t, INode *inode, ViewExp *vpt, Box3 &amp;box) override</argsstring>
+        <name>GetWorldBoundBox</name>
+        <qualifiedname>DagorDummyObject::GetWorldBoundBox</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>inode</declname>
+        </param>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="194" column="8" bodyfile="dummyObject.h" bodystart="194" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a5b45c6765d40f61a63ab65ebb9775e96" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorDummyObject&lt; Traits &gt;::GetDeformBBox</definition>
+        <argsstring>(TimeValue t, Box3 &amp;box, Matrix3 *tm=NULL, BOOL useSel=FALSE) override</argsstring>
+        <name>GetDeformBBox</name>
+        <qualifiedname>DagorDummyObject::GetDeformBBox</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Box3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <param>
+          <type>Matrix3 *</type>
+          <declname>tm</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>BOOL</type>
+          <declname>useSel</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="202" column="8" bodyfile="dummyObject.h" bodystart="202" bodyend="207"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorDummyObject_1a62986a600e2727883d5e85de1a74c946" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID DagorDummyObject&lt; Traits &gt;::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>DagorDummyObject::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummyObject.h" line="209" column="12" bodyfile="dummyObject.h" bodystart="209" bodyend="209"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DagorDummyObject&lt; Traits &gt;</label>
+        <link refid="classDagorDummyObject"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SimpleObject</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DagorDummyObject&lt; Traits &gt;</label>
+        <link refid="classDagorDummyObject"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>SimpleObject</label>
+      </node>
+    </collaborationgraph>
+    <location file="dummyObject.h" line="14" column="1" bodyfile="dummyObject.h" bodystart="15" bodyend="266"/>
+    <listofallmembers>
+      <member refid="classDagorDummyObject_1ac6eb0c8da54162d75ef9a2962a2d1da3" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>BeginEditParams</name></member>
+      <member refid="classDagorDummyObject_1aae17539b7559de7444edb470bcf38f92" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>BuildMesh</name></member>
+      <member refid="classDagorDummyObject_1a62986a600e2727883d5e85de1a74c946" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>ClassID</name></member>
+      <member refid="classDagorDummyObject_1a8d65161264535d0c74626c50ec59bb7b" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>Clone</name></member>
+      <member refid="classDagorDummyObject_1a7183dec7522747d9c6c4b64368642800" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>crtSize</name></member>
+      <member refid="classDagorDummyObject_1a58cf36ebc84a64d7d118ab87ddf69a24" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>DagorDummyObject</name></member>
+      <member refid="classDagorDummyObject_1a41bcc6e5ab29f20beba3bed086752aae" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>DeleteThis</name></member>
+      <member refid="classDagorDummyObject_1a9d7173846852fbe3a457c32ce851cfdc" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>Display</name></member>
+      <member refid="classDagorDummyObject_1abd08c1a81c0562048d9d5ac1f0ec8595" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>DoOwnSelectHilite</name></member>
+      <member refid="classDagorDummyObject_1ac0e309d13fb9e28f5b069e6d9a16f0f7" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>DrawIt</name></member>
+      <member refid="classDagorDummyObject_1a532a8022db2c1d5db3bbb9496516cd27" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>EndEditParams</name></member>
+      <member refid="classDagorDummyObject_1a4537cfe4c3bb2f1817f2373257e54fb5" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>GetCreateMouseCallBack</name></member>
+      <member refid="classDagorDummyObject_1a5b45c6765d40f61a63ab65ebb9775e96" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>GetDeformBBox</name></member>
+      <member refid="classDagorDummyObject_1a261b22feb2afcce3b609147aab59d9c4" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>GetLocalBoundBox</name></member>
+      <member refid="classDagorDummyObject_1a1abd2b74e7b4641fa6806e3560cc4b33" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>GetObjectName</name></member>
+      <member refid="classDagorDummyObject_1ac10aca2520a88fa33a1ccc3846ab6a17" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>GetParameterDim</name></member>
+      <member refid="classDagorDummyObject_1a41a44ecc9728d72d1aa52b5fcb8ab11c" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>GetParameterName</name></member>
+      <member refid="classDagorDummyObject_1a5efbb47faddf074d59f4f51b7d09de33" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>GetWorldBoundBox</name></member>
+      <member refid="classDagorDummyObject_1ac9ccaf2a3e6e9fe78492ec9cf210244f" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>HitTest</name></member>
+      <member refid="classDagorDummyObject_1a57824b060d4e1077747aacf20d54a58b" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>InvalidateUI</name></member>
+      <member refid="classDagorDummyObject_1aee134d517284c8e6d0ac8f5bac2dc429" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>IsRenderable</name></member>
+      <member refid="classDagorDummyObject_1aa0f3679aaeb91cf17eea0a93661857a5" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>OKtoDisplay</name></member>
+      <member refid="classDagorDummyObject_1a0506c4f94430d50c4b6cf05de45b853c" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>PB_SIZE</name></member>
+      <member refid="classDagorDummyObject_1aba24f089426d80895d00c3a1378c6a61" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>pmapParam</name></member>
+      <member refid="classDagorDummyObject_1a643b20802e74f8c51c870f478c99c7eb" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>set_axis_color</name></member>
+      <member refid="classDagorDummyObject_1abf23e65557e506ed2987044b9bdcbb92" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>SuperClassID</name></member>
+      <member refid="classDagorDummyObject_1a1922e45eb0de6d9be0bfe813b917f2e4" prot="public" virt="non-virtual"><scope>DagorDummyObject</scope><name>UsesWireColor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

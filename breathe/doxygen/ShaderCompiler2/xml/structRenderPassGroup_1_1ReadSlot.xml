@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassGroup_1_1ReadSlot" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassGroup::ReadSlot</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassGroup_1_1ReadSlot_1acdc095a4c31d06aeb140dca0efd667c0" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref></type>
+        <definition>RenderPassNameId RenderPassGroup::ReadSlot::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>RenderPassGroup::ReadSlot::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="122" column="22" bodyfile="renderPassObject.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassGroup_1_1ReadSlot_1a7ae8469795bfee8852285646a9a3783a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassGroup::ReadSlot::targetIdx</definition>
+        <argsstring></argsstring>
+        <name>targetIdx</name>
+        <qualifiedname>RenderPassGroup::ReadSlot::targetIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="123" column="9" bodyfile="renderPassObject.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassGroup_1_1ReadSlot_1afd246dd7b523a5e0bfd416abb84e31bc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassGroup::ReadSlot::multisampled</definition>
+        <argsstring></argsstring>
+        <name>multisampled</name>
+        <qualifiedname>RenderPassGroup::ReadSlot::multisampled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="124" column="10" bodyfile="renderPassObject.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="1">
+        <label>RenderPassGroup::ReadSlot</label>
+        <link refid="structRenderPassGroup_1_1ReadSlot"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.h" line="120" column="3" bodyfile="renderPassObject.h" bodystart="121" bodyend="125"/>
+    <listofallmembers>
+      <member refid="structRenderPassGroup_1_1ReadSlot_1afd246dd7b523a5e0bfd416abb84e31bc" prot="public" virt="non-virtual"><scope>RenderPassGroup::ReadSlot</scope><name>multisampled</name></member>
+      <member refid="structRenderPassGroup_1_1ReadSlot_1acdc095a4c31d06aeb140dca0efd667c0" prot="public" virt="non-virtual"><scope>RenderPassGroup::ReadSlot</scope><name>name</name></member>
+      <member refid="structRenderPassGroup_1_1ReadSlot_1a7ae8469795bfee8852285646a9a3783a" prot="public" virt="non-virtual"><scope>RenderPassGroup::ReadSlot</scope><name>targetIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

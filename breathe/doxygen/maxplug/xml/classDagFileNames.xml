@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagFileNames" kind="class" language="C++" prot="public">
+    <compoundname>DagFileNames</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDagFileNames_1a97ccf1b0998d12729a45f0fd83d5c8fa" prot="private" static="no" mutable="no">
+        <type>fs::path</type>
+        <definition>fs::path DagFileNames::folder</definition>
+        <argsstring></argsstring>
+        <name>folder</name>
+        <qualifiedname>DagFileNames::folder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3673" column="12" bodyfile="expUtil.cpp" bodystart="3673" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagFileNames_1af6d6a663be65e69f37c9995632775f83" prot="private" static="no" mutable="no">
+        <type>std::unordered_map&lt; std::wstring, std::wstring &gt;</type>
+        <definition>std::unordered_map&lt;std::wstring, std::wstring&gt; DagFileNames::written</definition>
+        <argsstring></argsstring>
+        <name>written</name>
+        <qualifiedname>DagFileNames::written</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3674" column="22" bodyfile="expUtil.cpp" bodystart="3674" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagFileNames_1ae3f1d64285af11a0c4681f011d5551e3" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagFileNames::DagFileNames</definition>
+        <argsstring>(fs::path folder_)</argsstring>
+        <name>DagFileNames</name>
+        <qualifiedname>DagFileNames::DagFileNames</qualifiedname>
+        <param>
+          <type>fs::path</type>
+          <declname>folder_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3640" column="12" bodyfile="expUtil.cpp" bodystart="3640" bodyend="3640"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFileNames_1a744230966402c268db6e34c0bc1cfced" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>fs::path</type>
+        <definition>fs::path DagFileNames::take</definition>
+        <argsstring>(const wchar_t *what, const wchar_t *name)</argsstring>
+        <name>take</name>
+        <qualifiedname>DagFileNames::take</qualifiedname>
+        <param>
+          <type>const wchar_t *</type>
+          <declname>what</declname>
+        </param>
+        <param>
+          <type>const wchar_t *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3642" column="12" bodyfile="expUtil.cpp" bodystart="3642" bodyend="3670"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="3637" column="1" bodyfile="expUtil.cpp" bodystart="3638" bodyend="3675"/>
+    <listofallmembers>
+      <member refid="classDagFileNames_1ae3f1d64285af11a0c4681f011d5551e3" prot="public" virt="non-virtual"><scope>DagFileNames</scope><name>DagFileNames</name></member>
+      <member refid="classDagFileNames_1a97ccf1b0998d12729a45f0fd83d5c8fa" prot="private" virt="non-virtual"><scope>DagFileNames</scope><name>folder</name></member>
+      <member refid="classDagFileNames_1a744230966402c268db6e34c0bc1cfced" prot="public" virt="non-virtual"><scope>DagFileNames</scope><name>take</name></member>
+      <member refid="classDagFileNames_1af6d6a663be65e69f37c9995632775f83" prot="private" virt="non-virtual"><scope>DagFileNames</scope><name>written</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

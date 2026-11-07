@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRaytraceOpacityMicroMapDescription" kind="struct" language="C++" prot="public">
+    <compoundname>RaytraceOpacityMicroMapDescription</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRaytraceOpacityMicroMapDescription_1a38a1f1d92a0770a598400c107e75dd83" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceOpacityMicroMapDescription::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>RaytraceOpacityMicroMapDescription::count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Number of micro maps. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="67" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceOpacityMicroMapDescription_1aece3a819d993ed2365de67c53e141858" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceOpacityMicroMapDescription::subdivisionLevel</definition>
+        <argsstring></argsstring>
+        <name>subdivisionLevel</name>
+        <qualifiedname>RaytraceOpacityMicroMapDescription::subdivisionLevel</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Subdivision levels, ranges from 0 to 14. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="69" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceOpacityMicroMapDescription_1aa4082779b8a0b15bf6d5f59edb4c932e" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__drvRayTrace_8h_1a9cfed265bc6e84ea407b5472b5146e32" kindref="member">RaytraceOpacityMicroMapFormat</ref></type>
+        <definition>RaytraceOpacityMicroMapFormat RaytraceOpacityMicroMapDescription::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <qualifiedname>RaytraceOpacityMicroMapDescription::format</qualifiedname>
+        <initializer>= <ref refid="dag__drvRayTrace_8h_1a9cfed265bc6e84ea407b5472b5146e32aa61636f82602e2272431db9b23ad77dd" kindref="member">RaytraceOpacityMicroMapFormat::OpacityCompression1_2State</ref></initializer>
+        <briefdescription>
+<para>Data format for each OMM. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="71" column="33" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="64" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="65" bodyend="72"/>
+    <listofallmembers>
+      <member refid="structRaytraceOpacityMicroMapDescription_1a38a1f1d92a0770a598400c107e75dd83" prot="public" virt="non-virtual"><scope>RaytraceOpacityMicroMapDescription</scope><name>count</name></member>
+      <member refid="structRaytraceOpacityMicroMapDescription_1aa4082779b8a0b15bf6d5f59edb4c932e" prot="public" virt="non-virtual"><scope>RaytraceOpacityMicroMapDescription</scope><name>format</name></member>
+      <member refid="structRaytraceOpacityMicroMapDescription_1aece3a819d993ed2365de67c53e141858" prot="public" virt="non-virtual"><scope>RaytraceOpacityMicroMapDescription</scope><name>subdivisionLevel</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

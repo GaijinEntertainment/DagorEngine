@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTpsCameraElem_1_1Cam" kind="struct" language="C++" prot="protected">
+    <compoundname>TpsCameraElem::Cam</compoundname>
+    <includes refid="ec__camera__elem_8h" local="no">ec_camera_elem.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTpsCameraElem_1_1Cam_1a5e3aea9044671c8379b21bdd4d048b5e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float TpsCameraElem::Cam::curDist</definition>
+        <argsstring></argsstring>
+        <name>curDist</name>
+        <qualifiedname>TpsCameraElem::Cam::curDist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="246" column="11" bodyfile="ec_camera_elem.h" bodystart="246" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraElem_1_1Cam_1af117977046e739105595f79490394f5c" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 TpsCameraElem::Cam::ang</definition>
+        <argsstring></argsstring>
+        <name>ang</name>
+        <qualifiedname>TpsCameraElem::Cam::ang</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="247" column="12" bodyfile="ec_camera_elem.h" bodystart="247" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraElem_1_1Cam_1aa5d8007ce27231b1483c57b371ca85ab" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TpsCameraElem::Cam::changed</definition>
+        <argsstring></argsstring>
+        <name>changed</name>
+        <qualifiedname>TpsCameraElem::Cam::changed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="248" column="10" bodyfile="ec_camera_elem.h" bodystart="248" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_camera_elem.h" line="244" column="3" bodyfile="ec_camera_elem.h" bodystart="245" bodyend="249"/>
+    <listofallmembers>
+      <member refid="structTpsCameraElem_1_1Cam_1af117977046e739105595f79490394f5c" prot="public" virt="non-virtual"><scope>TpsCameraElem::Cam</scope><name>ang</name></member>
+      <member refid="structTpsCameraElem_1_1Cam_1aa5d8007ce27231b1483c57b371ca85ab" prot="public" virt="non-virtual"><scope>TpsCameraElem::Cam</scope><name>changed</name></member>
+      <member refid="structTpsCameraElem_1_1Cam_1a5e3aea9044671c8379b21bdd4d048b5e" prot="public" virt="non-virtual"><scope>TpsCameraElem::Cam</scope><name>curDist</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

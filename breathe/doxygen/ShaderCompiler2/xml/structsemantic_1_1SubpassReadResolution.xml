@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1SubpassReadResolution" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::SubpassReadResolution</compoundname>
+    <includes refid="subpassRead_8h" local="no">subpassRead.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1SubpassReadResolution_1a38751c12927b56567979fd3888b47065" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semantic::SubpassReadResolution::readPos</definition>
+        <argsstring></argsstring>
+        <name>readPos</name>
+        <qualifiedname>semantic::SubpassReadResolution::readPos</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="subpassRead.h" line="11" column="7" bodyfile="subpassRead.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1SubpassReadResolution_1a8a9ead8b915e877ba47f38a76b2a9f94" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int semantic::SubpassReadResolution::targetIdx</definition>
+        <argsstring></argsstring>
+        <name>targetIdx</name>
+        <qualifiedname>semantic::SubpassReadResolution::targetIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="subpassRead.h" line="12" column="7" bodyfile="subpassRead.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1SubpassReadResolution_1a972787da85bc63b44e0a27c23825b118" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::SubpassReadResolution::multisampled</definition>
+        <argsstring></argsstring>
+        <name>multisampled</name>
+        <qualifiedname>semantic::SubpassReadResolution::multisampled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="subpassRead.h" line="13" column="8" bodyfile="subpassRead.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1SubpassReadResolution_1ab6750a59cdf96f40df088388efc6a818" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::SubpassReadResolution::emulated</definition>
+        <argsstring></argsstring>
+        <name>emulated</name>
+        <qualifiedname>semantic::SubpassReadResolution::emulated</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="subpassRead.h" line="14" column="8" bodyfile="subpassRead.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structsemantic_1_1SubpassReadResolution_1ac27fd3b72397a2e64eb403129c63a0dd" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::SubpassReadResolution::operator==</definition>
+        <argsstring>(const SubpassReadResolution &amp;) const =default</argsstring>
+        <name>operator==</name>
+        <qualifiedname>semantic::SubpassReadResolution::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structsemantic_1_1SubpassReadResolution" kindref="compound">SubpassReadResolution</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="subpassRead.h" line="16" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="subpassRead.h" line="9" column="1" bodyfile="subpassRead.h" bodystart="10" bodyend="17"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1SubpassReadResolution_1ab6750a59cdf96f40df088388efc6a818" prot="public" virt="non-virtual"><scope>semantic::SubpassReadResolution</scope><name>emulated</name></member>
+      <member refid="structsemantic_1_1SubpassReadResolution_1a972787da85bc63b44e0a27c23825b118" prot="public" virt="non-virtual"><scope>semantic::SubpassReadResolution</scope><name>multisampled</name></member>
+      <member refid="structsemantic_1_1SubpassReadResolution_1ac27fd3b72397a2e64eb403129c63a0dd" prot="public" virt="non-virtual"><scope>semantic::SubpassReadResolution</scope><name>operator==</name></member>
+      <member refid="structsemantic_1_1SubpassReadResolution_1a38751c12927b56567979fd3888b47065" prot="public" virt="non-virtual"><scope>semantic::SubpassReadResolution</scope><name>readPos</name></member>
+      <member refid="structsemantic_1_1SubpassReadResolution_1a8a9ead8b915e877ba47f38a76b2a9f94" prot="public" virt="non-virtual"><scope>semantic::SubpassReadResolution</scope><name>targetIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

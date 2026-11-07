@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1MoveAssignable" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::MoveAssignable</compoundname>
+    <derivedcompoundref refid="classresptr__detail_1_1ResPtr" prot="public" virt="non-virtual">resptr_detail::ResPtr&lt; ResType &gt;</derivedcompoundref>
+    <derivedcompoundref refid="classresptr__detail_1_1SharedRes" prot="public" virt="non-virtual">resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;</derivedcompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+      <sectiondef kind="protected-static-func">
+      <memberdef kind="function" id="classresptr__detail_1_1MoveAssignable_1adc2200080aa2d0473c528d9f96f9fa6c" prot="protected" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename Type</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>static bool resptr_detail::MoveAssignable::isValidForMoveAssignment</definition>
+        <argsstring>(const Type &amp;, const Type &amp;)</argsstring>
+        <name>isValidForMoveAssignment</name>
+        <qualifiedname>resptr_detail::MoveAssignable::isValidForMoveAssignment</qualifiedname>
+        <param>
+          <type>const Type &amp;</type>
+        </param>
+        <param>
+          <type>const Type &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="232" column="15" bodyfile="dag_resPtr.h" bodystart="232" bodyend="235"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>resptr_detail::MoveAssignable</label>
+        <link refid="classresptr__detail_1_1MoveAssignable"/>
+      </node>
+      <node id="2">
+        <label>resptr_detail::ResPtr&lt; ResType &gt;</label>
+        <link refid="classresptr__detail_1_1ResPtr"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>resptr_detail::SharedRes&lt; ManagedResType, Deleter &gt;</label>
+        <link refid="classresptr__detail_1_1SharedRes"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="dag_resPtr.h" line="228" column="1" bodyfile="dag_resPtr.h" bodystart="229" bodyend="236"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1MoveAssignable_1adc2200080aa2d0473c528d9f96f9fa6c" prot="protected" virt="non-virtual"><scope>resptr_detail::MoveAssignable</scope><name>isValidForMoveAssignment</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

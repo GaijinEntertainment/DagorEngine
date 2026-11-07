@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderLibraryObject_8h" kind="file" language="C++">
+    <compoundname>dag_shaderLibraryObject.h</compoundname>
+    <includes local="no">util/dag_inttypes.h</includes>
+    <includes local="no">generic/dag_span.h</includes>
+    <includedby refid="dag__interface__table_8h" local="no">dag_interface_table.h</includedby>
+    <includedby refid="dag__shaderLibrary_8h" local="no">dag_shaderLibrary.h</includedby>
+    <includedby refid="dag__drvRayTrace_8h" local="no">rayTrace/dag_drvRayTrace.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_shaderLibraryObject.h</label>
+        <link refid="dag__shaderLibraryObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_inttypes.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="6">
+        <label>dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h"/>
+      </node>
+      <node id="5">
+        <label>dag_driver.h</label>
+        <link refid="dag__driver_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h"/>
+      </node>
+      <node id="2">
+        <label>dag_interface_table.h</label>
+        <link refid="dag__interface__table_8h"/>
+      </node>
+      <node id="8">
+        <label>dag_lock.h</label>
+        <link refid="dag__lock_8h"/>
+      </node>
+      <node id="10">
+        <label>dag_platform.h</label>
+        <link refid="dag__platform_8h"/>
+      </node>
+      <node id="9">
+        <label>dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h"/>
+      </node>
+      <node id="3">
+        <label>dag_shaderLibrary.h</label>
+        <link refid="dag__shaderLibrary_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_shaderLibraryObject.h</label>
+        <link refid="dag__shaderLibraryObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>rayTrace/dag_drvRayTrace.h</label>
+        <link refid="dag__drvRayTrace_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structShaderLibraryCreateInfo" prot="public">ShaderLibraryCreateInfo</innerclass>
+    <innerclass refid="structShaderInLibraryReference" prot="public">ShaderInLibraryReference</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" prot="public" static="no">
+        <type>ShaderLibraryType *</type>
+        <definition>using ShaderLibrary =  ShaderLibraryType *</definition>
+        <argsstring></argsstring>
+        <name>ShaderLibrary</name>
+        <briefdescription>
+<para>Shader library object handle type. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderLibraryObject.h" line="13" column="1" bodyfile="dag_shaderLibraryObject.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__shaderLibraryObject_8h_1af48d10e73f61803e34d874213cddb33d" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" kindref="member">ShaderLibrary</ref></type>
+        <definition>constexpr ShaderLibrary InvalidShaderLibrary</definition>
+        <argsstring></argsstring>
+        <name>InvalidShaderLibrary</name>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Value of a invalid handle to ShaderLibrary object, eg NULL. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderLibraryObject.h" line="15" column="32" bodyfile="dag_shaderLibraryObject.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_inttypes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ShaderLibraryType;</highlight></codeline>
+<codeline lineno="13" refid="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" refkind="member"><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" kindref="member">ShaderLibrary</ref><sp/>=<sp/>ShaderLibraryType<sp/>*;</highlight></codeline>
+<codeline lineno="15" refid="dag__shaderLibraryObject_8h_1af48d10e73f61803e34d874213cddb33d" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" kindref="member">ShaderLibrary</ref><sp/><ref refid="dag__shaderLibraryObject_8h_1af48d10e73f61803e34d874213cddb33d" kindref="member">InvalidShaderLibrary</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="structShaderLibraryCreateInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderLibraryCreateInfo" kindref="compound">ShaderLibraryCreateInfo</ref></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23" refid="structShaderLibraryCreateInfo_1a54060c40d0fb6328f2645219740ec9b6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structShaderLibraryCreateInfo_1a54060c40d0fb6328f2645219740ec9b6" kindref="member">debugName</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="26" refid="structShaderLibraryCreateInfo_1a1fcdaf7459c251cfdc0d41fe3ad3fe9f" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>char<sp/>*&gt;<sp/><ref refid="structShaderLibraryCreateInfo_1a1fcdaf7459c251cfdc0d41fe3ad3fe9f" kindref="member">nameTable</ref>;</highlight></codeline>
+<codeline lineno="29" refid="structShaderLibraryCreateInfo_1a55d7c6e2991091a3867ab67595f5e27d" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;const<sp/>uint8_t&gt;<sp/><ref refid="structShaderLibraryCreateInfo_1a55d7c6e2991091a3867ab67595f5e27d" kindref="member">driverBinary</ref>;</highlight></codeline>
+<codeline lineno="32" refid="structShaderLibraryCreateInfo_1a3f0960fc0cef79e0842592cad9926f37" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structShaderLibraryCreateInfo_1a3f0960fc0cef79e0842592cad9926f37" kindref="member">mayBeUsedByExpandablePipeline</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="structShaderInLibraryReference" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderInLibraryReference" kindref="compound">ShaderInLibraryReference</ref></highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44" refid="structShaderInLibraryReference_1a7776fd0d07a1b12c32bf11cbfccc607e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__shaderLibraryObject_8h_1a1c8035231a8589bc662de43b799a5bda" kindref="member">ShaderLibrary</ref><sp/><ref refid="structShaderInLibraryReference_1a7776fd0d07a1b12c32bf11cbfccc607e" kindref="member">library</ref>;</highlight></codeline>
+<codeline lineno="46" refid="structShaderInLibraryReference_1aa28549b7bbd8280f2f274d18a249ab94" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderInLibraryReference_1aa28549b7bbd8280f2f274d18a249ab94" kindref="member">index</ref>;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderLibraryObject.h"/>
+  </compounddef>
+</doxygen>

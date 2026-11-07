@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshader__meshlets_1_1GlobalMeshletData" kind="struct" language="C++" prot="public">
+    <compoundname>shader_meshlets::GlobalMeshletData</compoundname>
+    <includes refid="dag__shaderMeshlets_8h" local="no">dag_shaderMeshlets.h</includes>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structshader__meshlets_1_1GlobalMeshletData_1ab928e88c8f7ca2c8336905fe618156e8" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structshader__meshlets_1_1GlobalMeshletData" kindref="compound">GlobalMeshletData</ref> *</type>
+        <definition>static GlobalMeshletData * shader_meshlets::GlobalMeshletData::create</definition>
+        <argsstring>()</argsstring>
+        <name>create</name>
+        <qualifiedname>shader_meshlets::GlobalMeshletData::create</qualifiedname>
+        <briefdescription>
+<para>Allocates a new block; free it with destroy(), not delete. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="24" column="28"/>
+      </memberdef>
+      <memberdef kind="function" id="structshader__meshlets_1_1GlobalMeshletData_1ac22538422920409a09ae3df7d5ab9cc3" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void shader_meshlets::GlobalMeshletData::destroy</definition>
+        <argsstring>(GlobalMeshletData *d)</argsstring>
+        <name>destroy</name>
+        <qualifiedname>shader_meshlets::GlobalMeshletData::destroy</qualifiedname>
+        <param>
+          <type><ref refid="structshader__meshlets_1_1GlobalMeshletData" kindref="compound">GlobalMeshletData</ref> *</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="25" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="structshader__meshlets_1_1GlobalMeshletData_1afc46949f885d55121c9d3dc52bbcd2cc" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>shader_meshlets::GlobalMeshletData::GlobalMeshletData</definition>
+        <argsstring>()=default</argsstring>
+        <name>GlobalMeshletData</name>
+        <qualifiedname>shader_meshlets::GlobalMeshletData::GlobalMeshletData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshlets.h" line="28" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Meshlets of all elements of one <ref refid="classGlobalVertexData" kindref="compound">GlobalVertexData</ref>, in one midmem block. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMeshlets.h" line="21" column="1" bodyfile="dag_shaderMeshlets.h" bodystart="22" bodyend="29"/>
+    <listofallmembers>
+      <member refid="structshader__meshlets_1_1GlobalMeshletData_1ab928e88c8f7ca2c8336905fe618156e8" prot="public" virt="non-virtual"><scope>shader_meshlets::GlobalMeshletData</scope><name>create</name></member>
+      <member refid="structshader__meshlets_1_1GlobalMeshletData_1ac22538422920409a09ae3df7d5ab9cc3" prot="public" virt="non-virtual"><scope>shader_meshlets::GlobalMeshletData</scope><name>destroy</name></member>
+      <member refid="structshader__meshlets_1_1GlobalMeshletData_1afc46949f885d55121c9d3dc52bbcd2cc" prot="private" virt="non-virtual"><scope>shader_meshlets::GlobalMeshletData</scope><name>GlobalMeshletData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

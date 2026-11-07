@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCaseInsensitiveHashW" kind="struct" language="C++" prot="public">
+    <compoundname>CaseInsensitiveHashW</compoundname>
+    <includes refid="ci_8h" local="no">ci.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structCaseInsensitiveHashW_1a53693bf7167e3e362ff7e54f51320b1c" prot="public" static="no">
+        <type>void</type>
+        <definition>using CaseInsensitiveHashW::is_transparent =  void</definition>
+        <argsstring></argsstring>
+        <name>is_transparent</name>
+        <qualifiedname>CaseInsensitiveHashW::is_transparent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ci.h" line="41" column="3" bodyfile="ci.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structCaseInsensitiveHashW_1a452571fe040daaad6dea55e0b1424179" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t CaseInsensitiveHashW::operator()</definition>
+        <argsstring>(std::wstring_view keyval) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>CaseInsensitiveHashW::operator()</qualifiedname>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>keyval</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ci.h" line="43" column="10" bodyfile="ci.h" bodystart="43" bodyend="53"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ci.h" line="39" column="1" bodyfile="ci.h" bodystart="40" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structCaseInsensitiveHashW_1a53693bf7167e3e362ff7e54f51320b1c" prot="public" virt="non-virtual"><scope>CaseInsensitiveHashW</scope><name>is_transparent</name></member>
+      <member refid="structCaseInsensitiveHashW_1a452571fe040daaad6dea55e0b1424179" prot="public" virt="non-virtual"><scope>CaseInsensitiveHashW</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

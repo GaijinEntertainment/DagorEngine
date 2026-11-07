@@ -1,0 +1,301 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structScreenshotConfig" kind="struct" language="C++" prot="public">
+    <compoundname>ScreenshotConfig</compoundname>
+    <includes refid="ec__screenshot_8h" local="no">ec_screenshot.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structScreenshotConfig_1afdb1844b4bbdf5c6ef36724785c523af" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9b" kindref="member">ScreenshotFormat</ref></type>
+        <definition>constexpr ScreenshotFormat ScreenshotConfig::DEFAULT_FORMAT</definition>
+        <argsstring></argsstring>
+        <name>DEFAULT_FORMAT</name>
+        <qualifiedname>ScreenshotConfig::DEFAULT_FORMAT</qualifiedname>
+        <initializer>= <ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba907e06a16862d82ca6907a28a68d0ad6" kindref="member">ScreenshotFormat::JPEG</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="23" column="44" bodyfile="ec_screenshot.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1a949057309c896f87cd2a7a9eb347c414" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int ScreenshotConfig::DEFAULT_WIDTH</definition>
+        <argsstring></argsstring>
+        <name>DEFAULT_WIDTH</name>
+        <qualifiedname>ScreenshotConfig::DEFAULT_WIDTH</qualifiedname>
+        <initializer>= 1024</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="24" column="31" bodyfile="ec_screenshot.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1a8e1b785e006b6f2bdbc1da8117c81e2a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int ScreenshotConfig::DEFAULT_HEIGHT</definition>
+        <argsstring></argsstring>
+        <name>DEFAULT_HEIGHT</name>
+        <qualifiedname>ScreenshotConfig::DEFAULT_HEIGHT</qualifiedname>
+        <initializer>= 768</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="25" column="31" bodyfile="ec_screenshot.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1aab80bb60362a8b538a45c65ce06c5dfc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int ScreenshotConfig::DEFAULT_SIZE</definition>
+        <argsstring></argsstring>
+        <name>DEFAULT_SIZE</name>
+        <qualifiedname>ScreenshotConfig::DEFAULT_SIZE</qualifiedname>
+        <initializer>= 512</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="26" column="31" bodyfile="ec_screenshot.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1a202a03d8465861d9e88d614d9fcf23ee" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int ScreenshotConfig::DEFAULT_JPEG_Q</definition>
+        <argsstring></argsstring>
+        <name>DEFAULT_JPEG_Q</name>
+        <qualifiedname>ScreenshotConfig::DEFAULT_JPEG_Q</qualifiedname>
+        <initializer>= 80</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="27" column="31" bodyfile="ec_screenshot.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1a2ad368ba954983f3188f8d80db24f5a3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int ScreenshotConfig::MIN_CUBE_2_POWER</definition>
+        <argsstring></argsstring>
+        <name>MIN_CUBE_2_POWER</name>
+        <qualifiedname>ScreenshotConfig::MIN_CUBE_2_POWER</qualifiedname>
+        <initializer>= 5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="28" column="31" bodyfile="ec_screenshot.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1aeda9652d2592e5c210e67a429616e96c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int ScreenshotConfig::MAX_CUBE_2_POWER</definition>
+        <argsstring></argsstring>
+        <name>MAX_CUBE_2_POWER</name>
+        <qualifiedname>ScreenshotConfig::MAX_CUBE_2_POWER</qualifiedname>
+        <initializer>= 11</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="29" column="31" bodyfile="ec_screenshot.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structScreenshotConfig_1a6c8c0afc6d0dbaca0f82313def4a4c33" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScreenshotConfig::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>ScreenshotConfig::width</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="38" column="11" bodyfile="ec_screenshot.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1ace44bcc1a527068160984c956d29f4ed" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScreenshotConfig::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>ScreenshotConfig::height</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="39" column="11" bodyfile="ec_screenshot.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1a434b05942e3f123699b87eb87f2ab431" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScreenshotConfig::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <qualifiedname>ScreenshotConfig::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="41" column="9" bodyfile="ec_screenshot.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1ae8f30cad4313f9020bee0c12c60d5fa1" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref></type>
+        <definition>union ScreenshotConfig ScreenshotConfig</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>ScreenshotConfig</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="42" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1ac6f0d1e6d5ba4a94077e4f5874b26567" prot="public" static="no" mutable="no">
+        <type><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9b" kindref="member">ScreenshotFormat</ref></type>
+        <definition>ScreenshotFormat ScreenshotConfig::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <qualifiedname>ScreenshotConfig::format</qualifiedname>
+        <initializer>= <ref refid="structScreenshotConfig_1afdb1844b4bbdf5c6ef36724785c523af" kindref="member">DEFAULT_FORMAT</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="44" column="20" bodyfile="ec_screenshot.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1ad1580f2e86d97f519a02ce302dad768c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScreenshotConfig::jpegQuality</definition>
+        <argsstring></argsstring>
+        <name>jpegQuality</name>
+        <qualifiedname>ScreenshotConfig::jpegQuality</qualifiedname>
+        <initializer>= <ref refid="structScreenshotConfig_1a202a03d8465861d9e88d614d9fcf23ee" kindref="member">DEFAULT_JPEG_Q</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="45" column="7" bodyfile="ec_screenshot.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1af8aebfa9e56ee0b2adce464317ce03bf" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ScreenshotConfig::enableTransparentBackground</definition>
+        <argsstring></argsstring>
+        <name>enableTransparentBackground</name>
+        <qualifiedname>ScreenshotConfig::enableTransparentBackground</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="46" column="8" bodyfile="ec_screenshot.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1a97fe85471b78e155bf5bc10f3e54afe6" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ScreenshotConfig::enableDebugGeometry</definition>
+        <argsstring></argsstring>
+        <name>enableDebugGeometry</name>
+        <qualifiedname>ScreenshotConfig::enableDebugGeometry</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="47" column="8" bodyfile="ec_screenshot.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structScreenshotConfig_1a1ecfa8d352e20863df9fe4c16af8648b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ScreenshotConfig::nameAsCurrentAsset</definition>
+        <argsstring></argsstring>
+        <name>nameAsCurrentAsset</name>
+        <qualifiedname>ScreenshotConfig::nameAsCurrentAsset</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="48" column="8" bodyfile="ec_screenshot.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structScreenshotConfig_1a65695709ff0b10d1843137e03769a86d" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref></type>
+        <definition>static ScreenshotConfig ScreenshotConfig::getDefaultCfg</definition>
+        <argsstring>()</argsstring>
+        <name>getDefaultCfg</name>
+        <qualifiedname>ScreenshotConfig::getDefaultCfg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="31" column="27" bodyfile="ec_screenshot.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="structScreenshotConfig_1a7b68e2d22c14582759682495fc430264" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref></type>
+        <definition>static ScreenshotConfig ScreenshotConfig::getDefaultCubeCfg</definition>
+        <argsstring>()</argsstring>
+        <name>getDefaultCubeCfg</name>
+        <qualifiedname>ScreenshotConfig::getDefaultCubeCfg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="32" column="27" bodyfile="ec_screenshot.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_screenshot.h" line="21" column="1" bodyfile="ec_screenshot.h" bodystart="22" bodyend="49"/>
+    <listofallmembers>
+      <member refid="structScreenshotConfig_1afdb1844b4bbdf5c6ef36724785c523af" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>DEFAULT_FORMAT</name></member>
+      <member refid="structScreenshotConfig_1a8e1b785e006b6f2bdbc1da8117c81e2a" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>DEFAULT_HEIGHT</name></member>
+      <member refid="structScreenshotConfig_1a202a03d8465861d9e88d614d9fcf23ee" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>DEFAULT_JPEG_Q</name></member>
+      <member refid="structScreenshotConfig_1aab80bb60362a8b538a45c65ce06c5dfc" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>DEFAULT_SIZE</name></member>
+      <member refid="structScreenshotConfig_1a949057309c896f87cd2a7a9eb347c414" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>DEFAULT_WIDTH</name></member>
+      <member refid="structScreenshotConfig_1a97fe85471b78e155bf5bc10f3e54afe6" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>enableDebugGeometry</name></member>
+      <member refid="structScreenshotConfig_1af8aebfa9e56ee0b2adce464317ce03bf" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>enableTransparentBackground</name></member>
+      <member refid="structScreenshotConfig_1ac6f0d1e6d5ba4a94077e4f5874b26567" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>format</name></member>
+      <member refid="structScreenshotConfig_1a65695709ff0b10d1843137e03769a86d" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>getDefaultCfg</name></member>
+      <member refid="structScreenshotConfig_1a7b68e2d22c14582759682495fc430264" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>getDefaultCubeCfg</name></member>
+      <member refid="structScreenshotConfig_1ace44bcc1a527068160984c956d29f4ed" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>height</name></member>
+      <member refid="structScreenshotConfig_1ad1580f2e86d97f519a02ce302dad768c" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>jpegQuality</name></member>
+      <member refid="structScreenshotConfig_1aeda9652d2592e5c210e67a429616e96c" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>MAX_CUBE_2_POWER</name></member>
+      <member refid="structScreenshotConfig_1a2ad368ba954983f3188f8d80db24f5a3" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>MIN_CUBE_2_POWER</name></member>
+      <member refid="structScreenshotConfig_1a1ecfa8d352e20863df9fe4c16af8648b" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>nameAsCurrentAsset</name></member>
+      <member refid="structScreenshotConfig_1a434b05942e3f123699b87eb87f2ab431" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>size</name></member>
+      <member refid="structScreenshotConfig_1a6c8c0afc6d0dbaca0f82313def4a4c33" prot="public" virt="non-virtual"><scope>ScreenshotConfig</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

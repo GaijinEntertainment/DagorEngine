@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structserial__buffer_1_1SerialBufferUsage" kind="struct" language="C++" prot="public">
+    <compoundname>serial_buffer::SerialBufferUsage</compoundname>
+    <includes refid="dag__serialIntBuffer_8h" local="no">dag_serialIntBuffer.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="structserial__buffer_1_1SerialBufferUsage_1a87905258b86a33bb2d6f1a247b65a05f" prot="private" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* serial_buffer::SerialBufferUsage::sb</definition>
+        <argsstring></argsstring>
+        <name>sb</name>
+        <qualifiedname>serial_buffer::SerialBufferUsage::sb</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="34" column="11" bodyfile="dag_serialIntBuffer.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferUsage_1a9fcc94381f736fb8331774420340ca0f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>serial_buffer::SerialBufferUsage::SerialBufferUsage</definition>
+        <argsstring>(SerialBufferUsage &amp;&amp;s)</argsstring>
+        <name>SerialBufferUsage</name>
+        <qualifiedname>serial_buffer::SerialBufferUsage::SerialBufferUsage</qualifiedname>
+        <param>
+          <type><ref refid="structserial__buffer_1_1SerialBufferUsage" kindref="compound">SerialBufferUsage</ref> &amp;&amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="23" column="3" bodyfile="dag_serialIntBuffer.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferUsage_1ac3ded832f07d3593e80ad75c6e8b89fe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>serial_buffer::SerialBufferUsage::SerialBufferUsage</definition>
+        <argsstring>(uint32_t count=0)</argsstring>
+        <name>SerialBufferUsage</name>
+        <qualifiedname>serial_buffer::SerialBufferUsage::SerialBufferUsage</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="24" column="3" bodyfile="dag_serialIntBuffer.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferUsage_1a0442c37c4edce4ed91c4ed2f2d65fa8d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>serial_buffer::SerialBufferUsage::~SerialBufferUsage</definition>
+        <argsstring>()</argsstring>
+        <name>~SerialBufferUsage</name>
+        <qualifiedname>serial_buffer::SerialBufferUsage::~SerialBufferUsage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="25" column="3" bodyfile="dag_serialIntBuffer.h" bodystart="25" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferUsage_1a2c383c915e065619456285ae187605fe" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer * serial_buffer::SerialBufferUsage::get</definition>
+        <argsstring>() const</argsstring>
+        <name>get</name>
+        <qualifiedname>serial_buffer::SerialBufferUsage::get</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="30" column="11" bodyfile="dag_serialIntBuffer.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferUsage_1a7b23f6984d4da0de6a90c73d87df7000" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>serial_buffer::SerialBufferUsage::operator Sbuffer *</definition>
+        <argsstring>() const</argsstring>
+        <name>operator Sbuffer *</name>
+        <qualifiedname>serial_buffer::SerialBufferUsage::operator Sbuffer *</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="31" column="12" bodyfile="dag_serialIntBuffer.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferUsage_1a00b0427b732b8c554665b3013bb26b92" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>serial_buffer::SerialBufferUsage::SerialBufferUsage</definition>
+        <argsstring>(const SerialBufferUsage &amp;)=delete</argsstring>
+        <name>SerialBufferUsage</name>
+        <qualifiedname>serial_buffer::SerialBufferUsage::SerialBufferUsage</qualifiedname>
+        <param>
+          <type>const <ref refid="structserial__buffer_1_1SerialBufferUsage" kindref="compound">SerialBufferUsage</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="35" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferUsage_1a2cf001bcc793c20d1c1756bec9be48b0" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structserial__buffer_1_1SerialBufferUsage" kindref="compound">SerialBufferUsage</ref> &amp;</type>
+        <definition>SerialBufferUsage &amp; serial_buffer::SerialBufferUsage::operator=</definition>
+        <argsstring>(const SerialBufferUsage &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>serial_buffer::SerialBufferUsage::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structserial__buffer_1_1SerialBufferUsage" kindref="compound">SerialBufferUsage</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="36" column="21"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_serialIntBuffer.h" line="21" column="1" bodyfile="dag_serialIntBuffer.h" bodystart="22" bodyend="37"/>
+    <listofallmembers>
+      <member refid="structserial__buffer_1_1SerialBufferUsage_1a2c383c915e065619456285ae187605fe" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferUsage</scope><name>get</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferUsage_1a7b23f6984d4da0de6a90c73d87df7000" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferUsage</scope><name>operator Sbuffer *</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferUsage_1a2cf001bcc793c20d1c1756bec9be48b0" prot="private" virt="non-virtual"><scope>serial_buffer::SerialBufferUsage</scope><name>operator=</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferUsage_1a87905258b86a33bb2d6f1a247b65a05f" prot="private" virt="non-virtual"><scope>serial_buffer::SerialBufferUsage</scope><name>sb</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferUsage_1a9fcc94381f736fb8331774420340ca0f" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferUsage</scope><name>SerialBufferUsage</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferUsage_1ac3ded832f07d3593e80ad75c6e8b89fe" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferUsage</scope><name>SerialBufferUsage</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferUsage_1a00b0427b732b8c554665b3013bb26b92" prot="private" virt="non-virtual"><scope>serial_buffer::SerialBufferUsage</scope><name>SerialBufferUsage</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferUsage_1a0442c37c4edce4ed91c4ed2f2d65fa8d" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferUsage</scope><name>~SerialBufferUsage</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

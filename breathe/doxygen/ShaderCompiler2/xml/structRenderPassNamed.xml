@@ -1,0 +1,315 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassNamed" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassNamed</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>Kind</name>
+        <qualifiedname>RenderPassNamed::Kind</qualifiedname>
+        <enumvalue id="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fa6adf97f83acf6453d4a6a4b1070f3754" prot="public">
+          <name>None</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fab9b57aae83585e17ede4570dcede353c" prot="public">
+          <name>Pass</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fa03937134cedab9078be39a77ee3a48a0" prot="public">
+          <name>Group</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fa3daac1b7e03cca202656c225ecec2f94" prot="public">
+          <name>FramebufferLayout</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="186" column="3" bodyfile="renderPassObject.h" bodystart="187" bodyend="192"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassNamed_1a907c645c38c2b2510ed62caa7b131756" prot="public" static="no" mutable="no">
+        <type><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" kindref="member">Kind</ref></type>
+        <definition>Kind RenderPassNamed::kind</definition>
+        <argsstring></argsstring>
+        <name>kind</name>
+        <qualifiedname>RenderPassNamed::kind</qualifiedname>
+        <initializer>= <ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23fa6adf97f83acf6453d4a6a4b1070f3754" kindref="member">Kind::None</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="194" column="8" bodyfile="renderPassObject.h" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassNamed_1aa1a59652544be45f0a076cf0eb8ee6b8" prot="public" static="no" mutable="no">
+        <type><ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref> *</type>
+        <definition>RenderPassObject* RenderPassNamed::pass</definition>
+        <argsstring></argsstring>
+        <name>pass</name>
+        <qualifiedname>RenderPassNamed::pass</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="195" column="20" bodyfile="renderPassObject.h" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassNamed_1ab47a609564b4cdfc5203e8adfbbaa3d5" prot="public" static="no" mutable="no">
+        <type><ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref> *</type>
+        <definition>RenderPassGroup* RenderPassNamed::group</definition>
+        <argsstring></argsstring>
+        <name>group</name>
+        <qualifiedname>RenderPassNamed::group</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="196" column="19" bodyfile="renderPassObject.h" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassNamed_1a5fbc8f42a5f28176bf2f15b4b0f1d863" prot="public" static="no" mutable="no">
+        <type><ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref> *</type>
+        <definition>FramebufferLayoutObject* RenderPassNamed::layout</definition>
+        <argsstring></argsstring>
+        <name>layout</name>
+        <qualifiedname>RenderPassNamed::layout</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="197" column="27" bodyfile="renderPassObject.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRenderPassNamed_1abd6f2d05d4e20797a09958d8569fee5d" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderPassNamed::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>RenderPassNamed::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="199" column="12" bodyfile="renderPassObject.h" bodystart="199" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderPassNamed_1afc50c1f70579521f176f463993043745" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * RenderPassNamed::kindName</definition>
+        <argsstring>() const</argsstring>
+        <name>kindName</name>
+        <qualifiedname>RenderPassNamed::kindName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="201" column="14" bodyfile="renderPassObject.h" bodystart="201" bodyend="201"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structRenderPassNamed_1a928a05245eb62a90b49792a132c83e21" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * RenderPassNamed::kindName</definition>
+        <argsstring>(Kind k)</argsstring>
+        <name>kindName</name>
+        <qualifiedname>RenderPassNamed::kindName</qualifiedname>
+        <param>
+          <type><ref refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" kindref="member">Kind</ref></type>
+          <declname>k</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="200" column="21" bodyfile="renderPassObject.cpp" bodystart="169" bodyend="178"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="19">
+        <label>FramebufferLayoutObject</label>
+        <link refid="classFramebufferLayoutObject"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="20" relation="usage">
+          <edgelabel>entries</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>members</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="12">
+        <label>RenderPassGroup</label>
+        <link refid="classRenderPassGroup"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>members</edgelabel>
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>colorSlots</edgelabel>
+        </childnode>
+        <childnode refid="17" relation="usage">
+          <edgelabel>reads</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>RenderPassNamed</label>
+        <link refid="structRenderPassNamed"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>pass</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>group</edgelabel>
+        </childnode>
+        <childnode refid="19" relation="usage">
+          <edgelabel>layout</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderPassObject</label>
+        <link refid="classRenderPassObject"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>targets</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>subpasses</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>resolves</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>framebuffers</edgelabel>
+        </childnode>
+      </node>
+      <node id="20">
+        <label>SerializableTab&lt; FramebufferLayoutObject::Entry &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="21" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>SerializableTab&lt; RenderPassGroup::ColorSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="16" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>SerializableTab&lt; RenderPassGroup::Member &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="14" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>SerializableTab&lt; RenderPassGroup::ReadSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="18" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>SerializableTab&lt; RenderPassObject::Resolve &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>SerializableTab&lt; RenderPassObject::Subpass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>SerializableTab&lt; RenderPassObject::Target &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>Tab&lt; FramebufferLayoutObject::Entry &gt;</label>
+      </node>
+      <node id="11">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="16">
+        <label>Tab&lt; RenderPassGroup::ColorSlot &gt;</label>
+      </node>
+      <node id="14">
+        <label>Tab&lt; RenderPassGroup::Member &gt;</label>
+      </node>
+      <node id="18">
+        <label>Tab&lt; RenderPassGroup::ReadSlot &gt;</label>
+      </node>
+      <node id="9">
+        <label>Tab&lt; RenderPassObject::Resolve &gt;</label>
+      </node>
+      <node id="7">
+        <label>Tab&lt; RenderPassObject::Subpass &gt;</label>
+      </node>
+      <node id="5">
+        <label>Tab&lt; RenderPassObject::Target &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.h" line="184" column="1" bodyfile="renderPassObject.h" bodystart="185" bodyend="202"/>
+    <listofallmembers>
+      <member refid="structRenderPassNamed_1ab47a609564b4cdfc5203e8adfbbaa3d5" prot="public" virt="non-virtual"><scope>RenderPassNamed</scope><name>group</name></member>
+      <member refid="structRenderPassNamed_1a8b739e660bd1acebd614e43b85b1b23f" prot="public" virt="non-virtual"><scope>RenderPassNamed</scope><name>Kind</name></member>
+      <member refid="structRenderPassNamed_1a907c645c38c2b2510ed62caa7b131756" prot="public" virt="non-virtual"><scope>RenderPassNamed</scope><name>kind</name></member>
+      <member refid="structRenderPassNamed_1a928a05245eb62a90b49792a132c83e21" prot="public" virt="non-virtual"><scope>RenderPassNamed</scope><name>kindName</name></member>
+      <member refid="structRenderPassNamed_1afc50c1f70579521f176f463993043745" prot="public" virt="non-virtual"><scope>RenderPassNamed</scope><name>kindName</name></member>
+      <member refid="structRenderPassNamed_1a5fbc8f42a5f28176bf2f15b4b0f1d863" prot="public" virt="non-virtual"><scope>RenderPassNamed</scope><name>layout</name></member>
+      <member refid="structRenderPassNamed_1abd6f2d05d4e20797a09958d8569fee5d" prot="public" virt="non-virtual"><scope>RenderPassNamed</scope><name>operator bool</name></member>
+      <member refid="structRenderPassNamed_1aa1a59652544be45f0a076cf0eb8ee6b8" prot="public" virt="non-virtual"><scope>RenderPassNamed</scope><name>pass</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

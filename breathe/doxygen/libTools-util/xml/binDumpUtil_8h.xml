@@ -1,0 +1,268 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="binDumpUtil_8h" kind="file" language="C++">
+    <compoundname>binDumpUtil.h</compoundname>
+    <includes refid="makeBindump_8h" local="no">libTools/util/makeBindump.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>binDumpUtil.h</label>
+        <link refid="binDumpUtil_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>libTools/util/makeBindump.h</label>
+        <link refid="makeBindump_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>libTools/util/targetClass.h</label>
+        <link refid="targetClass_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="4">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="8">
+        <label>ioSys/dag_chainedMemIo.h</label>
+      </node>
+      <node id="3">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="12">
+        <label>util/dag_baseDef.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="10">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classmkbindump_1_1StrCollector" prot="public">mkbindump::StrCollector</innerclass>
+    <innerclass refid="classmkbindump_1_1RoNameMapBuilder" prot="public">mkbindump::RoNameMapBuilder</innerclass>
+    <innerclass refid="classmkbindump_1_1RoDataBlockBuilder" prot="public">mkbindump::RoDataBlockBuilder</innerclass>
+    <innerclass refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec" prot="protected">mkbindump::RoDataBlockBuilder::ParamRec</innerclass>
+    <innerclass refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec" prot="protected">mkbindump::RoDataBlockBuilder::BlockRec</innerclass>
+    <innernamespace refid="namespacemkbindump">mkbindump</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="makeBindump_8h" kindref="compound">libTools/util/makeBindump.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacemkbindump" kindref="compound">mkbindump</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14" refid="classmkbindump_1_1StrCollector" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="17" refid="classmkbindump_1_1StrCollector_1a144356203a23297ea2f91e1df491c60f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1StrCollector_1a144356203a23297ea2f91e1df491c60f" kindref="member">StrCollector</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="classmkbindump_1_1StrCollector_1a4515e6f265ca6245722a65f3223265dd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1StrCollector_1a4515e6f265ca6245722a65f3223265dd" kindref="member">reset</ref>()</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" kindref="member">str</ref>.reset();</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/>clear_and_shrink(<ref refid="classmkbindump_1_1StrCollector_1aad66c55bf6c24af432fd3ee519aa816e" kindref="member">ofs</ref>);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="classmkbindump_1_1StrCollector_1a45e6ac5852eb1c73712a3a145c700f5c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classmkbindump_1_1StrCollector_1a45e6ac5852eb1c73712a3a145c700f5c" kindref="member">addString</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s)</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(s<sp/>&amp;&amp;<sp/><ref refid="classmkbindump_1_1StrCollector_1aad66c55bf6c24af432fd3ee519aa816e" kindref="member">ofs</ref>.size()<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" kindref="member">str</ref>.getName(<ref refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" kindref="member">str</ref>.addNameId(s));</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="classmkbindump_1_1StrCollector_1a58e0c79477d82d4c05e4fdab135252f8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1StrCollector_1a58e0c79477d82d4c05e4fdab135252f8" kindref="member">strCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" kindref="member">str</ref>.nameCount();<sp/>}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="classmkbindump_1_1StrCollector_1a982d864e1f7d05ceef11242fc8ca52b7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1StrCollector_1a982d864e1f7d05ceef11242fc8ca52b7" kindref="member">writeStrings</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr);</highlight></codeline>
+<codeline lineno="35" refid="classmkbindump_1_1StrCollector_1a12ce141a58c15d2a62586d0a85d03dc9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1StrCollector_1a12ce141a58c15d2a62586d0a85d03dc9" kindref="member">writeStringsEx</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr,<sp/>dag::Span&lt;StrCollector&gt;<sp/>written_str);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classmkbindump_1_1StrCollector_1a1e91d7a0f3bb69390a0ea1a87c5c39be" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1StrCollector_1a1e91d7a0f3bb69390a0ea1a87c5c39be" kindref="member">getOffset</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!s<sp/>||<sp/><ref refid="classmkbindump_1_1StrCollector_1aad66c55bf6c24af432fd3ee519aa816e" kindref="member">ofs</ref>.size()<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/><ref refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" kindref="member">str</ref>.getNameId(s);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>&gt;=<sp/>0)<sp/>?<sp/><ref refid="classmkbindump_1_1StrCollector_1aad66c55bf6c24af432fd3ee519aa816e" kindref="member">ofs</ref>[id]<sp/>:<sp/>-1;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="classmkbindump_1_1StrCollector_1a12e4a6eab22c652d205de9d518eed8aa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>FastNameMapEx<sp/>&amp;<ref refid="classmkbindump_1_1StrCollector_1a12e4a6eab22c652d205de9d518eed8aa" kindref="member">getMap</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" kindref="member">str</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="48" refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" refkind="member"><highlight class="normal"><sp/><sp/>FastNameMapEx<sp/><ref refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" kindref="member">str</ref>;</highlight></codeline>
+<codeline lineno="49" refid="classmkbindump_1_1StrCollector_1aad66c55bf6c24af432fd3ee519aa816e" refkind="member"><highlight class="normal"><sp/><sp/>SmallTab&lt;int,<sp/>TmpmemAlloc&gt;<sp/><ref refid="classmkbindump_1_1StrCollector_1aad66c55bf6c24af432fd3ee519aa816e" kindref="member">ofs</ref>;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="classmkbindump_1_1RoNameMapBuilder" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classmkbindump_1_1RoNameMapBuilder" kindref="compound">RoNameMapBuilder</ref></highlight></codeline>
+<codeline lineno="54"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="56" refid="classmkbindump_1_1RoNameMapBuilder_1ab5c4eb65fdd235d6e1cf0d01159673a6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1ab5c4eb65fdd235d6e1cf0d01159673a6" kindref="member">RoNameMapBuilder</ref>()</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1ad2ab4406edcaa7525e66ae8cf2e7073e" kindref="member">ptStr</ref>.<ref refid="structmkbindump_1_1PatchTabRef_1ac22d683d5c8eb13c70d094a07dee4b17" kindref="member">reset</ref>();</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a87ad1f32827f1ab9ed4415a66a054a94" kindref="member">ptIdx</ref>.<ref refid="structmkbindump_1_1PatchTabRef_1ac22d683d5c8eb13c70d094a07dee4b17" kindref="member">reset</ref>();</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>NM&gt;</highlight></codeline>
+<codeline lineno="63" refid="classmkbindump_1_1RoNameMapBuilder_1aaf83161193d86ebd196d31858665916b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1aaf83161193d86ebd196d31858665916b" kindref="member">prepare</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>NM<sp/>&amp;src,<sp/><ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref><sp/>&amp;common_names,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>no_idx_remap<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a34b1c5bdb56b26e00ef5c5a8da3eef22" kindref="member">strNames</ref><sp/>=<sp/>&amp;common_names;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1af18c1beb0b21b31fd3b977982405bc53" kindref="member">noIdxRemap</ref><sp/>=<sp/>no_idx_remap;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" kindref="member">map</ref>.reset();</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>iterate_names_in_id_order(src,<sp/>[&amp;](</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>{</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" kindref="member">map</ref>.addNameId(name);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>common_names.<ref refid="classmkbindump_1_1StrCollector_1a45e6ac5852eb1c73712a3a145c700f5c" kindref="member">addString</ref>(name);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>});</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" kindref="member">map</ref>.<ref refid="classmkbindump_1_1GatherNameMap_1a9517016739525079491d7cb0a970b42c" kindref="member">prepareXmap</ref>();</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="76" refid="classmkbindump_1_1RoNameMapBuilder_1a751604445429fb6b4cdfd0cb89459ea8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a751604445429fb6b4cdfd0cb89459ea8" kindref="member">prepare</ref>(<ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref><sp/>&amp;direct_namemap);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="classmkbindump_1_1RoNameMapBuilder_1a92e74f0842e555ff1b66ea02a11dc3f3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a92e74f0842e555ff1b66ea02a11dc3f3" kindref="member">writeHdr</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr);</highlight></codeline>
+<codeline lineno="79" refid="classmkbindump_1_1RoNameMapBuilder_1ac4f63fa8f2b33e989461ee1235ea97f5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1ac4f63fa8f2b33e989461ee1235ea97f5" kindref="member">writeMap</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="classmkbindump_1_1RoNameMapBuilder_1ae13f06dface6150571ee3aaf5e741a95" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1ae13f06dface6150571ee3aaf5e741a95" kindref="member">getFinalNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="82"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!name)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>-1;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" kindref="member">map</ref>.getNameId(name);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1af18c1beb0b21b31fd3b977982405bc53" kindref="member">noIdxRemap</ref><sp/>?<sp/>id<sp/>:<sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" kindref="member">map</ref>.<ref refid="classmkbindump_1_1GatherNameMap_1a74bc94cbb680463f6c7af1e3c90b4209" kindref="member">xmap</ref>[id];</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="90" refid="classmkbindump_1_1RoNameMapBuilder_1a34b1c5bdb56b26e00ef5c5a8da3eef22" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref><sp/>*<ref refid="classmkbindump_1_1RoNameMapBuilder_1a34b1c5bdb56b26e00ef5c5a8da3eef22" kindref="member">strNames</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="91" refid="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1GatherNameMap" kindref="compound">GatherNameMap</ref><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" kindref="member">map</ref>;</highlight></codeline>
+<codeline lineno="92" refid="classmkbindump_1_1RoNameMapBuilder_1a87ad1f32827f1ab9ed4415a66a054a94" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structmkbindump_1_1PatchTabRef" kindref="compound">PatchTabRef</ref><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1ad2ab4406edcaa7525e66ae8cf2e7073e" kindref="member">ptStr</ref>,<sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1a87ad1f32827f1ab9ed4415a66a054a94" kindref="member">ptIdx</ref>;</highlight></codeline>
+<codeline lineno="93" refid="classmkbindump_1_1RoNameMapBuilder_1af18c1beb0b21b31fd3b977982405bc53" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder_1af18c1beb0b21b31fd3b977982405bc53" kindref="member">noIdxRemap</ref><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97" refid="classmkbindump_1_1RoDataBlockBuilder" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classmkbindump_1_1RoDataBlockBuilder" kindref="compound">RoDataBlockBuilder</ref></highlight></codeline>
+<codeline lineno="98"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="100" refid="classmkbindump_1_1RoDataBlockBuilder_1a5afe16f4b04ca1cfed1336a312899a75" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a5afe16f4b04ca1cfed1336a312899a75" kindref="member">RoDataBlockBuilder</ref>()<sp/>:<sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a116b86ae2a5483084462ccf0f551f680" kindref="member">params</ref>(tmpmem),<sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1ad4432980d771b4c45c6264bca9cb8e36" kindref="member">blocks</ref>(tmpmem)<sp/>{}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102" refid="classmkbindump_1_1RoDataBlockBuilder_1aff89a46a4f28492d5897cf785b332523" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1aff89a46a4f28492d5897cf785b332523" kindref="member">prepare</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>write_be);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104" refid="classmkbindump_1_1RoDataBlockBuilder_1adda911e1864ae96bff4a3c57e969e20c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1adda911e1864ae96bff4a3c57e969e20c" kindref="member">writeHdr</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr);</highlight></codeline>
+<codeline lineno="105" refid="classmkbindump_1_1RoDataBlockBuilder_1aeced23bbb4d58172793a2ba4e705d933" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1aeced23bbb4d58172793a2ba4e705d933" kindref="member">writeData</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="108" refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec" kindref="compound">ParamRec</ref></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110" refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a1c3ccf0aa4b487f1c2d327bd4245aaba" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a1c3ccf0aa4b487f1c2d327bd4245aaba" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="113" refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a63e50cc71009f9beaa18605b7f04e04b" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1a63e50cc71009f9beaa18605b7f04e04b" kindref="member">val</ref>;</highlight></codeline>
+<codeline lineno="114" refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1abf8d377e34386ab8e06d68e9dff8dd95" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1abf8d377e34386ab8e06d68e9dff8dd95" kindref="member">rval</ref>;</highlight></codeline>
+<codeline lineno="115" refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1afe06e271e85e58184113777f155cf1ca" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1afe06e271e85e58184113777f155cf1ca" kindref="member">sval</ref>;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="117" refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1ab013915d567bdd421a4949cff28780ee" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1ParamRec_1ab013915d567bdd421a4949cff28780ee" kindref="member">type</ref>;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="119" refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec" kindref="compound">BlockRec</ref></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="121" refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1ab209087134c927ae000cc300e513cb77" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structmkbindump_1_1PatchTabRef" kindref="compound">PatchTabRef</ref><sp/><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1ab209087134c927ae000cc300e513cb77" kindref="member">ptParam</ref>;</highlight></codeline>
+<codeline lineno="122" refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a48048ca504e19112bc4162b06534172e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structmkbindump_1_1PatchTabRef" kindref="compound">PatchTabRef</ref><sp/><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a48048ca504e19112bc4162b06534172e" kindref="member">ptBlock</ref>;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a9049117d81aff32df1b74a22c4f20005" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a9049117d81aff32df1b74a22c4f20005" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="125" refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a017070c745270d0cd28ec5d65ba60c9f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a64ebfdaa3013971f10dfa84625d354dd" kindref="member">stBlock</ref>,<sp/><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1a017070c745270d0cd28ec5d65ba60c9f" kindref="member">blockNum</ref>;</highlight></codeline>
+<codeline lineno="126" refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1af4a9645657c19a542cb6e33dc9a760cd" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1afa4ad3909cd0decb3755eab499b9a49a" kindref="member">stParam</ref>,<sp/><ref refid="structmkbindump_1_1RoDataBlockBuilder_1_1BlockRec_1af4a9645657c19a542cb6e33dc9a760cd" kindref="member">paramNum</ref>;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129" refid="classmkbindump_1_1RoDataBlockBuilder_1ab1961b0373686aea9a4d5756642e9ca9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1ab1961b0373686aea9a4d5756642e9ca9" kindref="member">varNames</ref>;</highlight></codeline>
+<codeline lineno="130" refid="classmkbindump_1_1RoDataBlockBuilder_1a7ef7e3939de6d8d0f6fa3a9f1ecb98bf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a7ef7e3939de6d8d0f6fa3a9f1ecb98bf" kindref="member">valStr</ref>;</highlight></codeline>
+<codeline lineno="131" refid="classmkbindump_1_1RoDataBlockBuilder_1a6f0ed679019db54f3fa2e8e1a48d4445" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder" kindref="compound">RoNameMapBuilder</ref><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a6f0ed679019db54f3fa2e8e1a48d4445" kindref="member">nameMap</ref>;</highlight></codeline>
+<codeline lineno="132" refid="classmkbindump_1_1RoDataBlockBuilder_1a7ee82e9e84628260df75162d72419d26" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structmkbindump_1_1SharedStorage" kindref="compound">SharedStorage&lt;real&gt;</ref><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a7ee82e9e84628260df75162d72419d26" kindref="member">realStor</ref>;</highlight></codeline>
+<codeline lineno="133" refid="classmkbindump_1_1RoDataBlockBuilder_1a717f7ca48c4532b3370874ba7fe16994" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structmkbindump_1_1SharedStorage" kindref="compound">SharedStorage&lt;int&gt;</ref><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a717f7ca48c4532b3370874ba7fe16994" kindref="member">intStor</ref>;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135" refid="classmkbindump_1_1RoDataBlockBuilder_1a116b86ae2a5483084462ccf0f551f680" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;ParamRec&gt;<sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a116b86ae2a5483084462ccf0f551f680" kindref="member">params</ref>;</highlight></codeline>
+<codeline lineno="136" refid="classmkbindump_1_1RoDataBlockBuilder_1ad4432980d771b4c45c6264bca9cb8e36" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;BlockRec&gt;<sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1ad4432980d771b4c45c6264bca9cb8e36" kindref="member">blocks</ref>;</highlight></codeline>
+<codeline lineno="137" refid="classmkbindump_1_1RoDataBlockBuilder_1a615734d1e1c3c5615135f429d0dff392" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a615734d1e1c3c5615135f429d0dff392" kindref="member">nameMapOfs</ref><sp/>=<sp/>-1,<sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a4fcc9e29d35077fe225aabe43c860c24" kindref="member">nameMapRefPos</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139" refid="classmkbindump_1_1RoDataBlockBuilder_1a65867ff60a1de7ce1b900856558959ca" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a65867ff60a1de7ce1b900856558959ca" kindref="member">enumDataBlock</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bi,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>write_be);</highlight></codeline>
+<codeline lineno="140" refid="classmkbindump_1_1RoDataBlockBuilder_1a491f76aeb09078ad480f68338206e47b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder_1a491f76aeb09078ad480f68338206e47b" kindref="member">enumWriteBlocks</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>bi);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>NM&gt;</highlight></codeline>
+<codeline lineno="145" refid="namespacemkbindump_1a4e183ac82da7c5b8e44ed2ff072b05a4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacemkbindump_1a4e183ac82da7c5b8e44ed2ff072b05a4" kindref="member">write_ro_namemap</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>NM<sp/>&amp;nm)</highlight></codeline>
+<codeline lineno="146"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref><sp/>all_names;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1RoNameMapBuilder" kindref="compound">RoNameMapBuilder</ref><sp/>b;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>b.<ref refid="classmkbindump_1_1RoNameMapBuilder_1aaf83161193d86ebd196d31858665916b" kindref="member">prepare</ref>(nm,<sp/>all_names);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a1cbc4b94c4088f3354970787933072ae" kindref="member">beginBlock</ref>();</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1aa6b93266421cb0f76bbac58dac554059" kindref="member">setOrigin</ref>();</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>b.<ref refid="classmkbindump_1_1RoNameMapBuilder_1a92e74f0842e555ff1b66ea02a11dc3f3" kindref="member">writeHdr</ref>(cwr);</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>all_names.<ref refid="classmkbindump_1_1StrCollector_1a982d864e1f7d05ceef11242fc8ca52b7" kindref="member">writeStrings</ref>(cwr);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/>b.<ref refid="classmkbindump_1_1RoNameMapBuilder_1ac4f63fa8f2b33e989461ee1235ea97f5" kindref="member">writeMap</ref>(cwr);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a32df2cedf933ee0832c2eab42837b162" kindref="member">popOrigin</ref>();</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a209c061073f763cfb4608128c12246da" kindref="member">endBlock</ref>();</highlight></codeline>
+<codeline lineno="161"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163" refid="namespacemkbindump_1a5994b6a6434a7b699f7cf95f2be86453" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacemkbindump_1a5994b6a6434a7b699f7cf95f2be86453" kindref="member">write_ro_datablock</ref>(<ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref><sp/>&amp;cwr,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk)</highlight></codeline>
+<codeline lineno="164"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><ref refid="classmkbindump_1_1RoDataBlockBuilder" kindref="compound">RoDataBlockBuilder</ref><sp/>b;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/>b.<ref refid="classmkbindump_1_1RoDataBlockBuilder_1aff89a46a4f28492d5897cf785b332523" kindref="member">prepare</ref>(blk,<sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1ac7962cf02ccafd59e06fe2f4950686e9" kindref="member">WRITE_BE</ref>);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a1cbc4b94c4088f3354970787933072ae" kindref="member">beginBlock</ref>();</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1aa6b93266421cb0f76bbac58dac554059" kindref="member">setOrigin</ref>();</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/>b.<ref refid="classmkbindump_1_1RoDataBlockBuilder_1adda911e1864ae96bff4a3c57e969e20c" kindref="member">writeHdr</ref>(cwr);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/>b.<ref refid="classmkbindump_1_1RoDataBlockBuilder_1aeced23bbb4d58172793a2ba4e705d933" kindref="member">writeData</ref>(cwr);</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a32df2cedf933ee0832c2eab42837b162" kindref="member">popOrigin</ref>();</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>cwr.<ref refid="classmkbindump_1_1BinDumpSaveCB_1a209c061073f763cfb4608128c12246da" kindref="member">endBlock</ref>();</highlight></codeline>
+<codeline lineno="177"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="178"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>mkbindump</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="binDumpUtil.h"/>
+  </compounddef>
+</doxygen>

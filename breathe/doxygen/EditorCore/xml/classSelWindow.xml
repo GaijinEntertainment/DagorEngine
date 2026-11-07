@@ -1,0 +1,367 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSelWindow" kind="class" language="C++" prot="public">
+    <compoundname>SelWindow</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::DialogWindow</basecompoundref>
+    <includes refid="ec__selwindow_8h" local="no">ec_selwindow.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classSelWindow_1a781d5ffd04d40dddcfd7359c9f4bed8d" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* SelWindow::objListName</definition>
+        <argsstring></argsstring>
+        <name>objListName</name>
+        <qualifiedname>SelWindow::objListName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="42" column="14" bodyfile="ec_selwindow.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSelWindow_1ab01e48b20f6b70441c4ec0a331a0686c" prot="private" static="no" mutable="no">
+        <type><ref refid="classIObjectsList" kindref="compound">IObjectsList</ref> *</type>
+        <definition>IObjectsList* SelWindow::objects</definition>
+        <argsstring></argsstring>
+        <name>objects</name>
+        <qualifiedname>SelWindow::objects</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="43" column="16" bodyfile="ec_selwindow.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSelWindow_1a0f936810d6ce0c5d3efc3007dc720094" prot="private" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; SelWindow::typeNames</definition>
+        <argsstring></argsstring>
+        <name>typeNames</name>
+        <qualifiedname>SelWindow::typeNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="45" column="7" bodyfile="ec_selwindow.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSelWindow_1ad10fdc2b214f449e1ac9bbda9878ebfd" prot="private" static="no" mutable="no">
+        <type>DataBlock *</type>
+        <definition>DataBlock* SelWindow::typesBlk</definition>
+        <argsstring></argsstring>
+        <name>typesBlk</name>
+        <qualifiedname>SelWindow::typesBlk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="48" column="13" bodyfile="ec_selwindow.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSelWindow_1ac6d46b3b037d3887bd62d09bf5bb3a34" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SelWindow::SelWindow</definition>
+        <argsstring>(void *phandle, IObjectsList *obj, const char *obj_list_owner_name=NULL)</argsstring>
+        <name>SelWindow</name>
+        <qualifiedname>SelWindow::SelWindow</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>phandle</declname>
+        </param>
+        <param>
+          <type><ref refid="classIObjectsList" kindref="compound">IObjectsList</ref> *</type>
+          <declname>obj</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>obj_list_owner_name</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor 1. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to parent window (may be NULL) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>obj</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to interface <ref refid="classIObjectsList" kindref="compound">IObjectsList</ref> </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="24" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelWindow_1aaebba492937514b6d53e087932f8941a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SelWindow::SelWindow</definition>
+        <argsstring>(void *phandle, const EcRect &amp;rect, IObjectsList *obj, const char *obj_list_owner_name=NULL)</argsstring>
+        <name>SelWindow</name>
+        <qualifiedname>SelWindow::SelWindow</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>phandle</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structEcRect" kindref="compound">EcRect</ref> &amp;</type>
+          <declname>rect</declname>
+        </param>
+        <param>
+          <type><ref refid="classIObjectsList" kindref="compound">IObjectsList</ref> *</type>
+          <declname>obj</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>obj_list_owner_name</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor 2. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to parent window (may be NULL) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">rect</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- dialog window size </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>obj</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to interface <ref refid="classIObjectsList" kindref="compound">IObjectsList</ref> </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="30" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelWindow_1a93d9ffe03b8b3a5859be25ef06997d5d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SelWindow::~SelWindow</definition>
+        <argsstring>() override</argsstring>
+        <name>~SelWindow</name>
+        <qualifiedname>SelWindow::~SelWindow</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="33" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelWindow_1a63af9be4a951880942f345576b68bc45" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int SelWindow::showDialog</definition>
+        <argsstring>() override</argsstring>
+        <name>showDialog</name>
+        <qualifiedname>SelWindow::showDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="35" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelWindow_1a8e7e93ffb09361959dbc14269c923087" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SelWindow::getSelectedNames</definition>
+        <argsstring>(Tab&lt; String &gt; &amp;names)</argsstring>
+        <name>getSelectedNames</name>
+        <qualifiedname>SelWindow::getSelectedNames</qualifiedname>
+        <param>
+          <type>Tab&lt; String &gt; &amp;</type>
+          <declname>names</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get list of selected objects. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- objects list </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="39" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classSelWindow_1a7390384e0af42c900e7b5a3a9db4ee25" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SelWindow::ctorInit</definition>
+        <argsstring>()</argsstring>
+        <name>ctorInit</name>
+        <qualifiedname>SelWindow::ctorInit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="50" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelWindow_1a9ba5e6313ed1767b414f67706334f259" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SelWindow::fillNames</definition>
+        <argsstring>()</argsstring>
+        <name>fillNames</name>
+        <qualifiedname>SelWindow::fillNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="52" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelWindow_1aa8a700f0052f87139cc634c72746142b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SelWindow::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onChange</name>
+        <qualifiedname>SelWindow::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="55" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelWindow_1a2681541c9224707c4b6d536c8f820e1e" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SelWindow::onClick</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onClick</name>
+        <qualifiedname>SelWindow::onClick</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="56" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classSelWindow_1a04c5636305e40ac14f9238b727a2a400" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void SelWindow::onDoubleClick</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onDoubleClick</name>
+        <qualifiedname>SelWindow::onDoubleClick</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_selwindow.h" line="57" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Class for dialog window &apos;Select objects by name&apos;. (Called by key &apos;H&apos;) </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+      <node id="1">
+        <label>SelWindow</label>
+        <link refid="classSelWindow"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+      <node id="1">
+        <label>SelWindow</label>
+        <link refid="classSelWindow"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_selwindow.h" line="18" column="1" bodyfile="ec_selwindow.h" bodystart="19" bodyend="58"/>
+    <listofallmembers>
+      <member refid="classSelWindow_1a7390384e0af42c900e7b5a3a9db4ee25" prot="private" virt="non-virtual"><scope>SelWindow</scope><name>ctorInit</name></member>
+      <member refid="classSelWindow_1a9ba5e6313ed1767b414f67706334f259" prot="private" virt="non-virtual"><scope>SelWindow</scope><name>fillNames</name></member>
+      <member refid="classSelWindow_1a8e7e93ffb09361959dbc14269c923087" prot="public" virt="non-virtual"><scope>SelWindow</scope><name>getSelectedNames</name></member>
+      <member refid="classSelWindow_1ab01e48b20f6b70441c4ec0a331a0686c" prot="private" virt="non-virtual"><scope>SelWindow</scope><name>objects</name></member>
+      <member refid="classSelWindow_1a781d5ffd04d40dddcfd7359c9f4bed8d" prot="private" virt="non-virtual"><scope>SelWindow</scope><name>objListName</name></member>
+      <member refid="classSelWindow_1aa8a700f0052f87139cc634c72746142b" prot="private" virt="non-virtual"><scope>SelWindow</scope><name>onChange</name></member>
+      <member refid="classSelWindow_1a2681541c9224707c4b6d536c8f820e1e" prot="private" virt="non-virtual"><scope>SelWindow</scope><name>onClick</name></member>
+      <member refid="classSelWindow_1a04c5636305e40ac14f9238b727a2a400" prot="private" virt="non-virtual"><scope>SelWindow</scope><name>onDoubleClick</name></member>
+      <member refid="classSelWindow_1ac6d46b3b037d3887bd62d09bf5bb3a34" prot="public" virt="non-virtual"><scope>SelWindow</scope><name>SelWindow</name></member>
+      <member refid="classSelWindow_1aaebba492937514b6d53e087932f8941a" prot="public" virt="non-virtual"><scope>SelWindow</scope><name>SelWindow</name></member>
+      <member refid="classSelWindow_1a63af9be4a951880942f345576b68bc45" prot="public" virt="non-virtual"><scope>SelWindow</scope><name>showDialog</name></member>
+      <member refid="classSelWindow_1a0f936810d6ce0c5d3efc3007dc720094" prot="private" virt="non-virtual"><scope>SelWindow</scope><name>typeNames</name></member>
+      <member refid="classSelWindow_1ad10fdc2b214f449e1ac9bbda9878ebfd" prot="private" virt="non-virtual"><scope>SelWindow</scope><name>typesBlk</name></member>
+      <member refid="classSelWindow_1a93d9ffe03b8b3a5859be25ef06997d5d" prot="public" virt="non-virtual"><scope>SelWindow</scope><name>~SelWindow</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

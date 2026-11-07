@@ -1,0 +1,186 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStaticMeshRTracer_1_1RTface" kind="struct" language="C++" prot="public">
+    <compoundname>StaticMeshRTracer::RTface</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1ac12e852aafbf4c445ac145683ceea091" prot="public" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 StaticMeshRTracer::RTface::v0</definition>
+        <argsstring></argsstring>
+        <name>v0</name>
+        <qualifiedname>StaticMeshRTracer::RTface::v0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="34" column="12" bodyfile="meshtrace.cpp" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1a75de053efd396ac3cbed8cf6151ae78d" prot="public" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 StaticMeshRTracer::RTface::bary1</definition>
+        <argsstring></argsstring>
+        <name>bary1</name>
+        <qualifiedname>StaticMeshRTracer::RTface::bary1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="34" column="15" bodyfile="meshtrace.cpp" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1a37699563f5b98c359cce42906e345127" prot="public" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 StaticMeshRTracer::RTface::bary2</definition>
+        <argsstring></argsstring>
+        <name>bary2</name>
+        <qualifiedname>StaticMeshRTracer::RTface::bary2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="34" column="21" bodyfile="meshtrace.cpp" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1a15803c122d3ab2b6fa00a403cfe22e06" prot="public" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 StaticMeshRTracer::RTface::sc</definition>
+        <argsstring></argsstring>
+        <name>sc</name>
+        <qualifiedname>StaticMeshRTracer::RTface::sc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="35" column="12" bodyfile="meshtrace.cpp" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1a98e465af8e5d8789891ce47d7f37511a" prot="public" static="no" mutable="no">
+        <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real StaticMeshRTracer::RTface::sr2</definition>
+        <argsstring></argsstring>
+        <name>sr2</name>
+        <qualifiedname>StaticMeshRTracer::RTface::sr2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="36" column="10" bodyfile="meshtrace.cpp" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1a657eaf4cac055af572496a1225b79687" prot="public" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 StaticMeshRTracer::RTface::n</definition>
+        <argsstring></argsstring>
+        <name>n</name>
+        <qualifiedname>StaticMeshRTracer::RTface::n</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="37" column="12" bodyfile="meshtrace.cpp" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1af67b8da426399ccf45773fea636ab45a" prot="public" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 StaticMeshRTracer::RTface::en[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>en</name>
+        <qualifiedname>StaticMeshRTracer::RTface::en</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="37" column="14" bodyfile="meshtrace.cpp" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1a64ce11d2857b52ca73f1476e416cb7cd" prot="public" static="no" mutable="no">
+        <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real StaticMeshRTracer::RTface::d</definition>
+        <argsstring></argsstring>
+        <name>d</name>
+        <qualifiedname>StaticMeshRTracer::RTface::d</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="38" column="10" bodyfile="meshtrace.cpp" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1a31ec6c9951af86504256958b93463009" prot="public" static="no" mutable="no">
+        <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real StaticMeshRTracer::RTface::ed[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>ed</name>
+        <qualifiedname>StaticMeshRTracer::RTface::ed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="38" column="12" bodyfile="meshtrace.cpp" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStaticMeshRTracer_1_1RTface_1aa348dd6ddd18ca104c5b257900d5cd05" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int StaticMeshRTracer::RTface::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>StaticMeshRTracer::RTface::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="39" column="9" bodyfile="meshtrace.cpp" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStaticMeshRTracer_1_1RTface_1a8e9ccb5764214820c75afea39f2787bb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 StaticMeshRTracer::RTface::barycentric</definition>
+        <argsstring>(const Point3 &amp;pt) const</argsstring>
+        <name>barycentric</name>
+        <qualifiedname>StaticMeshRTracer::RTface::barycentric</qualifiedname>
+        <param>
+          <type>const <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>pt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="meshtrace.cpp" line="41" column="12" bodyfile="meshtrace.cpp" bodystart="41" bodyend="46"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="meshtrace.cpp" line="32" column="3" bodyfile="meshtrace.cpp" bodystart="33" bodyend="47"/>
+    <listofallmembers>
+      <member refid="structStaticMeshRTracer_1_1RTface_1a75de053efd396ac3cbed8cf6151ae78d" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>bary1</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1a37699563f5b98c359cce42906e345127" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>bary2</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1a8e9ccb5764214820c75afea39f2787bb" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>barycentric</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1a64ce11d2857b52ca73f1476e416cb7cd" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>d</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1a31ec6c9951af86504256958b93463009" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>ed</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1af67b8da426399ccf45773fea636ab45a" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>en</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1aa348dd6ddd18ca104c5b257900d5cd05" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>id</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1a657eaf4cac055af572496a1225b79687" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>n</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1a15803c122d3ab2b6fa00a403cfe22e06" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>sc</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1a98e465af8e5d8789891ce47d7f37511a" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>sr2</name></member>
+      <member refid="structStaticMeshRTracer_1_1RTface_1ac12e852aafbf4c445ac145683ceea091" prot="public" virt="non-virtual"><scope>StaticMeshRTracer::RTface</scope><name>v0</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
