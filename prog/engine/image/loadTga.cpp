@@ -144,7 +144,7 @@ struct TgaHeader
   uint8_t idlen, cmtype, pack;
   uint16_t cmorg, cmlen;
   uint8_t cmes;
-  short xo, yo, w, h;
+  uint16_t xo, yo, w, h;
   char bits, desc;
 #if _TARGET_CPU_BE
   void swap()
@@ -241,7 +241,7 @@ TexImage32 *load_tga32(IGenLoad &crd, IMemAlloc *mem, bool *out_used_alpha, unsi
   }
   int cb = hdr.bits >> 3;
 
-  TexImage32 *im = (TexImage32 *)mem->tryAlloc(sizeof(TexImage32) + hdr.w * hdr.h * 4);
+  TexImage32 *im = (TexImage32 *)mem->tryAlloc(sizeof(TexImage32) + (size_t)(uint32_t)hdr.w * (uint32_t)hdr.h * 4);
   if (!im)
     return NULL;
 
