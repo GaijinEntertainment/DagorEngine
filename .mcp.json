@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "daslang": {
+      "command": "D:\\GaijinEngine\\tools\\util\\das-64-dev.exe",
+      "args": ["utils/mcp/main.das"]
+    },
+    "dafg": {
+      "command": "D:\\GaijinEngine\\tools\\util\\das-64-dev.exe",
+      "args": ["utils/mcp/dafg_mcp_main.das"]
+    }
+  }
+}
