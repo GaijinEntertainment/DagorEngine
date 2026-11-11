@@ -14,6 +14,7 @@ import:t="%danetlibs/package_motorbike/templates/motorbike.template.blk"
 import_optional:t="composite_entities/*.entities.blk"
 import:t="game_logic.blk"
 import:t="checkpoints_fx.blk"
+import:t="lights.blk"
 
 replicating{
   replication {_tags:t="net";}
