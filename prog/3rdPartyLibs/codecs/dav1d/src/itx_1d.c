@@ -69,7 +69,7 @@ inv_dct4_1d_internal_c(int32_t *const c, const ptrdiff_t stride,
     assert(stride > 0);
     const int in0 = c[0 * stride], in1 = c[1 * stride];
 
-    int t0, t1, t2, t3;
+    dctint t0, t1, t2, t3;
     if (tx64) {
         t0 = t1 = (in0 * 181 + 128) >> 8;
         t2 = (in1 * 1567 + 2048) >> 12;
